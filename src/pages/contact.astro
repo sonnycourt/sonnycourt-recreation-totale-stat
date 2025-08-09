@@ -48,6 +48,7 @@ import Layout from '../layouts/Layout.astro';
         <div class="contact-form">
           <h2>Envoie-moi un message</h2>
           <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="contact" />
             <!-- Champ anti-spam (caché) -->
             <p style="display: none;">
               <label>Ne pas remplir ce champ si vous êtes humain : <input name="bot-field" /></label>
@@ -371,24 +372,43 @@ import Layout from '../layouts/Layout.astro';
     const submitBtn = form.querySelector('.submit-btn');
     const formMessage = document.getElementById('form-message');
     
-    // Gestion de la soumission du formulaire
-    form.addEventListener('submit', function(e) {
-      // Désactive le bouton pendant l'envoi
+    // Soumission SANS redirection (AJAX Netlify Forms)
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
       submitBtn.disabled = true;
       submitBtn.textContent = 'Envoi en cours...';
-      
-      // Laisser Netlify gérer l'envoi NORMALEMENT
-      // Afficher le message après un délai court
-      setTimeout(() => {
-        formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
-        formMessage.className = 'form-message show';
-        form.reset();
-        formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Réactiver le bouton
+
+      const formData = new FormData(form);
+      // file -> string (Netlify Forms nécessite x-www-form-urlencoded)
+      const encoded = new URLSearchParams();
+      for (const [key, value] of formData.entries()) {
+        encoded.append(key, value as string);
+      }
+
+      try {
+        // IMPORTANT: envoyer sur la racine, pas /contact (Netlify requirement)
+        const res = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: encoded.toString(),
+        });
+
+        // Considérer 200/302 comme succès (Netlify peut répondre 302)
+        if (res.ok || res.status === 302) {
+          formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
+          formMessage.className = 'form-message show';
+          form.reset();
+          formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          throw new Error('Netlify response ' + res.status);
+        }
+      } catch (err) {
+        formMessage.innerHTML = '<p>❌ Erreur lors de l\'envoi. Réessaie ou contacte-moi à info@sonnycourt.com</p>';
+        formMessage.className = 'form-message show error';
+      } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Envoyer le message';
-      }, 1500);
+      }
     });
     
     // Validation en temps réel
