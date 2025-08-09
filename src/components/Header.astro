@@ -1,0 +1,268 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const navItems = [
+  { href: "/formations", label: "Formations" },
+  { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
+  { href: "/login", label: "Se connecter", className: "nav-login" },
+  { href: "/commencer", label: "Commencer", className: "nav-cta" }
+];
+---
+
+<nav>
+  <div class="nav-container">
+    <a href="/" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 32px; height: 32px;">
+          <path d="M11.86 0L11.66 0.2L11.63 0.17L11.66 0.2L11.46 0.44L11.39 0.44L11.42 0.51L11.12 0.88L10.98 0.95L11.01 0.98L10.95 1.09L9.86 2.44L9.79 2.51L9.76 2.48L9.76 2.58L9.38 3.06L9.28 3.16L9.25 3.12L9.28 3.16L9.15 3.36L8.77 3.84L8.71 3.9L8.67 3.87L8.71 3.94L7.99 4.85L7.89 4.96L7.86 4.92L7.89 4.99L7.79 5.13L7.31 5.74L7.21 5.84L7.18 5.8L7.21 5.87L7.11 6.01L5.92 7.54L5.85 7.6L5.82 7.57L5.85 7.6L5.72 7.81L5.62 7.91L5.58 7.88L5.58 7.98L5.28 8.38L5.04 8.66L5.01 8.62L5.04 8.69L4.84 8.96L3.24 11.03L3.14 11.13L3.1 11.1L3.14 11.17L2.56 11.92L2.46 12.02L2.43 11.98L2.46 12.05L1.48 13.31L1.37 13.41L1.34 13.37L1.37 13.44L1 13.88L1.03 13.92L2.46 13.75L4.06 13.65L5.89 13.44L6.3 13.48L6.26 13.54L6.23 13.51L6.26 13.61L6.19 13.71L6.16 13.68L6.16 13.88L5.82 14.63L3.04 21.59L2.8 22.3L2.46 23.08L2.29 23.66L2.12 23.93L2.15 24L2.43 23.73L3.1 22.85L3.24 22.71L3.27 22.74L3.24 22.68L5.58 19.69L5.68 19.59L5.72 19.62L5.68 19.55L6.57 18.4L11.46 12.08L11.69 11.81L11.73 11.85L11.73 11.75L12.44 10.83L12.81 10.39L12.88 10.42L12.81 10.35L13.08 10.05L12.92 10.01L7.99 10.49L7.72 10.46L10.95 2.31L11.08 2.04L11.12 2.1L11.08 1.97L11.79 0.14L11.9 0Z"/>
+        </svg>
+      </div>
+      <span>SONNY COURT</span>
+    </a>
+    
+    <ul class="nav-menu">
+      {navItems.map(item => (
+        <li>
+          <a 
+            href={item.href} 
+            class={item.className || ""}
+            class:active={currentPath === item.href}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+    
+    <div class="mobile-menu-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+</nav>
+
+<style>
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 20px 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 600;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .logo:hover {
+    opacity: 0.9;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #007AFF;
+  }
+
+  .nav-menu {
+    display: flex;
+    gap: 16px;
+    list-style: none;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav-menu a {
+    color: #C7C7CC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    transition: color 0.2s ease;
+  }
+
+  .nav-menu a:hover,
+  .nav-menu a.active {
+    color: #FFFFFF;
+  }
+
+  .nav-cta {
+    padding: 8px 16px;
+    background: #007AFF;
+    color: #FFFFFF;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .nav-cta:hover {
+    background: #0051D5;
+    transform: scale(1.05);
+  }
+
+  .nav-login {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #636366;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 400;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-login:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #48484A;
+  }
+
+  /* Mobile Menu Toggle */
+  .mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 1001;
+  }
+
+  .mobile-menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: #FFFFFF;
+    margin: 3px 0;
+    transition: 0.3s;
+    border-radius: 2px;
+  }
+
+  .mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(-45deg) translate(-5px, 6px);
+  }
+
+  .mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(45deg) translate(-5px, -6px);
+  }
+
+  /* Mobile Optimization */
+  @media (max-width: 768px) {
+    .mobile-menu-toggle {
+      display: flex;
+    }
+
+    .nav-menu {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      right: 20px;
+      background: rgba(28, 28, 30, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1001;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-menu.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .nav-menu li {
+      margin: 0;
+    }
+
+    .nav-menu a {
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      display: block;
+      text-align: left;
+    }
+
+    .nav-menu a:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+</style>
+
+<script>
+  // Mobile menu toggle
+  document.addEventListener('DOMContentLoaded', function() {
+    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    if (mobileToggle && navMenu) {
+      mobileToggle.addEventListener('click', function() {
+        mobileToggle.classList.toggle('active');
+        navMenu.classList.toggle('active');
+      });
+      
+      // Close menu when clicking on a link
+      navMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function() {
+          mobileToggle.classList.remove('active');
+          navMenu.classList.remove('active');
+        });
+      });
+    }
+  });
+
+  // Dynamic nav background
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('nav');
+    if (nav) {
+      if (window.scrollY > 50) {
+        nav.style.background = 'rgba(0, 0, 0, 0.9)';
+      } else {
+        nav.style.background = 'rgba(0, 0, 0, 0.7)';
+      }
+    }
+  });
+</script>
