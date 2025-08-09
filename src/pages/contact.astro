@@ -85,8 +85,12 @@ import Layout from '../layouts/Layout.astro';
             </button>
             
             <!-- Message de confirmation -->
-            <div id="form-message" class="form-message" style="display: none;">
-              <p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>
+            <div id="form-message" class="form-message" style="display: none;" role="status" aria-live="polite">
+              <div class="form-message-icon">✅</div>
+              <div class="form-message-content">
+                <h3>Message envoyé avec succès</h3>
+                <p>Merci pour ton message. <strong>Mon équipe</strong> te répond sous 24h (jours ouvrés).</p>
+              </div>
             </div>
           </form>
         </div>
@@ -265,13 +269,15 @@ import Layout from '../layouts/Layout.astro';
   .form-message {
     margin-top: 20px;
     padding: 20px 24px;
-    background: #1a5f3f;
-    border: 2px solid #34C759;
-    border-radius: 12px;
-    text-align: center;
+    background: linear-gradient(135deg, rgba(52, 199, 89, 0.12), rgba(52, 199, 89, 0.18));
+    border: 1px solid rgba(52, 199, 89, 0.45);
+    border-radius: 14px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
     opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.4s ease;
+    transform: translateY(-8px);
+    transition: all 0.3s ease;
   }
 
   .form-message.show {
@@ -280,11 +286,29 @@ import Layout from '../layouts/Layout.astro';
     transform: translateY(0);
   }
 
-  .form-message p {
-    color: #ffffff;
-    font-weight: 600;
-    margin: 0;
+  .form-message h3 {
+    color: #E6FFF0;
     font-size: 18px;
+    margin: 0 0 4px 0;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .form-message p {
+    color: #CFF5E1;
+    font-weight: 500;
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .form-message .form-message-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .form-message .form-message-content {
+    display: flex;
+    flex-direction: column;
   }
 
   .form-message.error {
@@ -395,7 +419,7 @@ import Layout from '../layouts/Layout.astro';
 
         // Considérer 200/302 comme succès (Netlify peut répondre 302)
         if (res.ok || res.status === 302) {
-          formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
+          formMessage.innerHTML = '<div class="form-message-icon">✅</div><div class="form-message-content"><h3>Message envoyé avec succès</h3><p>Merci pour ton message. <strong>Mon équipe</strong> te répond sous 24h (jours ouvrés).</p></div>';
           formMessage.className = 'form-message show';
           form.reset();
           formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
