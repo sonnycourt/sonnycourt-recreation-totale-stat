@@ -6,7 +6,7 @@ category: "Développement Personnel"
 tags: ["neurosciences", "subconscient", "transformation", "développement personnel"]
 author: "Sonny Court"
 featured: true
-heroImage: "/media/blog/reprogrammation-subconscient.jpg"
+heroImage: "/media/articles/reprogrammation-subconscient.jpg"
 ---
 
 # Développement Personnel : Comment Reprogrammer son Subconscient pour Transformer sa Vie
