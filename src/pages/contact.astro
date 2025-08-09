@@ -372,50 +372,22 @@ import Layout from '../layouts/Layout.astro';
     
     // Gestion de la soumission du formulaire
     form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
       // Désactive le bouton pendant l'envoi
       submitBtn.disabled = true;
       submitBtn.textContent = 'Envoi en cours...';
       
-      // Créer FormData pour l'envoi
-      const formData = new FormData(form);
-      
-      // Envoyer via fetch à Netlify
-      fetch('/', {
-        method: 'POST',
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(formData).toString()
-      })
-      .then(response => {
-        // Netlify Forms fonctionne même avec des codes de statut différents
-        // Si on arrive ici, c'est que l'envoi a fonctionné
+      // Laisser Netlify gérer l'envoi naturellement
+      // Afficher le message après un court délai
+      setTimeout(() => {
         formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
         formMessage.className = 'form-message show';
-        
-        // Réinitialiser le formulaire
-        form.reset();
-        
-        // Faire défiler vers le message
-        setTimeout(() => {
-          formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
         
         // Réactiver le bouton après 3 secondes
         setTimeout(() => {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Envoyer le message';
         }, 3000);
-      })
-      .catch(error => {
-        // Erreur - afficher le message d'erreur
-        formMessage.innerHTML = '<p style="color: #FF3B30;">❌ Erreur lors de l\'envoi. Réessaie ou contacte-moi directement à info@sonnycourt.com</p>';
-        formMessage.className = 'form-message show error';
-        
-        // Réactiver le bouton
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Envoyer le message';
-      });
+      }, 1000);
     });
     
     // Validation en temps réel
