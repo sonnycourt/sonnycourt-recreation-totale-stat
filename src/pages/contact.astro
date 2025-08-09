@@ -371,23 +371,39 @@ import Layout from '../layouts/Layout.astro';
     const formMessage = document.getElementById('form-message');
     
     // Gestion de la soumission du formulaire
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault(); // EMPÊCHER la redirection Netlify
+      
       // Désactive le bouton pendant l'envoi
       submitBtn.disabled = true;
       submitBtn.textContent = 'Envoi en cours...';
       
-      // Laisser Netlify gérer l'envoi naturellement
-      // Afficher le message après un court délai
-      setTimeout(() => {
+      // Préparer les données du formulaire
+      const formData = new FormData(form);
+      
+      try {
+        // Envoyer à Netlify en AJAX (pas de redirection)
+        const response = await fetch('/', {
+          method: 'POST',
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(formData).toString()
+        });
+        
+        // Afficher le message de succès
         formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
         formMessage.className = 'form-message show';
         form.reset();
         formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        // Réactiver le bouton
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Envoyer le message';
-      }, 1500);
+      } catch (error) {
+        // En cas d'erreur
+        formMessage.innerHTML = '<p>❌ Erreur lors de l\'envoi. Réessaie ou contacte-moi directement à info@sonnycourt.com</p>';
+        formMessage.className = 'form-message show error';
+      }
+      
+      // Réactiver le bouton
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer le message';
     });
     
     // Validation en temps réel
