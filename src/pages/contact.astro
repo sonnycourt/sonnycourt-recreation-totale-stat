@@ -47,7 +47,7 @@ import Layout from '../layouts/Layout.astro';
 
         <div class="contact-form">
           <h2>Envoie-moi un message</h2>
-          <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+          <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/contact#form-message">
             <!-- Champ anti-spam (caché) -->
             <p style="display: none;">
               <label>Ne pas remplir ce champ si vous êtes humain : <input name="bot-field" /></label>
@@ -369,6 +369,13 @@ import Layout from '../layouts/Layout.astro';
     const form = document.querySelector('form[name="contact"]');
     const submitBtn = form.querySelector('.submit-btn');
     const formMessage = document.getElementById('form-message');
+    
+    // Vérifier si on revient après un envoi (URL contient #form-message)
+    if (window.location.hash === '#form-message') {
+      formMessage.innerHTML = '<p>✅ Message envoyé avec succès ! Je te réponds sous 24h.</p>';
+      formMessage.className = 'form-message show';
+      form.reset();
+    }
     
     // Gestion de la soumission du formulaire
     form.addEventListener('submit', function(e) {
