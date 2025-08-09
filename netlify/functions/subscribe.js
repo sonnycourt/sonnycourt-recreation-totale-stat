@@ -55,7 +55,7 @@ export const handler = async (event, context) => {
 
     // Variables d'environnement
     const apiKey = process.env.MAILERLITE_API_KEY;
-    const groupId = process.env.MAILERLITE_GROUP_ID;
+    const groupId = process.env.MAILERLITE_GROUP_NEWSLETTER;
 
     if (!apiKey || !groupId) {
       console.error('Variables d\'environnement manquantes');
