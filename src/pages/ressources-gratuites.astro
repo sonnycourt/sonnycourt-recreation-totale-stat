@@ -1,8 +1,7 @@
 ---
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-// Récupération des variables d'environnement depuis Netlify
-const apiKey = import.meta.env.PUBLIC_YOUTUBE_API_KEY;
+// Identifiant de chaîne en public uniquement; la clé est proxifiée via Netlify Function
 const channelId = import.meta.env.PUBLIC_YOUTUBE_CHANNEL_ID;
 ---
 
@@ -372,8 +371,8 @@ const channelId = import.meta.env.PUBLIC_YOUTUBE_CHANNEL_ID;
         <div id="videosContainer"></div>
     </div>
 
-    <script define:vars={{ apiKey, channelId }}>
-        // Les variables apiKey et channelId sont injectées depuis Astro
+    <script define:vars={{ channelId }}>
+        // Les données YouTube sont récupérées via la fonction Netlify (clé côté serveur)
         window.addEventListener('DOMContentLoaded', () => {
             loadVideos();
         });
@@ -386,10 +385,8 @@ const channelId = import.meta.env.PUBLIC_YOUTUBE_CHANNEL_ID;
             
             try {
                 const params = new URLSearchParams(window.location.search);
-                const effectiveApiKey = params.get('key') || apiKey;
                 const effectiveChannelId = params.get('channelId') || channelId;
-
-                const searchUrl = `https://www.googleapis.com/youtube/v3/search?key=${effectiveApiKey}&channelId=${effectiveChannelId}&part=snippet,id&order=date&maxResults=${maxResults}&type=video`;
+                const searchUrl = `/.netlify/functions/youtube?action=search&channelId=${encodeURIComponent(effectiveChannelId)}&maxResults=${maxResults}`;
                 
                 const searchResponse = await fetch(searchUrl);
                 const searchData = await searchResponse.json();
@@ -404,7 +401,7 @@ const channelId = import.meta.env.PUBLIC_YOUTUBE_CHANNEL_ID;
                 }
                 
                 const videoIds = searchData.items.map(item => item.id.videoId).join(',');
-                const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?key=${effectiveApiKey}&id=${videoIds}&part=contentDetails,snippet`;
+                const detailsUrl = `/.netlify/functions/youtube?action=videos&ids=${videoIds}`;
                 
                 const detailsResponse = await fetch(detailsUrl);
                 const detailsData = await detailsResponse.json();
