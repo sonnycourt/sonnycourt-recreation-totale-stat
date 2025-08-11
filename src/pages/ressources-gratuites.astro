@@ -386,7 +386,7 @@ const channelId = import.meta.env.PUBLIC_YOUTUBE_CHANNEL_ID;
             try {
                 const params = new URLSearchParams(window.location.search);
                 const effectiveChannelId = params.get('channelId') || channelId;
-                const searchUrl = `/.netlify/functions/youtube?action=search&channelId=${encodeURIComponent(effectiveChannelId)}&maxResults=${maxResults}`;
+                const searchUrl = `/.netlify/functions/youtube?action=search&maxResults=${maxResults}` + (effectiveChannelId ? `&channelId=${encodeURIComponent(effectiveChannelId)}` : '');
                 
                 const searchResponse = await fetch(searchUrl);
                 const searchData = await searchResponse.json();
