@@ -1,0 +1,88 @@
+---
+// Composant Cookie Consent — conforme au style du site
+// - Bannière fixe en bas
+// - Lien "Gérer en détail" ouvrant une modale
+// - Stocke le consentement dans un cookie `cookieConsent` valable 12 mois
+// - Active les scripts différés marqués `type="text/plain"` + `data-cookie-category`
+// - Catégories: necessary (toujours actif), statistics, marketing
+// - Aucune librairie externe
+import consentScript from '../scripts/cookie-consent.js?raw';
+import consentStyles from '../styles/cookie-consent.css?raw';
+---
+---
+
+<style is:global set:html={consentStyles}></style>
+
+<div class="cookie-banner" id="cookieBanner" aria-live="polite" role="dialog" aria-label="Bannière de gestion des cookies" hidden>
+  <div class="cookie-banner__content">
+    <div class="cookie-banner__text">
+      <h3 class="cookie-title">Gestion des cookies</h3>
+      <p class="cookie-desc">
+        Nous utilisons des cookies pour améliorer ton expérience, mesurer l'audience et adapter le contenu marketing.
+      </p>
+      <a href="/confidentialite/" class="cookie-link">En savoir plus</a>
+    </div>
+    <div class="cookie-banner__actions">
+      <button class="cookie-btn cookie-btn--primary" id="acceptAllCookies">Accepter tous les cookies</button>
+      <button class="cookie-btn cookie-btn--ghost" id="openPreferences" aria-haspopup="dialog">Gérer en détail</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de préférences -->
+<div class="cookie-modal" id="cookieModal" role="dialog" aria-modal="true" aria-labelledby="cookieModalTitle" hidden>
+  <div class="cookie-modal__overlay" id="cookieModalOverlay"></div>
+  <div class="cookie-modal__panel" role="document">
+    <div class="cookie-modal__header">
+      <h3 id="cookieModalTitle" class="cookie-title">Préférences des cookies</h3>
+      <button class="cookie-close" id="closePreferences" aria-label="Fermer">✕</button>
+    </div>
+
+    <div class="cookie-modal__body">
+      <div class="cookie-category">
+        <div class="cookie-category__text">
+          <h4>Nécessaires</h4>
+          <p>Indispensables au fonctionnement du site. Toujours actifs.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" checked disabled />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="cookie-category">
+        <div class="cookie-category__text">
+          <h4>Statistiques</h4>
+          <p>Mesure anonyme de l'audience (ex: Google Analytics).</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleStatistics" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="cookie-category">
+        <div class="cookie-category__text">
+          <h4>Marketing</h4>
+          <p>Personnalisation et retargeting publicitaire.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleMarketing" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="cookie-modal__footer">
+      <button class="cookie-btn cookie-btn--ghost" id="declineNonEssential">Refuser les non-essentiels</button>
+      <div class="cookie-modal__cta">
+        <button class="cookie-btn cookie-btn--primary" id="savePreferences">Enregistrer mes choix</button>
+        <button class="cookie-btn cookie-btn--primary-outline" id="acceptAllInModal">Accepter tous</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline set:html={consentScript}></script>
+
+
