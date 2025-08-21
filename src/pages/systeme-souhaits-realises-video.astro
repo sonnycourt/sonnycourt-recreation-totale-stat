@@ -5,7 +5,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Ton Cadeau Exclusif - Sonny Court</title>
     <meta name="description" content="✨ Découvre comment rendre tes manifestations inévitables avec le système complet de Sonny Court" />
 </head>
@@ -641,6 +641,115 @@
             }
         }
 
+        /* Orientation paysage sur mobile - Fix pour iPhone en mode horizontal */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .sonny-content-wrapper {
+                padding: 15px 10px;
+                min-height: 100vh;
+            }
+            
+            .sonny-header {
+                margin-bottom: 20px;
+                margin-top: 20px;
+            }
+            
+            .sonny-header h1 {
+                font-size: clamp(1.8rem, 4vw, 2.5rem);
+                margin-bottom: 10px;
+            }
+            
+            .sonny-header p {
+                font-size: clamp(0.9rem, 2vw, 1.2rem);
+            }
+            
+            .sonny-video-section {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .sonny-video-container {
+                max-width: 100%;
+                margin: 0 auto 20px auto;
+            }
+            
+            .sonny-cta-container {
+                margin-top: 20px;
+            }
+            
+            .sonny-cta-button {
+                padding: 15px 30px;
+                font-size: clamp(1rem, 2vw, 1.3rem);
+            }
+            
+            .sonny-benefits {
+                margin-top: 30px;
+                padding: 20px;
+            }
+            
+            .sonny-benefits h2 {
+                font-size: clamp(1.5rem, 3vw, 2rem);
+                margin-bottom: 20px;
+            }
+            
+            .sonny-benefit-item {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+            
+            .sonny-benefit-text {
+                font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+            }
+        }
+
+        /* Fix spécifique pour iPhone en mode paysage */
+        @supports (-webkit-touch-callout: none) {
+            @media (max-width: 768px) and (orientation: landscape) {
+                .sonny-gift-fullscreen {
+                    height: 100vh;
+                    height: -webkit-fill-available;
+                }
+                
+                .sonny-content-wrapper {
+                    height: 100vh;
+                    height: -webkit-fill-available;
+                    overflow-y: auto;
+                }
+            }
+        }
+
+        /* Classe landscape-mode pour JavaScript */
+        .landscape-mode .sonny-content-wrapper {
+            padding: 10px 8px;
+        }
+        
+        .landscape-mode .sonny-header h1 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        
+        .landscape-mode .sonny-header p {
+            font-size: 0.9rem;
+        }
+        
+        .landscape-mode .sonny-video-section {
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .landscape-mode .sonny-benefits {
+            margin-top: 20px;
+            padding: 15px;
+        }
+        
+        .landscape-mode .sonny-benefit-item {
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .landscape-mode .sonny-benefit-text {
+            font-size: 0.8rem;
+        }
+
         /* Masquer header et footer */
         header, .site-header, #header, .elementor-header, .ast-header, .fl-page-header,
         footer, .site-footer, #footer, .elementor-footer, .ast-footer, .fl-page-footer {
@@ -724,14 +833,39 @@
                         }
         }
 
+        // Détecter si on est sur mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         if (fullscreenBtn) {
-            fullscreenBtn.addEventListener('click', () => {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
+            // Masquer le bouton plein écran sur mobile
+            if (isMobile) {
+                fullscreenBtn.style.display = 'none';
+            } else {
+                fullscreenBtn.addEventListener('click', () => {
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    } else {
+                        videoPlayer.requestFullscreen();
+                    }
+                });
+            }
+        }
+
+        // Gérer l'orientation mobile
+        if (isMobile) {
+            const handleOrientation = () => {
+                if (window.orientation === 90 || window.orientation === -90) {
+                    // Mode paysage
+                    document.body.classList.add('landscape-mode');
                 } else {
-                    videoPlayer.requestFullscreen();
+                    // Mode portrait
+                    document.body.classList.remove('landscape-mode');
                 }
-            });
+            };
+            
+            // Écouter les changements d'orientation
+            window.addEventListener('orientationchange', handleOrientation);
+            handleOrientation(); // Vérifier l'orientation actuelle
         }
 
         // Countdown logic - synchronisé avec la vidéo ET résistant aux onglets
