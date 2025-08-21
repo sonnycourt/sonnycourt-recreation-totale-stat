@@ -734,10 +734,13 @@
             });
         }
 
-        // Countdown logic - synchronisé avec le temps RÉEL de la vidéo
+        // Countdown logic - synchronisé avec la vidéo ET résistant aux onglets
         const countdownDuration = 13 * 60; // 13 minutes en secondes
         let hasStartedCountdown = false;
         let startTime = 0;
+        let totalPlayTime = 0; // Temps total de lecture réelle
+        let isPaused = false;
+        let pauseStartTime = 0;
 
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -746,10 +749,9 @@
         }
 
         function updateCountdown() {
-            if (countdownElement && hasStartedCountdown && startTime > 0) {
-                // Calculer le temps écoulé depuis le début
-                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-                const timeRemaining = Math.max(0, countdownDuration - elapsedTime);
+            if (countdownElement && hasStartedCountdown) {
+                // Calculer le temps restant basé sur le temps de lecture RÉEL
+                const timeRemaining = Math.max(0, countdownDuration - totalPlayTime);
                 
                 countdownElement.textContent = `(${formatTime(timeRemaining)})`;
                 
@@ -773,6 +775,18 @@
             }
         }
 
+        function pauseCountdown() {
+            isPaused = true;
+            pauseStartTime = Date.now();
+        }
+
+        function resumeCountdown() {
+            if (isPaused) {
+                isPaused = false;
+                // Pas besoin de modifier totalPlayTime, il continue normalement
+            }
+        }
+
         // Gestion des événements vidéo
         if (videoPlayer) {
             // Démarrer le compteur au premier play
@@ -782,12 +796,23 @@
                 if (!hasStartedCountdown) {
                     // Premier play : démarrer le compteur
                     startCountdown();
+                } else {
+                    // Reprendre après pause
+                    resumeCountdown();
                 }
             });
 
-            // Gérer la pause (juste pour l'overlay)
+            // Gérer la pause
             videoPlayer.addEventListener('pause', () => {
                 playOverlay.classList.remove('hidden');
+                pauseCountdown();
+            });
+
+            // Suivre le temps de lecture réel (résistant aux onglets)
+            videoPlayer.addEventListener('timeupdate', () => {
+                if (!videoPlayer.paused && !isPaused) {
+                    totalPlayTime = videoPlayer.currentTime;
+                }
             });
 
             // Gérer la fin de la vidéo
