@@ -734,12 +734,10 @@
             });
         }
 
-        // Countdown logic - synchronisé avec la vidéo
+        // Countdown logic - synchronisé avec le temps RÉEL de la vidéo
         const countdownDuration = 13 * 60; // 13 minutes en secondes
-        let timeRemaining = countdownDuration;
-        let countdownInterval;
-        let isCountdownActive = false;
-        let totalPlayTime = 0; // Temps total de lecture
+        let hasStartedCountdown = false;
+        let startTime = 0;
 
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
@@ -748,81 +746,57 @@
         }
 
         function updateCountdown() {
-            if (countdownElement) {
+            if (countdownElement && hasStartedCountdown && startTime > 0) {
+                // Calculer le temps écoulé depuis le début
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                const timeRemaining = Math.max(0, countdownDuration - elapsedTime);
+                
                 countdownElement.textContent = `(${formatTime(timeRemaining)})`;
-            }
-            
-            // Si le compteur arrive à 0, activer le bouton
-            if (timeRemaining <= 0) {
-                clearInterval(countdownInterval);
-                isCountdownActive = false;
-                if (ctaButton) {
-                    ctaButton.classList.remove('disabled');
+                
+                // Si le temps est écoulé, activer le bouton
+                if (timeRemaining <= 0) {
+                    if (ctaButton) {
+                        ctaButton.classList.remove('disabled');
+                    }
                 }
             }
         }
 
         function startCountdown() {
-            if (!isCountdownActive) {
-                isCountdownActive = true;
+            if (!hasStartedCountdown) {
+                hasStartedCountdown = true;
+                startTime = Date.now();
                 updateCountdown(); // Mise à jour immédiate
-                countdownInterval = setInterval(() => {
-                    timeRemaining--;
-                    updateCountdown();
-                }, 1000);
+                
+                // Mettre à jour le compteur toutes les secondes
+                setInterval(updateCountdown, 1000);
             }
         }
 
-        function pauseCountdown() {
-            if (isCountdownActive) {
-                clearInterval(countdownInterval);
-                isCountdownActive = false;
-            }
-        }
-
-        // Gestion des événements vidéo pour synchroniser le compteur
+        // Gestion des événements vidéo
         if (videoPlayer) {
             // Démarrer le compteur au premier play
             videoPlayer.addEventListener('play', () => {
                 playOverlay.classList.add('hidden');
                 
-                // Si c'est le premier play, démarrer le compteur
-                if (totalPlayTime === 0) {
-                    startCountdown();
-                } else {
-                    // Si ce n'est pas le premier play, reprendre le compteur
+                if (!hasStartedCountdown) {
+                    // Premier play : démarrer le compteur
                     startCountdown();
                 }
             });
 
-            // Mettre en pause le compteur quand la vidéo est en pause
+            // Gérer la pause (juste pour l'overlay)
             videoPlayer.addEventListener('pause', () => {
                 playOverlay.classList.remove('hidden');
-                pauseCountdown();
-            });
-
-            // Suivre le temps de lecture réel
-            videoPlayer.addEventListener('timeupdate', () => {
-                if (!videoPlayer.paused) {
-                    totalPlayTime = videoPlayer.currentTime;
-                }
             });
 
             // Gérer la fin de la vidéo
             videoPlayer.addEventListener('ended', () => {
-                // Si la vidéo se termine avant 13 minutes, activer le bouton
-                if (timeRemaining > 0) {
-                    timeRemaining = 0;
-                    updateCountdown();
-                    if (ctaButton) {
-                        ctaButton.classList.remove('disabled');
-                    }
+                // Activer le bouton si la vidéo se termine
+                if (ctaButton) {
+                    ctaButton.classList.remove('disabled');
                 }
             });
-        } else {
-            // Fallback si le lecteur vidéo n'est pas trouvé
-            updateCountdown();
-            countdownInterval = setInterval(updateCountdown, 1000);
         }
     </script>
 </body>
