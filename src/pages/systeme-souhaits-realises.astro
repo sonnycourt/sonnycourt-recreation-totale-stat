@@ -29,8 +29,40 @@
     spiffy.load("sonnycourt");
     </script>
     <!-- End of Spiffy Checkout Popup Script -->
+    
+    <!-- Script anti-flash -->
+    <script>
+        // Masquer le flash de contenu non stylé
+        document.addEventListener('DOMContentLoaded', function() {
+            // Attendre que tout soit chargé
+            window.addEventListener('load', function() {
+                const pageContent = document.querySelector('.page-content');
+                if (pageContent) {
+                    pageContent.classList.add('loaded');
+                }
+            });
+        });
+    </script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+        
+        /* CSS CRITIQUE - Évite le flash */
+        html, body {
+            background: #0a0a0a !important;
+            color: #ffffff !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif !important;
+        }
+        
+        /* Masquer le contenu jusqu'au chargement complet */
+        .page-content {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+        
+        .page-content.loaded {
+            opacity: 1;
+        }
         
         * {
             margin: 0;
@@ -3048,8 +3080,9 @@
     </style>
 </head>
 <body>
-    <!-- Section Hero -->
-    <section class="hero-section">
+    <div class="page-content">
+        <!-- Section Hero -->
+        <section class="hero-section">
         <div class="container">
             <!-- Titre principal -->
             <div class="main-title">
@@ -4593,6 +4626,7 @@
                 }
             });
         </script>
+    </div>
     </body>
     </html>
 
