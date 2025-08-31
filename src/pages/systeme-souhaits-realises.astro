@@ -4575,7 +4575,7 @@
     
     
         <script>
-            // Gestion de la vidéo
+            // Gestion de la vidéo avec compatibilité multi-navigateurs
             document.addEventListener('DOMContentLoaded', function() {
                 const thumbnailVideo = document.getElementById('thumbnailVideo');
                 const mainVideo = document.getElementById('mainVideo');
@@ -4583,25 +4583,66 @@
                 const playButton = document.getElementById('playButton');
 
                 if (thumbnailVideo && mainVideo) {
-                    // Démarrer la miniature en boucle entre 15s et 18s
-                    thumbnailVideo.currentTime = 15;
+                    console.log('🎬 Vidéos trouvées, initialisation...');
                     
-                    thumbnailVideo.addEventListener('timeupdate', function() {
-                        if (this.currentTime >= 18) {
-                            this.currentTime = 15;
+                    // Attendre que la vidéo soit prête avant de la lancer
+                    thumbnailVideo.addEventListener('canplay', function() {
+                        console.log('✅ Vidéo prête, démarrage de la boucle...');
+                        
+                        try {
+                            // Démarrer la miniature en boucle entre 15s et 18s
+                            thumbnailVideo.currentTime = 15;
+                            
+                            thumbnailVideo.addEventListener('timeupdate', function() {
+                                if (this.currentTime >= 18) {
+                                    this.currentTime = 15;
+                                }
+                            });
+
+                            // Démarrer la lecture de la miniature avec gestion d'erreur
+                            thumbnailVideo.play().then(() => {
+                                console.log('🎥 Autoplay réussi sur la miniature');
+                            }).catch(error => {
+                                console.log('⚠️ Autoplay bloqué, vidéo en pause:', error.message);
+                                // Fallback: laisser la vidéo en pause, l'utilisateur peut cliquer
+                            });
+                        } catch (error) {
+                            console.log('❌ Erreur lors de l\'initialisation:', error.message);
                         }
                     });
 
-                    // Démarrer la lecture de la miniature
-                    thumbnailVideo.play();
-
-                    // Gérer le clic sur le bouton play
+                    // Gérer le clic sur le bouton play avec gestion d'erreur
                     playButton.addEventListener('click', function() {
-                        videoThumbnail.style.display = 'none';
-                        mainVideo.style.display = 'block';
-                        mainVideo.currentTime = 0;
-                        mainVideo.play();
+                        console.log('🎯 Bouton play cliqué');
+                        
+                        try {
+                            videoThumbnail.style.display = 'none';
+                            mainVideo.style.display = 'block';
+                            mainVideo.currentTime = 0;
+                            
+                            mainVideo.play().then(() => {
+                                console.log('✅ Vidéo principale lancée avec succès');
+                            }).catch(error => {
+                                console.log('⚠️ Erreur lors du lancement de la vidéo principale:', error.message);
+                                // Fallback: afficher la vidéo même si autoplay échoue
+                            });
+                        } catch (error) {
+                            console.log('❌ Erreur lors du clic sur play:', error.message);
+                        }
                     });
+                    
+                    // Gestion d'erreur globale pour la vidéo
+                    thumbnailVideo.addEventListener('error', function(e) {
+                        console.log('❌ Erreur vidéo miniature:', e);
+                    });
+                    
+                    mainVideo.addEventListener('error', function(e) {
+                        console.log('❌ Erreur vidéo principale:', e);
+                    });
+                    
+                    console.log('🎬 Gestionnaire vidéo initialisé avec succès');
+                } else {
+                    console.log('❌ Vidéos non trouvées dans le DOM');
                 }
             });
         </script>
