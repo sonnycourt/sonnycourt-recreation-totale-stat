@@ -4271,7 +4271,7 @@
         
         let lastPhase1Places = 3;
         let lastPhase2Places = 178;
-        let lastPhase3Places = 15;
+        let lastPhase3Places = 11;
         
         // Fonction pour calculer les places disponibles
         const calculatePlaces = () => {
@@ -4322,19 +4322,39 @@
                 lastPhase2Places = currentPlaces;
                 return { phase: 2, places: currentPlaces };
             }
-            // PHASE 3 (2 septembre → 4 septembre) - Décroissance rapide de 15 à 0
+            // PHASE 3 (2 septembre → 4 septembre) - Planning décrémental précis jusqu'à 0
             else if (now < endDate) {
-                const hoursElapsed = (now - phase2EndDate) / (1000 * 60 * 60);
-                const phase3TotalHours = (endDate - phase2EndDate) / (1000 * 60 * 60);
-                const progress = hoursElapsed / phase3TotalHours;
-                const adjustedProgress = Math.pow(progress, 0.6); // Décroissance rapide
-                
-                let currentPlaces = Math.floor(15 * (1 - adjustedProgress));
-                
+                // Planning demandé (heures locales) : départ à 11 puis décréments planifiés
+                const schedule = [
+                    { at: new Date('2025-09-02T18:50:00').getTime(), places: 11 },
+                    { at: new Date('2025-09-02T19:30:00').getTime(), places: 10 },
+                    { at: new Date('2025-09-02T21:00:00').getTime(), places: 9 },
+                    { at: new Date('2025-09-02T23:00:00').getTime(), places: 8 },
+                    { at: new Date('2025-09-03T09:00:00').getTime(), places: 7 },
+                    { at: new Date('2025-09-03T12:30:00').getTime(), places: 6 },
+                    { at: new Date('2025-09-03T16:00:00').getTime(), places: 5 },
+                    { at: new Date('2025-09-03T19:00:00').getTime(), places: 4 },
+                    { at: new Date('2025-09-03T22:00:00').getTime(), places: 3 },
+                    { at: new Date('2025-09-04T10:00:00').getTime(), places: 2 },
+                    { at: new Date('2025-09-04T16:00:00').getTime(), places: 1 },
+                    { at: new Date('2025-09-04T21:30:00').getTime(), places: 0 }
+                ];
+
+                // Déterminer la valeur actuelle selon le planning (monotone, non croissante)
+                let currentPlaces = schedule[0].places;
+                for (let i = 0; i < schedule.length; i++) {
+                    if (now >= schedule[i].at) {
+                        currentPlaces = schedule[i].places;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Empêcher toute remontée accidentelle
                 if (currentPlaces > lastPhase3Places) {
                     currentPlaces = lastPhase3Places;
                 }
-                
+
                 lastPhase3Places = currentPlaces;
                 return { phase: 3, places: currentPlaces };
             }
