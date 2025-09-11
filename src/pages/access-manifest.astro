@@ -1,0 +1,1261 @@
+---
+// Page access-manifest.astro
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accès Vidéo Gratuite - Manifestation</title>
+    
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+    <!-- intl-tel-input JS -->
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    
+    <style>
+        /* Reset et base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Variables CSS pour cohérence */
+        :root {
+            --primary-purple: #6633ff;
+            --secondary-purple: #9933ff;
+            --accent-orange: #ff9500;
+            --accent-gold: #ffcc00;
+            --text-white: #ffffff;
+            --text-light: rgba(255, 255, 255, 0.9);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-white);
+            margin: 0;
+            padding: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ===== BACKGROUND ET EFFETS ===== */
+        
+        /* Fond dégradé animé */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg, 
+                #0a0014 0%, 
+                #1a0033 20%, 
+                #2d1b69 40%, 
+                #1a0033 60%, 
+                #0a0014 80%, 
+                #000033 100%
+            );
+            background-size: 600% 600%;
+            animation: gradientWave 12s ease infinite;
+            z-index: -3;
+        }
+
+        @keyframes gradientWave {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 50% 100%; }
+            50% { background-position: 100% 50%; }
+            75% { background-position: 50% 0%; }
+        }
+
+        /* Overlay avec motifs */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(102, 51, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(153, 51, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(184, 184, 255, 0.1) 0%, transparent 50%);
+            z-index: -2;
+            animation: rotateOverlay 15s linear infinite;
+        }
+
+        @keyframes rotateOverlay {
+            from { transform: rotate(0deg) scale(1.5); }
+            to { transform: rotate(360deg) scale(1.5); }
+        }
+
+        /* Orbes flottantes */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.3;
+            animation: orbFloat 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .orb1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(102, 51, 255, 0.4) 0%, transparent 70%);
+            top: -150px;
+            left: -150px;
+            animation-duration: 25s;
+        }
+
+        .orb2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(153, 51, 255, 0.3) 0%, transparent 70%);
+            bottom: -200px;
+            right: -200px;
+            animation-duration: 30s;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(50px, -30px); }
+            50% { transform: translate(-30px, 50px); }
+            75% { transform: translate(-50px, -20px); }
+        }
+
+        /* Particules */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 25s infinite;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10%, 90% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* ===== CONTENU PRINCIPAL ===== */
+        
+        .container {
+            max-width: 800px;
+            padding: 100px 20px 80px 20px;
+            text-align: center;
+            z-index: 1;
+            animation: fadeIn 1.2s ease-out;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Titre principal */
+        .context-text {
+            text-align: center;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 200;
+            letter-spacing: 4px;
+            margin: 80px 0 120px;
+            position: relative;
+            text-transform: uppercase;
+            padding: 20px 0;
+            
+            /* Gradient animé */
+            background: linear-gradient(
+                90deg,
+                #ffffff 0%,
+                #b8b8ff 25%,
+                #ffffff 50%,
+                #b8b8ff 75%,
+                #ffffff 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s linear infinite;
+        }
+
+        .context-text::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-purple), transparent);
+            animation: pulse-width 2s ease-in-out infinite;
+        }
+
+        /* ===== CARTES DE BÉNÉFICES ===== */
+        
+        .benefits-minimal {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 80px 0;
+            flex-wrap: nowrap;
+            perspective: 1000px;
+        }
+
+        .benefit-minimal {
+            text-align: center;
+            padding: 50px 40px;
+            border-radius: 24px;
+            min-width: 280px;
+            position: relative;
+            isolation: isolate;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            
+            /* Glassmorphism */
+            background: linear-gradient(
+                135deg,
+                var(--glass-bg) 0%,
+                rgba(255, 255, 255, 0.02) 100%
+            );
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            
+            /* Animation d'entrée */
+            opacity: 0;
+            animation: luxury-entrance 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        .benefit-minimal:nth-child(1) { animation-delay: 0.2s; }
+        .benefit-minimal:nth-child(2) { animation-delay: 0.4s; }
+        .benefit-minimal:nth-child(3) { animation-delay: 0.6s; }
+
+        .benefit-minimal:hover {
+            transform: translateY(-15px) rotateX(5deg) scale(1.05);
+            box-shadow: 
+                0 30px 60px rgba(255, 149, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Bordure lumineuse au hover */
+        .benefit-minimal::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 24px;
+            padding: 2px;
+            background: linear-gradient(
+                135deg,
+                var(--primary-purple),
+                var(--accent-orange),
+                var(--primary-purple)
+            );
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: -1;
+        }
+
+        .benefit-minimal:hover::before {
+            opacity: 0.8;
+            animation: rotate-gradient 3s linear infinite;
+        }
+
+        /* Nombres et labels */
+        .benefit-number {
+            font-size: 4rem;
+            font-weight: 900;
+            display: block;
+            margin-bottom: 20px;
+            line-height: 0.9;
+            letter-spacing: -2px;
+            position: relative;
+            
+            /* Gradient métallique */
+            background: linear-gradient(
+                135deg,
+                var(--accent-gold) 0%,
+                var(--accent-orange) 25%,
+                var(--accent-gold) 50%,
+                #ff6b00 75%,
+                var(--accent-gold) 100%
+            );
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease-in-out infinite;
+            
+            /* Ombre lumineuse */
+            filter: drop-shadow(0 0 20px rgba(255, 149, 0, 0.5));
+        }
+
+        .benefit-label {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: var(--text-light);
+            letter-spacing: 1px;
+            line-height: 1.5;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        /* ===== TEXTE DE RÉVÉLATION ===== */
+        
+        .reveal-text {
+            text-align: center;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 400;
+            letter-spacing: 2px;
+            margin: 50px 0;
+            position: relative;
+            text-transform: uppercase;
+            
+            /* Gradient animé */
+            background: linear-gradient(
+                90deg,
+                #ffffff 0%,
+                #b8b8ff 25%,
+                #ffffff 50%,
+                #b8b8ff 75%,
+                #ffffff 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s linear infinite;
+        }
+
+        /* ===== BOUTON CTA ===== */
+        
+        #optin-button {
+            display: inline-block;
+            padding: 20px 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-white);
+            background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-purple) 50%, var(--primary-purple) 100%);
+            background-size: 200% 200%;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 10px 30px rgba(102, 51, 255, 0.4),
+                inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            animation: buttonPulse 2s ease-in-out infinite;
+        }
+
+        #optin-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s;
+            animation: buttonShine 3s ease-in-out infinite;
+        }
+
+        #optin-button:hover {
+            background-position: 100% 100%;
+            transform: scale(1.05);
+            box-shadow: 
+                0 20px 50px rgba(102, 51, 255, 0.7),
+                inset 0 0 0 2px rgba(255, 255, 255, 0.3),
+                0 0 80px rgba(153, 51, 255, 0.5);
+            animation: none;
+        }
+
+        #optin-button:active {
+            transform: scale(1.02);
+        }
+
+        /* ===== POPUP ===== */
+        
+        .custom-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease-out;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        .popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #0a0014 0%, #1a0033 100%);
+            border: 2px solid rgba(102, 51, 255, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(102, 51, 255, 0.4);
+            animation: slideIn 0.4s ease-out;
+            z-index: 10000;
+        }
+
+        .popup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .popup-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-white);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .popup-subtitle {
+            color: #b8b8ff;
+            font-size: 1.1rem;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-white);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .popup-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+
+        /* Styles pour le formulaire */
+        .popup-content form {
+            margin: 0;
+        }
+
+        .popup-content input[type="text"],
+        .popup-content input[type="email"],
+        .popup-content input[type="tel"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(102, 51, 255, 0.3);
+            border-radius: 10px;
+            color: var(--text-white);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .popup-content input[type="text"]::placeholder,
+        .popup-content input[type="email"]::placeholder,
+        .popup-content input[type="tel"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .popup-content input[type="text"]:focus,
+        .popup-content input[type="email"]:focus,
+        .popup-content input[type="tel"]:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 20px rgba(102, 51, 255, 0.3);
+        }
+
+        .popup-content button[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-purple) 100%);
+            border: none;
+            border-radius: 10px;
+            color: var(--text-white);
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 51, 255, 0.4);
+        }
+
+        .popup-content button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 51, 255, 0.6);
+        }
+
+        /* ===== FOOTER ===== */
+        
+        .footer-info {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 1.2s ease-out 0.5s both;
+            margin: 60px auto 30px;
+            padding: 0 20px;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes rotate-gradient {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse-width {
+            0%, 100% { width: 100px; opacity: 0.5; }
+            50% { width: 150px; opacity: 1; }
+        }
+
+        @keyframes luxury-entrance {
+            0% {
+                opacity: 0;
+                transform: translateY(50px) scale(0.9);
+                filter: blur(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 
+                    0 10px 30px rgba(102, 51, 255, 0.4),
+                    inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 
+                    0 15px 40px rgba(102, 51, 255, 0.6),
+                    inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        @keyframes buttonShine {
+            0% { transform: rotate(45deg) translateX(-200%); }
+            100% { transform: rotate(45deg) translateX(200%); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .context-text {
+                font-size: 2rem;
+                letter-spacing: 2px;
+                margin: 40px 0 60px;
+            }
+            
+            .benefits-minimal {
+                gap: 40px;
+                margin: 60px 0;
+                flex-wrap: wrap;
+            }
+            
+            .benefit-minimal {
+                min-width: 90%;
+                max-width: 400px;
+                padding: 40px 30px;
+            }
+            
+            .benefit-number {
+                font-size: 3.5rem;
+            }
+            
+            .reveal-text {
+                font-size: 1.4rem;
+                letter-spacing: 1px;
+                margin: 40px 0 25px;
+            }
+
+            #optin-button {
+                padding: 18px 40px;
+                font-size: 1.1rem;
+            }
+
+            .footer-info {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Styles pour le champ téléphone */
+        .phone-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(102, 51, 255, 0.3);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Fix pour intl-tel-input */
+        .iti { 
+            width: 100% !important; 
+            margin-bottom: 15px !important;
+        }
+        
+        /* Styles pour intl-tel-input avec design amélioré */
+        .iti input {
+            width: 100% !important;
+            padding: 15px !important;
+            padding-left: 100px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(102, 51, 255, 0.3) !important;
+            border-radius: 10px !important;
+            color: #ffffff !important;
+            font-size: 16px !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .iti input:focus {
+            border-color: #6633ff !important;
+            box-shadow: 0 0 20px rgba(102, 51, 255, 0.3) !important;
+            outline: none !important;
+        }
+        
+        .iti input::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+        
+        /* Container du drapeau sélectionné */
+        .iti .iti__selected-flag {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-right: 1px solid rgba(102, 51, 255, 0.3) !important;
+            border-radius: 10px 0 0 10px !important;
+            padding: 15px 12px !important;
+            width: 95px !important;
+            cursor: pointer !important;
+            font-size: 14px !important;
+        }
+        
+        .iti .iti__selected-flag:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+        
+        /* Flèche de la liste déroulante */
+        .iti .iti__arrow {
+            border-top: 4px solid rgba(255, 255, 255, 0.8) !important;
+            border-left: 4px solid transparent !important;
+            border-right: 4px solid transparent !important;
+            margin-left: 4px !important;
+        }
+        
+        /* Liste déroulante avec glassmorphism */
+        .iti .iti__country-list {
+            background: linear-gradient(135deg, #0a0014 0%, #1a0033 100%) !important;
+            border: 2px solid rgba(102, 51, 255, 0.3) !important;
+            border-radius: 15px !important;
+            box-shadow: 
+                0 20px 50px rgba(102, 51, 255, 0.4),
+                0 8px 32px rgba(0, 0, 0, 0.4) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            z-index: 99999 !important;
+            position: fixed !important;
+            max-height: 200px !important;
+        }
+        
+        /* Pays dans la liste */
+        .iti .iti__country {
+            color: #ffffff !important;
+            padding: 12px 15px !important;
+            border-bottom: 1px solid rgba(102, 51, 255, 0.2) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .iti .iti__country:hover {
+            background: linear-gradient(135deg, rgba(102, 51, 255, 0.2) 0%, rgba(153, 51, 255, 0.2) 100%) !important;
+            color: #b8b8ff !important;
+            transform: translateX(5px) !important;
+        }
+        
+        .iti .iti__country.iti__highlight {
+            background: linear-gradient(135deg, rgba(102, 51, 255, 0.3) 0%, rgba(153, 51, 255, 0.3) 100%) !important;
+            color: #ffffff !important;
+        }
+        
+        /* Code du pays */
+        .iti .iti__dial-code {
+            color: rgba(255, 255, 255, 0.7) !important;
+            font-weight: 300 !important;
+        }
+        
+        /* Nom du pays */
+        .iti .iti__country-name {
+            color: inherit !important;
+            font-weight: 400 !important;
+        }
+        
+        /* Fix scroll mobile - Solution définitive */
+        @media (max-width: 768px) {
+            .custom-popup {
+                overflow-y: scroll !important;
+                -webkit-overflow-scrolling: touch !important;
+                overscroll-behavior: contain !important;
+            }
+            
+            .popup-content {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                margin: 50px auto !important;
+                max-width: 90% !important;
+                min-height: auto !important;
+            }
+            
+            /* FORCER le scroll mobile - Solution radicale */
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                position: static !important;
+            }
+            
+            .background,
+            .overlay,
+            .particles,
+            .orb {
+                pointer-events: none !important;
+                position: fixed !important;
+            }
+            
+            .container {
+                transform: none !important;
+                position: static !important;
+                padding-bottom: 150px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Arrière-plans et effets -->
+    <div class="background"></div>
+    <div class="overlay"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div id="particles" class="particles"></div>
+    
+    <!-- Contenu principal -->
+    <div class="container">
+        <p class="context-text">J'ai manifesté :</p>
+        
+        <div class="benefits-minimal">
+            <div class="benefit-minimal">
+                <span class="benefit-number">1,2M€</span>
+                <div class="benefit-label">en seulement une année</div>
+            </div>
+            
+            <div class="benefit-minimal">
+                <span class="benefit-number">100%</span>
+                <div class="benefit-label">guérison maladie "incurable"</div>
+            </div>
+            
+            <div class="benefit-minimal">
+                <span class="benefit-number">1</span>
+                <div class="benefit-label">relation de mes rêves</div>
+            </div>
+        </div>
+
+        <p class="reveal-text">Et je te révèle exactement comment j'ai fait !</p>
+
+        <button id="optin-button" class="popup-trigger">RECEVOIR MA VIDÉO GRATUITE</button>
+    </div>
+
+    <!-- Popup -->
+    <div id="custom-popup" class="custom-popup">
+        <div class="popup-content">
+            <button class="popup-close" onclick="closePopup()">&times;</button>
+            
+            <div class="popup-header">
+                <h2 class="popup-title">Ta vidéo gratuite t'attend</h2>
+                <p class="popup-subtitle">Entre tes informations pour la recevoir immédiatement</p>
+            </div>
+            
+            <!-- Formulaire HTML en deux étapes -->
+            <div id="step1-form" style="text-align: center;">
+                <input type="text" id="name" placeholder="Ton prénom" required style="
+                    width: 100%;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(102, 51, 255, 0.3);
+                    border-radius: 10px;
+                    color: #ffffff;
+                    font-size: 16px;
+                    transition: all 0.3s ease;
+                ">
+                <input type="email" id="email" placeholder="Ton email" required style="
+                    width: 100%;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(102, 51, 255, 0.3);
+                    border-radius: 10px;
+                    color: #ffffff;
+                    font-size: 16px;
+                    transition: all 0.3s ease;
+                ">
+                
+                <!-- Texte rassurant -->
+                <p style="
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.6);
+                    text-align: center;
+                    margin: 8px 0 15px 0;
+                    font-style: italic;
+                ">🔒 Nous ne partagerons jamais tes informations</p>
+                
+                <button type="button" id="step1-button" style="
+                    width: 100%;
+                    padding: 15px;
+                    background: linear-gradient(135deg, #6633ff 0%, #9933ff 100%);
+                    border: none;
+                    border-radius: 10px;
+                    color: #ffffff;
+                    font-size: 16px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 10px 30px rgba(102, 51, 255, 0.4);
+                " onmouseover="this.style.transform='scale(1.05)'" 
+                   onmouseout="this.style.transform='scale(1)'">
+                    CONTINUER
+                </button>
+            </div>
+
+            <!-- Étape 2 - Numéro de téléphone -->
+            <div id="step2-form" style="text-align: center; display: none;">
+                <h3 style="color: #ffffff; margin-bottom: 20px; font-size: 1.2rem;">🎉 Presque fini !</h3>
+                
+                <!-- Champ téléphone visible -->
+                <input type="tel" id="phone" name="phone_display" placeholder="Ton numéro de téléphone *" class="phone-input" required>
+                <!-- Champ caché pour le numéro formaté -->
+                <input type="hidden" id="phone_formatted" name="phone">
+                
+                <button type="button" id="step2-button" style="
+                    width: 100%;
+                    padding: 15px;
+                    background: linear-gradient(135deg, #ff9500 0%, #ffcc00 100%);
+                    border: none;
+                    border-radius: 10px;
+                    color: #ffffff;
+                    font-size: 16px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 10px 30px rgba(255, 149, 0, 0.4);
+                    margin-top: 15px;
+                " onmouseover="this.style.transform='scale(1.05)'" 
+                   onmouseout="this.style.transform='scale(1)'">
+                    RECEVOIR MA VIDÉO GRATUITE
+                </button>
+                
+                <p style="
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.6);
+                    text-align: center;
+                    margin: 8px 0 15px 0;
+                    font-style: italic;
+                ">🔒 Ton numéro est nécessaire pour accéder à la vidéo</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer-info">🚀 Rejoins +10k personnes qui ont déjà transformé leur réalité grâce à mon approche !</p>
+
+    <script>
+        // ===== PARTICULES FLOTTANTES =====
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 20;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Position et timing aléatoires
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 25 + 's';
+                particle.style.animationDuration = (Math.random() * 15 + 20) + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // ===== EFFET PARALLAXE =====
+        function initParallax() {
+            // Désactiver seulement le parallaxe sur mobile, garder le reste
+            if (window.innerWidth <= 768) {
+                return;
+            }
+            
+            document.addEventListener('mousemove', (e) => {
+                const mouseX = e.clientX / window.innerWidth - 0.5;
+                const mouseY = e.clientY / window.innerHeight - 0.5;
+                
+                // Déplacement du container
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.style.transform = `translateX(${mouseX * 10}px) translateY(${mouseY * 10}px)`;
+                }
+                
+                // Déplacement des orbes
+                const orbs = document.querySelectorAll('.orb');
+                orbs.forEach((orb, index) => {
+                    const speed = (index + 1) * 0.3;
+                    orb.style.transform = `translateX(${mouseX * 30 * speed}px) translateY(${mouseY * 30 * speed}px)`;
+                });
+            });
+        }
+
+        // ===== GESTION DU POPUP =====
+        function openPopup() {
+            document.getElementById('custom-popup').style.display = 'block';
+            // NE JAMAIS TOUCHER au scroll du body
+            
+            // Effet sonore (optionnel)
+            playPopupSound();
+        }
+        
+        function closePopup() {
+            document.getElementById('custom-popup').style.display = 'none';
+            // NE JAMAIS TOUCHER au scroll du body - il reste libre
+        }
+        
+        function playPopupSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Configuration du son
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (e) {
+                // Ignorer les erreurs audio
+                console.log('Audio non disponible');
+            }
+        }
+
+        // ===== GESTION DES DEUX ÉTAPES =====
+        let currentEmail = '';
+        let currentName = '';
+
+        function handleStep1() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!name || !email) {
+                alert('Veuillez remplir tous les champs');
+                return;
+            }
+            
+            // Validation email basique
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Veuillez entrer un email valide');
+                return;
+            }
+            
+            // Sauvegarder les données
+            currentName = name;
+            currentEmail = email;
+            
+            // Envoyer immédiatement à MailerLite
+            sendToMailerLite(name, email, '');
+            
+            // Passer à l'étape 2
+            document.getElementById('step1-form').style.display = 'none';
+            document.getElementById('step2-form').style.display = 'block';
+            
+            // Initialiser le champ téléphone
+            initPhoneInput();
+        }
+
+        function handleStep2() {
+            const phoneInput = document.getElementById('phone');
+            const phoneFormattedInput = document.getElementById('phone_formatted');
+            
+            // Validation du téléphone
+            if (!phoneInput.value.trim()) {
+                alert('Veuillez entrer votre numéro de téléphone');
+                phoneInput.focus();
+                return;
+            }
+            
+            // Récupérer le numéro formaté
+            if (window.iti && window.iti.isValidNumber()) {
+                const formattedPhone = window.iti.getNumber();
+                phoneFormattedInput.value = formattedPhone;
+                
+                // Envoyer tout (prénom + email + téléphone) à MailerLite
+                updateMailerLiteContact(currentName, currentEmail, formattedPhone);
+            } else {
+                alert('Veuillez entrer un numéro de téléphone valide');
+                phoneInput.focus();
+                return;
+            }
+        }
+
+        function sendToMailerLite(name, email, phone) {
+            // Créer un formulaire temporaire pour l'envoi
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('step', '1');
+            
+            fetch('/process-optin-test.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Contact ajouté à MailerLite:', data);
+            })
+            .catch(error => {
+                console.error('Erreur lors de l\'ajout à MailerLite:', error);
+            });
+        }
+
+        function updateMailerLiteContact(name, email, phone) {
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('step', '2');
+            
+            fetch('/process-optin-test.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Contact complet ajouté à MailerLite:', data);
+                // Fermer le popup et rediriger
+                closePopup();
+                redirectToVideo();
+            })
+            .catch(error => {
+                console.error('Erreur lors de l\'ajout complet:', error);
+                alert('Erreur: ' + error);
+            });
+        }
+
+        function redirectToVideo() {
+            // Rediriger vers la vidéo (remplace par ton URL)
+            window.location.href = '/video-gratuite-manifest/';
+        }
+
+        // ===== EVENT LISTENERS =====
+        function initEventListeners() {
+            // Bouton principal
+            const popupTrigger = document.querySelector('.popup-trigger');
+            if (popupTrigger) {
+                popupTrigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openPopup();
+                });
+            }
+
+            // Boutons des étapes
+            const step1Button = document.getElementById('step1-button');
+            if (step1Button) {
+                step1Button.addEventListener('click', handleStep1);
+            }
+
+            const step2Button = document.getElementById('step2-button');
+            if (step2Button) {
+                step2Button.addEventListener('click', handleStep2);
+            }
+
+            // Fermer en cliquant à l'extérieur
+            const customPopup = document.getElementById('custom-popup');
+            if (customPopup) {
+                customPopup.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closePopup();
+                    }
+                });
+            }
+
+            // Fermer avec Échap
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closePopup();
+                }
+            });
+        }
+
+        // ===== INITIALISATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            initParallax();
+            initEventListeners();
+            
+            // FORCER le scroll mobile
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = 'auto';
+                document.body.style.overflowY = 'auto';
+                document.body.style.height = 'auto';
+                document.documentElement.style.overflow = 'auto';
+                document.documentElement.style.overflowY = 'auto';
+                document.documentElement.style.height = 'auto';
+            }
+        });
+
+        // Note: Ce formulaire envoie les données à process-optin-test.php
+        // qui ajoute le contact à MailerLite et redirige vers la vidéo
+    </script>
+
+    <script>
+    function initPhoneInput() {
+        const phoneInput = document.querySelector("#phone");
+        const phoneFormattedInput = document.querySelector("#phone_formatted");
+        
+        if (phoneInput) {
+            window.iti = window.intlTelInput(phoneInput, {
+                initialCountry: "auto",
+                geoIpLookup: function(callback) {
+                    fetch('https://ipapi.co/json/')
+                        .then(res => res.json())
+                        .then(data => callback(data.country_code))
+                        .catch(() => callback('fr'));
+                },
+                preferredCountries: ['fr', 'ch', 'be', 'ca'],
+                separateDialCode: true,
+                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
+            });
+
+            // Mise à jour du champ caché quand le numéro change
+            function updateHiddenField() {
+                if (phoneInput.value.trim() && window.iti.isValidNumber()) {
+                    phoneFormattedInput.value = window.iti.getNumber();
+                } else {
+                    phoneFormattedInput.value = '';
+                }
+            }
+
+            phoneInput.addEventListener('change', updateHiddenField);
+            phoneInput.addEventListener('keyup', updateHiddenField);
+        }
+    }
+    </script>
+</body>
+</html>
