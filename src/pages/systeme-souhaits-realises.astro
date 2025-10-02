@@ -3484,7 +3484,7 @@
                 
                 <div class="scarcity-section" id="scarcitySection">
                     <p class="scarcity-text" id="scarcityText">
-                        <span class="places-count" id="places">278</span> places disponibles sur 300
+                        <span class="places-count" id="places">200</span> places disponibles sur 200
                     </p>
                     <div class="exceptional-offer" id="exceptionalOffer" style="display: none;">
                         🎁 EXCEPTIONNEL : <span class="exceptional-places" id="exceptionalPlaces">0</span> places supplémentaires disponibles !
@@ -4564,106 +4564,36 @@
     </section>
 
     <script>
-        // Configuration des dates
-        const startDate = new Date('2025-08-05T18:00:00').getTime();
-        const transitionDate = new Date('2025-08-22T23:00:00').getTime();
-        const phase2EndDate = new Date('2025-09-02T00:00:00').getTime(); // Nouvelle transition
-        const endDate = new Date('2025-09-04T22:00:00').getTime();
+        // Configuration des dates - Nouveau lancement
+        const startDate = new Date('2025-10-05T18:00:00').getTime();
+        const endDate = new Date('2025-10-30T23:59:59').getTime();
         
-        let lastPhase1Places = 3;
-        let lastPhase2Places = 178;
-        let lastPhase3Places = 11;
-        
-        // Fonction pour calculer les places disponibles
+        // Fonction pour calculer les places disponibles - Logique simplifiée
         const calculatePlaces = () => {
             const now = new Date().getTime();
-            
-            // PHASE 1
-            if (now < transitionDate) {
-                const nowAt21Aug = new Date('2025-08-21T17:00:00').getTime();
-                
-                if (now < nowAt21Aug) {
-                    const hoursElapsed = (now - startDate) / (1000 * 60 * 60);
-                    const phase1TotalHours = (nowAt21Aug - startDate) / (1000 * 60 * 60);
-                    const progress = hoursElapsed / phase1TotalHours;
-                    const adjustedProgress = Math.pow(progress, 0.7);
-                    let currentPlaces = Math.floor(278 * (1 - adjustedProgress));
-                    
-                    if (currentPlaces < 3) currentPlaces = 3;
-                    
-                    return { phase: 1, places: currentPlaces };
-                } else {
-                    const hoursElapsedFromNow = (now - nowAt21Aug) / (1000 * 60 * 60);
-                    
-                    if (hoursElapsedFromNow < 8) {
-                        return { phase: 1, places: 3 };
-                    } else if (hoursElapsedFromNow < 20) {
-                        return { phase: 1, places: 2 };
-                    } else if (hoursElapsedFromNow < 28) {
-                        return { phase: 1, places: 1 };
-                    } else {
-                        return { phase: 1, places: 0 };
-                    }
-                }
-            }
-            // PHASE 2 (22 août → 2 septembre) - Décroissance lente vers 15 places
-            else if (now < phase2EndDate) {
-                const hoursElapsed = (now - transitionDate) / (1000 * 60 * 60);
-                const phase2TotalHours = (phase2EndDate - transitionDate) / (1000 * 60 * 60);
-                const progress = hoursElapsed / phase2TotalHours;
-                const adjustedProgress = Math.pow(progress, 0.76); // Calibré pour ~32 places le 31/08
-                
-                // Décroissance de 178 → 15 sur toute la phase 2
-                let currentPlaces = Math.floor(15 + (178 - 15) * (1 - adjustedProgress));
-                
-                if (currentPlaces > lastPhase2Places) {
-                    currentPlaces = lastPhase2Places;
-                }
-                
-                lastPhase2Places = currentPlaces;
-                return { phase: 2, places: currentPlaces };
-            }
-            // PHASE 3 (2 septembre → 4 septembre) - Planning décrémental précis jusqu'à 0
-            else if (now < endDate) {
-                // Planning demandé (heures locales) : départ à 11 puis décréments planifiés
-                const schedule = [
-                    { at: new Date('2025-09-02T18:50:00').getTime(), places: 11 },
-                    { at: new Date('2025-09-02T19:30:00').getTime(), places: 10 },
-                    { at: new Date('2025-09-02T21:00:00').getTime(), places: 9 },
-                    { at: new Date('2025-09-02T23:00:00').getTime(), places: 8 },
-                    { at: new Date('2025-09-03T09:00:00').getTime(), places: 7 },
-                    { at: new Date('2025-09-03T12:30:00').getTime(), places: 6 },
-                    { at: new Date('2025-09-03T16:00:00').getTime(), places: 5 },
-                    { at: new Date('2025-09-03T19:00:00').getTime(), places: 4 },
-                    { at: new Date('2025-09-03T22:00:00').getTime(), places: 3 },
-                    { at: new Date('2025-09-04T10:00:00').getTime(), places: 2 },
-                    { at: new Date('2025-09-04T16:00:00').getTime(), places: 1 },
-                    { at: new Date('2025-09-04T21:30:00').getTime(), places: 0 }
-                ];
 
-                // Déterminer la valeur actuelle selon le planning (monotone, non croissante)
-                let currentPlaces = schedule[0].places;
-                for (let i = 0; i < schedule.length; i++) {
-                    if (now >= schedule[i].at) {
-                        currentPlaces = schedule[i].places;
-                    } else {
-                        break;
-                    }
-                }
-
-                // Empêcher toute remontée accidentelle
-                if (currentPlaces > lastPhase3Places) {
-                    currentPlaces = lastPhase3Places;
-                }
-
-                lastPhase3Places = currentPlaces;
-                return { phase: 3, places: currentPlaces };
+            // Avant le début de l'offre
+            if (now < startDate) {
+                return { phase: 'waiting', places: 200 };
             }
-            
+
+            // Pendant l'offre active : décroissance linéaire de 200 à 0 places
+            if (now < endDate) {
+                const totalDuration = endDate - startDate;
+                const elapsedTime = now - startDate;
+                const progress = elapsedTime / totalDuration;
+
+                // Calcul linéaire : 200 places au départ, 0 à la fin
+                const currentPlaces = Math.max(0, Math.floor(200 * (1 - progress)));
+
+                return { phase: 'active', places: currentPlaces };
+            }
+
+            // Après la fin de l'offre
             return { phase: 'ended', places: 0 };
         };
         
-        // Mise à jour de l'affichage selon la phase
+        // Mise à jour de l'affichage selon la phase - Logique simplifiée
         const updateScarcityDisplay = (phaseData) => {
             const scarcityText = document.getElementById('scarcityText');
             const placesSpan = document.getElementById('places');
@@ -4672,42 +4602,26 @@
 
             if (!scarcityText || !placesSpan || !exceptionalOffer || !exceptionalPlaces) return;
 
-            if (phaseData.phase === 1) {
-                // Phase 1: places restantes classiques
+            if (phaseData.phase === 'waiting') {
+                // Avant le début : affichage normal avec 200 places
                 scarcityText.classList.remove('sold-out');
-                scarcityText.innerHTML = `<span class="places-count" id="places">${phaseData.places}</span> places disponibles sur 300`;
+                scarcityText.innerHTML = `<span class="places-count" id="places">${phaseData.places}</span> places disponibles sur 200`;
+                exceptionalOffer.style.display = 'none';
+            } else if (phaseData.phase === 'active') {
+                // Pendant l'offre : affichage normal avec places restantes
+                scarcityText.classList.remove('sold-out');
+                scarcityText.innerHTML = `<span class="places-count" id="places">${phaseData.places}</span> places disponibles sur 200`;
                 exceptionalOffer.style.display = 'none';
 
-                if (phaseData.places <= 3) {
+                // Animation urgente quand il reste peu de places
+                if (phaseData.places <= 10) {
                     const placesElement = document.getElementById('places');
                     if (placesElement) {
-                        placesElement.style.fontSize = '1.75rem';
-                        placesElement.style.animation = 'urgentPulse 0.8s infinite';
+                        placesElement.style.animation = 'scarcityPulse 0.5s infinite';
                     }
                 }
-            } else if (phaseData.phase === 2) {
-                // Phase 2: sold-out + places exceptionnelles
-                scarcityText.classList.add('sold-out');
-                scarcityText.innerHTML = `<span style="color: #ef4444;">0</span> places disponibles sur 300`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = String(phaseData.places);
-
-                if (phaseData.places < 30) {
-                    exceptionalPlaces.style.animation = 'urgentPulse 0.5s infinite';
-                } else {
-                    exceptionalPlaces.style.animation = '';
-                }
-            } else if (phaseData.phase === 3) {
-                // Phase 3: sold-out + places exceptionnelles (décroissance rapide)
-                scarcityText.classList.add('sold-out');
-                scarcityText.innerHTML = `<span style="color: #ef4444;">0</span> places disponibles sur 300`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = String(phaseData.places);
-
-                // Animation plus urgente pour la Phase 3
-                exceptionalPlaces.style.animation = 'urgentPulse 0.3s infinite';
             } else {
-                // Phase ended
+                // Offre terminée
                 scarcityText.classList.add('sold-out');
                 scarcityText.textContent = `L'offre est complètement terminée`;
                 exceptionalOffer.style.display = 'none';
@@ -4727,7 +4641,7 @@
                         <p class="doors-closed-subtitle">L'offre -50% est maintenant terminée</p>
                         <div class="doors-closed-message">
                             <p>Merci à tous ceux qui ont rejoint le Système Souhaits Réalisés !</p>
-                            <p>Les portes se sont fermées le <strong>4 septembre 2025 à 22h00</strong>.</p>
+                            <p>Les portes se sont fermées le <strong>30 octobre 2025 à 23h59</strong>.</p>
                         </div>
                         <div class="waitlist-section">
                             <h3>Restez informé des prochaines ouvertures</h3>
