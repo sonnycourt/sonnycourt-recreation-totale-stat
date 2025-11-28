@@ -421,23 +421,15 @@ if (!show) {
       countdownInterval = window.setInterval(updateCountdown, 1000);
     };
 
-    // Vérifier si le banner a déjà été fermé
-    if (localStorage.getItem('blackfriday-banner-closed') === 'true') {
-      banner.style.display = 'none';
-      clearBannerContext();
-      return;
-    }
-
     activateBannerContext();
     initCountdown();
 
-    // Fermeture au clic
+    // Fermeture au clic (le banner réapparaîtra au prochain rafraîchissement)
     if (closeButton) {
       closeButton.addEventListener('click', () => {
         banner.classList.add('closing');
         setTimeout(() => {
           banner.style.display = 'none';
-          localStorage.setItem('blackfriday-banner-closed', 'true');
           clearBannerContext();
         }, 300);
       });
