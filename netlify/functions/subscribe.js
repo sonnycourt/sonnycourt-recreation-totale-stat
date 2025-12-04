@@ -1,4 +1,17 @@
 exports.handler = async (event, context) => {
+    // Gérer les requêtes OPTIONS pour CORS
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS'
+            },
+            body: ''
+        };
+    }
+
     // Vérifier que c'est une requête POST
     if (event.httpMethod !== 'POST') {
         return {
@@ -9,7 +22,7 @@ exports.handler = async (event, context) => {
 
     try {
         // Récupérer les données du body
-        const { email, groupId } = JSON.parse(event.body);
+        const { email, groupId, prenom, nom, telephone, countryCode } = JSON.parse(event.body);
 
         // Validation basique
         if (!email || !email.includes('@')) {
@@ -30,6 +43,39 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // Récupérer le Group ID depuis les variables d'environnement ou utiliser celui fourni
+        const defaultGroupId = process.env.MAILERLITE_GROUP_COURTCIRCUIT || groupId || '172875888042443786';
+        
+        // Préparer les données pour MailerLite
+        const subscriberData = {
+            email: email,
+            groups: [groupId || defaultGroupId],
+            status: 'active'
+        };
+
+        // Ajouter les champs personnalisés si disponibles
+        const fields = {};
+        if (prenom && nom) {
+            fields.name = `${prenom} ${nom}`;
+            fields.first_name = prenom;
+            fields.last_name = nom;
+        } else if (prenom) {
+            fields.name = prenom;
+            fields.first_name = prenom;
+        } else if (nom) {
+            fields.name = nom;
+            fields.last_name = nom;
+        }
+        
+        if (telephone) {
+            const fullPhone = countryCode ? `${countryCode}${telephone.replace(/\s/g, '')}` : telephone;
+            fields.phone = fullPhone;
+        }
+        
+        if (Object.keys(fields).length > 0) {
+            subscriberData.fields = fields;
+        }
+
         // Appel à l'API MailerLite
         const mailerliteResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
             method: 'POST',
@@ -38,10 +84,7 @@ exports.handler = async (event, context) => {
                 'Authorization': `Bearer ${apiKey}`,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({
-                email: email,
-                groups: [groupId]
-            })
+            body: JSON.stringify(subscriberData)
         });
 
         const mailerliteData = await mailerliteResponse.json();
