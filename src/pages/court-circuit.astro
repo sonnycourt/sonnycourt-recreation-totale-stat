@@ -1233,12 +1233,9 @@ import Layout from '../layouts/Layout.astro';
       if (isLocal) {
         // Simulation en local pour le développement
         await new Promise(resolve => setTimeout(resolve, 1500));
-        messageDiv.textContent = 'Inscription réussie ! (Mode local - simulation)';
-        messageDiv.classList.add('success');
-        form.reset();
-        submitButton.disabled = false;
-        submitButton.querySelector('span').textContent = originalButtonText;
         console.log('🧪 Mode local : Simulation d\'inscription', data);
+        // Rediriger vers la page de succès même en local
+        window.location.href = '/court-circuit-success';
         return;
       }
 
@@ -1258,14 +1255,8 @@ import Layout from '../layouts/Layout.astro';
       submitButton.querySelector('span').textContent = originalButtonText;
 
       if (response.ok && result.success) {
-        messageDiv.textContent = 'Inscription réussie ! Tu vas recevoir ton premier email maintenant.';
-        messageDiv.classList.add('success');
-        form.reset();
-        
-        // Réinitialiser le sélecteur de pays à la valeur par défaut
-        if (countryCodeSelect) {
-          countryCodeSelect.value = '+33';
-        }
+        // Rediriger vers la page de succès
+        window.location.href = '/court-circuit-success';
       } else {
         messageDiv.textContent = result.error || 'Une erreur est survenue. Veuillez réessayer.';
         messageDiv.classList.add('error');
