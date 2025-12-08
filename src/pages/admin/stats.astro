@@ -122,6 +122,7 @@
             padding: 20px 24px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             transition: background 0.2s ease;
+            align-items: center;
         }
 
         .table-row:hover {
@@ -130,16 +131,23 @@
 
         .page-name {
             font-weight: 500;
-            color: #667eea;
         }
 
         .page-name a {
-            color: inherit;
+            color: #64b5f6;
             text-decoration: none;
+            transition: color 0.2s ease;
         }
 
         .page-name a:hover {
+            color: #90caf9;
             text-decoration: underline;
+        }
+
+        .page-number {
+            color: #8a8a9e;
+            font-size: 0.85rem;
+            margin-left: 8px;
         }
 
         .visits-count {
@@ -226,7 +234,8 @@
             margin-top: 10px;
         }
 
-        .daily-chart {
+        /* Chart Section */
+        .chart-section {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
@@ -234,44 +243,121 @@
             margin-bottom: 40px;
         }
 
-        .chart-bars {
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+        }
+
+        .timeframe-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .timeframe-tab {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #8a8a9e;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .timeframe-tab:hover {
+            color: #fff;
+        }
+
+        .timeframe-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .chart-container {
+            height: 200px;
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
-            height: 150px;
-            gap: 12px;
-            margin-top: 20px;
+            gap: 8px;
+            padding-top: 30px;
+            position: relative;
         }
 
-        .chart-bar-container {
+        .chart-bar-wrapper {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             height: 100%;
+            max-width: 60px;
+        }
+
+        .chart-bar-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+            min-height: 20px;
+        }
+
+        .chart-bar-track {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
         }
 
         .chart-bar {
             width: 100%;
-            max-width: 50px;
             background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
             border-radius: 6px 6px 0 0;
             min-height: 4px;
             transition: height 0.5s ease;
         }
 
-        .chart-label {
+        .chart-bar-label {
             font-size: 0.75rem;
             color: #8a8a9e;
-            margin-top: 8px;
+            margin-top: 12px;
             text-align: center;
+            white-space: nowrap;
         }
 
-        .chart-value {
+        .chart-total {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .chart-total-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .chart-total-label {
+            color: #8a8a9e;
             font-size: 0.85rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 8px;
+            margin-top: 4px;
         }
 
         @media (max-width: 600px) {
@@ -292,6 +378,29 @@
 
             .card-value {
                 font-size: 2.2rem;
+            }
+
+            .chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .timeframe-tabs {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .timeframe-tab {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .chart-bar-wrapper {
+                max-width: none;
+            }
+
+            .chart-bar-label {
+                font-size: 0.65rem;
             }
         }
     </style>
@@ -322,6 +431,226 @@
     </div>
 
     <script is:inline>
+        let statsData = null;
+        let currentTimeframe = 'week';
+
+        // Extract middle 3 digits for sorting (e.g., /cc/40024/ -> 002)
+        function getMiddleNumber(pagePath) {
+            const match = pagePath.match(/\/cc\/\d(\d{3})\d\//);
+            return match ? parseInt(match[1], 10) : 999;
+        }
+
+        // Get date range based on timeframe
+        function getDateRange(timeframe) {
+            const today = new Date();
+            const dates = [];
+            let days = 7;
+
+            switch (timeframe) {
+                case 'week': days = 7; break;
+                case 'month': days = 30; break;
+                case 'year': days = 365; break;
+                case 'all': days = 365 * 3; break; // 3 years max
+            }
+
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                dates.push(date.toISOString().split('T')[0]);
+            }
+
+            return dates;
+        }
+
+        // Format date label based on timeframe
+        function formatDateLabel(dateStr, timeframe) {
+            const date = new Date(dateStr + 'T00:00:00');
+            switch (timeframe) {
+                case 'week':
+                    return date.toLocaleDateString('fr-FR', { weekday: 'short' });
+                case 'month':
+                    return date.getDate().toString();
+                case 'year':
+                case 'all':
+                    return date.toLocaleDateString('fr-FR', { month: 'short' });
+            }
+        }
+
+        // Aggregate data for chart
+        function aggregateChartData(daily, timeframe) {
+            const dates = getDateRange(timeframe);
+            const aggregated = {};
+
+            if (timeframe === 'week') {
+                // Daily data for week
+                dates.forEach(date => {
+                    const dayData = daily[date] || {};
+                    aggregated[date] = Object.values(dayData).reduce((a, b) => a + b, 0);
+                });
+            } else if (timeframe === 'month') {
+                // Daily data for month (show every 3rd day label)
+                dates.forEach(date => {
+                    const dayData = daily[date] || {};
+                    aggregated[date] = Object.values(dayData).reduce((a, b) => a + b, 0);
+                });
+            } else {
+                // Monthly aggregation for year/all
+                dates.forEach(date => {
+                    const monthKey = date.substring(0, 7); // YYYY-MM
+                    if (!aggregated[monthKey]) aggregated[monthKey] = 0;
+                    const dayData = daily[date] || {};
+                    aggregated[monthKey] += Object.values(dayData).reduce((a, b) => a + b, 0);
+                });
+            }
+
+            return aggregated;
+        }
+
+        function renderChart(daily, timeframe) {
+            const aggregated = aggregateChartData(daily, timeframe);
+            const entries = Object.entries(aggregated);
+            
+            // For month view, only show some labels
+            let displayEntries = entries;
+            if (timeframe === 'month') {
+                displayEntries = entries.filter((_, i) => i % 3 === 0 || i === entries.length - 1);
+            }
+
+            const values = entries.map(([_, v]) => v);
+            const maxValue = Math.max(...values, 1);
+            const total = values.reduce((a, b) => a + b, 0);
+
+            // Determine which entries to show bars for
+            let barsToShow = entries;
+            if (timeframe === 'month' && entries.length > 15) {
+                // Show every other day for month
+                barsToShow = entries.filter((_, i) => i % 2 === 0 || i === entries.length - 1);
+            }
+
+            let barsHtml = barsToShow.map(([date, value], index) => {
+                const height = Math.max((value / maxValue) * 140, value > 0 ? 8 : 4);
+                const label = formatDateLabel(date, timeframe);
+                const showLabel = timeframe === 'week' || 
+                                  (timeframe === 'month' && index % 3 === 0) ||
+                                  timeframe === 'year' || 
+                                  timeframe === 'all';
+                
+                return `
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-bar-value">${value > 0 ? value : ''}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar" style="height: ${height}px"></div>
+                        </div>
+                        <div class="chart-bar-label">${showLabel ? label : ''}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const periodLabel = {
+                'week': 'cette semaine',
+                'month': 'ce mois',
+                'year': 'cette année',
+                'all': 'au total'
+            }[timeframe];
+
+            return `
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📈 Évolution des clics</h3>
+                        <div class="timeframe-tabs">
+                            <button class="timeframe-tab ${timeframe === 'week' ? 'active' : ''}" onclick="changeTimeframe('week')">Semaine</button>
+                            <button class="timeframe-tab ${timeframe === 'month' ? 'active' : ''}" onclick="changeTimeframe('month')">Mois</button>
+                            <button class="timeframe-tab ${timeframe === 'year' ? 'active' : ''}" onclick="changeTimeframe('year')">Année</button>
+                            <button class="timeframe-tab ${timeframe === 'all' ? 'active' : ''}" onclick="changeTimeframe('all')">Tout</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        ${barsHtml}
+                    </div>
+                    <div class="chart-total">
+                        <div class="chart-total-value">${total}</div>
+                        <div class="chart-total-label">clics ${periodLabel}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function changeTimeframe(timeframe) {
+            currentTimeframe = timeframe;
+            if (statsData) {
+                renderStats(statsData);
+            }
+        }
+
+        function renderStats(data) {
+            statsData = data;
+            const content = document.getElementById('content');
+            const { summary, pages, daily } = data;
+
+            // Summary cards
+            let html = `
+                <div class="summary-cards">
+                    <div class="card">
+                        <div class="card-value">${summary.totalVisits}</div>
+                        <div class="card-label">Visites totales</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-value">${summary.totalPages}</div>
+                        <div class="card-label">Pages trackées</div>
+                    </div>
+                </div>
+            `;
+
+            // Chart
+            html += renderChart(daily, currentTimeframe);
+
+            // Pages table - sorted by middle number
+            if (pages.length > 0) {
+                html += `
+                    <h2 class="section-title">📄 Détail par page</h2>
+                    <div class="pages-table">
+                        <div class="table-header">
+                            <div>Page</div>
+                            <div>Visites</div>
+                            <div>Dernière visite</div>
+                        </div>
+                `;
+
+                // Sort by middle 3 digits (newsletter number)
+                pages.sort((a, b) => getMiddleNumber(a.page) - getMiddleNumber(b.page));
+
+                for (const page of pages) {
+                    const middleNum = getMiddleNumber(page.page).toString().padStart(3, '0');
+                    html += `
+                        <div class="table-row">
+                            <div class="page-name">
+                                <a href="${page.page}" target="_blank">${page.page}</a>
+                                <span class="page-number">#${middleNum}</span>
+                            </div>
+                            <div class="visits-count">${page.total}</div>
+                            <div class="last-visit">${page.lastVisit || '-'}</div>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            } else {
+                html += `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <p>Aucune visite enregistrée pour l'instant.</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem;">Visite une page /cc/ pour commencer le tracking !</p>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            document.getElementById('lastUpdated').textContent = 
+                `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
+        }
+
         async function loadStats() {
             const content = document.getElementById('content');
             
@@ -334,105 +663,7 @@
                     return;
                 }
 
-                const { summary, pages, daily } = data;
-
-                // Summary cards
-                let html = `
-                    <div class="summary-cards">
-                        <div class="card">
-                            <div class="card-value">${summary.totalVisits}</div>
-                            <div class="card-label">Visites totales</div>
-                        </div>
-                        <div class="card">
-                            <div class="card-value">${summary.totalPages}</div>
-                            <div class="card-label">Pages trackées</div>
-                        </div>
-                    </div>
-                `;
-
-                // Daily chart (last 7 days)
-                const dailyDates = Object.keys(daily).sort().reverse();
-                if (dailyDates.length > 0) {
-                    const maxDaily = Math.max(...dailyDates.map(d => 
-                        Object.values(daily[d]).reduce((a, b) => a + b, 0)
-                    )) || 1;
-
-                    html += `
-                        <h2 class="section-title">📈 7 derniers jours</h2>
-                        <div class="daily-chart">
-                            <div class="chart-bars">
-                    `;
-
-                    // Show last 7 days
-                    const today = new Date();
-                    for (let i = 6; i >= 0; i--) {
-                        const date = new Date(today);
-                        date.setDate(date.getDate() - i);
-                        const dateStr = date.toISOString().split('T')[0];
-                        const dayData = daily[dateStr] || {};
-                        const dayTotal = Object.values(dayData).reduce((a, b) => a + b, 0);
-                        const height = Math.max((dayTotal / maxDaily) * 120, 4);
-                        const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
-
-                        html += `
-                            <div class="chart-bar-container">
-                                <div class="chart-value">${dayTotal}</div>
-                                <div class="chart-bar" style="height: ${height}px"></div>
-                                <div class="chart-label">${dayName}</div>
-                            </div>
-                        `;
-                    }
-
-                    html += `
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Pages table
-                if (pages.length > 0) {
-                    html += `
-                        <h2 class="section-title">📄 Détail par page</h2>
-                        <div class="pages-table">
-                            <div class="table-header">
-                                <div>Page</div>
-                                <div>Visites</div>
-                                <div>Dernière visite</div>
-                            </div>
-                    `;
-
-                    // Sort by total visits descending
-                    pages.sort((a, b) => b.total - a.total);
-
-                    for (const page of pages) {
-                        const pageId = page.page.replace('/cc/', '').replace('/', '');
-                        html += `
-                            <div class="table-row">
-                                <div class="page-name">
-                                    <a href="${page.page}" target="_blank">/cc/${pageId}/</a>
-                                </div>
-                                <div class="visits-count">${page.total}</div>
-                                <div class="last-visit">${page.lastVisit || '-'}</div>
-                            </div>
-                        `;
-                    }
-
-                    html += `</div>`;
-                } else {
-                    html += `
-                        <div class="empty-state">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                            <p>Aucune visite enregistrée pour l'instant.</p>
-                            <p style="margin-top: 10px; font-size: 0.9rem;">Visite une page /cc/ pour commencer le tracking !</p>
-                        </div>
-                    `;
-                }
-
-                content.innerHTML = html;
-                document.getElementById('lastUpdated').textContent = 
-                    `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
+                renderStats(data);
 
             } catch (error) {
                 content.innerHTML = `<div class="error">❌ Erreur de chargement<br><small>${error.message}</small></div>`;
@@ -444,4 +675,3 @@
     </script>
 </body>
 </html>
-
