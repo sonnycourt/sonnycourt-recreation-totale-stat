@@ -230,6 +230,28 @@
             const content = document.getElementById('content');
             const { summary, pages, sends, daily } = data;
 
+            // Mapping pages → templates
+            const pageToTemplate = {
+                '/cc/40008/': 'CC-Jour-0',
+                '/cc/40018/': 'CC-Jour-1',
+                '/cc/40028/': 'CC-Jour-2',
+                '/cc/40038/': 'CC-Jour-3',
+                '/cc/40048/': 'CC-Jour-4',
+                '/cc/40058/': 'CC-Jour-5',
+                '/cc/40068/': 'CC-Jour-6',
+                '/cc/40078/': 'CC-Jour-7',
+                '/cc/40088/': 'CC-Jour-8',
+                '/cc/40098/': 'CC-Jour-9',
+            };
+
+            // Créer lookup des envois par template
+            const sendsLookup = {};
+            if (sends) {
+                for (const s of sends) {
+                    sendsLookup[s.template] = s.sends;
+                }
+            }
+
             let html = `
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;">
                     <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;text-align:center;">
@@ -245,51 +267,37 @@
 
             html += renderChart(daily, currentTimeframe);
 
-            // Section Envois par template
-            if (sends && sends.length > 0) {
-                html += `<h2 style="font-size:1rem;font-weight:600;margin-bottom:16px;margin-top:32px;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M19 16v6"/><path d="M16 19h6"/></svg> Envois par template</h2>`;
-                html += `<div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;margin-bottom:24px;">`;
-                html += `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:12px 16px;background:rgba(255,255,255,0.03);font-weight:600;font-size:0.75rem;color:#6b7280;text-transform:uppercase;">
-                    <div>Template</div><div>Envois</div><div>Dernier envoi</div>
-                </div>`;
-
-                sends.sort((a, b) => a.template.localeCompare(b.template));
-
-                for (const send of sends) {
-                    html += `
-                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);align-items:center;">
-                            <div style="color:#fff;font-weight:500;">${send.template}</div>
-                            <div style="font-weight:700;color:#34C759;font-size:1.1rem;">${send.sends}</div>
-                            <div style="color:#6b7280;font-size:0.85rem;">${send.lastSend || '-'}</div>
-                        </div>
-                    `;
-                }
-                html += `</div>`;
-            }
-
-            // Section Clics par page
+            // Section Stats par page (avec envois, clics, taux)
             if (pages.length > 0) {
-                html += `<h2 style="font-size:1rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5H3"/><path d="M16 12H3"/><path d="M11 19H3"/><path d="m15 18 2 2 4-4"/></svg> Clics par page</h2>`;
+                html += `<h2 style="font-size:1rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5H3"/><path d="M16 12H3"/><path d="M11 19H3"/><path d="m15 18 2 2 4-4"/></svg> Stats par page</h2>`;
                 html += `<div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">`;
-                html += `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:12px 16px;background:rgba(255,255,255,0.03);font-weight:600;font-size:0.75rem;color:#6b7280;text-transform:uppercase;">
-                    <div>Page</div><div>Clics</div><div>Dernier clic</div>
+                html += `<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:12px 16px;background:rgba(255,255,255,0.03);font-weight:600;font-size:0.7rem;color:#6b7280;text-transform:uppercase;">
+                    <div>Page</div><div>Envois</div><div>Clics</div><div>Taux clic</div><div>Dernier clic</div>
                 </div>`;
 
                 pages.sort((a, b) => getMiddleNumber(a.page) - getMiddleNumber(b.page));
 
                 for (const page of pages) {
                     const middleNum = getMiddleNumber(page.page).toString().padStart(3, '0');
+                    const template = pageToTemplate[page.page] || 'CC-Jour-' + middleNum;
+                    const envois = sendsLookup[template] || 0;
+                    const clics = page.clicks || 0;
+                    const taux = envois > 0 ? ((clics / envois) * 100).toFixed(1) : '-';
+                    const tauxColor = taux === '-' ? '#6b7280' : (parseFloat(taux) >= 10 ? '#34C759' : parseFloat(taux) >= 5 ? '#FF9500' : '#FF3B30');
+                    
                     html += `
-                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);align-items:center;">
-                            <div><a href="${page.page}" target="_blank" style="color:#64b5f6;text-decoration:none;font-weight:500;">${page.page}</a><span style="color:#6b7280;font-size:0.8rem;margin-left:6px;">#${middleNum}</span></div>
-                            <div style="font-weight:700;color:#007AFF;font-size:1.1rem;">${page.clicks}</div>
-                            <div style="color:#6b7280;font-size:0.85rem;">${page.lastClick || '-'}</div>
+                        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);align-items:center;">
+                            <div><a href="${page.page}" target="_blank" style="color:#64b5f6;text-decoration:none;font-weight:500;">${page.page}</a><span style="color:#6b7280;font-size:0.75rem;margin-left:4px;">#${middleNum}</span></div>
+                            <div style="font-weight:600;color:#34C759;">${envois}</div>
+                            <div style="font-weight:700;color:#007AFF;">${clics}</div>
+                            <div style="font-weight:700;color:${tauxColor};">${taux}${taux !== '-' ? '%' : ''}</div>
+                            <div style="color:#6b7280;font-size:0.8rem;">${page.lastClick || '-'}</div>
                         </div>
                     `;
                 }
                 html += `</div>`;
             } else {
-                html += `<div style="text-align:center;padding:40px;color:#6b7280;"><p>Aucun clic enregistré.</p></div>`;
+                html += `<div style="text-align:center;padding:40px;color:#6b7280;"><p>Aucune donnée enregistrée.</p></div>`;
             }
 
             content.innerHTML = html;
