@@ -416,3 +416,21 @@ import Layout from '../../layouts/Layout.astro';
   }
 </style>
 
+<!-- Tracking des visites (côté serveur, sans cookies) -->
+<script is:inline>
+  (function() {
+    try {
+      const page = window.location.pathname;
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/.netlify/functions/track', JSON.stringify({ page }));
+      } else {
+        fetch('/.netlify/functions/track', {
+          method: 'POST',
+          body: JSON.stringify({ page }),
+          keepalive: true
+        });
+      }
+    } catch (e) {}
+  })();
+</script>
+
