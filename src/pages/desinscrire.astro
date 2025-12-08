@@ -1,0 +1,166 @@
+---
+// Page de désinscription Court-Circuit
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Se désinscrire - Court-Circuit</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+</head>
+<body style="margin:0;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:#0a0a0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;">
+
+    <div style="max-width:500px;width:100%;text-align:center;">
+        
+        <!-- État initial : Confirmation -->
+        <div id="confirmScreen">
+            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
+                    <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    <path d="m17 17 4 4"/>
+                    <path d="m21 17-4 4"/>
+                </svg>
+                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#fff;">Te désinscrire ?</h1>
+                <p style="color:#8E8E93;margin:0 0 8px 0;font-size:0.95rem;">Tu souhaites te désinscrire de la newsletter</p>
+                <p style="color:#007AFF;margin:0 0 24px 0;font-size:1rem;font-weight:600;">Court-Circuit</p>
+                
+                <p id="emailDisplay" style="color:#6b7280;margin:0 0 24px 0;font-size:0.85rem;word-break:break-all;"></p>
+                
+                <button 
+                    id="confirmBtn"
+                    onclick="confirmUnsubscribe()" 
+                    style="width:100%;padding:14px;background:#FF3B30;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px;"
+                >
+                    Oui, me désinscrire
+                </button>
+                
+                <a href="/" style="display:block;color:#8E8E93;text-decoration:none;font-size:0.9rem;">
+                    Non, annuler
+                </a>
+            </div>
+        </div>
+
+        <!-- État : Chargement -->
+        <div id="loadingScreen" style="display:none;">
+            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
+                <div style="width:40px;height:40px;border:3px solid #1c1c1e;border-top-color:#007AFF;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
+                <p style="color:#8E8E93;margin:0;font-size:0.95rem;">Désinscription en cours...</p>
+            </div>
+        </div>
+
+        <!-- État : Succès -->
+        <div id="successScreen" style="display:none;">
+            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#34C759;">C'est fait !</h1>
+                <p style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Tu as été désinscrit de Court-Circuit.</p>
+                <p style="color:#6b7280;margin:0 0 24px 0;font-size:0.85rem;">Tu ne recevras plus nos emails quotidiens.</p>
+                <a href="/" style="display:inline-block;padding:14px 28px;background:#007AFF;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">
+                    Retour à l'accueil
+                </a>
+            </div>
+        </div>
+
+        <!-- État : Erreur -->
+        <div id="errorScreen" style="display:none;">
+            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#FF3B30;">Erreur</h1>
+                <p id="errorMessage" style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Une erreur est survenue.</p>
+                <button 
+                    onclick="location.reload()" 
+                    style="padding:14px 28px;background:#007AFF;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;"
+                >
+                    Réessayer
+                </button>
+            </div>
+        </div>
+
+        <!-- État : Email manquant -->
+        <div id="noEmailScreen" style="display:none;">
+            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#FF9500;">Email manquant</h1>
+                <p style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Aucun email n'a été fourni dans le lien.</p>
+                <a href="/" style="display:inline-block;padding:14px 28px;background:#007AFF;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">
+                    Retour à l'accueil
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        button:hover { opacity: 0.9; }
+        a:hover { opacity: 0.9; }
+    </style>
+
+    <script is:inline>
+        let userEmail = null;
+
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            userEmail = params.get('email');
+            
+            if (!userEmail || !userEmail.includes('@')) {
+                showScreen('noEmailScreen');
+                return;
+            }
+            
+            document.getElementById('emailDisplay').textContent = userEmail;
+        }
+
+        function showScreen(screenId) {
+            ['confirmScreen', 'loadingScreen', 'successScreen', 'errorScreen', 'noEmailScreen'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'block';
+        }
+
+        async function confirmUnsubscribe() {
+            if (!userEmail) return;
+            
+            showScreen('loadingScreen');
+            
+            try {
+                const response = await fetch('/api/unsubscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showScreen('successScreen');
+                } else {
+                    document.getElementById('errorMessage').textContent = data.error || 'Une erreur est survenue.';
+                    showScreen('errorScreen');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = 'Erreur de connexion. Réessaie plus tard.';
+                showScreen('errorScreen');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
