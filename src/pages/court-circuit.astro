@@ -50,11 +50,11 @@ import Layout from '../layouts/Layout.astro';
           
           <form id="inscriptionForm" class="inscription-form">
             <div class="form-group">
-              <label for="prenom">Prénom *</label>
+              <label for="name">Prénom *</label>
               <input 
                 type="text" 
-                id="prenom" 
-                name="prenom" 
+                id="name" 
+                name="name" 
                 required 
                 placeholder="Ton prénom"
               />
@@ -523,8 +523,10 @@ import Layout from '../layouts/Layout.astro';
 </style>
 
 <script>
-  const form = document.getElementById('inscriptionForm');
-  const messageDiv = document.getElementById('formMessage');
+  const form = document.getElementById('inscriptionForm') as HTMLFormElement | null;
+  const messageDiv = document.getElementById('formMessage') as HTMLElement | null;
+
+  if (!form || !messageDiv) return;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -532,9 +534,9 @@ import Layout from '../layouts/Layout.astro';
     const formData = new FormData(form);
     
     const data = {
-      prenom: formData.get('prenom'),
-      email: formData.get('email')
-      // Le groupId sera géré par la fonction Netlify via la variable d'environnement
+      email: formData.get('email'),
+      name: formData.get('name'),
+      list_uuids: ['6e8b5bae-7066-4bef-ae95-5bb036d711aa']
     };
 
     // Réinitialiser le message
@@ -542,10 +544,15 @@ import Layout from '../layouts/Layout.astro';
     messageDiv.textContent = '';
 
     // Désactiver le bouton pendant l'envoi
-    const submitButton = form.querySelector('.submit-button');
-    const originalButtonText = submitButton.querySelector('span').textContent;
+    const submitButton = form.querySelector('.submit-button') as HTMLButtonElement | null;
+    if (!submitButton) return;
+    
+    const buttonSpan = submitButton.querySelector('span') as HTMLElement | null;
+    if (!buttonSpan) return;
+    
+    const originalButtonText = buttonSpan.textContent;
     submitButton.disabled = true;
-    submitButton.querySelector('span').textContent = 'Envoi en cours...';
+    buttonSpan.textContent = 'Envoi en cours...';
 
     try {
       // Vérifier si on est en local ou en production
@@ -560,8 +567,8 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
 
-      // Appel réel à la Netlify Function pour MailerLite
-      const response = await fetch('/.netlify/functions/subscribe', {
+      // Appel à l'API Listmonk
+      const response = await fetch('https://mail.sonnycourt.com/api/public/subscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -569,17 +576,16 @@ import Layout from '../layouts/Layout.astro';
         body: JSON.stringify(data)
       });
 
-      const result = await response.json();
-
       // Réactiver le bouton
       submitButton.disabled = false;
-      submitButton.querySelector('span').textContent = originalButtonText;
+      buttonSpan.textContent = originalButtonText || 'Essaie maintenant';
 
-      if (response.ok && result.success) {
+      if (response.ok) {
         // Rediriger vers la page de succès
         window.location.href = '/court-circuit-success';
       } else {
-        messageDiv.textContent = result.error || 'Une erreur est survenue. Veuillez réessayer.';
+        const result = await response.json().catch(() => ({}));
+        messageDiv.textContent = result.message || result.error || 'Une erreur est survenue. Veuillez réessayer.';
         messageDiv.classList.add('error');
       }
       
@@ -594,7 +600,7 @@ import Layout from '../layouts/Layout.astro';
       messageDiv.textContent = 'Une erreur est survenue. Veuillez réessayer.';
       messageDiv.classList.add('error');
       submitButton.disabled = false;
-      submitButton.querySelector('span').textContent = originalButtonText;
+      buttonSpan.textContent = originalButtonText || 'Essaie maintenant';
     }
   });
 </script>
