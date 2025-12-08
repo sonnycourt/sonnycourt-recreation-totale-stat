@@ -1,17 +1,32 @@
 // Netlify Function pour désinscrire un email de Listmonk
 // POST /api/unsubscribe avec { "email": "test@example.com" }
-
-const LISTMONK_URL = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
-const LISTMONK_USER = process.env.LISTMONK_USER;
-const LISTMONK_PASS = process.env.LISTMONK_PASS;
+// GET /api/unsubscribe pour debug
 
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
   };
+
+  const LISTMONK_URL = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
+  const LISTMONK_USER = process.env.LISTMONK_USER;
+  const LISTMONK_PASS = process.env.LISTMONK_PASS;
+
+  // GET = debug info (pour tester la config)
+  if (event.httpMethod === 'GET') {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        status: 'ok',
+        listmonk_url: LISTMONK_URL,
+        user_configured: !!LISTMONK_USER,
+        pass_configured: !!LISTMONK_PASS,
+      })
+    };
+  }
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
@@ -21,13 +36,11 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  // Debug: log des variables d'env
   console.log('LISTMONK_URL:', LISTMONK_URL);
   console.log('LISTMONK_USER configured:', !!LISTMONK_USER);
   console.log('LISTMONK_PASS configured:', !!LISTMONK_PASS);
 
   if (!LISTMONK_USER || !LISTMONK_PASS) {
-    console.error('Listmonk credentials not configured - LISTMONK_USER:', LISTMONK_USER, 'LISTMONK_PASS:', LISTMONK_PASS ? '[SET]' : '[NOT SET]');
     return { 
       statusCode: 500, 
       headers, 
@@ -47,7 +60,6 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Email invalide' }) };
     }
 
-    // Appel API Listmonk pour supprimer l'abonné
     const auth = Buffer.from(`${LISTMONK_USER}:${LISTMONK_PASS}`).toString('base64');
     const apiUrl = `${LISTMONK_URL}/api/subscribers/query/delete`;
     
@@ -69,7 +81,6 @@ exports.handler = async (event) => {
     console.log('Listmonk response body:', responseText);
 
     if (!response.ok) {
-      // Si 404 ou pas trouvé, on considère que c'est OK (déjà désinscrit)
       if (response.status === 404) {
         return {
           statusCode: 200,
@@ -82,9 +93,9 @@ exports.handler = async (event) => {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'Erreur lors de la désinscription',
+          error: 'Erreur Listmonk',
           status: response.status,
-          details: responseText.substring(0, 200)
+          details: responseText.substring(0, 500)
         }),
       };
     }
