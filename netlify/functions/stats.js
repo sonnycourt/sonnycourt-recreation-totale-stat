@@ -1,5 +1,5 @@
 // Netlify Function pour afficher les stats de visites ET envois
-// Accès: GET /api/stats ou GET /.netlify/functions/stats
+// Accès: GET /api/stats
 
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -14,17 +14,6 @@ async function redis(command, ...args) {
     body: JSON.stringify([command, ...args]),
   });
   return response.json();
-}
-
-function parseHashResult(result) {
-  const obj = {};
-  if (result && result.result) {
-    const arr = result.result;
-    for (let i = 0; i < arr.length; i += 2) {
-      obj[arr[i]] = arr[i + 1];
-    }
-  }
-  return obj;
 }
 
 exports.handler = async (event) => {
@@ -70,11 +59,11 @@ exports.handler = async (event) => {
       }
     }
 
-    // Daily clicks (last 365 days for charts)
+    // Daily clicks (last 30 days only to avoid timeout)
     const dailyClicks = {};
     const today = new Date();
     
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < 30; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
