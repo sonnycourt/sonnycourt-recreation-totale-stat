@@ -230,6 +230,13 @@
             const content = document.getElementById('content');
             const { summary, pages, sends, daily } = data;
 
+            // Mapping anciennes pages → nouvelles pages
+            const oldToNewPath = {
+                '/cc/40007/': '/cc/40008/',
+                '/cc/30015/': '/cc/40018/',
+                '/cc/40024/': '/cc/40028/',
+            };
+
             // Mapping pages → templates
             const pageToTemplate = {
                 '/cc/40008/': 'CC-Jour-0',
@@ -278,8 +285,11 @@
                 pages.sort((a, b) => getMiddleNumber(a.page) - getMiddleNumber(b.page));
 
                 for (const page of pages) {
-                    const middleNum = getMiddleNumber(page.page).toString().padStart(3, '0');
-                    const template = pageToTemplate[page.page] || 'CC-Jour-' + middleNum;
+                    // Convertir ancien chemin vers nouveau si nécessaire
+                    const displayPath = oldToNewPath[page.page] || page.page;
+                    const linkPath = oldToNewPath[page.page] || page.page;
+                    const middleNum = getMiddleNumber(displayPath).toString().padStart(3, '0');
+                    const template = pageToTemplate[displayPath] || 'CC-Jour-' + middleNum;
                     const envois = sendsLookup[template] || 0;
                     const clics = page.clicks || 0;
                     const taux = envois > 0 ? ((clics / envois) * 100).toFixed(1) : '-';
@@ -287,7 +297,7 @@
                     
                     html += `
                         <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);align-items:center;">
-                            <div><a href="${page.page}" target="_blank" style="color:#64b5f6;text-decoration:none;font-weight:500;">${page.page}</a><span style="color:#6b7280;font-size:0.75rem;margin-left:4px;">#${middleNum}</span></div>
+                            <div><a href="${linkPath}" target="_blank" style="color:#64b5f6;text-decoration:none;font-weight:500;">${displayPath}</a><span style="color:#6b7280;font-size:0.75rem;margin-left:4px;">#${middleNum}</span></div>
                             <div style="font-weight:600;color:#34C759;">${envois}</div>
                             <div style="font-weight:700;color:#007AFF;">${clics}</div>
                             <div style="font-weight:700;color:${tauxColor};">${taux}${taux !== '-' ? '%' : ''}</div>
