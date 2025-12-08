@@ -1,7 +1,7 @@
 // Netlify Function pour désinscrire un email de Listmonk
 // POST /api/unsubscribe avec { "email": "test@example.com" }
 
-const LISTMONK_URL = process.env.LISTMONK_URL || 'http://168.119.238.147:9000';
+const LISTMONK_URL = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
 const LISTMONK_USER = process.env.LISTMONK_USER;
 const LISTMONK_PASS = process.env.LISTMONK_PASS;
 
@@ -21,13 +21,27 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // Debug: log des variables d'env
+  console.log('LISTMONK_URL:', LISTMONK_URL);
+  console.log('LISTMONK_USER configured:', !!LISTMONK_USER);
+  console.log('LISTMONK_PASS configured:', !!LISTMONK_PASS);
+
   if (!LISTMONK_USER || !LISTMONK_PASS) {
-    console.error('Listmonk credentials not configured');
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Service not configured' }) };
+    console.error('Listmonk credentials not configured - LISTMONK_USER:', LISTMONK_USER, 'LISTMONK_PASS:', LISTMONK_PASS ? '[SET]' : '[NOT SET]');
+    return { 
+      statusCode: 500, 
+      headers, 
+      body: JSON.stringify({ 
+        error: 'Service non configuré',
+        debug: 'Variables LISTMONK_USER et/ou LISTMONK_PASS manquantes dans Netlify'
+      }) 
+    };
   }
 
   try {
     const { email } = JSON.parse(event.body || '{}');
+    
+    console.log('Unsubscribe request for:', email);
     
     if (!email || !email.includes('@')) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Email invalide' }) };
@@ -35,8 +49,11 @@ exports.handler = async (event) => {
 
     // Appel API Listmonk pour supprimer l'abonné
     const auth = Buffer.from(`${LISTMONK_USER}:${LISTMONK_PASS}`).toString('base64');
+    const apiUrl = `${LISTMONK_URL}/api/subscribers/query/delete`;
     
-    const response = await fetch(`${LISTMONK_URL}/api/subscribers/query/delete`, {
+    console.log('Calling Listmonk API:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
@@ -47,10 +64,11 @@ exports.handler = async (event) => {
       }),
     });
 
+    const responseText = await response.text();
+    console.log('Listmonk response status:', response.status);
+    console.log('Listmonk response body:', responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Listmonk error:', response.status, errorText);
-      
       // Si 404 ou pas trouvé, on considère que c'est OK (déjà désinscrit)
       if (response.status === 404) {
         return {
@@ -63,7 +81,11 @@ exports.handler = async (event) => {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Erreur lors de la désinscription' }),
+        body: JSON.stringify({ 
+          error: 'Erreur lors de la désinscription',
+          status: response.status,
+          details: responseText.substring(0, 200)
+        }),
       };
     }
 
@@ -74,12 +96,14 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Unsubscribe error:', error);
+    console.error('Unsubscribe error:', error.message, error.stack);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Erreur serveur' }),
+      body: JSON.stringify({ 
+        error: 'Erreur serveur',
+        details: error.message
+      }),
     };
   }
 };
-
