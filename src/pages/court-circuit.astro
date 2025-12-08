@@ -581,6 +581,21 @@ import Layout from '../layouts/Layout.astro';
       buttonSpan.textContent = originalButtonText || 'Essaie maintenant';
 
       if (response.ok) {
+        // Appel au webhook n8n pour déclencher l'email de bienvenue
+        try {
+          await fetch('http://168.119.238.147:5678/webhook/ebe808c2-e48d-4052-b229-a55e642f3841', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: formData.get('email'),
+              name: formData.get('name')
+            })
+          });
+        } catch (webhookError) {
+          // On continue même si le webhook échoue (ne pas bloquer la redirection)
+          console.error('Erreur webhook n8n:', webhookError);
+        }
+        
         // Rediriger vers la page de succès
         window.location.href = '/court-circuit-success';
       } else {
