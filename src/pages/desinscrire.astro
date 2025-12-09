@@ -1,166 +1,340 @@
 ---
-// Page de désinscription Court-Circuit
+import Layout from '../layouts/Layout.astro';
 ---
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Se désinscrire - Court-Circuit</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="robots" content="noindex, nofollow" />
-</head>
-<body style="margin:0;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:#0a0a0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;">
-
-    <div style="max-width:500px;width:100%;text-align:center;">
-        
-        <!-- État initial : Confirmation -->
-        <div id="confirmScreen">
-            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
-                    <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                    <path d="m17 17 4 4"/>
-                    <path d="m21 17-4 4"/>
-                </svg>
-                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#fff;">Te désinscrire ?</h1>
-                <p style="color:#8E8E93;margin:0 0 8px 0;font-size:0.95rem;">Tu souhaites te désinscrire de la newsletter</p>
-                <p style="color:#007AFF;margin:0 0 24px 0;font-size:1rem;font-weight:600;">Court-Circuit</p>
-                
-                <p id="emailDisplay" style="color:#6b7280;margin:0 0 24px 0;font-size:0.85rem;word-break:break-all;"></p>
-                
-                <button 
-                    id="confirmBtn"
-                    onclick="confirmUnsubscribe()" 
-                    style="width:100%;padding:14px;background:#FF3B30;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px;"
-                >
-                    Oui, me désinscrire
-                </button>
-                
-                <a href="/" style="display:block;color:#8E8E93;text-decoration:none;font-size:0.9rem;">
-                    Non, annuler
-                </a>
-            </div>
+<Layout title="Se désinscrire - Court-Circuit" description="Gérer ta désinscription de la newsletter Court-Circuit">
+  <div class="unsubscribe-page">
+    <div class="unsubscribe-container">
+      
+      <!-- État initial : Confirmation -->
+      <div id="confirmScreen" class="screen">
+        <div class="card">
+          <div class="icon-container icon-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              <path d="m17 17 4 4"/>
+              <path d="m21 17-4 4"/>
+            </svg>
+          </div>
+          <h1 class="title">Te désinscrire ?</h1>
+          <p class="subtitle">Tu souhaites te désinscrire de la newsletter</p>
+          <p class="highlight">Court-Circuit</p>
+          <p id="emailDisplay" class="email-display"></p>
+          
+          <button id="confirmBtn" onclick="confirmUnsubscribe()" class="btn btn-danger">
+            Oui, me désinscrire
+          </button>
+          
+          <a href="/" class="link-secondary">Non, annuler</a>
         </div>
+      </div>
 
-        <!-- État : Chargement -->
-        <div id="loadingScreen" style="display:none;">
-            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
-                <div style="width:40px;height:40px;border:3px solid #1c1c1e;border-top-color:#007AFF;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
-                <p style="color:#8E8E93;margin:0;font-size:0.95rem;">Désinscription en cours...</p>
-            </div>
+      <!-- État : Chargement -->
+      <div id="loadingScreen" class="screen" style="display:none;">
+        <div class="card">
+          <div class="spinner"></div>
+          <p class="subtitle">Désinscription en cours...</p>
         </div>
+      </div>
 
-        <!-- État : Succès -->
-        <div id="successScreen" style="display:none;">
-            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#34C759;">C'est fait !</h1>
-                <p style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Tu as été désinscrit de Court-Circuit.</p>
-                <p style="color:#6b7280;margin:0 0 24px 0;font-size:0.85rem;">Tu ne recevras plus nos emails quotidiens.</p>
-                <a href="/" style="display:inline-block;padding:14px 28px;background:#007AFF;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">
-                    Retour à l'accueil
-                </a>
-            </div>
+      <!-- État : Succès -->
+      <div id="successScreen" class="screen" style="display:none;">
+        <div class="card">
+          <div class="icon-container icon-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <h1 class="title title-success">C'est fait !</h1>
+          <p class="subtitle">Tu as été désinscrit de Court-Circuit.</p>
+          <p class="text-muted">Tu ne recevras plus nos emails quotidiens.</p>
+          <a href="/" class="btn btn-primary">Retour à l'accueil</a>
         </div>
+      </div>
 
-        <!-- État : Erreur -->
-        <div id="errorScreen" style="display:none;">
-            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#FF3B30;">Erreur</h1>
-                <p id="errorMessage" style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Une erreur est survenue.</p>
-                <button 
-                    onclick="location.reload()" 
-                    style="padding:14px 28px;background:#007AFF;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;"
-                >
-                    Réessayer
-                </button>
-            </div>
+      <!-- État : Erreur -->
+      <div id="errorScreen" class="screen" style="display:none;">
+        <div class="card">
+          <div class="icon-container icon-error">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <h1 class="title title-error">Erreur</h1>
+          <p id="errorMessage" class="subtitle">Une erreur est survenue.</p>
+          <button onclick="location.reload()" class="btn btn-primary">Réessayer</button>
         </div>
+      </div>
 
-        <!-- État : Email manquant -->
-        <div id="noEmailScreen" style="display:none;">
-            <div style="background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 12px 0;color:#FF9500;">Email manquant</h1>
-                <p style="color:#8E8E93;margin:0 0 24px 0;font-size:0.95rem;">Aucun email n'a été fourni dans le lien.</p>
-                <a href="/" style="display:inline-block;padding:14px 28px;background:#007AFF;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">
-                    Retour à l'accueil
-                </a>
-            </div>
+      <!-- État : Email manquant -->
+      <div id="noEmailScreen" class="screen" style="display:none;">
+        <div class="card">
+          <div class="icon-container icon-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h1 class="title title-warning">Email manquant</h1>
+          <p class="subtitle">Aucun email n'a été fourni dans le lien.</p>
+          <a href="/" class="btn btn-primary">Retour à l'accueil</a>
         </div>
+      </div>
 
     </div>
+  </div>
+</Layout>
 
-    <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        button:hover { opacity: 0.9; }
-        a:hover { opacity: 0.9; }
-    </style>
+<style>
+  .unsubscribe-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    position: relative;
+  }
 
-    <script is:inline>
-        let userEmail = null;
+  .unsubscribe-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 122, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
 
-        function init() {
-            const params = new URLSearchParams(window.location.search);
-            userEmail = params.get('email');
-            
-            if (!userEmail || !userEmail.includes('@')) {
-                showScreen('noEmailScreen');
-                return;
-            }
-            
-            document.getElementById('emailDisplay').textContent = userEmail;
-        }
+  .unsubscribe-container {
+    max-width: 480px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
 
-        function showScreen(screenId) {
-            ['confirmScreen', 'loadingScreen', 'successScreen', 'errorScreen', 'noEmailScreen'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-            document.getElementById(screenId).style.display = 'block';
-        }
+  .screen {
+    animation: fadeIn 0.3s ease-out;
+  }
 
-        async function confirmUnsubscribe() {
-            if (!userEmail) return;
-            
-            showScreen('loadingScreen');
-            
-            try {
-                const response = await fetch('/api/unsubscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: userEmail })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    showScreen('successScreen');
-                } else {
-                    document.getElementById('errorMessage').textContent = data.error || 'Une erreur est survenue.';
-                    showScreen('errorScreen');
-                }
-            } catch (error) {
-                document.getElementById('errorMessage').textContent = 'Erreur de connexion. Réessaie plus tard.';
-                showScreen('errorScreen');
-            }
-        }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-        init();
-    </script>
-</body>
-</html>
+  .card {
+    background: rgba(28, 28, 30, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
 
+  .icon-container {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .icon-warning {
+    background: rgba(255, 149, 0, 0.15);
+    color: #FF9500;
+  }
+
+  .icon-success {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+  }
+
+  .icon-error {
+    background: rgba(255, 59, 48, 0.15);
+    color: #FF3B30;
+  }
+
+  .title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #fff;
+  }
+
+  .title-success { color: #34C759; }
+  .title-error { color: #FF3B30; }
+  .title-warning { color: #FF9500; }
+
+  .subtitle {
+    color: #8E8E93;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .highlight {
+    color: #007AFF;
+    margin: 0 0 20px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .email-display {
+    color: #6b7280;
+    margin: 0 0 28px 0;
+    font-size: 0.9rem;
+    word-break: break-all;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+  }
+
+  .text-muted {
+    color: #6b7280;
+    margin: 0 0 28px 0;
+    font-size: 0.9rem;
+  }
+
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(0, 122, 255, 0.4);
+  }
+
+  .btn-danger {
+    background: linear-gradient(135deg, #FF3B30 0%, #cc2f26 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
+  }
+
+  .btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(255, 59, 48, 0.4);
+  }
+
+  .link-secondary {
+    display: block;
+    color: #8E8E93;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+  }
+
+  .link-secondary:hover {
+    color: #fff;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #007AFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 540px) {
+    .card {
+      padding: 36px 24px;
+      border-radius: 20px;
+    }
+
+    .title {
+      font-size: 1.5rem;
+    }
+
+    .icon-container {
+      width: 60px;
+      height: 60px;
+    }
+
+    .icon-container svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+</style>
+
+<script is:inline>
+  let userEmail = null;
+
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    userEmail = params.get('email');
+    
+    if (!userEmail || !userEmail.includes('@')) {
+      showScreen('noEmailScreen');
+      return;
+    }
+    
+    document.getElementById('emailDisplay').textContent = userEmail;
+  }
+
+  function showScreen(screenId) {
+    ['confirmScreen', 'loadingScreen', 'successScreen', 'errorScreen', 'noEmailScreen'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+    document.getElementById(screenId).style.display = 'block';
+  }
+
+  async function confirmUnsubscribe() {
+    if (!userEmail) return;
+    
+    showScreen('loadingScreen');
+    
+    try {
+      const response = await fetch('/api/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        showScreen('successScreen');
+      } else {
+        document.getElementById('errorMessage').textContent = data.error || 'Une erreur est survenue.';
+        showScreen('errorScreen');
+      }
+    } catch (error) {
+      document.getElementById('errorMessage').textContent = 'Erreur de connexion. Réessaie plus tard.';
+      showScreen('errorScreen');
+    }
+  }
+
+  init();
+</script>
