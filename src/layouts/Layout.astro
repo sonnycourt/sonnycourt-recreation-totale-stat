@@ -9,13 +9,15 @@ export interface Props {
   description?: string;
   image?: string;
   canonical?: string;
+  noindex?: boolean;
 }
 
 const { 
   title, 
   description = "Reprogramme ton subconscient. Une approche innovante pour débloquer ton potentiel et créer la vie que tu mérites vraiment.",
   image = "/og-image.jpg",
-  canonical = Astro.url.href
+  canonical = Astro.url.href,
+  noindex = false
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -46,6 +48,9 @@ const GTM_ID = 'GTM-NGS86CLW';
     
     <!-- Canonical -->
     <link rel="canonical" href={canonical} />
+    
+    <!-- Robots meta -->
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     
     <!-- GA4 Consent Mode v2 (chargé en denied par défaut) -->
     <GAConsentMode />
