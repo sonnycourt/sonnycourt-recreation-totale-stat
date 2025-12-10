@@ -233,6 +233,19 @@ const {
   })();
 </script>
 
+<!-- Tracking activité subscriber (last_click dans Listmonk) -->
+<script is:inline>
+  (function() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const email = params.get('e');
+      if (email) {
+        fetch('/.netlify/functions/track-activity?email=' + encodeURIComponent(email));
+      }
+    } catch (e) {}
+  })();
+</script>
+
 <style>
   .court-circuit-page {
     min-height: 100vh;
