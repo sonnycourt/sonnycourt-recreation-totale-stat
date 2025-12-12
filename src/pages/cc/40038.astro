@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Offre Spéciale -20% - Court-Circuit" description="Profite de -20% sur la formation Système Souhaits Réalisés" noindex={true}>
+<Layout title="Offre Spéciale -55% - Court-Circuit" description="Profite de -55% sur la formation Système Souhaits Réalisés" noindex={true}>
   <div class="promo-page">
     
     <!-- Hero avec image Court-Circuit -->
@@ -15,7 +15,7 @@ import Layout from '../../layouts/Layout.astro';
     <!-- Bandeau Offre Spéciale -->
     <section class="promo-banner">
       <div class="promo-badge">OFFRE EXCLUSIVE</div>
-      <div class="promo-discount">-20%</div>
+      <div class="promo-discount">-55%</div>
       <p class="promo-subtitle">Réservé aux abonnés Court-Circuit</p>
       <div class="countdown" id="countdown">
         <div class="countdown-item">
@@ -40,7 +40,7 @@ import Layout from '../../layouts/Layout.astro';
       <div class="offer-card">
         <div class="offer-image">
           <img src="https://sonnycourt-videos-public.b-cdn.net/Sonny-pack-Neville-cover-vf.webp" alt="Système Souhaits Réalisés" />
-          <div class="discount-tag">-20%</div>
+          <div class="discount-tag">-55%</div>
         </div>
         <div class="offer-content">
           <h2 class="offer-title">Système Souhaits Réalisés</h2>
@@ -74,13 +74,13 @@ import Layout from '../../layouts/Layout.astro';
             </li>
           </ul>
           <div class="price-section">
-            <div class="price-old">97€</div>
-            <div class="price-new">77€</div>
-            <div class="price-save">Tu économises 20€</div>
+            <div class="price-old">397€</div>
+            <div class="price-new">177€</div>
+            <div class="price-save">Tu économises 220€</div>
           </div>
-          <a href="https://sonnycourt.spiffy.co/checkout/souhaits-realises?coupon=CC20" class="cta-main">
+          <a href="https://sonnycourt.spiffy.co/checkout/souhaits-realises?coupon=CC55" class="cta-main">
             <span class="cta-icon">🔓</span>
-            <span class="cta-text">Débloquer mon accès à -20%</span>
+            <span class="cta-text">Débloquer mon accès à -55%</span>
           </a>
           <p class="guarantee">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2">
@@ -103,10 +103,10 @@ import Layout from '../../layouts/Layout.astro';
       </div>
     </section>
 
-    <!-- CTA Final -->
-    <section class="final-cta">
-      <a href="https://sonnycourt.spiffy.co/checkout/souhaits-realises?coupon=CC20" class="cta-final">
-        Oui, je veux -20% maintenant →
+    <!-- En savoir plus -->
+    <section class="learn-more-section">
+      <a href="/systeme-souhaits-realises-40038" class="learn-more-link">
+        En savoir plus sur cette formation →
       </a>
     </section>
 
@@ -166,13 +166,61 @@ import Layout from '../../layouts/Layout.astro';
 <!-- Countdown Timer -->
 <script is:inline>
   (function() {
-    // Set countdown to 24 hours from first visit
+    // Set countdown to 24 hours from first visit (persisted)
     const storageKey = 'promo_40038_end';
     let endTime = localStorage.getItem(storageKey);
     
     if (!endTime) {
       endTime = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
       localStorage.setItem(storageKey, endTime);
+    } else {
+      endTime = parseInt(endTime, 10);
+    }
+    
+    let expired = false;
+    
+    function disableOffer() {
+      if (expired) return;
+      expired = true;
+      
+      // Grey out all CTA buttons
+      const ctaMain = document.querySelector('.cta-main');
+      const ctaFinal = document.querySelector('.cta-final');
+      
+      if (ctaMain) {
+        ctaMain.style.background = '#4a4a4a';
+        ctaMain.style.boxShadow = 'none';
+        ctaMain.style.cursor = 'not-allowed';
+        ctaMain.style.pointerEvents = 'none';
+        ctaMain.querySelector('.cta-text').textContent = 'Offre expirée';
+      }
+      
+      if (ctaFinal) {
+        ctaFinal.style.background = '#4a4a4a';
+        ctaFinal.style.boxShadow = 'none';
+        ctaFinal.style.cursor = 'not-allowed';
+        ctaFinal.style.pointerEvents = 'none';
+        ctaFinal.textContent = 'Offre expirée';
+      }
+      
+      // Update promo banner
+      const promoDiscount = document.querySelector('.promo-discount');
+      if (promoDiscount) {
+        promoDiscount.style.color = '#6b7280';
+        promoDiscount.style.textShadow = 'none';
+      }
+      
+      // Update urgency card
+      const urgencyTitle = document.querySelector('.urgency-title');
+      if (urgencyTitle) {
+        urgencyTitle.textContent = 'Cette offre a expiré';
+        urgencyTitle.style.color = '#6b7280';
+      }
+      
+      const urgencyText = document.querySelector('.urgency-text');
+      if (urgencyText) {
+        urgencyText.textContent = 'Tu peux toujours accéder à la formation au prix normal.';
+      }
     }
     
     function updateCountdown() {
@@ -183,6 +231,7 @@ import Layout from '../../layouts/Layout.astro';
         document.getElementById('hours').textContent = '00';
         document.getElementById('minutes').textContent = '00';
         document.getElementById('seconds').textContent = '00';
+        disableOffer();
         return;
       }
       
@@ -234,15 +283,15 @@ import Layout from '../../layouts/Layout.astro';
   .promo-banner {
     text-align: center;
     padding: 40px 20px;
-    background: linear-gradient(135deg, rgba(255, 59, 48, 0.15) 0%, rgba(255, 149, 0, 0.1) 100%);
-    border-top: 1px solid rgba(255, 59, 48, 0.3);
-    border-bottom: 1px solid rgba(255, 59, 48, 0.3);
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.2) 0%, rgba(255, 59, 48, 0.1) 100%);
+    border-top: 1px solid rgba(255, 59, 48, 0.4);
+    border-bottom: 1px solid rgba(255, 59, 48, 0.4);
     margin: 30px 0;
   }
 
   .promo-badge {
     display: inline-block;
-    background: linear-gradient(135deg, #FF3B30 0%, #FF9500 100%);
+    background: #FF3B30;
     color: #fff;
     padding: 8px 20px;
     border-radius: 20px;
@@ -334,12 +383,13 @@ import Layout from '../../layouts/Layout.astro';
     position: absolute;
     top: 16px;
     right: 16px;
-    background: linear-gradient(135deg, #FF3B30 0%, #FF9500 100%);
+    background: #FF3B30;
     color: #fff;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 18px;
     font-weight: 800;
+    box-shadow: 0 4px 15px rgba(255, 59, 48, 0.5);
   }
 
   .offer-content {
@@ -456,8 +506,8 @@ import Layout from '../../layouts/Layout.astro';
     display: flex;
     align-items: center;
     gap: 20px;
-    background: rgba(255, 149, 0, 0.1);
-    border: 1px solid rgba(255, 149, 0, 0.3);
+    background: rgba(255, 59, 48, 0.15);
+    border: 1px solid rgba(255, 59, 48, 0.4);
     border-radius: 16px;
     padding: 24px;
   }
@@ -468,7 +518,7 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .urgency-title {
-    color: #FF9500;
+    color: #FF3B30;
     font-size: 18px;
     font-weight: 700;
     margin: 0 0 4px 0;
@@ -502,6 +552,30 @@ import Layout from '../../layouts/Layout.astro';
   .cta-final:hover {
     transform: translateY(-3px) scale(1.02);
     box-shadow: 0 12px 40px rgba(52, 199, 89, 0.5);
+  }
+
+  /* Learn More Section */
+  .learn-more-section {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .learn-more-link {
+    display: inline-block;
+    color: #64b5f6;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 12px 24px;
+    border: 1px solid rgba(100, 181, 246, 0.3);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .learn-more-link:hover {
+    background: rgba(100, 181, 246, 0.1);
+    border-color: rgba(100, 181, 246, 0.5);
+    transform: translateY(-2px);
   }
 
   /* Other Offers */

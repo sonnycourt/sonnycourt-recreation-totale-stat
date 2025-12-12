@@ -1749,47 +1749,103 @@ import Layout from '../layouts/Layout.astro';
 </style>
 
 <script>
-  // Timer countdown 5 minutes
-  let time = 5 * 60; // 5 minutes en secondes
+  // Timer countdown 5 minutes - PERSISTANT
+  const storageKey = 'promo_cc_success_end';
+  let endTime = localStorage.getItem(storageKey);
+  
+  if (!endTime) {
+    endTime = Date.now() + 5 * 60 * 1000; // 5 minutes
+    localStorage.setItem(storageKey, endTime);
+  } else {
+    endTime = parseInt(endTime, 10);
+  }
+  
   const timerEl = document.getElementById('timer');
   const ctaTimerEl = document.getElementById('ctaTimer');
   const ctaTimerBottomEl = document.getElementById('ctaTimerBottom');
+  let expired = false;
+
+  function disableOffer() {
+    if (expired) return;
+    expired = true;
+    
+    // Grey out all CTA buttons
+    const ctaButtons = document.querySelectorAll('.cta-button');
+    ctaButtons.forEach(btn => {
+      btn.style.background = '#4a4a4a';
+      btn.style.boxShadow = 'none';
+      btn.style.cursor = 'not-allowed';
+      btn.style.pointerEvents = 'none';
+      const ctaText = btn.querySelector('.cta-text');
+      if (ctaText) ctaText.textContent = 'Offre expirée';
+    });
+    
+    // Grey out floating CTA
+    const floatingCta = document.querySelector('.floating-cta');
+    if (floatingCta) {
+      floatingCta.style.background = '#4a4a4a';
+      floatingCta.style.boxShadow = 'none';
+      floatingCta.style.cursor = 'not-allowed';
+      floatingCta.style.pointerEvents = 'none';
+      floatingCta.style.animation = 'none';
+      floatingCta.textContent = '⏱ Offre expirée';
+    }
+    
+    // Grey out exit popup CTA
+    const exitCta = document.querySelector('.exit-popup-cta');
+    if (exitCta) {
+      exitCta.style.background = '#4a4a4a';
+      exitCta.style.boxShadow = 'none';
+      exitCta.style.cursor = 'not-allowed';
+      exitCta.style.pointerEvents = 'none';
+      exitCta.textContent = 'Offre expirée';
+    }
+    
+    // Update urgency bar
+    const urgencyBar = document.querySelector('.urgency-bar');
+    if (urgencyBar) {
+      urgencyBar.style.background = '#4a4a4a';
+      urgencyBar.style.animation = 'none';
+      urgencyBar.style.boxShadow = 'none';
+    }
+    
+    const urgencyText = document.querySelector('.urgency-text');
+    if (urgencyText) {
+      urgencyText.textContent = 'Cette offre a expiré';
+    }
+    
+    // Update price warning
+    const priceWarning = document.querySelector('.price-warning span');
+    if (priceWarning) {
+      priceWarning.textContent = 'Cette offre a expiré';
+    }
+  }
 
   const updateTimer = () => {
-    if (time > 0) {
-      time--;
-      const mins = Math.floor(time / 60);
-      const secs = time % 60;
-      const timeString = `${mins}:${secs.toString().padStart(2, '0')}`;
-      
-      if (timerEl) {
-        timerEl.textContent = timeString;
-      }
-      if (ctaTimerEl) {
-        ctaTimerEl.textContent = timeString;
-      }
-      if (ctaTimerBottomEl) {
-        ctaTimerBottomEl.textContent = timeString;
-      }
-    } else {
+    const now = Date.now();
+    const diff = endTime - now;
+    
+    if (diff <= 0) {
       const timeString = '0:00';
-      if (timerEl) {
-        timerEl.textContent = timeString;
-      }
-      if (ctaTimerEl) {
-        ctaTimerEl.textContent = timeString;
-      }
-      if (ctaTimerBottomEl) {
-        ctaTimerBottomEl.textContent = timeString;
-      }
+      if (timerEl) timerEl.textContent = timeString;
+      if (ctaTimerEl) ctaTimerEl.textContent = timeString;
+      if (ctaTimerBottomEl) ctaTimerBottomEl.textContent = timeString;
+      disableOffer();
+      return;
     }
+    
+    const totalSeconds = Math.floor(diff / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    const timeString = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    if (timerEl) timerEl.textContent = timeString;
+    if (ctaTimerEl) ctaTimerEl.textContent = timeString;
+    if (ctaTimerBottomEl) ctaTimerBottomEl.textContent = timeString;
   };
 
   if (timerEl || ctaTimerEl || ctaTimerBottomEl) {
-    // Mise à jour immédiate
     updateTimer();
-    
-    // Mise à jour toutes les secondes
     setInterval(updateTimer, 1000);
   }
 
