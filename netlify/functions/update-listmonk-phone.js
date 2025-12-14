@@ -31,8 +31,8 @@ exports.handler = async (event) => {
     }
 
     const LISTMONK_URL = process.env.LISTMONK_API_URL || 'https://mail.sonnycourt.com';
-    const LISTMONK_USER = process.env.LISTMONK_USERNAME;
-    const LISTMONK_PASS = process.env.LISTMONK_PASSWORD;
+    const LISTMONK_USER = process.env.LISTMONK_USER;
+    const LISTMONK_PASS = process.env.LISTMONK_PASS;
 
     if (!LISTMONK_USER || !LISTMONK_PASS) {
       console.error('Credentials Listmonk manquantes');
