@@ -14,10 +14,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <!-- GA4 Consent Mode v2 -->
     <GAConsentMode />
     
-    <!-- intl-tel-input CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
-    <!-- intl-tel-input JS -->
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    <!-- intl-tel-input CSS + JS (version complète) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/intlTelInput.min.js"></script>
     
     <style>
         /* Reset et base */
@@ -797,12 +796,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         
         .iti__flag {
-            background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/img/flags.png") !important;
+            background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/img/flags.webp") !important;
+            background-size: 5762px 15px !important;
         }
         
         @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
             .iti__flag {
-                background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/img/flags@2x.png") !important;
+                background-image: url("https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/img/flags@2x.webp") !important;
+                background-size: 5762px 15px !important;
             }
         }
         
@@ -1120,16 +1121,22 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
             
             // Récupérer le numéro formaté
-            if (window.iti && window.iti.isValidNumber()) {
-                const formattedPhone = window.iti.getNumber();
-                phoneFormattedInput.value = formattedPhone;
-                
-                // Envoyer tout (prénom + email + téléphone) à Listmonk via webhook n8n
-                updateListmonkContact(currentName, currentEmail, formattedPhone);
-            } else {
-                alert('Veuillez entrer un numéro de téléphone valide');
-                phoneInput.focus();
-                return;
+            try {
+                if (window.iti && window.iti.isValidNumber()) {
+                    const formattedPhone = window.iti.getNumber();
+                    phoneFormattedInput.value = formattedPhone;
+                    
+                    // Envoyer tout (prénom + email + téléphone) à Listmonk via webhook n8n
+                    updateListmonkContact(currentName, currentEmail, formattedPhone);
+                } else {
+                    alert('Veuillez entrer un numéro de téléphone valide');
+                    phoneInput.focus();
+                    return;
+                }
+            } catch (e) {
+                // Si utils.js n'est pas encore chargé, on prend le numéro tel quel
+                const rawPhone = window.iti ? window.iti.getNumber() : phoneInput.value;
+                updateListmonkContact(currentName, currentEmail, rawPhone);
             }
         }
 
@@ -1274,18 +1281,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         .then(data => callback(data.country_code))
                         .catch(() => callback('fr'));
                 },
-                preferredCountries: ['fr', 'ch', 'be', 'ca'],
+                countryOrder: ['fr', 'ch', 'be', 'ca'],
                 separateDialCode: true,
                 dropdownContainer: document.body,
-                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
+                loadUtilsOnInit: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/utils.js"
             });
+            
+            console.log('intl-tel-input initialisé:', window.iti);
 
             // Mise à jour du champ caché quand le numéro change
             function updateHiddenField() {
-                if (phoneInput.value.trim() && window.iti.isValidNumber()) {
-                    phoneFormattedInput.value = window.iti.getNumber();
-                } else {
-                    phoneFormattedInput.value = '';
+                try {
+                    if (phoneInput.value.trim() && window.iti.isValidNumber()) {
+                        phoneFormattedInput.value = window.iti.getNumber();
+                    } else {
+                        phoneFormattedInput.value = '';
+                    }
+                } catch (e) {
+                    console.log('Validation en attente du chargement utils.js');
                 }
             }
 
