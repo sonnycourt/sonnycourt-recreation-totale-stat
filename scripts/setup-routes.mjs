@@ -22,7 +22,7 @@ const routeMapping = {
   // Formations (depuis les dossiers spécialisés)
   'src/pages/ChallengeT-formation/challenge-transformation.astro': 'src/pages/challenge-transformation.astro',
   'src/pages/Manifest-formation/manifest.astro': 'src/pages/manifest.astro',
-  'src/pages/Manifest-formation/access-manifest.astro': 'src/pages/access-manifest.astro',
+  'src/pages/Manifest-formation/access-manifest.astro': 'src/pages/access-ssr.astro',
   'src/pages/Manifest-formation/video-gratuite-manifest.astro': 'src/pages/video-gratuite-manifest.astro',
   'src/pages/NeuroIA-formation/neuro-ia.astro': 'src/pages/neuro-ia.astro',
   'src/pages/SSR-formation/ssr.astro': 'src/pages/ssr.astro',
