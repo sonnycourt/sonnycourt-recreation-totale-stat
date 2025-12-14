@@ -1199,37 +1199,32 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         async function updateListmonkContact(name, email, phone) {
-            // Étape 2 : Mettre à jour le contact avec le numéro de téléphone
-            // On re-soumet à l'API Listmonk avec l'attribut phone - ça met à jour le subscriber existant
-            const data = {
-                email: email,
-                name: name,
-                list_uuids: [LISTMONK_LIST_UUID],
-                attribs: {
-                    phone: phone
-                }
-            };
-
+            // Étape 2 : Mettre à jour le téléphone via fonction Netlify
             try {
-                const response = await fetch('https://mail.sonnycourt.com/api/public/subscription', {
+                const response = await fetch('/.netlify/functions/update-listmonk-phone', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        email: email,
+                        phone: phone
+                    })
                 });
 
+                const result = await response.json();
+                
                 if (response.ok) {
-                    console.log('Contact mis à jour avec téléphone:', email, phone);
+                    console.log('✅ Téléphone mis à jour dans Listmonk:', email, phone);
                 } else {
-                    console.error('Erreur mise à jour Listmonk');
+                    console.error('❌ Erreur mise à jour:', result);
                 }
                 
                 // Fermer le popup et rediriger
                 closePopup();
                 redirectToVideo();
             } catch (error) {
-                console.error('Erreur lors de la mise à jour du contact:', error);
+                console.error('Erreur lors de la mise à jour:', error);
                 // Rediriger quand même
                 closePopup();
                 redirectToVideo();
