@@ -14,9 +14,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <!-- GA4 Consent Mode v2 -->
     <GAConsentMode />
     
-    <!-- intl-tel-input CSS + JS (version complète) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/css/intlTelInput.css">
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/intlTelInput.min.js"></script>
+    <!-- intl-tel-input CSS + JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js"></script>
     
     <style>
         /* Reset et base */
@@ -679,7 +679,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
         }
 
-        /* ===== INTL-TEL-INPUT STYLES ===== */
+        /* ===== INTL-TEL-INPUT v18 - DARK THEME ===== */
         
         /* Container principal */
         .iti {
@@ -688,123 +688,129 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         
         /* Input téléphone */
-        .iti__tel-input {
+        .iti input,
+        .iti input[type="tel"],
+        .iti input[type="text"] {
             width: 100% !important;
-            height: 50px !important;
-            padding: 15px 15px 15px 90px !important;
+            height: 52px !important;
+            padding: 15px 15px 15px 110px !important;
             background: rgba(255, 255, 255, 0.1) !important;
-            border: 1px solid rgba(102, 51, 255, 0.3) !important;
+            border: 1px solid rgba(102, 51, 255, 0.4) !important;
             border-radius: 10px !important;
             color: #ffffff !important;
             font-size: 16px !important;
             box-sizing: border-box !important;
         }
         
-        .iti__tel-input:focus {
+        .iti input:focus {
             border-color: #6633ff !important;
-            box-shadow: 0 0 20px rgba(102, 51, 255, 0.3) !important;
+            box-shadow: 0 0 20px rgba(102, 51, 255, 0.4) !important;
             outline: none !important;
         }
         
-        .iti__tel-input::placeholder {
+        .iti input::placeholder {
             color: rgba(255, 255, 255, 0.5) !important;
         }
         
-        /* Bouton avec drapeau */
-        .iti__country-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+        /* Bouton drapeau sélectionné */
+        .iti__flag-container {
             height: 100% !important;
         }
         
-        .iti__selected-country {
-            display: flex !important;
-            align-items: center !important;
+        .iti__selected-flag {
             height: 100% !important;
-            padding: 0 8px 0 12px !important;
-            background: rgba(102, 51, 255, 0.2) !important;
-            border-radius: 10px 0 0 10px !important;
-            border-right: 1px solid rgba(102, 51, 255, 0.3) !important;
-            cursor: pointer !important;
-        }
-        
-        .iti__selected-country:hover {
+            padding: 0 12px !important;
             background: rgba(102, 51, 255, 0.3) !important;
+            border-radius: 10px 0 0 10px !important;
+            border-right: 1px solid rgba(102, 51, 255, 0.4) !important;
         }
         
-        /* Indicatif affiché */
+        .iti__selected-flag:hover,
+        .iti__selected-flag:focus {
+            background: rgba(102, 51, 255, 0.5) !important;
+        }
+        
+        /* Indicatif */
         .iti__selected-dial-code {
             color: #ffffff !important;
             font-size: 14px !important;
-            margin-left: 6px !important;
+            font-weight: 500 !important;
+            margin-left: 8px !important;
         }
         
-        /* Flèche dropdown */
+        /* Flèche */
         .iti__arrow {
+            border-top: 5px solid #ffffff !important;
             border-left: 4px solid transparent !important;
             border-right: 4px solid transparent !important;
-            border-top: 5px solid rgba(255, 255, 255, 0.8) !important;
-            margin-left: 6px !important;
+            margin-left: 8px !important;
         }
         
-        /* DROPDOWN - doit être AU-DESSUS du popup */
-        .iti__dropdown-content {
-            position: fixed !important;
-            z-index: 200000 !important;
-            background: #1a0033 !important;
+        .iti__arrow--up {
+            border-top: none !important;
+            border-bottom: 5px solid #ffffff !important;
+        }
+        
+        /* ===== DROPDOWN - AU DESSUS DU POPUP ===== */
+        .iti--container {
+            z-index: 999999 !important;
+        }
+        
+        .iti__country-list {
+            background: linear-gradient(135deg, #1a0033 0%, #2d1b69 100%) !important;
             border: 2px solid rgba(102, 51, 255, 0.5) !important;
             border-radius: 12px !important;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8) !important;
-            max-height: 250px !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(102, 51, 255, 0.3) !important;
+            max-height: 220px !important;
             overflow-y: auto !important;
+            z-index: 999999 !important;
         }
         
-        /* Barre de recherche dans dropdown */
-        .iti__search-input {
-            width: 100% !important;
-            padding: 12px !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: none !important;
-            border-bottom: 1px solid rgba(102, 51, 255, 0.3) !important;
-            color: #ffffff !important;
-            font-size: 14px !important;
-            outline: none !important;
+        .iti__country-list::-webkit-scrollbar {
+            width: 8px;
         }
         
-        .iti__search-input::placeholder {
-            color: rgba(255, 255, 255, 0.5) !important;
+        .iti__country-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
         }
         
-        /* Liste des pays */
-        .iti__country-list {
-            list-style: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        .iti__country-list::-webkit-scrollbar-thumb {
+            background: rgba(102, 51, 255, 0.5);
+            border-radius: 4px;
         }
         
+        /* Pays dans la liste */
         .iti__country {
-            display: flex !important;
-            align-items: center !important;
-            padding: 10px 15px !important;
+            padding: 12px 16px !important;
             color: #ffffff !important;
-            cursor: pointer !important;
-            transition: background 0.2s !important;
+            border-bottom: 1px solid rgba(102, 51, 255, 0.2) !important;
+            transition: all 0.2s ease !important;
         }
         
         .iti__country:hover,
-        .iti__country--highlight {
-            background: rgba(102, 51, 255, 0.3) !important;
+        .iti__country.iti__highlight {
+            background: rgba(102, 51, 255, 0.4) !important;
         }
         
         .iti__country-name {
-            margin-left: 10px !important;
             color: #ffffff !important;
+            margin-right: 8px !important;
         }
         
         .iti__dial-code {
-            margin-left: auto !important;
-            color: rgba(255, 255, 255, 0.6) !important;
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        /* Pays préférés en haut */
+        .iti__preferred {
+            background: rgba(102, 51, 255, 0.15) !important;
+        }
+        
+        .iti__divider {
+            border-bottom: 1px solid rgba(102, 51, 255, 0.4) !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         /* Fix scroll mobile - Solution définitive */
@@ -1112,28 +1118,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function handleStep2() {
             const phoneInput = document.getElementById('phone');
             
+            // Vérifier que le champ n'est pas vide
             if (!phoneInput || !phoneInput.value.trim()) {
-                alert('Veuillez entrer votre numéro de téléphone');
+                alert('Merci d\'entrer ton numéro de téléphone');
                 if (phoneInput) phoneInput.focus();
                 return;
             }
             
-            // Récupérer le numéro formaté avec indicatif
-            let formattedPhone = '';
-            try {
-                if (window.iti) {
+            // Récupérer le numéro avec indicatif (sans validation stricte)
+            let formattedPhone = phoneInput.value;
+            
+            if (window.iti) {
+                try {
                     formattedPhone = window.iti.getNumber();
-                } else {
+                } catch (e) {
+                    // Si erreur, on garde le numéro brut
                     formattedPhone = phoneInput.value;
                 }
-            } catch (e) {
-                formattedPhone = phoneInput.value;
-            }
-            
-            if (!formattedPhone) {
-                alert('Veuillez entrer un numéro de téléphone valide');
-                phoneInput.focus();
-                return;
             }
             
             console.log('Numéro envoyé:', formattedPhone);
@@ -1272,10 +1273,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function initPhoneInput() {
             setTimeout(function() {
                 const container = document.getElementById('phone-container');
-                const phoneFormattedInput = document.getElementById('phone_formatted');
                 
                 if (!container || typeof window.intlTelInput !== 'function') {
-                    console.error('Erreur: container ou intlTelInput non disponible');
+                    console.error('Erreur init phone');
                     return;
                 }
                 
@@ -1283,41 +1283,26 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 const phoneInput = document.createElement('input');
                 phoneInput.type = 'tel';
                 phoneInput.id = 'phone';
-                phoneInput.placeholder = 'Numéro de téléphone';
+                phoneInput.placeholder = 'Ton numéro';
                 container.appendChild(phoneInput);
                 
-                // Initialiser intl-tel-input avec détection IP
+                // Initialiser intl-tel-input v18 avec détection IP
                 window.iti = window.intlTelInput(phoneInput, {
                     initialCountry: "auto",
                     geoIpLookup: function(callback) {
                         fetch('https://ipapi.co/json/')
                             .then(res => res.json())
-                            .then(data => {
-                                console.log('Pays détecté:', data.country_code);
-                                callback(data.country_code);
-                            })
+                            .then(data => callback(data.country_code))
                             .catch(() => callback('fr'));
                     },
-                    countryOrder: ['fr', 'ch', 'be', 'ca'],
+                    preferredCountries: ['fr', 'ch', 'be', 'ca'],
                     separateDialCode: true,
-                    fixDropdownWidth: false,
-                    loadUtilsOnInit: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/utils.js"
+                    dropdownContainer: document.body,
+                    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/utils.js"
                 });
                 
-                console.log('intl-tel-input initialisé');
-
-                // Mise à jour du champ caché
-                phoneInput.addEventListener('change', updateHiddenField);
-                phoneInput.addEventListener('keyup', updateHiddenField);
-                
-                function updateHiddenField() {
-                    try {
-                        if (phoneInput.value.trim() && window.iti.isValidNumber()) {
-                            phoneFormattedInput.value = window.iti.getNumber();
-                        }
-                    } catch (e) {}
-                }
-            }, 150);
+                console.log('Phone input initialisé');
+            }, 100);
         }
     </script>
 </body>
