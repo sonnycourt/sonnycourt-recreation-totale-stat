@@ -1269,42 +1269,55 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
     <script>
     function initPhoneInput() {
-        const phoneInput = document.querySelector("#phone");
-        const phoneFormattedInput = document.querySelector("#phone_formatted");
-        
-        if (phoneInput) {
-            window.iti = window.intlTelInput(phoneInput, {
-                initialCountry: "auto",
-                geoIpLookup: function(callback) {
-                    fetch('https://ipapi.co/json/')
-                        .then(res => res.json())
-                        .then(data => callback(data.country_code))
-                        .catch(() => callback('fr'));
-                },
-                countryOrder: ['fr', 'ch', 'be', 'ca'],
-                separateDialCode: true,
-                dropdownContainer: document.body,
-                loadUtilsOnInit: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/utils.js"
-            });
+        // Petit délai pour s'assurer que l'élément est visible
+        setTimeout(function() {
+            const phoneInput = document.querySelector("#phone");
+            const phoneFormattedInput = document.querySelector("#phone_formatted");
             
-            console.log('intl-tel-input initialisé:', window.iti);
-
-            // Mise à jour du champ caché quand le numéro change
-            function updateHiddenField() {
-                try {
-                    if (phoneInput.value.trim() && window.iti.isValidNumber()) {
-                        phoneFormattedInput.value = window.iti.getNumber();
-                    } else {
-                        phoneFormattedInput.value = '';
-                    }
-                } catch (e) {
-                    console.log('Validation en attente du chargement utils.js');
-                }
+            console.log('Tentative init intl-tel-input...');
+            console.log('phoneInput trouvé:', phoneInput);
+            console.log('intlTelInput disponible:', typeof window.intlTelInput);
+            
+            if (!phoneInput) {
+                console.error('Phone input non trouvé!');
+                return;
             }
+            
+            if (typeof window.intlTelInput !== 'function') {
+                console.error('intlTelInput non chargé!');
+                return;
+            }
+            
+            try {
+                window.iti = window.intlTelInput(phoneInput, {
+                    initialCountry: "fr",
+                    countryOrder: ['fr', 'ch', 'be', 'ca'],
+                    separateDialCode: true,
+                    dropdownContainer: document.body,
+                    loadUtilsOnInit: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.7/build/js/utils.js"
+                });
+                
+                console.log('intl-tel-input initialisé avec succès:', window.iti);
 
-            phoneInput.addEventListener('change', updateHiddenField);
-            phoneInput.addEventListener('keyup', updateHiddenField);
-        }
+                // Mise à jour du champ caché quand le numéro change
+                function updateHiddenField() {
+                    try {
+                        if (phoneInput.value.trim() && window.iti.isValidNumber()) {
+                            phoneFormattedInput.value = window.iti.getNumber();
+                        } else {
+                            phoneFormattedInput.value = '';
+                        }
+                    } catch (e) {
+                        console.log('Validation en attente du chargement utils.js');
+                    }
+                }
+
+                phoneInput.addEventListener('change', updateHiddenField);
+                phoneInput.addEventListener('keyup', updateHiddenField);
+            } catch (error) {
+                console.error('Erreur init intl-tel-input:', error);
+            }
+        }, 100);
     }
     </script>
 </body>
