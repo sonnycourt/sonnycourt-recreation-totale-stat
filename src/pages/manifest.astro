@@ -491,7 +491,61 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <div class="method-video-container">
                     <div class="method-video-frame">
                         <div class="video-wrapper">
-                            <iframe title="Formation MANIFEST" allow="autoplay; fullscreen" allowtransparency="true" frameborder="0" scrolling="no" class="wistia_embed" name="wistia_embed" allowfullscreen width="100%" height="100%" src="https://fast.wistia.net/embed/iframe/4mhjkjoyj7?seo=true&videoFoam=true"></iframe>
+                            <video 
+                                id="manifestMainVideo"
+                                class="custom-video-player"
+                                src="https://sonnycourt-videos-public.b-cdn.net/MANIFEST%20-%20VSL%20(2026).mp4"
+                                preload="metadata"
+                                playsinline
+                                controlslist="nodownload nofullscreen noremoteplayback"
+                                oncontextmenu="return false;"
+                            >
+                                Votre navigateur ne supporte pas la balise vidéo.
+                            </video>
+                            
+                            <!-- Contrôles personnalisés -->
+                            <div class="custom-video-controls" id="videoControls">
+                                <div class="video-progress-container">
+                                    <div class="video-progress-bar" id="progressBar">
+                                        <div class="video-progress-filled" id="progressFilled"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="video-controls-bottom">
+                                    <button class="video-control-btn play-pause-btn" id="playPauseBtn" aria-label="Play/Pause">
+                                        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg class="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                                        </svg>
+                                    </button>
+                                    
+                                    <div class="video-time">
+                                        <span id="currentTime">0:00</span>
+                                        <span class="time-separator">/</span>
+                                        <span id="duration">0:00</span>
+                                    </div>
+                                    
+                                    <div class="video-controls-right">
+                                        <button class="video-control-btn fullscreen-btn" id="fullscreenBtn" aria-label="Plein écran">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Overlay play button -->
+                            <div class="video-play-overlay" id="playOverlay">
+                                <button class="video-play-button" id="playButton">
+                                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                                        <circle cx="40" cy="40" r="40" fill="rgba(139, 92, 246, 0.9)"/>
+                                        <polygon points="32,24 32,56 58,40" fill="white"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="method-video-glow"></div>
                     </div>
@@ -2221,14 +2275,171 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             position: relative;
             padding-bottom: 56.25%;
             height: 0;
+            background: #000;
         }
 
-        .video-wrapper iframe {
+        .custom-video-player {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            object-fit: contain;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        /* Masquer les contrôles natifs */
+        .custom-video-player::-webkit-media-controls {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-panel {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-play-button {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-timeline {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-current-time-display {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-time-remaining-display {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-mute-button {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-volume-slider {
+            display: none !important;
+        }
+        .custom-video-player::-webkit-media-controls-fullscreen-button {
+            display: none !important;
+        }
+
+        /* Contrôles personnalisés */
+        .custom-video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .video-wrapper:hover .custom-video-controls,
+        .custom-video-controls.show {
+            opacity: 1;
+        }
+
+        /* Barre de progression */
+        .video-progress-container {
+            margin-bottom: 12px;
+        }
+
+        .video-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-progress-filled {
+            height: 100%;
+            background: linear-gradient(90deg, #8B5CF6 0%, #A78BFA 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .video-progress-bar:hover .video-progress-filled {
+            background: linear-gradient(90deg, #A78BFA 0%, #C4B5FD 100%);
+        }
+
+        /* Contrôles du bas */
+        .video-controls-bottom {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .video-control-btn {
+            background: rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .video-control-btn:hover {
+            background: rgba(139, 92, 246, 0.5);
+            border-color: rgba(139, 92, 246, 0.7);
+            transform: scale(1.1);
+        }
+
+        .video-time {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .time-separator {
+            margin: 0 4px;
+            opacity: 0.6;
+        }
+
+        .video-controls-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Overlay play button */
+        .video-play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        .video-play-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-play-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .video-play-button:hover {
+            transform: scale(1.1);
         }
 
         /* Story Section */
@@ -5830,6 +6041,104 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         // Lancer le timer au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
             startCountdownTimer();
+        });
+    </script>
+
+    <!-- Script pour le lecteur vidéo personnalisé -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('manifestMainVideo');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const playButton = document.getElementById('playButton');
+            const playOverlay = document.getElementById('playOverlay');
+            const progressBar = document.getElementById('progressBar');
+            const progressFilled = document.getElementById('progressFilled');
+            const currentTimeEl = document.getElementById('currentTime');
+            const durationEl = document.getElementById('duration');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const videoControls = document.getElementById('videoControls');
+            const videoWrapper = document.querySelector('.video-wrapper');
+
+            if (!video) return;
+
+            // Format time
+            function formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m}:${String(s).padStart(2, '0')}`;
+            }
+
+            // Update duration
+            video.addEventListener('loadedmetadata', () => {
+                durationEl.textContent = formatTime(video.duration);
+            });
+
+            // Update progress
+            video.addEventListener('timeupdate', () => {
+                const percent = (video.currentTime / video.duration) * 100;
+                progressFilled.style.width = percent + '%';
+                currentTimeEl.textContent = formatTime(video.currentTime);
+            });
+
+            // Play/Pause
+            function togglePlay() {
+                if (video.paused) {
+                    video.play();
+                    playOverlay.classList.add('hidden');
+                    playPauseBtn.querySelector('.play-icon').style.display = 'none';
+                    playPauseBtn.querySelector('.pause-icon').style.display = 'block';
+                } else {
+                    video.pause();
+                    playOverlay.classList.remove('hidden');
+                    playPauseBtn.querySelector('.play-icon').style.display = 'block';
+                    playPauseBtn.querySelector('.pause-icon').style.display = 'none';
+                }
+            }
+
+            playButton?.addEventListener('click', togglePlay);
+            playPauseBtn?.addEventListener('click', togglePlay);
+            video?.addEventListener('click', togglePlay);
+
+            // Progress bar click
+            progressBar?.addEventListener('click', (e) => {
+                const rect = progressBar.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                video.currentTime = percent * video.duration;
+            });
+
+            // Fullscreen
+            fullscreenBtn?.addEventListener('click', () => {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    videoWrapper?.requestFullscreen();
+                }
+            });
+
+            // Show/hide controls on hover
+            let controlsTimeout;
+            videoWrapper?.addEventListener('mouseenter', () => {
+                clearTimeout(controlsTimeout);
+                videoControls?.classList.add('show');
+            });
+
+            videoWrapper?.addEventListener('mouseleave', () => {
+                controlsTimeout = setTimeout(() => {
+                    if (!video.paused) {
+                        videoControls?.classList.remove('show');
+                    }
+                }, 2000);
+            });
+
+            // Keep controls visible when paused
+            video.addEventListener('pause', () => {
+                videoControls?.classList.add('show');
+            });
+
+            // Protection
+            document.addEventListener('contextmenu', (e) => {
+                if (e.target === video) e.preventDefault();
+            });
         });
     </script>
 </body>
