@@ -32,12 +32,16 @@ import Layout from '../layouts/Layout.astro';
             <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
           </svg>
         </div>
-        <h1>La première chose que tu lis <span class="highlight-blue">chaque matin</span> transforme <span class="highlight-blue">ton cerveau</span>.</h1>
+        <h1>La première chose que tu lis <span class="highlight-blue">chaque matin</span> transforme <span class="highlight-blue">ta journée</span>.</h1>
         <p class="hero-subtitle">
-          1 minute de lecture par email pour court-circuiter tes anciens schémas.<br>
-          Mindset, Manifestation Haute performance & plus...<br>
-          Rejoins les <span class="highlight">120 000+</span> lecteurs du matin.
+          Chaque matin, un email pour court-circuiter tes pensées limitantes.<br>
+          Rejoins <span class="highlight"><span id="counter">0</span>+</span> lecteurs.
         </p>
+        <div class="badges-row">
+          <span class="mini-badge">1 minute</span>
+          <span class="mini-badge">1 idée</span>
+          <span class="mini-badge">1 meme</span>
+        </div>
       </div>
     </section>
 
@@ -72,7 +76,7 @@ import Layout from '../layouts/Layout.astro';
             </div>
             
             <button type="submit" class="submit-button">
-              <span>Essaie maintenant</span>
+              <span>Recevoir le premier email</span>
             </button>
             
             <div id="formMessage" class="form-message"></div>
@@ -262,6 +266,69 @@ import Layout from '../layouts/Layout.astro';
       opacity: 0.8;
       transform: scale(1.1);
     }
+  }
+
+  .badges-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 32px;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+  }
+
+  .mini-badge {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.15) 0%, rgba(0, 81, 213, 0.2) 100%);
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(0, 122, 255, 0.5);
+    border-radius: 50px;
+    color: #007AFF;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 
+      0 4px 20px rgba(0, 122, 255, 0.3),
+      0 0 0 1px rgba(0, 122, 255, 0.1) inset,
+      0 0 30px rgba(0, 122, 255, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mini-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .mini-badge:hover {
+    border-color: rgba(0, 122, 255, 0.8);
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.25) 0%, rgba(0, 81, 213, 0.3) 100%);
+    box-shadow: 
+      0 8px 40px rgba(0, 122, 255, 0.5),
+      0 0 0 1px rgba(0, 122, 255, 0.2) inset,
+      0 0 50px rgba(0, 122, 255, 0.3);
+    transform: translateY(-3px) scale(1.05);
+    color: #2D9AFF;
+  }
+
+  .mini-badge:hover::before {
+    left: 100%;
+  }
+
+  .badge-separator {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 1.1rem;
+    font-weight: 300;
+    margin: 0 4px;
   }
 
   .hero-content {
@@ -523,6 +590,43 @@ import Layout from '../layouts/Layout.astro';
 </style>
 
 <script>
+  // Compteur animé pour le nombre de lecteurs
+  (function() {
+    const counterElement = document.getElementById('counter');
+    if (!counterElement) return;
+    
+    const targetValue = 120000;
+    const duration = 2000; // 2 secondes
+    const startTime = Date.now();
+    const startValue = 0;
+    
+    function animateCounter() {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function pour un effet plus naturel (ease-out)
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      
+      const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+      
+      // Formater avec espaces pour les milliers
+      counterElement.textContent = currentValue.toLocaleString('fr-FR').replace(/\s/g, ' ');
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateCounter);
+      } else {
+        // S'assurer qu'on arrive exactement à la valeur cible
+        counterElement.textContent = targetValue.toLocaleString('fr-FR').replace(/\s/g, ' ');
+      }
+    }
+    
+    // Démarrer l'animation après un petit délai pour que la page soit chargée
+    setTimeout(() => {
+      requestAnimationFrame(animateCounter);
+    }, 300);
+  })();
+
   const form = document.getElementById('inscriptionForm') as HTMLFormElement | null;
   const messageDiv = document.getElementById('formMessage') as HTMLElement | null;
 
