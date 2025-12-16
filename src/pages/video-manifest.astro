@@ -287,6 +287,36 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const playOverlay = document.getElementById('playOverlay');
         const playButton = document.getElementById('playButton');
 
+        // Récupérer le token depuis l'URL ou localStorage
+        function getToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (!token) {
+                // Essayer de récupérer depuis localStorage
+                token = localStorage.getItem('manifest_token');
+            }
+            
+            return token;
+        }
+
+        const userToken = getToken();
+
+        // Stocker le token dans localStorage si présent
+        if (userToken) {
+            localStorage.setItem('manifest_token', userToken);
+        }
+
+        // Fonction pour rediriger vers la formation avec le token
+        function redirectToFormation() {
+            const token = localStorage.getItem('manifest_token');
+            if (token) {
+                window.location.href = `/manifest/?token=${token}`;
+            } else {
+                window.location.href = '/manifest/';
+            }
+        }
+
         // Countdown: 09:22 = 562 secondes
         const countdownDuration = 9 * 60 + 22;
         let hasStartedCountdown = false;
@@ -307,6 +337,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if (remaining <= 0) {
                 ctaButton.classList.remove('disabled');
                 ctaButton.style.pointerEvents = 'auto';
+                ctaButton.onclick = function(e) {
+                    e.preventDefault();
+                    redirectToFormation();
+                };
             }
         }
 
@@ -349,6 +383,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         videoPlayer.addEventListener('ended', () => {
             ctaButton.classList.remove('disabled');
             ctaButton.style.pointerEvents = 'auto';
+            ctaButton.onclick = function(e) {
+                e.preventDefault();
+                redirectToFormation();
+            };
+        });
+
+        // Gérer le clic sur le bouton même s'il est activé avant la fin
+        ctaButton.addEventListener('click', function(e) {
+            if (!ctaButton.classList.contains('disabled')) {
+                e.preventDefault();
+                redirectToFormation();
+            }
         });
     </script>
 </body>
