@@ -4458,7 +4458,16 @@ import Layout from '../layouts/Layout.astro';
     // Récupérer les paramètres depuis l'URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token') || '';
-    const isPreview = urlParams.get('preview') === 'true';
+    const previewMode = urlParams.get('preview');
+    const isPreview = previewMode === 'true';
+    const isPreviewExpired = previewMode === 'expired';
+
+    // Mode preview expired : simuler un token expiré
+    if (isPreviewExpired) {
+      console.log('🔍 Mode preview expired activé - simulation token expiré');
+      showExpiredMessage();
+      return; // Sortir de la fonction, afficher directement le message d'expiration
+    }
 
     // Mode preview : désactiver la vérification du token
     if (isPreview) {
@@ -4573,7 +4582,8 @@ import Layout from '../layouts/Layout.astro';
 
       // Re-vérifier avec le serveur toutes les minutes pour synchronisation (sauf en mode preview)
       const urlParams = new URLSearchParams(window.location.search);
-      const isPreview = urlParams.get('preview') === 'true';
+      const previewMode = urlParams.get('preview');
+      const isPreview = previewMode === 'true' || previewMode === 'expired';
       
       if (!isPreview) {
         setInterval(async () => {
