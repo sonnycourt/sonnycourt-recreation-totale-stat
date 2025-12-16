@@ -45,9 +45,46 @@ exports.handler = async (event, context) => {
 
         console.log('Checking access for token:', token);
 
-        // Obtenir le store Netlify Blobs
-        // Syntaxe pour @netlify/blobs v4.x
-        const store = getStore('countdown-tokens');
+        // Obtenir le store Netlify Blobs avec le contexte explicite
+        // Récupérer le siteID depuis le contexte ou les headers
+        const siteID = context.site?.id || 
+                      process.env.NETLIFY_SITE_ID || 
+                      event.headers['x-nf-site-id'] ||
+                      event.headers['x-nf-account-id'];
+        
+        // Récupérer le token depuis les variables d'environnement ou le contexte
+        const blobsToken = process.env.NETLIFY_BLOBS_TOKEN || 
+                          context.netlify?.blobs?.token ||
+                          event.headers['x-nf-blobs-token'];
+
+        if (!siteID || !blobsToken) {
+            console.error('Missing Blobs configuration:', {
+                hasSiteID: !!siteID,
+                hasToken: !!blobsToken,
+                contextSiteId: context.site?.id,
+                envSiteId: process.env.NETLIFY_SITE_ID,
+                headerSiteId: event.headers['x-nf-site-id'],
+                envToken: !!process.env.NETLIFY_BLOBS_TOKEN
+            });
+            return {
+                statusCode: 500,
+                headers: {
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    valid: false,
+                    error: 'Configuration Netlify Blobs manquante',
+                    details: 'siteID ou token non disponible'
+                })
+            };
+        }
+
+        // Créer le store avec le contexte explicite
+        const store = getStore({
+            name: 'countdown-tokens',
+            siteID: siteID,
+            token: blobsToken
+        });
 
         // Récupérer les données du token depuis Netlify Blobs
         let tokenDataString;
