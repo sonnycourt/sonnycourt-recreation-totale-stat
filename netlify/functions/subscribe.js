@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
 
     try {
         // Récupérer les données du body
-        const { email, groupId, prenom, nom, telephone, countryCode, uniqueToken } = JSON.parse(event.body);
+        const { email, groupId, prenom, nom, telephone, countryCode, uniqueToken, uniqueTokenManifest } = JSON.parse(event.body);
 
         // Validation basique
         if (!email || !email.includes('@')) {
@@ -75,6 +75,11 @@ exports.handler = async (event, context) => {
         // Ajouter le token unique si fourni (pour Esprit Subconscient)
         if (uniqueToken) {
             fields.unique_token_es = uniqueToken;
+        }
+        
+        // Ajouter le token unique si fourni (pour Manifest)
+        if (uniqueTokenManifest) {
+            fields.unique_token_manifest = uniqueTokenManifest;
         }
         
         if (Object.keys(fields).length > 0) {

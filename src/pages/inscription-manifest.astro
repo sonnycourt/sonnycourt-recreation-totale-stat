@@ -865,7 +865,19 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         // Group ID MailerLite pour MANIFEST
         const MAILERLITE_GROUP_ID = '173857602171569439';
 
+        // Générer un UUID pour le token
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
         async function sendToMailerLite(name, email) {
+            // Générer un token unique pour Manifest
+            const userToken = generateUUID();
+            localStorage.setItem('manifest_token', userToken);
+            
             try {
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
@@ -873,17 +885,40 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     body: JSON.stringify({
                         email: email,
                         prenom: name,
-                        groupId: MAILERLITE_GROUP_ID
+                        groupId: MAILERLITE_GROUP_ID,
+                        uniqueTokenManifest: userToken // Passer le token unique pour Manifest
                     })
                 });
                 const result = await response.json();
                 if (response.ok) {
                     console.log('✅ Contact ajouté:', email);
+                    await initPlaces(userToken, email); // Initialiser le système de places
                 } else {
                     console.error('❌ Erreur:', result);
                 }
             } catch (error) {
                 console.error('Erreur:', error);
+            }
+        }
+
+        async function initPlaces(token, email) {
+            try {
+                const response = await fetch('/.netlify/functions/init-places-manifest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: token,
+                        email: email
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    console.log('✅ Système de places initialisé:', token);
+                } else {
+                    console.error('❌ Erreur countdown:', result);
+                }
+            } catch (error) {
+                console.error('Erreur countdown:', error);
             }
         }
 
@@ -913,7 +948,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         function redirectToVideo() {
-            window.location.href = '/video-manifest/';
+            const token = localStorage.getItem('manifest_token');
+            if (token) {
+                window.location.href = `/manifest/?token=${token}`;
+            } else {
+                window.location.href = '/manifest/';
+            }
         }
 
         // ===== EVENT LISTENERS =====
