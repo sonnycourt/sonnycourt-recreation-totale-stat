@@ -1,11 +1,9 @@
 // Fonction Netlify pour vérifier le token et récupérer le temps restant
 // Utilise Netlify Blobs pour récupérer les données
 
-const { getStore, connectLambda } = require('@netlify/blobs');
+const { getStore } = require('@netlify/blobs');
 
 exports.handler = async (event, context) => {
-    // Connecter Netlify Blobs au contexte Lambda si nécessaire
-    connectLambda(event);
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
         return {
@@ -48,10 +46,8 @@ exports.handler = async (event, context) => {
         console.log('Checking access for token:', token);
 
         // Obtenir le store Netlify Blobs
-        // Après connectLambda(), on peut utiliser getStore() avec juste le nom
-        const store = getStore({
-            name: 'countdown-tokens'
-        });
+        // Syntaxe pour @netlify/blobs v4.x
+        const store = getStore('countdown-tokens');
 
         // Récupérer les données du token depuis Netlify Blobs
         let tokenDataString;

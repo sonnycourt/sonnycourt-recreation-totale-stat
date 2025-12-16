@@ -1,11 +1,9 @@
 // Fonction Netlify pour initialiser le countdown de 7 jours
 // Utilise Netlify Blobs pour stocker les données
 
-const { getStore, connectLambda } = require('@netlify/blobs');
+const { getStore } = require('@netlify/blobs');
 
 exports.handler = async (event, context) => {
-    // Connecter Netlify Blobs au contexte Lambda si nécessaire
-    connectLambda(event);
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
         return {
@@ -45,10 +43,8 @@ exports.handler = async (event, context) => {
         console.log('Initializing countdown for token:', token, 'email:', email);
 
         // Obtenir le store Netlify Blobs
-        // Après connectLambda(), on peut utiliser getStore() avec juste le nom
-        const store = getStore({
-            name: 'countdown-tokens'
-        });
+        // Syntaxe pour @netlify/blobs v4.x
+        const store = getStore('countdown-tokens');
 
         // Calculer les timestamps
         const startTime = Math.floor(Date.now() / 1000); // Timestamp Unix en secondes
