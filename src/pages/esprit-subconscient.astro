@@ -525,7 +525,7 @@ import Layout from '../layouts/Layout.astro';
           <h2 class="vsl-title">La vraie raison pour laquelle tu n'atteins pas tes objectifs</h2>
           <p class="vsl-subtitle">Ce n'est pas un problème d'action, c'est un problème d'identité</p>
           <div class="vsl-video-wrapper">
-            <video preload="metadata" class="vsl-video" id="vsl-video">
+            <video preload="metadata" class="vsl-video" id="vsl-video" poster="/media/pages/Sonny-Court-Manifest-Formation-2.webp">
               <source src="https://sonnycourt-videos-public.b-cdn.net/ESPRIT%20SUBCONSCIENT%20-%20VSL%202026.mp4" type="video/mp4">
               Votre navigateur ne supporte pas la lecture de vidéos.
             </video>
@@ -4254,8 +4254,8 @@ import Layout from '../layouts/Layout.astro';
 </script>
 
 <script>
-  // Generate thumbnails from first frame
-  function generateVideoThumbnail(video: HTMLVideoElement) {
+  // Generate thumbnails from specific frame
+  function generateVideoThumbnail(video: HTMLVideoElement, timeInSeconds: number = 0.1) {
     if (video.poster) return; // Already has a poster
     
     const canvas = document.createElement('canvas');
@@ -4267,6 +4267,10 @@ import Layout from '../layouts/Layout.astro';
         // Set dimensions based on video
         const width = video.videoWidth || 1280;
         const height = video.videoHeight || 720;
+        if (width === 0 || height === 0) {
+          console.log('Video dimensions not available yet');
+          return;
+        }
         canvas.width = width;
         canvas.height = height;
         
@@ -4274,29 +4278,66 @@ import Layout from '../layouts/Layout.astro';
         ctx.drawImage(video, 0, 0, width, height);
         const dataURL = canvas.toDataURL('image/jpeg', 0.8);
         video.poster = dataURL;
+        console.log('Thumbnail captured successfully at', video.currentTime, 's');
       } catch (e) {
         console.log('Could not capture frame:', e);
       }
     };
     
-    // Set video to first frame and capture
-    const seekToFirstFrame = () => {
-      video.currentTime = 0.1; // Use 0.1s to ensure frame is loaded
+    // Set video to specific time and capture
+    const seekToFrame = () => {
+      // Wait for video to have duration
+      if (!video.duration || isNaN(video.duration)) {
+        console.log('Waiting for video duration...');
+        video.addEventListener('loadedmetadata', seekToFrame, { once: true });
+        return;
+      }
+      
+      // Ensure time doesn't exceed video duration
+      const targetTime = Math.min(timeInSeconds, video.duration);
+      console.log('Seeking to', targetTime, 's (duration:', video.duration, 's)');
+      video.currentTime = targetTime;
       
       const onSeeked = () => {
-        captureFrame();
+        // Small delay to ensure frame is rendered
+        setTimeout(() => {
+          captureFrame();
+          video.currentTime = 0; // Reset to start after capture
+        }, 100);
         video.removeEventListener('seeked', onSeeked);
-        video.currentTime = 0; // Reset to start after capture
       };
       
       video.addEventListener('seeked', onSeeked, { once: true });
     };
     
-    // Wait for video metadata to be loaded
-    if (video.readyState >= 2) {
-      seekToFirstFrame();
+    // Wait for video to be ready - need more data for seeking to 5:45
+    if (video.readyState >= 2 && video.duration && !isNaN(video.duration)) {
+      // For times > 0.1, we need more data loaded
+      if (timeInSeconds > 0.1) {
+        // Wait for canplaythrough or use loadeddata
+        if (video.readyState >= 3) {
+          seekToFrame();
+        } else {
+          video.addEventListener('canplaythrough', seekToFrame, { once: true });
+          // Fallback if canplaythrough doesn't fire
+          setTimeout(() => {
+            if (!video.poster) seekToFrame();
+          }, 2000);
+        }
+      } else {
+        seekToFrame();
+      }
     } else {
-      video.addEventListener('loadedmetadata', seekToFirstFrame, { once: true });
+      // For longer times, wait for more data
+      if (timeInSeconds > 0.1) {
+        video.addEventListener('canplaythrough', seekToFrame, { once: true });
+        // Fallback
+        setTimeout(() => {
+          if (!video.poster && video.duration) seekToFrame();
+        }, 3000);
+      } else {
+        video.addEventListener('loadedmetadata', seekToFrame, { once: true });
+      }
     }
   }
 
@@ -4309,12 +4350,6 @@ import Layout from '../layouts/Layout.astro';
         generateVideoThumbnail(video);
       }
     });
-    
-    // Generate thumbnail for VSL video
-    const vslVideo = document.getElementById('vsl-video') as HTMLVideoElement;
-    if (vslVideo) {
-      generateVideoThumbnail(vslVideo);
-    }
     
     const videoWrappers = document.querySelectorAll('.video-player-wrapper');
     
