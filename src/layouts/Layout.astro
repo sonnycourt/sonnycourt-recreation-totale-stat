@@ -10,6 +10,8 @@ export interface Props {
   image?: string;
   canonical?: string;
   noindex?: boolean;
+  showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 const { 
@@ -17,7 +19,9 @@ const {
   description = "Reprogramme ton subconscient. Une approche innovante pour débloquer ton potentiel et créer la vie que tu mérites vraiment.",
   image = "/og-image.jpg",
   canonical = Astro.url.href,
-  noindex = false
+  noindex = false,
+  showHeader = true,
+  showFooter = true
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -59,11 +63,11 @@ const GTM_ID = 'GTM-NGS86CLW';
   </head>
   <body>
     <slot name="before-header" />
-    <Header currentPath={currentPath} />
+    {showHeader && <Header currentPath={currentPath} />}
     <main>
       <slot />
     </main>
-    <Footer />
+    {showFooter && <Footer />}
     <CookieConsent />
   </body>
 </html>
