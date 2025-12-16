@@ -4254,8 +4254,68 @@ import Layout from '../layouts/Layout.astro';
 </script>
 
 <script>
+  // Generate thumbnails from first frame
+  function generateVideoThumbnail(video: HTMLVideoElement) {
+    if (video.poster) return; // Already has a poster
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const captureFrame = () => {
+      try {
+        // Set dimensions based on video
+        const width = video.videoWidth || 1280;
+        const height = video.videoHeight || 720;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw the current frame
+        ctx.drawImage(video, 0, 0, width, height);
+        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+        video.poster = dataURL;
+      } catch (e) {
+        console.log('Could not capture frame:', e);
+      }
+    };
+    
+    // Set video to first frame and capture
+    const seekToFirstFrame = () => {
+      video.currentTime = 0.1; // Use 0.1s to ensure frame is loaded
+      
+      const onSeeked = () => {
+        captureFrame();
+        video.removeEventListener('seeked', onSeeked);
+        video.currentTime = 0; // Reset to start after capture
+      };
+      
+      video.addEventListener('seeked', onSeeked, { once: true });
+    };
+    
+    // Wait for video metadata to be loaded
+    if (video.readyState >= 2) {
+      seekToFirstFrame();
+    } else {
+      video.addEventListener('loadedmetadata', seekToFirstFrame, { once: true });
+    }
+  }
+
   // Custom Video Player Controls
   document.addEventListener('DOMContentLoaded', function() {
+    // Generate thumbnails for review videos
+    const reviewVideos = document.querySelectorAll('.review-video');
+    reviewVideos.forEach((video) => {
+      if (video instanceof HTMLVideoElement) {
+        generateVideoThumbnail(video);
+      }
+    });
+    
+    // Generate thumbnail for VSL video
+    const vslVideo = document.getElementById('vsl-video') as HTMLVideoElement;
+    if (vslVideo) {
+      generateVideoThumbnail(vslVideo);
+    }
+    
     const videoWrappers = document.querySelectorAll('.video-player-wrapper');
     
     videoWrappers.forEach(wrapper => {
