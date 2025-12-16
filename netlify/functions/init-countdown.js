@@ -1,9 +1,11 @@
 // Fonction Netlify pour initialiser le countdown de 7 jours
 // Utilise Netlify Blobs pour stocker les données
 
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
 exports.handler = async (event, context) => {
+    // Connecter Netlify Blobs au contexte Lambda si nécessaire
+    connectLambda(event);
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
         return {
@@ -40,11 +42,12 @@ exports.handler = async (event, context) => {
             };
         }
 
+        console.log('Initializing countdown for token:', token, 'email:', email);
+
         // Obtenir le store Netlify Blobs
-        // Netlify Blobs est automatiquement disponible dans les fonctions
+        // Après connectLambda(), on peut utiliser getStore() avec juste le nom
         const store = getStore({
-            name: 'countdown-tokens',
-            consistency: 'strong'
+            name: 'countdown-tokens'
         });
 
         // Calculer les timestamps
@@ -61,12 +64,23 @@ exports.handler = async (event, context) => {
         };
 
         // Stocker dans Netlify Blobs (la clé est le token)
-        await store.set(token, JSON.stringify(tokenData), {
-            metadata: {
-                email: email,
-                expiresAt: expiresAt.toString()
-            }
-        });
+        try {
+            await store.set(token, JSON.stringify(tokenData), {
+                metadata: {
+                    email: email,
+                    expiresAt: expiresAt.toString()
+                }
+            });
+            console.log('✅ Token stored successfully in Blobs:', token);
+        } catch (storeError) {
+            console.error('❌ Error storing token in Blobs:', storeError);
+            console.error('Store error details:', {
+                message: storeError.message,
+                stack: storeError.stack,
+                name: storeError.name
+            });
+            throw storeError;
+        }
 
         return {
             statusCode: 200,
@@ -83,13 +97,21 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('Error in init-countdown:', error);
+        console.error('❌ Error in init-countdown:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return {
             statusCode: 500,
             headers: {
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({ error: 'Erreur serveur' })
+            body: JSON.stringify({ 
+                error: 'Erreur serveur',
+                details: process.env.NETLIFY_DEV ? error.message : undefined
+            })
         };
     }
 };

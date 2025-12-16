@@ -923,6 +923,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         async function initCountdown(token, email) {
             try {
+                console.log('🔄 Initialisation countdown pour token:', token, 'email:', email);
                 const response = await fetch('/.netlify/functions/init-countdown', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -932,13 +933,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     })
                 });
                 const result = await response.json();
+                console.log('📥 Réponse init-countdown:', result, 'Status:', response.status);
                 if (response.ok) {
-                    console.log('✅ Countdown initialisé:', token);
+                    console.log('✅ Countdown initialisé avec succès:', token);
                 } else {
                     console.error('❌ Erreur countdown:', result);
+                    alert('Erreur lors de l\'initialisation du countdown. Veuillez réessayer.');
                 }
             } catch (error) {
-                console.error('Erreur countdown:', error);
+                console.error('❌ Erreur countdown (exception):', error);
+                alert('Erreur de connexion lors de l\'initialisation du countdown.');
             }
         }
 
