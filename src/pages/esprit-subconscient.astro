@@ -4455,10 +4455,29 @@ import Layout from '../layouts/Layout.astro';
 
   // Token Verification & 7-Day Countdown
   document.addEventListener('DOMContentLoaded', function() {
-        // Récupérer le token depuis l'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token') || '';
+    // Récupérer les paramètres depuis l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token') || '';
+    const isPreview = urlParams.get('preview') === 'true';
 
+    // Mode preview : désactiver la vérification du token
+    if (isPreview) {
+      console.log('🔍 Mode preview activé - vérification du token désactivée');
+      
+      // Afficher le countdown avec une valeur fixe (6 jours 23h 59m)
+      const countdownContainer = document.getElementById('countdownContainer');
+      if (countdownContainer) {
+        countdownContainer.style.display = 'block';
+      }
+      
+      // Démarrer le countdown avec une valeur fixe (6 jours 23h 59m = 604740 secondes)
+      const fixedTimeRemaining = (6 * 24 * 60 * 60) + (23 * 60 * 60) + (59 * 60); // 6j 23h 59m
+      startCountdown(fixedTimeRemaining);
+      
+      return; // Sortir de la fonction, pas de vérification du token
+    }
+
+    // Mode normal : vérification du token requise
     // Si pas de token, rediriger vers la page d'inscription
     if (!token) {
       // Vérifier aussi dans localStorage (au cas où l'utilisateur revient)
@@ -4552,18 +4571,23 @@ import Layout from '../layouts/Layout.astro';
         }
       }, 1000);
 
-      // Re-vérifier avec le serveur toutes les minutes pour synchronisation
-      setInterval(async () => {
-        try {
-          const response = await fetch(`/.netlify/functions/check-access?token=${encodeURIComponent(token || '')}`);
-          const data = await response.json();
-          if (data.valid && data.timeRemaining) {
-            remaining = Math.max(0, Math.floor(data.timeRemaining));
+      // Re-vérifier avec le serveur toutes les minutes pour synchronisation (sauf en mode preview)
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPreview = urlParams.get('preview') === 'true';
+      
+      if (!isPreview) {
+        setInterval(async () => {
+          try {
+            const response = await fetch(`/.netlify/functions/check-access?token=${encodeURIComponent(token || '')}`);
+            const data = await response.json();
+            if (data.valid && data.timeRemaining) {
+              remaining = Math.max(0, Math.floor(data.timeRemaining));
+            }
+          } catch (error) {
+            console.error('Erreur de synchronisation:', error);
           }
-        } catch (error) {
-          console.error('Erreur de synchronisation:', error);
-        }
-      }, 60000); // Toutes les minutes
+        }, 60000); // Toutes les minutes
+      }
     }
 
     // Fonction pour afficher le message d'expiration
