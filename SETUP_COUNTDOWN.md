@@ -33,7 +33,7 @@ npm install @netlify/blobs
 
 1. Aller dans MailerLite > Subscribers > Custom Fields
 2. Créer un nouveau champ personnalisé :
-   - **Nom** : `unique_token` (ou `personal_link_token`)
+   - **Nom** : `unique_token_es` (ou `personal_link_token`)
    - **Type** : Text
    - **Visible** : Oui (optionnel)
 
@@ -42,10 +42,10 @@ npm install @netlify/blobs
 Dans vos emails de la séquence automatique, utiliser le merge tag :
 
 ```
-https://sonnycourt.com/esprit-subconscient?token={{custom_field.unique_token}}
+https://sonnycourt.com/esprit-subconscient?token={{custom_field.unique_token_es}}
 ```
 
-**Important** : Remplacez `unique_token` par le nom exact du champ que vous avez créé dans MailerLite.
+**Important** : Remplacez `unique_token_es` par le nom exact du champ que vous avez créé dans MailerLite.
 
 ---
 
@@ -68,7 +68,7 @@ https://sonnycourt.com/esprit-subconscient?token={{custom_field.unique_token}}
    - Si invalide/expiré → redirection vers `/es-inscription`
 
 4. **Utilisateur clique sur le lien dans l'email MailerLite**
-   - Lien contient : `?token={{custom_field.unique_token}}`
+   - Lien contient : `?token={{custom_field.unique_token_es}}`
    - Arrive sur `/esprit-subconscient` avec son token
    - Countdown synchronisé (même temps restant sur tous les appareils)
 
@@ -104,7 +104,7 @@ https://sonnycourt.com/esprit-subconscient?token={{custom_field.unique_token}}
 
 ### Le token n'est pas dans MailerLite
 - Vérifier que le custom field existe
-- Vérifier que le nom du champ correspond (`unique_token`)
+- Vérifier que le nom du champ correspond (`unique_token_es`)
 - Vérifier les logs Netlify Functions
 
 ### Redirection en boucle

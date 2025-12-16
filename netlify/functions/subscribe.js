@@ -74,7 +74,7 @@ exports.handler = async (event, context) => {
         
         // Ajouter le token unique si fourni (pour Esprit Subconscient)
         if (uniqueToken) {
-            fields.unique_token = uniqueToken;
+            fields.unique_token_es = uniqueToken;
         }
         
         if (Object.keys(fields).length > 0) {
