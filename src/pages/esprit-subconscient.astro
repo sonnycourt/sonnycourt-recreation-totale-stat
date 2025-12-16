@@ -37,6 +37,16 @@ import Layout from '../layouts/Layout.astro';
           </div>
           <p class="countdown-message">Temps restant pour profiter de cette offre exclusive</p>
         </div>
+
+        <!-- Message d'expiration -->
+        <div class="expired-container" id="expiredContainer" style="display: none;">
+          <div class="expired-content">
+            <div class="expired-icon">⏰</div>
+            <h2 class="expired-title">Cette offre a expiré</h2>
+            <p class="expired-message">Le délai pour accéder à cette formation est maintenant terminé.</p>
+            <a href="/formations/" class="expired-button">Découvrir nos autres formations</a>
+          </div>
+        </div>
         
         <div class="hero-image-container">
           <img src="/media/pages/Sonny-Court-Manifest-Formation-2.webp" alt="Formation Esprit Subconscient - Sonny Court" class="hero-image" />
@@ -1386,6 +1396,105 @@ import Layout from '../layouts/Layout.astro';
 
     .countdown-label {
       font-size: 0.75rem;
+    }
+  }
+
+  /* Expired Container */
+  .expired-container {
+    margin: 40px auto 50px;
+    max-width: 600px;
+    padding: 40px 30px;
+    text-align: center;
+  }
+
+  .expired-content {
+    background: rgba(26, 26, 58, 0.8);
+    border: 2px solid rgba(245, 158, 11, 0.4);
+    border-radius: 20px;
+    padding: 50px 40px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(245, 158, 11, 0.2);
+  }
+
+  .expired-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
+  }
+
+  .expired-title {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 900;
+    color: #f59e0b;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .expired-message {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin-bottom: 30px;
+  }
+
+  .expired-button {
+    display: inline-block;
+    padding: 18px 40px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+  }
+
+  .expired-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(245, 158, 11, 0.6);
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+
+  @media (max-width: 768px) {
+    .expired-container {
+      padding: 20px;
+      margin: 30px 20px;
+    }
+
+    .expired-content {
+      padding: 30px 20px;
+    }
+
+    .expired-icon {
+      font-size: 3rem;
+    }
+
+    .expired-title {
+      font-size: 1.5rem;
+    }
+
+    .expired-message {
+      font-size: 1rem;
+    }
+
+    .expired-button {
+      padding: 15px 30px;
+      font-size: 1rem;
     }
   }
 
@@ -4377,11 +4486,13 @@ import Layout from '../layouts/Layout.astro';
         if (!data.valid) {
           // Token invalide ou expiré
           if (data.expired) {
-            alert('Votre lien a expiré. Veuillez vous réinscrire pour obtenir un nouveau lien.');
+            // Afficher le message d'expiration au lieu de rediriger
+            showExpiredMessage();
           } else {
+            // Token invalide (pas expiré) -> rediriger vers inscription
             alert('Lien invalide. Veuillez utiliser le lien que vous avez reçu par email.');
+            window.location.href = '/es-inscription/';
           }
-          window.location.href = '/es-inscription/';
           return;
         }
 
@@ -4411,16 +4522,9 @@ import Layout from '../layouts/Layout.astro';
 
       function updateCountdown() {
         if (remaining <= 0) {
-          // Countdown terminé
-          if (daysEl) daysEl.textContent = '00';
-          if (hoursEl) hoursEl.textContent = '00';
-          if (minutesEl) minutesEl.textContent = '00';
-          if (secondsEl) secondsEl.textContent = '00';
-          
-          const countdownContainer = document.getElementById('countdownContainer');
-          if (countdownContainer) {
-            countdownContainer.innerHTML = '<div class="countdown-expired"><p style="color: #f59e0b; font-size: 1.2rem; font-weight: 700;">⏰ L\'offre a expiré</p></div>';
-          }
+          // Countdown terminé - afficher le message d'expiration
+          clearInterval(interval);
+          showExpiredMessage();
           return;
         }
 
@@ -4460,6 +4564,30 @@ import Layout from '../layouts/Layout.astro';
           console.error('Erreur de synchronisation:', error);
         }
       }, 60000); // Toutes les minutes
+    }
+
+    // Fonction pour afficher le message d'expiration
+    function showExpiredMessage() {
+      // Masquer le countdown
+      const countdownContainer = document.getElementById('countdownContainer');
+      if (countdownContainer) {
+        countdownContainer.style.display = 'none';
+      }
+      
+      // Afficher le message d'expiration
+      const expiredContainer = document.getElementById('expiredContainer');
+      if (expiredContainer) {
+        expiredContainer.style.display = 'block';
+      }
+      
+      // Masquer le reste du contenu de la page (optionnel)
+      const heroContent = document.querySelector('.hero-content');
+      if (heroContent) {
+        const heroImage = heroContent.querySelector('.hero-image-container');
+        const heroCta = heroContent.querySelector('.hero-cta-container');
+        if (heroImage) heroImage.style.display = 'none';
+        if (heroCta) heroCta.style.display = 'none';
+      }
     }
 
     // Démarrer la vérification
