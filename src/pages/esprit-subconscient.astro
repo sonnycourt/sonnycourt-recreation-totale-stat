@@ -1409,34 +1409,22 @@ import Layout from '../layouts/Layout.astro';
 
   .expired-content {
     background: rgba(26, 26, 58, 0.8);
-    border: 2px solid rgba(245, 158, 11, 0.4);
+    border: 2px solid rgba(239, 68, 68, 0.4);
     border-radius: 20px;
     padding: 50px 40px;
     backdrop-filter: blur(10px);
-    box-shadow: 0 20px 60px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 20px 60px rgba(239, 68, 68, 0.2);
   }
 
   .expired-icon {
     font-size: 4rem;
     margin-bottom: 20px;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 0.8;
-    }
   }
 
   .expired-title {
     font-size: clamp(1.8rem, 4vw, 2.5rem);
     font-weight: 900;
-    color: #f59e0b;
+    color: #ef4444;
     margin-bottom: 20px;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -4515,6 +4503,7 @@ import Layout from '../layouts/Layout.astro';
           // Token invalide ou expiré
           if (data.expired) {
             // Afficher le message d'expiration au lieu de rediriger
+            disableSpiffyButtons();
             showExpiredMessage();
           } else {
             // Token invalide (pas expiré) -> rediriger vers inscription
@@ -4550,8 +4539,9 @@ import Layout from '../layouts/Layout.astro';
 
       function updateCountdown() {
         if (remaining <= 0) {
-          // Countdown terminé - afficher le message d'expiration
+          // Countdown terminé - afficher le message d'expiration et griser les boutons
           clearInterval(interval);
+          disableSpiffyButtons();
           showExpiredMessage();
           return;
         }
@@ -4598,6 +4588,20 @@ import Layout from '../layouts/Layout.astro';
           }
         }, 60000); // Toutes les minutes
       }
+    }
+
+    // Fonction pour griser les boutons Spiffy
+    function disableSpiffyButtons() {
+      const spiffyButtons = document.querySelectorAll('.hero-cta-button, .cta-button, .final-cta-button');
+      spiffyButtons.forEach((button) => {
+        button.classList.add('disabled');
+        // Empêcher le clic
+        button.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }, { once: true });
+      });
     }
 
     // Fonction pour afficher le message d'expiration
