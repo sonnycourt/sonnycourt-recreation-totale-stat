@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
 
     try {
         // Récupérer les données du body
-        const { email, groupId, prenom, nom, telephone, countryCode } = JSON.parse(event.body);
+        const { email, groupId, prenom, nom, telephone, countryCode, uniqueToken } = JSON.parse(event.body);
 
         // Validation basique
         if (!email || !email.includes('@')) {
@@ -70,6 +70,11 @@ exports.handler = async (event, context) => {
         if (telephone) {
             const fullPhone = countryCode ? `${countryCode}${telephone.replace(/\s/g, '')}` : telephone;
             fields.phone = fullPhone;
+        }
+        
+        // Ajouter le token unique si fourni (pour Esprit Subconscient)
+        if (uniqueToken) {
+            fields.unique_token = uniqueToken;
         }
         
         if (Object.keys(fields).length > 0) {

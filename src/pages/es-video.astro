@@ -1,0 +1,378 @@
+---
+// Page es-video - Esprit Subconscient
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esprit Subconscient - Vidéo Exclusive</title>
+    <meta name="description" content="Découvre comment reprogrammer ton subconscient et transformer ta vie en 21 jours. Libère-toi de tes blocages inconscients.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- GA4 Consent Mode v2 -->
+    <GAConsentMode />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --primary-dark: #2563eb;
+            --accent: #93c5fd;
+            --bg-dark: #0a0a1a;
+            --text-white: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+            z-index: -1;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h1 {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subheadline {
+            font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+            line-height: 1.6;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Video Section */
+        .video-wrapper {
+            margin-bottom: 40px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(59, 130, 246, 0.2);
+            background: #000;
+        }
+
+        .video-player {
+            width: 100%;
+            display: block;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        /* Play overlay */
+        .play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .play-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .play-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .play-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+        }
+
+        .cta-text {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.4);
+        }
+
+        .cta-button:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(59, 130, 246, 0.5);
+        }
+
+        .cta-button.disabled {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            cursor: not-allowed;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .countdown {
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 16px;
+            }
+
+            .cta-button {
+                width: 100%;
+                padding: 18px 30px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="badge">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Vidéo Exclusive
+            </div>
+            
+            <h1>La vraie raison pour laquelle tu n'atteins pas tes objectifs</h1>
+            
+            <p class="subheadline">
+                Ce n'est pas un problème d'action, c'est un problème d'identité. 
+                Regarde cette vidéo pour découvrir comment reprogrammer ton subconscient et transformer ta vie.
+            </p>
+        </div>
+
+        <div class="video-wrapper">
+            <div class="video-container">
+                <video
+                    id="videoPlayer"
+                    class="video-player"
+                    src="https://sonnycourt-videos-public.b-cdn.net/ESPRIT%20SUBCONSCIENT%20-%20VSL%202026.mp4"
+                    preload="metadata"
+                    playsinline
+                    controlslist="nodownload nofullscreen noremoteplayback"
+                    oncontextmenu="return false;"
+                >
+                    Votre navigateur ne supporte pas la balise vidéo.
+                </video>
+                
+                <div class="play-overlay" id="playOverlay">
+                    <button class="play-button" id="playButton">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                            <circle cx="40" cy="40" r="40" fill="rgba(59, 130, 246, 0.9)"/>
+                            <polygon points="32,24 32,56 58,40" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <p class="cta-text">✨ Prêt à transformer ta vie ?</p>
+            
+            <a href="/esprit-subconscient/" class="cta-button disabled" id="ctaButton">
+                <span id="ctaText">Accéder à la formation Esprit Subconscient</span>
+                <span class="countdown" id="countdown">(05:45)</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Protection
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        const ctaButton = document.getElementById('ctaButton');
+        const countdownElement = document.getElementById('countdown');
+        const playOverlay = document.getElementById('playOverlay');
+        const playButton = document.getElementById('playButton');
+
+        // Récupérer le token depuis l'URL ou localStorage
+        function getToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (!token) {
+                // Essayer de récupérer depuis localStorage
+                token = localStorage.getItem('es_token');
+            }
+            
+            return token;
+        }
+
+        const userToken = getToken();
+
+        // Countdown: 05:45 = 345 secondes
+        const countdownDuration = 5 * 60 + 45;
+        let hasStartedCountdown = false;
+        let totalPlayTime = 0;
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateCountdown() {
+            if (!hasStartedCountdown) return;
+            
+            const remaining = Math.max(0, Math.floor(countdownDuration - totalPlayTime));
+            countdownElement.textContent = `(${formatTime(remaining)})`;
+            
+            if (remaining <= 0) {
+                ctaButton.classList.remove('disabled');
+                ctaButton.style.pointerEvents = 'auto';
+                countdownElement.style.display = 'none';
+            }
+        }
+
+        // Play button
+        playButton.addEventListener('click', () => {
+            videoPlayer.play();
+            playOverlay.classList.add('hidden');
+        });
+
+        // Click video to toggle
+        videoPlayer.addEventListener('click', () => {
+            if (videoPlayer.paused) {
+                videoPlayer.play();
+                playOverlay.classList.add('hidden');
+            } else {
+                videoPlayer.pause();
+                playOverlay.classList.remove('hidden');
+            }
+        });
+
+        // Video events
+        videoPlayer.addEventListener('play', () => {
+            playOverlay.classList.add('hidden');
+            if (!hasStartedCountdown) {
+                hasStartedCountdown = true;
+                setInterval(updateCountdown, 1000);
+            }
+        });
+
+        videoPlayer.addEventListener('pause', () => {
+            playOverlay.classList.remove('hidden');
+        });
+
+        videoPlayer.addEventListener('timeupdate', () => {
+            if (!videoPlayer.paused) {
+                totalPlayTime = videoPlayer.currentTime;
+            }
+        });
+
+        videoPlayer.addEventListener('ended', () => {
+            ctaButton.classList.remove('disabled');
+            ctaButton.style.pointerEvents = 'auto';
+        });
+
+        // Mettre à jour le lien du bouton avec le token
+        if (userToken) {
+            ctaButton.href = `/esprit-subconscient/?token=${userToken}`;
+        }
+    </script>
+</body>
+</html>
+
