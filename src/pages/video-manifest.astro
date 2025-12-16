@@ -209,6 +209,87 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             opacity: 0.9;
         }
 
+        /* Speed Control */
+        .speed-control {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+
+        .speed-button {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(124, 58, 237, 0.5);
+            border-radius: 8px;
+            color: white;
+            padding: 10px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-button:hover {
+            background: rgba(0, 0, 0, 0.85);
+            border-color: rgba(124, 58, 237, 0.8);
+            transform: scale(1.05);
+        }
+
+        .speed-button svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .speed-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid rgba(124, 58, 237, 0.5);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 120px;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .speed-menu.active {
+            display: block;
+        }
+
+        .speed-option {
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .speed-option:hover {
+            background: rgba(124, 58, 237, 0.2);
+        }
+
+        .speed-option.active {
+            background: rgba(124, 58, 237, 0.3);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .speed-option.active::after {
+            content: '✓';
+            color: var(--accent);
+            font-weight: bold;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -219,6 +300,25 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 width: 100%;
                 padding: 18px 30px;
                 font-size: 1rem;
+            }
+
+            .speed-control {
+                bottom: 15px;
+                right: 15px;
+            }
+
+            .speed-button {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+
+            .speed-menu {
+                min-width: 100px;
+            }
+
+            .speed-option {
+                padding: 8px 16px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -264,6 +364,28 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         </svg>
                     </button>
                 </div>
+
+                <!-- Speed Control -->
+                <div class="speed-control">
+                    <button class="speed-button" id="speedButton">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rabbit-icon lucide-rabbit">
+                            <path d="M13 16a3 3 0 0 1 2.24 5"/>
+                            <path d="M18 12h.01"/>
+                            <path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3"/>
+                            <path d="M20 8.54V4a2 2 0 1 0-4 0v3"/>
+                            <path d="M7.612 12.524a3 3 0 1 0-1.6 4.3"/>
+                        </svg>
+                        <span id="speedDisplay">1x</span>
+                    </button>
+                    <div class="speed-menu" id="speedMenu">
+                        <div class="speed-option" data-speed="0.5">0.5x</div>
+                        <div class="speed-option" data-speed="0.75">0.75x</div>
+                        <div class="speed-option active" data-speed="1">1x</div>
+                        <div class="speed-option" data-speed="1.25">1.25x</div>
+                        <div class="speed-option" data-speed="1.5">1.5x</div>
+                        <div class="speed-option" data-speed="2">2x</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -286,6 +408,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const countdownElement = document.getElementById('countdown');
         const playOverlay = document.getElementById('playOverlay');
         const playButton = document.getElementById('playButton');
+        const speedButton = document.getElementById('speedButton');
+        const speedMenu = document.getElementById('speedMenu');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const speedOptions = document.querySelectorAll('.speed-option');
 
         // Récupérer le token depuis l'URL ou localStorage
         function getToken() {
@@ -321,6 +447,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const countdownDuration = 9 * 60 + 22;
         let hasStartedCountdown = false;
         let totalPlayTime = 0;
+        let currentSpeed = 1; // Vitesse actuelle (1x par défaut)
 
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60);
@@ -376,9 +503,49 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         videoPlayer.addEventListener('timeupdate', () => {
             if (!videoPlayer.paused) {
+                // currentTime s'adapte automatiquement à playbackRate
+                // Donc le countdown reste synchronisé naturellement
                 totalPlayTime = videoPlayer.currentTime;
             }
         });
+
+        // Speed Control
+        speedButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            speedMenu.classList.toggle('active');
+        });
+
+        // Fermer le menu si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (!speedButton.contains(e.target) && !speedMenu.contains(e.target)) {
+                speedMenu.classList.remove('active');
+            }
+        });
+
+        // Changer la vitesse
+        speedOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const speed = parseFloat(option.dataset.speed);
+                
+                // Appliquer la vitesse
+                videoPlayer.playbackRate = speed;
+                currentSpeed = speed;
+                
+                // Mettre à jour l'affichage
+                speedDisplay.textContent = `${speed}x`;
+                
+                // Mettre à jour les options actives
+                speedOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                
+                // Fermer le menu
+                speedMenu.classList.remove('active');
+            });
+        });
+
+        // Initialiser la vitesse à 1x
+        videoPlayer.playbackRate = 1;
 
         videoPlayer.addEventListener('ended', () => {
             ctaButton.classList.remove('disabled');
