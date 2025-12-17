@@ -44,16 +44,9 @@ exports.handler = async (event, context) => {
         }
 
         // Récupérer le Group ID depuis les variables d'environnement ou utiliser celui fourni
-        const defaultGroupId = process.env.MAILERLITE_GROUP_COURTCIRCUIT || groupId || '172875888042443786';
-        
-        // Préparer les données pour MailerLite
-        const subscriberData = {
-            email: email,
-            groups: [groupId || defaultGroupId],
-            status: 'active'
-        };
+        const targetGroupId = groupId || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
 
-        // Ajouter les champs personnalisés si disponibles
+        // Préparer les champs personnalisés
         const fields = {};
         if (prenom && nom) {
             fields.name = `${prenom} ${nom}`;
@@ -81,33 +74,126 @@ exports.handler = async (event, context) => {
         if (uniqueTokenManifest) {
             fields.unique_token_manifest = uniqueTokenManifest;
         }
-        
-        if (Object.keys(fields).length > 0) {
-            subscriberData.fields = fields;
+
+        // Headers pour les appels API
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json'
+        };
+
+        // ÉTAPE 1: Vérifier si le contact existe déjà
+        let subscriberId = null;
+        let contactExists = false;
+
+        try {
+            const checkResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${encodeURIComponent(email)}`, {
+                method: 'GET',
+                headers: headers
+            });
+
+            if (checkResponse.ok) {
+                const existingData = await checkResponse.json();
+                subscriberId = existingData.data?.id;
+                contactExists = true;
+                console.log(`✅ Contact existant trouvé: ${email} (ID: ${subscriberId})`);
+            }
+        } catch (e) {
+            console.log(`ℹ️ Contact n'existe pas encore: ${email}`);
         }
 
-        // Appel à l'API MailerLite
-        const mailerliteResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(subscriberData)
-        });
+        // ÉTAPE 2: Créer ou mettre à jour le contact
+        let subscriberData;
+        let mailerliteResponse;
 
-        const mailerliteData = await mailerliteResponse.json();
-
-        if (!mailerliteResponse.ok) {
-            console.error('MailerLite API error:', mailerliteData);
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ 
-                    error: 'Erreur lors de l\'inscription',
-                    details: mailerliteData.message || 'Erreur inconnue'
-                })
+        if (contactExists && subscriberId) {
+            // Contact existe → PUT pour mettre à jour
+            const updateData = {
+                status: 'active'
             };
+            
+            if (Object.keys(fields).length > 0) {
+                updateData.fields = fields;
+            }
+
+            console.log(`🔄 Mise à jour du contact ${email} avec:`, JSON.stringify(updateData));
+
+            mailerliteResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${subscriberId}`, {
+                method: 'PUT',
+                headers: headers,
+                body: JSON.stringify(updateData)
+            });
+
+            const updateResult = await mailerliteResponse.json();
+            
+            if (!mailerliteResponse.ok) {
+                console.error('❌ Erreur mise à jour:', updateResult);
+            } else {
+                console.log(`✅ Contact mis à jour: ${email}`);
+                subscriberData = updateResult;
+            }
+
+        } else {
+            // Contact n'existe pas → POST pour créer
+            const createData = {
+                email: email,
+                status: 'active'
+            };
+            
+            if (Object.keys(fields).length > 0) {
+                createData.fields = fields;
+            }
+
+            console.log(`➕ Création du contact ${email} avec:`, JSON.stringify(createData));
+
+            mailerliteResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(createData)
+            });
+
+            const createResult = await mailerliteResponse.json();
+            
+            if (!mailerliteResponse.ok) {
+                console.error('❌ Erreur création:', createResult);
+                return {
+                    statusCode: 400,
+                    body: JSON.stringify({ 
+                        error: 'Erreur lors de l\'inscription',
+                        details: createResult.message || 'Erreur inconnue'
+                    })
+                };
+            }
+            
+            subscriberId = createResult.data?.id;
+            subscriberData = createResult;
+            console.log(`✅ Contact créé: ${email} (ID: ${subscriberId})`);
+        }
+
+        // ÉTAPE 3: Ajouter au groupe (séparément pour garantir l'ajout)
+        if (subscriberId && targetGroupId) {
+            try {
+                console.log(`📁 Ajout au groupe ${targetGroupId}...`);
+                
+                const groupResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${subscriberId}/groups/${targetGroupId}`, {
+                    method: 'POST',
+                    headers: headers
+                });
+
+                if (groupResponse.ok) {
+                    console.log(`✅ Contact ajouté au groupe ${targetGroupId}`);
+                } else {
+                    const groupError = await groupResponse.json();
+                    // 422 signifie souvent "déjà dans le groupe", ce n'est pas une erreur critique
+                    if (groupResponse.status !== 422) {
+                        console.error('⚠️ Erreur ajout groupe:', groupError);
+                    } else {
+                        console.log(`ℹ️ Contact déjà dans le groupe ${targetGroupId}`);
+                    }
+                }
+            } catch (groupErr) {
+                console.error('⚠️ Exception ajout groupe:', groupErr);
+            }
         }
 
         // Succès
@@ -120,8 +206,9 @@ exports.handler = async (event, context) => {
             },
             body: JSON.stringify({
                 success: true,
-                id: mailerliteData.id,
-                message: 'Inscription réussie'
+                id: subscriberId,
+                message: contactExists ? 'Contact mis à jour' : 'Inscription réussie',
+                updated: contactExists
             })
         };
 
