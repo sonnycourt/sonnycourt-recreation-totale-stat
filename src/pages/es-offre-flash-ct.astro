@@ -2454,33 +2454,45 @@ import Layout from '../layouts/Layout.astro';
     
     const captureFrame = () => {
       try {
+        // Set dimensions based on video
         const width = video.videoWidth || 1280;
         const height = video.videoHeight || 720;
         if (width === 0 || height === 0) {
+          console.log('Video dimensions not available yet');
           return;
         }
         canvas.width = width;
         canvas.height = height;
+        
+        // Draw the current frame
         ctx.drawImage(video, 0, 0, width, height);
         const dataURL = canvas.toDataURL('image/jpeg', 0.8);
         video.poster = dataURL;
+        console.log('Thumbnail captured successfully at', video.currentTime, 's');
       } catch (e) {
         console.log('Could not capture frame:', e);
       }
     };
     
+    // Set video to specific time and capture
     const seekToFrame = () => {
+      // Wait for video to have duration
       if (!video.duration || isNaN(video.duration)) {
+        console.log('Waiting for video duration...');
         video.addEventListener('loadedmetadata', seekToFrame, { once: true });
         return;
       }
+      
+      // Ensure time doesn't exceed video duration
       const targetTime = Math.min(timeInSeconds, video.duration);
+      console.log('Seeking to', targetTime, 's (duration:', video.duration, 's)');
       video.currentTime = targetTime;
       
       const onSeeked = () => {
+        // Small delay to ensure frame is rendered
         setTimeout(() => {
           captureFrame();
-          video.currentTime = 0;
+          video.currentTime = 0; // Reset to start after capture
         }, 100);
         video.removeEventListener('seeked', onSeeked);
       };
@@ -2488,12 +2500,16 @@ import Layout from '../layouts/Layout.astro';
       video.addEventListener('seeked', onSeeked, { once: true });
     };
     
+    // Wait for video to be ready
     if (video.readyState >= 2 && video.duration && !isNaN(video.duration)) {
+      // For times > 0.1, we need more data loaded
       if (timeInSeconds > 0.1) {
+        // Wait for canplaythrough or use loadeddata
         if (video.readyState >= 3) {
           seekToFrame();
         } else {
           video.addEventListener('canplaythrough', seekToFrame, { once: true });
+          // Fallback if canplaythrough doesn't fire
           setTimeout(() => {
             if (!video.poster) seekToFrame();
           }, 2000);
@@ -2502,8 +2518,10 @@ import Layout from '../layouts/Layout.astro';
         seekToFrame();
       }
     } else {
+      // For longer times, wait for more data
       if (timeInSeconds > 0.1) {
         video.addEventListener('canplaythrough', seekToFrame, { once: true });
+        // Fallback
         setTimeout(() => {
           if (!video.poster && video.duration) seekToFrame();
         }, 3000);
