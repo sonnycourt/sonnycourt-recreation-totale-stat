@@ -813,6 +813,34 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         // ===== GESTION DES ÉTAPES =====
         let currentEmail = '';
         let currentName = '';
+        let userToken = '';
+
+        // Group ID MailerLite pour MANIFEST
+        const MAILERLITE_GROUP_ID = '173857602171569439';
+
+        // Générer un UUID pour le token
+        function generateToken() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Fonction pour récupérer ou créer le token
+        function getOrCreateToken() {
+            // Vérifier si un token existe déjà dans localStorage
+            let token = localStorage.getItem('manifest_token');
+            
+            if (!token) {
+                // Générer un nouveau token
+                token = generateToken();
+                localStorage.setItem('manifest_token', token);
+                // Stocker aussi dans un cookie pour persistance cross-device
+                document.cookie = `manifest_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+            
+            return token;
+        }
 
         function handleStep1() {
             const name = document.getElementById('name').value.trim();
@@ -832,7 +860,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             currentName = name;
             currentEmail = email;
             
-            sendToMailerLite(name, email);
+            // Générer ou récupérer le token
+            userToken = getOrCreateToken();
+            
+            sendToMailerLite(name, email, userToken);
             
             document.getElementById('step1-form').style.display = 'none';
             document.getElementById('step2-form').style.display = 'block';
@@ -859,25 +890,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
             }
             
-            updateMailerLiteContact(currentName, currentEmail, formattedPhone);
+            updateMailerLiteContact(currentName, currentEmail, formattedPhone, userToken);
         }
 
-        // Group ID MailerLite pour MANIFEST
-        const MAILERLITE_GROUP_ID = '173857602171569439';
-
-        // Générer un UUID pour le token
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        async function sendToMailerLite(name, email) {
-            // Générer un token unique pour Manifest
-            const userToken = generateUUID();
-            localStorage.setItem('manifest_token', userToken);
-            
+        async function sendToMailerLite(name, email, token) {
             try {
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
@@ -886,13 +902,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         email: email,
                         prenom: name,
                         groupId: MAILERLITE_GROUP_ID,
-                        uniqueTokenManifest: userToken // Passer le token unique pour Manifest
+                        uniqueTokenManifest: token
                     })
                 });
                 const result = await response.json();
                 if (response.ok) {
                     console.log('✅ Contact ajouté:', email);
-                    await initPlaces(userToken, email); // Initialiser le système de places
+                    await initPlaces(token, email);
                 } else {
                     console.error('❌ Erreur:', result);
                 }
@@ -903,6 +919,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         async function initPlaces(token, email) {
             try {
+                console.log('🔄 Initialisation places pour token:', token, 'email:', email);
                 const response = await fetch('/.netlify/functions/init-places-manifest', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -912,17 +929,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     })
                 });
                 const result = await response.json();
+                console.log('📥 Réponse init-places:', result, 'Status:', response.status);
                 if (response.ok) {
                     console.log('✅ Système de places initialisé:', token);
                 } else {
-                    console.error('❌ Erreur countdown:', result);
+                    console.error('❌ Erreur places:', result);
                 }
             } catch (error) {
-                console.error('Erreur countdown:', error);
+                console.error('❌ Erreur places (exception):', error);
             }
         }
 
-        async function updateMailerLiteContact(name, email, phone) {
+        async function updateMailerLiteContact(name, email, phone, token) {
             try {
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
@@ -931,7 +949,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         email: email,
                         prenom: name,
                         telephone: phone,
-                        groupId: MAILERLITE_GROUP_ID
+                        groupId: MAILERLITE_GROUP_ID,
+                        uniqueTokenManifest: token
                     })
                 });
                 const result = await response.json();
@@ -939,21 +958,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     console.log('✅ Contact mis à jour:', email, phone);
                 }
                 closePopup();
-                redirectToVideo();
+                redirectToVideo(token);
             } catch (error) {
                 console.error('Erreur:', error);
                 closePopup();
-                redirectToVideo();
+                redirectToVideo(token);
             }
         }
 
-        function redirectToVideo() {
-            const token = localStorage.getItem('manifest_token');
-            if (token) {
-                window.location.href = `/video-manifest/?token=${token}`;
-            } else {
-                window.location.href = '/video-manifest/';
-            }
+        function redirectToVideo(token) {
+            window.location.href = `/video-manifest/?token=${token}`;
         }
 
         // ===== EVENT LISTENERS =====
