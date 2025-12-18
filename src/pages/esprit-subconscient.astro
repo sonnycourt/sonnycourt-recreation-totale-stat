@@ -4994,7 +4994,7 @@ import Layout from '../layouts/Layout.astro';
     <div class="social-proof-text">
       <p class="social-proof-name" id="proofName">Nicolas B.</p>
       <p class="social-proof-action">vient de rejoindre Esprit Subconscient</p>
-      <p class="social-proof-time" id="proofTime">Il y a 3 minutes</p>
+      <p class="social-proof-time"><span id="proofTime">Il y a 3 minutes</span> <span id="proofFlag">🇫🇷</span></p>
     </div>
     <button class="social-proof-close" id="closeProof">×</button>
   </div>
@@ -5104,52 +5104,56 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   (function() {
-    // Pool de prénoms réalistes (français, africains, suisses, belges, canadiens)
+    // Pool de prénoms réalistes avec drapeaux
+    // Distribution: ~60% France, ~15% Suisse/Belgique, ~15% Afrique, ~10% Canada
     const prenoms = [
-      // Français
-      { prenom: 'Nicolas', initiale: 'B.' },
-      { prenom: 'Marie', initiale: 'L.' },
-      { prenom: 'Thomas', initiale: 'M.' },
-      { prenom: 'Sophie', initiale: 'D.' },
-      { prenom: 'Julie', initiale: 'R.' },
-      { prenom: 'Pierre', initiale: 'G.' },
-      { prenom: 'Camille', initiale: 'P.' },
-      { prenom: 'Alexandre', initiale: 'F.' },
-      { prenom: 'Laura', initiale: 'C.' },
-      { prenom: 'Antoine', initiale: 'V.' },
-      { prenom: 'Émilie', initiale: 'H.' },
-      { prenom: 'Julien', initiale: 'N.' },
-      { prenom: 'Céline', initiale: 'T.' },
-      { prenom: 'Maxime', initiale: 'S.' },
-      { prenom: 'Aurélie', initiale: 'J.' },
-      // Africains
-      { prenom: 'Mamadou', initiale: 'D.' },
-      { prenom: 'Fatou', initiale: 'S.' },
-      { prenom: 'Aminata', initiale: 'B.' },
-      { prenom: 'Oumar', initiale: 'N.' },
-      { prenom: 'Aïcha', initiale: 'K.' },
-      { prenom: 'Ibrahim', initiale: 'T.' },
-      { prenom: 'Mariama', initiale: 'C.' },
-      { prenom: 'Abdoulaye', initiale: 'F.' },
-      { prenom: 'Kadiatou', initiale: 'D.' },
-      { prenom: 'Moussa', initiale: 'S.' },
-      { prenom: 'Fatoumata', initiale: 'B.' },
-      { prenom: 'Sékou', initiale: 'K.' },
-      { prenom: 'Bintou', initiale: 'T.' },
-      { prenom: 'Cheick', initiale: 'O.' },
-      { prenom: 'Adama', initiale: 'C.' },
-      // Suisses/Belges
-      { prenom: 'Léo', initiale: 'M.' },
-      { prenom: 'Chloé', initiale: 'D.' },
-      { prenom: 'Mathis', initiale: 'R.' },
-      { prenom: 'Emma', initiale: 'W.' },
-      { prenom: 'Lucas', initiale: 'B.' },
+      // Français (majorité)
+      { prenom: 'Nicolas', initiale: 'B.', drapeau: '🇫🇷' },
+      { prenom: 'Marie', initiale: 'L.', drapeau: '🇫🇷' },
+      { prenom: 'Thomas', initiale: 'M.', drapeau: '🇫🇷' },
+      { prenom: 'Sophie', initiale: 'D.', drapeau: '🇫🇷' },
+      { prenom: 'Julie', initiale: 'R.', drapeau: '🇫🇷' },
+      { prenom: 'Pierre', initiale: 'G.', drapeau: '🇫🇷' },
+      { prenom: 'Camille', initiale: 'P.', drapeau: '🇫🇷' },
+      { prenom: 'Alexandre', initiale: 'F.', drapeau: '🇫🇷' },
+      { prenom: 'Laura', initiale: 'C.', drapeau: '🇫🇷' },
+      { prenom: 'Antoine', initiale: 'V.', drapeau: '🇫🇷' },
+      { prenom: 'Émilie', initiale: 'H.', drapeau: '🇫🇷' },
+      { prenom: 'Julien', initiale: 'N.', drapeau: '🇫🇷' },
+      { prenom: 'Céline', initiale: 'T.', drapeau: '🇫🇷' },
+      { prenom: 'Maxime', initiale: 'S.', drapeau: '🇫🇷' },
+      { prenom: 'Aurélie', initiale: 'J.', drapeau: '🇫🇷' },
+      { prenom: 'Clément', initiale: 'R.', drapeau: '🇫🇷' },
+      { prenom: 'Marine', initiale: 'B.', drapeau: '🇫🇷' },
+      { prenom: 'Florian', initiale: 'D.', drapeau: '🇫🇷' },
+      { prenom: 'Charlotte', initiale: 'M.', drapeau: '🇫🇷' },
+      { prenom: 'Romain', initiale: 'L.', drapeau: '🇫🇷' },
+      { prenom: 'Pauline', initiale: 'G.', drapeau: '🇫🇷' },
+      { prenom: 'Quentin', initiale: 'P.', drapeau: '🇫🇷' },
+      { prenom: 'Manon', initiale: 'F.', drapeau: '🇫🇷' },
+      { prenom: 'Mathieu', initiale: 'C.', drapeau: '🇫🇷' },
+      // Suisses
+      { prenom: 'Léo', initiale: 'M.', drapeau: '🇨🇭' },
+      { prenom: 'Chloé', initiale: 'D.', drapeau: '🇨🇭' },
+      { prenom: 'Mathis', initiale: 'R.', drapeau: '🇨🇭' },
+      { prenom: 'Lara', initiale: 'W.', drapeau: '🇨🇭' },
+      // Belges
+      { prenom: 'Lucas', initiale: 'B.', drapeau: '🇧🇪' },
+      { prenom: 'Emma', initiale: 'V.', drapeau: '🇧🇪' },
+      { prenom: 'Nathan', initiale: 'D.', drapeau: '🇧🇪' },
+      { prenom: 'Léa', initiale: 'L.', drapeau: '🇧🇪' },
+      // Africains (un peu)
+      { prenom: 'Mamadou', initiale: 'D.', drapeau: '🇸🇳' },
+      { prenom: 'Fatou', initiale: 'S.', drapeau: '🇸🇳' },
+      { prenom: 'Aminata', initiale: 'B.', drapeau: '🇨🇮' },
+      { prenom: 'Ibrahim', initiale: 'T.', drapeau: '🇨🇮' },
+      { prenom: 'Aïcha', initiale: 'K.', drapeau: '🇲🇦' },
+      { prenom: 'Youssef', initiale: 'B.', drapeau: '🇲🇦' },
       // Canadiens
-      { prenom: 'Gabrielle', initiale: 'T.' },
-      { prenom: 'Olivier', initiale: 'L.' },
-      { prenom: 'Jade', initiale: 'G.' },
-      { prenom: 'William', initiale: 'P.' },
-      { prenom: 'Laurence', initiale: 'B.' }
+      { prenom: 'Gabrielle', initiale: 'T.', drapeau: '🇨🇦' },
+      { prenom: 'Olivier', initiale: 'L.', drapeau: '🇨🇦' },
+      { prenom: 'Jade', initiale: 'G.', drapeau: '🇨🇦' },
+      { prenom: 'William', initiale: 'P.', drapeau: '🇨🇦' }
     ];
     
     // Messages d'action variés
@@ -5175,6 +5179,7 @@ import Layout from '../layouts/Layout.astro';
     const popup = document.getElementById('socialProofPopup');
     const nameEl = document.getElementById('proofName');
     const timeEl = document.getElementById('proofTime');
+    const flagEl = document.getElementById('proofFlag');
     const closeBtn = document.getElementById('closeProof');
     const actionEl = popup?.querySelector('.social-proof-action');
     
@@ -5202,7 +5207,7 @@ import Layout from '../layouts/Layout.astro';
     }
     
     function showNotification() {
-      if (!popup || !nameEl || !timeEl || !actionEl) return;
+      if (!popup || !nameEl || !timeEl || !actionEl || !flagEl) return;
       
       const personne = getUniquePrenom();
       const action = getRandomItem(actions);
@@ -5211,6 +5216,7 @@ import Layout from '../layouts/Layout.astro';
       nameEl.textContent = `${personne.prenom} ${personne.initiale}`;
       actionEl.textContent = action;
       timeEl.textContent = temps;
+      flagEl.textContent = personne.drapeau;
       
       popup.classList.add('show');
       isVisible = true;
