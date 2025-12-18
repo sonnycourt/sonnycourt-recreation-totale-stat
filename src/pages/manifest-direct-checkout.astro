@@ -1,0 +1,520 @@
+---
+// Page checkout direct Manifest avec Spiffy embed et compteur de places dynamique
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manifest - Checkout</title>
+  <meta name="description" content="Accède à la formation Manifest - 3 mois pour Manifester la Richesse, l'Amour et la Liberté.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  
+  <!-- Spiffy Script - DOIT être dans le head -->
+  <script>
+    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."));
+    f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+    e.async=!1,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t;
+    var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+    spiffy.SNIPPET_VERSION="1.1.0";
+    spiffy.config({ hideSidebar: false });
+    spiffy.load("sonnycourt");
+  </script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 50%, #0a0a1a 100%);
+      color: #ffffff;
+    }
+
+    .checkout-page {
+      min-height: 100vh;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      padding: 60px 20px 40px;
+      text-align: center;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 8px 20px;
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #a78bfa;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+    }
+
+    /* Places Counter Styles */
+    .places-container {
+      margin: 0 auto 40px;
+      max-width: 800px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .places-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .places-badge .badge-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .places-badge .badge-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .places-counter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .places-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .places-number {
+      font-size: clamp(3rem, 8vw, 5rem);
+      font-weight: 900;
+      color: #a78bfa;
+      line-height: 1;
+    }
+
+    .places-slash {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .places-total {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .places-text {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 10px;
+    }
+
+    .places-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: #ef4444;
+      margin-top: 15px;
+    }
+
+    .places-message svg {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Sold Out Container */
+    .soldout-container {
+      margin: 0 auto 40px;
+      max-width: 600px;
+      padding: 40px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .soldout-icon {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    .soldout-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 10px;
+    }
+
+    .soldout-message {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+    }
+
+    .soldout-button {
+      display: inline-block;
+      padding: 14px 30px;
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .soldout-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    /* Checkout Section - Full Width */
+    .checkout-section {
+      padding: 0;
+    }
+
+    .checkout-container {
+      width: 100%;
+    }
+
+    .spiffy-embed-wrapper {
+      width: 100%;
+    }
+
+    .spiffy-checkout__container {
+      min-height: 600px;
+      width: 100%;
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .hero-section {
+        padding: 40px 16px 32px;
+      }
+
+      .places-container {
+        padding: 20px;
+        margin: 0 16px 30px;
+      }
+
+      .places-number {
+        font-size: 3rem;
+      }
+
+      .places-slash,
+      .places-total {
+        font-size: 1.8rem;
+      }
+
+      .places-message {
+        font-size: 0.8rem;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .checkout-section {
+        padding: 0 16px;
+      }
+
+      .soldout-container {
+        margin: 0 16px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-badge">FORMATION NIVEAU 2</div>
+        <h1 class="hero-title">MANIFEST</h1>
+        <p class="hero-subtitle">3 MOIS POUR MANIFESTER LA RICHESSE, L'AMOUR ET LA LIBERTÉ</p>
+        
+        <!-- Compteur de places -->
+        <div class="places-container" id="placesContainer" style="display: none;">
+          <div class="places-badge" id="seasonalBadge">
+            <span class="badge-icon"></span>
+            <span class="badge-text">OFFRE -50%</span>
+          </div>
+          <div class="places-label">PLACES DISPONIBLES</div>
+          <div class="places-counter">
+            <span class="places-number" id="currentPlaces">27</span>
+            <span class="places-slash">/</span>
+            <span class="places-total">100</span>
+          </div>
+          <div class="places-text">RESTANTES</div>
+          <div class="places-message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+            <span>Ce compteur est réel. Une fois les 100 places réservées, cette offre ne sera plus accessible.</span>
+          </div>
+        </div>
+
+        <!-- Message Sold Out -->
+        <div class="soldout-container" id="soldoutContainer" style="display: none;">
+          <div class="soldout-icon">😞</div>
+          <h2 class="soldout-title">Toutes les places ont été réservées</h2>
+          <p class="soldout-message">Cette offre est maintenant terminée.</p>
+          <a href="/formations/" class="soldout-button">Découvrir nos autres formations</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Checkout Section -->
+    <section class="checkout-section" id="checkoutSection">
+      <div class="checkout-container">
+        <div class="spiffy-embed-wrapper">
+          <div class="spiffy-checkout__container" data-url="https://sonnycourt.spiffy.co/checkout/manifest"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Seasonal Badge Configuration
+    const seasonalBadges = {
+      1: { icon: "rocket", text: "OFFRE NEW YEAR -50%" },
+      2: { icon: "snowflake", text: "OFFRE HIVER -50%" },
+      3: { icon: "sprout", text: "OFFRE PRINTEMPS -50%" },
+      4: { icon: "egg", text: "OFFRE PÂQUES -50%" },
+      5: { icon: "bicep", text: "OFFRE FÊTE DU TRAVAIL -50%" },
+      6: { icon: "sun", text: "OFFRE ÉTÉ -50%" },
+      7: { icon: "cake", text: "OFFRE ANNI SONNY -50%" },
+      8: { icon: "sunset", text: "OFFRE FIN D'ÉTÉ -50%" },
+      9: { icon: "book", text: "OFFRE RENTRÉE -50%" },
+      10: { icon: "leaf", text: "OFFRE AUTOMNE -50%" },
+      11: { icon: "zap", text: "BLACK FRIDAY -50%" },
+      12: { icon: "gift", text: "OFFRE FIN D'ANNÉE -50%" }
+    };
+
+    const seasonalIcons = {
+      rocket: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>`,
+      snowflake: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="17" y1="5" x2="7" y2="19"/><line x1="7" y1="5" x2="17" y2="19"/><line x1="19" y1="12" x2="5" y2="12"/></svg>`,
+      sprout: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-7"/><path d="M12 7v10"/></svg>`,
+      egg: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c6.23-.05 7.87-5.57 7.5-10-.36-4.34-3.95-9.96-7.5-10-3.55.04-7.14 5.66-7.5 10-.37 4.43 1.27 9.95 7.5 10z"/></svg>`,
+      bicep: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></svg>`,
+      sun: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
+      cake: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>`,
+      sunset: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>`,
+      book: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
+      leaf: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 11"/></svg>`,
+      zap: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+      gift: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>`
+    };
+
+    function updateSeasonalBadge() {
+      const currentMonth = new Date().getMonth() + 1;
+      const badge = seasonalBadges[currentMonth] || seasonalBadges[1];
+      const icon = seasonalIcons[badge.icon] || seasonalIcons.rocket;
+      
+      const badgeEl = document.getElementById('seasonalBadge');
+      if (badgeEl) {
+        const iconEl = badgeEl.querySelector('.badge-icon');
+        const textEl = badgeEl.querySelector('.badge-text');
+        if (iconEl) iconEl.innerHTML = icon;
+        if (textEl) textEl.textContent = badge.text;
+      }
+    }
+
+    // Token Verification & Places Counter
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mettre à jour le badge saisonnier
+      updateSeasonalBadge();
+
+      // Récupérer les paramètres depuis l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || '';
+      const previewMode = urlParams.get('preview');
+      const isPreview = previewMode === 'true';
+      const isPreviewExpired = previewMode === 'expired';
+
+      // Mode preview expired : simuler places = 0
+      if (isPreviewExpired) {
+        console.log('🔍 Mode preview expired activé - simulation places = 0');
+        showSoldOutMessage();
+        return;
+      }
+
+      // Mode preview : afficher 20 places (fixe)
+      if (isPreview) {
+        console.log('🔍 Mode preview activé - affichage 20 places');
+        const placesContainer = document.getElementById('placesContainer');
+        if (placesContainer) {
+          placesContainer.style.display = 'block';
+        }
+        updatePlacesUI(20);
+        return;
+      }
+
+      // Mode normal : vérification du token requise
+      if (!token) {
+        // Vérifier aussi dans localStorage
+        const storedToken = localStorage.getItem('manifest_token');
+        if (storedToken) {
+          window.location.href = `/manifest-direct-checkout/?token=${storedToken}`;
+          return;
+        }
+        
+        // Pas de token trouvé, rediriger vers l'inscription
+        window.location.href = '/inscription-manifest/';
+        return;
+      }
+
+      // Stocker le token dans localStorage
+      localStorage.setItem('manifest_token', token);
+
+      // Vérifier le token et récupérer les places restantes
+      async function checkTokenAndLoadPlaces() {
+        try {
+          const response = await fetch(`/.netlify/functions/check-places-manifest?token=${encodeURIComponent(token || '')}`);
+          const data = await response.json();
+
+          if (!data.valid) {
+            if (data.expired) {
+              showSoldOutMessage();
+            } else {
+              alert('Lien invalide. Veuillez utiliser le lien que vous avez reçu par email.');
+              window.location.href = '/inscription-manifest/';
+            }
+            return;
+          }
+
+          // Token valide, afficher le compteur de places
+          const placesContainer = document.getElementById('placesContainer');
+          if (placesContainer) {
+            placesContainer.style.display = 'block';
+          }
+
+          // Mettre à jour l'affichage
+          updatePlacesUI(data.placesRemaining);
+
+          // Si places = 0, afficher sold out
+          if (data.placesRemaining === 0) {
+            showSoldOutMessage();
+            return;
+          }
+
+          // Synchroniser toutes les minutes
+          setInterval(async () => {
+            try {
+              const syncResponse = await fetch(`/.netlify/functions/check-places-manifest?token=${encodeURIComponent(token || '')}`);
+              const syncData = await syncResponse.json();
+              if (syncData.valid && syncData.placesRemaining !== undefined) {
+                updatePlacesUI(syncData.placesRemaining);
+                if (syncData.placesRemaining === 0) {
+                  showSoldOutMessage();
+                }
+              }
+            } catch (error) {
+              console.error('Erreur de synchronisation:', error);
+            }
+          }, 60000);
+
+        } catch (error) {
+          console.error('Erreur lors de la vérification:', error);
+          // En cas d'erreur, permettre quand même l'accès
+          const placesContainer = document.getElementById('placesContainer');
+          if (placesContainer) {
+            placesContainer.style.display = 'block';
+          }
+          updatePlacesUI(20);
+        }
+      }
+
+      function updatePlacesUI(places) {
+        const currentPlacesEl = document.getElementById('currentPlaces');
+        if (currentPlacesEl) {
+          currentPlacesEl.textContent = places;
+        }
+      }
+
+      function showSoldOutMessage() {
+        // Masquer le compteur de places
+        const placesContainer = document.getElementById('placesContainer');
+        if (placesContainer) {
+          placesContainer.style.display = 'none';
+        }
+        
+        // Afficher le message sold out
+        const soldoutContainer = document.getElementById('soldoutContainer');
+        if (soldoutContainer) {
+          soldoutContainer.style.display = 'block';
+        }
+        
+        // Masquer le checkout
+        const checkoutSection = document.getElementById('checkoutSection');
+        if (checkoutSection) {
+          checkoutSection.style.display = 'none';
+        }
+      }
+
+      // Démarrer la vérification
+      checkTokenAndLoadPlaces();
+    });
+  </script>
+</body>
+</html>
+
