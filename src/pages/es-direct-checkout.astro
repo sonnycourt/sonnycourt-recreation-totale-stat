@@ -1,5 +1,5 @@
 ---
-// Page checkout direct avec Spiffy embed
+// Page checkout direct avec Spiffy embed et countdown dynamique
 ---
 
 <!DOCTYPE html>
@@ -87,28 +87,147 @@
       margin-bottom: 32px;
     }
 
-    .hero-image-container {
-      max-width: 400px;
-      margin: 0 auto;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+    /* Countdown Styles */
+    .countdown-container {
+      margin: 0 auto 40px;
+      max-width: 800px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
-    .hero-image {
-      width: 100%;
-      height: auto;
-      display: block;
+    .countdown-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .countdown-badge .badge-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .countdown-badge .badge-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .countdown-timer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .countdown-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 70px;
+    }
+
+    .countdown-value {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 900;
+      color: #60a5fa;
+      line-height: 1;
+    }
+
+    .countdown-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+
+    .countdown-separator {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 20px;
+    }
+
+    .countdown-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .countdown-message svg {
+      flex-shrink: 0;
+      color: #f59e0b;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Expired Container */
+    .expired-container {
+      margin: 0 auto 40px;
+      max-width: 600px;
+      padding: 40px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .expired-icon {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    .expired-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 10px;
+    }
+
+    .expired-message {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+    }
+
+    .expired-button {
+      display: inline-block;
+      padding: 14px 30px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .expired-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
     }
 
     /* Checkout Section - Full Width */
     .checkout-section {
-      padding: 40px 0 0;
+      padding: 0;
     }
 
     .checkout-container {
       width: 100%;
-      text-align: center;
     }
 
     .spiffy-embed-wrapper {
@@ -120,22 +239,37 @@
       width: 100%;
     }
 
-    .checkout-guarantee {
-      display: none;
-    }
-
     /* Mobile */
     @media (max-width: 768px) {
       .hero-section {
         padding: 40px 16px 32px;
       }
 
-      .hero-image-container {
-        max-width: 300px;
+      .countdown-container {
+        padding: 20px;
+        margin: 0 16px 30px;
       }
 
-      .checkout-section {
-        padding: 32px 0 0;
+      .countdown-timer {
+        gap: 10px;
+      }
+
+      .countdown-item {
+        min-width: 55px;
+      }
+
+      .countdown-value {
+        font-size: 1.8rem;
+      }
+
+      .countdown-separator {
+        font-size: 1.5rem;
+      }
+
+      .countdown-message {
+        font-size: 0.8rem;
+        flex-direction: column;
+        text-align: center;
       }
     }
   </style>
@@ -149,27 +283,231 @@
         <h1 class="hero-title">ESPRIT SUBCONSCIENT</h1>
         <p class="hero-subtitle">21 JOURS POUR REPROGRAMMER TON SUBCONSCIENT ET TRANSFORMER TA VIE</p>
         
-        <div class="hero-image-container">
-          <img src="/media/pages/Sonny-Court-Manifest-Formation-2.webp" alt="Formation Esprit Subconscient - Sonny Court" class="hero-image" />
+        <!-- Countdown de 7 jours -->
+        <div class="countdown-container" id="countdownContainer" style="display: none;">
+          <div class="countdown-badge">
+            <span class="badge-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>
+              </svg>
+            </span>
+            <span class="badge-text">OFFRE -50%</span>
+          </div>
+          <div class="countdown-timer">
+            <div class="countdown-item">
+              <span class="countdown-value" id="days">00</span>
+              <span class="countdown-label">Jours</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-item">
+              <span class="countdown-value" id="hours">00</span>
+              <span class="countdown-label">Heures</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-item">
+              <span class="countdown-value" id="minutes">00</span>
+              <span class="countdown-label">Minutes</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-item">
+              <span class="countdown-value" id="seconds">00</span>
+              <span class="countdown-label">Secondes</span>
+            </div>
+          </div>
+          <div class="countdown-message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+            <span>Ce compteur est réel. L'offre ne sera plus disponible à ce prix quand il atteindra zéro.</span>
+          </div>
+        </div>
+
+        <!-- Message d'expiration -->
+        <div class="expired-container" id="expiredContainer" style="display: none;">
+          <div class="expired-icon">⏰</div>
+          <h2 class="expired-title">Cette offre a expiré</h2>
+          <p class="expired-message">Le délai pour accéder à cette formation est maintenant terminé.</p>
+          <a href="/formations/" class="expired-button">Découvrir nos autres formations</a>
         </div>
       </div>
     </section>
 
     <!-- Checkout Section -->
-    <section class="checkout-section">
+    <section class="checkout-section" id="checkoutSection">
       <div class="checkout-container">
         <div class="spiffy-embed-wrapper">
           <div class="spiffy-checkout__container" data-url="https://sonnycourt.spiffy.co/checkout/esprit-subconscient"></div>
         </div>
-        
-        <p class="checkout-guarantee">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-          7 jours garantie satisfait ou remboursé
-        </p>
       </div>
     </section>
   </div>
+
+  <script>
+    // Token Verification & 7-Day Countdown
+    document.addEventListener('DOMContentLoaded', function() {
+      // Récupérer les paramètres depuis l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || '';
+      const previewMode = urlParams.get('preview');
+      const isPreview = previewMode === 'true';
+      const isPreviewExpired = previewMode === 'expired';
+
+      // Mode preview expired : simuler un token expiré
+      if (isPreviewExpired) {
+        console.log('🔍 Mode preview expired activé - simulation token expiré');
+        showExpiredMessage();
+        return;
+      }
+
+      // Mode preview : désactiver la vérification du token
+      if (isPreview) {
+        console.log('🔍 Mode preview activé - vérification du token désactivée');
+        
+        // Afficher le countdown avec une valeur fixe (6 jours 23h 59m)
+        const countdownContainer = document.getElementById('countdownContainer');
+        if (countdownContainer) {
+          countdownContainer.style.display = 'block';
+        }
+        
+        // Démarrer le countdown avec une valeur fixe
+        const fixedTimeRemaining = (6 * 24 * 60 * 60) + (23 * 60 * 60) + (59 * 60);
+        startCountdown(fixedTimeRemaining);
+        
+        return;
+      }
+
+      // Mode normal : vérification du token requise
+      if (!token) {
+        // Vérifier aussi dans localStorage
+        const storedToken = localStorage.getItem('es_token');
+        if (storedToken) {
+          window.location.href = `/es-direct-checkout/?token=${storedToken}`;
+          return;
+        }
+        
+        // Pas de token trouvé, rediriger vers l'inscription
+        window.location.href = '/es-inscription/';
+        return;
+      }
+
+      // Stocker le token dans localStorage
+      localStorage.setItem('es_token', token);
+
+      // Vérifier le token et récupérer le temps restant
+      async function checkTokenAndLoadCountdown() {
+        try {
+          const response = await fetch(`/.netlify/functions/check-access?token=${encodeURIComponent(token || '')}`);
+          const data = await response.json();
+
+          if (!data.valid) {
+            if (data.expired) {
+              showExpiredMessage();
+            } else {
+              alert('Lien invalide. Veuillez utiliser le lien que vous avez reçu par email.');
+              window.location.href = '/es-inscription/';
+            }
+            return;
+          }
+
+          // Token valide, afficher le countdown
+          const countdownContainer = document.getElementById('countdownContainer');
+          if (countdownContainer) {
+            countdownContainer.style.display = 'block';
+          }
+
+          // Démarrer le countdown
+          startCountdown(data.timeRemaining);
+
+        } catch (error) {
+          console.error('Erreur lors de la vérification:', error);
+          // En cas d'erreur, permettre quand même l'accès
+          const countdownContainer = document.getElementById('countdownContainer');
+          if (countdownContainer) {
+            countdownContainer.style.display = 'block';
+          }
+          // Afficher un countdown par défaut de 7 jours
+          startCountdown(7 * 24 * 60 * 60);
+        }
+      }
+
+      function startCountdown(timeRemainingSeconds) {
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+
+        let remaining = Math.max(0, Math.floor(timeRemainingSeconds));
+
+        function updateCountdown() {
+          if (remaining <= 0) {
+            clearInterval(interval);
+            showExpiredMessage();
+            return;
+          }
+
+          const days = Math.floor(remaining / (24 * 60 * 60));
+          const hours = Math.floor((remaining % (24 * 60 * 60)) / (60 * 60));
+          const mins = Math.floor((remaining % (60 * 60)) / 60);
+          const secs = remaining % 60;
+
+          if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+          if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+          if (minutesEl) minutesEl.textContent = String(mins).padStart(2, '0');
+          if (secondsEl) secondsEl.textContent = String(secs).padStart(2, '0');
+
+          remaining--;
+        }
+
+        updateCountdown();
+
+        const interval = setInterval(() => {
+          updateCountdown();
+          if (remaining <= 0) {
+            clearInterval(interval);
+          }
+        }, 1000);
+
+        // Re-vérifier avec le serveur toutes les minutes
+        if (!isPreview) {
+          setInterval(async () => {
+            try {
+              const response = await fetch(`/.netlify/functions/check-access?token=${encodeURIComponent(token || '')}`);
+              const data = await response.json();
+              if (data.valid && data.timeRemaining) {
+                remaining = Math.max(0, Math.floor(data.timeRemaining));
+              }
+            } catch (error) {
+              console.error('Erreur de synchronisation:', error);
+            }
+          }, 60000);
+        }
+      }
+
+      function showExpiredMessage() {
+        // Masquer le countdown
+        const countdownContainer = document.getElementById('countdownContainer');
+        if (countdownContainer) {
+          countdownContainer.style.display = 'none';
+        }
+        
+        // Afficher le message d'expiration
+        const expiredContainer = document.getElementById('expiredContainer');
+        if (expiredContainer) {
+          expiredContainer.style.display = 'block';
+        }
+        
+        // Masquer le checkout
+        const checkoutSection = document.getElementById('checkoutSection');
+        if (checkoutSection) {
+          checkoutSection.style.display = 'none';
+        }
+      }
+
+      // Démarrer la vérification
+      checkTokenAndLoadCountdown();
+    });
+  </script>
 </body>
 </html>
