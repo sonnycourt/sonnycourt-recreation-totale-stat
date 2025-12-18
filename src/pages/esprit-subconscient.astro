@@ -4984,3 +4984,261 @@ import Layout from '../layouts/Layout.astro';
     })
     spiffy.load("sonnycourt");
 </script>
+
+<!-- Social Proof Notifications -->
+<div id="socialProofPopup" class="social-proof-popup">
+  <div class="social-proof-content">
+    <div class="social-proof-image">
+      <img src="/media/pages/Sonny-Court-Manifest-Formation-2.webp" alt="Esprit Subconscient">
+    </div>
+    <div class="social-proof-text">
+      <p class="social-proof-name" id="proofName">Nicolas B.</p>
+      <p class="social-proof-action">vient de rejoindre Esprit Subconscient</p>
+      <p class="social-proof-time" id="proofTime">Il y a 3 minutes</p>
+    </div>
+    <button class="social-proof-close" id="closeProof">×</button>
+  </div>
+</div>
+
+<style>
+  .social-proof-popup {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: none;
+  }
+  
+  .social-proof-popup.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  
+  .social-proof-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+    backdrop-filter: blur(10px);
+    max-width: 320px;
+  }
+  
+  .social-proof-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(59, 130, 246, 0.4);
+  }
+  
+  .social-proof-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .social-proof-text {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .social-proof-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 2px 0;
+  }
+  
+  .social-proof-action {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+  }
+  
+  .social-proof-time {
+    font-size: 11px;
+    color: #60a5fa;
+    margin: 0;
+  }
+  
+  .social-proof-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  
+  .social-proof-close:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  @media (max-width: 480px) {
+    .social-proof-popup {
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+    }
+    
+    .social-proof-content {
+      max-width: 100%;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    // Pool de prénoms réalistes (français, africains, suisses, belges, canadiens)
+    const prenoms = [
+      // Français
+      { prenom: 'Nicolas', initiale: 'B.' },
+      { prenom: 'Marie', initiale: 'L.' },
+      { prenom: 'Thomas', initiale: 'M.' },
+      { prenom: 'Sophie', initiale: 'D.' },
+      { prenom: 'Julie', initiale: 'R.' },
+      { prenom: 'Pierre', initiale: 'G.' },
+      { prenom: 'Camille', initiale: 'P.' },
+      { prenom: 'Alexandre', initiale: 'F.' },
+      { prenom: 'Laura', initiale: 'C.' },
+      { prenom: 'Antoine', initiale: 'V.' },
+      { prenom: 'Émilie', initiale: 'H.' },
+      { prenom: 'Julien', initiale: 'N.' },
+      { prenom: 'Céline', initiale: 'T.' },
+      { prenom: 'Maxime', initiale: 'S.' },
+      { prenom: 'Aurélie', initiale: 'J.' },
+      // Africains
+      { prenom: 'Mamadou', initiale: 'D.' },
+      { prenom: 'Fatou', initiale: 'S.' },
+      { prenom: 'Aminata', initiale: 'B.' },
+      { prenom: 'Oumar', initiale: 'N.' },
+      { prenom: 'Aïcha', initiale: 'K.' },
+      { prenom: 'Ibrahim', initiale: 'T.' },
+      { prenom: 'Mariama', initiale: 'C.' },
+      { prenom: 'Abdoulaye', initiale: 'F.' },
+      { prenom: 'Kadiatou', initiale: 'D.' },
+      { prenom: 'Moussa', initiale: 'S.' },
+      { prenom: 'Fatoumata', initiale: 'B.' },
+      { prenom: 'Sékou', initiale: 'K.' },
+      { prenom: 'Bintou', initiale: 'T.' },
+      { prenom: 'Cheick', initiale: 'O.' },
+      { prenom: 'Adama', initiale: 'C.' },
+      // Suisses/Belges
+      { prenom: 'Léo', initiale: 'M.' },
+      { prenom: 'Chloé', initiale: 'D.' },
+      { prenom: 'Mathis', initiale: 'R.' },
+      { prenom: 'Emma', initiale: 'W.' },
+      { prenom: 'Lucas', initiale: 'B.' },
+      // Canadiens
+      { prenom: 'Gabrielle', initiale: 'T.' },
+      { prenom: 'Olivier', initiale: 'L.' },
+      { prenom: 'Jade', initiale: 'G.' },
+      { prenom: 'William', initiale: 'P.' },
+      { prenom: 'Laurence', initiale: 'B.' }
+    ];
+    
+    // Messages d'action variés
+    const actions = [
+      'vient de rejoindre Esprit Subconscient',
+      'vient de s\'inscrire à la formation',
+      'a démarré sa transformation',
+      'vient d\'accéder à la formation'
+    ];
+    
+    // Temps écoulés réalistes
+    const tempsEcoules = [
+      'Il y a 2 minutes',
+      'Il y a 3 minutes',
+      'Il y a 5 minutes',
+      'Il y a 7 minutes',
+      'Il y a 12 minutes',
+      'Il y a 18 minutes',
+      'Il y a 23 minutes',
+      'Il y a 31 minutes'
+    ];
+    
+    const popup = document.getElementById('socialProofPopup');
+    const nameEl = document.getElementById('proofName');
+    const timeEl = document.getElementById('proofTime');
+    const closeBtn = document.getElementById('closeProof');
+    const actionEl = popup?.querySelector('.social-proof-action');
+    
+    let isVisible = false;
+    let hideTimeout = null;
+    let usedIndices = [];
+    
+    function getRandomItem(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+    
+    function getUniquePrenom() {
+      // Éviter de répéter les mêmes prénoms trop vite
+      if (usedIndices.length >= prenoms.length - 5) {
+        usedIndices = [];
+      }
+      
+      let index;
+      do {
+        index = Math.floor(Math.random() * prenoms.length);
+      } while (usedIndices.includes(index));
+      
+      usedIndices.push(index);
+      return prenoms[index];
+    }
+    
+    function showNotification() {
+      if (!popup || !nameEl || !timeEl || !actionEl) return;
+      
+      const personne = getUniquePrenom();
+      const action = getRandomItem(actions);
+      const temps = getRandomItem(tempsEcoules);
+      
+      nameEl.textContent = `${personne.prenom} ${personne.initiale}`;
+      actionEl.textContent = action;
+      timeEl.textContent = temps;
+      
+      popup.classList.add('show');
+      isVisible = true;
+      
+      // Cacher après 5 secondes
+      hideTimeout = setTimeout(() => {
+        hideNotification();
+      }, 5000);
+    }
+    
+    function hideNotification() {
+      if (!popup) return;
+      popup.classList.remove('show');
+      isVisible = false;
+      
+      // Programmer la prochaine notification (45-90 secondes)
+      const nextDelay = 45000 + Math.random() * 45000;
+      setTimeout(showNotification, nextDelay);
+    }
+    
+    // Fermer manuellement
+    closeBtn?.addEventListener('click', () => {
+      if (hideTimeout) clearTimeout(hideTimeout);
+      hideNotification();
+    });
+    
+    // Première notification après 15-30 secondes
+    const firstDelay = 15000 + Math.random() * 15000;
+    setTimeout(showNotification, firstDelay);
+  })();
+</script>
