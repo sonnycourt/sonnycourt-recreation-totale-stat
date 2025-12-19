@@ -28,6 +28,11 @@ const {
   description = "Découvre les formations de Sonny Court pour reprogrammer ton subconscient et transformer ta vie.",
   image
 } = Astro.props;
+
+// Extraire l'ID de la page depuis l'URL pour le lien de partage
+const currentPath = Astro.url.pathname;
+const pageId = currentPath.split('/').filter(Boolean).pop() || '';
+const shareUrl = `https://sonnycourt.com/cc-share/${pageId}`;
 ---
 
 <Layout title={title} description={description} noindex={true}>
@@ -40,6 +45,18 @@ const {
           alt="Court-Circuit du jour" 
           class="main-image"
         />
+      </div>
+      
+      <!-- Bouton Partage -->
+      <div class="share-button-container">
+        <button class="share-btn-main" id="shareMainBtn" data-share-url={shareUrl}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          <span>Partager à un ami</span>
+        </button>
+        <span class="share-copied-toast" id="shareCopiedToast">Lien copié !</span>
       </div>
     </section>
 
@@ -246,6 +263,60 @@ const {
   })();
 </script>
 
+<!-- Share functionality -->
+<script>
+  const shareBtn = document.getElementById('shareMainBtn') as HTMLButtonElement | null;
+  const toast = document.getElementById('shareCopiedToast');
+  
+  if (shareBtn) {
+    const shareUrl = shareBtn.dataset.shareUrl || window.location.href;
+    const shareTitle = 'Court-Circuit';
+    const shareText = 'Je te partage un truc que j\'aime bien. C\'est une newsletter quotidienne sur le mindset et le subconscient. Ça prend 1 min à lire, c\'est enrichissant, c\'est drôle et c\'est gratuit.';
+    
+    shareBtn.addEventListener('click', async () => {
+      // Essayer Web Share API (mobile natif)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
+          });
+          return;
+        } catch (err) {
+          // User a annulé ou erreur - on continue avec le fallback
+        }
+      }
+      
+      // Fallback: copier le lien
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast();
+      } catch (err) {
+        // Fallback pour vieux navigateurs
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast();
+      }
+    });
+  }
+  
+  function showToast() {
+    if (toast) {
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+  }
+</script>
+
 <style>
   .court-circuit-page {
     min-height: 100vh;
@@ -257,10 +328,12 @@ const {
   /* Image Section */
   .image-section {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
     margin-bottom: 60px;
+    gap: 20px;
   }
 
   .image-container {
@@ -275,6 +348,69 @@ const {
     width: 100%;
     height: auto;
     display: block;
+  }
+
+  /* Share Button */
+  .share-button-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .share-btn-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .share-btn-main:hover {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.3) 0%, rgba(0, 122, 255, 0.15) 100%);
+    border-color: rgba(0, 122, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 122, 255, 0.2);
+  }
+
+  .share-btn-main:active {
+    transform: translateY(0);
+  }
+
+  .share-btn-main svg {
+    color: #007AFF;
+  }
+
+  .share-copied-toast {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #34C759;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .share-copied-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
   }
 
   /* Formations Carousel Section */
