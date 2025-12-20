@@ -560,5 +560,269 @@
       checkTokenAndLoadCountdown();
     });
   </script>
+
+  <!-- Social Proof Notifications -->
+  <div id="socialProofPopup" class="social-proof-popup">
+    <div class="social-proof-content">
+      <div class="social-proof-image">
+        <img src="/media/pages/es-zoom-cover.webp" alt="Esprit Subconscient">
+      </div>
+      <div class="social-proof-text">
+        <p class="social-proof-name" id="proofName">Nicolas B.</p>
+        <p class="social-proof-action">vient de rejoindre Esprit Subconscient</p>
+        <p class="social-proof-time"><span id="proofTime">Il y a 3 minutes</span> <span id="proofFlag">🇫🇷</span></p>
+      </div>
+      <button class="social-proof-close" id="closeProof">×</button>
+    </div>
+  </div>
+
+  <style>
+    .social-proof-popup {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+    
+    .social-proof-popup.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    
+    .social-proof-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 14px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+      backdrop-filter: blur(10px);
+      max-width: 360px;
+    }
+    
+    .social-proof-image {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid rgba(59, 130, 246, 0.4);
+    }
+    
+    .social-proof-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .social-proof-text {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .social-proof-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 3px 0;
+    }
+    
+    .social-proof-action {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8);
+      margin: 0 0 5px 0;
+      line-height: 1.3;
+    }
+    
+    .social-proof-time {
+      font-size: 12px;
+      color: #60a5fa;
+      margin: 0;
+    }
+    
+    .social-proof-close {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    
+    .social-proof-close:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    @media (max-width: 480px) {
+      .social-proof-popup {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+      }
+      
+      .social-proof-content {
+        max-width: 100%;
+      }
+    }
+  </style>
+
+  <script>
+    (function() {
+      // Pool de prénoms réalistes avec drapeaux
+      // Distribution: ~60% France, ~15% Suisse/Belgique, ~15% Afrique, ~10% Canada
+      const prenoms = [
+        // Français (majorité)
+        { prenom: 'Nicolas', initiale: 'B.', drapeau: '🇫🇷' },
+        { prenom: 'Marie', initiale: 'L.', drapeau: '🇫🇷' },
+        { prenom: 'Thomas', initiale: 'M.', drapeau: '🇫🇷' },
+        { prenom: 'Sophie', initiale: 'D.', drapeau: '🇫🇷' },
+        { prenom: 'Julie', initiale: 'R.', drapeau: '🇫🇷' },
+        { prenom: 'Pierre', initiale: 'G.', drapeau: '🇫🇷' },
+        { prenom: 'Camille', initiale: 'P.', drapeau: '🇫🇷' },
+        { prenom: 'Alexandre', initiale: 'F.', drapeau: '🇫🇷' },
+        { prenom: 'Laura', initiale: 'C.', drapeau: '🇫🇷' },
+        { prenom: 'Antoine', initiale: 'V.', drapeau: '🇫🇷' },
+        { prenom: 'Émilie', initiale: 'H.', drapeau: '🇫🇷' },
+        { prenom: 'Julien', initiale: 'N.', drapeau: '🇫🇷' },
+        { prenom: 'Céline', initiale: 'T.', drapeau: '🇫🇷' },
+        { prenom: 'Maxime', initiale: 'S.', drapeau: '🇫🇷' },
+        { prenom: 'Aurélie', initiale: 'J.', drapeau: '🇫🇷' },
+        { prenom: 'Clément', initiale: 'R.', drapeau: '🇫🇷' },
+        { prenom: 'Marine', initiale: 'B.', drapeau: '🇫🇷' },
+        { prenom: 'Florian', initiale: 'D.', drapeau: '🇫🇷' },
+        { prenom: 'Charlotte', initiale: 'M.', drapeau: '🇫🇷' },
+        { prenom: 'Romain', initiale: 'L.', drapeau: '🇫🇷' },
+        { prenom: 'Pauline', initiale: 'G.', drapeau: '🇫🇷' },
+        { prenom: 'Quentin', initiale: 'P.', drapeau: '🇫🇷' },
+        { prenom: 'Manon', initiale: 'F.', drapeau: '🇫🇷' },
+        { prenom: 'Mathieu', initiale: 'C.', drapeau: '🇫🇷' },
+        // Suisses
+        { prenom: 'Léo', initiale: 'M.', drapeau: '🇨🇭' },
+        { prenom: 'Chloé', initiale: 'D.', drapeau: '🇨🇭' },
+        { prenom: 'Mathis', initiale: 'R.', drapeau: '🇨🇭' },
+        { prenom: 'Lara', initiale: 'W.', drapeau: '🇨🇭' },
+        // Belges
+        { prenom: 'Lucas', initiale: 'B.', drapeau: '🇧🇪' },
+        { prenom: 'Emma', initiale: 'V.', drapeau: '🇧🇪' },
+        { prenom: 'Nathan', initiale: 'D.', drapeau: '🇧🇪' },
+        { prenom: 'Léa', initiale: 'L.', drapeau: '🇧🇪' },
+        // Africains (un peu)
+        { prenom: 'Mamadou', initiale: 'D.', drapeau: '🇸🇳' },
+        { prenom: 'Fatou', initiale: 'S.', drapeau: '🇸🇳' },
+        { prenom: 'Aminata', initiale: 'B.', drapeau: '🇨🇮' },
+        { prenom: 'Ibrahim', initiale: 'T.', drapeau: '🇨🇮' },
+        { prenom: 'Aïcha', initiale: 'K.', drapeau: '🇲🇦' },
+        { prenom: 'Youssef', initiale: 'B.', drapeau: '🇲🇦' },
+        // Canadiens
+        { prenom: 'Gabrielle', initiale: 'T.', drapeau: '🇨🇦' },
+        { prenom: 'Olivier', initiale: 'L.', drapeau: '🇨🇦' },
+        { prenom: 'Jade', initiale: 'G.', drapeau: '🇨🇦' },
+        { prenom: 'William', initiale: 'P.', drapeau: '🇨🇦' }
+      ];
+      
+      // Messages d'action variés
+      const actions = [
+        'vient de rejoindre Esprit Subconscient',
+        'vient de s\'inscrire à la formation',
+        'a démarré sa transformation',
+        'vient d\'accéder à la formation'
+      ];
+      
+      // Temps écoulés réalistes
+      const tempsEcoules = [
+        'Il y a 2 minutes',
+        'Il y a 3 minutes',
+        'Il y a 5 minutes',
+        'Il y a 7 minutes',
+        'Il y a 12 minutes',
+        'Il y a 18 minutes',
+        'Il y a 23 minutes',
+        'Il y a 31 minutes'
+      ];
+      
+      const popup = document.getElementById('socialProofPopup');
+      const nameEl = document.getElementById('proofName');
+      const timeEl = document.getElementById('proofTime');
+      const flagEl = document.getElementById('proofFlag');
+      const closeBtn = document.getElementById('closeProof');
+      const actionEl = popup?.querySelector('.social-proof-action');
+      
+      let isVisible = false;
+      let hideTimeout = null;
+      let usedIndices = [];
+      
+      function getRandomItem(array) {
+        return array[Math.floor(Math.random() * array.length)];
+      }
+      
+      function getUniquePrenom() {
+        // Éviter de répéter les mêmes prénoms trop vite
+        if (usedIndices.length >= prenoms.length - 5) {
+          usedIndices = [];
+        }
+        
+        let index;
+        do {
+          index = Math.floor(Math.random() * prenoms.length);
+        } while (usedIndices.includes(index));
+        
+        usedIndices.push(index);
+        return prenoms[index];
+      }
+      
+      function showNotification() {
+        if (!popup || !nameEl || !timeEl || !actionEl || !flagEl) return;
+        
+        const personne = getUniquePrenom();
+        const action = getRandomItem(actions);
+        const temps = getRandomItem(tempsEcoules);
+        
+        nameEl.textContent = `${personne.prenom} ${personne.initiale}`;
+        actionEl.textContent = action;
+        timeEl.textContent = temps;
+        flagEl.textContent = personne.drapeau;
+        
+        popup.classList.add('show');
+        isVisible = true;
+        
+        // Cacher après 7 secondes
+        hideTimeout = setTimeout(() => {
+          hideNotification();
+        }, 7000);
+      }
+      
+      function hideNotification() {
+        if (!popup) return;
+        popup.classList.remove('show');
+        isVisible = false;
+        
+        // Programmer la prochaine notification (15-30 secondes)
+        const nextDelay = 15000 + Math.random() * 15000;
+        setTimeout(showNotification, nextDelay);
+      }
+      
+      // Fermer manuellement
+      closeBtn?.addEventListener('click', () => {
+        if (hideTimeout) clearTimeout(hideTimeout);
+        hideNotification();
+      });
+      
+      // Première notification après 10-15 secondes
+      const firstDelay = 10000 + Math.random() * 5000;
+      setTimeout(showNotification, firstDelay);
+    })();
+  </script>
 </body>
 </html>
