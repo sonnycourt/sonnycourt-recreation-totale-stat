@@ -184,6 +184,10 @@ import Layout from '../layouts/Layout.astro';
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
           
+          <a href="/pack-complet" class="decline-button" id="declineButton1">
+            Non merci, je ne suis pas intéressé
+          </a>
+          
           <div class="trust-indicators">
             <div class="trust-item">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -330,6 +334,10 @@ import Layout from '../layouts/Layout.astro';
             <span class="cta-timer" id="ctaTimerBottom">04:59</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
+          
+          <a href="/pack-complet" class="decline-button" id="declineButton1">
+            Non merci, je ne suis pas intéressé
+          </a>
         </div>
 
       </div>
@@ -350,9 +358,9 @@ import Layout from '../layouts/Layout.astro';
         <p>Cette offre ne te sera <strong>plus jamais proposée</strong> et cette formation n'est disponible <strong>nulle part ailleurs</strong>.</p>
         <div class="exit-popup-actions">
           <a href="https://sonnycourt.spiffy.co/checkout/challenge-transformation#pop" class="exit-popup-cta">
-            Non, je veux profiter de l'offre
+            Oui je rejoins le Challenge
           </a>
-          <button class="exit-popup-cancel" id="exitPopupCancel">Oui, je ferme</button>
+          <a href="/pack-complet" class="exit-popup-cancel" id="exitPopupCancel">Non merci, pas intéressé</a>
         </div>
       </div>
     </div>
@@ -1044,6 +1052,31 @@ import Layout from '../layouts/Layout.astro';
     margin-bottom: 48px;
   }
 
+  /* Decline Button */
+  .decline-button {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 20px;
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: #a1a1aa;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .decline-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #d4d4d8;
+    transform: translateY(-1px);
+  }
+
   .cta-button {
     display: flex;
     align-items: center;
@@ -1525,6 +1558,9 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .exit-popup-cancel {
+    display: block;
+    text-align: center;
+    text-decoration: none;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #888;
@@ -2046,9 +2082,27 @@ import Layout from '../layouts/Layout.astro';
       exitPopupClose.addEventListener('click', closePopup);
     }
 
-    if (exitPopupCancel) {
-      exitPopupCancel.addEventListener('click', closePopupPermanently);
-    }
+    // Récupérer le token de l'URL et l'ajouter aux liens pack-complet et pack-upgrade
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || '';
+      
+      if (token) {
+        // Stocker le token dans localStorage pour les redirections
+        localStorage.setItem('cc_token', token);
+        
+        // Mettre à jour tous les liens vers pack-complet et pack-upgrade
+        const packCompletLinks = document.querySelectorAll('a[href="/pack-complet"]');
+        packCompletLinks.forEach(link => {
+          link.setAttribute('href', `/pack-complet?token=${token}`);
+        });
+        
+        const packUpgradeLinks = document.querySelectorAll('a[href="/pack-upgrade"]');
+        packUpgradeLinks.forEach(link => {
+          link.setAttribute('href', `/pack-upgrade?token=${token}`);
+        });
+      }
+    })();
 
     // Fermer en cliquant sur l'overlay
     exitPopup.addEventListener('click', function(e) {
