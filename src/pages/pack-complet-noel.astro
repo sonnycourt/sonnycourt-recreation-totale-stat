@@ -1,0 +1,2092 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pack Complet Noël - Toutes mes formations | Sonny Court</title>
+    <meta name="description" content="Accède à TOUT mon système de transformation. 7 formations complètes, 1 seul paiement, accès à vie.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Pack Complet Noël - Toutes mes formations | Sonny Court" />
+    <meta property="og:description" content="Accède à TOUT mon système de transformation. 7 formations complètes, 1 seul paiement, accès à vie." />
+    <meta property="og:image" content={new URL("/media/pages/sonnycourt_share.webp", Astro.url)} />
+    <meta property="og:url" content={Astro.url.href} />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pack Complet Noël - Toutes mes formations | Sonny Court" />
+    <meta name="twitter:description" content="Accède à TOUT mon système de transformation. 7 formations complètes, 1 seul paiement, accès à vie." />
+    <meta name="twitter:image" content={new URL("/media/pages/sonnycourt_share.webp", Astro.url)} />
+    
+    <!-- GA4 Consent Mode v2 -->
+    <GAConsentMode />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #09090b;
+            color: #fafafa;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle gradient background */
+        .page-wrapper {
+            min-height: 100vh;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
+                #09090b;
+        }
+
+        /* Zone de flocons de neige en haut de page */
+        .snowfall-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 400px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 50;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0) 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0) 100%);
+        }
+
+        .snowflake {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            user-select: none;
+            animation: snowfall linear infinite;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+
+        .snowflake:nth-child(1) { left: 5%; animation-duration: 8s; animation-delay: 0s; font-size: 0.8rem; opacity: 0.7; }
+        .snowflake:nth-child(2) { left: 15%; animation-duration: 10s; animation-delay: 1s; font-size: 1rem; opacity: 0.9; }
+        .snowflake:nth-child(3) { left: 25%; animation-duration: 7s; animation-delay: 2s; font-size: 0.6rem; opacity: 0.6; }
+        .snowflake:nth-child(4) { left: 35%; animation-duration: 9s; animation-delay: 0.5s; font-size: 1.2rem; opacity: 0.8; }
+        .snowflake:nth-child(5) { left: 45%; animation-duration: 11s; animation-delay: 3s; font-size: 0.9rem; opacity: 0.7; }
+        .snowflake:nth-child(6) { left: 55%; animation-duration: 8s; animation-delay: 1.5s; font-size: 0.7rem; opacity: 0.9; }
+        .snowflake:nth-child(7) { left: 65%; animation-duration: 10s; animation-delay: 2.5s; font-size: 1.1rem; opacity: 0.6; }
+        .snowflake:nth-child(8) { left: 75%; animation-duration: 9s; animation-delay: 0s; font-size: 0.8rem; opacity: 0.8; }
+        .snowflake:nth-child(9) { left: 85%; animation-duration: 7s; animation-delay: 4s; font-size: 1rem; opacity: 0.7; }
+        .snowflake:nth-child(10) { left: 95%; animation-duration: 12s; animation-delay: 1s; font-size: 0.5rem; opacity: 0.9; }
+        .snowflake:nth-child(11) { left: 10%; animation-duration: 9s; animation-delay: 3.5s; font-size: 0.9rem; opacity: 0.5; }
+        .snowflake:nth-child(12) { left: 30%; animation-duration: 11s; animation-delay: 2s; font-size: 0.7rem; opacity: 0.8; }
+        .snowflake:nth-child(13) { left: 50%; animation-duration: 8s; animation-delay: 4.5s; font-size: 1.3rem; opacity: 0.6; }
+        .snowflake:nth-child(14) { left: 70%; animation-duration: 10s; animation-delay: 1s; font-size: 0.6rem; opacity: 0.9; }
+        .snowflake:nth-child(15) { left: 90%; animation-duration: 9s; animation-delay: 3s; font-size: 0.8rem; opacity: 0.7; }
+
+        @keyframes snowfall {
+            0% {
+                transform: translateY(-20px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(400px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Timer Sticky Mobile */
+        .sticky-timer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(9, 9, 11, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 16px;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .sticky-timer-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sticky-timer-countdown {
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #fafafa;
+        }
+
+        .sticky-timer-cta {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: #09090b;
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .sticky-timer-cta:hover {
+            background: linear-gradient(135deg, #fbbf24, #fcd34d);
+        }
+
+        @media (max-width: 768px) {
+            .sticky-timer {
+                display: flex;
+            }
+            body {
+                padding-bottom: 70px;
+            }
+        }
+
+        /* Transition Banner */
+        .transition-banner {
+            position: relative;
+            z-index: 1;
+            padding: 28px 24px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .transition-banner-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .transition-banner-icon-wrapper {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            animation: bannerPulse 2s ease-in-out infinite;
+        }
+
+        .transition-banner-icon {
+            width: 28px;
+            height: 28px;
+            color: #fbbf24;
+        }
+
+        @keyframes bannerPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 12px rgba(251, 191, 36, 0);
+            }
+        }
+
+        .transition-banner-text {
+            flex: 1;
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            color: #e4e4e7;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .transition-banner-text strong {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .transition-banner-text .highlight {
+            color: #fafafa;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .transition-banner {
+                padding: 20px 16px;
+            }
+            .transition-banner-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 14px;
+            }
+            .transition-banner-icon-wrapper {
+                width: 48px;
+                height: 48px;
+            }
+            .transition-banner-icon {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 24px 60px;
+        }
+
+        /* Seasonal Badge - NOEL */
+        .seasonal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 32px;
+        }
+
+        /* Fixed Corner Discount Badge */
+        .discount-sticker {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1000;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            border-radius: 50%;
+            transform: rotate(12deg);
+            box-shadow: 
+                0 10px 40px rgba(239, 68, 68, 0.5),
+                0 0 0 4px rgba(255, 255, 255, 0.1),
+                inset 0 -4px 20px rgba(0, 0, 0, 0.2);
+            animation: sticker-bounce 2s ease-in-out infinite;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .discount-sticker:hover {
+            transform: rotate(12deg) scale(1.1);
+        }
+
+        .discount-sticker::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+        }
+
+        .discount-sticker::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 20%;
+            width: 60%;
+            height: 15px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50%;
+        }
+
+        .discount-sticker .percent {
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .discount-sticker .label {
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 2px;
+        }
+
+        @keyframes sticker-bounce {
+            0%, 100% {
+                transform: rotate(12deg) translateY(0);
+            }
+            50% {
+                transform: rotate(12deg) translateY(-8px);
+            }
+        }
+
+        .seasonal-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+        }
+
+        .seasonal-badge-icon svg {
+            width: 14px;
+            height: 14px;
+            color: #ef4444;
+            stroke: #ef4444;
+        }
+
+        .seasonal-badge-text {
+            color: #ef4444;
+        }
+
+        /* Inline discount badge for price card */
+        .discount-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .discount-sticker {
+                width: 80px;
+                height: 80px;
+                top: 80px;
+                right: 10px;
+            }
+            .discount-sticker .percent {
+                font-size: 26px;
+            }
+            .discount-sticker .label {
+                font-size: 8px;
+            }
+        }
+
+        .hero-title {
+            font-size: clamp(32px, 6vw, 48px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            letter-spacing: -0.03em;
+            color: #fafafa;
+        }
+
+        .hero-title .accent {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #a1a1aa;
+            max-width: 520px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        .hero-subtitle strong {
+            color: #fafafa;
+        }
+
+        /* Timer Card */
+        .timer-card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(9, 9, 11, 0.95) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 20px;
+            padding: 40px 48px;
+            max-width: 500px;
+            margin: 0 auto;
+            overflow: hidden;
+            box-shadow: 
+                0 0 60px rgba(239, 68, 68, 0.15),
+                0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: timer-pulse 2s ease-in-out infinite;
+        }
+
+        .timer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ef4444, transparent);
+            animation: timer-scan 2s linear infinite;
+        }
+
+        .timer-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        @keyframes timer-pulse {
+            0%, 100% {
+                box-shadow: 
+                    0 0 60px rgba(239, 68, 68, 0.15),
+                    0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+            50% {
+                box-shadow: 
+                    0 0 80px rgba(239, 68, 68, 0.25),
+                    0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        @keyframes timer-scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .timer-label {
+            position: relative;
+            z-index: 1;
+            font-size: 12px;
+            color: #ef4444;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .timer-label::before {
+            content: '⚠';
+            font-size: 14px;
+        }
+
+        .timer-display {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .timer-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timer-value {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 90px;
+        }
+
+        .timer-value span {
+            font-size: 52px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+            background: linear-gradient(180deg, #ffffff 0%, #fca5a5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .timer-unit-label {
+            font-size: 11px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+        }
+
+        .timer-separator {
+            font-size: 40px;
+            font-weight: 700;
+            color: #ef4444;
+            margin-bottom: 24px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .timer-note {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #71717a;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .timer-note svg {
+            width: 14px;
+            height: 14px;
+            stroke: #ef4444;
+        }
+
+        .timer-note span {
+            color: #a1a1aa;
+        }
+
+        @media (max-width: 500px) {
+            .timer-card {
+                padding: 28px 20px;
+            }
+            .timer-value {
+                min-width: 70px;
+                padding: 12px 14px;
+            }
+            .timer-value span {
+                font-size: 36px;
+            }
+            .timer-separator {
+                font-size: 28px;
+            }
+            .timer-display {
+                gap: 8px;
+            }
+        }
+
+        /* Formations Section */
+        .formations-section {
+            padding: 40px 0 60px;
+        }
+
+        .section-label {
+            text-align: center;
+            font-size: 13px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 32px;
+        }
+
+        .formations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .formation-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .formation-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .formation-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .formation-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .formation-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 6px;
+        }
+
+        .formation-desc {
+            font-size: 15px;
+            color: #a1a1aa;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .formation-price {
+            font-size: 16px;
+            color: #52525b;
+            text-decoration: line-through;
+            flex-shrink: 0;
+            font-weight: 500;
+        }
+
+        .formation-check {
+            width: 28px;
+            height: 28px;
+            background: rgba(34, 197, 94, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .formation-check svg {
+            width: 14px;
+            height: 14px;
+            stroke: #22c55e;
+            stroke-width: 3;
+        }
+
+        /* Expandable Formation Card */
+        .formation-item.expandable {
+            flex-wrap: wrap;
+            cursor: pointer;
+        }
+
+        .formation-item.expandable .formation-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .formation-toggle {
+            width: 28px;
+            height: 28px;
+            background: rgba(251, 191, 36, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .formation-toggle svg {
+            width: 14px;
+            height: 14px;
+            stroke: #fbbf24;
+            stroke-width: 2.5;
+            transition: transform 0.3s ease;
+        }
+
+        .formation-item.expandable.expanded .formation-toggle {
+            background: rgba(251, 191, 36, 0.25);
+        }
+
+        .formation-item.expandable.expanded .formation-toggle svg {
+            transform: rotate(180deg);
+        }
+
+        .formation-details {
+            width: 100%;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            padding: 0 0 0 120px;
+        }
+
+        .formation-item.expandable.expanded .formation-details {
+            max-height: 500px;
+            padding: 20px 0 0 120px;
+        }
+
+        .formation-details-content {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .formation-details h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fbbf24;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .formation-details ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .formation-details li {
+            font-size: 14px;
+            color: #a1a1aa;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .formation-details li svg {
+            width: 16px;
+            height: 16px;
+            stroke: #22c55e;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .formation-details {
+                padding: 0 0 0 0;
+            }
+            
+            .formation-item.expandable.expanded .formation-details {
+                padding: 16px 0 0 0;
+            }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            .formation-item {
+                padding: 16px;
+                gap: 14px;
+            }
+            
+            .formation-image {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .formation-name {
+                font-size: 15px;
+            }
+            
+            .formation-desc {
+                font-size: 13px;
+                -webkit-line-clamp: 2;
+            }
+            
+            .formation-price {
+                font-size: 14px;
+            }
+        }
+
+        /* Price Card - Premium Design */
+        .price-card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(24, 24, 27, 0.9) 0%, rgba(9, 9, 11, 0.95) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 24px;
+            padding: 56px 40px;
+            text-align: center;
+            overflow: hidden;
+            box-shadow: 
+                0 0 80px rgba(251, 191, 36, 0.08),
+                0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .price-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.5), transparent);
+        }
+
+        .price-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .price-header {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 32px;
+        }
+
+        .price-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #09090b;
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+            border: none;
+        }
+
+        .price-badge svg {
+            width: 14px;
+            height: 14px;
+            color: #09090b;
+            stroke: #09090b;
+        }
+
+        .price-badge .seasonal-badge-text {
+            color: #09090b;
+        }
+
+        .price-badge .seasonal-badge-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .price-badge .seasonal-badge-icon svg {
+            width: 14px;
+            height: 14px;
+            color: #09090b;
+            stroke: #09090b;
+        }
+
+        .price-comparison {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .price-label {
+            font-size: 13px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .price-original {
+            font-size: 24px;
+            color: #52525b;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+
+        .price-arrow {
+            color: #fbbf24;
+            font-size: 20px;
+        }
+
+        .price-main-wrapper {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 12px;
+        }
+
+        .price-main {
+            font-size: 96px;
+            font-weight: 800;
+            background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            display: inline-flex;
+            align-items: flex-start;
+        }
+
+        .price-main .currency {
+            font-size: 40px;
+            font-weight: 600;
+            margin-left: 4px;
+            margin-top: 12px;
+        }
+
+        .price-installment {
+            font-size: 16px;
+            color: #71717a;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .price-installment strong {
+            color: #a1a1aa;
+        }
+
+        .savings-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        .savings-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-size: 17px;
+            font-weight: 600;
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
+        }
+
+        .savings-tag svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .savings-amount {
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        @media (max-width: 600px) {
+            .price-card {
+                padding: 40px 24px;
+            }
+            .price-main {
+                font-size: 72px;
+            }
+            .price-main .currency {
+                font-size: 32px;
+                margin-top: 8px;
+            }
+            .savings-tag {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 48px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: #09090b;
+            padding: 20px 56px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 24px rgba(251, 191, 36, 0.4);
+        }
+
+        .cta-button:hover {
+            background: linear-gradient(135deg, #fbbf24, #fcd34d);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251, 191, 36, 0.6);
+        }
+
+        .cta-sub {
+            font-size: 15px;
+            color: #71717a;
+            margin-top: 16px;
+        }
+
+        /* Reasons Section */
+        .reasons-section {
+            padding: 48px 0;
+        }
+
+        .reasons-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .reasons-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .reasons-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .reason-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            font-size: 17px;
+            color: #d4d4d8;
+            line-height: 1.5;
+        }
+
+        .reason-icon {
+            width: 28px;
+            height: 28px;
+            background: rgba(251, 191, 36, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .reason-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: #fbbf24;
+        }
+
+        .reason-item.negative {
+            opacity: 0.7;
+        }
+
+        .reason-item.negative .reason-icon {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .reason-item.negative .reason-icon svg {
+            stroke: #ef4444;
+        }
+
+        .reason-item.negative {
+            color: #71717a;
+        }
+
+        /* Testimonials */
+        .testimonials-section {
+            padding: 48px 0;
+        }
+
+        .testimonials-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .testimonial-text {
+            font-size: 16px;
+            color: #d4d4d8;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .testimonial-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .testimonial-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            flex-shrink: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            pointer-events: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        .testimonial-header {
+            position: relative;
+        }
+
+        .testimonial-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: auto;
+        }
+
+        .testimonial-info {
+            flex: 1;
+        }
+
+        .testimonial-author {
+            font-size: 14px;
+            color: #71717a;
+            font-weight: 500;
+        }
+
+        /* Guarantee */
+        .guarantee-section {
+            padding: 48px 0;
+        }
+
+        .guarantee-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 20px;
+            padding: 50px 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .guarantee-icon {
+            width: auto;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px;
+        }
+
+        .guarantee-icon img {
+            width: auto;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6)) drop-shadow(0 0 40px rgba(251, 191, 36, 0.4));
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6)) drop-shadow(0 0 40px rgba(251, 191, 36, 0.4));
+            }
+            50% {
+                filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 60px rgba(251, 191, 36, 0.6));
+            }
+        }
+
+        .guarantee-text {
+            font-size: 17px;
+            color: #d4d4d8;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        .guarantee-text p {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .guarantee-intro {
+            font-size: 18px;
+            color: #a1a1aa;
+            margin-bottom: 24px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .guarantee-subtitle {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .guarantee-highlight {
+            font-size: 20px;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .guarantee-arrow {
+            padding-left: 32px;
+            position: relative;
+            color: #fbbf24;
+            margin-bottom: 14px;
+            font-weight: 500;
+        }
+
+        .guarantee-arrow::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 20px;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .guarantee-final {
+            margin-top: 28px;
+            margin-bottom: 0;
+            font-size: 19px;
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .guarantee-text strong {
+            color: #fafafa;
+            font-weight: 700;
+        }
+
+        .guarantee-highlight strong {
+            font-size: 22px;
+            color: #fbbf24;
+        }
+
+        .guarantee-final strong {
+            font-size: 20px;
+            color: #fafafa;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            text-align: center;
+            padding: 48px 0 40px;
+        }
+
+        .final-timer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 40px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #fafafa;
+            margin-bottom: 28px;
+        }
+
+        .final-timer svg {
+            width: 36px;
+            height: 36px;
+            stroke: #fbbf24;
+        }
+
+        /* Reviews Section Detailed */
+        .reviews-section-detailed {
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            padding: 60px 24px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .reviews-container {
+            max-width: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+            padding: 0;
+        }
+
+        .formation-reviews {
+            width: 100%;
+        }
+
+        .formation-reviews-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .elfsight-widget {
+            width: 100%;
+            min-height: 300px;
+        }
+
+        /* Floating CTA Button */
+        .floating-cta {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: #09090b;
+            padding: 16px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.4);
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .floating-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(251, 191, 36, 0.6);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @media (max-width: 768px) {
+            .floating-cta {
+                bottom: 80px;
+                right: 15px;
+                padding: 14px 22px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Flocons de neige -->
+    <div class="snowfall-container">
+        <div class="snowflake">❄</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❄</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❄</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❄</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❄</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+    </div>
+
+    <div class="page-wrapper">
+        <!-- Timer Sticky Mobile -->
+        <div class="sticky-timer" id="stickyTimer">
+            <div class="sticky-timer-left">
+                <span class="sticky-timer-countdown" id="stickyCountdown">23:59:59</span>
+            </div>
+            <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="sticky-timer-cta">Accéder →</a>
+        </div>
+
+        <!-- Fixed Discount Sticker -->
+        <div class="discount-sticker">
+            <span class="percent">-70%</span>
+            <span class="label">Aujourd'hui</span>
+        </div>
+
+        <!-- Transition Banner -->
+        <div class="transition-banner">
+            <div class="transition-banner-content">
+                <div class="transition-banner-icon-wrapper">
+                    <svg class="transition-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                </div>
+                <p class="transition-banner-text">
+                    Tu veux plus qu'un Challenge de 4 jours ? <span class="highlight">Découvre Le Pack Transformation complet à <strong>-70%</strong>.</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="seasonal-badge" id="seasonalBadge">
+                    <span class="seasonal-badge-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg></span>
+                    <span class="seasonal-badge-text">OFFRE NOEL -70%</span>
+                </div>
+                
+                <h1 class="hero-title">
+                    Tout ce dont tu as besoin pour transformer ta vie.<br><span class="accent">Un seul paiement.</span>
+                </h1>
+                
+                <p class="hero-subtitle">
+                    <strong>7 formations</strong> au prix de 2.<br>
+                    <strong>Économise 1 232€</strong> aujourd'hui.
+                </p>
+
+                <!-- Timer Card -->
+                <div class="timer-card">
+                    <div class="timer-label">Cette offre expire dans</div>
+                    <div class="timer-display">
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerHours">23</span>
+                            </div>
+                            <div class="timer-unit-label">Heures</div>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerMinutes">59</span>
+                            </div>
+                            <div class="timer-unit-label">Minutes</div>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerSeconds">59</span>
+                            </div>
+                            <div class="timer-unit-label">Secondes</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formations Section -->
+            <section class="formations-section">
+                <div class="section-label">Ce que tu obtiens</div>
+                
+                <div class="formations-list">
+                    <!-- Challenge Transformation -->
+                    <div class="formation-item expandable" data-formation="challenge">
+                        <div class="formation-row">
+                            <img src="/media/pages/challenge-carre.png" alt="Challenge Transformation" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Challenge Transformation</div>
+                                <div class="formation-desc">4 jours pour poser les bases de la reprogrammation subconsciente.</div>
+                            </div>
+                            <span class="formation-price">97€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Comprendre le fonctionnement de ton subconscient
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Identifier et transformer tes croyances limitantes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser les techniques de base de la reprogrammation
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer de nouvelles habitudes positives en 4 jours
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Esprit Subconscient -->
+                    <div class="formation-item expandable" data-formation="esprit-subconscient">
+                        <div class="formation-row">
+                            <img src="/media/pages/es-carre.png" alt="Esprit Subconscient" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Esprit Subconscient</div>
+                                <div class="formation-desc">21 jours pour reprogrammer ton subconscient et te libérer de tes blocages.</div>
+                            </div>
+                            <span class="formation-price">297€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Te libérer de l'anxiété une bonne fois pour toutes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Faire exploser ta confiance en toi et ton charisme
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Atteindre tes objectifs facilement (même les plus fous)
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Te débarrasser de n'importe quelle addiction
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser l'autohypnose et les techniques de reprogrammation
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manifest -->
+                    <div class="formation-item expandable" data-formation="manifest">
+                        <div class="formation-row">
+                            <img src="/media/pages/manifest-carre.png" alt="Manifest" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Manifest</div>
+                                <div class="formation-desc">Les techniques de manifestation oubliées pour transformer tes rêves en réalité.</div>
+                            </div>
+                            <span class="formation-price">497€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Transformer tes désirs en réalité concrète (finances, relations, succès)
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        12 exercices mentaux guidés pour manifester richesse, amour et santé
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer l'abondance financière et une mentalité de prospérité
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Attirer des relations authentiques et épanouissantes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser l'art de la manifestation en 90 jours
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Système Souhaits Réalisés -->
+                    <div class="formation-item expandable" data-formation="ssr">
+                        <div class="formation-row">
+                            <img src="/media/pages/ssr-carre.png" alt="Système Souhaits Réalisés" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Système Souhaits Réalisés</div>
+                                <div class="formation-desc">La méthode complète inspirée de Neville Goddard pour réaliser tes souhaits.</div>
+                            </div>
+                            <span class="formation-price">397€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas vivre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        30 audios inspirés des enseignements de Neville Goddard
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        App journal de bord digital pour tracker tes progrès
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Coach IA Neville Goddard disponible 24h/24
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Vivre des synchronicités qui confirment ton alignement
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maintenir ton état jusqu'à la manifestation complète
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Neuro IA -->
+                    <div class="formation-item expandable" data-formation="neuro-ia">
+                        <div class="formation-row">
+                            <img src="/media/pages/neuroia-cover.webp" alt="Neuro IA" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Neuro IA</div>
+                                <div class="formation-desc">Accélère ta reprogrammation grâce à l'intelligence artificielle.</div>
+                            </div>
+                            <span class="formation-price">297€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas maîtriser</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer des musiques de reprogrammation personnalisées avec l'IA
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Reprogrammation conversationnelle avec des IA spécialisées
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer des visualisations guidées sur mesure en moins de 10 min
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        30 musiques de reprogrammation offertes dès l'inscription
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        L'IA qui analyse tes schémas et crée ton protocole personnalisé
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Réalité Parallèle -->
+                    <div class="formation-item">
+                        <img src="/media/pages/realitepara-carre.png" alt="Réalité Parallèle" class="formation-image">
+                        <div class="formation-content">
+                            <div class="formation-name">Réalité Parallèle</div>
+                            <div class="formation-desc">12 visualisations guidées exclusives pour accélérer tes résultats.</div>
+                        </div>
+                        <span class="formation-price">97€</span>
+                        <div class="formation-check">
+                            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+
+                    <!-- L'art de Se Relaxer Pour Gagner -->
+                    <div class="formation-item">
+                        <img src="/media/pages/relaxer-carre.png" alt="L'art de Se Relaxer Pour Gagner" class="formation-image">
+                        <div class="formation-content">
+                            <div class="formation-name">L'art de Se Relaxer Pour Gagner</div>
+                            <div class="formation-desc">La méthode de relaxation des champions olympiques et pilotes de chasse.</div>
+                        </div>
+                        <span class="formation-price">47€</span>
+                        <div class="formation-check">
+                            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Card -->
+                <div class="price-card">
+                    <div class="price-header">
+                        <div class="price-badge seasonal-badge" id="seasonalBadgePrice">
+                            <span class="seasonal-badge-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg></span>
+                            <span class="seasonal-badge-text">OFFRE NOEL -70%</span>
+                        </div>
+                        <div class="price-comparison">
+                            <span class="price-original">1 729€</span>
+                            <span class="price-arrow">→</span>
+                            <span class="price-label">Aujourd'hui</span>
+                        </div>
+                    </div>
+                    <div class="price-main-wrapper">
+                        <div class="price-main">497<span class="currency">€</span></div>
+                    </div>
+                    <div class="price-installment">ou seulement <strong>3× 177€</strong></div>
+                    <div class="savings-wrapper">
+                        <div class="savings-tag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z"/><path d="M16 10h.01"/><path d="M2 8v1a2 2 0 0 0 2 2h1"/></svg>
+                            Tu économises <span class="savings-amount">1 232€</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Principal -->
+            <section class="cta-section">
+                <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="cta-button">
+                    Accéder au Pack Complet
+                </a>
+                <p class="cta-sub">Accès immédiat • Garantie 30 jours</p>
+            </section>
+
+            <!-- Reasons Section -->
+            <section class="reasons-section">
+                <div class="reasons-card">
+                    <h2 class="reasons-title">Pourquoi cette offre ?</h2>
+                    <ul class="reasons-list">
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu veux tout — sans devoir choisir entre tes formations
+                        </li>
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu préfères un système complet plutôt que des morceaux éparpillés
+                        </li>
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu refuses de payer 1 232€ de plus que nécessaire
+                        </li>
+                        <li class="reason-item negative">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </span>
+                            Tu n'es pas prêt à t'engager dans ta transformation
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Testimonials -->
+            <section class="testimonials-section">
+                <h2 class="testimonials-title">Ce qu'ils en disent</h2>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"Ça fait 7 ans que je suis Sonny et j'ai acheté toutes ses formations. Je n'ai jamais été déçu! Et ma vie n'aurait jamais été ce qu'elle est aujourd'hui donc un grand merci."</p>
+                        <div class="testimonial-header">
+                            <img src="/media/pages/thomas-pack.webp" alt="Thomas" class="testimonial-avatar" draggable="false" oncontextmenu="return false;" onselectstart="return false;">
+                            <div class="testimonial-info">
+                                <span class="testimonial-author">Thomas</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"Tellement reconnaissante d'avoir pu sortir de cette routine qui ne me correspondait pas. Le meilleur investissement de ma vie et merci aussi à cette communauté bienveillante qui tire vers le haut."</p>
+                        <div class="testimonial-header">
+                            <img src="/media/pages/laura-pack.webp" alt="Laura" class="testimonial-avatar" draggable="false" oncontextmenu="return false;" onselectstart="return false;">
+                            <div class="testimonial-info">
+                                <span class="testimonial-author">Laura</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guarantee -->
+            <section class="guarantee-section">
+                <div class="guarantee-card">
+                    <div class="guarantee-icon">
+                        <img src="/media/pages/30packcomplet.webp" alt="Garantie 30 jours" />
+                    </div>
+                    <div class="guarantee-text">
+                        <p class="guarantee-intro">Je peux pas décider à ta place.</p>
+                        <p class="guarantee-subtitle"><strong>Mais je peux te dire une chose :</strong></p>
+                        <p class="guarantee-highlight"><strong>Évite les regrets.</strong></p>
+                        <p>Si tu te lances avec le Pack Complet et que ça change pas ta vie</p>
+                        <p class="guarantee-arrow">tu demandes un remboursement.</p>
+                        <p class="guarantee-arrow">et c'est réglé !</p>
+                        <p>Mais si tu rates cette offre et que dans un an tu regardes en arrière...</p>
+                        <p class="guarantee-final"><strong>Personne ne te remboursera l'année perdue.</strong></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Final CTA -->
+            <section class="final-cta">
+                <div class="final-timer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span id="finalCountdown">23:59:59</span>
+                </div>
+                <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="cta-button">
+                    Rejoindre le Pack Complet
+                </a>
+                <p class="cta-sub">ou seulement 3× 177€ • Accès immédiat</p>
+            </section>
+        </div>
+    </div>
+
+    <!-- Reviews Section - Full Screen -->
+    <section class="reviews-section-detailed">
+        <div class="reviews-container">
+            <!-- Esprit Subconscient Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Esprit Subconscient</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | ESPRIT SUBCONSCIENT (FORMATION INDIV. + PACK + Essai Gratuit) -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-18a54320-097b-4c42-a28b-21e1e3a524f3" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Manifest Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Manifest</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | MANIFEST (sur Manifest + Pack Transformation) -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-2af569cb-eeca-4673-b866-0f34bc463e6e" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Neuro IA Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Neuro IA</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | PACK : NEURO IA -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-b42ca93c-4bce-4830-8a99-45096c60cf8e" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Challenge Transformation Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Challenge Transformation</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | CHALLENGE TRANSFORMATION -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-8d072c08-e8c5-4aac-9c70-fe873b5a6781" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 24h Countdown basé sur localStorage/cookies (sans vérification de token)
+        (function() {
+            const STORAGE_KEY = 'pack_complet_noel_timer_start';
+            const COOKIE_KEY = 'pack_complet_noel_timer_start';
+            const DURATION = 24 * 60 * 60 * 1000; // 24 heures en ms
+            
+            // Fonction pour obtenir le cookie
+            function getCookie(name: string): string | null {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+                return null;
+            }
+            
+            // Fonction pour définir le cookie
+            function setCookie(name: string, value: string, days: number = 1): void {
+                const expires = new Date();
+                expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+                document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+            }
+            
+            // Récupérer le temps de départ depuis localStorage ou cookie
+            let startTime: string | null = localStorage.getItem(STORAGE_KEY);
+            if (!startTime) {
+                startTime = getCookie(COOKIE_KEY);
+            }
+            
+            // Si pas de timer existant, créer un nouveau
+            if (!startTime) {
+                startTime = Date.now().toString();
+                localStorage.setItem(STORAGE_KEY, startTime);
+                setCookie(COOKIE_KEY, startTime, 1);
+            } else {
+                // Synchroniser localStorage et cookie
+                localStorage.setItem(STORAGE_KEY, startTime);
+                setCookie(COOKIE_KEY, startTime, 1);
+            }
+            
+            const startTimeNum: number = parseInt(startTime, 10);
+            const endTime: number = startTimeNum + DURATION;
+            
+            function updateCountdown(): void {
+                const now: number = Date.now();
+                const remaining: number = endTime - now;
+                
+                if (remaining <= 0) {
+                    updateAllDisplays(0, 0, 0);
+                    return;
+                }
+                
+                const hours: number = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes: number = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds: number = Math.floor((remaining % (1000 * 60)) / 1000);
+                
+                updateAllDisplays(hours, minutes, seconds);
+            }
+            
+            function updateAllDisplays(hours: number, minutes: number, seconds: number): void {
+                const hoursStr: string = String(hours).padStart(2, '0');
+                const minutesStr: string = String(minutes).padStart(2, '0');
+                const secondsStr: string = String(seconds).padStart(2, '0');
+                const display: string = `${hoursStr}:${minutesStr}:${secondsStr}`;
+                
+                // Update separated timer elements
+                const timerHours = document.getElementById('timerHours');
+                const timerMinutes = document.getElementById('timerMinutes');
+                const timerSeconds = document.getElementById('timerSeconds');
+                
+                if (timerHours) timerHours.textContent = hoursStr;
+                if (timerMinutes) timerMinutes.textContent = minutesStr;
+                if (timerSeconds) timerSeconds.textContent = secondsStr;
+                
+                // Update legacy single-string displays
+                const stickyCountdown = document.getElementById('stickyCountdown');
+                const finalCountdown = document.getElementById('finalCountdown');
+                
+                if (stickyCountdown) stickyCountdown.textContent = display;
+                if (finalCountdown) finalCountdown.textContent = display;
+            }
+            
+            // Démarrer le countdown
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        })();
+        
+        // Spiffy same tab
+        document.addEventListener('DOMContentLoaded', function() {
+            const spiffyLinks = document.querySelectorAll('a[href*="spiffy.co"]');
+            spiffyLinks.forEach(function(link) {
+                link.addEventListener('click', function(this: HTMLElement) {
+                    this.setAttribute('target', '_self');
+                });
+            });
+        });
+        
+        // Expandable formation cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const expandableCards = document.querySelectorAll('.formation-item.expandable');
+            expandableCards.forEach(function(card) {
+                card.addEventListener('click', function(this: HTMLElement) {
+                    this.classList.toggle('expanded');
+                });
+            });
+        });
+        
+    </script>
+
+    <!-- Floating CTA Button -->
+    <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="floating-cta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        Accéder au Pack
+    </a>
+</body>
+</html>
