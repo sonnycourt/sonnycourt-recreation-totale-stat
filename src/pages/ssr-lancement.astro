@@ -3469,7 +3469,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 Pour RÉACTIVER : Mettre SHOW_COUNTDOWN_SECTION = true
                 ============================================ */}
             {(() => {
-                const SHOW_COUNTDOWN_SECTION = false; // ← Changez cette valeur pour cacher/réactiver
+                const SHOW_COUNTDOWN_SECTION = true; // ← Changez cette valeur pour cacher/réactiver
                 
                 if (!SHOW_COUNTDOWN_SECTION) return null;
                 
@@ -3505,17 +3505,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     </div>
                 </div>
                 
-                            {/* SECTION SCARCITY CACHÉE - Pour réactiver : décommenter les lignes suivantes et supprimer ce commentaire */}
-                            {/* 
                 <div class="scarcity-section" id="scarcitySection">
                     <p class="scarcity-text" id="scarcityText">
-                        <span class="places-count" id="places">278</span> places disponibles sur 500
+                        <span class="places-count" id="places">128</span> places disponibles sur 500
                     </p>
-                    <div class="exceptional-offer" id="exceptionalOffer" style="display: inline-block;">
+                    <div class="exceptional-offer" id="exceptionalOffer" style="display: none;">
                                     <span class="exceptional-places" id="exceptionalPlaces">5</span> places supplémentaires disponibles !
                     </div>
                 </div>
-                            */}
                 
                 <a href="https://sonnycourt.spiffy.co/checkout/souhaits-realises#pop" class="countdown-cta-button">
                     J'EN PROFITE →
@@ -4593,125 +4590,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </section>
 
     <script>
-        // Configuration des dates
-        const startDate = new Date('2025-08-05T18:00:00').getTime();
-        const transitionDate = new Date('2025-08-22T23:00:00').getTime();
-        const phase2EndDate = new Date('2025-09-02T00:00:00').getTime(); // Nouvelle transition
-        const endDate = new Date('2025-12-04T22:00:00').getTime();
+        // Configuration des dates - Mode en cours avec 21 jours de countdown
+        const now = new Date();
+        const endDate = new Date(now.getTime() + (21 * 24 * 60 * 60 * 1000)); // 21 jours à partir de maintenant
         
-        let lastPhase1Places = 3;
-        let lastPhase2Places = 178;
-        let lastPhase3Places = 11;
-        
-        // Fonction pour calculer les places disponibles
+        // Fonction pour calculer les places disponibles - Mode fixe à 128 places
         const calculatePlaces = () => {
-            const now = new Date().getTime();
+            const currentTime = new Date().getTime();
             
-            // PHASE 1
-            if (now < transitionDate) {
-                const nowAt21Aug = new Date('2025-08-21T17:00:00').getTime();
-                
-                if (now < nowAt21Aug) {
-                    const hoursElapsed = (now - startDate) / (1000 * 60 * 60);
-                    const phase1TotalHours = (nowAt21Aug - startDate) / (1000 * 60 * 60);
-                    const progress = hoursElapsed / phase1TotalHours;
-                    const adjustedProgress = Math.pow(progress, 0.7);
-                    let currentPlaces = Math.floor(278 * (1 - adjustedProgress));
-                    
-                    if (currentPlaces < 3) currentPlaces = 3;
-                    
-                    return { phase: 1, places: currentPlaces };
-                } else {
-                    const hoursElapsedFromNow = (now - nowAt21Aug) / (1000 * 60 * 60);
-                    
-                    if (hoursElapsedFromNow < 8) {
-                        return { phase: 1, places: 3 };
-                    } else if (hoursElapsedFromNow < 20) {
-                        return { phase: 1, places: 2 };
-                    } else if (hoursElapsedFromNow < 28) {
-                        return { phase: 1, places: 1 };
-                    } else {
-                        return { phase: 1, places: 0 };
-                    }
-                }
-            }
-            // PHASE 2 (22 août → 2 septembre) - Décroissance lente vers 15 places
-            else if (now < phase2EndDate) {
-                const hoursElapsed = (now - transitionDate) / (1000 * 60 * 60);
-                const phase2TotalHours = (phase2EndDate - transitionDate) / (1000 * 60 * 60);
-                const progress = hoursElapsed / phase2TotalHours;
-                const adjustedProgress = Math.pow(progress, 0.76); // Calibré pour ~32 places le 31/08
-                
-                // Décroissance de 178 → 15 sur toute la phase 2
-                let currentPlaces = Math.floor(15 + (178 - 15) * (1 - adjustedProgress));
-                
-                if (currentPlaces > lastPhase2Places) {
-                    currentPlaces = lastPhase2Places;
-                }
-                
-                lastPhase2Places = currentPlaces;
-                return { phase: 2, places: currentPlaces };
-            }
-            // PHASE 3 (2 septembre → 4 septembre) - Planning décrémental précis jusqu'à 0
-            else if (now < endDate) {
-                // Planning demandé (heures locales) : départ à 11 puis décréments planifiés
-                const schedule = [
-                    { at: new Date('2025-09-02T18:50:00').getTime(), places: 11 },
-                    { at: new Date('2025-09-02T19:30:00').getTime(), places: 10 },
-                    { at: new Date('2025-09-02T21:00:00').getTime(), places: 9 },
-                    { at: new Date('2025-09-02T23:00:00').getTime(), places: 8 },
-                    { at: new Date('2025-09-03T09:00:00').getTime(), places: 7 },
-                    { at: new Date('2025-09-03T12:30:00').getTime(), places: 6 },
-                    { at: new Date('2025-09-03T16:00:00').getTime(), places: 5 },
-                    { at: new Date('2025-09-03T19:00:00').getTime(), places: 4 },
-                    { at: new Date('2025-09-03T22:00:00').getTime(), places: 3 },
-                    { at: new Date('2025-09-04T10:00:00').getTime(), places: 2 },
-                    { at: new Date('2025-09-04T16:00:00').getTime(), places: 1 },
-                    { at: new Date('2025-09-04T21:30:00').getTime(), places: 0 }
-                ];
-
-                // Déterminer la valeur actuelle selon le planning (monotone, non croissante)
-                let currentPlaces = schedule[0].places;
-                for (let i = 0; i < schedule.length; i++) {
-                    if (now >= schedule[i].at) {
-                        currentPlaces = schedule[i].places;
-                    } else {
-                        break;
-                    }
-                }
-
-                // Empêcher toute remontée accidentelle
-                if (currentPlaces > lastPhase3Places) {
-                    currentPlaces = lastPhase3Places;
-                }
-
-                lastPhase3Places = currentPlaces;
-                return { phase: 3, places: currentPlaces };
+            // Si on est avant la date de fin, on est en phase active
+            if (currentTime < endDate.getTime()) {
+                return { phase: 1, places: 128 };
             }
             
             return { phase: 'ended', places: 0 };
         };
         
-        // Calcul du nombre de places exceptionnelles (démarre à 5, décrémente de 3 par jour)
-        // Date de référence fixe : aujourd'hui (2025-01-XX)
-        const exceptionalPlacesStartDate = new Date();
-        exceptionalPlacesStartDate.setHours(0, 0, 0, 0); // Mettre à minuit pour éviter les problèmes d'heures
-        
-        const calculateExceptionalPlaces = () => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Mettre à minuit pour le calcul
-            
-            // Calculer le nombre de jours écoulés depuis la date de référence
-            const daysElapsed = Math.floor((today - exceptionalPlacesStartDate) / (1000 * 60 * 60 * 24));
-            
-            // Valeur de départ : 5, décrémentation de 3 par jour
-            const exceptionalPlaces = Math.max(0, 5 - (daysElapsed * 3));
-            
-            return exceptionalPlaces;
-        };
-        
-        // Mise à jour de l'affichage selon la phase
-        const updateScarcityDisplay = (phaseData) => {
+        // Mise à jour de l'affichage selon la phase - Mode simplifié avec 128 places
+        const updateScarcityDisplay = (phaseData: { phase: number | string; places: number }) => {
             const scarcityText = document.getElementById('scarcityText');
             const placesSpan = document.getElementById('places');
             const exceptionalOffer = document.getElementById('exceptionalOffer');
@@ -4719,57 +4615,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
             if (!scarcityText || !placesSpan || !exceptionalOffer || !exceptionalPlaces) return;
 
-            // Calculer le nombre de places exceptionnelles
-            const exceptionalPlacesCount = calculateExceptionalPlaces();
-
             if (phaseData.phase === 1) {
-                // Phase 1: places restantes classiques
+                // Phase 1: Mode en cours avec 128 places
                 scarcityText.classList.remove('sold-out');
                 scarcityText.innerHTML = `<span class="places-count" id="places">${phaseData.places}</span> places disponibles sur 500`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = exceptionalPlacesCount.toString();
-
-                if (phaseData.places <= 3) {
-                    const placesElement = document.getElementById('places');
-                    if (placesElement) {
-                        placesElement.style.fontSize = '1.75rem';
-                        placesElement.style.animation = 'urgentPulse 0.8s infinite';
-                    }
-                }
-            } else if (phaseData.phase === 2) {
-                // Phase 2: sold-out + places exceptionnelles
-                scarcityText.classList.add('sold-out');
-                scarcityText.innerHTML = `<span style="color: #ef4444;">0</span> places disponibles sur 500`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = exceptionalPlacesCount.toString();
-
-                if (phaseData.places < 30) {
-                    exceptionalPlaces.style.animation = 'urgentPulse 0.5s infinite';
-                } else {
-                    exceptionalPlaces.style.animation = '';
-                }
-            } else if (phaseData.phase === 3) {
-                // Phase 3: sold-out + places exceptionnelles (décroissance rapide)
-                scarcityText.classList.add('sold-out');
-                scarcityText.innerHTML = `<span style="color: #ef4444;">0</span> places disponibles sur 500`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = exceptionalPlacesCount.toString();
-
-                // Animation plus urgente pour la Phase 3
-                exceptionalPlaces.style.animation = 'urgentPulse 0.3s infinite';
+                exceptionalOffer.style.display = 'none'; // Masquer les places exceptionnelles en mode normal
             } else {
                 // Phase ended
                 scarcityText.classList.add('sold-out');
                 scarcityText.textContent = `L'offre est complètement terminée`;
-                exceptionalOffer.style.display = 'inline-block';
-                exceptionalPlaces.textContent = exceptionalPlacesCount.toString();
+                exceptionalOffer.style.display = 'none';
             }
         };
         
         // Mise à jour du compte à rebours
         const updateCountdown = () => {
             const now = new Date().getTime();
-            const distance = endDate - now;
+            const distance = endDate.getTime() - now;
             
             if (distance < 0) {
                 document.querySelector('.countdown-banner').innerHTML = `

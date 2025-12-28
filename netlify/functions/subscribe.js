@@ -44,7 +44,8 @@ exports.handler = async (event, context) => {
         }
 
         // Récupérer le Group ID depuis les variables d'environnement ou utiliser celui fourni
-        const targetGroupId = groupId || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
+        // Priorité : groupId dans le body > MAILERLITE_GROUP_SSR_2026_EVERGREEN > MAILERLITE_GROUP_COURTCIRCUIT > fallback
+        const targetGroupId = groupId || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
 
         // Préparer les champs personnalisés
         const fields = {};
