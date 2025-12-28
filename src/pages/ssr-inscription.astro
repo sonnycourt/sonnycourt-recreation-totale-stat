@@ -1125,6 +1125,28 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         // ===== GESTION DES DEUX ÉTAPES =====
         let currentEmail = '';
         let currentName = '';
+        let userToken = '';
+
+        // Fonction pour générer un token unique (UUID v4)
+        function generateToken() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Fonction pour récupérer ou créer un token
+        function getOrCreateToken() {
+            let token = localStorage.getItem('ssr_token');
+            if (!token) {
+                token = generateToken();
+                localStorage.setItem('ssr_token', token);
+                // Stocker aussi dans un cookie pour persistance cross-device
+                document.cookie = `ssr_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+            return token;
+        }
 
         function handleStep1() {
             const name = document.getElementById('name').value.trim();
@@ -1146,8 +1168,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             currentName = name;
             currentEmail = email;
             
-            // Envoyer immédiatement à MailerLite
-            sendToMailerLite(name, email);
+            // Générer ou récupérer le token unique
+            userToken = getOrCreateToken();
+            
+            // Envoyer immédiatement à MailerLite avec le token
+            sendToMailerLite(name, email, userToken);
             
             // Passer à l'étape 2
             document.getElementById('step1-form').style.display = 'none';
@@ -1181,12 +1206,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             
             console.log('Numéro envoyé:', formattedPhone);
             
-            // Envoyer à MailerLite (mise à jour avec téléphone)
-            updateMailerLiteContact(currentName, currentEmail, formattedPhone);
+            // Envoyer à MailerLite (mise à jour avec téléphone et token)
+            updateMailerLiteContact(currentName, currentEmail, formattedPhone, userToken);
         }
 
-        async function sendToMailerLite(name, email) {
-            // Étape 1 : Envoyer prénom + email à MailerLite
+        async function sendToMailerLite(name, email, token) {
+            // Étape 1 : Envoyer prénom + email + token à MailerLite
             // Le Group ID sera récupéré depuis la variable d'environnement MAILERLITE_GROUP_SSR_2026_EVERGREEN
             try {
                 const response = await fetch('/.netlify/functions/subscribe', {
@@ -1196,7 +1221,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     },
                     body: JSON.stringify({
                         email: email,
-                        prenom: name
+                        prenom: name,
+                        uniqueTokenSSR: token
                         // groupId non fourni → utilise MAILERLITE_GROUP_SSR_2026_EVERGREEN depuis Netlify
                     })
                 });
@@ -1213,8 +1239,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
         }
 
-        async function updateMailerLiteContact(name, email, phone) {
-            // Étape 2 : Mettre à jour le contact avec le téléphone
+        async function updateMailerLiteContact(name, email, phone, token) {
+            // Étape 2 : Mettre à jour le contact avec le téléphone et le token
             try {
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
@@ -1224,7 +1250,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     body: JSON.stringify({
                         email: email,
                         prenom: name,
-                        telephone: phone
+                        telephone: phone,
+                        uniqueTokenSSR: token
                         // groupId non fourni → utilise MAILERLITE_GROUP_SSR_2026_EVERGREEN depuis Netlify
                     })
                 });
@@ -1237,20 +1264,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     console.error('❌ Erreur mise à jour:', result);
                 }
                 
-                // Fermer le popup et rediriger
+                // Fermer le popup et rediriger avec le token
                 closePopup();
-                redirectToVideo();
+                redirectToVideo(token);
             } catch (error) {
                 console.error('Erreur lors de la mise à jour:', error);
-                // Rediriger quand même
+                // Rediriger quand même avec le token
                 closePopup();
-                redirectToVideo();
+                redirectToVideo(token);
             }
         }
 
-        function redirectToVideo() {
-            // Rediriger vers la vidéo (remplace par ton URL)
-            window.location.href = '/systeme-souhaits-realises-video/';
+        function redirectToVideo(token) {
+            // Rediriger vers la page cadeau avec le token dans l'URL
+            window.location.href = `/ssr-cadeau?token=${token}`;
         }
 
         // ===== EVENT LISTENERS =====

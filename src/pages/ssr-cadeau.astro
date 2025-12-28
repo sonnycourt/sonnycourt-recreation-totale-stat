@@ -790,6 +790,32 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     const REDIRECT_ENABLED = false; // Désactivé : cette page est accessible après l'optin
                     const REDIRECT_URL = '/systeme-souhaits-realises/'; // URL de destination (utilisée par le bouton CTA)
 
+                    // ===== VÉRIFICATION DU TOKEN =====
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const tokenFromUrl = urlParams.get('token');
+                    const storedToken = localStorage.getItem('ssr_token');
+                    const token = tokenFromUrl || storedToken;
+
+                    // Si pas de token, rediriger vers la page d'inscription
+                    if (!token) {
+                        // Vérifier aussi dans localStorage (au cas où l'utilisateur revient)
+                        if (storedToken) {
+                            // Rediriger avec le token
+                            window.location.href = `/ssr-cadeau?token=${storedToken}`;
+                            return;
+                        }
+                        
+                        // Pas de token trouvé, rediriger vers l'inscription
+                        window.location.href = '/ssr-inscription';
+                        return;
+                    }
+
+                    // Stocker le token dans localStorage et cookie
+                    if (token) {
+                        localStorage.setItem('ssr_token', token);
+                        document.cookie = `ssr_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                    }
+
                     // Redirection automatique désactivée - la page est accessible après l'optin
                     // if (REDIRECT_ENABLED) {
                     //     window.location.href = REDIRECT_URL;
