@@ -596,16 +596,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     document.addEventListener('DOMContentLoaded', function() {
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token') || '';
-      const previewMode = urlParams.get('preview');
-      const isPreview = previewMode !== null;
-      const previewDay = parseInt(previewMode) || 0;
-
-      // Mode preview : simuler les données
-      if (isPreview) {
-        console.log('🔍 Mode preview activé - jour', previewDay);
-        const previewData = calculatePreviewData(previewDay);
-        displayData(previewData);
-        return;
+      const previewParam = urlParams.get('preview');
+      
+      // Vérifier le mode preview
+      let isPreview = false;
+      let previewDay = 0;
+      
+      if (previewParam !== null) {
+        const dayNumber = parseInt(previewParam, 10);
+        if (!isNaN(dayNumber) && dayNumber >= 0 && dayNumber <= 17) {
+          isPreview = true;
+          previewDay = dayNumber;
+          const hoursLabel = dayNumber * 24;
+          console.log(`🔍 Mode PREVIEW activé - Jour ${dayNumber} (${hoursLabel}h après inscription)`);
+          showPreviewBanner(dayNumber);
+          const previewData = calculatePreviewData(dayNumber);
+          displayData(previewData);
+          return;
+        }
       }
 
       // Mode normal : vérification du token requise
@@ -673,6 +681,32 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
       }
 
+      // Afficher le bandeau preview
+      function showPreviewBanner(dayNumber) {
+        const banner = document.createElement('div');
+        banner.id = 'previewBanner';
+        const hoursLabel = dayNumber * 24;
+        const timeLabel = dayNumber === 0 ? 'Inscription' : `${hoursLabel}h`;
+        banner.innerHTML = `🔍 PREVIEW J${dayNumber} (${timeLabel}) - Mode démonstration`;
+        banner.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(90deg, #ff6b00, #ff9500);
+          color: white;
+          text-align: center;
+          padding: 10px 20px;
+          font-weight: bold;
+          font-size: 14px;
+          z-index: 99999;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        `;
+        document.body.prepend(banner);
+        // Ajouter du padding au body pour compenser le bandeau
+        document.body.style.paddingTop = '40px';
+      }
+
       function calculatePreviewData(dayNumber) {
         const PHASE1_PALIERS = [
           { heure: 0, places: 80 }, { heure: 4, places: 72 }, { heure: 8, places: 65 },
@@ -697,6 +731,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const PHASE2_START_HOUR = 188;
         const TOTAL_COUNTDOWN_SECONDS = 16 * 24 * 60 * 60;
 
+        // Pour preview=0, on est à 0h (inscription)
+        // Pour preview=X (X > 0), on est à X * 24h
         const hoursElapsed = dayNumber * 24;
         let places = 0;
         let phase = 1;
@@ -800,7 +836,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
           scarcityText.innerHTML = `<span class="places-count" id="places">0</span> places disponibles sur 300`;
           if (exceptionalOffer) {
             exceptionalOffer.style.display = 'block';
-            exceptionalOffer.innerHTML = `<span class="exceptional-places">${data.places}</span> places supplémentaires exceptionnelles !`;
+            exceptionalOffer.innerHTML = `<span class="exceptional-places">${data.places}</span> places supplémentaires restantes !`;
           }
         } else {
           scarcityText.classList.remove('sold-out');
