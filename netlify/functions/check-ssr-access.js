@@ -5,67 +5,69 @@
 import { getStore } from '@netlify/blobs';
 
 // ============================================
-// PALIERS PHASE 1 : 53 places → 0 en 7 jours (168 heures)
+// PALIERS PHASE 1 : 80 places → 0 en 7 jours (168 heures)
+// 300 places totales - 220 vendues = 80 disponibles (73.3% vendues)
 // ============================================
 const PHASE1_PALIERS = [
-    { heure: 0, places: 53 },      // J0 0h - Inscription
-    { heure: 4, places: 48 },      // J0 4h
-    { heure: 8, places: 43 },      // J0 8h
-    { heure: 14, places: 37 },     // J0 14h
-    { heure: 20, places: 31 },     // J0 20h
-    { heure: 28, places: 26 },     // J1 4h
-    { heure: 36, places: 22 },     // J1 12h
-    { heure: 44, places: 18 },     // J1 20h
-    { heure: 56, places: 15 },     // J2 8h
-    { heure: 66, places: 13 },     // J2 18h
-    { heure: 82, places: 11 },     // J3 10h
-    { heure: 94, places: 10 },     // J3 22h - Zone haute conversion
-    { heure: 106, places: 9 },     // J4 10h
-    { heure: 118, places: 8 },     // J4 22h
-    { heure: 128, places: 7 },     // J5 8h
-    { heure: 136, places: 6 },     // J5 16h
-    { heure: 143, places: 5 },     // J5 23h
-    { heure: 154, places: 4 },     // J6 10h
-    { heure: 162, places: 3 },     // J6 18h
-    { heure: 174, places: 2 },     // J7 6h - Dernières places
-    { heure: 182, places: 1 },     // J7 14h - DERNIÈRE PLACE
+    { heure: 0, places: 80 },      // J0 0h - Inscription
+    { heure: 4, places: 72 },      // J0 4h
+    { heure: 8, places: 65 },      // J0 8h
+    { heure: 14, places: 56 },     // J0 14h
+    { heure: 20, places: 47 },     // J0 20h
+    { heure: 28, places: 39 },     // J1 4h
+    { heure: 36, places: 33 },     // J1 12h
+    { heure: 44, places: 27 },     // J1 20h
+    { heure: 56, places: 23 },     // J2 8h
+    { heure: 66, places: 20 },     // J2 18h
+    { heure: 82, places: 17 },     // J3 10h
+    { heure: 94, places: 15 },     // J3 22h - Zone haute conversion
+    { heure: 106, places: 14 },    // J4 10h
+    { heure: 118, places: 12 },    // J4 22h
+    { heure: 128, places: 11 },    // J5 8h
+    { heure: 136, places: 9 },     // J5 16h
+    { heure: 143, places: 8 },     // J5 23h
+    { heure: 154, places: 6 },     // J6 10h
+    { heure: 162, places: 5 },     // J6 18h
+    { heure: 174, places: 3 },     // J7 6h - Dernières places
+    { heure: 182, places: 2 },     // J7 14h - DERNIÈRE PLACE
     { heure: 188, places: 0 },     // J7 20h - SOLD OUT → Phase 2
 ];
 
 // ============================================
-// PALIERS PHASE 2 : 100 places → 0 en 9 jours (216 heures)
+// PALIERS PHASE 2 : 200 places → 0 en 9 jours (216 heures)
 // Commence à l'heure 192 (J8 0h, 24h après sold out)
+// Total : 500 places (300 Phase 1 + 200 Phase 2)
 // ============================================
-const PHASE2_START_HOUR = 192; // J8 0h (24h après sold out)
+const PHASE2_START_HOUR = 188; // Immédiatement après Phase 1 (pas de pause)
 const PHASE2_PALIERS = [
-    { heure: 0, places: 100 },     // J8 0h - Réouverture
-    { heure: 6, places: 88 },      // J8 6h
-    { heure: 12, places: 75 },     // J8 12h
-    { heure: 20, places: 62 },     // J8 20h
-    { heure: 32, places: 52 },     // J9 8h
-    { heure: 42, places: 44 },     // J9 18h
-    { heure: 58, places: 37 },     // J10 10h
-    { heure: 70, places: 31 },     // J10 22h
-    { heure: 84, places: 26 },     // J11 12h
-    { heure: 95, places: 22 },     // J11 23h
-    { heure: 108, places: 18 },    // J12 12h
-    { heure: 119, places: 15 },    // J12 23h
-    { heure: 132, places: 12 },    // J13 12h
-    { heure: 142, places: 10 },    // J13 22h - Zone haute conversion
-    { heure: 152, places: 9 },     // J14 8h
-    { heure: 160, places: 8 },     // J14 16h
-    { heure: 167, places: 7 },     // J14 23h
-    { heure: 176, places: 6 },     // J15 8h
-    { heure: 182, places: 5 },     // J15 14h
-    { heure: 188, places: 4 },     // J15 20h
-    { heure: 198, places: 3 },     // J16 6h - Dernier jour
-    { heure: 204, places: 2 },     // J16 12h
-    { heure: 210, places: 1 },     // J16 18h - DERNIÈRE PLACE
+    { heure: 0, places: 200 },     // J8 0h - Réouverture
+    { heure: 6, places: 176 },     // J8 6h
+    { heure: 12, places: 150 },    // J8 12h
+    { heure: 20, places: 124 },    // J8 20h
+    { heure: 32, places: 104 },    // J9 8h
+    { heure: 42, places: 88 },     // J9 18h
+    { heure: 58, places: 74 },     // J10 10h
+    { heure: 70, places: 62 },     // J10 22h
+    { heure: 84, places: 52 },     // J11 12h
+    { heure: 95, places: 44 },     // J11 23h
+    { heure: 108, places: 36 },    // J12 12h
+    { heure: 119, places: 30 },    // J12 23h
+    { heure: 132, places: 24 },    // J13 12h
+    { heure: 142, places: 20 },    // J13 22h - Zone haute conversion
+    { heure: 152, places: 18 },    // J14 8h
+    { heure: 160, places: 16 },    // J14 16h
+    { heure: 167, places: 14 },    // J14 23h
+    { heure: 176, places: 12 },    // J15 8h
+    { heure: 182, places: 10 },    // J15 14h
+    { heure: 188, places: 8 },     // J15 20h
+    { heure: 198, places: 6 },     // J16 6h - Dernier jour
+    { heure: 204, places: 4 },     // J16 12h
+    { heure: 210, places: 2 },     // J16 18h - DERNIÈRE PLACE
     { heure: 216, places: 0 },     // J16 23h59 - FERMETURE DÉFINITIVE
 ];
 
 // Durée totale du countdown initial (16j 4h 30min en secondes)
-const TOTAL_COUNTDOWN_SECONDS = (16 * 24 * 60 * 60) + (4 * 60 * 60) + (30 * 60);
+const TOTAL_COUNTDOWN_SECONDS = (16 * 24 * 60 * 60); // 16 jours exactement
 
 // Fonction pour obtenir les places selon le palier
 function getPlacesFromPaliers(heuresEcoulees, paliers) {

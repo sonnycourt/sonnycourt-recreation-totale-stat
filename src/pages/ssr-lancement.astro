@@ -3769,7 +3769,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 
                 <div class="scarcity-section" id="scarcitySection">
                     <p class="scarcity-text" id="scarcityText">
-                        <span class="places-count" id="places">53</span> places disponibles sur 200
+                        <span class="places-count" id="places">80</span> places disponibles sur 300
                     </p>
                     <div class="exceptional-offer" id="exceptionalOffer" style="display: none;">
                     </div>
@@ -4877,61 +4877,63 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         // ============================================
         // PALIERS POUR LE MODE PREVIEW (copie de check-ssr-access.js)
+        // Phase 1 : 80 places → 0 (sur 300 total, 220 déjà vendues)
+        // Phase 2 : 200 places → 0 (total 500 places)
         // ============================================
         const PHASE1_PALIERS = [
-            { heure: 0, places: 53 },
-            { heure: 4, places: 48 },
-            { heure: 8, places: 43 },
-            { heure: 14, places: 37 },
-            { heure: 20, places: 31 },
-            { heure: 28, places: 26 },
-            { heure: 36, places: 22 },
-            { heure: 44, places: 18 },
-            { heure: 56, places: 15 },
-            { heure: 66, places: 13 },
-            { heure: 82, places: 11 },
-            { heure: 94, places: 10 },
-            { heure: 106, places: 9 },
-            { heure: 118, places: 8 },
-            { heure: 128, places: 7 },
-            { heure: 136, places: 6 },
-            { heure: 143, places: 5 },
-            { heure: 154, places: 4 },
-            { heure: 162, places: 3 },
-            { heure: 174, places: 2 },
-            { heure: 182, places: 1 },
+            { heure: 0, places: 80 },
+            { heure: 4, places: 72 },
+            { heure: 8, places: 65 },
+            { heure: 14, places: 56 },
+            { heure: 20, places: 47 },
+            { heure: 28, places: 39 },
+            { heure: 36, places: 33 },
+            { heure: 44, places: 27 },
+            { heure: 56, places: 23 },
+            { heure: 66, places: 20 },
+            { heure: 82, places: 17 },
+            { heure: 94, places: 15 },
+            { heure: 106, places: 14 },
+            { heure: 118, places: 12 },
+            { heure: 128, places: 11 },
+            { heure: 136, places: 9 },
+            { heure: 143, places: 8 },
+            { heure: 154, places: 6 },
+            { heure: 162, places: 5 },
+            { heure: 174, places: 3 },
+            { heure: 182, places: 2 },
             { heure: 188, places: 0 },
         ];
 
-        const PHASE2_START_HOUR = 192;
+        const PHASE2_START_HOUR = 188; // Immédiatement après Phase 1
         const PHASE2_PALIERS = [
-            { heure: 0, places: 100 },
-            { heure: 6, places: 88 },
-            { heure: 12, places: 75 },
-            { heure: 20, places: 62 },
-            { heure: 32, places: 52 },
-            { heure: 42, places: 44 },
-            { heure: 58, places: 37 },
-            { heure: 70, places: 31 },
-            { heure: 84, places: 26 },
-            { heure: 95, places: 22 },
-            { heure: 108, places: 18 },
-            { heure: 119, places: 15 },
-            { heure: 132, places: 12 },
-            { heure: 142, places: 10 },
-            { heure: 152, places: 9 },
-            { heure: 160, places: 8 },
-            { heure: 167, places: 7 },
-            { heure: 176, places: 6 },
-            { heure: 182, places: 5 },
-            { heure: 188, places: 4 },
-            { heure: 198, places: 3 },
-            { heure: 204, places: 2 },
-            { heure: 210, places: 1 },
+            { heure: 0, places: 200 },
+            { heure: 6, places: 176 },
+            { heure: 12, places: 150 },
+            { heure: 20, places: 124 },
+            { heure: 32, places: 104 },
+            { heure: 42, places: 88 },
+            { heure: 58, places: 74 },
+            { heure: 70, places: 62 },
+            { heure: 84, places: 52 },
+            { heure: 95, places: 44 },
+            { heure: 108, places: 36 },
+            { heure: 119, places: 30 },
+            { heure: 132, places: 24 },
+            { heure: 142, places: 20 },
+            { heure: 152, places: 18 },
+            { heure: 160, places: 16 },
+            { heure: 167, places: 14 },
+            { heure: 176, places: 12 },
+            { heure: 182, places: 10 },
+            { heure: 188, places: 8 },
+            { heure: 198, places: 6 },
+            { heure: 204, places: 4 },
+            { heure: 210, places: 2 },
             { heure: 216, places: 0 },
         ];
 
-        const TOTAL_COUNTDOWN_SECONDS = (16 * 24 * 60 * 60) + (4 * 60 * 60) + (30 * 60);
+        const TOTAL_COUNTDOWN_SECONDS = (16 * 24 * 60 * 60); // 16 jours exactement
 
         function getPlacesFromPaliers(heuresEcoulees, paliers) {
             let places = paliers[0].places;
@@ -5105,9 +5107,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
             } else if (data.isReopened) {
                 // Phase 2 : Réouverture exceptionnelle
-                // Afficher "0 places disponibles sur 200" pour montrer la preuve de succès
+                // Afficher "0 places disponibles sur 300" pour montrer la preuve de succès
                 scarcityText.classList.remove('sold-out');
-                scarcityText.innerHTML = `<span class="places-count" id="places">0</span> places disponibles sur 200`;
+                scarcityText.innerHTML = `<span class="places-count" id="places">0</span> places disponibles sur 300`;
                 
                 // Dans la bulle verte : X places supplémentaires exceptionnelles
                 if (exceptionalOffer) {
@@ -5126,7 +5128,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             } else {
                 // Phase 1 : Places normales
                 scarcityText.classList.remove('sold-out');
-                scarcityText.innerHTML = `<span class="places-count" id="places">${data.places}</span> places disponibles sur 200`;
+                scarcityText.innerHTML = `<span class="places-count" id="places">${data.places}</span> places disponibles sur 300`;
                 if (exceptionalOffer) exceptionalOffer.style.display = 'none';
                 
                 // Animation urgente si moins de 10 places
@@ -5665,9 +5667,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const purchases = [];
             
             // Le prospect arrive en plein milieu d'un "lancement collectif"
-            // Phase 1 : 200 places initiales → X restantes = (200-X) vendues
-            // Phase 2 : 100 places exceptionnelles → X restantes = (100-X) vendues
-            const initialPlaces = phase === 2 ? 100 : 200;
+            // Phase 1 : 300 places initiales → X restantes = (300-X) vendues
+            // Phase 2 : 200 places exceptionnelles → X restantes = (200-X) vendues
+            const initialPlaces = phase === 2 ? 200 : 300;
             
             // Nombre de places vendues
             const placesSold = initialPlaces - currentPlaces;

@@ -1,7 +1,7 @@
 // Fonction Netlify pour initialiser le countdown et les places pour SSR
 // Utilise Netlify Blobs pour stocker les données
-// Countdown: 16 jours 4 heures 30 minutes 0 secondes
-// Places: 53
+// Countdown: 16 jours
+// Places: 80 (sur 300 total, 220 déjà vendues)
 
 import { getStore } from '@netlify/blobs';
 
@@ -70,12 +70,9 @@ export default async (req, context) => {
         // Calculer les timestamps
         const startTime = Math.floor(Date.now() / 1000); // Timestamp Unix en secondes
         
-        // Countdown: 16 jours 4 heures 30 minutes 0 secondes
+        // Countdown: 16 jours exactement
         // 16 jours = 16 * 24 * 60 * 60 = 1,382,400 secondes
-        // 4 heures = 4 * 60 * 60 = 14,400 secondes
-        // 30 minutes = 30 * 60 = 1,800 secondes
-        // Total = 1,382,400 + 14,400 + 1,800 = 1,398,600 secondes
-        const countdownDuration = (16 * 24 * 60 * 60) + (4 * 60 * 60) + (30 * 60); // 1,398,600 secondes
+        const countdownDuration = (16 * 24 * 60 * 60); // 1,382,400 secondes
         const expiresAt = startTime + countdownDuration;
 
         // Préparer les données à stocker
@@ -85,8 +82,8 @@ export default async (req, context) => {
             startTime: startTime,
             expiresAt: expiresAt,
             countdownDuration: countdownDuration,
-            initialPlaces: 53,
-            currentPlaces: 53, // Commence à 53
+            initialPlaces: 80,
+            currentPlaces: 80, // Commence à 80 (sur 300 total)
             createdAt: new Date().toISOString()
         };
 
@@ -96,7 +93,7 @@ export default async (req, context) => {
                 metadata: {
                     email: email,
                     expiresAt: expiresAt.toString(),
-                    initialPlaces: '53'
+                    initialPlaces: '80'
                 }
             });
             console.log('✅ SSR token stored successfully in Blobs:', token);
@@ -116,7 +113,7 @@ export default async (req, context) => {
             startTime: startTime,
             expiresAt: expiresAt,
             countdownDuration: countdownDuration,
-            initialPlaces: 53
+            initialPlaces: 80
         }), {
             status: 200,
             headers: {

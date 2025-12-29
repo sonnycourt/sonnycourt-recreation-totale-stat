@@ -68,6 +68,28 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                                                 <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
                                             </svg>
                                         </button>
+                                        
+                                        <!-- Speed Control -->
+                                        <div class="sonny-speed-control">
+                                            <button class="sonny-speed-button" id="speedButton" title="Vitesse">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M13 16a3 3 0 0 1 2.24 5"/>
+                                                    <path d="M18 12h.01"/>
+                                                    <path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3"/>
+                                                    <path d="M20 8.54V4a2 2 0 1 0-4 0v3"/>
+                                                    <path d="M7.612 12.524a3 3 0 1 0-1.6 4.3"/>
+                                                </svg>
+                                                <span id="speedDisplay">1x</span>
+                                            </button>
+                                            <div class="sonny-speed-menu" id="speedMenu">
+                                                <div class="sonny-speed-option" data-speed="0.5">0.5x</div>
+                                                <div class="sonny-speed-option" data-speed="0.75">0.75x</div>
+                                                <div class="sonny-speed-option active" data-speed="1">1x</div>
+                                                <div class="sonny-speed-option" data-speed="1.25">1.25x</div>
+                                                <div class="sonny-speed-option" data-speed="1.5">1.5x</div>
+                                                <div class="sonny-speed-option" data-speed="2">2x</div>
+                                            </div>
+                                        </div>
                                     </div>
                     </div>
 
@@ -346,6 +368,85 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         background: rgba(255, 255, 255, 0.2);
                         border-radius: 3px;
                         height: 6px;
+                    }
+
+                    /* Speed Control */
+                    .sonny-speed-control {
+                        position: relative;
+                    }
+
+                    .sonny-speed-button {
+                        background: rgba(0, 0, 0, 0.85);
+                        border: 2px solid rgba(102, 126, 234, 0.5);
+                        border-radius: 8px;
+                        color: white;
+                        padding: 8px 12px;
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        backdrop-filter: blur(10px);
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    }
+
+                    .sonny-speed-button:hover {
+                        background: rgba(0, 0, 0, 0.95);
+                        border-color: rgba(102, 126, 234, 0.8);
+                        transform: scale(1.05);
+                    }
+
+                    .sonny-speed-button svg {
+                        width: 16px;
+                        height: 16px;
+                    }
+
+                    .sonny-speed-menu {
+                        position: absolute;
+                        bottom: 100%;
+                        right: 0;
+                        margin-bottom: 8px;
+                        background: rgba(0, 0, 0, 0.95);
+                        border: 2px solid rgba(102, 126, 234, 0.5);
+                        border-radius: 8px;
+                        padding: 8px 0;
+                        min-width: 100px;
+                        display: none;
+                        backdrop-filter: blur(10px);
+                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                    }
+
+                    .sonny-speed-menu.active {
+                        display: block;
+                    }
+
+                    .sonny-speed-option {
+                        padding: 10px 16px;
+                        color: white;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        font-size: 0.9rem;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+
+                    .sonny-speed-option:hover {
+                        background: rgba(102, 126, 234, 0.2);
+                    }
+
+                    .sonny-speed-option.active {
+                        background: rgba(102, 126, 234, 0.3);
+                        color: #a78bfa;
+                        font-weight: 700;
+                    }
+
+                    .sonny-speed-option.active::after {
+                        content: '✓';
+                        color: #a78bfa;
+                        font-weight: bold;
                     }
 
         /* Fullscreen wrapper */
@@ -644,6 +745,25 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             .volume-range {
                 width: 60px;
             }
+
+            .sonny-speed-button {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            .sonny-speed-button svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            .sonny-speed-menu {
+                min-width: 90px;
+            }
+
+            .sonny-speed-option {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
         }
 
         /* Orientation paysage sur mobile - Fix pour iPhone en mode horizontal */
@@ -786,6 +906,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </style>
 
                     <script is:inline>
+                    (function() {
                     // Configuration de la redirection - DÉSACTIVÉE pour permettre l'accès après optin
                     const REDIRECT_ENABLED = false; // Désactivé : cette page est accessible après l'optin
                     const REDIRECT_URL = '/systeme-souhaits-realises/'; // URL de destination (utilisée par le bouton CTA)
@@ -1020,6 +1141,51 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
             });
         }
+
+        // ===== SPEED CONTROL =====
+        const speedButton = document.getElementById('speedButton');
+        const speedMenu = document.getElementById('speedMenu');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const speedOptions = document.querySelectorAll('.sonny-speed-option');
+
+        if (speedButton && speedMenu && videoPlayer) {
+            speedButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                speedMenu.classList.toggle('active');
+            });
+
+            // Fermer le menu si on clique ailleurs
+            document.addEventListener('click', (e) => {
+                if (!speedButton.contains(e.target) && !speedMenu.contains(e.target)) {
+                    speedMenu.classList.remove('active');
+                }
+            });
+
+            // Changer la vitesse
+            speedOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const speed = parseFloat(option.dataset.speed);
+                    
+                    // Appliquer la vitesse à la vidéo
+                    videoPlayer.playbackRate = speed;
+                    
+                    // Mettre à jour l'affichage
+                    speedDisplay.textContent = `${speed}x`;
+                    
+                    // Mettre à jour les options actives
+                    speedOptions.forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                    
+                    // Fermer le menu
+                    speedMenu.classList.remove('active');
+                });
+            });
+
+            // Initialiser la vitesse à 1x
+            videoPlayer.playbackRate = 1;
+        }
+                    })(); // Fin IIFE
     </script>
 </body>
 </html>
