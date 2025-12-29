@@ -1136,19 +1136,57 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             });
         }
 
-        // Fonction pour récupérer ou créer un token
-        function getOrCreateToken() {
+        // Fonction pour récupérer ou créer un token (Option 3 : localStorage → MailerLite → générer)
+        // Retourne { token, isNew } pour savoir si c'est un nouveau token
+        async function getOrCreateToken(email) {
+            // ÉTAPE 1: Vérifier dans localStorage/cookie
             let token = localStorage.getItem('ssr_token');
-            if (!token) {
-                token = generateToken();
-                localStorage.setItem('ssr_token', token);
-                // Stocker aussi dans un cookie pour persistance cross-device
-                document.cookie = `ssr_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            if (token) {
+                console.log('✅ Token trouvé dans localStorage:', token);
+                return { token: token, isNew: false };
             }
-            return token;
+
+            // ÉTAPE 2: Vérifier dans MailerLite (groupe SSR uniquement)
+            try {
+                const response = await fetch(`/.netlify/functions/check-ssr-token?email=${encodeURIComponent(email)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.hasToken && result.token) {
+                        // Token trouvé dans MailerLite, on le réutilise
+                        token = result.token;
+                        console.log('✅ Token trouvé dans MailerLite (groupe SSR):', token);
+                        
+                        // Stocker dans localStorage et cookie pour les prochaines fois
+                        localStorage.setItem('ssr_token', token);
+                        document.cookie = `ssr_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                        
+                        return { token: token, isNew: false };
+                    }
+                }
+            } catch (error) {
+                console.error('⚠️ Erreur lors de la vérification MailerLite:', error);
+                // En cas d'erreur, on continue et génère un nouveau token
+            }
+
+            // ÉTAPE 3: Aucun token trouvé, générer un nouveau token
+            token = generateToken();
+            console.log('🆕 Nouveau token généré:', token);
+            
+            // Stocker dans localStorage et cookie
+            localStorage.setItem('ssr_token', token);
+            document.cookie = `ssr_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            
+            return { token: token, isNew: true };
         }
 
-        function handleStep1() {
+        async function handleStep1() {
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             
@@ -1168,11 +1206,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             currentName = name;
             currentEmail = email;
             
-            // Générer ou récupérer le token unique
-            userToken = getOrCreateToken();
+            // Générer ou récupérer le token unique (vérifie localStorage → MailerLite → génère)
+            const tokenResult = await getOrCreateToken(email);
+            userToken = tokenResult.token;
+            const isNewToken = tokenResult.isNew;
             
             // Envoyer immédiatement à MailerLite avec le token
-            sendToMailerLite(name, email, userToken);
+            sendToMailerLite(name, email, userToken, isNewToken);
             
             // Passer à l'étape 2
             document.getElementById('step1-form').style.display = 'none';
@@ -1210,7 +1250,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             updateMailerLiteContact(currentName, currentEmail, formattedPhone, userToken);
         }
 
-        async function sendToMailerLite(name, email, token) {
+        async function sendToMailerLite(name, email, token, isNewToken) {
             // Étape 1 : Envoyer prénom + email + token à MailerLite
             // Le Group ID sera récupéré depuis la variable d'environnement MAILERLITE_GROUP_SSR_2026_EVERGREEN
             try {
@@ -1231,11 +1271,40 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 
                 if (response.ok) {
                     console.log('✅ Contact ajouté à MailerLite:', email);
+                    
+                    // Si c'est un nouveau token, initialiser le countdown et les places
+                    if (isNewToken) {
+                        await initSSRCountdownPlaces(token, email);
+                    }
                 } else {
                     console.error('❌ Erreur MailerLite:', result);
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'ajout à MailerLite:', error);
+            }
+        }
+
+        async function initSSRCountdownPlaces(token, email) {
+            // Initialiser le countdown (16j 4h 30min) et les places (53) pour SSR
+            try {
+                console.log('🔄 Initialisation countdown/places SSR pour token:', token, 'email:', email);
+                const response = await fetch('/.netlify/functions/init-ssr-countdown-places', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: token,
+                        email: email
+                    })
+                });
+                const result = await response.json();
+                console.log('📥 Réponse init-ssr-countdown-places:', result, 'Status:', response.status);
+                if (response.ok) {
+                    console.log('✅ Countdown et places SSR initialisés:', token);
+                } else {
+                    console.error('❌ Erreur countdown/places SSR:', result);
+                }
+            } catch (error) {
+                console.error('❌ Erreur countdown/places SSR (exception):', error);
             }
         }
 
