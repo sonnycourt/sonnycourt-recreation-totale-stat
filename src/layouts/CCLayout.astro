@@ -118,7 +118,7 @@ const shareUrl = `https://sonnycourt.com/cc-share/${pageId}`;
             <!-- Formation 4: Neuro IA -->
             <div class="formation-slide">
               <img 
-                src="/media/pages/NEURO-IA-BANNER_-980x568.webp"
+                src="/media/pages/neuroia-cover.webp"
                 alt="Neuro IA"
                 loading="lazy"
               />
@@ -164,52 +164,208 @@ const shareUrl = `https://sonnycourt.com/cc-share/${pageId}`;
 <!-- Carousel Script -->
 <script>
   const track = document.querySelector('.carousel-track') as HTMLElement;
-  const slides = document.querySelectorAll('.formation-slide');
+  const originalSlides = Array.from(document.querySelectorAll('.formation-slide')) as HTMLElement[];
   const prevBtn = document.querySelector('.carousel-arrow.prev');
   const nextBtn = document.querySelector('.carousel-arrow.next');
   const dotsContainer = document.querySelector('.carousel-dots');
+  const carouselContainer = document.querySelector('.carousel-container');
   
-  let currentIndex = 0;
-  const totalSlides = slides.length;
+  const totalOriginalSlides = originalSlides.length;
+  let autoPlayInterval: number | null = null;
+  let isPaused = false;
+  let isTransitioning = false;
 
-  // Create dots
-  slides.forEach((_, i) => {
+  // Fisher-Yates shuffle pour mélanger les formations aléatoirement
+  function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // Mélanger l'ordre des slides au chargement
+  let shuffledSlides: HTMLElement[] = [];
+  if (track && originalSlides.length > 0) {
+    shuffledSlides = shuffleArray(originalSlides);
+    // Clear track et ajouter les slides mélangées
+    track.innerHTML = '';
+    shuffledSlides.forEach(slide => track.appendChild(slide));
+  }
+
+  // Créer les clones pour le carousel infini
+  // On clone les 2 dernières slides au début et les 2 premières à la fin
+  const clonesAtStart: HTMLElement[] = [];
+  const clonesAtEnd: HTMLElement[] = [];
+  const numClones = 2; // Nombre de clones de chaque côté
+
+  if (track && shuffledSlides.length > 0) {
+    // Cloner les dernières slides et les ajouter au début
+    for (let i = numClones - 1; i >= 0; i--) {
+      const idx = (shuffledSlides.length - 1 - i + shuffledSlides.length) % shuffledSlides.length;
+      const clone = shuffledSlides[idx].cloneNode(true) as HTMLElement;
+      clone.classList.add('clone');
+      clone.setAttribute('aria-hidden', 'true');
+      clonesAtStart.push(clone);
+      track.insertBefore(clone, track.firstChild);
+    }
+    
+    // Cloner les premières slides et les ajouter à la fin
+    for (let i = 0; i < numClones; i++) {
+      const clone = shuffledSlides[i].cloneNode(true) as HTMLElement;
+      clone.classList.add('clone');
+      clone.setAttribute('aria-hidden', 'true');
+      clonesAtEnd.push(clone);
+      track.appendChild(clone);
+    }
+  }
+
+  // L'index actuel inclut les clones au début
+  // Index 0-1 = clones du début, 2 = première vraie slide, etc.
+  let currentIndex = numClones; // Commencer à la première vraie slide
+
+  // Create dots (seulement pour les vraies slides)
+  shuffledSlides.forEach((_, i) => {
     const dot = document.createElement('button');
     dot.classList.add('dot');
     if (i === 0) dot.classList.add('active');
-    dot.addEventListener('click', () => goToSlide(i));
+    dot.addEventListener('click', () => {
+      goToSlide(i + numClones); // Ajuster pour les clones
+      resetAutoPlay();
+    });
     dotsContainer?.appendChild(dot);
   });
 
   const dots = document.querySelectorAll('.dot');
 
-  function updateCarousel() {
+  function getSlideWidth(): number {
+    const firstSlide = track?.querySelector('.formation-slide') as HTMLElement;
+    return firstSlide?.getBoundingClientRect().width || 300;
+  }
+
+  function updateCarousel(animate = true) {
     if (!track) return;
-    const slideWidth = slides[0]?.getBoundingClientRect().width || 0;
+    const slideWidth = getSlideWidth();
     const gap = 24;
+    
+    if (!animate) {
+      track.style.transition = 'none';
+    } else {
+      track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    }
+    
     track.style.transform = `translateX(-${currentIndex * (slideWidth + gap)}px)`;
     
+    // Mettre à jour les dots (convertir l'index avec clones en index réel)
+    const realIndex = getRealIndex();
     dots.forEach((dot, i) => {
-      dot.classList.toggle('active', i === currentIndex);
+      dot.classList.toggle('active', i === realIndex);
     });
   }
 
+  function getRealIndex(): number {
+    // Convertir l'index avec clones en index des vraies slides (0 à totalOriginalSlides-1)
+    let real = currentIndex - numClones;
+    if (real < 0) real = totalOriginalSlides + real;
+    if (real >= totalOriginalSlides) real = real - totalOriginalSlides;
+    return real;
+  }
+
   function goToSlide(index: number) {
-    currentIndex = Math.max(0, Math.min(index, totalSlides - 1));
+    if (isTransitioning) return;
+    currentIndex = index;
     updateCarousel();
   }
 
-  prevBtn?.addEventListener('click', () => {
-    currentIndex = currentIndex > 0 ? currentIndex - 1 : totalSlides - 1;
+  function nextSlide() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    currentIndex++;
     updateCarousel();
+    
+    // Vérifier si on est sur un clone de fin
+    setTimeout(() => {
+      if (currentIndex >= totalOriginalSlides + numClones) {
+        // Jump instantané vers la vraie slide correspondante
+        currentIndex = numClones;
+        updateCarousel(false);
+      }
+      isTransitioning = false;
+    }, 420); // Légèrement plus que la durée de transition
+  }
+
+  function prevSlide() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    currentIndex--;
+    updateCarousel();
+    
+    // Vérifier si on est sur un clone de début
+    setTimeout(() => {
+      if (currentIndex < numClones) {
+        // Jump instantané vers la vraie slide correspondante
+        currentIndex = totalOriginalSlides + numClones - 1;
+        updateCarousel(false);
+      }
+      isTransitioning = false;
+    }, 420);
+  }
+
+  // Auto-play : défilement automatique toutes les 4 secondes
+  function startAutoPlay() {
+    if (autoPlayInterval) return;
+    autoPlayInterval = window.setInterval(() => {
+      if (!isPaused && !isTransitioning) {
+        nextSlide();
+      }
+    }, 4000);
+  }
+
+  function stopAutoPlay() {
+    if (autoPlayInterval) {
+      clearInterval(autoPlayInterval);
+      autoPlayInterval = null;
+    }
+  }
+
+  function resetAutoPlay() {
+    stopAutoPlay();
+    startAutoPlay();
+  }
+
+  // Pause au survol (desktop)
+  carouselContainer?.addEventListener('mouseenter', () => {
+    isPaused = true;
+  });
+
+  carouselContainer?.addEventListener('mouseleave', () => {
+    isPaused = false;
+  });
+
+  // Pause au touch (mobile)
+  track?.addEventListener('touchstart', () => {
+    isPaused = true;
+  });
+
+  track?.addEventListener('touchend', () => {
+    // Reprendre après un court délai pour laisser le temps de swiper
+    setTimeout(() => {
+      isPaused = false;
+    }, 2000);
+  });
+
+  prevBtn?.addEventListener('click', () => {
+    prevSlide();
+    resetAutoPlay();
   });
 
   nextBtn?.addEventListener('click', () => {
-    currentIndex = currentIndex < totalSlides - 1 ? currentIndex + 1 : 0;
-    updateCarousel();
+    nextSlide();
+    resetAutoPlay();
   });
 
-  // Touch support
+  // Touch swipe support
   let touchStartX = 0;
   let touchEndX = 0;
 
@@ -220,16 +376,27 @@ const shareUrl = `https://sonnycourt.com/cc-share/${pageId}`;
   track?.addEventListener('touchend', (e) => {
     touchEndX = e.changedTouches[0].screenX;
     if (touchStartX - touchEndX > 50) {
-      currentIndex = currentIndex < totalSlides - 1 ? currentIndex + 1 : 0;
-      updateCarousel();
+      nextSlide();
+      resetAutoPlay();
     } else if (touchEndX - touchStartX > 50) {
-      currentIndex = currentIndex > 0 ? currentIndex - 1 : totalSlides - 1;
-      updateCarousel();
+      prevSlide();
+      resetAutoPlay();
     }
   });
 
   // Update on resize
-  window.addEventListener('resize', updateCarousel);
+  window.addEventListener('resize', () => updateCarousel(false));
+
+  // Positionner initialement le carousel (sans animation)
+  updateCarousel(false);
+  
+  // Forcer le repositionnement après un court délai (pour s'assurer que les dimensions sont calculées)
+  requestAnimationFrame(() => {
+    updateCarousel(false);
+  });
+
+  // Démarrer l'auto-play
+  startAutoPlay();
 </script>
 
 <!-- Tracking des visites (côté serveur, sans cookies) -->

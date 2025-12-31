@@ -863,26 +863,6 @@ const description = "Découvre nos formations pour maîtriser ton subconscient e
   const form = document.getElementById('inscriptionForm') as HTMLFormElement | null;
   const messageDiv = document.getElementById('formMessage') as HTMLElement | null;
 
-  // Fonction pour générer un token unique (UUID v4)
-  function generateToken(): string {
-    return 'cc_' + crypto.randomUUID();
-  }
-
-  // Fonction pour récupérer ou créer le token
-  function getOrCreateToken(): string {
-    // Vérifier si un token existe déjà dans localStorage
-    let token = localStorage.getItem('cc_token');
-    
-    if (!token) {
-      // Générer un nouveau token
-      token = generateToken();
-      localStorage.setItem('cc_token', token);
-      document.cookie = `cc_token=${token}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
-    }
-    
-    return token;
-  }
-
   if (form && messageDiv) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -891,14 +871,10 @@ const description = "Découvre nos formations pour maîtriser ton subconscient e
       const email = formData.get('email') as string;
       const prenom = formData.get('name') || formData.get('prenom');
       
-      // Générer ou récupérer le token
-      const userToken = getOrCreateToken();
-      
       const data = {
         email: email,
         prenom: prenom,
-        groupId: '173790390929851793',
-        uniqueTokenCC: userToken
+        groupId: '173790390929851793'
       };
 
       // Réinitialiser le message
@@ -924,8 +900,8 @@ const description = "Découvre nos formations pour maîtriser ton subconscient e
           // Simulation en local
           await new Promise(resolve => setTimeout(resolve, 1500));
           console.log('🧪 Mode local : Simulation d\'inscription', data);
-          // Rediriger vers la page de succès même en local avec le token
-          window.location.href = `/court-circuit-success?token=${userToken}`;
+          // Rediriger vers la page de succès
+          window.location.href = `/court-circuit-success`;
           return;
         }
 
@@ -937,26 +913,6 @@ const description = "Découvre nos formations pour maîtriser ton subconscient e
           },
           body: JSON.stringify(data)
         });
-
-        // Initialiser le countdown de 24h pour le token CC
-        if (response.ok) {
-          try {
-            await fetch('/.netlify/functions/init-countdown-cc', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                token: userToken,
-                email: email
-              })
-            });
-            console.log('✅ Countdown CC initialisé avec succès:', userToken);
-          } catch (countdownError) {
-            console.error('⚠️ Erreur initialisation countdown CC:', countdownError);
-            // On continue même si l'initialisation du countdown échoue
-          }
-        }
 
         // Réactiver le bouton
         submitButton.disabled = false;
@@ -978,8 +934,8 @@ const description = "Découvre nos formations pour maîtriser ton subconscient e
             console.error('Erreur webhook n8n:', webhookError);
           }
           
-          // Rediriger vers la page de succès avec le token
-          window.location.href = `/court-circuit-success?token=${userToken}`;
+          // Rediriger vers la page de succès
+          window.location.href = `/court-circuit-success`;
         } else {
           const result = await response.json().catch(() => ({}));
           messageDiv.textContent = result.message || result.error || 'Une erreur est survenue. Veuillez réessayer.';
