@@ -51,19 +51,26 @@ const PHASE2_PALIERS = [
     { heure: 84, places: 52 },     // J11 12h
     { heure: 95, places: 44 },     // J11 23h
     { heure: 108, places: 36 },    // J12 12h
-    { heure: 119, places: 30 },    // J12 23h
-    { heure: 132, places: 24 },    // J13 12h
-    { heure: 142, places: 20 },    // J13 22h - Zone haute conversion
-    { heure: 152, places: 18 },    // J14 8h
-    { heure: 160, places: 16 },    // J14 16h
-    { heure: 167, places: 14 },    // J14 23h
-    { heure: 176, places: 12 },    // J15 8h
-    { heure: 182, places: 10 },    // J15 14h
-    { heure: 188, places: 8 },     // J15 20h
-    { heure: 198, places: 6 },     // J16 6h - Dernier jour
-    { heure: 204, places: 4 },     // J16 12h
-    { heure: 210, places: 2 },     // J16 18h - DERNIÈRE PLACE
-    { heure: 216, places: 0 },     // J16 23h59 - FERMETURE DÉFINITIVE
+    { heure: 119, places: 30 },    // ~77h avant fin - DERNIER PALIER INCHANGÉ
+    // === 72h → 48h : de 30 à 9 places ===
+    { heure: 124, places: 27 },    // 72h avant fin
+    { heure: 128, places: 24 },
+    { heure: 132, places: 21 },
+    { heure: 136, places: 18 },
+    { heure: 140, places: 15 },
+    { heure: 144, places: 12 },
+    { heure: 148, places: 9 },     // 48h avant fin
+    // === 48h → 24h : de 9 à 5 places ===
+    { heure: 154, places: 8 },
+    { heure: 160, places: 7 },
+    { heure: 166, places: 6 },
+    { heure: 172, places: 5 },     // 24h avant fin
+    // === Dernières 24h : de 5 à 0 places ===
+    { heure: 181, places: 4 },
+    { heure: 190, places: 3 },
+    { heure: 199, places: 2 },
+    { heure: 208, places: 1 },
+    { heure: 216, places: 0 },     // FERMETURE DÉFINITIVE
 ];
 
 // Durée totale du countdown initial (16j 4h 30min en secondes)
