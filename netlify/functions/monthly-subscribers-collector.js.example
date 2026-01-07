@@ -1,0 +1,95 @@
+// Netlify Function: Monthly subscribers collector
+// Called on the 1st of each month by cron-job.org
+// IMPORTANT: This file should be in the viral-tracker project, not here
+// This is a reference implementation with cron protection
+
+import { getStore } from '@netlify/blobs';
+
+const STORE_NAME = 'viral-reels';
+const ACCOUNTS_KEY = 'stats-accounts';
+const SUBSCRIBERS_MONTHLY_HISTORY_KEY = 'subscribers-monthly-history';
+
+// ... (fonctions de collecte des abonnés) ...
+
+export const handler = async (event, context) => {
+    console.log('[monthly-collector] Scheduled function triggered at', new Date().toISOString());
+
+    try {
+        const store = getStore({
+            name: STORE_NAME,
+            consistency: 'strong',
+            siteID: process.env.NETLIFY_SITE_ID,
+            token: process.env.NETLIFY_API_TOKEN,
+        });
+
+        // ... (logique de collecte des abonnés) ...
+
+        const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+
+        // Charger l'historique existant
+        let monthlyHistory = [];
+        try {
+            const historyJson = await store.get(SUBSCRIBERS_MONTHLY_HISTORY_KEY);
+            monthlyHistory = historyJson ? JSON.parse(historyJson) : [];
+        } catch (error) {
+            console.error('[monthly-collector] Error loading monthly subscribers history:', error);
+        }
+
+        // Créer la nouvelle entrée avec from_cron: true
+        const newEntry = {
+            date: currentMonth,
+            instagram: results.instagram,
+            youtube: results.youtube,
+            tiktok: results.tiktok,
+            facebook: results.facebook,
+            total: totalSubscribers,
+            from_cron: true  // ⚠️ IMPORTANT: Marquer comme venant du cron job
+        };
+
+        // Convertir en objet avec dates en clés pour la protection
+        let historyObject = {};
+        if (Array.isArray(monthlyHistory)) {
+            for (const entry of monthlyHistory) {
+                historyObject[entry.date] = entry;
+            }
+        } else {
+            historyObject = monthlyHistory;
+        }
+
+        // Le cron job écrase toujours ses propres données (priorité absolue)
+        historyObject[currentMonth] = newEntry;
+
+        // Reconvertir en tableau si nécessaire
+        const updatedHistory = Object.values(historyObject).sort((a, b) => 
+            new Date(a.date) - new Date(b.date)
+        );
+
+        // Sauvegarder
+        await store.set(SUBSCRIBERS_MONTHLY_HISTORY_KEY, JSON.stringify(updatedHistory), {
+            metadata: {
+                updatedAt: new Date().toISOString(),
+                count: updatedHistory.length.toString(),
+            },
+        });
+
+        return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                success: true,
+                date: currentMonth,
+                results: results,
+                total: totalSubscribers,
+                totalEntries: updatedHistory.length,
+            }),
+        };
+    } catch (error) {
+        console.error('[monthly-collector] Unhandled error:', error);
+        return {
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
+        };
+    }
+};
+

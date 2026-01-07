@@ -671,6 +671,21 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             transform: translateY(0);
         }
 
+        .cta-button.disabled {
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0.6;
+        }
+
+        .cta-button.disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+        }
+
         /* Mobile */
         @media (max-width: 768px) {
             .content-wrapper {
@@ -710,14 +725,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const urlParams = new URLSearchParams(window.location.search);
             const previewParam = urlParams.get('preview');
             const isPreviewMode = previewParam === 'true';
+            const isPreviewExpired = previewParam === 'expired';
             
             const tokenFromUrl = urlParams.get('token');
             const storedToken = localStorage.getItem('ssr_token');
             const token = tokenFromUrl || storedToken;
 
             // Mode preview : permettre l'accès sans token
-            if (isPreviewMode) {
-                console.log('🔍 Mode PREVIEW activé - accès sans token');
+            if (isPreviewMode || isPreviewExpired) {
+                console.log('🔍 Mode PREVIEW activé - accès sans token', isPreviewExpired ? '(expired)' : '');
             } else {
                 // Si pas de token et pas en mode preview, rediriger vers la page d'inscription
                 if (!token) {
@@ -739,6 +755,39 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             async function loadSSRData() {
                 const infoWidget = document.getElementById('infoWidget');
                 
+                // Mode preview expired : simuler l'état expiré
+                if (isPreviewExpired) {
+                    if (infoWidget) {
+                        infoWidget.style.display = 'flex';
+                    }
+                    const placesEl = document.getElementById('placesRemaining');
+                    if (placesEl) {
+                        placesEl.textContent = '0';
+                    }
+                    
+                    // Afficher le countdown à zéro
+                    const daysEl = document.getElementById('days');
+                    const hoursEl = document.getElementById('hours');
+                    const minutesEl = document.getElementById('minutes');
+                    if (daysEl && hoursEl && minutesEl) {
+                        daysEl.textContent = '00';
+                        hoursEl.textContent = '00';
+                        minutesEl.textContent = '00';
+                    }
+                    
+                    // Désactiver immédiatement le bouton CTA
+                    const ctaButton = document.getElementById('ctaButton');
+                    if (ctaButton) {
+                        ctaButton.classList.add('disabled');
+                        ctaButton.removeAttribute('href');
+                        ctaButton.style.pointerEvents = 'none';
+                        ctaButton.style.cursor = 'not-allowed';
+                    }
+                    
+                    console.log('🔍 Mode PREVIEW EXPIRED - countdown à zéro, bouton désactivé');
+                    return;
+                }
+                
                 // Mode preview : afficher des données de démo avec countdown animé
                 if (isPreviewMode) {
                     if (infoWidget) {
@@ -757,10 +806,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         let totalSeconds = 5 * 86400 + 12 * 3600 + 30 * 60;
                         
                         function updatePreviewCountdown() {
+                            const ctaButton = document.getElementById('ctaButton');
+                            
                             if (totalSeconds <= 0) {
                                 daysEl.textContent = '00';
                                 hoursEl.textContent = '00';
                                 minutesEl.textContent = '00';
+                                
+                                // Désactiver le bouton CTA
+                                if (ctaButton) {
+                                    ctaButton.classList.add('disabled');
+                                    ctaButton.removeAttribute('href');
+                                    ctaButton.style.pointerEvents = 'none';
+                                    ctaButton.style.cursor = 'not-allowed';
+                                }
                                 return;
                             }
                             
@@ -831,10 +890,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             const secondsElapsed = now - startTime;
                             const timeRemaining = Math.max(0, TOTAL_COUNTDOWN_SECONDS - secondsElapsed);
                             
+                            const ctaButton = document.getElementById('ctaButton');
+                            
                             if (timeRemaining <= 0) {
                                 daysEl.textContent = '00';
                                 hoursEl.textContent = '00';
                                 minutesEl.textContent = '00';
+                                
+                                // Désactiver le bouton CTA
+                                if (ctaButton) {
+                                    ctaButton.classList.add('disabled');
+                                    ctaButton.removeAttribute('href');
+                                    ctaButton.style.pointerEvents = 'none';
+                                    ctaButton.style.cursor = 'not-allowed';
+                                }
                                 return;
                             }
                             
@@ -849,6 +918,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
                         // Mise à jour initiale
                         updateCountdown();
+                        
+                        // Vérifier immédiatement si le countdown est déjà à zéro
+                        const now = Math.floor(Date.now() / 1000);
+                        const secondsElapsed = now - startTime;
+                        const timeRemaining = Math.max(0, TOTAL_COUNTDOWN_SECONDS - secondsElapsed);
+                        if (timeRemaining <= 0) {
+                            const ctaButton = document.getElementById('ctaButton');
+                            if (ctaButton) {
+                                ctaButton.classList.add('disabled');
+                                ctaButton.removeAttribute('href');
+                                ctaButton.style.pointerEvents = 'none';
+                                ctaButton.style.cursor = 'not-allowed';
+                            }
+                        }
 
                         // Mettre à jour toutes les secondes pour un countdown en temps réel
                         setInterval(updateCountdown, 1000);
