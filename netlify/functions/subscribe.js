@@ -1,3 +1,69 @@
+// Fonction pour détecter le pays depuis l'IP côté serveur
+async function detectCountryFromIP(ip) {
+    if (!ip) return null;
+    
+    try {
+        // Nettoyer l'IP (prendre la première si plusieurs dans x-forwarded-for)
+        const cleanIP = ip.split(',')[0].trim();
+        
+        // Éviter les IPs locales/internes
+        if (cleanIP === '127.0.0.1' || cleanIP.startsWith('192.168.') || cleanIP.startsWith('10.') || cleanIP.startsWith('172.')) {
+            return null;
+        }
+        
+        // Requête à ipapi.co avec timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // Timeout de 2 secondes
+        
+        const response = await fetch(`https://ipapi.co/${cleanIP}/json/`, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Netlify-Function/1.0'
+            }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            const data = await response.json();
+            // Retourner le nom du pays en français si disponible, sinon le code pays
+            return data.country_name || data.country || null;
+        }
+        
+        return null;
+    } catch (error) {
+        // Erreur silencieuse - on continue sans pays
+        console.log(`⚠️ Erreur détection pays pour IP ${ip}:`, error.message);
+        return null;
+    }
+}
+
+// Fonction pour extraire l'IP depuis les headers Netlify
+function getClientIP(event) {
+    // Netlify met l'IP dans x-forwarded-for ou x-nf-client-connection-ip
+    const forwardedFor = event.headers['x-forwarded-for'];
+    const nfClientIP = event.headers['x-nf-client-connection-ip'];
+    const clientIP = event.headers['client-ip'];
+    
+    // Priorité : x-nf-client-connection-ip > x-forwarded-for > client-ip
+    if (nfClientIP) {
+        return nfClientIP;
+    }
+    if (forwardedFor) {
+        return forwardedFor;
+    }
+    if (clientIP) {
+        return clientIP;
+    }
+    
+    // Fallback pour AWS Lambda
+    if (event.requestContext && event.requestContext.identity) {
+        return event.requestContext.identity.sourceIp;
+    }
+    
+    return null;
+}
+
 exports.handler = async (event, context) => {
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
@@ -76,9 +142,29 @@ exports.handler = async (event, context) => {
             fields.phone = fullPhone;
         }
         
-        // Ajouter le pays si fourni
-        if (country) {
-            fields.Country = country;
+        // Détection automatique du pays côté serveur si non fourni
+        let detectedCountry = country;
+        if (!detectedCountry) {
+            const clientIP = getClientIP(event);
+            if (clientIP) {
+                // Détection avec timeout pour ne pas ralentir l'inscription
+                try {
+                    const countryPromise = detectCountryFromIP(clientIP);
+                    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500)); // Timeout de 1.5s
+                    detectedCountry = await Promise.race([countryPromise, timeoutPromise]);
+                    if (detectedCountry) {
+                        console.log(`🌍 Pays détecté côté serveur pour ${email}: ${detectedCountry}`);
+                    }
+                } catch (error) {
+                    // Erreur silencieuse - on continue sans pays
+                    console.log(`⚠️ Erreur détection pays pour ${email}:`, error.message);
+                }
+            }
+        }
+        
+        // Ajouter le pays si fourni (priorité au pays envoyé depuis le client, sinon pays détecté)
+        if (detectedCountry) {
+            fields.Country = detectedCountry;
         }
         
         // Ajouter le token unique si fourni (pour Esprit Subconscient)
