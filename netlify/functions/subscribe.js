@@ -26,11 +26,14 @@ async function detectLocationFromIP(ip) {
         
         if (response.ok) {
             const data = await response.json();
+            console.log(`📡 Réponse ipapi.co pour IP ${cleanIP}:`, JSON.stringify({ country: data.country_name || data.country, city: data.city }));
             // Retourner le pays et la ville
             return {
                 country: data.country_name || data.country || null,
                 city: data.city || null
             };
+        } else {
+            console.log(`⚠️ Réponse ipapi.co non OK pour IP ${cleanIP}: status ${response.status}`);
         }
         
         return { country: null, city: null };
@@ -173,9 +176,15 @@ exports.handler = async (event, context) => {
         if (clientIP) {
             // Détection avec timeout pour ne pas ralentir l'inscription
             try {
+                console.log(`🔄 Démarrage détection IP pour ${email}...`);
                 const locationPromise = detectLocationFromIP(clientIP);
-                const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ country: null, city: null }), 1500)); // Timeout de 1.5s
+                const timeoutPromise = new Promise((resolve) => setTimeout(() => {
+                    console.log(`⏱️ Timeout détection IP pour ${email} (1.5s)`);
+                    resolve({ country: null, city: null });
+                }, 1500)); // Timeout de 1.5s
                 const location = await Promise.race([locationPromise, timeoutPromise]);
+                
+                console.log(`📊 Résultat détection pour ${email}:`, JSON.stringify(location));
                 
                 // Utiliser le pays détecté seulement si non fourni par le client
                 if (!detectedCountry && location.country) {
@@ -189,6 +198,8 @@ exports.handler = async (event, context) => {
                 if (location.city) {
                     detectedCity = location.city;
                     console.log(`🏙️ Ville détectée côté serveur pour ${email}: ${detectedCity}`);
+                } else {
+                    console.log(`⚠️ Aucune ville dans la réponse pour ${email}`);
                 }
                 
                 if (!detectedCountry && !detectedCity) {
