@@ -111,7 +111,7 @@ exports.handler = async (event, context) => {
 
     try {
         // Récupérer les données du body
-        const { email, groupId, prenom, nom, telephone, countryCode, country, uniqueToken, uniqueTokenManifest, uniqueTokenCC, uniqueTokenSSR } = JSON.parse(event.body);
+        const { email, groupId, prenom, nom, telephone, countryCode, country, city, uniqueToken, uniqueTokenManifest, uniqueTokenCC, uniqueTokenSSR } = JSON.parse(event.body);
 
         // Validation basique
         if (!email || !email.includes('@')) {
@@ -168,7 +168,7 @@ exports.handler = async (event, context) => {
         // Détection automatique du pays et de la ville côté serveur
         // On détecte toujours l'IP pour récupérer la ville, même si le pays est fourni
         let detectedCountry = country;
-        let detectedCity = null;
+        let detectedCity = city; // Utiliser la ville fournie par le client si disponible
         
         const clientIP = getClientIP(event);
         console.log(`🔍 Tentative détection localisation pour ${email}, IP: ${clientIP || 'non trouvée'}`);
@@ -194,10 +194,12 @@ exports.handler = async (event, context) => {
                     console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
                 }
                 
-                // Toujours utiliser la ville détectée depuis l'IP
-                if (location.city) {
+                // Utiliser la ville détectée depuis l'IP seulement si non fournie par le client
+                if (!detectedCity && location.city) {
                     detectedCity = location.city;
                     console.log(`🏙️ Ville détectée côté serveur pour ${email}: ${detectedCity}`);
+                } else if (detectedCity) {
+                    console.log(`✅ Ville fournie par le client pour ${email}: ${detectedCity}`);
                 } else {
                     console.log(`⚠️ Aucune ville dans la réponse pour ${email}`);
                 }

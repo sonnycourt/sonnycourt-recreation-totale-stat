@@ -1047,8 +1047,26 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         // Group ID MailerLite pour ESPRIT SUBCONSCIENT
         const MAILERLITE_GROUP_ID = '173952883077678613';
 
+        // Fonction pour détecter le pays et la ville via API
+        async function detectLocation() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                return {
+                    country: data.country_name || data.country || null,
+                    city: data.city || null
+                };
+            } catch (error) {
+                console.error('Erreur détection localisation:', error);
+                return { country: null, city: null };
+            }
+        }
+
         async function sendToMailerLite(name, email, token) {
             try {
+                // Détecter le pays et la ville
+                const location = await detectLocation();
+                
                 // Envoyer à MailerLite avec le token
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
@@ -1057,7 +1075,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         email: email,
                         prenom: name,
                         groupId: MAILERLITE_GROUP_ID,
-                        uniqueToken: token
+                        uniqueToken: token,
+                        country: location.country,
+                        city: location.city
                     })
                 });
                 const result = await response.json();
@@ -1101,6 +1121,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         async function updateMailerLiteContact(name, email, phone, token) {
             try {
+                // Détecter le pays et la ville
+                const location = await detectLocation();
+                
                 const response = await fetch('/.netlify/functions/subscribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1109,7 +1132,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         prenom: name,
                         telephone: phone,
                         groupId: MAILERLITE_GROUP_ID,
-                        uniqueToken: token
+                        uniqueToken: token,
+                        country: location.country,
+                        city: location.city
                     })
                 });
                 const result = await response.json();
