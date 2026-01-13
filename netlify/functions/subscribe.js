@@ -1,6 +1,6 @@
-// Fonction pour détecter le pays depuis l'IP côté serveur
-async function detectCountryFromIP(ip) {
-    if (!ip) return null;
+// Fonction pour détecter le pays et la ville depuis l'IP côté serveur
+async function detectLocationFromIP(ip) {
+    if (!ip) return { country: null, city: null };
     
     try {
         // Nettoyer l'IP (prendre la première si plusieurs dans x-forwarded-for)
@@ -8,7 +8,7 @@ async function detectCountryFromIP(ip) {
         
         // Éviter les IPs locales/internes
         if (cleanIP === '127.0.0.1' || cleanIP.startsWith('192.168.') || cleanIP.startsWith('10.') || cleanIP.startsWith('172.')) {
-            return null;
+            return { country: null, city: null };
         }
         
         // Requête à ipapi.co avec timeout
@@ -26,15 +26,18 @@ async function detectCountryFromIP(ip) {
         
         if (response.ok) {
             const data = await response.json();
-            // Retourner le nom du pays en français si disponible, sinon le code pays
-            return data.country_name || data.country || null;
+            // Retourner le pays et la ville
+            return {
+                country: data.country_name || data.country || null,
+                city: data.city || null
+            };
         }
         
-        return null;
+        return { country: null, city: null };
     } catch (error) {
-        // Erreur silencieuse - on continue sans pays
-        console.log(`⚠️ Erreur détection pays pour IP ${ip}:`, error.message);
-        return null;
+        // Erreur silencieuse - on continue sans localisation
+        console.log(`⚠️ Erreur détection localisation pour IP ${ip}:`, error.message);
+        return { country: null, city: null };
     }
 }
 
@@ -159,25 +162,32 @@ exports.handler = async (event, context) => {
             fields.phone = fullPhone;
         }
         
-        // Détection automatique du pays côté serveur si non fourni
+        // Détection automatique du pays et de la ville côté serveur si non fourni
         let detectedCountry = country;
+        let detectedCity = null;
         if (!detectedCountry) {
             const clientIP = getClientIP(event);
-            console.log(`🔍 Tentative détection pays pour ${email}, IP: ${clientIP || 'non trouvée'}`);
+            console.log(`🔍 Tentative détection localisation pour ${email}, IP: ${clientIP || 'non trouvée'}`);
             if (clientIP) {
                 // Détection avec timeout pour ne pas ralentir l'inscription
                 try {
-                    const countryPromise = detectCountryFromIP(clientIP);
-                    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500)); // Timeout de 1.5s
-                    detectedCountry = await Promise.race([countryPromise, timeoutPromise]);
+                    const locationPromise = detectLocationFromIP(clientIP);
+                    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ country: null, city: null }), 1500)); // Timeout de 1.5s
+                    const location = await Promise.race([locationPromise, timeoutPromise]);
+                    detectedCountry = location.country;
+                    detectedCity = location.city;
                     if (detectedCountry) {
                         console.log(`🌍 Pays détecté côté serveur pour ${email}: ${detectedCountry}`);
-                    } else {
-                        console.log(`⚠️ Aucun pays détecté pour ${email} (IP: ${clientIP})`);
+                    }
+                    if (detectedCity) {
+                        console.log(`🏙️ Ville détectée côté serveur pour ${email}: ${detectedCity}`);
+                    }
+                    if (!detectedCountry && !detectedCity) {
+                        console.log(`⚠️ Aucune localisation détectée pour ${email} (IP: ${clientIP})`);
                     }
                 } catch (error) {
-                    // Erreur silencieuse - on continue sans pays
-                    console.log(`⚠️ Erreur détection pays pour ${email}:`, error.message);
+                    // Erreur silencieuse - on continue sans localisation
+                    console.log(`⚠️ Erreur détection localisation pour ${email}:`, error.message);
                 }
             } else {
                 console.log(`⚠️ IP non disponible pour ${email}`);
@@ -195,6 +205,7 @@ exports.handler = async (event, context) => {
 
         // Récupérer les champs personnalisés disponibles dans MailerLite pour vérifier le nom exact
         let countryFieldName = null;
+        let cityFieldName = null;
         try {
             const fieldsResponse = await fetch('https://connect.mailerlite.com/api/fields', {
                 method: 'GET',
@@ -211,6 +222,17 @@ exports.handler = async (event, context) => {
                     console.log(`🔍 Champ pays trouvé dans MailerLite: "${countryFieldName}"`);
                 } else {
                     console.log(`⚠️ Aucun champ pays trouvé dans MailerLite`);
+                }
+                
+                // Chercher le champ qui contient "city" ou "ville" (insensible à la casse)
+                const cityField = fieldsData.data?.find(field => 
+                    field.key && (field.key.toLowerCase().includes('city') || field.key.toLowerCase().includes('ville'))
+                );
+                if (cityField) {
+                    cityFieldName = cityField.key;
+                    console.log(`🔍 Champ ville trouvé dans MailerLite: "${cityFieldName}"`);
+                } else {
+                    console.log(`⚠️ Aucun champ ville trouvé dans MailerLite`);
                 }
             }
         } catch (e) {
@@ -231,6 +253,22 @@ exports.handler = async (event, context) => {
             }
         } else {
             console.log(`⚠️ Aucun pays à ajouter pour ${email}`);
+        }
+
+        // Ajouter la ville si détectée
+        if (detectedCity) {
+            // Utiliser le nom exact du champ si trouvé, sinon essayer les variantes
+            if (cityFieldName) {
+                fields[cityFieldName] = detectedCity;
+                console.log(`📝 Ville ajoutée avec le nom exact du champ: ${cityFieldName} = ${detectedCity}`);
+            } else {
+                // Fallback: essayer les variantes communes
+                fields.City = detectedCity;
+                fields.city = detectedCity;
+                fields.Ville = detectedCity;
+                fields.ville = detectedCity;
+                console.log(`📝 Ville ajoutée aux fields (variantes): ${detectedCity}`);
+            }
         }
         
         // Ajouter le token unique si fourni (pour Esprit Subconscient)
