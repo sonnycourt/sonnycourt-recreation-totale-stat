@@ -235,15 +235,24 @@ exports.handler = async (event, context) => {
             });
             if (fieldsResponse.ok) {
                 const fieldsData = await fieldsResponse.json();
-                // Chercher le champ qui contient "country" (insensible à la casse)
+                // Chercher le champ "location" (utilisé pour le pays dans MailerLite)
                 const countryField = fieldsData.data?.find(field => 
-                    field.key && field.key.toLowerCase().includes('country')
+                    field.key && field.key.toLowerCase() === 'location'
                 );
                 if (countryField) {
                     countryFieldName = countryField.key;
-                    console.log(`🔍 Champ pays trouvé dans MailerLite: "${countryFieldName}"`);
+                    console.log(`🔍 Champ location trouvé dans MailerLite: "${countryFieldName}"`);
                 } else {
-                    console.log(`⚠️ Aucun champ pays trouvé dans MailerLite`);
+                    // Fallback: chercher "country" si "location" n'existe pas
+                    const fallbackField = fieldsData.data?.find(field => 
+                        field.key && field.key.toLowerCase().includes('country')
+                    );
+                    if (fallbackField) {
+                        countryFieldName = fallbackField.key;
+                        console.log(`🔍 Champ pays (fallback) trouvé dans MailerLite: "${countryFieldName}"`);
+                    } else {
+                        console.log(`⚠️ Aucun champ location/country trouvé dans MailerLite`);
+                    }
                 }
                 
                 // Chercher le champ qui contient "city" ou "ville" (insensible à la casse)
@@ -266,12 +275,12 @@ exports.handler = async (event, context) => {
             // Utiliser le nom exact du champ si trouvé, sinon essayer les variantes
             if (countryFieldName) {
                 fields[countryFieldName] = detectedCountry;
-                console.log(`📝 Pays ajouté avec le nom exact du champ: ${countryFieldName} = ${detectedCountry}`);
+                console.log(`📝 Pays ajouté dans le champ location: ${countryFieldName} = ${detectedCountry}`);
             } else {
-                // Fallback: essayer les variantes communes
-                fields.Country = detectedCountry;
-                fields.country = detectedCountry;
-                console.log(`📝 Pays ajouté aux fields (variantes): ${detectedCountry}`);
+                // Fallback: utiliser "location" par défaut (nom standard dans MailerLite)
+                fields.location = detectedCountry;
+                fields.Location = detectedCountry;
+                console.log(`📝 Pays ajouté dans location (fallback): ${detectedCountry}`);
             }
         } else {
             console.log(`⚠️ Aucun pays à ajouter pour ${email}`);
