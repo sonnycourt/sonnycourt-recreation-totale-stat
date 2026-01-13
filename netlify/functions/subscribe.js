@@ -186,13 +186,49 @@ exports.handler = async (event, context) => {
             console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
         }
         
+        // Headers pour les appels API
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json'
+        };
+
+        // Récupérer les champs personnalisés disponibles dans MailerLite pour vérifier le nom exact
+        let countryFieldName = null;
+        try {
+            const fieldsResponse = await fetch('https://connect.mailerlite.com/api/fields', {
+                method: 'GET',
+                headers: headers
+            });
+            if (fieldsResponse.ok) {
+                const fieldsData = await fieldsResponse.json();
+                // Chercher le champ qui contient "country" (insensible à la casse)
+                const countryField = fieldsData.data?.find(field => 
+                    field.key && field.key.toLowerCase().includes('country')
+                );
+                if (countryField) {
+                    countryFieldName = countryField.key;
+                    console.log(`🔍 Champ pays trouvé dans MailerLite: "${countryFieldName}"`);
+                } else {
+                    console.log(`⚠️ Aucun champ pays trouvé dans MailerLite`);
+                }
+            }
+        } catch (e) {
+            console.log(`⚠️ Impossible de récupérer les champs MailerLite: ${e.message}`);
+        }
+
         // Ajouter le pays si fourni (priorité au pays envoyé depuis le client, sinon pays détecté)
         if (detectedCountry) {
-            // MailerLite peut accepter "Country" ou "country" selon la configuration
-            // On essaie les deux formats pour être sûr
-            fields.Country = detectedCountry;
-            fields.country = detectedCountry; // Format alternatif
-            console.log(`📝 Pays ajouté aux fields: ${detectedCountry}`);
+            // Utiliser le nom exact du champ si trouvé, sinon essayer les variantes
+            if (countryFieldName) {
+                fields[countryFieldName] = detectedCountry;
+                console.log(`📝 Pays ajouté avec le nom exact du champ: ${countryFieldName} = ${detectedCountry}`);
+            } else {
+                // Fallback: essayer les variantes communes
+                fields.Country = detectedCountry;
+                fields.country = detectedCountry;
+                console.log(`📝 Pays ajouté aux fields (variantes): ${detectedCountry}`);
+            }
         } else {
             console.log(`⚠️ Aucun pays à ajouter pour ${email}`);
         }
@@ -216,13 +252,6 @@ exports.handler = async (event, context) => {
         if (uniqueTokenSSR) {
             fields.unique_token_ssr = uniqueTokenSSR;
         }
-
-        // Headers pour les appels API
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'application/json'
-        };
 
         // ÉTAPE 1: Vérifier si le contact existe déjà
         let subscriberId = null;
