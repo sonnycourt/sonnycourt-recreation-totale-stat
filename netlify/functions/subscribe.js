@@ -188,7 +188,13 @@ exports.handler = async (event, context) => {
         
         // Ajouter le pays si fourni (priorité au pays envoyé depuis le client, sinon pays détecté)
         if (detectedCountry) {
+            // MailerLite peut accepter "Country" ou "country" selon la configuration
+            // On essaie les deux formats pour être sûr
             fields.Country = detectedCountry;
+            fields.country = detectedCountry; // Format alternatif
+            console.log(`📝 Pays ajouté aux fields: ${detectedCountry}`);
+        } else {
+            console.log(`⚠️ Aucun pays à ajouter pour ${email}`);
         }
         
         // Ajouter le token unique si fourni (pour Esprit Subconscient)
@@ -252,7 +258,7 @@ exports.handler = async (event, context) => {
                 updateData.fields = fields;
             }
 
-            console.log(`🔄 Mise à jour du contact ${email} avec:`, JSON.stringify(updateData));
+            console.log(`🔄 Mise à jour du contact ${email} avec:`, JSON.stringify(updateData, null, 2));
 
             mailerliteResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${subscriberId}`, {
                 method: 'PUT',
@@ -280,7 +286,7 @@ exports.handler = async (event, context) => {
                 createData.fields = fields;
             }
 
-            console.log(`➕ Création du contact ${email} avec:`, JSON.stringify(createData));
+            console.log(`➕ Création du contact ${email} avec:`, JSON.stringify(createData, null, 2));
 
             mailerliteResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
                 method: 'POST',
