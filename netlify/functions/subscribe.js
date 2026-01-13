@@ -162,38 +162,47 @@ exports.handler = async (event, context) => {
             fields.phone = fullPhone;
         }
         
-        // Détection automatique du pays et de la ville côté serveur si non fourni
+        // Détection automatique du pays et de la ville côté serveur
+        // On détecte toujours l'IP pour récupérer la ville, même si le pays est fourni
         let detectedCountry = country;
         let detectedCity = null;
-        if (!detectedCountry) {
-            const clientIP = getClientIP(event);
-            console.log(`🔍 Tentative détection localisation pour ${email}, IP: ${clientIP || 'non trouvée'}`);
-            if (clientIP) {
-                // Détection avec timeout pour ne pas ralentir l'inscription
-                try {
-                    const locationPromise = detectLocationFromIP(clientIP);
-                    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ country: null, city: null }), 1500)); // Timeout de 1.5s
-                    const location = await Promise.race([locationPromise, timeoutPromise]);
+        
+        const clientIP = getClientIP(event);
+        console.log(`🔍 Tentative détection localisation pour ${email}, IP: ${clientIP || 'non trouvée'}`);
+        
+        if (clientIP) {
+            // Détection avec timeout pour ne pas ralentir l'inscription
+            try {
+                const locationPromise = detectLocationFromIP(clientIP);
+                const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ country: null, city: null }), 1500)); // Timeout de 1.5s
+                const location = await Promise.race([locationPromise, timeoutPromise]);
+                
+                // Utiliser le pays détecté seulement si non fourni par le client
+                if (!detectedCountry && location.country) {
                     detectedCountry = location.country;
-                    detectedCity = location.city;
-                    if (detectedCountry) {
-                        console.log(`🌍 Pays détecté côté serveur pour ${email}: ${detectedCountry}`);
-                    }
-                    if (detectedCity) {
-                        console.log(`🏙️ Ville détectée côté serveur pour ${email}: ${detectedCity}`);
-                    }
-                    if (!detectedCountry && !detectedCity) {
-                        console.log(`⚠️ Aucune localisation détectée pour ${email} (IP: ${clientIP})`);
-                    }
-                } catch (error) {
-                    // Erreur silencieuse - on continue sans localisation
-                    console.log(`⚠️ Erreur détection localisation pour ${email}:`, error.message);
+                    console.log(`🌍 Pays détecté côté serveur pour ${email}: ${detectedCountry}`);
+                } else if (detectedCountry) {
+                    console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
                 }
-            } else {
-                console.log(`⚠️ IP non disponible pour ${email}`);
+                
+                // Toujours utiliser la ville détectée depuis l'IP
+                if (location.city) {
+                    detectedCity = location.city;
+                    console.log(`🏙️ Ville détectée côté serveur pour ${email}: ${detectedCity}`);
+                }
+                
+                if (!detectedCountry && !detectedCity) {
+                    console.log(`⚠️ Aucune localisation détectée pour ${email} (IP: ${clientIP})`);
+                }
+            } catch (error) {
+                // Erreur silencieuse - on continue sans localisation
+                console.log(`⚠️ Erreur détection localisation pour ${email}:`, error.message);
             }
         } else {
-            console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
+            console.log(`⚠️ IP non disponible pour ${email}`);
+            if (detectedCountry) {
+                console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
+            }
         }
         
         // Headers pour les appels API
