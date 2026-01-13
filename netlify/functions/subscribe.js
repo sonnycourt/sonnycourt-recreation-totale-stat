@@ -41,26 +41,43 @@ async function detectCountryFromIP(ip) {
 // Fonction pour extraire l'IP depuis les headers Netlify
 function getClientIP(event) {
     // Netlify met l'IP dans x-forwarded-for ou x-nf-client-connection-ip
-    const forwardedFor = event.headers['x-forwarded-for'];
-    const nfClientIP = event.headers['x-nf-client-connection-ip'];
-    const clientIP = event.headers['client-ip'];
+    // Les headers sont en minuscules dans Netlify Functions
+    const headers = event.headers || {};
+    const forwardedFor = headers['x-forwarded-for'] || headers['X-Forwarded-For'];
+    const nfClientIP = headers['x-nf-client-connection-ip'] || headers['X-Nf-Client-Connection-Ip'];
+    const clientIP = headers['client-ip'] || headers['Client-Ip'];
+    
+    // Debug: logger les headers pour diagnostic
+    console.log('🔍 Headers IP disponibles:', {
+        'x-forwarded-for': forwardedFor,
+        'x-nf-client-connection-ip': nfClientIP,
+        'client-ip': clientIP
+    });
     
     // Priorité : x-nf-client-connection-ip > x-forwarded-for > client-ip
     if (nfClientIP) {
+        console.log('✅ IP récupérée depuis x-nf-client-connection-ip:', nfClientIP);
         return nfClientIP;
     }
     if (forwardedFor) {
+        console.log('✅ IP récupérée depuis x-forwarded-for:', forwardedFor);
         return forwardedFor;
     }
     if (clientIP) {
+        console.log('✅ IP récupérée depuis client-ip:', clientIP);
         return clientIP;
     }
     
     // Fallback pour AWS Lambda
     if (event.requestContext && event.requestContext.identity) {
-        return event.requestContext.identity.sourceIp;
+        const sourceIp = event.requestContext.identity.sourceIp;
+        if (sourceIp) {
+            console.log('✅ IP récupérée depuis requestContext:', sourceIp);
+            return sourceIp;
+        }
     }
     
+    console.log('⚠️ Aucune IP trouvée dans les headers');
     return null;
 }
 
@@ -146,6 +163,7 @@ exports.handler = async (event, context) => {
         let detectedCountry = country;
         if (!detectedCountry) {
             const clientIP = getClientIP(event);
+            console.log(`🔍 Tentative détection pays pour ${email}, IP: ${clientIP || 'non trouvée'}`);
             if (clientIP) {
                 // Détection avec timeout pour ne pas ralentir l'inscription
                 try {
@@ -154,12 +172,18 @@ exports.handler = async (event, context) => {
                     detectedCountry = await Promise.race([countryPromise, timeoutPromise]);
                     if (detectedCountry) {
                         console.log(`🌍 Pays détecté côté serveur pour ${email}: ${detectedCountry}`);
+                    } else {
+                        console.log(`⚠️ Aucun pays détecté pour ${email} (IP: ${clientIP})`);
                     }
                 } catch (error) {
                     // Erreur silencieuse - on continue sans pays
                     console.log(`⚠️ Erreur détection pays pour ${email}:`, error.message);
                 }
+            } else {
+                console.log(`⚠️ IP non disponible pour ${email}`);
             }
+        } else {
+            console.log(`✅ Pays fourni par le client pour ${email}: ${detectedCountry}`);
         }
         
         // Ajouter le pays si fourni (priorité au pays envoyé depuis le client, sinon pays détecté)
