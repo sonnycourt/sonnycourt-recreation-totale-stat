@@ -198,17 +198,27 @@ L'email doit se terminer par un lien vers le Pack Complet : https://sonnycourt.c
         let subject = '';
         let body = '';
         
-        // Chercher le format SUBJECT: ... BODY: ...
-        const subjectMatch = content.match(/SUBJECT:\s*(.+?)(?:\n|$)/i);
-        const bodyMatch = content.match(/BODY:\s*([\s\S]+?)(?:\n\n|$)/i) || content.match(/BODY:\s*([\s\S]+)/i);
+        // Approche basée sur indexOf pour éviter les problèmes de regex
+        const subjectIndex = content.indexOf('SUBJECT:');
+        const bodyIndex = content.indexOf('BODY:');
         
-        if (subjectMatch) {
-            subject = subjectMatch[1].trim();
-        }
-        
-        if (bodyMatch) {
-            body = bodyMatch[1].trim();
-        } else if (!subjectMatch) {
+        if (subjectIndex !== -1 && bodyIndex !== -1) {
+            // Extraire le subject entre SUBJECT: et BODY:
+            const subjectText = content.substring(subjectIndex + 8, bodyIndex); // 8 = longueur de "SUBJECT:"
+            subject = subjectText.trim();
+            
+            // Extraire tout le texte après BODY:
+            const bodyText = content.substring(bodyIndex + 5); // 5 = longueur de "BODY:"
+            body = bodyText.trim();
+        } else if (subjectIndex !== -1) {
+            // Seulement SUBJECT: trouvé
+            const subjectText = content.substring(subjectIndex + 8);
+            subject = subjectText.trim();
+        } else if (bodyIndex !== -1) {
+            // Seulement BODY: trouvé
+            const bodyText = content.substring(bodyIndex + 5);
+            body = bodyText.trim();
+        } else {
             // Fallback : si le format n'est pas respecté, utiliser tout le contenu comme body
             body = content.trim();
             subject = 'Email personnalisé';
