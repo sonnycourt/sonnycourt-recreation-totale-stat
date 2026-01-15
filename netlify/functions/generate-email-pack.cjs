@@ -188,9 +188,11 @@ L'email doit se terminer par un lien vers le Pack Complet : https://sonnycourt.c
 
         const anthropicData = await anthropicResponse.json();
         console.log('✅ Réponse Anthropic reçue');
+        console.log('Réponse Anthropic brute:', JSON.stringify(anthropicData, null, 2));
 
         // Extraire le contenu de la réponse
         const content = anthropicData.content?.[0]?.text || '';
+        console.log('Contenu brut extrait:', content);
         
         // Parser le contenu pour extraire SUBJECT et BODY
         let subject = '';
@@ -211,6 +213,9 @@ L'email doit se terminer par un lien vers le Pack Complet : https://sonnycourt.c
             body = content.trim();
             subject = 'Email personnalisé';
         }
+        
+        console.log('Subject extrait:', subject);
+        console.log('Body extrait:', body);
         
         const result = {
             subject: subject || 'Email personnalisé',
