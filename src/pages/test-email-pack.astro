@@ -1,0 +1,114 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout 
+  title="Test Email Pack - Sonny Court" 
+  description="Page de test pour l'endpoint generate-email-pack"
+  showHeader={false}
+  showFooter={false}
+>
+  <div style="min-height: 100vh; background: #0a0a0a; color: #fff; padding: 40px 20px; font-family: system-ui, -apple-system, sans-serif;">
+    <div style="max-width: 800px; margin: 0 auto;">
+      <h1 style="font-size: 32px; margin-bottom: 30px; color: #f59e0b;">Test Email Pack Generator</h1>
+      
+      <form id="testForm" style="background: #1a1a1a; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
+        <label for="email" style="display: block; margin-bottom: 10px; font-weight: 600;">
+          Email :
+        </label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          required
+          placeholder="exemple@email.com"
+          style="width: 100%; padding: 12px; border: 1px solid #333; border-radius: 8px; background: #0a0a0a; color: #fff; font-size: 16px; margin-bottom: 20px; box-sizing: border-box;"
+        />
+        <button 
+          type="submit"
+          style="background: #f59e0b; color: #000; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;"
+          onmouseover="this.style.opacity='0.9'"
+          onmouseout="this.style.opacity='1'"
+        >
+          Générer l'email
+        </button>
+      </form>
+
+      <div id="loading" style="display: none; text-align: center; padding: 20px; color: #f59e0b;">
+        ⏳ Génération en cours...
+      </div>
+
+      <div id="error" style="display: none; background: #7f1d1d; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dc2626;">
+        <h3 style="color: #fca5a5; margin-top: 0;">❌ Erreur</h3>
+        <pre id="errorMessage" style="color: #fca5a5; white-space: pre-wrap; margin: 0;"></pre>
+      </div>
+
+      <div id="result" style="display: none; background: #1a1a1a; padding: 30px; border-radius: 12px;">
+        <h2 style="color: #f59e0b; margin-top: 0;">✅ Résultat</h2>
+        
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: #fff; margin-bottom: 10px; font-size: 18px;">Subject :</h3>
+          <div id="subject" style="background: #0a0a0a; padding: 15px; border-radius: 8px; border: 1px solid #333; color: #fff; font-size: 16px; font-weight: 600;"></div>
+        </div>
+
+        <div>
+          <h3 style="color: #fff; margin-bottom: 10px; font-size: 18px;">Body :</h3>
+          <div id="body" style="background: #0a0a0a; padding: 15px; border-radius: 8px; border: 1px solid #333; color: #fff; font-size: 14px; line-height: 1.6; white-space: pre-wrap;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const form = document.getElementById('testForm');
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const errorMessage = document.getElementById('errorMessage');
+  const result = document.getElementById('result');
+  const subjectDiv = document.getElementById('subject');
+  const bodyDiv = document.getElementById('body');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Masquer les résultats précédents
+    error.style.display = 'none';
+    result.style.display = 'none';
+    loading.style.display = 'block';
+
+    const email = document.getElementById('email').value;
+
+    try {
+      const response = await fetch('/api/generate-email-pack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+
+      loading.style.display = 'none';
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        errorMessage.textContent = JSON.stringify(errorData, null, 2);
+        error.style.display = 'block';
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Afficher le résultat
+      subjectDiv.textContent = data.subject || 'Aucun sujet';
+      bodyDiv.textContent = data.body || 'Aucun contenu';
+      result.style.display = 'block';
+
+    } catch (err) {
+      loading.style.display = 'none';
+      errorMessage.textContent = `Erreur: ${err.message}`;
+      error.style.display = 'block';
+      console.error('Erreur:', err);
+    }
+  });
+</script>
