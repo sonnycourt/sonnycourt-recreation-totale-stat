@@ -34,8 +34,8 @@ const handler = async (event) => {
 
     try {
         // Parser le body de la requête
-        const body = JSON.parse(event.body || '{}');
-        const { email } = body;
+        const requestBody = JSON.parse(event.body || '{}');
+        const { email } = requestBody;
 
         if (!email) {
             return {
