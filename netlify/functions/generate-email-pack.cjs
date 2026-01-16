@@ -181,6 +181,20 @@ MÉCANISMES À SUIVRE (dans cet ordre) :
 9. Signature
 10. PS qui crée l'urgence en reprenant un élément de sa souffrance
 
+IMPORTANT - POSITIONNEMENT DU PACK :
+
+Le Pack Complet est une méthode de REPROGRAMMATION DU SUBCONSCIENT.
+Ce n'est PAS une formation spécialisée sur l'objectif de la personne (pas une formation business, pas une formation séduction, pas une formation confiance).
+
+Le principe :
+- Le MÉCANISME est toujours le même : reprogrammer le subconscient
+- L'OBJECTIF de la personne est le RÉSULTAT que ce mécanisme permet d'atteindre
+
+Donc : "Reprogrammer ce qui te bloque pour [son objectif]"
+Jamais : "T'apprendre comment [son objectif]"
+
+L'objectif n'est pas enseigné, il est débloqué.
+
 ÉLÉMENTS OBLIGATOIRES :
 - Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
 - Signature exacte : 'Je crois en toi,<br>Sonny'
