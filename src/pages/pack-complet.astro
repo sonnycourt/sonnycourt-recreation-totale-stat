@@ -1509,19 +1509,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <span class="label">Aujourd'hui</span>
         </div>
 
-        <!-- Transition Banner -->
-        <div class="transition-banner">
-            <div class="transition-banner-content">
-                <div class="transition-banner-icon-wrapper">
-                    <svg class="transition-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                </div>
-                <p class="transition-banner-text">
-                    Tu veux plus qu'un Challenge de 4 jours ? <span class="highlight">Découvre Le Pack Transformation complet à <strong>-70%</strong>.</span>
-                </p>
-            </div>
-        </div>
 
         <div class="container">
             <!-- Hero -->
@@ -2043,6 +2030,130 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </section>
 
     <script>
+        // Récupération du prénom depuis Supabase avec le token et personnalisation
+        (async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token') || '';
+            
+            // Si pas de token, afficher message d'erreur
+            if (!token) {
+                document.body.innerHTML = `
+                    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #09090b; color: #fafafa; padding: 20px;">
+                        <div style="text-align: center; max-width: 500px;">
+                            <h1 style="font-size: 24px; margin-bottom: 16px; color: #f59e0b;">Cette offre n'est pas disponible ou a expiré.</h1>
+                            <p style="margin-bottom: 24px; color: #a0a0a0;">Le lien que vous avez utilisé n'est pas valide.</p>
+                            <a href="/" style="display: inline-block; background: #f59e0b; color: #09090b; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Retourner à l'accueil</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Récupérer le prénom depuis Supabase
+            let prenom = null;
+            const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
+            const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
+            
+            try {
+                const response = await fetch(
+                    `${supabaseUrl}/rest/v1/quiz_responses?token=eq.${encodeURIComponent(token)}&select=prenom`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseAnonKey,
+                            'Authorization': `Bearer ${supabaseAnonKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0 && data[0].prenom) {
+                        prenom = data[0].prenom;
+                        console.log('✅ Prénom récupéré:', prenom);
+                    } else {
+                        console.log('⚠️ Token invalide ou prénom non trouvé');
+                        document.body.innerHTML = `
+                            <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #09090b; color: #fafafa; padding: 20px;">
+                                <div style="text-align: center; max-width: 500px;">
+                                    <h1 style="font-size: 24px; margin-bottom: 16px; color: #f59e0b;">Cette offre n'est pas disponible ou a expiré.</h1>
+                                    <p style="margin-bottom: 24px; color: #a0a0a0;">Le lien que vous avez utilisé n'est pas valide.</p>
+                                    <a href="/" style="display: inline-block; background: #f59e0b; color: #09090b; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Retourner à l'accueil</a>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+                } else {
+                    console.error('❌ Erreur Supabase:', await response.text());
+                    document.body.innerHTML = `
+                        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #09090b; color: #fafafa; padding: 20px;">
+                            <div style="text-align: center; max-width: 500px;">
+                                <h1 style="font-size: 24px; margin-bottom: 16px; color: #f59e0b;">Cette offre n'est pas disponible ou a expiré.</h1>
+                                <p style="margin-bottom: 24px; color: #a0a0a0;">Le lien que vous avez utilisé n'est pas valide.</p>
+                                <a href="/" style="display: inline-block; background: #f59e0b; color: #09090b; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Retourner à l'accueil</a>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ Erreur lors de la récupération du prénom:', error);
+                document.body.innerHTML = `
+                    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #09090b; color: #fafafa; padding: 20px;">
+                        <div style="text-align: center; max-width: 500px;">
+                            <h1 style="font-size: 24px; margin-bottom: 16px; color: #f59e0b;">Cette offre n'est pas disponible ou a expiré.</h1>
+                            <p style="margin-bottom: 24px; color: #a0a0a0;">Le lien que vous avez utilisé n'est pas valide.</p>
+                            <a href="/" style="display: inline-block; background: #f59e0b; color: #09090b; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Retourner à l'accueil</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Fonction pour personnaliser les éléments
+            function personalizePage() {
+                if (!prenom) return;
+                
+                const prenomUpper = prenom.toUpperCase();
+                
+                // 1. Badge jaune "OFFRE NEW YEAR -70%" → "OFFRE POUR [PRÉNOM] -70%"
+                const seasonalBadgeText = document.querySelector('.seasonal-badge-text');
+                if (seasonalBadgeText) {
+                    seasonalBadgeText.textContent = `OFFRE POUR ${prenomUpper} -70%`;
+                }
+                
+                // 2. Badge rouge "-70% AUJOURD'HUI" → "-70% [PRÉNOM]"
+                const discountLabel = document.querySelector('.discount-sticker .label');
+                if (discountLabel) {
+                    discountLabel.textContent = prenomUpper;
+                }
+                
+                // 3. Phrase "Ce pack est conçu pour ceux qui..." → "Ce pack est conçu pour toi [Prénom]..."
+                const valueStatement = document.querySelector('.value-statement h2');
+                if (valueStatement) {
+                    valueStatement.innerHTML = `Ce pack est conçu pour toi <strong>${prenom}</strong> si tu veux des <span class="highlight">résultats rapides et massifs.</span>`;
+                }
+                
+                // 4. Badge dans price card
+                const priceBadgeText = document.querySelector('#seasonalBadgePrice .seasonal-badge-text');
+                if (priceBadgeText) {
+                    priceBadgeText.textContent = `OFFRE POUR ${prenomUpper} -70%`;
+                }
+            }
+            
+            // Personnaliser immédiatement si le DOM est déjà chargé
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', personalizePage);
+            } else {
+                personalizePage();
+            }
+            
+            // Réessayer après un court délai pour s'assurer que tous les éléments sont chargés
+            setTimeout(personalizePage, 100);
+        })();
+        
         // Token Verification & 24h Countdown
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
