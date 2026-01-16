@@ -392,7 +392,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.log('📨 Envoi de l\'email via MailerSend...');
             console.log('📧 Email destinataire:', email);
             console.log('📧 Subject:', result.subject);
-            console.log('👤 Prénom:', prenom);
+            console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
             
             // Initialiser MailerSend
             const mailerSend = new MailerSend({
@@ -403,8 +403,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             const sentFrom = new Sender('info@test-r83ql3pj9rvgzw1j.mlsender.net', 'Sonny Court');
             
             // Configurer le destinataire (utiliser le prénom depuis quizData)
-            const recipientName = quizData.prenom || '';
-            const recipients = [new Recipient(email, recipientName)];
+            const recipients = [new Recipient(email, quizData.prenom || '')];
             
             // Préparer les paramètres de l'email
             const emailParams = new EmailParams()
