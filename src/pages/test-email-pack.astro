@@ -43,17 +43,26 @@ import Layout from '../layouts/Layout.astro';
         <pre id="errorMessage" style="color: #fca5a5; white-space: pre-wrap; margin: 0;"></pre>
       </div>
 
-      <div id="result" style="display: none; background: #1a1a1a; padding: 30px; border-radius: 12px;">
-        <h2 style="color: #f59e0b; margin-top: 0;">✅ Résultat</h2>
+      <div id="result" style="display: none;">
+        <h2 style="color: #f59e0b; margin-top: 0; margin-bottom: 20px;">✅ Aperçu de l'email</h2>
         
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #fff; margin-bottom: 10px; font-size: 18px;">Subject :</h3>
-          <div id="subject" style="background: #0a0a0a; padding: 15px; border-radius: 8px; border: 1px solid #333; color: #fff; font-size: 16px; font-weight: 600;"></div>
+        <!-- Aperçu style email -->
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); font-family: Arial, Helvetica, sans-serif; color: #333;">
+          <h2 id="emailSubject" style="color: #333; font-size: 24px; margin-bottom: 20px; font-weight: 700;"></h2>
+          <div id="emailBody" style="color: #333; font-size: 16px; line-height: 1.6;"></div>
         </div>
 
-        <div>
-          <h3 style="color: #fff; margin-bottom: 10px; font-size: 18px;">Body :</h3>
-          <div id="body" style="background: #0a0a0a; padding: 20px; border-radius: 8px; border: 1px solid #333; color: #fff; font-size: 15px; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; min-height: 200px; width: 100%; box-sizing: border-box;"></div>
+        <!-- Debug info -->
+        <div style="margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+          <h3 style="color: #f59e0b; margin-top: 0; font-size: 16px;">Debug Info</h3>
+          <div style="margin-bottom: 15px;">
+            <strong style="color: #fff;">Token:</strong>
+            <code id="tokenDebug" style="color: #f59e0b; background: #0a0a0a; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-left: 10px;"></code>
+          </div>
+          <div>
+            <strong style="color: #fff;">HTML Source:</strong>
+            <pre id="htmlSource" style="color: #a0a0a0; background: #0a0a0a; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin-top: 10px;"></pre>
+          </div>
         </div>
       </div>
     </div>
@@ -66,8 +75,10 @@ import Layout from '../layouts/Layout.astro';
   const error = document.getElementById('error');
   const errorMessage = document.getElementById('errorMessage');
   const result = document.getElementById('result');
-  const subjectDiv = document.getElementById('subject');
-  const bodyDiv = document.getElementById('body');
+  const emailSubject = document.getElementById('emailSubject');
+  const emailBody = document.getElementById('emailBody');
+  const tokenDebug = document.getElementById('tokenDebug');
+  const htmlSource = document.getElementById('htmlSource');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -99,9 +110,14 @@ import Layout from '../layouts/Layout.astro';
 
       const data = await response.json();
       
-      // Afficher le résultat
-      subjectDiv.textContent = data.subject || 'Aucun sujet';
-      bodyDiv.textContent = data.body || 'Aucun contenu';
+      // Afficher l'aperçu de l'email
+      emailSubject.textContent = data.subject || 'Aucun sujet';
+      emailBody.innerHTML = data.body || 'Aucun contenu';
+      
+      // Afficher les infos de debug
+      tokenDebug.textContent = data.token || 'N/A';
+      htmlSource.textContent = data.body || '';
+      
       result.style.display = 'block';
 
     } catch (err) {

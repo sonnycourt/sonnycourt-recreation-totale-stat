@@ -192,11 +192,14 @@ Format de réponse :
 SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]
 
-IMPORTANT - LIEN VERS LE PACK COMPLET :
-- NE PAS mettre une URL brute dans l'email
-- Utiliser un texte cliquable avec ce format : [Découvrir mon Pack Complet](https://sonnycourt.com/pack-complet/?token=${token})
-- Exemple dans le texte : "Cette offre est dispo 48h : [Accéder à mon offre personnalisée]" où le texte entre crochets est cliquable
-- Le lien doit être intégré naturellement dans le flow de l'email, pas collé brutalement à la fin`;
+IMPORTANT - FORMAT HTML POUR LE BODY :
+L'email doit être ENTIÈREMENT en HTML, prêt à être injecté dans MailerLite :
+- Chaque paragraphe dans des balises <p></p>
+- Sauts de ligne avec <br>
+- Lien avec <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #f59e0b; text-decoration: none; font-weight: bold;">Cette offre est disponible 48h seulement ici</a>
+- Intègre le lien naturellement dans le texte, par exemple : "Cette offre est dispo 48h : <a href="https://sonnycourt.com/pack-complet/?token=${token}">Accéder à mon offre personnalisée</a>"
+- Signature en HTML : <p>Je crois en toi,<br>Sonny</p>
+- Le body doit être du HTML valide, pas du texte brut ni du markdown`;
 
         console.log('🤖 Appel à l\'API Anthropic...');
 
