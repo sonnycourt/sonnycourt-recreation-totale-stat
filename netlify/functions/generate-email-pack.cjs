@@ -364,10 +364,20 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         
         console.log('Subject extrait:', subject);
         console.log('Body extrait:', body);
+        console.log('Body contient HTML:', body.includes('<p>') || body.includes('<div>') || body.includes('<br>'));
+        
+        // S'assurer que le body est bien en HTML
+        let htmlBody = body || content.trim();
+        
+        // Si le body ne contient pas de balises HTML, ajouter un wrapper
+        if (!htmlBody.includes('<p>') && !htmlBody.includes('<div>') && !htmlBody.includes('<br>')) {
+            console.log('⚠️ Body ne contient pas de HTML, ajout d\'un wrapper...');
+            htmlBody = `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${htmlBody.replace(/\n/g, '<br>')}</div>`;
+        }
         
         const result = {
             subject: subject || 'Email personnalisé',
-            body: body || content.trim(),
+            body: htmlBody,
             token: token
         };
         
@@ -406,11 +416,18 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             const recipients = [new Recipient(email, quizData.prenom || '')];
             
             // Préparer les paramètres de l'email
+            // S'assurer que le body est bien en HTML
+            const emailBody = result.body.includes('<p>') || result.body.includes('<div>') || result.body.includes('<br>') 
+                ? result.body 
+                : `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${result.body.replace(/\n/g, '<br>')}</div>`;
+            
+            console.log('📝 Body HTML final (premiers 200 caractères):', emailBody.substring(0, 200));
+            
             const emailParams = new EmailParams()
                 .setFrom(sentFrom)
                 .setTo(recipients)
                 .setSubject(result.subject)
-                .setHtml(result.body);
+                .setHtml(emailBody);
             
             // Envoyer l'email
             const mailerSendResponse = await mailerSend.email.send(emailParams);
