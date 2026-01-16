@@ -147,7 +147,17 @@ const handler = async (event) => {
         }
 
         // Préparer le prompt
-        const prompt = `Tu es Sonny Court. Tu écris un email personnel et authentique à ${quizData.prenom || 'cette personne'}.
+        const prompt = `AVANT de rédiger l'email, évalue si les réponses au quiz sont sérieuses et exploitables.
+
+Si les réponses sont du charabia, des mots random, ou clairement pas sérieuses → retourne uniquement : SKIP
+
+Si les réponses sont courtes mais cohérentes (ex: 'Promotion 2023', 'Liberté financière') → c'est OK, génère l'email.
+
+Seules les réponses vraiment inexploitables doivent être SKIP.
+
+---
+
+Tu es Sonny Court. Tu écris un email personnel et authentique à ${quizData.prenom || 'cette personne'}.
 
 Il y a 3 jours, cette personne a répondu à ton quiz. Voici ses réponses :
 
@@ -245,6 +255,22 @@ L'email doit être ENTIÈREMENT en HTML, prêt à être injecté dans MailerLite
         // Extraire le contenu de la réponse
         const content = anthropicData.content?.[0]?.text || '';
         console.log('Contenu brut extrait:', content);
+        
+        // Vérifier si Claude a décidé de SKIP
+        if (content.trim() === 'SKIP' || content.trim().startsWith('SKIP')) {
+            console.log('⚠️ Réponses jugées inexploitables par Claude');
+            return {
+                statusCode: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    skipped: true, 
+                    reason: 'invalid_responses' 
+                })
+            };
+        }
         
         // Parser le contenu pour extraire SUBJECT et BODY
         let subject = '';
