@@ -183,14 +183,27 @@ MÉCANISMES À SUIVRE (dans cet ordre) :
 
 ÉLÉMENTS OBLIGATOIRES :
 - Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
-- Mentionner la réduction : -70% (497€ au lieu de 1682€)
-- Dire 'cette offre' (pas 'l'offre') pour renforcer le côté unique
-- Urgence : disponible 48h seulement
 - Signature exacte : 'Je crois en toi,<br>Sonny'
 - Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Cette offre est disponible 48h seulement ici</a>
 - Format HTML avec <p> pour chaque paragraphe
 - PS à la fin
 - Pas d'emoji dans le subject ni dans le body
+- Dire 'cette offre' (pas 'l'offre') pour renforcer le côté unique
+
+LANGAGE :
+- Pas de langage vulgaire (pas de "putain", "couilles", "merde", etc.)
+- Ton direct mais respectueux
+
+RÉDUCTION :
+- Mentionner "-70%" mais PAS les prix exacts
+- Ne pas écrire "497€ au lieu de 1682€"
+- Juste dire "cette offre à -70%" ou "avec 70% de réduction"
+
+URGENCE 48H - JUSTIFIER NATURELLEMENT :
+- Ne pas juste dire "disponible 48h"
+- Expliquer pourquoi : "Je te laisse 48h pour y réfléchir, pas plus - parce que dans mon expérience, au-delà de ce délai, on remet à plus tard et plus tard devient jamais."
+- Ou : "48h, c'est le temps que je te donne pour décider. Assez pour réfléchir, pas assez pour procrastiner."
+- L'IA peut varier la formulation mais doit toujours justifier le délai
 
 LIBERTÉ TOTALE SUR :
 - Les formulations exactes
