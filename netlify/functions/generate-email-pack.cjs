@@ -159,6 +159,16 @@ Voici ses réponses au quiz :
 AVANT TOUT : Si les réponses sont du charabia, des mots random, ou clairement pas sérieuses → retourne uniquement : SKIP
 Si les réponses sont courtes mais cohérentes → c'est OK, génère l'email.
 
+OBJECTIF DE L'EMAIL :
+Que la personne se dise en lisant : 'Putain, il me parle à MOI. Il m'a comprise. Et il a la solution.'
+
+Chaque phrase doit servir l'un de ces trois piliers :
+1. CONNEXION → Elle se sent vue et comprise (utilise SES mots, SES détails)
+2. ESPOIR → Le changement est possible pour elle spécifiquement
+3. URGENCE → Chaque jour sans action renforce ses blocages
+
+Si une phrase ne sert aucun de ces piliers, supprime-la.
+
 MÉCANISMES À SUIVRE (dans cet ordre) :
 1. Accroche → quelque chose de spécifique dans ses réponses qui t'a marqué
 2. Valorise sa fierté → montre que c'est rare/courageux
@@ -180,6 +190,7 @@ MÉCANISMES À SUIVRE (dans cet ordre) :
 - Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Cette offre est disponible 48h seulement ici</a>
 - Format HTML avec <p> pour chaque paragraphe
 - PS à la fin
+- Pas d'emoji dans le subject ni dans le body
 
 LIBERTÉ TOTALE SUR :
 - Les formulations exactes
