@@ -196,8 +196,8 @@ IMPORTANT - FORMAT HTML POUR LE BODY :
 L'email doit être ENTIÈREMENT en HTML, prêt à être injecté dans MailerLite :
 - Chaque paragraphe dans des balises <p></p>
 - Sauts de ligne avec <br>
-- Lien avec <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #f59e0b; text-decoration: none; font-weight: bold;">Cette offre est disponible 48h seulement ici</a>
-- Intègre le lien naturellement dans le texte, par exemple : "Cette offre est dispo 48h : <a href="https://sonnycourt.com/pack-complet/?token=${token}">Accéder à mon offre personnalisée</a>"
+- Lien avec <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #4D97FE; text-decoration: underline;">Cette offre est disponible 48h seulement ici</a>
+- Intègre le lien naturellement dans le texte, par exemple : "Cette offre est dispo 48h : <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #4D97FE; text-decoration: underline;">Accéder à mon offre personnalisée</a>"
 - Signature en HTML : <p>Je crois en toi,<br>Sonny</p>
 - Le body doit être du HTML valide, pas du texte brut ni du markdown`;
 
