@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const crypto = require('crypto');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+const { MailerSend, EmailParams, Sender, Recipient } = require('mailersend');
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -371,69 +371,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             token: token
         };
         
-        // 3. ENVOYER L'EMAIL VIA AMAZON SES
-        const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-        const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-        const awsRegion = process.env.AWS_REGION || 'us-east-1';
+        // 3. ENVOYER L'EMAIL VIA MAILERSEND
+        const mailerSendApiKey = process.env.MAILERSEND_API_KEY;
         
-        if (awsAccessKeyId && awsSecretAccessKey) {
-            try {
-                console.log('📨 Envoi de l\'email via Amazon SES...');
-                console.log('📧 Email destinataire:', email);
-                console.log('📧 Subject:', result.subject);
-                console.log('🌍 AWS Region:', awsRegion);
-                
-                // Configurer le client SES
-                const sesClient = new SESClient({
-                    region: awsRegion,
-                    credentials: {
-                        accessKeyId: awsAccessKeyId,
-                        secretAccessKey: awsSecretAccessKey
-                    }
-                });
-                
-                // Préparer la commande d'envoi
-                const sendEmailCommand = new SendEmailCommand({
-                    Source: 'Sonny Court <info@sonnycourt.com>',
-                    Destination: {
-                        ToAddresses: [email]
-                    },
-                    Message: {
-                        Subject: {
-                            Data: result.subject,
-                            Charset: 'UTF-8'
-                        },
-                        Body: {
-                            Html: {
-                                Data: result.body,
-                                Charset: 'UTF-8'
-                            }
-                        }
-                    }
-                });
-                
-                // Envoyer l'email
-                const sesResponse = await sesClient.send(sendEmailCommand);
-                console.log('✅ Email envoyé via Amazon SES');
-                console.log('📧 Message ID:', sesResponse.MessageId);
-                
-            } catch (sesError) {
-                console.error('❌ Erreur lors de l\'envoi Amazon SES:', sesError);
-                // On continue quand même, mais on ne marque pas comme envoyé
-                return {
-                    statusCode: 500,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    },
-                    body: JSON.stringify({ 
-                        error: 'Failed to send email via SES',
-                        details: sesError.message 
-                    })
-                };
-            }
-        } else {
-            console.log('⚠️ Variables AWS non définies (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), email non envoyé');
+        if (!mailerSendApiKey) {
+            console.error('❌ MAILERSEND_API_KEY non définie');
             return {
                 statusCode: 500,
                 headers: {
@@ -441,7 +383,53 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({ 
-                    error: 'AWS credentials not configured' 
+                    error: 'MailerSend API key not configured' 
+                })
+            };
+        }
+        
+        try {
+            console.log('📨 Envoi de l\'email via MailerSend...');
+            console.log('📧 Email destinataire:', email);
+            console.log('📧 Subject:', result.subject);
+            console.log('👤 Prénom:', prenom);
+            
+            // Initialiser MailerSend
+            const mailerSend = new MailerSend({
+                apiKey: mailerSendApiKey,
+            });
+            
+            // Configurer l'expéditeur
+            const sentFrom = new Sender('info@test-r83ql3pj9rvgzw1j.mlsender.net', 'Sonny Court');
+            
+            // Configurer le destinataire (utiliser le prénom depuis quizData)
+            const recipientName = quizData.prenom || '';
+            const recipients = [new Recipient(email, recipientName)];
+            
+            // Préparer les paramètres de l'email
+            const emailParams = new EmailParams()
+                .setFrom(sentFrom)
+                .setTo(recipients)
+                .setSubject(result.subject)
+                .setHtml(result.body);
+            
+            // Envoyer l'email
+            const mailerSendResponse = await mailerSend.email.send(emailParams);
+            console.log('✅ Email envoyé via MailerSend');
+            console.log('📧 Response:', JSON.stringify(mailerSendResponse, null, 2));
+            
+        } catch (mailerSendError) {
+            console.error('❌ Erreur lors de l\'envoi MailerSend:', mailerSendError);
+            // On continue quand même, mais on ne marque pas comme envoyé
+            return {
+                statusCode: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    error: 'Failed to send email via MailerSend',
+                    details: mailerSendError.message 
                 })
             };
         }
