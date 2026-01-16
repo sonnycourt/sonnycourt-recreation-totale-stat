@@ -111,6 +111,28 @@ import Layout from '../layouts/Layout.astro';
       const data = await response.json();
       
       // Debug : vérifier le contenu reçu
+      console.log('Réponse API:', data);
+      
+      // Vérifier si l'email a été SKIP
+      if (data.skipped) {
+        console.log('⚠️ Email SKIP - raison:', data.reason);
+        
+        // Masquer le résultat normal
+        result.style.display = 'none';
+        
+        // Afficher le message SKIP
+        error.innerHTML = `
+          <div style="background: #fee2e2; border: 1px solid #ef4444; padding: 20px; border-radius: 8px; text-align: center;">
+            <h3 style="color: #dc2626; margin-top: 0;">❌ Email non généré</h3>
+            <p style="margin-bottom: 10px; color: #333;">Les réponses au quiz sont inexploitables (charabia ou pas sérieuses).</p>
+            <p style="margin: 0; color: #333;">Aucun email ne sera envoyé à ce contact.</p>
+          </div>
+        `;
+        error.style.display = 'block';
+        return;
+      }
+      
+      // Si pas de skip, afficher l'email normalement
       console.log('Subject reçu:', data.subject);
       console.log('Body reçu (type):', typeof data.body);
       console.log('Body reçu (contenu):', data.body);
