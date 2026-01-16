@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -103,7 +104,34 @@ const handler = async (event) => {
             situation: quizData.situation
         });
 
-        // 2. Appeler l'API Anthropic
+        // 2. Générer un token unique et le stocker dans Supabase
+        const token = crypto.randomUUID();
+        console.log('🔑 Token généré:', token);
+
+        // Mettre à jour le token dans Supabase
+        const updateResponse = await fetch(
+            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': supabaseAnonKey,
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({ token: token })
+            }
+        );
+
+        if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.error('⚠️ Erreur lors de la mise à jour du token:', errorText);
+            // On continue quand même, ce n'est pas bloquant
+        } else {
+            console.log('✅ Token stocké dans Supabase');
+        }
+
+        // 3. Appeler l'API Anthropic
         const anthropicApiKey = process.env.ANTHROPIC_API_KEY_EMAIL_PACK;
         
         if (!anthropicApiKey) {
@@ -164,7 +192,11 @@ Format de réponse :
 SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]
 
-L'email doit contenir le lien vers le Pack Complet : https://sonnycourt.com/pack-complet`;
+IMPORTANT - LIEN VERS LE PACK COMPLET :
+- NE PAS mettre une URL brute dans l'email
+- Utiliser un texte cliquable avec ce format : [Découvrir mon Pack Complet](https://sonnycourt.com/pack-complet/?token=${token})
+- Exemple dans le texte : "Cette offre est dispo 48h : [Accéder à mon offre personnalisée]" où le texte entre crochets est cliquable
+- Le lien doit être intégré naturellement dans le flow de l'email, pas collé brutalement à la fin`;
 
         console.log('🤖 Appel à l\'API Anthropic...');
 
@@ -246,7 +278,8 @@ L'email doit contenir le lien vers le Pack Complet : https://sonnycourt.com/pack
         
         const result = {
             subject: subject || 'Email personnalisé',
-            body: body || content.trim()
+            body: body || content.trim(),
+            token: token
         };
 
         return {
