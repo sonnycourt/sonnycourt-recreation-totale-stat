@@ -2048,10 +2048,54 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token') || '';
             
+            // Vérifier d'abord s'il y a un timer de 5 jours depuis l'inscription
+            const timerStart = localStorage.getItem('pack_complet_timer_start');
+            const timerEnd = localStorage.getItem('pack_complet_timer_end');
+            
             // Mode preview : désactiver la vérification du token
             const url = new URL(window.location.href);
             const isPreview = url.searchParams.has('preview');
             const isPreviewExpired = url.searchParams.has('preview_expired');
+            
+            // Si pas en mode preview, vérifier le timer de 5 jours
+            if (!isPreview && !isPreviewExpired && timerStart && timerEnd) {
+                const startTimeNum = parseInt(timerStart, 10);
+                const endTimeNum = parseInt(timerEnd, 10);
+                const now = Date.now();
+                
+                // Vérifier si le timer est encore valide (pas expiré)
+                if (now < endTimeNum) {
+                    console.log('⏰ Utilisation du timer de 5 jours depuis l\'inscription');
+                    
+                    function updateCountdown(): void {
+                        const currentTime = Date.now();
+                        const remaining = endTimeNum - currentTime;
+                        
+                        if (remaining <= 0) {
+                            updateAllDisplays(0, 0, 0);
+                            return;
+                        }
+                        
+                        // Convertir en secondes puis calculer heures, minutes, secondes
+                        const totalSeconds = Math.floor(remaining / 1000);
+                        const totalHours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = totalSeconds % 60;
+                        
+                        // updateAllDisplays attend (hours, minutes, seconds)
+                        updateAllDisplays(totalHours, minutes, seconds);
+                    }
+                    
+                    updateCountdown();
+                    setInterval(updateCountdown, 1000);
+                    return;
+                } else {
+                    console.log('⚠️ Timer de 5 jours expiré, passage au système de token');
+                    // Nettoyer les anciens timers expirés
+                    localStorage.removeItem('pack_complet_timer_start');
+                    localStorage.removeItem('pack_complet_timer_end');
+                }
+            }
             
             if (isPreviewExpired) {
                 console.log('🔍 Mode preview expired activé - simulation token expiré');

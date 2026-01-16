@@ -1244,6 +1244,15 @@ import Layout from '../layouts/Layout.astro';
         // Simulation en local pour le développement
         await new Promise(resolve => setTimeout(resolve, 1500));
         console.log('🧪 Mode local : Simulation d\'inscription', data);
+        
+        // Lancer le timer de 5 jours pour pack-complet (même en local)
+        const timerStart = Date.now();
+        const timerDuration = 5 * 24 * 60 * 60 * 1000; // 5 jours en millisecondes
+        const timerEnd = timerStart + timerDuration;
+        localStorage.setItem('pack_complet_timer_start', timerStart.toString());
+        localStorage.setItem('pack_complet_timer_end', timerEnd.toString());
+        console.log('⏰ Timer de 5 jours lancé pour pack-complet (mode local)');
+        
         // Afficher le Quiz au lieu de rediriger
         showQuiz();
         return;
@@ -1281,6 +1290,14 @@ import Layout from '../layouts/Layout.astro';
         // Sauvegarder email et prénom dans localStorage pour le quiz
         localStorage.setItem('quizEmail', email);
         localStorage.setItem('quizPrenom', prenom || '');
+        
+        // Lancer le timer de 5 jours pour pack-complet
+        const timerStart = Date.now();
+        const timerDuration = 5 * 24 * 60 * 60 * 1000; // 5 jours en millisecondes
+        const timerEnd = timerStart + timerDuration;
+        localStorage.setItem('pack_complet_timer_start', timerStart.toString());
+        localStorage.setItem('pack_complet_timer_end', timerEnd.toString());
+        console.log('⏰ Timer de 5 jours lancé pour pack-complet');
         
         // Afficher le Quiz au lieu de rediriger
         showQuiz();
