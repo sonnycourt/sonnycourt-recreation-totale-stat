@@ -147,69 +147,51 @@ const handler = async (event) => {
         }
 
         // Préparer le prompt
-        const prompt = `AVANT de rédiger l'email, évalue si les réponses au quiz sont sérieuses et exploitables.
+        const prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
 
-Si les réponses sont du charabia, des mots random, ou clairement pas sérieuses → retourne uniquement : SKIP
+Voici ses réponses au quiz :
+- Objectif : ${quizData.objectif || 'Non spécifié'}
+- Situation : ${quizData.situation || 'Non spécifié'}
+- Fierté : ${quizData.fierte || 'Non spécifié'}
+- Rêve : ${quizData.reve || 'Non spécifié'}
+- Souffrance : ${quizData.souffrance || 'Non spécifié'}
 
-Si les réponses sont courtes mais cohérentes (ex: 'Promotion 2023', 'Liberté financière') → c'est OK, génère l'email.
+AVANT TOUT : Si les réponses sont du charabia, des mots random, ou clairement pas sérieuses → retourne uniquement : SKIP
+Si les réponses sont courtes mais cohérentes → c'est OK, génère l'email.
 
-Seules les réponses vraiment inexploitables doivent être SKIP.
+MÉCANISMES À SUIVRE (dans cet ordre) :
+1. Accroche → quelque chose de spécifique dans ses réponses qui t'a marqué
+2. Valorise sa fierté → montre que c'est rare/courageux
+3. Connecte à son rêve → c'est légitime, atteignable
+4. Empathie sur sa souffrance → tu comprends, c'est dur
+5. Le vrai problème → programmes subconscients, pas un défaut personnel
+6. Transition naturelle → 'Du coup j'ai réfléchi à ce qui pourrait vraiment t'aider...'
+7. Pack Complet = parcours stratégique, pas une compilation en vrac
+8. Lien vers l'offre
+9. Signature
+10. PS qui crée l'urgence en reprenant un élément de sa souffrance
 
----
+ÉLÉMENTS OBLIGATOIRES :
+- Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
+- Mentionner la réduction : -70% (497€ au lieu de 1682€)
+- Dire 'cette offre' (pas 'l'offre') pour renforcer le côté unique
+- Urgence : disponible 48h seulement
+- Signature exacte : 'Je crois en toi,<br>Sonny'
+- Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Cette offre est disponible 48h seulement ici</a>
+- Format HTML avec <p> pour chaque paragraphe
+- PS à la fin
 
-Tu es Sonny Court. Tu écris un email personnel et authentique à ${quizData.prenom || 'cette personne'}.
+LIBERTÉ TOTALE SUR :
+- Les formulations exactes
+- Le style d'accroche (varie à chaque fois)
+- Le ton (adapte-le à ce que la personne a écrit)
+- La longueur des paragraphes
 
-Il y a 3 jours, cette personne a répondu à ton quiz. Voici ses réponses :
-
-- Ce qu'elle veut : ${quizData.objectif || 'Non spécifié'}
-- Où elle en est : ${quizData.situation || 'Non spécifié'}
-- Ce dont elle est fière : ${quizData.fierte || 'Non spécifié'}
-- Son rêve : ${quizData.reve || 'Non spécifié'}
-- Ce qui la fait souffrir : ${quizData.souffrance || 'Non spécifié'}
-
-IMPORTANT : L'email doit TOUJOURS commencer par "Hello ${quizData.prenom || 'cette personne'}," (pas "Salut", pas "Hey", pas autre chose).
-
-Tu dois écrire un email qui suit cette structure :
-
-1. ACCROCHE - Commence par "Depuis que j'ai lu tes réponses, y'a un truc qui me lâche pas..." puis cite un élément spécifique de ses réponses qui t'a marqué.
-
-2. VALORISE CE QU'ELLE A DE SPÉCIAL - Utilise sa fierté comme preuve qu'elle a une capacité rare. "La plupart des gens restent coincés toute leur vie, toi t'as prouvé que..."
-
-3. CONNECTE SON RÊVE - Décris son rêve comme atteignable et légitime. Elle a le droit d'y prétendre.
-
-4. ADRESSE SA SOUFFRANCE - Avec empathie, sans dramatiser. Montre que tu comprends ce qu'elle vit.
-
-5. EXPLIQUE LE VRAI PROBLÈME - Ce qui la bloque c'est pas un manque de volonté. C'est des programmes installés dans son subconscient depuis des années. La reprogrammation du subconscient c'est LA clé de toute transformation durable.
-
-6. PRÉSENTE LE PACK COMPLET - Utilise cette approche :
-   - Phrase de transition : "Du coup j'ai réfléchi à ce qui pourrait vraiment t'aider..."
-   - Explique que le Pack a été conçu comme un PARCOURS STRATÉGIQUE pour des situations comme la sienne
-   - Insiste : ce n'est PAS une compilation de formations jetées en vrac
-   - Chaque formation a sa place dans le parcours vers son objectif spécifique
-   - Fais le lien entre les formations du Pack et ce qu'elle a partagé dans le quiz
-   - Mentionne que l'offre est disponible 48h seulement
-
-7. PS ÉMOTIONNEL - Termine par un PS qui appuie sur SA souffrance spécifique (ce qu'elle a écrit). Connecte ça à l'urgence de décider maintenant. Rédige une phrase unique et personnalisée, pas de formule générique.
-
-Ton style :
-- Direct, pas de blabla
-- Authentique, comme un message à un ami
-- Pas de formules marketing bateau
-- Tutoiement
-- 300 mots max (sans compter le PS)
+NE JAMAIS utiliser deux fois la même accroche ou la même structure de phrase. Sois créatif, authentique, comme si tu écrivais vraiment à cette personne.
 
 Format de réponse :
 SUBJECT: [objet de l'email - doit être personnel et intrigant]
-BODY: [corps de l'email incluant le PS à la fin]
-
-IMPORTANT - FORMAT HTML POUR LE BODY :
-L'email doit être ENTIÈREMENT en HTML, prêt à être injecté dans MailerLite :
-- Chaque paragraphe dans des balises <p></p>
-- Sauts de ligne avec <br>
-- Lien avec <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #4D97FE; text-decoration: underline;">Cette offre est disponible 48h seulement ici</a>
-- Intègre le lien naturellement dans le texte, par exemple : "Cette offre est dispo 48h : <a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #4D97FE; text-decoration: underline;">Accéder à mon offre personnalisée</a>"
-- Signature en HTML : <p>Je crois en toi,<br>Sonny</p>
-- Le body doit être du HTML valide, pas du texte brut ni du markdown`;
+BODY: [corps de l'email incluant le PS à la fin]`;
 
         console.log('🤖 Appel à l\'API Anthropic...');
 
