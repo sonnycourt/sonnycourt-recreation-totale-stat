@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const crypto = require('crypto');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -370,38 +371,82 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             token: token
         };
         
-        // 3. ENVOYER L'EMAIL VIA API MAILERLITE
-        const mailerLiteApiKey = process.env.MAILERLITE_API_KEY;
+        // 3. ENVOYER L'EMAIL VIA AMAZON SES
+        const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+        const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+        const awsRegion = process.env.AWS_REGION || 'us-east-1';
         
-        if (mailerLiteApiKey) {
+        if (awsAccessKeyId && awsSecretAccessKey) {
             try {
-                console.log('📨 Préparation de l\'envoi via MailerLite...');
+                console.log('📨 Envoi de l\'email via Amazon SES...');
                 console.log('📧 Email destinataire:', email);
                 console.log('📧 Subject:', result.subject);
+                console.log('🌍 AWS Region:', awsRegion);
                 
-                // Note: MailerLite v2 API ne permet pas d'envoyer un email transactionnel unique directement
-                // Il faut utiliser l'API de campaigns ou broadcasts avec un segment
-                // Pour l'instant, on log les informations nécessaires
-                // L'envoi réel peut être configuré via un webhook MailerLite ou un service externe
+                // Configurer le client SES
+                const sesClient = new SESClient({
+                    region: awsRegion,
+                    credentials: {
+                        accessKeyId: awsAccessKeyId,
+                        secretAccessKey: awsSecretAccessKey
+                    }
+                });
                 
-                // Option: Utiliser l'API de campaigns pour créer une campagne et l'envoyer
-                // ou utiliser un service d'email transactionnel comme SendGrid, Mailgun, etc.
+                // Préparer la commande d'envoi
+                const sendEmailCommand = new SendEmailCommand({
+                    Source: 'Sonny Court <info@sonnycourt.com>',
+                    Destination: {
+                        ToAddresses: [email]
+                    },
+                    Message: {
+                        Subject: {
+                            Data: result.subject,
+                            Charset: 'UTF-8'
+                        },
+                        Body: {
+                            Html: {
+                                Data: result.body,
+                                Charset: 'UTF-8'
+                            }
+                        }
+                    }
+                });
                 
-                console.log('✅ Email généré - Prêt pour envoi');
-                console.log('📝 Body HTML:', result.body.substring(0, 100) + '...');
+                // Envoyer l'email
+                const sesResponse = await sesClient.send(sendEmailCommand);
+                console.log('✅ Email envoyé via Amazon SES');
+                console.log('📧 Message ID:', sesResponse.MessageId);
                 
-                // TODO: Implémenter l'envoi réel via MailerLite campaigns API ou service transactionnel
-                // Pour l'instant, on considère que l'email est "prêt" et sera envoyé via un autre mécanisme
-                
-            } catch (mailerError) {
-                console.error('⚠️ Erreur lors de la préparation MailerLite:', mailerError);
-                // On continue quand même, ce n'est pas bloquant
+            } catch (sesError) {
+                console.error('❌ Erreur lors de l\'envoi Amazon SES:', sesError);
+                // On continue quand même, mais on ne marque pas comme envoyé
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ 
+                        error: 'Failed to send email via SES',
+                        details: sesError.message 
+                    })
+                };
             }
         } else {
-            console.log('⚠️ MAILERLITE_API_KEY non définie, email non envoyé');
+            console.log('⚠️ Variables AWS non définies (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), email non envoyé');
+            return {
+                statusCode: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    error: 'AWS credentials not configured' 
+                })
+            };
         }
         
-        // 4. MARQUER COMME ENVOYÉ DANS SUPABASE
+        // 4. MARQUER COMME ENVOYÉ DANS SUPABASE (seulement si l'envoi a réussi)
         try {
             console.log('📝 Marquage email_sent = true dans Supabase...');
             
