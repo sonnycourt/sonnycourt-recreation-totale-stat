@@ -110,9 +110,21 @@ import Layout from '../layouts/Layout.astro';
 
       const data = await response.json();
       
+      // Debug : vérifier le contenu reçu
+      console.log('Subject reçu:', data.subject);
+      console.log('Body reçu (type):', typeof data.body);
+      console.log('Body reçu (contenu):', data.body);
+      console.log('Token reçu:', data.token);
+      
       // Afficher l'aperçu de l'email
       emailSubject.textContent = data.subject || 'Aucun sujet';
-      emailBody.innerHTML = data.body || 'Aucun contenu';
+      
+      // S'assurer que le HTML est injecté correctement
+      if (data.body) {
+        emailBody.innerHTML = data.body;
+      } else {
+        emailBody.innerHTML = '<p>Aucun contenu</p>';
+      }
       
       // Afficher les infos de debug
       tokenDebug.textContent = data.token || 'N/A';
