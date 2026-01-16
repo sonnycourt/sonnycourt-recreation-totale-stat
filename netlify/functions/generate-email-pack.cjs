@@ -129,6 +129,8 @@ Il y a 3 jours, cette personne a répondu à ton quiz. Voici ses réponses :
 - Son rêve : ${quizData.reve || 'Non spécifié'}
 - Ce qui la fait souffrir : ${quizData.souffrance || 'Non spécifié'}
 
+IMPORTANT : L'email doit TOUJOURS commencer par "Hello ${quizData.prenom || 'cette personne'}," (pas "Salut", pas "Hey", pas autre chose).
+
 Tu dois écrire un email qui suit cette structure :
 
 1. ACCROCHE - Commence par "Depuis que j'ai lu tes réponses, y'a un truc qui me lâche pas..." puis cite un élément spécifique de ses réponses qui t'a marqué.
@@ -141,7 +143,13 @@ Tu dois écrire un email qui suit cette structure :
 
 5. EXPLIQUE LE VRAI PROBLÈME - Ce qui la bloque c'est pas un manque de volonté. C'est des programmes installés dans son subconscient depuis des années. La reprogrammation du subconscient c'est LA clé de toute transformation durable.
 
-6. JUSTIFIE LE PACK COMPLET - C'est pas une compilation de formations jetées en vrac pour faire du chiffre. C'est un parcours stratégique conçu pour SON cas. Les 7 formations se suivent dans un ordre précis pour l'amener de là où elle est vers son objectif. Mentionne que l'offre est disponible 48h seulement.
+6. PRÉSENTE LE PACK COMPLET - Utilise cette approche :
+   - Phrase de transition : "Du coup j'ai réfléchi à ce qui pourrait vraiment t'aider..."
+   - Explique que le Pack a été conçu comme un PARCOURS STRATÉGIQUE pour des situations comme la sienne
+   - Insiste : ce n'est PAS une compilation de formations jetées en vrac
+   - Chaque formation a sa place dans le parcours vers son objectif spécifique
+   - Fais le lien entre les formations du Pack et ce qu'elle a partagé dans le quiz
+   - Mentionne que l'offre est disponible 48h seulement
 
 7. PS ÉMOTIONNEL - Termine par un PS qui appuie sur SA souffrance spécifique (ce qu'elle a écrit). Connecte ça à l'urgence de décider maintenant. Rédige une phrase unique et personnalisée, pas de formule générique.
 
