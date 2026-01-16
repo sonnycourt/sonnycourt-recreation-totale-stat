@@ -1206,8 +1206,9 @@ import Layout from '../layouts/Layout.astro';
     // Détecter le pays
     const country = await detectCountry();
     
-    // Générer un token unique pour Court-Circuit
+    // Générer un token unique pour Court-Circuit et le sauvegarder dans localStorage
     const uniqueTokenCC = crypto.randomUUID();
+    localStorage.setItem('cc_subscription_token', uniqueTokenCC);
     
     const data = {
       email: email,
@@ -1431,9 +1432,10 @@ import Layout from '../layouts/Layout.astro';
     // Sauvegarder dans localStorage
     localStorage.setItem('quizData', JSON.stringify(quizDataToSave));
     
-    // Récupérer email et prénom depuis localStorage
+    // Récupérer email, prénom et token depuis localStorage
     const email = localStorage.getItem('quizEmail') || '';
     const prenom = localStorage.getItem('quizPrenom') || '';
+    const token = localStorage.getItem('cc_subscription_token') || '';
     
     // Préparer les données à envoyer
     const dataToSend = {
@@ -1444,7 +1446,8 @@ import Layout from '../layouts/Layout.astro';
       fierte: quizDataToSave.fierte,
       reve: quizDataToSave.reve,
       souffrance: quizDataToSave.souffrance,
-      completed_at: quizDataToSave.completedAt
+      completed_at: quizDataToSave.completedAt,
+      token: token
     };
     
     // Envoyer à Supabase

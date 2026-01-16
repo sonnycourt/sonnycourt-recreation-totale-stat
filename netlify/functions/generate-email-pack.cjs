@@ -53,7 +53,7 @@ const handler = async (event) => {
         console.log(`🔍 Recherche des données du quiz pour l'email: ${email}`);
         
         const supabaseResponse = await fetch(
-            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=prenom,objectif,situation,fierte,reve,souffrance`,
+            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=prenom,objectif,situation,fierte,reve,souffrance,token`,
             {
                 method: 'GET',
                 headers: {
@@ -101,34 +101,42 @@ const handler = async (event) => {
         console.log('✅ Données du quiz récupérées:', {
             prenom: quizData.prenom,
             objectif: quizData.objectif,
-            situation: quizData.situation
+            situation: quizData.situation,
+            token: quizData.token ? 'présent' : 'absent'
         });
 
-        // 2. Générer un token unique et le stocker dans Supabase
-        const token = crypto.randomUUID();
-        console.log('🔑 Token généré:', token);
+        // 2. Utiliser le token depuis Supabase (ou générer un nouveau si absent)
+        let token = quizData.token;
+        
+        if (!token) {
+            // Si pas de token dans Supabase, en générer un nouveau et le mettre à jour
+            token = crypto.randomUUID();
+            console.log('🔑 Token généré (absent dans Supabase):', token);
+            
+            // Mettre à jour le token dans Supabase
+            const updateResponse = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ token: token })
+                }
+            );
 
-        // Mettre à jour le token dans Supabase
-        const updateResponse = await fetch(
-            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
-            {
-                method: 'PATCH',
-                headers: {
-                    'apikey': supabaseAnonKey,
-                    'Authorization': `Bearer ${supabaseAnonKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({ token: token })
+            if (!updateResponse.ok) {
+                const errorText = await updateResponse.text();
+                console.error('⚠️ Erreur lors de la mise à jour du token:', errorText);
+                // On continue quand même, ce n'est pas bloquant
+            } else {
+                console.log('✅ Token stocké dans Supabase');
             }
-        );
-
-        if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            console.error('⚠️ Erreur lors de la mise à jour du token:', errorText);
-            // On continue quand même, ce n'est pas bloquant
         } else {
-            console.log('✅ Token stocké dans Supabase');
+            console.log('✅ Token récupéré depuis Supabase:', token);
         }
 
         // 3. Appeler l'API Anthropic
