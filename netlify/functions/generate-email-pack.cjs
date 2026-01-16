@@ -244,6 +244,24 @@ L'objectif n'est pas enseigné, il est débloqué.
 - Pas d'emoji dans le subject ni dans le body
 - Dire 'cette offre' (pas 'l'offre') pour renforcer le côté unique
 
+FORMATAGE HTML DE L'EMAIL :
+- Taille de police : 16px minimum pour le body
+- Interligne : line-height 1.7 pour une lecture agréable
+- Espacement : marge entre chaque paragraphe (margin-bottom: 16px sur les <p>)
+- Mots/phrases clés en <strong> pour attirer l'œil (2-3 par email max, pas plus)
+- Lien CTA bien visible : couleur #4D97FE, souligné
+- Signature avec espacement au-dessus
+
+Structure HTML :
+<div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;">
+  <p style="margin-bottom: 16px;">Hello ${quizData.prenom || 'cette personne'},</p>
+  <p style="margin-bottom: 16px;">Paragraphe avec <strong>mots clés</strong> en gras...</p>
+  ...
+  <p style="margin-bottom: 16px;"><a href="https://sonnycourt.com/pack-complet/?token=${token}" style="color: #4D97FE; text-decoration: underline;">Cette offre est disponible 48h seulement ici</a> avec 70% de réduction.</p>
+  <p style="margin-top: 24px;">Je crois en toi,<br>Sonny</p>
+  <p style="margin-top: 16px; font-style: italic;">PS : ...</p>
+</div>
+
 LANGAGE :
 - Pas de langage vulgaire (pas de "putain", "couilles", "merde", etc.)
 - Ton direct mais respectueux
