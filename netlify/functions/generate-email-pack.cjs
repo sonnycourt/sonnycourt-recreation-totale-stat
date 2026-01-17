@@ -550,17 +550,107 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             // On continue quand même, ce n'est pas bloquant
         }
 
+        console.log('✅ Traitement terminé avec succès pour:', email);
+
+    } catch (error) {
+        console.error('❌ Erreur dans processEmailGeneration:', error);
+        console.error('❌ Stack:', error.stack);
+    }
+}
+
+const handler = async (event) => {
+    // Vérifier que c'est une requête POST
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS'
+            },
+            body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+
+    // Gérer les requêtes OPTIONS pour CORS
+    if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS'
+            },
+            body: ''
+        };
+    }
+
+    try {
+        // LOG INITIAL : Voir ce que MailerLite envoie
+        console.log('📥 Body reçu de MailerLite:', JSON.stringify(event.body ? JSON.parse(event.body) : {}, null, 2));
+        
+        // 1. VÉRIFIER LA SECRET KEY (pour les webhooks MailerLite)
+        const expectedSecret = 'pack-complet-webhook-2026';
+        const signature = event.headers['x-mailerlite-signature'] || event.headers['X-Mailerlite-Signature'] || '';
+        
+        // Si c'est un webhook MailerLite, vérifier la signature
+        if (signature && signature !== expectedSecret) {
+            console.error('❌ Secret key invalide:', signature);
+            return {
+                statusCode: 401,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ error: 'Unauthorized - Invalid secret key' })
+            };
+        }
+        
+        // 2. PARSER LE BODY ET EXTRAIRE L'EMAIL
+        const requestBody = JSON.parse(event.body || '{}');
+        
+        // Récupérer le paramètre model (query string ou body, défaut: 'sonnet')
+        const model = event.queryStringParameters?.model || requestBody.model || 'sonnet';
+        
+        // Extraire l'email depuis le format MailerLite webhook
+        const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
+
+        if (!email) {
+            console.error('❌ Email non trouvé dans la requête');
+            return {
+                statusCode: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ error: 'Email is required' })
+            };
+        }
+        
+        console.log('✅ Email validé:', email);
+        
+        // Retourner 202 Accepted immédiatement pour Background Function
+        // Le traitement continue en arrière-plan pendant 15 minutes max
+        processEmailGeneration(email, model).catch(err => {
+            console.error('❌ Erreur dans processEmailGeneration (non bloquante):', err);
+        });
+        
+        return {
+            statusCode: 202,
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify(result)
+            body: JSON.stringify({ 
+                accepted: true,
+                message: 'Email generation started',
+                email: email
+            })
         };
 
     } catch (error) {
-        console.error('❌ Erreur dans generate-email-pack:', error);
+        console.error('❌ Erreur dans handler (validation):', error);
         return {
             statusCode: 500,
             headers: {
