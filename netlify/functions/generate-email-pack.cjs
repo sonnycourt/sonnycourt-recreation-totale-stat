@@ -6,7 +6,7 @@ const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
 // Fonction de traitement en arrière-plan (appelée après le retour 202)
-async function processEmailGeneration(email, model) {
+async function processEmailGeneration(email, model, emailType) {
     try {
 
         // Récupérer les données du quiz depuis Supabase via API REST
@@ -101,9 +101,14 @@ async function processEmailGeneration(email, model) {
 
         // 3. Appeler l'API LLM (Claude ou DeepSeek selon le paramètre model)
         console.log('🤖 Modèle LLM sélectionné:', model);
+        console.log('📧 Type d\'email:', emailType);
         
-        // Préparer le prompt
-        const prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
+        // Préparer le prompt selon le type d'email
+        let prompt = '';
+        
+        if (emailType === 'initial') {
+            // Prompt actuel - premier contact, présentation du Pack Complet
+            prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
 
 Voici ses réponses au quiz :
 - Objectif : ${quizData.objectif || 'Non spécifié'}
@@ -204,6 +209,91 @@ NE JAMAIS utiliser deux fois la même accroche ou la même structure de phrase. 
 Format de réponse :
 SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]`;
+        } 
+        else if (emailType === '24h') {
+            // Prompt rappel 24h - plus court, rappel de l'offre qui expire demain
+            prompt = `Tu es Sonny Court. Écris un email de rappel à ${quizData.prenom || 'cette personne'}.
+
+Je voulais juste m'assurer que tu avais vu mon message. L'offre sur le Pack Complet expire demain.
+
+Voici ses réponses au quiz (pour contexte) :
+- Objectif : ${quizData.objectif || 'Non spécifié'}
+- Situation : ${quizData.situation || 'Non spécifié'}
+
+TON :
+- Démarrer par "Je voulais juste m'assurer que tu avais vu mon message..."
+- Plus court et direct que l'email initial
+- Rappeler l'offre -70% sur le Pack Complet
+- L'offre expire demain (24h restantes)
+- Pas de reprise complète du pitch initial
+
+ÉLÉMENTS OBLIGATOIRES :
+- Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
+- Signature exacte : 'Je crois en toi,<br>Sonny'
+- Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Cette offre expire demain ici</a>
+- Format HTML avec <p> pour chaque paragraphe
+- Pas d'emoji dans le subject ni dans le body
+
+FORMATAGE HTML DE L'EMAIL :
+- Taille de police : 16px minimum pour le body
+- Interligne : line-height 1.7
+- Espacement : margin-bottom: 16px sur les <p>
+- Lien CTA : couleur #4D97FE, souligné
+
+Format de réponse :
+SUBJECT: [objet de l'email - rappel discret]
+BODY: [corps de l'email - court et direct]`;
+        }
+        else if (emailType === '4h') {
+            // Prompt urgence 4h - très court, dernière chance
+            prompt = `Tu es Sonny Court. Écris un email d'urgence finale à ${quizData.prenom || 'cette personne'}.
+
+Dans 4h, l'offre expire. Pas de pression, juste un rappel.
+
+CONTEXTE :
+- Objectif : ${quizData.objectif || 'Non spécifié'}
+- Situation : ${quizData.situation || 'Non spécifié'}
+
+TON :
+- Très court et direct
+- "Dans 4h, l'offre expire. Pas de pression, juste un rappel."
+- Dernière chance sur le Pack Complet à -70%
+- Pas de longue explication
+
+ÉLÉMENTS OBLIGATOIRES :
+- Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
+- Signature exacte : 'Je crois en toi,<br>Sonny'
+- Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance ici</a>
+- Format HTML avec <p> pour chaque paragraphe
+- Pas d'emoji dans le subject ni dans le body
+
+FORMATAGE HTML DE L'EMAIL :
+- Taille de police : 16px minimum pour le body
+- Interligne : line-height 1.7
+- Espacement : margin-bottom: 16px sur les <p>
+- Lien CTA : couleur #4D97FE, souligné
+
+Format de réponse :
+SUBJECT: [objet de l'email - urgence 4h]
+BODY: [corps de l'email - très court]`;
+        } else {
+            // Fallback vers initial si type inconnu
+            prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
+
+Voici ses réponses au quiz :
+- Objectif : ${quizData.objectif || 'Non spécifié'}
+- Situation : ${quizData.situation || 'Non spécifié'}
+- Fierté : ${quizData.fierte || 'Non spécifié'}
+- Rêve : ${quizData.reve || 'Non spécifié'}
+- Souffrance : ${quizData.souffrance || 'Non spécifié'}
+
+AVANT TOUT : Si les réponses sont du charabia, des mots random, ou clairement pas sérieuses → retourne uniquement : SKIP
+Si les réponses sont courtes mais cohérentes → c'est OK, génère l'email.
+
+Format de réponse :
+SUBJECT: [objet de l'email - doit être personnel et intrigant]
+BODY: [corps de l'email incluant le PS à la fin]`;
+        }
 
         let content = '';
         let llmResponse;
@@ -613,6 +703,9 @@ const handler = async (event) => {
         // Récupérer le paramètre model (query string ou body, défaut: 'sonnet')
         const model = event.queryStringParameters?.model || requestBody.model || 'sonnet';
         
+        // Récupérer le paramètre type (initial, 24h, 4h)
+        const emailType = requestBody.type || 'initial';
+        
         // Extraire l'email depuis le format MailerLite webhook
         const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
@@ -632,7 +725,7 @@ const handler = async (event) => {
         
         // Retourner 202 Accepted immédiatement pour Background Function
         // Le traitement continue en arrière-plan pendant 15 minutes max
-        processEmailGeneration(email, model).catch(err => {
+        processEmailGeneration(email, model, emailType).catch(err => {
             console.error('❌ Erreur dans processEmailGeneration (non bloquante):', err);
         });
         
