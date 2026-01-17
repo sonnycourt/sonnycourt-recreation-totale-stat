@@ -333,66 +333,71 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 content = deepseekData.choices?.[0]?.message?.content || '';
                 
             } catch (deepseekError) {
-                console.log('⚠️ DeepSeek a échoué, fallback vers Claude:', deepseekError.message);
-                usedModel = 'sonnet';
-                
-                // Fallback vers Claude
-                const anthropicApiKey = process.env.ANTHROPIC_API_KEY_EMAIL_PACK;
-                
-                if (!anthropicApiKey) {
-                    console.error('❌ ANTHROPIC_API_KEY_EMAIL_PACK non définie');
-                    return {
-                        statusCode: 500,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
-                        },
-                        body: JSON.stringify({ error: 'Anthropic API key not configured' })
-                    };
-                }
+                // FALLBACK DÉSACTIVÉ - décommenter si nécessaire
+                // console.log('⚠️ DeepSeek a échoué, fallback vers Claude:', deepseekError.message);
+                // usedModel = 'sonnet';
+                // 
+                // // Fallback vers Claude
+                // const anthropicApiKey = process.env.ANTHROPIC_API_KEY_EMAIL_PACK;
+                // 
+                // if (!anthropicApiKey) {
+                //     console.error('❌ ANTHROPIC_API_KEY_EMAIL_PACK non définie');
+                //     return {
+                //         statusCode: 500,
+                //         headers: {
+                //             'Content-Type': 'application/json',
+                //             'Access-Control-Allow-Origin': '*'
+                //         },
+                //         body: JSON.stringify({ error: 'Anthropic API key not configured' })
+                //     };
+                // }
+                // 
+                // console.log('🤖 Appel à l\'API Anthropic (Claude Sonnet)...');
+                // 
+                // const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //         'x-api-key': anthropicApiKey,
+                //         'anthropic-version': '2023-06-01'
+                //     },
+                //     body: JSON.stringify({
+                //         model: 'claude-sonnet-4-20250514',
+                //         max_tokens: 2000,
+                //         messages: [
+                //             {
+                //                 role: 'user',
+                //                 content: prompt
+                //             }
+                //         ]
+                //     })
+                // });
+                // 
+                // if (!anthropicResponse.ok) {
+                //     const errorText = await anthropicResponse.text();
+                //     console.error('❌ Erreur API Anthropic:', errorText);
+                //     return {
+                //         statusCode: 500,
+                //         headers: {
+                //             'Content-Type': 'application/json',
+                //             'Access-Control-Allow-Origin': '*'
+                //         },
+                //         body: JSON.stringify({ 
+                //             error: 'Anthropic API error',
+                //             details: errorText 
+                //         })
+                //     };
+                // }
+                // 
+                // const anthropicData = await anthropicResponse.json();
+                // console.log('✅ Réponse Anthropic reçue');
+                // 
+                // // Extraire le contenu de la réponse (format Anthropic)
+                // content = anthropicData.content?.[0]?.text || '';
 
-                console.log('🤖 Appel à l\'API Anthropic (Claude Sonnet)...');
-
-                const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': anthropicApiKey,
-                        'anthropic-version': '2023-06-01'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 2000,
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ]
-                    })
-                });
-
-                if (!anthropicResponse.ok) {
-                    const errorText = await anthropicResponse.text();
-                    console.error('❌ Erreur API Anthropic:', errorText);
-                    return {
-                        statusCode: 500,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
-                        },
-                        body: JSON.stringify({ 
-                            error: 'Anthropic API error',
-                            details: errorText 
-                        })
-                    };
-                }
-
-                const anthropicData = await anthropicResponse.json();
-                console.log('✅ Réponse Anthropic reçue');
-
-                // Extraire le contenu de la réponse (format Anthropic)
-                content = anthropicData.content?.[0]?.text || '';
+                // Version actuelle : DeepSeek uniquement
+                console.error('❌ Erreur DeepSeek:', deepseekError.message);
+                throw deepseekError;
             }
         } else {
             // Utiliser Claude directement si explicitement demandé
