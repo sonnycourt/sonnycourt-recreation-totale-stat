@@ -57,17 +57,8 @@ const handler = async (event) => {
         // 2. PARSER LE BODY ET EXTRAIRE L'EMAIL
         const requestBody = JSON.parse(event.body || '{}');
         
-        // Gérer les deux formats MailerLite
-        let email = null;
-        if (requestBody.events && requestBody.events[0] && requestBody.events[0].data && requestBody.events[0].data.subscriber) {
-            email = requestBody.events[0].data.subscriber.email;
-            console.log('📧 Email extrait depuis format webhook MailerLite (events[0].data.subscriber.email)');
-        } else if (requestBody.email) {
-            email = requestBody.email;
-            console.log('📧 Email extrait depuis format direct (email)');
-        } else {
-            email = requestBody.email; // Fallback pour compatibilité avec l'ancien format
-        }
+        // Extraire l'email depuis le format MailerLite webhook
+        const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
         if (!email) {
             console.error('❌ Email non trouvé dans la requête');
