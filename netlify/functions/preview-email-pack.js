@@ -236,11 +236,11 @@ SUBJECT: Offre expire demain
 
 BODY:
 <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;">
-<p style="margin-bottom: 16px;">Hello ${quizData.prenom},</p>
-<p style="margin-bottom: 16px;">Je voulais juste m'assurer que tu avais vu mon message d'hier.</p>
-<p style="margin-bottom: 16px;">L'offre sur le Pack Complet expire demain.</p>
-<p style="margin-bottom: 16px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a></p>
-<p style="margin-bottom: 16px;">Sonny</p>
+<p style="margin-bottom: 8px;">Hello ${quizData.prenom},</p>
+<p style="margin-bottom: 8px;">Je voulais juste m'assurer que tu avais vu mon message d'hier.</p>
+<p style="margin-bottom: 8px;">L'offre sur le Pack Complet expire demain.</p>
+<p style="margin-bottom: 8px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a></p>
+<p style="margin-bottom: 8px;">Sonny</p>
 <p style="margin-top: 16px; font-style: italic;">PS : [Une phrase créative et émotionnelle qui utilise le rêve pour créer l'envie d'agir. Rêve du user : ${quizData.reve}. Ne PAS juste répéter mot pour mot, mais UTILISER les mots pour raviver le désir. Exemple : "Cette liberté dont tu rêves, elle commence par une décision."]</p>
 </div>
 
@@ -248,7 +248,7 @@ IMPORTANT :
 - SUBJECT: doit être sur sa propre ligne, suivi d'un saut de ligne
 - BODY: doit être sur sa propre ligne, suivi du HTML
 - Ne PAS mettre le body dans le subject
-- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 16px;"> pour chaque paragraphe`;
+- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 8px;"> pour chaque paragraphe`;
         }
         else if (emailType === '4h') {
             // Prompt urgence 4h
@@ -262,10 +262,10 @@ SUBJECT: Dernière chance
 
 BODY:
 <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;">
-<p style="margin-bottom: 16px;">Hello ${quizData.prenom},</p>
-<p style="margin-bottom: 16px;">L'offre expire dans 4h.</p>
-<p style="margin-bottom: 16px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance</a></p>
-<p style="margin-bottom: 16px;">Sonny</p>
+<p style="margin-bottom: 8px;">Hello ${quizData.prenom},</p>
+<p style="margin-bottom: 8px;">L'offre expire dans 4h.</p>
+<p style="margin-bottom: 8px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance</a></p>
+<p style="margin-bottom: 8px;">Sonny</p>
 <p style="margin-top: 16px; font-style: italic;">PS : [Une phrase créative et émotionnelle qui utilise la souffrance pour créer l'urgence. Souffrance du user : ${quizData.souffrance}. Ne PAS juste répéter mot pour mot, mais UTILISER les mots pour créer l'envie d'agir maintenant. Exemple : "Dans 4h, soit tu restes avec ce manque de confiance, soit tu décides que ça change."]</p>
 </div>
 
@@ -273,7 +273,7 @@ IMPORTANT :
 - SUBJECT: doit être sur sa propre ligne, suivi d'un saut de ligne
 - BODY: doit être sur sa propre ligne, suivi du HTML
 - Ne PAS mettre le body dans le subject
-- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 16px;"> pour chaque paragraphe`;
+- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 8px;"> pour chaque paragraphe`;
         } else {
             // Fallback vers initial si type inconnu
             prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
