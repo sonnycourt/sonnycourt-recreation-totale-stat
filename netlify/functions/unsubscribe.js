@@ -1,4 +1,4 @@
-// Netlify Function pour désinscrire un email de Listmonk
+// Netlify Function pour désinscrire un email de MailerLite
 // POST /api/unsubscribe avec { "email": "test@example.com" }
 // GET /api/unsubscribe pour debug
 
@@ -10,10 +10,6 @@ exports.handler = async (event) => {
     'Content-Type': 'application/json',
   };
 
-  const LISTMONK_URL = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
-  const LISTMONK_USER = process.env.LISTMONK_USER;
-  const LISTMONK_PASS = process.env.LISTMONK_PASS;
-
   // GET = debug info (pour tester la config)
   if (event.httpMethod === 'GET') {
     return {
@@ -21,9 +17,7 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         status: 'ok',
-        listmonk_url: LISTMONK_URL,
-        user_configured: !!LISTMONK_USER,
-        pass_configured: !!LISTMONK_PASS,
+        mailerlite_configured: !!process.env.MAILERLITE_API_KEY,
       })
     };
   }
@@ -36,17 +30,17 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  console.log('LISTMONK_URL:', LISTMONK_URL);
-  console.log('LISTMONK_USER configured:', !!LISTMONK_USER);
-  console.log('LISTMONK_PASS configured:', !!LISTMONK_PASS);
+  const apiKey = process.env.MAILERLITE_API_KEY;
 
-  if (!LISTMONK_USER || !LISTMONK_PASS) {
+  console.log('MAILERLITE_API_KEY configured:', !!apiKey);
+
+  if (!apiKey) {
     return { 
       statusCode: 500, 
       headers, 
       body: JSON.stringify({ 
         error: 'Service non configuré',
-        debug: 'Variables LISTMONK_USER et/ou LISTMONK_PASS manquantes dans Netlify'
+        debug: 'Variable MAILERLITE_API_KEY manquante dans Netlify'
       }) 
     };
   }
@@ -60,28 +54,22 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Email invalide' }) };
     }
 
-    const auth = Buffer.from(`${LISTMONK_USER}:${LISTMONK_PASS}`).toString('base64');
-    const apiUrl = `${LISTMONK_URL}/api/subscribers/query/delete`;
-    
-    console.log('Calling Listmonk API:', apiUrl);
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: `subscribers.email = '${email.replace(/'/g, "''")}'`
-      }),
+    // Headers pour l'API MailerLite
+    const mailerliteHeaders = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    // ÉTAPE 1: Récupérer le subscriber_id depuis l'email
+    console.log('🔍 Récupération du subscriber depuis MailerLite...');
+    const getResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: mailerliteHeaders
     });
 
-    const responseText = await response.text();
-    console.log('Listmonk response status:', response.status);
-    console.log('Listmonk response body:', responseText);
-
-    if (!response.ok) {
-      if (response.status === 404) {
+    if (!getResponse.ok) {
+      if (getResponse.status === 404) {
         return {
           statusCode: 200,
           headers,
@@ -89,12 +77,54 @@ exports.handler = async (event) => {
         };
       }
       
+      const errorText = await getResponse.text();
+      console.error('❌ Erreur récupération subscriber:', getResponse.status, errorText);
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'Erreur Listmonk',
-          status: response.status,
+          error: 'Erreur MailerLite lors de la récupération',
+          status: getResponse.status,
+          details: errorText.substring(0, 500)
+        }),
+      };
+    }
+
+    const subscriberData = await getResponse.json();
+    const subscriberId = subscriberData.data?.id;
+
+    if (!subscriberId) {
+      console.error('❌ Subscriber ID non trouvé dans la réponse');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Impossible de récupérer l\'ID du subscriber' }),
+      };
+    }
+
+    console.log(`✅ Subscriber trouvé: ${email} (ID: ${subscriberId})`);
+
+    // ÉTAPE 2: Mettre le status à "unsubscribed"
+    console.log('📤 Mise à jour du status à "unsubscribed"...');
+    const updateResponse = await fetch(`https://connect.mailerlite.com/api/subscribers/${subscriberId}`, {
+      method: 'PUT',
+      headers: mailerliteHeaders,
+      body: JSON.stringify({
+        status: 'unsubscribed'
+      })
+    });
+
+    const responseText = await updateResponse.text();
+    console.log('MailerLite response status:', updateResponse.status);
+    console.log('MailerLite response body:', responseText);
+
+    if (!updateResponse.ok) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Erreur MailerLite lors de la désinscription',
+          status: updateResponse.status,
           details: responseText.substring(0, 500)
         }),
       };
