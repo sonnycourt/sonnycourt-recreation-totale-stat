@@ -420,11 +420,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
             
             // Préparer le body HTML (s'assurer qu'il est bien en HTML)
-            const emailBody = result.body.includes('<p>') || result.body.includes('<div>') || result.body.includes('<br>') 
+            const bodyWithFooter = result.body.includes('<p>') || result.body.includes('<div>') || result.body.includes('<br>') 
                 ? result.body 
                 : `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${result.body.replace(/\n/g, '<br>')}</div>`;
             
-            console.log('📝 Body HTML final (premiers 200 caractères):', emailBody.substring(0, 200));
+            console.log('📝 Body HTML final (premiers 200 caractères):', bodyWithFooter.substring(0, 200));
             
             // Authentification Basic
             const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
@@ -437,15 +437,14 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     'Authorization': authHeader
                 },
                 body: JSON.stringify({
-                    subscriber_email: email,
+                    to_email: email,
                     template_id: 11,
                     data: {
                         subject: result.subject,
-                        body: emailBody
+                        body: bodyWithFooter
                     },
                     from_email: 'Sonny Court <info@sonnycourt.com>',
-                    messenger: 'email',
-                    content_type: 'html'
+                    messenger: 'email'
                 })
             });
             
