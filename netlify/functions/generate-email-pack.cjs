@@ -418,6 +418,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         
         try {
             console.log('📨 Envoi de l\'email via MailerSend...');
+            console.log('🔑 MAILERSEND_API_KEY présente:', mailerSendApiKey ? 'OUI (' + mailerSendApiKey.substring(0, 10) + '...)' : 'NON');
             console.log('📧 Email destinataire:', email);
             console.log('📧 Subject:', result.subject);
             console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
@@ -454,6 +455,10 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             
         } catch (mailerSendError) {
             console.error('❌ Erreur lors de l\'envoi MailerSend:', mailerSendError);
+            console.error('❌ Erreur message:', mailerSendError.message);
+            console.error('❌ Erreur stack:', mailerSendError.stack);
+            console.error('❌ Erreur complète:', JSON.stringify(mailerSendError, Object.getOwnPropertyNames(mailerSendError)));
+            
             // On continue quand même, mais on ne marque pas comme envoyé
             return {
                 statusCode: 500,
@@ -463,7 +468,8 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 },
                 body: JSON.stringify({ 
                     error: 'Failed to send email via MailerSend',
-                    details: mailerSendError.message 
+                    details: mailerSendError.message || String(mailerSendError),
+                    type: mailerSendError.constructor?.name || 'UnknownError'
                 })
             };
         }
