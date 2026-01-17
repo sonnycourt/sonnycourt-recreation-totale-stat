@@ -282,73 +282,56 @@ SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]`;
         } 
         else if (emailType === '24h') {
-            // Prompt rappel 24h - plus court, max 150 mots, rappel de l'offre qui expire demain
-            prompt = `Tu es Sonny Court. Écris un email de rappel à ${quizData.prenom || 'cette personne'}.
+            // Prompt rappel 24h - très court, 5 phrases max
+            prompt = `Tu es Sonny Court. Email de rappel TRÈS COURT à ${quizData.prenom}.
 
-Je voulais juste m'assurer que tu avais vu mon message. L'offre sur le Pack Complet expire demain.
+Tu lui as envoyé un email hier. Tu veux juste t'assurer qu'elle l'a vu.
 
-Voici ses réponses au quiz (pour contexte) :
-- Objectif : ${quizData.objectif || 'Non spécifié'}
-- Situation : ${quizData.situation || 'Non spécifié'}
+L'offre expire dans 24h.
 
-TON :
-- Démarrer par "Je voulais juste m'assurer que tu avais vu mon message..."
-- Maximum 150 mots pour tout l'email (très court)
-- Plus court et direct que l'email initial
-- Rappeler l'offre -70% sur le Pack Complet
-- L'offre expire demain (24h restantes)
-- Pas de reprise complète du pitch initial
+RÈGLES STRICTES :
+- Maximum 5 phrases au total
+- Pas de re-pitch du Pack Complet
+- Pas de mention de la fierté/souffrance/rêve
+- Juste : "Tu as vu mon email d'hier ? L'offre expire demain."
 
-ÉLÉMENTS OBLIGATOIRES :
-- Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
-- Signature exacte : 'Je crois en toi,<br>Sonny'
-- Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Cette offre expire demain ici</a>
-- Format HTML avec <p> pour chaque paragraphe
-- Pas d'emoji dans le subject ni dans le body
+STRUCTURE EXACTE :
+Hello ${quizData.prenom},
 
-FORMATAGE HTML DE L'EMAIL :
-- Taille de police : 16px minimum pour le body
-- Interligne : line-height 1.7
-- Espacement : margin-bottom: 16px sur les <p>
-- Lien CTA : couleur #4D97FE, souligné
+Je voulais juste m'assurer que tu avais vu mon message d'hier.
 
-Format de réponse :
-SUBJECT: [objet de l'email - rappel discret]
-BODY: [corps de l'email - maximum 150 mots]`;
+L'offre sur le Pack Complet expire demain.
+
+<a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a>
+
+Sonny
+
+FORMAT :
+SUBJECT: [3-5 mots max]
+BODY: [HTML avec <p style="margin-bottom: 16px;"> - 5 phrases max]`;
         }
         else if (emailType === '4h') {
-            // Prompt urgence 4h - très court, max 80 mots, dernière chance
-            prompt = `Tu es Sonny Court. Écris un email d'urgence finale à ${quizData.prenom || 'cette personne'}.
+            // Prompt urgence 4h - ultra court, 3 phrases max
+            prompt = `Tu es Sonny Court. Dernier rappel ULTRA COURT à ${quizData.prenom}.
 
-Dans 4h, l'offre expire. Pas de pression, juste un rappel.
+L'offre expire dans 4h.
 
-CONTEXTE :
-- Objectif : ${quizData.objectif || 'Non spécifié'}
-- Situation : ${quizData.situation || 'Non spécifié'}
+RÈGLES STRICTES :
+- Maximum 3 phrases au total
+- Juste factuel, pas de pitch
 
-TON :
-- Maximum 80 mots pour tout l'email (extrêmement court)
-- Très court et direct
-- "Dans 4h, l'offre expire. Pas de pression, juste un rappel."
-- Dernière chance sur le Pack Complet à -70%
-- Pas de longue explication
+STRUCTURE EXACTE :
+Hello ${quizData.prenom},
 
-ÉLÉMENTS OBLIGATOIRES :
-- Commencer par 'Hello ${quizData.prenom || 'cette personne'},'
-- Signature exacte : 'Je crois en toi,<br>Sonny'
-- Lien : <a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance ici</a>
-- Format HTML avec <p> pour chaque paragraphe
-- Pas d'emoji dans le subject ni dans le body
+L'offre expire dans 4h.
 
-FORMATAGE HTML DE L'EMAIL :
-- Taille de police : 16px minimum pour le body
-- Interligne : line-height 1.7
-- Espacement : margin-bottom: 16px sur les <p>
-- Lien CTA : couleur #4D97FE, souligné
+<a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance</a>
 
-Format de réponse :
-SUBJECT: [objet de l'email - urgence 4h]
-BODY: [corps de l'email - maximum 80 mots]`;
+Sonny
+
+FORMAT :
+SUBJECT: [2-3 mots max]
+BODY: [HTML - 3 phrases max]`;
         } else {
             // Fallback vers initial si type inconnu
             prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
