@@ -80,6 +80,24 @@ const handler = async (event) => {
         
         console.log('✅ Email reçu:', email);
 
+        // Anti-doublon : vérifier si cet email + type est déjà en cours de traitement
+        const cacheKey = `${email}-${emailType}`;
+        if (global.processingEmails?.has(cacheKey)) {
+            console.log(`⏭️ Email ${emailType} déjà en cours pour ${email}, skip`);
+            return {
+                statusCode: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ skipped: true, reason: 'already_processing' })
+            };
+        }
+
+        // Marquer comme en cours
+        if (!global.processingEmails) global.processingEmails = new Set();
+        global.processingEmails.add(cacheKey);
+
         // Récupérer les données du quiz depuis Supabase via API REST
         console.log(`🔍 Recherche des données du quiz pour l'email: ${email}`);
         
@@ -98,6 +116,10 @@ const handler = async (event) => {
         if (!supabaseResponse.ok) {
             const errorText = await supabaseResponse.text();
             console.error('❌ Erreur Supabase:', errorText);
+            // Retirer du cache en cas d'erreur
+            if (global.processingEmails) {
+                global.processingEmails.delete(cacheKey);
+            }
             return {
                 statusCode: 500,
                 headers: {
@@ -115,6 +137,10 @@ const handler = async (event) => {
         
         if (!quizDataArray || quizDataArray.length === 0) {
             console.error('❌ Email non trouvé dans quiz_responses');
+            // Retirer du cache en cas d'erreur
+            if (global.processingEmails) {
+                global.processingEmails.delete(cacheKey);
+            }
             return {
                 statusCode: 404,
                 headers: {
@@ -690,6 +716,10 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             
             if (!listmonkResponse.ok) {
                 console.error('❌ Erreur ListMonk API:', listmonkResponse.status, listmonkResponseText);
+                // Retirer du cache en cas d'erreur
+                if (global.processingEmails) {
+                    global.processingEmails.delete(cacheKey);
+                }
                 return {
                     statusCode: 500,
                     headers: {
@@ -711,6 +741,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.error('❌ Erreur lors de l\'envoi ListMonk:', listmonkError);
             console.error('❌ Erreur message:', listmonkError.message);
             console.error('❌ Erreur stack:', listmonkError.stack);
+            
+            // Retirer du cache en cas d'erreur
+            if (global.processingEmails) {
+                global.processingEmails.delete(cacheKey);
+            }
             
             // On continue quand même, mais on ne marque pas comme envoyé
             return {
@@ -759,6 +794,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
 
         console.log('✅ Traitement terminé avec succès pour:', email);
 
+        // Retirer du cache avant le return final
+        if (global.processingEmails) {
+            global.processingEmails.delete(cacheKey);
+        }
+
         // Retourner 200 après tout le traitement
         return {
             statusCode: 200,
@@ -771,6 +811,13 @@ BODY: [corps de l'email incluant le PS à la fin]`;
 
     } catch (error) {
         console.error('❌ Erreur dans handler (validation):', error);
+        
+        // Retirer du cache en cas d'erreur aussi
+        if (global.processingEmails && email && emailType) {
+            const cacheKey = `${email}-${emailType}`;
+            global.processingEmails.delete(cacheKey);
+        }
+        
         return {
             statusCode: 500,
             headers: {
