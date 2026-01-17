@@ -329,7 +329,35 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.log('Réponse DeepSeek brute:', JSON.stringify(deepseekData, null, 2));
 
             // Extraire le contenu de la réponse (format OpenAI)
-            content = deepseekData.choices?.[0]?.message?.content || '';
+            const deepseekContent = deepseekData.choices?.[0]?.message?.content || '';
+            
+            // PARSING SPÉCIFIQUE DEEPSEEK : Extraire sujet et body
+            let deepseekSubject = '';
+            let deepseekBody = '';
+            
+            if (deepseekContent.includes('<div')) {
+                // Format HTML : sujet avant <div, body après
+                const htmlStart = deepseekContent.indexOf('<div');
+                deepseekSubject = deepseekContent.substring(0, htmlStart).replace(/<[^>]*>/g, '').trim();
+                deepseekBody = deepseekContent.substring(htmlStart).trim();
+            } else if (deepseekContent.includes('SUJET:')) {
+                // Format SUJET:/BODY:
+                deepseekSubject = deepseekContent.split('SUJET:')[1].split('BODY:')[0].trim();
+                deepseekBody = deepseekContent.split('BODY:')[1].trim();
+            } else {
+                // Fallback : utiliser tout le contenu comme body
+                deepseekBody = deepseekContent.trim();
+                deepseekSubject = 'Email personnalisé';
+            }
+            
+            // Nettoyer le sujet
+            deepseekSubject = deepseekSubject.replace(/<[^>]*>/g, '').substring(0, 100).trim();
+            
+            console.log('📧 DeepSeek - Subject extrait:', deepseekSubject);
+            console.log('📧 DeepSeek - Body extrait (premiers 200 caractères):', deepseekBody.substring(0, 200));
+            
+            // Reformater le content au format SUBJECT:/BODY: pour que le code commun fonctionne
+            content = `SUBJECT: ${deepseekSubject}\nBODY: ${deepseekBody}`;
 
         } else {
             // Utiliser Claude API (défaut: 'sonnet')
