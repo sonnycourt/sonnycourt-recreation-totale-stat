@@ -34,6 +34,9 @@ const handler = async (event) => {
     }
 
     try {
+        // LOG INITIAL : Voir ce que MailerLite envoie
+        console.log('📥 Body reçu de MailerLite:', JSON.stringify(event.body ? JSON.parse(event.body) : {}, null, 2));
+        
         // 1. VÉRIFIER LA SECRET KEY (pour les webhooks MailerLite)
         const expectedSecret = 'pack-complet-webhook-2026';
         const signature = event.headers['x-mailerlite-signature'] || event.headers['X-Mailerlite-Signature'] || '';
