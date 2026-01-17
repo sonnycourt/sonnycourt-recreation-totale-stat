@@ -550,7 +550,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 success: true,
                 subject: subject || 'Email personnalisé',
                 body: bodyWithFooter,
-                model: model
+                model: usedModel
             })
         };
 
