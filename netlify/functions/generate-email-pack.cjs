@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
 const crypto = require('crypto');
-const { MailerSend, EmailParams, Sender, Recipient } = require('mailersend');
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -399,11 +398,13 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             token: token
         };
         
-        // 3. ENVOYER L'EMAIL VIA MAILERSEND
-        const mailerSendApiKey = process.env.MAILERSEND_API_KEY;
+        // 3. ENVOYER L'EMAIL VIA LISTMONK
+        const listmonkUrl = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
+        const listmonkUser = process.env.LISTMONK_USER;
+        const listmonkPass = process.env.LISTMONK_PASS;
         
-        if (!mailerSendApiKey) {
-            console.error('❌ MAILERSEND_API_KEY non définie');
+        if (!listmonkUser || !listmonkPass) {
+            console.error('❌ LISTMONK_USER ou LISTMONK_PASS non définie');
             return {
                 statusCode: 500,
                 headers: {
@@ -411,55 +412,71 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({ 
-                    error: 'MailerSend API key not configured' 
+                    error: 'ListMonk credentials not configured' 
                 })
             };
         }
         
         try {
-            console.log('📨 Envoi de l\'email via MailerSend...');
-            console.log('🔑 MAILERSEND_API_KEY présente:', mailerSendApiKey ? 'OUI (' + mailerSendApiKey.substring(0, 10) + '...)' : 'NON');
+            console.log('📨 Envoi de l\'email via ListMonk...');
+            console.log('🔗 LISTMONK_URL:', listmonkUrl);
+            console.log('👤 LISTMONK_USER présent:', !!listmonkUser);
             console.log('📧 Email destinataire:', email);
             console.log('📧 Subject:', result.subject);
             console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
             
-            // Initialiser MailerSend
-            const mailerSend = new MailerSend({
-                apiKey: mailerSendApiKey,
-            });
-            
-            // Configurer l'expéditeur
-            console.log('📤 From:', 'info@sonnycourt.com');
-            const sentFrom = new Sender('info@sonnycourt.com', 'Sonny Court');
-            
-            // Configurer le destinataire (utiliser le prénom depuis quizData)
-            console.log('📥 To:', email, 'Name:', quizData.prenom || '');
-            const recipients = [new Recipient(email, quizData.prenom || '')];
-            
-            // Préparer les paramètres de l'email
-            // S'assurer que le body est bien en HTML
+            // Préparer le body HTML (s'assurer qu'il est bien en HTML)
             const emailBody = result.body.includes('<p>') || result.body.includes('<div>') || result.body.includes('<br>') 
                 ? result.body 
                 : `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${result.body.replace(/\n/g, '<br>')}</div>`;
             
             console.log('📝 Body HTML final (premiers 200 caractères):', emailBody.substring(0, 200));
             
-            const emailParams = new EmailParams()
-                .setFrom(sentFrom)
-                .setTo(recipients)
-                .setSubject(result.subject)
-                .setHtml(emailBody);
+            // Authentification Basic
+            const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
             
-            // Envoyer l'email
-            const mailerSendResponse = await mailerSend.email.send(emailParams);
-            console.log('✅ Email envoyé via MailerSend');
-            console.log('📧 Response:', JSON.stringify(mailerSendResponse, null, 2));
+            // Envoyer l'email via ListMonk API transactionnelle
+            const listmonkResponse = await fetch(`${listmonkUrl}/api/tx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    subscriber_email: email,
+                    subject: result.subject,
+                    body: emailBody,
+                    content_type: 'html',
+                    from_email: 'info@sonnycourt.com',
+                    messenger: 'email'
+                })
+            });
             
-        } catch (mailerSendError) {
-            console.error('❌ Erreur lors de l\'envoi MailerSend:', mailerSendError);
-            console.error('❌ Erreur message:', mailerSendError.message);
-            console.error('❌ Erreur stack:', mailerSendError.stack);
-            console.error('❌ Erreur complète:', JSON.stringify(mailerSendError, Object.getOwnPropertyNames(mailerSendError)));
+            const listmonkResponseText = await listmonkResponse.text();
+            
+            if (!listmonkResponse.ok) {
+                console.error('❌ Erreur ListMonk API:', listmonkResponse.status, listmonkResponseText);
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ 
+                        error: 'Failed to send email via ListMonk',
+                        details: listmonkResponseText,
+                        status: listmonkResponse.status
+                    })
+                };
+            }
+            
+            console.log('✅ Email envoyé via ListMonk');
+            console.log('📧 Response:', listmonkResponseText);
+            
+        } catch (listmonkError) {
+            console.error('❌ Erreur lors de l\'envoi ListMonk:', listmonkError);
+            console.error('❌ Erreur message:', listmonkError.message);
+            console.error('❌ Erreur stack:', listmonkError.stack);
             
             // On continue quand même, mais on ne marque pas comme envoyé
             return {
@@ -469,9 +486,9 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({ 
-                    error: 'Failed to send email via MailerSend',
-                    details: mailerSendError.message || String(mailerSendError),
-                    type: mailerSendError.constructor?.name || 'UnknownError'
+                    error: 'Failed to send email via ListMonk',
+                    details: listmonkError.message || String(listmonkError),
+                    type: listmonkError.constructor?.name || 'UnknownError'
                 })
             };
         }
