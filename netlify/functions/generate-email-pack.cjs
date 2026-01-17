@@ -5,79 +5,11 @@ const crypto = require('crypto');
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
-const handler = async (event) => {
-    // Vérifier que c'est une requête POST
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS'
-            },
-            body: JSON.stringify({ error: 'Method not allowed' })
-        };
-    }
-
-    // Gérer les requêtes OPTIONS pour CORS
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS'
-            },
-            body: ''
-        };
-    }
-
+// Fonction de traitement en arrière-plan (appelée après le retour 202)
+async function processEmailGeneration(email, model) {
     try {
-        // LOG INITIAL : Voir ce que MailerLite envoie
-        console.log('📥 Body reçu de MailerLite:', JSON.stringify(event.body ? JSON.parse(event.body) : {}, null, 2));
-        
-        // 1. VÉRIFIER LA SECRET KEY (pour les webhooks MailerLite)
-        const expectedSecret = 'pack-complet-webhook-2026';
-        const signature = event.headers['x-mailerlite-signature'] || event.headers['X-Mailerlite-Signature'] || '';
-        
-        // Si c'est un webhook MailerLite, vérifier la signature
-        if (signature && signature !== expectedSecret) {
-            console.error('❌ Secret key invalide:', signature);
-            return {
-                statusCode: 401,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: 'Unauthorized - Invalid secret key' })
-            };
-        }
-        
-        // 2. PARSER LE BODY ET EXTRAIRE L'EMAIL
-        const requestBody = JSON.parse(event.body || '{}');
-        
-        // Récupérer le paramètre model (query string ou body, défaut: 'sonnet')
-        const model = event.queryStringParameters?.model || requestBody.model || 'sonnet';
-        
-        // Extraire l'email depuis le format MailerLite webhook
-        const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
-        if (!email) {
-            console.error('❌ Email non trouvé dans la requête');
-            return {
-                statusCode: 400,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: 'Email is required' })
-            };
-        }
-        
-        console.log('✅ Email reçu:', email);
-
-        // 1. Récupérer les données du quiz depuis Supabase via API REST
+        // Récupérer les données du quiz depuis Supabase via API REST
         console.log(`🔍 Recherche des données du quiz pour l'email: ${email}`);
         
         const supabaseResponse = await fetch(
