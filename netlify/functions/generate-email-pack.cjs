@@ -278,7 +278,7 @@ LIBERTÉ TOTALE SUR :
 NE JAMAIS utiliser deux fois la même accroche ou la même structure de phrase. Sois créatif, authentique, comme si tu écrivais vraiment à cette personne.
 
 Format de réponse :
-SUBJECT: [objet de l'email - doit être personnel et intrigant]
+SUBJECT: [objet de l'email - doit être personnel et intrigant - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
 BODY: [corps de l'email incluant le PS à la fin]`;
         } 
         else if (emailType === '24h') {
@@ -307,7 +307,7 @@ L'offre sur le Pack Complet expire demain.
 Sonny
 
 FORMAT :
-SUBJECT: [3-5 mots max]
+SUBJECT: [3-5 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
 BODY: [HTML avec <p style="margin-bottom: 16px;"> - 5 phrases max]`;
         }
         else if (emailType === '4h') {
@@ -330,7 +330,7 @@ L'offre expire dans 4h.
 Sonny
 
 FORMAT :
-SUBJECT: [2-3 mots max]
+SUBJECT: [2-3 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
 BODY: [HTML - 3 phrases max]`;
         } else {
             // Fallback vers initial si type inconnu
@@ -347,7 +347,7 @@ AVANT TOUT : Si les réponses sont du charabia, des mots random, ou clairement p
 Si les réponses sont courtes mais cohérentes → c'est OK, génère l'email.
 
 Format de réponse :
-SUBJECT: [objet de l'email - doit être personnel et intrigant]
+SUBJECT: [objet de l'email - doit être personnel et intrigant - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
 BODY: [corps de l'email incluant le PS à la fin]`;
         }
 
@@ -520,6 +520,9 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             body = content.trim();
             subject = 'Un message pour toi';
         }
+        
+        // Nettoyer le sujet de tout formatage Markdown
+        subject = subject.replace(/\*\*/g, '').replace(/__/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
         
         console.log('Subject extrait:', subject);
         console.log('Body extrait:', body);
