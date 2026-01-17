@@ -456,9 +456,18 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             htmlBody = `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${htmlBody.replace(/\n/g, '<br>')}</div>`;
         }
         
+        // Ajouter le footer de désinscription
+        const footer = `
+<p style="margin-top: 32px; font-size: 12px; color: #666; text-align: center;">
+  Sonny Court - sonnycourt.com<br>
+  <a href="https://sonnycourt.com/.netlify/functions/unsubscribe?email=${email}" style="color: #666;">Se désinscrire</a>
+</p>
+`;
+        const bodyWithFooter = htmlBody + footer;
+        
         const result = {
             subject: subject || 'Email personnalisé',
-            body: htmlBody,
+            body: bodyWithFooter,
             token: token
         };
         
@@ -489,12 +498,8 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.log('📧 Subject:', result.subject);
             console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
             
-            // Préparer le body HTML (s'assurer qu'il est bien en HTML)
-            const bodyWithFooter = result.body.includes('<p>') || result.body.includes('<div>') || result.body.includes('<br>') 
-                ? result.body 
-                : `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${result.body.replace(/\n/g, '<br>')}</div>`;
-            
-            console.log('📝 Body HTML final (premiers 200 caractères):', bodyWithFooter.substring(0, 200));
+            // Le bodyWithFooter est déjà créé avec le footer de désinscription
+            console.log('📝 Body HTML final (premiers 200 caractères):', result.body.substring(0, 200));
             
             // Authentification Basic
             const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
@@ -535,7 +540,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     template_id: 11,
                     data: {
                         subject: result.subject,
-                        body: bodyWithFooter
+                        body: result.body
                     },
                     from_email: 'Sonny Court <info@sonnycourt.com>',
                     messenger: 'email'

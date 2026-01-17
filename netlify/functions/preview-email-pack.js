@@ -394,6 +394,15 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.log('⚠️ Body ne contient pas de HTML, ajout d\'un wrapper...');
             htmlBody = `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${htmlBody.replace(/\n/g, '<br>')}</div>`;
         }
+        
+        // Ajouter le footer de désinscription
+        const footer = `
+<p style="margin-top: 32px; font-size: 12px; color: #666; text-align: center;">
+  Sonny Court - sonnycourt.com<br>
+  <a href="https://sonnycourt.com/.netlify/functions/unsubscribe?email=${email}" style="color: #666;">Se désinscrire</a>
+</p>
+`;
+        const bodyWithFooter = htmlBody + footer;
 
         // Retourner directement subject, body et model (SANS envoyer d'email)
         return {
@@ -405,7 +414,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             body: JSON.stringify({ 
                 success: true,
                 subject: subject || 'Email personnalisé',
-                body: htmlBody,
+                body: bodyWithFooter,
                 model: model
             })
         };
