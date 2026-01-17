@@ -450,7 +450,8 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                         body: emailBody
                     },
                     from_email: 'Sonny Court <info@sonnycourt.com>',
-                    messenger: 'email'
+                    messenger: 'email',
+                    content_type: 'html'
                 })
             });
             
