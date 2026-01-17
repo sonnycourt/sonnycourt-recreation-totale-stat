@@ -403,6 +403,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 'Access-Control-Allow-Origin': '*'
             },
             body: JSON.stringify({ 
+                success: true,
                 subject: subject || 'Email personnalisé',
                 body: htmlBody,
                 model: model
