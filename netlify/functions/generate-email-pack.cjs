@@ -419,30 +419,28 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         let subject = '';
         let body = '';
         
-        // Approche basée sur indexOf pour éviter les problèmes de regex
-        const subjectIndex = content.indexOf('SUBJECT:');
-        const bodyIndex = content.indexOf('BODY:');
-        
-        if (subjectIndex !== -1 && bodyIndex !== -1) {
-            // Extraire le subject entre SUBJECT: et BODY:
-            const subjectText = content.substring(subjectIndex + 8, bodyIndex); // 8 = longueur de "SUBJECT:"
-            subject = subjectText.trim();
-            
-            // Extraire tout le texte après BODY:
-            const bodyText = content.substring(bodyIndex + 5); // 5 = longueur de "BODY:"
-            body = bodyText.trim();
-        } else if (subjectIndex !== -1) {
+        if (content.includes('BODY:')) {
+            // Format avec BODY: explicite (format Claude standard)
+            subject = content.split('SUBJECT:')[1].split('BODY:')[0].trim();
+            body = content.split('BODY:')[1].trim();
+        } else if (content.includes('SUBJECT:') && content.includes('<div')) {
+            // Format DeepSeek : SUBJECT: xxx <div... (pas de BODY: entre les deux)
+            const subjectStart = content.indexOf('SUBJECT:') + 8;
+            const htmlStart = content.indexOf('<div');
+            subject = content.substring(subjectStart, htmlStart).trim();
+            body = content.substring(htmlStart).trim();
+        } else if (content.includes('SUBJECT:')) {
             // Seulement SUBJECT: trouvé
-            const subjectText = content.substring(subjectIndex + 8);
-            subject = subjectText.trim();
-        } else if (bodyIndex !== -1) {
+            subject = content.substring(content.indexOf('SUBJECT:') + 8).trim();
+            body = content.trim();
+        } else if (content.includes('BODY:')) {
             // Seulement BODY: trouvé
-            const bodyText = content.substring(bodyIndex + 5);
-            body = bodyText.trim();
+            body = content.substring(content.indexOf('BODY:') + 5).trim();
+            subject = 'Email personnalisé';
         } else {
             // Fallback : si le format n'est pas respecté, utiliser tout le contenu comme body
             body = content.trim();
-            subject = 'Email personnalisé';
+            subject = 'Un message pour toi';
         }
         
         console.log('Subject extrait:', subject);
