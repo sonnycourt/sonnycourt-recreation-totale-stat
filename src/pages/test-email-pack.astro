@@ -24,14 +24,26 @@ import Layout from '../layouts/Layout.astro';
           placeholder="exemple@email.com"
           style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #333; font-size: 16px; margin-bottom: 20px; box-sizing: border-box;"
         />
-        <button 
-          type="submit"
-          style="background: #f59e0b; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;"
-          onmouseover="this.style.opacity='0.9'"
-          onmouseout="this.style.opacity='1'"
-        >
-          Générer l'email
-        </button>
+        <div style="display: flex; gap: 12px;">
+          <button 
+            type="button"
+            id="btnSonnet"
+            style="flex: 1; background: #f59e0b; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;"
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
+          >
+            Générer avec Sonnet
+          </button>
+          <button 
+            type="button"
+            id="btnDeepSeek"
+            style="flex: 1; background: #3b82f6; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;"
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
+          >
+            Générer avec DeepSeek
+          </button>
+        </div>
       </form>
 
       <div id="loading" style="display: none; text-align: center; padding: 20px; color: #f59e0b;">
@@ -56,6 +68,10 @@ import Layout from '../layouts/Layout.astro';
         <div style="margin-top: 30px; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <h3 style="color: #f59e0b; margin-top: 0; font-size: 16px;">Debug Info</h3>
           <div style="margin-bottom: 15px;">
+            <strong style="color: #333;">Modèle utilisé:</strong>
+            <code id="modelDebug" style="color: #f59e0b; background: #f5f5f5; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-left: 10px; border: 1px solid #ddd;"></code>
+          </div>
+          <div style="margin-bottom: 15px;">
             <strong style="color: #333;">Token:</strong>
             <code id="tokenDebug" style="color: #f59e0b; background: #f5f5f5; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-left: 10px; border: 1px solid #ddd;"></code>
           </div>
@@ -79,16 +95,24 @@ import Layout from '../layouts/Layout.astro';
   const emailBody = document.getElementById('emailBody');
   const tokenDebug = document.getElementById('tokenDebug');
   const htmlSource = document.getElementById('htmlSource');
+  const modelDebug = document.getElementById('modelDebug');
+  const btnSonnet = document.getElementById('btnSonnet');
+  const btnDeepSeek = document.getElementById('btnDeepSeek');
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
+  // Fonction pour générer l'email avec un modèle spécifique
+  async function generateEmail(model) {
     // Masquer les résultats précédents
     error.style.display = 'none';
     result.style.display = 'none';
     loading.style.display = 'block';
 
     const email = document.getElementById('email').value;
+    
+    if (!email) {
+      alert('Veuillez entrer un email');
+      loading.style.display = 'none';
+      return;
+    }
 
     try {
       const response = await fetch('/api/generate-email-pack', {
@@ -96,7 +120,7 @@ import Layout from '../layouts/Layout.astro';
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, model })
       });
 
       loading.style.display = 'none';
@@ -149,6 +173,7 @@ import Layout from '../layouts/Layout.astro';
       }
       
       // Afficher les infos de debug
+      modelDebug.textContent = model === 'deepseek' ? 'DeepSeek' : 'Claude Sonnet';
       tokenDebug.textContent = data.token || 'N/A';
       htmlSource.textContent = data.body || '';
       
@@ -160,5 +185,14 @@ import Layout from '../layouts/Layout.astro';
       error.style.display = 'block';
       console.error('Erreur:', err);
     }
+  }
+
+  // Écouter les clics sur les boutons
+  btnSonnet.addEventListener('click', () => generateEmail('sonnet'));
+  btnDeepSeek.addEventListener('click', () => generateEmail('deepseek'));
+
+  // Empêcher la soumission du formulaire avec Enter
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
   });
 </script>
