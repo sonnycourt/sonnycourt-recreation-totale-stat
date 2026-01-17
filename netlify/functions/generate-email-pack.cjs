@@ -282,7 +282,7 @@ SUBJECT: [objet de l'email - doit être personnel et intrigant - TEXTE BRUT UNIQ
 BODY: [corps de l'email incluant le PS à la fin]`;
         } 
         else if (emailType === '24h') {
-            // Prompt rappel 24h - très court, 5 phrases max
+            // Prompt rappel 24h
             prompt = `Tu es Sonny Court. Email de rappel court.
 
 RÈGLE CRITIQUE : Tu dois retourner EXACTEMENT ce format avec SUBJECT: sur une ligne et BODY: sur une ligne séparée.
@@ -296,42 +296,39 @@ BODY:
 <p style="margin-bottom: 16px;">L'offre sur le Pack Complet expire demain.</p>
 <p style="margin-bottom: 16px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a></p>
 <p style="margin-bottom: 16px;">Sonny</p>
-<p style="margin-top: 16px; font-style: italic;">PS : [Une phrase qui reprend les MOTS EXACTS du rêve : ${quizData.reve}]</p>
+<p style="margin-top: 16px; font-style: italic;">PS : [Une phrase créative et émotionnelle qui utilise le rêve pour créer l'envie d'agir. Rêve du user : ${quizData.reve}. Ne PAS juste répéter mot pour mot, mais UTILISER les mots pour raviver le désir. Exemple : "Cette liberté dont tu rêves, elle commence par une décision."]</p>
 </div>
 
 IMPORTANT : 
 - SUBJECT: doit être sur sa propre ligne, suivi d'un saut de ligne
 - BODY: doit être sur sa propre ligne, suivi du HTML
-- Ne PAS mettre le body dans le subject`;
+- Ne PAS mettre le body dans le subject
+- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 16px;"> pour chaque paragraphe`;
         }
         else if (emailType === '4h') {
-            // Prompt urgence 4h - ultra court, 3 phrases max
-            prompt = `Tu es Sonny Court. Dernier rappel ULTRA COURT à ${quizData.prenom}.
+            // Prompt urgence 4h
+            prompt = `Tu es Sonny Court. Dernier rappel à ${quizData.prenom}.
 
 L'offre expire dans 4h.
 
-RÈGLES STRICTES :
-- Maximum 3 phrases au total
-- Juste factuel, pas de pitch
+RÈGLE CRITIQUE : Tu dois retourner EXACTEMENT ce format avec SUBJECT: sur une ligne et BODY: sur une ligne séparée.
 
-STRUCTURE EXACTE :
-Hello ${quizData.prenom},
+SUBJECT: Dernière chance
 
-L'offre expire dans 4h.
+BODY:
+<div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;">
+<p style="margin-bottom: 16px;">Hello ${quizData.prenom},</p>
+<p style="margin-bottom: 16px;">L'offre expire dans 4h.</p>
+<p style="margin-bottom: 16px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance</a></p>
+<p style="margin-bottom: 16px;">Sonny</p>
+<p style="margin-top: 16px; font-style: italic;">PS : [Une phrase créative et émotionnelle qui utilise la souffrance pour créer l'urgence. Souffrance du user : ${quizData.souffrance}. Ne PAS juste répéter mot pour mot, mais UTILISER les mots pour créer l'envie d'agir maintenant. Exemple : "Dans 4h, soit tu restes avec ce manque de confiance, soit tu décides que ça change."]</p>
+</div>
 
-<a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Dernière chance</a>
-
-Sonny
-
-PS : Ajouter un PS d'une seule phrase très courte qui rappelle leur SOUFFRANCE (pas objectif).
-Souffrance du user : ${quizData.souffrance}
-Le PS doit reprendre les mots exacts utilisés par le user pour décrire sa souffrance.
-Créer l'urgence : cette souffrance continue tant qu'ils n'agissent pas.
-Format : <p style="margin-top: 16px; font-style: italic;">PS : ...</p>
-
-FORMAT :
-SUBJECT: [2-3 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
-BODY: [HTML - 3 phrases max + PS]`;
+IMPORTANT : 
+- SUBJECT: doit être sur sa propre ligne, suivi d'un saut de ligne
+- BODY: doit être sur sa propre ligne, suivi du HTML
+- Ne PAS mettre le body dans le subject
+- Formatage HTML strict : <div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;"> pour le wrapper et <p style="margin-bottom: 16px;"> pour chaque paragraphe`;
         } else {
             // Fallback vers initial si type inconnu
             prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
@@ -547,7 +544,6 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         // Ajouter le footer de désinscription
         const footer = `
 <p style="margin-top: 32px; font-size: 12px; color: #666; text-align: left;">
-  sonnycourt.com<br>
   <a href="https://sonnycourt.com/.netlify/functions/unsubscribe?email=${email}" style="color: #666;">Se désinscrire</a>
 </p>
 `;
