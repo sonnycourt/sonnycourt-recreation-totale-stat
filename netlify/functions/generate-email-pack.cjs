@@ -57,6 +57,9 @@ const handler = async (event) => {
         // 2. PARSER LE BODY ET EXTRAIRE L'EMAIL
         const requestBody = JSON.parse(event.body || '{}');
         
+        // Récupérer le paramètre model (query string ou body, défaut: 'sonnet')
+        const model = event.queryStringParameters?.model || requestBody.model || 'sonnet';
+        
         // Extraire l'email depuis le format MailerLite webhook
         const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
@@ -164,21 +167,9 @@ const handler = async (event) => {
             console.log('✅ Token récupéré depuis Supabase:', token);
         }
 
-        // 3. Appeler l'API Anthropic
-        const anthropicApiKey = process.env.ANTHROPIC_API_KEY_EMAIL_PACK;
+        // 3. Appeler l'API LLM (Claude ou DeepSeek selon le paramètre model)
+        console.log('🤖 Modèle LLM sélectionné:', model);
         
-        if (!anthropicApiKey) {
-            console.error('❌ ANTHROPIC_API_KEY_EMAIL_PACK non définie');
-            return {
-                statusCode: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: 'Anthropic API key not configured' })
-            };
-        }
-
         // Préparer le prompt
         const prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
 
@@ -282,49 +273,126 @@ Format de réponse :
 SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]`;
 
-        console.log('🤖 Appel à l\'API Anthropic...');
+        let content = '';
+        let llmResponse;
 
-        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': anthropicApiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 2000,
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ]
-            })
-        });
+        if (model === 'deepseek') {
+            // Utiliser DeepSeek API
+            const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+            
+            if (!deepseekApiKey) {
+                console.error('❌ DEEPSEEK_API_KEY non définie');
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ error: 'DeepSeek API key not configured' })
+                };
+            }
 
-        if (!anthropicResponse.ok) {
-            const errorText = await anthropicResponse.text();
-            console.error('❌ Erreur API Anthropic:', errorText);
-            return {
-                statusCode: 500,
+            console.log('🤖 Appel à l\'API DeepSeek...');
+
+            const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Authorization': `Bearer ${deepseekApiKey}`
                 },
-                body: JSON.stringify({ 
-                    error: 'Anthropic API error',
-                    details: errorText 
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'user', content: prompt }
+                    ]
                 })
-            };
+            });
+
+            if (!deepseekResponse.ok) {
+                const errorText = await deepseekResponse.text();
+                console.error('❌ Erreur API DeepSeek:', errorText);
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ 
+                        error: 'DeepSeek API error',
+                        details: errorText 
+                    })
+                };
+            }
+
+            const deepseekData = await deepseekResponse.json();
+            console.log('✅ Réponse DeepSeek reçue');
+            console.log('Réponse DeepSeek brute:', JSON.stringify(deepseekData, null, 2));
+
+            // Extraire le contenu de la réponse (format OpenAI)
+            content = deepseekData.choices?.[0]?.message?.content || '';
+
+        } else {
+            // Utiliser Claude API (défaut: 'sonnet')
+            const anthropicApiKey = process.env.ANTHROPIC_API_KEY_EMAIL_PACK;
+            
+            if (!anthropicApiKey) {
+                console.error('❌ ANTHROPIC_API_KEY_EMAIL_PACK non définie');
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ error: 'Anthropic API key not configured' })
+                };
+            }
+
+            console.log('🤖 Appel à l\'API Anthropic (Claude Sonnet)...');
+
+            const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': anthropicApiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 2000,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ]
+                })
+            });
+
+            if (!anthropicResponse.ok) {
+                const errorText = await anthropicResponse.text();
+                console.error('❌ Erreur API Anthropic:', errorText);
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ 
+                        error: 'Anthropic API error',
+                        details: errorText 
+                    })
+                };
+            }
+
+            const anthropicData = await anthropicResponse.json();
+            console.log('✅ Réponse Anthropic reçue');
+            console.log('Réponse Anthropic brute:', JSON.stringify(anthropicData, null, 2));
+
+            // Extraire le contenu de la réponse (format Anthropic)
+            content = anthropicData.content?.[0]?.text || '';
         }
 
-        const anthropicData = await anthropicResponse.json();
-        console.log('✅ Réponse Anthropic reçue');
-        console.log('Réponse Anthropic brute:', JSON.stringify(anthropicData, null, 2));
-
-        // Extraire le contenu de la réponse
-        const content = anthropicData.content?.[0]?.text || '';
+        console.log('📄 Contenu brut extrait:', content);
         console.log('Contenu brut extrait:', content);
         
         // Vérifier si Claude a décidé de SKIP
