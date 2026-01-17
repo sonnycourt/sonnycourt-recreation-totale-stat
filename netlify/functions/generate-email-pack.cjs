@@ -429,7 +429,31 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             // Authentification Basic
             const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
             
-            // Envoyer l'email via ListMonk API transactionnelle avec template
+            // ÉTAPE 1: Créer ou mettre à jour l'abonné dans ListMonk
+            console.log('👤 Création/mise à jour de l\'abonné dans ListMonk...');
+            const createSubscriber = await fetch(`${listmonkUrl}/api/subscribers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    email: email,
+                    name: quizData.prenom || '',
+                    status: 'enabled',
+                    lists: [1]
+                })
+            });
+            
+            const createSubscriberText = await createSubscriber.text();
+            if (createSubscriber.ok) {
+                console.log('✅ Abonné créé/mis à jour dans ListMonk');
+            } else {
+                console.log('⚠️ Erreur création/mise à jour abonné ListMonk (continuité quand même):', createSubscriber.status, createSubscriberText);
+                // On continue quand même, l'abonné existe peut-être déjà
+            }
+            
+            // ÉTAPE 2: Envoyer l'email via ListMonk API transactionnelle avec template
             const listmonkResponse = await fetch(`${listmonkUrl}/api/tx`, {
                 method: 'POST',
                 headers: {
@@ -437,7 +461,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                     'Authorization': authHeader
                 },
                 body: JSON.stringify({
-                    to_email: email,
+                    subscriber_email: email,
                     template_id: 11,
                     data: {
                         subject: result.subject,
