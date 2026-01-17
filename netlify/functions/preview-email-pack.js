@@ -251,9 +251,14 @@ L'offre sur le Pack Complet expire demain.
 
 Sonny
 
+PS : Ajouter un PS d'une seule phrase qui rappelle leur objectif en utilisant leurs propres mots du quiz.
+Objectif du user : ${quizData.objectif}
+Le PS doit reprendre les termes exacts utilisés par le user dans ses réponses.
+Format : <p style="margin-top: 16px; font-style: italic;">PS : ...</p>
+
 FORMAT :
 SUBJECT: [3-5 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
-BODY: [HTML avec <p style="margin-bottom: 16px;"> - 5 phrases max]`;
+BODY: [HTML avec <p style="margin-bottom: 16px;"> - 5 phrases max + PS]`;
         }
         else if (emailType === '4h') {
             // Prompt urgence 4h - ultra court, 3 phrases max
@@ -274,9 +279,15 @@ L'offre expire dans 4h.
 
 Sonny
 
+PS : Ajouter un PS d'une seule phrase très courte qui rappelle leur SOUFFRANCE (pas objectif).
+Souffrance du user : ${quizData.souffrance}
+Le PS doit reprendre les mots exacts utilisés par le user pour décrire sa souffrance.
+Créer l'urgence : cette souffrance continue tant qu'ils n'agissent pas.
+Format : <p style="margin-top: 16px; font-style: italic;">PS : ...</p>
+
 FORMAT :
 SUBJECT: [2-3 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
-BODY: [HTML - 3 phrases max]`;
+BODY: [HTML - 3 phrases max + PS]`;
         } else {
             // Fallback vers initial si type inconnu
             prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
