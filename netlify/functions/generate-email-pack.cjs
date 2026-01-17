@@ -283,37 +283,26 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         } 
         else if (emailType === '24h') {
             // Prompt rappel 24h - très court, 5 phrases max
-            prompt = `Tu es Sonny Court. Email de rappel TRÈS COURT à ${quizData.prenom}.
+            prompt = `Tu es Sonny Court. Email de rappel court.
 
-Tu lui as envoyé un email hier. Tu veux juste t'assurer qu'elle l'a vu.
+RÈGLE CRITIQUE : Tu dois retourner EXACTEMENT ce format avec SUBJECT: sur une ligne et BODY: sur une ligne séparée.
 
-L'offre expire dans 24h.
+SUBJECT: Offre expire demain
 
-RÈGLES STRICTES :
-- Maximum 5 phrases au total
-- Pas de re-pitch du Pack Complet
-- Pas de mention de la fierté/souffrance/rêve
-- Juste : "Tu as vu mon email d'hier ? L'offre expire demain."
+BODY:
+<div style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #333;">
+<p style="margin-bottom: 16px;">Hello ${quizData.prenom},</p>
+<p style="margin-bottom: 16px;">Je voulais juste m'assurer que tu avais vu mon message d'hier.</p>
+<p style="margin-bottom: 16px;">L'offre sur le Pack Complet expire demain.</p>
+<p style="margin-bottom: 16px;"><a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a></p>
+<p style="margin-bottom: 16px;">Sonny</p>
+<p style="margin-top: 16px; font-style: italic;">PS : [Une phrase qui reprend les MOTS EXACTS du rêve : ${quizData.reve}]</p>
+</div>
 
-STRUCTURE EXACTE :
-Hello ${quizData.prenom},
-
-Je voulais juste m'assurer que tu avais vu mon message d'hier.
-
-L'offre sur le Pack Complet expire demain.
-
-<a href='https://sonnycourt.com/pack-complet/?token=${token}' style='color: #4D97FE; text-decoration: underline;'>Voir l'offre</a>
-
-Sonny
-
-PS : Ajouter un PS d'une seule phrase qui rappelle leur objectif en utilisant leurs propres mots du quiz.
-Objectif du user : ${quizData.objectif}
-Le PS doit reprendre les termes exacts utilisés par le user dans ses réponses.
-Format : <p style="margin-top: 16px; font-style: italic;">PS : ...</p>
-
-FORMAT :
-SUBJECT: [3-5 mots max - TEXTE BRUT UNIQUEMENT, pas de ** ou __ ou * ou _, pas de formatage Markdown]
-BODY: [HTML avec <p style="margin-bottom: 16px;"> - 5 phrases max + PS]`;
+IMPORTANT : 
+- SUBJECT: doit être sur sa propre ligne, suivi d'un saut de ligne
+- BODY: doit être sur sa propre ligne, suivi du HTML
+- Ne PAS mettre le body dans le subject`;
         }
         else if (emailType === '4h') {
             // Prompt urgence 4h - ultra court, 3 phrases max
