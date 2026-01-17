@@ -435,7 +435,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             // Authentification Basic
             const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
             
-            // Envoyer l'email via ListMonk API transactionnelle (sans template)
+            // Envoyer l'email via ListMonk API transactionnelle avec template
             const listmonkResponse = await fetch(`${listmonkUrl}/api/tx`, {
                 method: 'POST',
                 headers: {
@@ -444,9 +444,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 },
                 body: JSON.stringify({
                     subscriber_email: email,
-                    subject: result.subject,
-                    body: emailBody,
-                    content_type: 'html',
+                    template_id: 11,
+                    data: {
+                        subject: result.subject,
+                        body: emailBody
+                    },
                     from_email: 'Sonny Court <info@sonnycourt.com>',
                     messenger: 'email'
                 })
