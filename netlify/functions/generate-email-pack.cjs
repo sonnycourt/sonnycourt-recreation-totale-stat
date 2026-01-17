@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const crypto = require('crypto');
 
 // Configuration Supabase
+// Colonnes anti-doublon quiz_responses : email_sent (initial), email_24h_sent, email_4h_sent (boolean, default false)
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
@@ -33,6 +34,8 @@ const handler = async (event) => {
         };
     }
 
+    let lockAcquired = false, email, emailType, sentColumn;
+
     try {
         // LOG INITIAL : Voir ce que MailerLite envoie
         console.log('📥 Body reçu de MailerLite:', JSON.stringify(event.body ? JSON.parse(event.body) : {}, null, 2));
@@ -61,10 +64,10 @@ const handler = async (event) => {
         const model = event.queryStringParameters?.model || requestBody.model || 'deepseek';
         
         // Récupérer le paramètre type (initial, 24h, 4h)
-        const emailType = event.queryStringParameters?.type || requestBody.type || 'initial';
+        emailType = event.queryStringParameters?.type || requestBody.type || 'initial';
         
         // Extraire l'email depuis le format MailerLite webhook
-        const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
+        email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
         if (!email) {
             console.error('❌ Email non trouvé dans la requête');
@@ -79,24 +82,6 @@ const handler = async (event) => {
         }
         
         console.log('✅ Email reçu:', email);
-
-        // Anti-doublon : vérifier si cet email + type est déjà en cours de traitement
-        const cacheKey = `${email}-${emailType}`;
-        if (global.processingEmails?.has(cacheKey)) {
-            console.log(`⏭️ Email ${emailType} déjà en cours pour ${email}, skip`);
-            return {
-                statusCode: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ skipped: true, reason: 'already_processing' })
-            };
-        }
-
-        // Marquer comme en cours
-        if (!global.processingEmails) global.processingEmails = new Set();
-        global.processingEmails.add(cacheKey);
 
         // Récupérer les données du quiz depuis Supabase via API REST
         console.log(`🔍 Recherche des données du quiz pour l'email: ${email}`);
@@ -116,10 +101,6 @@ const handler = async (event) => {
         if (!supabaseResponse.ok) {
             const errorText = await supabaseResponse.text();
             console.error('❌ Erreur Supabase:', errorText);
-            // Retirer du cache en cas d'erreur
-            if (global.processingEmails) {
-                global.processingEmails.delete(cacheKey);
-            }
             return {
                 statusCode: 500,
                 headers: {
@@ -137,10 +118,6 @@ const handler = async (event) => {
         
         if (!quizDataArray || quizDataArray.length === 0) {
             console.error('❌ Email non trouvé dans quiz_responses');
-            // Retirer du cache en cas d'erreur
-            if (global.processingEmails) {
-                global.processingEmails.delete(cacheKey);
-            }
             return {
                 statusCode: 404,
                 headers: {
@@ -161,6 +138,41 @@ const handler = async (event) => {
             situation: quizData.situation,
             token: quizData.token ? 'présent' : 'absent'
         });
+
+        // Anti-doublon atomique : UPDATE seulement si le flag est encore false
+        sentColumn = emailType === 'initial' ? 'email_sent' : (emailType === '24h' ? 'email_24h_sent' : 'email_4h_sent');
+        const atomicUpdateRes = await fetch(
+            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&${sentColumn}=eq.false`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': supabaseAnonKey,
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ [sentColumn]: true })
+            }
+        );
+        const atomicUpdateBody = await atomicUpdateRes.json();
+        if (!atomicUpdateRes.ok) {
+            console.error('❌ Erreur Supabase atomic update:', atomicUpdateBody);
+            return {
+                statusCode: 500,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Supabase atomic update failed', details: atomicUpdateBody })
+            };
+        }
+        if (!atomicUpdateBody || !Array.isArray(atomicUpdateBody) || atomicUpdateBody.length === 0) {
+            console.log(`⏭️ SKIP: Email ${emailType} déjà en cours/envoyé pour ${email}`);
+            return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ skipped: true, type: emailType })
+            };
+        }
+        lockAcquired = true;
+        console.log(`🔒 Verrou acquis pour ${emailType} - ${email}`);
 
         // 2. Utiliser le token depuis Supabase (ou générer un nouveau si absent)
         let token = quizData.token;
@@ -717,9 +729,14 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             
             if (!listmonkResponse.ok) {
                 console.error('❌ Erreur ListMonk API:', listmonkResponse.status, listmonkResponseText);
-                // Retirer du cache en cas d'erreur
-                if (global.processingEmails) {
-                    global.processingEmails.delete(cacheKey);
+                // Rollback : remettre le flag à false pour permettre un retry
+                if (lockAcquired && sentColumn) {
+                    const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ [sentColumn]: false })
+                    });
+                    if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
                 }
                 return {
                     statusCode: 500,
@@ -743,12 +760,16 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             console.error('❌ Erreur message:', listmonkError.message);
             console.error('❌ Erreur stack:', listmonkError.stack);
             
-            // Retirer du cache en cas d'erreur
-            if (global.processingEmails) {
-                global.processingEmails.delete(cacheKey);
+            // Rollback : remettre le flag à false pour permettre un retry
+            if (lockAcquired && sentColumn) {
+                const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [sentColumn]: false })
+                });
+                if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
             }
             
-            // On continue quand même, mais on ne marque pas comme envoyé
             return {
                 statusCode: 500,
                 headers: {
@@ -762,43 +783,8 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 })
             };
         }
-        
-        // 4. MARQUER COMME ENVOYÉ DANS SUPABASE (seulement si l'envoi a réussi)
-        try {
-            console.log('📝 Marquage email_sent = true dans Supabase...');
-            
-            const updateResponse = await fetch(
-                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
-                {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': supabaseAnonKey,
-                        'Authorization': `Bearer ${supabaseAnonKey}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({ email_sent: true })
-                }
-            );
-            
-            if (updateResponse.ok) {
-                console.log('✅ email_sent = true dans Supabase');
-            } else {
-                const errorText = await updateResponse.text();
-                console.error('⚠️ Erreur lors de la mise à jour email_sent:', errorText);
-                // On continue quand même, ce n'est pas bloquant
-            }
-        } catch (updateError) {
-            console.error('⚠️ Erreur lors de la mise à jour email_sent:', updateError);
-            // On continue quand même, ce n'est pas bloquant
-        }
 
         console.log('✅ Traitement terminé avec succès pour:', email);
-
-        // Retirer du cache avant le return final
-        if (global.processingEmails) {
-            global.processingEmails.delete(cacheKey);
-        }
 
         // Retourner 200 après tout le traitement
         return {
@@ -813,10 +799,18 @@ BODY: [corps de l'email incluant le PS à la fin]`;
     } catch (error) {
         console.error('❌ Erreur dans handler (validation):', error);
         
-        // Retirer du cache en cas d'erreur aussi
-        if (global.processingEmails && email && emailType) {
-            const cacheKey = `${email}-${emailType}`;
-            global.processingEmails.delete(cacheKey);
+        // Rollback : remettre le flag à false si on avait acquis le verrou
+        if (lockAcquired && email && emailType && sentColumn) {
+            try {
+                const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [sentColumn]: false })
+                });
+                if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
+            } catch (rbErr) {
+                console.error('⚠️ Rollback error:', rbErr);
+            }
         }
         
         return {
