@@ -521,6 +521,13 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             subject = 'Un message pour toi';
         }
         
+        // Correction : Si le subject contient du HTML, c'est que le body s'est retrouvé dans le subject
+        if (subject.includes('<p') || subject.includes('<div')) {
+            const htmlStart = subject.indexOf('<');
+            body = subject.substring(htmlStart) + (body || '');
+            subject = subject.substring(0, htmlStart).trim();
+        }
+        
         // Nettoyer le sujet de tout formatage Markdown
         subject = subject.replace(/\*\*/g, '').replace(/__/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
         
