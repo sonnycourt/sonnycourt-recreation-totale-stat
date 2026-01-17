@@ -1929,7 +1929,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <section class="guarantee-section">
                 <div class="guarantee-card">
                     <div class="guarantee-icon">
-                        <img src="/media/pages/badge-30-garantee-pack-complet" alt="Garantie 30 jours" />
+                        <img src="/media/pages/badge-30-garantee-pack-complet.webp" alt="Garantie 30 jours" />
                     </div>
                     <div class="guarantee-text">
                         <p class="guarantee-intro">Je peux pas décider à ta place.</p>
@@ -2011,9 +2011,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         (async function() {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token') || '';
+            const isPreviewMode = urlParams.has('preview');
             
-            // Si pas de token, afficher message d'erreur
-            if (!token) {
+            // Si pas de token et pas en mode preview, afficher message d'erreur
+            if (!token && !isPreviewMode) {
                 document.body.innerHTML = `
                     <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a1929; color: #fafafa; padding: 20px;">
                         <div style="text-align: center; max-width: 500px;">
@@ -2023,6 +2024,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         </div>
                     </div>
                 `;
+                return;
+            }
+            
+            // Si en mode preview, ne pas essayer de récupérer le prénom
+            if (isPreviewMode) {
+                console.log('🔍 Mode preview activé - pas de personnalisation');
                 return;
             }
             
