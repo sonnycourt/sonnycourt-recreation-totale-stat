@@ -468,11 +468,6 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         // Nettoyer le sujet de tout formatage Markdown
         subject = subject.replace(/\*\*/g, '').replace(/__/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
         
-        // Nettoyer le body pour 24h et 4h uniquement : supprimer les <br> inutiles
-        if (emailType === '24h' || emailType === '4h') {
-            body = body.replace(/<br>\s*<p/g, '<p').replace(/<\/p>\s*<br>/g, '</p>').replace(/<br>/g, '');
-        }
-        
         console.log('Subject extrait:', subject);
         console.log('Body extrait (premiers 200 caractères):', body.substring(0, 200));
         
@@ -483,6 +478,12 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         if (!htmlBody.includes('<p>') && !htmlBody.includes('<div>') && !htmlBody.includes('<br>')) {
             console.log('⚠️ Body ne contient pas de HTML, ajout d\'un wrapper...');
             htmlBody = `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">${htmlBody.replace(/\n/g, '<br>')}</div>`;
+        }
+        
+        // Nettoyer le body pour 24h et 4h uniquement : supprimer tous les <br>
+        if (emailType === '24h' || emailType === '4h') {
+            htmlBody = htmlBody.replace(/<br\s*\/?>/gi, '');
+            console.log('🧹 Body nettoyé des <br>');
         }
         
         // Ajouter le footer de désinscription
