@@ -694,6 +694,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             }
             
             // ÉTAPE 2: Envoyer l'email via ListMonk API transactionnelle avec template
+            console.log('🚨 ENVOI EMAIL - ' + Date.now() + ' - ' + email + ' - ' + emailType);
             const listmonkResponse = await fetch(`${listmonkUrl}/api/tx`, {
                 method: 'POST',
                 headers: {
