@@ -391,7 +391,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         // Ajouter le footer de désinscription
         const footer = `
 <p style="margin-top: 32px; font-size: 12px; color: #666; text-align: center;">
-  Sonny Court - sonnycourt.com<br>
+  sonnycourt.com<br>
   <a href="https://sonnycourt.com/.netlify/functions/unsubscribe?email=${email}" style="color: #666;">Se désinscrire</a>
 </p>
 `;
