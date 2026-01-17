@@ -107,10 +107,10 @@ export default async (req, context) => {
             });
         }
 
-        // Calculer expiresAt : 24h après completed_at
+        // Calculer expiresAt : 120h (5 jours) après completed_at
         // completed_at est au format ISO string, on le convertit en timestamp Unix
         const completedAtTimestamp = Math.floor(new Date(completedAt).getTime() / 1000);
-        const expiresAt = completedAtTimestamp + (24 * 60 * 60); // +24h en secondes
+        const expiresAt = completedAtTimestamp + (5 * 24 * 60 * 60); // +120h (5 jours) en secondes
 
         const now = Math.floor(Date.now() / 1000);
 
