@@ -429,9 +429,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             });
             
             // Configurer l'expéditeur
+            console.log('📤 From:', 'info@sonnycourt.com');
             const sentFrom = new Sender('info@sonnycourt.com', 'Sonny Court');
             
             // Configurer le destinataire (utiliser le prénom depuis quizData)
+            console.log('📥 To:', email, 'Name:', quizData.prenom || '');
             const recipients = [new Recipient(email, quizData.prenom || '')];
             
             // Préparer les paramètres de l'email
