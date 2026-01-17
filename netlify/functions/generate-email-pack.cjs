@@ -61,7 +61,7 @@ const handler = async (event) => {
         const model = event.queryStringParameters?.model || requestBody.model || 'sonnet';
         
         // Récupérer le paramètre type (initial, 24h, 4h)
-        const emailType = requestBody.type || 'initial';
+        const emailType = event.queryStringParameters?.type || requestBody.type || 'initial';
         
         // Extraire l'email depuis le format MailerLite webhook
         const email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
@@ -282,7 +282,7 @@ SUBJECT: [objet de l'email - doit être personnel et intrigant]
 BODY: [corps de l'email incluant le PS à la fin]`;
         } 
         else if (emailType === '24h') {
-            // Prompt rappel 24h - plus court, rappel de l'offre qui expire demain
+            // Prompt rappel 24h - plus court, max 150 mots, rappel de l'offre qui expire demain
             prompt = `Tu es Sonny Court. Écris un email de rappel à ${quizData.prenom || 'cette personne'}.
 
 Je voulais juste m'assurer que tu avais vu mon message. L'offre sur le Pack Complet expire demain.
@@ -293,6 +293,7 @@ Voici ses réponses au quiz (pour contexte) :
 
 TON :
 - Démarrer par "Je voulais juste m'assurer que tu avais vu mon message..."
+- Maximum 150 mots pour tout l'email (très court)
 - Plus court et direct que l'email initial
 - Rappeler l'offre -70% sur le Pack Complet
 - L'offre expire demain (24h restantes)
@@ -313,10 +314,10 @@ FORMATAGE HTML DE L'EMAIL :
 
 Format de réponse :
 SUBJECT: [objet de l'email - rappel discret]
-BODY: [corps de l'email - court et direct]`;
+BODY: [corps de l'email - maximum 150 mots]`;
         }
         else if (emailType === '4h') {
-            // Prompt urgence 4h - très court, dernière chance
+            // Prompt urgence 4h - très court, max 80 mots, dernière chance
             prompt = `Tu es Sonny Court. Écris un email d'urgence finale à ${quizData.prenom || 'cette personne'}.
 
 Dans 4h, l'offre expire. Pas de pression, juste un rappel.
@@ -326,6 +327,7 @@ CONTEXTE :
 - Situation : ${quizData.situation || 'Non spécifié'}
 
 TON :
+- Maximum 80 mots pour tout l'email (extrêmement court)
 - Très court et direct
 - "Dans 4h, l'offre expire. Pas de pression, juste un rappel."
 - Dernière chance sur le Pack Complet à -70%
@@ -346,7 +348,7 @@ FORMATAGE HTML DE L'EMAIL :
 
 Format de réponse :
 SUBJECT: [objet de l'email - urgence 4h]
-BODY: [corps de l'email - très court]`;
+BODY: [corps de l'email - maximum 80 mots]`;
         } else {
             // Fallback vers initial si type inconnu
             prompt = `Tu es Sonny Court. Écris un email personnel à ${quizData.prenom || 'cette personne'}.
