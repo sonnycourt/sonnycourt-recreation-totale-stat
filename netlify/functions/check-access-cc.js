@@ -1,7 +1,5 @@
 // Fonction Netlify pour vérifier le token CC et récupérer le temps restant (24h)
-// Utilise Netlify Blobs pour récupérer les données
-
-import { getStore } from '@netlify/blobs';
+// Utilise Supabase pour récupérer les données
 
 export default async (req, context) => {
     // Gérer les requêtes OPTIONS pour CORS
@@ -45,21 +43,25 @@ export default async (req, context) => {
 
         console.log('Checking access CC for token:', token);
 
-        // Obtenir le store Netlify Blobs avec le contexte automatique
-        const store = getStore('countdown-tokens-cc');
+        // Configuration Supabase
+        const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
-        // Récupérer les données du token depuis Netlify Blobs
-        let tokenDataString;
-        try {
-            tokenDataString = await store.get(token);
-            console.log('Token CC lookup result for', token, ':', tokenDataString ? 'Found' : 'Not found');
-        } catch (getError) {
-            console.error('❌ Error getting token CC from Blobs:', getError);
-            console.error('Get error details:', {
-                message: getError.message,
-                stack: getError.stack,
-                name: getError.name
-            });
+        // Récupérer les données du token depuis Supabase
+        const response = await fetch(
+            `${supabaseUrl}/rest/v1/quiz_responses?token=eq.${encodeURIComponent(token)}&select=completed_at,email,prenom`,
+            {
+                method: 'GET',
+                headers: {
+                    'apikey': supabaseAnonKey,
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            console.error('❌ Error fetching from Supabase:', response.status, response.statusText);
             return new Response(JSON.stringify({ 
                 valid: false, 
                 error: 'Erreur lors de la récupération du token' 
@@ -72,8 +74,10 @@ export default async (req, context) => {
             });
         }
 
-        if (!tokenDataString) {
-            console.log('⚠️ Token CC not found in Blobs:', token);
+        const data = await response.json();
+
+        if (!data || data.length === 0 || !data[0]) {
+            console.log('⚠️ Token CC not found in Supabase:', token);
             return new Response(JSON.stringify({ 
                 valid: false, 
                 error: 'Token invalide' 
@@ -86,9 +90,29 @@ export default async (req, context) => {
             });
         }
 
-        const tokenData = JSON.parse(tokenDataString);
+        const quizResponse = data[0];
+        const completedAt = quizResponse.completed_at;
+
+        if (!completedAt) {
+            console.log('⚠️ Token CC found but no completed_at date:', token);
+            return new Response(JSON.stringify({ 
+                valid: false, 
+                error: 'Token invalide (date manquante)' 
+            }), {
+                status: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        // Calculer expiresAt : 24h après completed_at
+        // completed_at est au format ISO string, on le convertit en timestamp Unix
+        const completedAtTimestamp = Math.floor(new Date(completedAt).getTime() / 1000);
+        const expiresAt = completedAtTimestamp + (24 * 60 * 60); // +24h en secondes
+
         const now = Math.floor(Date.now() / 1000);
-        const expiresAt = tokenData.expiresAt;
 
         // Vérifier si le token a expiré
         if (now >= expiresAt) {
@@ -114,8 +138,8 @@ export default async (req, context) => {
             valid: true,
             timeRemaining: timeRemaining,
             expiresAt: expiresAt,
-            startTime: tokenData.startTime,
-            email: tokenData.email
+            startTime: completedAtTimestamp,
+            email: quizResponse.email
         }), {
             status: 200,
             headers: {
