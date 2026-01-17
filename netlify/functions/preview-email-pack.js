@@ -468,6 +468,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         // Nettoyer le sujet de tout formatage Markdown
         subject = subject.replace(/\*\*/g, '').replace(/__/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
         
+        // Nettoyer le body pour 24h et 4h uniquement : supprimer les <br> inutiles
+        if (emailType === '24h' || emailType === '4h') {
+            body = body.replace(/<br>\s*<p/g, '<p').replace(/<\/p>\s*<br>/g, '</p>').replace(/<br>/g, '');
+        }
+        
         console.log('Subject extrait:', subject);
         console.log('Body extrait (premiers 200 caractères):', body.substring(0, 200));
         
