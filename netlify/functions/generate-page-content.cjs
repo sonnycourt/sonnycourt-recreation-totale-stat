@@ -75,6 +75,25 @@ RÉPONSES LIBRES (ÉCRITS PAR L'UTILISATEUR - UTILISE LEURS MOTS EXACTS) :
 
 === RÈGLES DE COPYWRITING À APPLIQUER ===
 
+=== POSITIONNEMENT IMPORTANT ===
+
+Le Pack Complet n'est PAS une formation spécifique pour atteindre leur objectif (pas une formation business, pas une formation séduction, etc.).
+
+C'est un système de REPROGRAMMATION SUBCONSCIENTE et de MANIFESTATION basé sur les lois universelles.
+
+L'idée clé : Peu importe l'objectif (argent, amour, santé, confiance), le PREMIER BLOCAGE est toujours intérieur. Le subconscient sabote. Les croyances limitantes freinent. 
+
+Le Pack débloque cette fondation → ensuite TOUS les objectifs deviennent atteignables naturellement.
+
+Dans le copywriting :
+- Ne PAS promettre qu'on va leur apprendre à gagner de l'argent / trouver l'amour / etc.
+- PROMETTRE qu'on va supprimer les blocages intérieurs qui les empêchent d'y arriver
+- Le Pack est la CLÉ qui ouvre toutes les portes, pas une porte spécifique
+
+Exemple BON : "Maximus, ton rêve de 10K€/mois commence par une chose : supprimer ce qui te bloque de l'intérieur."
+
+Exemple MAUVAIS : "Maximus, voici comment gagner 10K€/mois avec ton business."
+
 **FORMULE PAS (Problem-Agitate-Solve) :**
 1. PROBLEM : Identifier leur douleur principale (utiliser leurs mots de "souffrance")
 2. AGITATE : Amplifier l'émotion - montrer les conséquences de ne pas agir
