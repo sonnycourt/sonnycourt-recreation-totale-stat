@@ -2150,11 +2150,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             
                             pourquoiArray.forEach((item, index) => {
                                 if (reasonItems[index]) {
-                                    // Remplacer le texte (le dernier nœud texte de l'élément)
-                                    const textNode = Array.from(reasonItems[index].childNodes).find(node => node.nodeType === Node.TEXT_NODE);
-                                    if (textNode) {
-                                        textNode.textContent = item.text;
-                                    }
+                                    // Supprimer tous les nœuds texte existants
+                                    const textNodes = Array.from(reasonItems[index].childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+                                    textNodes.forEach(textNode => textNode.remove());
+                                    
+                                    // Ajouter le nouveau texte
+                                    reasonItems[index].appendChild(document.createTextNode(item.text));
                                     
                                     // Gérer la classe negative
                                     if (item.positive) {
