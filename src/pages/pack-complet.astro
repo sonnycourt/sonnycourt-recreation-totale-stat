@@ -2149,7 +2149,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             // Vider la liste existante
                             reasonsList.innerHTML = '';
                             
-                            // Ajouter chaque élément
+                            // Ajouter chaque élément - reproduire exactement le markup par défaut
                             pourquoiArray.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = item.positive ? 'reason-item' : 'reason-item negative';
@@ -2158,16 +2158,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                                 icon.className = 'reason-icon';
                                 
                                 if (item.positive) {
+                                    // SVG pour checkmark (positif)
                                     icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
                                 } else {
+                                    // SVG pour cross (négatif)
                                     icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
                                 }
                                 
                                 li.appendChild(icon);
                                 
-                                const text = document.createElement('span');
-                                text.textContent = item.text;
-                                li.appendChild(text);
+                                // Le texte doit être un nœud texte directement dans le <li>, pas dans un <span>
+                                li.appendChild(document.createTextNode(item.text));
                                 
                                 reasonsList.appendChild(li);
                             });
