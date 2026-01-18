@@ -1,0 +1,673 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Monitoring Court-Circuit & Pack Complet - Sonny Court">
+  <div class="monitoring-page">
+    <div class="monitoring-container">
+      <h1 class="monitoring-title">Monitoring Court-Circuit & Pack Complet</h1>
+      
+      <!-- Section 1: Résumé (4 cartes) -->
+      <section class="stats-section">
+        <h2 class="section-title">Résumé des dernières 24h</h2>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-icon">📥</div>
+            <div class="stat-value" id="statNewUsers">-</div>
+            <div class="stat-label">Nouveaux inscrits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📧</div>
+            <div class="stat-value" id="statInitial">-</div>
+            <div class="stat-label">Emails initial envoyés</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📧</div>
+            <div class="stat-value" id="stat24h">-</div>
+            <div class="stat-label">Emails 24h envoyés</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📧</div>
+            <div class="stat-value" id="stat4h">-</div>
+            <div class="stat-label">Emails 4h envoyés</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Alertes -->
+      <section class="alerts-section" id="alertsSection" style="display: none;">
+        <h2 class="section-title">⚠️ Alertes</h2>
+        <div class="alerts-container" id="alertsContainer"></div>
+      </section>
+
+      <!-- Section 3: Tableau des derniers inscrits -->
+      <section class="table-section">
+        <h2 class="section-title">50 derniers inscrits</h2>
+        <div class="table-wrapper">
+          <table class="monitoring-table" id="usersTable">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Prénom</th>
+                <th>Date inscription</th>
+                <th>Page générée</th>
+                <th>Email initial</th>
+                <th>Email 24h</th>
+                <th>Email 4h</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 40px;">Chargement...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Modal détails -->
+    <div class="modal-overlay" id="modalOverlay" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modalTitle">Détails</h2>
+          <button class="modal-close" id="modalClose">×</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <!-- Contenu chargé dynamiquement -->
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .monitoring-page {
+    background: #0a0a0a;
+    color: #ffffff;
+    min-height: 100vh;
+    padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .monitoring-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .monitoring-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 40px;
+    color: #ffffff;
+  }
+
+  .section-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #fafafa;
+  }
+
+  /* Stats Grid */
+  .stats-section {
+    margin-bottom: 48px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+  }
+
+  .stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .stat-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #ff8533;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Alerts Section */
+  .alerts-section {
+    margin-bottom: 48px;
+  }
+
+  .alerts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .alert-item {
+    background: rgba(255, 87, 34, 0.1);
+    border: 1px solid rgba(255, 87, 34, 0.3);
+    border-left: 4px solid #ff5722;
+    border-radius: 8px;
+    padding: 16px 20px;
+    color: #ffccbc;
+  }
+
+  .alert-item.warning {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: rgba(255, 152, 0, 0.3);
+    border-left-color: #ff9800;
+    color: #ffe0b2;
+  }
+
+  /* Table */
+  .table-section {
+    margin-bottom: 48px;
+  }
+
+  .table-wrapper {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow-x: auto;
+  }
+
+  .monitoring-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .monitoring-table thead {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .monitoring-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .monitoring-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .monitoring-table tbody tr {
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .monitoring-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .monitoring-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .status-icon {
+    font-size: 18px;
+  }
+
+  .btn-details {
+    background: rgba(0, 122, 255, 0.2);
+    border: 1px solid rgba(0, 122, 255, 0.4);
+    color: #64b5f6;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-details:hover {
+    background: rgba(0, 122, 255, 0.3);
+    border-color: rgba(0, 122, 255, 0.6);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-content {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 32px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .modal-body {
+    padding: 32px;
+  }
+
+  .detail-section {
+    margin-bottom: 32px;
+  }
+
+  .detail-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ff8533;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .detail-field {
+    margin-bottom: 16px;
+  }
+
+  .detail-field-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 6px;
+  }
+
+  .detail-field-value {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .detail-field-value.email-body {
+    font-family: monospace;
+    font-size: 13px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .table-wrapper {
+      overflow-x: scroll;
+    }
+
+    .monitoring-table {
+      min-width: 800px;
+    }
+  }
+</style>
+
+<script>
+  const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
+  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
+
+  let allUsersData = [];
+
+  async function fetchData() {
+    try {
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayISO = yesterday.toISOString();
+
+      // Fetch all data
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/quiz_responses?select=*&order=completed_at.desc&limit=50`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erreur Supabase');
+      }
+
+      const data = await response.json();
+      allUsersData = data;
+
+      // Calculate stats for last 24h
+      const stats24h = data.filter(user => {
+        if (!user.completed_at) return false;
+        const userDate = new Date(user.completed_at);
+        return userDate >= yesterday;
+      });
+
+      const newUsers = stats24h.length;
+      const initialSent = stats24h.filter(u => u.email_sent).length;
+      const sent24h = stats24h.filter(u => u.email_24h_sent).length;
+      const sent4h = stats24h.filter(u => u.email_4h_sent).length;
+
+      // Update stats cards
+      document.getElementById('statNewUsers').textContent = newUsers;
+      document.getElementById('statInitial').textContent = initialSent;
+      document.getElementById('stat24h').textContent = sent24h;
+      document.getElementById('stat4h').textContent = sent4h;
+
+      // Check for alerts
+      const alerts = [];
+      
+      // Pages non générées (> 5min sans page_header)
+      const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const missingPages = data.filter(user => {
+        if (!user.completed_at) return false;
+        const userDate = new Date(user.completed_at);
+        return userDate < fiveMinAgo && !user.page_header;
+      });
+      if (missingPages.length > 0) {
+        alerts.push({
+          type: 'error',
+          message: `${missingPages.length} pages non générées (inscrits > 5min sans page_header)`
+        });
+      }
+
+      // Emails initial manquants (> 3 jours sans email_sent)
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const missingInitial = data.filter(user => {
+        if (!user.completed_at) return false;
+        const userDate = new Date(user.completed_at);
+        return userDate < threeDaysAgo && !user.email_sent;
+      });
+      if (missingInitial.length > 0) {
+        alerts.push({
+          type: 'error',
+          message: `${missingInitial.length} emails initial manquants (inscrits > 3 jours sans email_sent)`
+        });
+      }
+
+      // Emails 24h manquants (email_sent = true depuis > 1 jour mais email_24h_sent = false)
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const missing24h = data.filter(user => {
+        if (!user.email_sent || !user.completed_at) return false;
+        const userDate = new Date(user.completed_at);
+        return userDate < oneDayAgo && !user.email_24h_sent;
+      });
+      if (missing24h.length > 0) {
+        alerts.push({
+          type: 'warning',
+          message: `${missing24h.length} emails 24h manquants (email_sent depuis > 1 jour mais email_24h_sent = false)`
+        });
+      }
+
+      // Display alerts
+      const alertsSection = document.getElementById('alertsSection');
+      const alertsContainer = document.getElementById('alertsContainer');
+      if (alerts.length > 0) {
+        alertsSection.style.display = 'block';
+        alertsContainer.innerHTML = alerts.map(alert => 
+          `<div class="alert-item ${alert.type === 'warning' ? 'warning' : ''}">${alert.message}</div>`
+        ).join('');
+      } else {
+        alertsSection.style.display = 'none';
+      }
+
+      // Update table
+      updateTable(data);
+
+    } catch (error) {
+      console.error('❌ Erreur chargement données:', error);
+      document.getElementById('usersTableBody').innerHTML = 
+        `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ff5722;">Erreur de chargement: ${error.message}</td></tr>`;
+    }
+  }
+
+  function updateTable(data) {
+    const tbody = document.getElementById('usersTableBody');
+    
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Aucun utilisateur trouvé</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(user => {
+      const date = user.completed_at ? new Date(user.completed_at).toLocaleString('fr-FR') : '-';
+      const hasPage = user.page_header ? '✅' : '❌';
+      const hasInitial = user.email_sent ? '✅' : '❌';
+      const has24h = user.email_24h_sent ? '✅' : '❌';
+      const has4h = user.email_4h_sent ? '✅' : '❌';
+
+      return `
+        <tr data-email="${user.email}">
+          <td>${user.email || '-'}</td>
+          <td>${user.prenom || '-'}</td>
+          <td>${date}</td>
+          <td class="status-icon">${hasPage}</td>
+          <td class="status-icon">${hasInitial}</td>
+          <td class="status-icon">${has24h}</td>
+          <td class="status-icon">${has4h}</td>
+          <td><button class="btn-details" onclick="showDetails('${user.email}')">Voir détails</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    // Add click handlers to rows
+    tbody.querySelectorAll('tr').forEach(row => {
+      const email = row.getAttribute('data-email');
+      if (email && email !== '-') {
+        row.addEventListener('click', (e) => {
+          if (e.target.tagName !== 'BUTTON') {
+            showDetails(email);
+          }
+        });
+      }
+    });
+  }
+
+  function showDetails(email) {
+    const user = allUsersData.find(u => u.email === email);
+    if (!user) return;
+
+    const modal = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = `Détails - ${user.email}`;
+
+    // Parse pourquoi if it's a string
+    let pourquoiArray = [];
+    if (user.page_pourquoi) {
+      try {
+        pourquoiArray = typeof user.page_pourquoi === 'string' 
+          ? JSON.parse(user.page_pourquoi) 
+          : user.page_pourquoi;
+      } catch (e) {
+        console.error('Erreur parsing pourquoi:', e);
+      }
+    }
+
+    modalBody.innerHTML = `
+      <!-- Réponses Quiz -->
+      <div class="detail-section">
+        <div class="detail-section-title">Réponses Quiz</div>
+        <div class="detail-field">
+          <div class="detail-field-label">Objectif</div>
+          <div class="detail-field-value">${user.objectif || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Situation</div>
+          <div class="detail-field-value">${user.situation || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Fierté</div>
+          <div class="detail-field-value">${user.fierte || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Rêve</div>
+          <div class="detail-field-value">${user.reve || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Souffrance</div>
+          <div class="detail-field-value">${user.souffrance || '-'}</div>
+        </div>
+      </div>
+
+      <!-- Contenu Page -->
+      <div class="detail-section">
+        <div class="detail-section-title">Contenu Page Personnalisé</div>
+        <div class="detail-field">
+          <div class="detail-field-label">Header</div>
+          <div class="detail-field-value">${user.page_header || '❌ Non généré'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Subheader</div>
+          <div class="detail-field-value">${user.page_subheader || '❌ Non généré'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Intro Pack</div>
+          <div class="detail-field-value">${user.page_intro_pack || '❌ Non généré'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Pourquoi</div>
+          <div class="detail-field-value">${pourquoiArray.length > 0 
+            ? pourquoiArray.map(item => `${item.positive ? '✅' : '❌'} ${item.text}`).join('\n')
+            : '❌ Non généré'}</div>
+        </div>
+      </div>
+
+      <!-- Contenu Emails -->
+      <div class="detail-section">
+        <div class="detail-section-title">Contenu Emails Générés</div>
+        
+        ${user.email_initial_subject || user.email_initial_body ? `
+        <div class="detail-field">
+          <div class="detail-field-label">Email Initial - Subject</div>
+          <div class="detail-field-value">${user.email_initial_subject || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Email Initial - Body</div>
+          <div class="detail-field-value email-body">${user.email_initial_body || '-'}</div>
+        </div>
+        ` : '<div class="detail-field-value">❌ Email initial non généré</div>'}
+        
+        ${user.email_24h_subject || user.email_24h_body ? `
+        <div class="detail-field">
+          <div class="detail-field-label">Email 24h - Subject</div>
+          <div class="detail-field-value">${user.email_24h_subject || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Email 24h - Body</div>
+          <div class="detail-field-value email-body">${user.email_24h_body || '-'}</div>
+        </div>
+        ` : '<div class="detail-field-value">❌ Email 24h non généré</div>'}
+        
+        ${user.email_4h_subject || user.email_4h_body ? `
+        <div class="detail-field">
+          <div class="detail-field-label">Email 4h - Subject</div>
+          <div class="detail-field-value">${user.email_4h_subject || '-'}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Email 4h - Body</div>
+          <div class="detail-field-value email-body">${user.email_4h_body || '-'}</div>
+        </div>
+        ` : '<div class="detail-field-value">❌ Email 4h non généré</div>'}
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  }
+
+  // Modal close handlers
+  document.getElementById('modalClose').addEventListener('click', () => {
+    document.getElementById('modalOverlay').style.display = 'none';
+  });
+
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') {
+      document.getElementById('modalOverlay').style.display = 'none';
+    }
+  });
+
+  // Make showDetails global for onclick
+  window.showDetails = showDetails;
+
+  // Initial load
+  fetchData();
+
+  // Auto-refresh every 60 seconds
+  setInterval(fetchData, 60000);
+</script>
