@@ -619,6 +619,42 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         console.log('Body extrait:', body);
         console.log('Body contient HTML:', body.includes('<p>') || body.includes('<div>') || body.includes('<br>'));
         
+        // Sauvegarder l'email généré dans Supabase avant l'envoi
+        const subjectColumn = emailType === 'initial' ? 'email_initial_subject' : 
+                              emailType === '24h' ? 'email_24h_subject' : 'email_4h_subject';
+        const bodyColumn = emailType === 'initial' ? 'email_initial_body' : 
+                           emailType === '24h' ? 'email_24h_body' : 'email_4h_body';
+        
+        try {
+            const saveEmailRes = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        [subjectColumn]: subject,
+                        [bodyColumn]: body
+                    })
+                }
+            );
+            
+            if (saveEmailRes.ok) {
+                console.log('💾 Email sauvegardé dans Supabase:', emailType);
+            } else {
+                const errorText = await saveEmailRes.text();
+                console.error('⚠️ Erreur sauvegarde email dans Supabase:', errorText);
+                // On continue quand même, la sauvegarde n'est pas critique
+            }
+        } catch (saveError) {
+            console.error('⚠️ Erreur lors de la sauvegarde de l\'email:', saveError);
+            // On continue quand même, la sauvegarde n'est pas critique
+        }
+        
         // S'assurer que le body est bien en HTML
         let htmlBody = body || content.trim();
         
