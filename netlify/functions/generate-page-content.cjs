@@ -33,6 +33,7 @@ const handler = async (event) => {
     }
 
     try {
+        console.log('🎨 Fonction generate-page-content appelée');
         const requestBody = JSON.parse(event.body || '{}');
         const email = requestBody.email;
         const quizData = requestBody.quizData;
