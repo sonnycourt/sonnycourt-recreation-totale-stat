@@ -1481,45 +1481,41 @@ import Layout from '../layouts/Layout.astro';
       } else {
         // Log après succès
         console.log('Supabase OK', data);
-        
-        // Générer le contenu personnalisé de la page via DeepSeek (non-bloquant, fire and forget)
-        (async () => {
-          try {
-            console.log('📞 Appel de generate-page-content pour:', email);
-            console.log('🎨 Génération contenu page pour:', email);
-            
-            const generateResponse = await fetch('/api/generate-page-content', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: email,
-                quizData: {
-                  prenom: prenom,
-                  objectif: quizDataToSave.objectif,
-                  situation: quizDataToSave.situation,
-                  fierte: quizDataToSave.fierte,
-                  reve: quizDataToSave.reve,
-                  souffrance: quizDataToSave.souffrance
-                }
-              })
-            });
-            
-            if (generateResponse.ok) {
-              console.log('✅ Contenu page stocké dans Supabase');
-            } else {
-              const errorText = await generateResponse.text();
-              console.error('❌ Erreur génération contenu page:', errorText);
-            }
-          } catch (genError) {
-            // Ne pas bloquer la redirection si la génération échoue
-            console.log('❌ Erreur génération contenu page:', genError);
-          }
-        })();
       }
     } catch (error) {
       // Log en cas d'erreur de catch
       console.error('Supabase ERROR', error);
       // On continue quand même la redirection même si Supabase échoue
+    }
+    
+    // Générer le contenu personnalisé de la page via DeepSeek (fire and forget, mais s'assurer qu'il part)
+    try {
+      console.log('📞 Appel de generate-page-content pour:', email);
+      
+      // Lancer le fetch (fire and forget, mais s'assurer qu'il part)
+      const generatePromise = fetch('/api/generate-page-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          quizData: {
+            prenom: prenom,
+            objectif: quizDataToSave.objectif,
+            situation: quizDataToSave.situation,
+            fierte: quizDataToSave.fierte,
+            reve: quizDataToSave.reve,
+            souffrance: quizDataToSave.souffrance
+          }
+        })
+      }).catch(err => {
+        console.error('❌ Erreur génération page:', err);
+      });
+      
+      // Attendre un petit délai pour s'assurer que la requête est partie
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (genError) {
+      // Ne pas bloquer la redirection si la génération échoue
+      console.log('❌ Erreur génération contenu page:', genError);
     }
     
     // Restore body scroll
