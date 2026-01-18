@@ -381,6 +381,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             background-clip: text;
         }
 
+        .hero-title .prenom-gradient {
+            background: linear-gradient(135deg, #ff5722 0%, #ff8533 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
         .hero-subtitle {
             font-size: 18px;
             color: #a1a1aa;
@@ -2104,7 +2111,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 // 1. Remplacer le titre si page_header existe
                 const heroTitle = document.querySelector('.hero-title');
                 if (quizData.page_header && heroTitle) {
-                    heroTitle.innerHTML = quizData.page_header.replace(/\n/g, '<br>');
+                    let headerHtml = quizData.page_header.replace(/\n/g, '<br>');
+                    
+                    // Mettre le prénom en orange avec gradient si disponible
+                    if (quizData.prenom) {
+                        const prenomRegex = new RegExp(`(${quizData.prenom}[,\\s])`, 'gi');
+                        headerHtml = headerHtml.replace(prenomRegex, '<span class="prenom-gradient">$1</span>');
+                    }
+                    
+                    heroTitle.innerHTML = headerHtml;
                 }
                 
                 // 2. Ajouter le subheader si page_subheader existe
