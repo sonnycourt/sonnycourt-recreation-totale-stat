@@ -178,10 +178,11 @@ import Layout from '../layouts/Layout.astro';
                 class="quiz-textarea" 
                 id="fierte" 
                 name="fierte" 
-                placeholder="C'est pas le moment d'être humble... ;) Un diplôme, un défi relevé, une habitude changée... tout compte." 
+                placeholder="Raconte-moi en quelques phrases... (20 mots minimum)" 
                 rows="5" 
                 required
               ></textarea>
+              <div id="wordCount3" class="quiz-word-count"></div>
               <div class="quiz-buttons-container">
                 <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn3">Précédent</button>
                 <button type="button" class="quiz-button" id="nextBtn3">Continuer</button>
@@ -197,10 +198,11 @@ import Layout from '../layouts/Layout.astro';
                 class="quiz-textarea" 
                 id="reve" 
                 name="reve" 
-                placeholder="Ferme les yeux 3 secondes et imagine... C'est à quoi ressemble ta vie idéale ? Décris-moi tout, sans filtre." 
+                placeholder="Décris ta vie idéale... (20 mots minimum)" 
                 rows="5" 
                 required
               ></textarea>
+              <div id="wordCount4" class="quiz-word-count"></div>
               <div class="quiz-buttons-container">
                 <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn4">Précédent</button>
                 <button type="button" class="quiz-button" id="nextBtn4">Continuer</button>
@@ -216,10 +218,11 @@ import Layout from '../layouts/Layout.astro';
                 class="quiz-textarea" 
                 id="souffrance" 
                 name="souffrance" 
-                placeholder="Ici c'est safe, je suis le seul à lire et tes réponses restent strictement confidentielles. Dis-moi ce qui te pèse vraiment en ce moment..." 
+                placeholder="Qu'est-ce qui te pèse vraiment... (20 mots minimum)" 
                 rows="5" 
                 required
               ></textarea>
+              <div id="wordCount5" class="quiz-word-count"></div>
               <div class="quiz-buttons-container">
                 <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn5">Précédent</button>
                 <button type="button" class="quiz-button" id="nextBtn5">Continuer</button>
@@ -942,9 +945,38 @@ import Layout from '../layouts/Layout.astro';
     line-height: 1.6;
     resize: vertical;
     min-height: 120px;
-    margin-bottom: 40px;
+    margin-bottom: 12px;
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
+  }
+
+  .quiz-word-count {
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+    text-align: right;
+    padding-right: 4px;
+    min-height: 20px;
+  }
+
+  .quiz-word-count.minimum {
+    color: #ff5722;
+  }
+
+  .quiz-word-count.valid {
+    color: #4caf50;
+  }
+
+  .quiz-word-count.warning {
+    color: #ff9800;
+  }
+
+  .quiz-word-count.error {
+    color: #f44336;
+  }
+
+  .quiz-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .quiz-textarea::placeholder {
@@ -1336,6 +1368,70 @@ import Layout from '../layouts/Layout.astro';
   const totalQuestions = 5;
   let quizData = {};
 
+  // Fonction de comptage de mots
+  function countWords(text) {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  // Fonction pour mettre à jour le compteur de mots
+  function updateWordCount(textareaId, counterId, minWords = 20, maxWords = 500) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    
+    if (!textarea || !counter) return;
+    
+    const wordCount = countWords(textarea.value);
+    
+    // Supprimer toutes les classes de couleur
+    counter.classList.remove('minimum', 'valid', 'warning', 'error');
+    
+    if (wordCount === 0) {
+      counter.textContent = '';
+      return;
+    }
+    
+    if (wordCount > maxWords) {
+      counter.textContent = `${wordCount} / ${maxWords} mots (limite dépassée)`;
+      counter.classList.add('error');
+      // Empêcher la saisie supplémentaire
+      const originalValue = textarea.value;
+      const words = originalValue.trim().split(/\s+/).slice(0, maxWords);
+      textarea.value = words.join(' ');
+      return;
+    }
+    
+    if (wordCount < minWords) {
+      counter.textContent = `${wordCount} mots (minimum ${minWords})`;
+      counter.classList.add('minimum');
+    } else if (wordCount > 400) {
+      counter.textContent = `${wordCount} / ${maxWords} mots`;
+      counter.classList.add('warning');
+    } else {
+      counter.textContent = `${wordCount} mots`;
+      counter.classList.add('valid');
+    }
+  }
+
+  // Fonction pour vérifier si un textarea a assez de mots
+  function hasEnoughWords(textareaId, minWords = 20) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return false;
+    const wordCount = countWords(textarea.value);
+    return wordCount >= minWords && wordCount <= 500;
+  }
+
+  // Fonction pour mettre à jour l'état du bouton Continuer
+  function updateContinueButton(buttonId, textareaId, minWords = 20) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+    
+    if (hasEnoughWords(textareaId, minWords)) {
+      button.disabled = false;
+    } else {
+      button.disabled = true;
+    }
+  }
+
   function showQuiz() {
     const formSection = document.getElementById('formSection');
     const quizOverlay = document.getElementById('quizOverlay');
@@ -1397,21 +1493,42 @@ import Layout from '../layouts/Layout.astro';
     }
     
     // Restore answer for question 3 (fierte)
-    if (questionIndex === 2 && quizData.fierte) {
+    if (questionIndex === 2) {
       const textarea = document.getElementById('fierte');
-      if (textarea) textarea.value = quizData.fierte;
+      if (textarea && quizData.fierte) {
+        textarea.value = quizData.fierte;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('fierte', 'wordCount3');
+        updateContinueButton('nextBtn3', 'fierte');
+      }, 100);
     }
     
     // Restore answer for question 4 (reve)
-    if (questionIndex === 3 && quizData.reve) {
+    if (questionIndex === 3) {
       const textarea = document.getElementById('reve');
-      if (textarea) textarea.value = quizData.reve;
+      if (textarea && quizData.reve) {
+        textarea.value = quizData.reve;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('reve', 'wordCount4');
+        updateContinueButton('nextBtn4', 'reve');
+      }, 100);
     }
     
     // Restore answer for question 5 (souffrance)
-    if (questionIndex === 4 && quizData.souffrance) {
+    if (questionIndex === 4) {
       const textarea = document.getElementById('souffrance');
-      if (textarea) textarea.value = quizData.souffrance;
+      if (textarea && quizData.souffrance) {
+        textarea.value = quizData.souffrance;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('souffrance', 'wordCount5');
+        updateContinueButton('nextBtn5', 'souffrance');
+      }, 100);
     }
   }
 
@@ -1591,13 +1708,27 @@ import Layout from '../layouts/Layout.astro';
     });
   });
 
-  // Question 3
+  // Question 3 - Event listeners pour textarea
+  const textarea3 = document.getElementById('fierte');
   const nextBtn3 = document.getElementById('nextBtn3');
   const prevBtn3 = document.getElementById('prevBtn3');
+  
+  if (textarea3) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea3.addEventListener('input', () => {
+      updateWordCount('fierte', 'wordCount3');
+      updateContinueButton('nextBtn3', 'fierte');
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('fierte', 'wordCount3');
+    updateContinueButton('nextBtn3', 'fierte');
+  }
+  
   if (nextBtn3) {
     nextBtn3.addEventListener('click', () => {
       const textarea = document.getElementById('fierte');
-      if (textarea && textarea.value.trim()) {
+      if (textarea && hasEnoughWords('fierte', 20)) {
         quizData.fierte = textarea.value.trim();
         currentQuestion = 3;
         showQuestion(3);
@@ -1613,13 +1744,27 @@ import Layout from '../layouts/Layout.astro';
     });
   }
 
-  // Question 4
+  // Question 4 - Event listeners pour textarea
+  const textarea4 = document.getElementById('reve');
   const nextBtn4 = document.getElementById('nextBtn4');
   const prevBtn4 = document.getElementById('prevBtn4');
+  
+  if (textarea4) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea4.addEventListener('input', () => {
+      updateWordCount('reve', 'wordCount4');
+      updateContinueButton('nextBtn4', 'reve');
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('reve', 'wordCount4');
+    updateContinueButton('nextBtn4', 'reve');
+  }
+  
   if (nextBtn4) {
     nextBtn4.addEventListener('click', () => {
       const textarea = document.getElementById('reve');
-      if (textarea && textarea.value.trim()) {
+      if (textarea && hasEnoughWords('reve', 20)) {
         quizData.reve = textarea.value.trim();
         currentQuestion = 4;
         showQuestion(4);
@@ -1635,13 +1780,27 @@ import Layout from '../layouts/Layout.astro';
     });
   }
 
-  // Question 5
+  // Question 5 - Event listeners pour textarea
+  const textarea5 = document.getElementById('souffrance');
   const nextBtn5 = document.getElementById('nextBtn5');
   const prevBtn5 = document.getElementById('prevBtn5');
+  
+  if (textarea5) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea5.addEventListener('input', () => {
+      updateWordCount('souffrance', 'wordCount5');
+      updateContinueButton('nextBtn5', 'souffrance');
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('souffrance', 'wordCount5');
+    updateContinueButton('nextBtn5', 'souffrance');
+  }
+  
   if (nextBtn5) {
     nextBtn5.addEventListener('click', () => {
       const textarea = document.getElementById('souffrance');
-      if (textarea && textarea.value.trim()) {
+      if (textarea && hasEnoughWords('souffrance', 20)) {
         quizData.souffrance = textarea.value.trim();
         saveQuizData();
       }
