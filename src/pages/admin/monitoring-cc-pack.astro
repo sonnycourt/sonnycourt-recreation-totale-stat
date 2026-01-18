@@ -4,8 +4,33 @@ import Layout from '../../layouts/Layout.astro';
 
 <Layout title="Monitoring Court-Circuit & Pack Complet - Sonny Court">
   <div class="monitoring-page">
-    <div class="monitoring-container">
-      <h1 class="monitoring-title">Monitoring Court-Circuit & Pack Complet</h1>
+    <!-- Password Form (shown by default) -->
+    <div class="password-form-container" id="passwordFormContainer">
+      <div class="password-form">
+        <h2 class="password-form-title">Accès sécurisé</h2>
+        <p class="password-form-subtitle">Entrez le mot de passe pour accéder au monitoring</p>
+        <form id="passwordForm" onsubmit="handlePasswordSubmit(event)">
+          <input 
+            type="password" 
+            id="passwordInput" 
+            class="password-input" 
+            placeholder="Mot de passe"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" class="password-button" id="passwordSubmitBtn">Accéder</button>
+          <div class="password-error" id="passwordError" style="display: none;"></div>
+          <div class="password-blocked" id="passwordBlocked" style="display: none;"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dashboard (hidden by default) -->
+    <div class="monitoring-container" id="dashboardContainer" style="display: none;">
+      <div class="dashboard-header">
+        <h1 class="monitoring-title">Monitoring Court-Circuit & Pack Complet</h1>
+        <button class="logout-button" onclick="handleLogout()">Déconnexion</button>
+      </div>
       
       <!-- Section 1: Résumé (4 cartes) -->
       <section class="stats-section">
@@ -89,6 +114,137 @@ import Layout from '../../layouts/Layout.astro';
     min-height: 100vh;
     padding: 40px 20px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Password Form */
+  .password-form-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .password-form {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 48px 40px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .password-form-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #ffffff;
+    text-align: center;
+  }
+
+  .password-form-subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin: 0 0 32px 0;
+  }
+
+  .password-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+
+  .password-input:focus {
+    outline: none;
+    border-color: #ff8533;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .password-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .password-button {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #ff5722, #ff8533);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .password-button:hover {
+    background: linear-gradient(135deg, #ff8533, #ff9a5c);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 133, 51, 0.3);
+  }
+
+  .password-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .password-error {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 87, 34, 0.1);
+    border: 1px solid rgba(255, 87, 34, 0.3);
+    border-radius: 8px;
+    color: #ffccbc;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .password-blocked {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: 8px;
+    color: #ffe0b2;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  /* Dashboard Header */
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .logout-button {
+    background: rgba(255, 87, 34, 0.2);
+    border: 1px solid rgba(255, 87, 34, 0.4);
+    color: #ffccbc;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .logout-button:hover {
+    background: rgba(255, 87, 34, 0.3);
+    border-color: rgba(255, 87, 34, 0.6);
   }
 
   .monitoring-container {
@@ -385,6 +541,186 @@ import Layout from '../../layouts/Layout.astro';
 
   let allUsersData = [];
 
+  // Authentication Logic
+  const AUTH_STORAGE_KEY = 'admin_monitoring_auth';
+  const FAILED_ATTEMPTS_KEY = 'admin_monitoring_failed_attempts';
+  const BLOCKED_UNTIL_KEY = 'admin_monitoring_blocked_until';
+  const MAX_ATTEMPTS = 3;
+  const BLOCK_DURATION = 15 * 60 * 1000; // 15 minutes in ms
+
+  // Check if already authenticated
+  function checkAuth() {
+    const authToken = sessionStorage.getItem(AUTH_STORAGE_KEY);
+    if (authToken === 'authenticated') {
+      showDashboard();
+      return true;
+    }
+    return false;
+  }
+
+  // Check if blocked
+  function isBlocked() {
+    const blockedUntil = localStorage.getItem(BLOCKED_UNTIL_KEY);
+    if (!blockedUntil) return false;
+    
+    const blockedTime = parseInt(blockedUntil, 10);
+    const now = Date.now();
+    
+    if (now < blockedTime) {
+      return true;
+    } else {
+      // Block expired, reset
+      localStorage.removeItem(BLOCKED_UNTIL_KEY);
+      localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      return false;
+    }
+  }
+
+  // Get remaining block time
+  function getRemainingBlockTime() {
+    const blockedUntil = localStorage.getItem(BLOCKED_UNTIL_KEY);
+    if (!blockedUntil) return 0;
+    
+    const blockedTime = parseInt(blockedUntil, 10);
+    const now = Date.now();
+    const remaining = blockedTime - now;
+    
+    return remaining > 0 ? remaining : 0;
+  }
+
+  // Show blocked message
+  function showBlockedMessage() {
+    const blockedDiv = document.getElementById('passwordBlocked');
+    const errorDiv = document.getElementById('passwordError');
+    const passwordInput = document.getElementById('passwordInput');
+    const submitBtn = document.getElementById('passwordSubmitBtn');
+    
+    errorDiv.style.display = 'none';
+    passwordInput.disabled = true;
+    submitBtn.disabled = true;
+    
+    const updateBlockedMessage = () => {
+      const remaining = getRemainingBlockTime();
+      if (remaining > 0) {
+        const minutes = Math.ceil(remaining / (60 * 1000));
+        blockedDiv.textContent = `Trop de tentatives. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+        blockedDiv.style.display = 'block';
+        setTimeout(updateBlockedMessage, 60000); // Update every minute
+      } else {
+        blockedDiv.style.display = 'none';
+        passwordInput.disabled = false;
+        submitBtn.disabled = false;
+        localStorage.removeItem(BLOCKED_UNTIL_KEY);
+        localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      }
+    };
+    
+    updateBlockedMessage();
+  }
+
+  // Handle password submission
+  async function handlePasswordSubmit(event) {
+    event.preventDefault();
+    
+    // Check if blocked
+    if (isBlocked()) {
+      showBlockedMessage();
+      return;
+    }
+    
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordError = document.getElementById('passwordError');
+    const passwordBlocked = document.getElementById('passwordBlocked');
+    const submitBtn = document.getElementById('passwordSubmitBtn');
+    
+    const password = passwordInput.value;
+    
+    // Disable form
+    passwordInput.disabled = true;
+    submitBtn.disabled = true;
+    passwordError.style.display = 'none';
+    passwordBlocked.style.display = 'none';
+    
+    try {
+      const response = await fetch('/api/verify-admin-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
+      });
+      
+      const data = await response.json();
+      
+      if (data.valid) {
+        // Success: store in sessionStorage and show dashboard
+        sessionStorage.setItem(AUTH_STORAGE_KEY, 'authenticated');
+        localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+        localStorage.removeItem(BLOCKED_UNTIL_KEY);
+        showDashboard();
+      } else {
+        // Failed: increment counter
+        const failedAttempts = parseInt(localStorage.getItem(FAILED_ATTEMPTS_KEY) || '0', 10) + 1;
+        localStorage.setItem(FAILED_ATTEMPTS_KEY, failedAttempts.toString());
+        
+        if (failedAttempts >= MAX_ATTEMPTS) {
+          // Block for 15 minutes
+          const blockedUntil = Date.now() + BLOCK_DURATION;
+          localStorage.setItem(BLOCKED_UNTIL_KEY, blockedUntil.toString());
+          showBlockedMessage();
+        } else {
+          // Show error
+          passwordError.textContent = 'Mot de passe incorrect';
+          passwordError.style.display = 'block';
+          passwordInput.value = '';
+          passwordInput.disabled = false;
+          submitBtn.disabled = false;
+          passwordInput.focus();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erreur vérification mot de passe:', error);
+      passwordError.textContent = 'Erreur de connexion. Réessayez.';
+      passwordError.style.display = 'block';
+      passwordInput.disabled = false;
+      submitBtn.disabled = false;
+    }
+  }
+
+  // Show dashboard
+  function showDashboard() {
+    document.getElementById('passwordFormContainer').style.display = 'none';
+    document.getElementById('dashboardContainer').style.display = 'block';
+    // Load data
+    fetchData();
+  }
+
+  // Logout
+  function handleLogout() {
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    location.reload();
+  }
+
+  // Make functions global for onclick
+  window.handlePasswordSubmit = handlePasswordSubmit;
+  window.handleLogout = handleLogout;
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    if (checkAuth()) {
+      // Already authenticated, dashboard will be shown
+      return;
+    }
+    
+    // Check if blocked
+    if (isBlocked()) {
+      showBlockedMessage();
+    } else {
+      // Focus on password input
+      document.getElementById('passwordInput')?.focus();
+    }
+  });
+
   async function fetchData() {
     try {
       const now = new Date();
@@ -665,9 +1001,10 @@ import Layout from '../../layouts/Layout.astro';
   // Make showDetails global for onclick
   window.showDetails = showDetails;
 
-  // Initial load
-  fetchData();
-
-  // Auto-refresh every 60 seconds
-  setInterval(fetchData, 60000);
+  // Initial load only if authenticated
+  if (checkAuth()) {
+    fetchData();
+    // Auto-refresh every 60 seconds
+    setInterval(fetchData, 60000);
+  }
 </script>
