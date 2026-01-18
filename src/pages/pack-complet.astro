@@ -2035,12 +2035,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             
             // Récupérer le prénom depuis Supabase
             let prenom = null;
+            let personalizedContentData = null; // Pour stocker les données de contenu personnalisé
             const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
             const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
             
             try {
+                // Récupérer les données de personnalisation (prénom + contenu page)
                 const response = await fetch(
-                    `${supabaseUrl}/rest/v1/quiz_responses?token=eq.${encodeURIComponent(token)}&select=prenom`,
+                    `${supabaseUrl}/rest/v1/quiz_responses?token=eq.${encodeURIComponent(token)}&select=prenom,page_header,page_subheader,page_intro_pack,page_pourquoi`,
                     {
                         method: 'GET',
                         headers: {
@@ -2053,9 +2055,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data && data.length > 0 && data[0].prenom) {
-                        prenom = data[0].prenom;
+                    if (data && data.length > 0) {
+                        const quizData = data[0];
+                        prenom = quizData.prenom;
                         console.log('✅ Prénom récupéré:', prenom);
+                        
+                        // Stocker les données de contenu personnalisé pour les utiliser après le chargement du DOM
+                        if (quizData.page_header || quizData.page_subheader || quizData.page_intro_pack || quizData.page_pourquoi) {
+                            personalizedContentData = quizData;
+                        }
                     } else {
                         console.log('⚠️ Token invalide ou prénom non trouvé');
                         document.body.innerHTML = `
@@ -2096,6 +2104,85 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 return;
             }
             
+            // Fonction pour afficher le contenu personnalisé de la page
+            function displayPersonalizedContent(quizData) {
+                // 1. Remplacer le titre si page_header existe
+                const heroTitle = document.querySelector('.hero-title');
+                if (quizData.page_header && heroTitle) {
+                    heroTitle.innerHTML = quizData.page_header.replace(/\n/g, '<br>');
+                }
+                
+                // 2. Ajouter le subheader si page_subheader existe
+                if (quizData.page_subheader && heroTitle) {
+                    // Vérifier si le subheader existe déjà
+                    let subheader = document.querySelector('.hero-subheader-personalized');
+                    if (!subheader) {
+                        subheader = document.createElement('p');
+                        subheader.className = 'hero-subheader-personalized';
+                        subheader.style.cssText = 'font-size: 20px; line-height: 1.6; color: rgba(250, 250, 250, 0.8); margin-top: 24px; max-width: 700px; margin-left: auto; margin-right: auto;';
+                        heroTitle.parentNode.insertBefore(subheader, heroTitle.nextSibling);
+                    }
+                    subheader.textContent = quizData.page_subheader;
+                }
+                
+                // 3. Ajouter intro_pack AVANT "Ce que tu obtiens" si page_intro_pack existe
+                if (quizData.page_intro_pack) {
+                    const formationsSection = document.querySelector('.formations-section');
+                    if (formationsSection) {
+                        // Vérifier si l'intro existe déjà
+                        let introPack = document.getElementById('intro-pack-personalized');
+                        if (!introPack) {
+                            introPack = document.createElement('div');
+                            introPack.id = 'intro-pack-personalized';
+                            introPack.className = 'intro-pack-section';
+                            introPack.style.cssText = 'text-align: center; margin: 64px 0 48px; padding: 0 20px; max-width: 800px; margin-left: auto; margin-right: auto;';
+                            introPack.innerHTML = `<p style="font-size: 18px; line-height: 1.8; color: #fafafa;">${quizData.page_intro_pack.replace(/\n/g, '<br>')}</p>`;
+                            formationsSection.parentNode.insertBefore(introPack, formationsSection);
+                        }
+                    }
+                }
+                
+                // 4. Remplacer la section "Pourquoi cette offre ?" si page_pourquoi existe
+                if (quizData.page_pourquoi) {
+                    try {
+                        const pourquoiArray = typeof quizData.page_pourquoi === 'string' 
+                            ? JSON.parse(quizData.page_pourquoi) 
+                            : quizData.page_pourquoi;
+                        
+                        const reasonsList = document.querySelector('.reasons-list');
+                        if (reasonsList && Array.isArray(pourquoiArray)) {
+                            // Vider la liste existante
+                            reasonsList.innerHTML = '';
+                            
+                            // Ajouter chaque élément
+                            pourquoiArray.forEach(item => {
+                                const li = document.createElement('li');
+                                li.className = item.positive ? 'reason-item' : 'reason-item negative';
+                                
+                                const icon = document.createElement('span');
+                                icon.className = 'reason-icon';
+                                
+                                if (item.positive) {
+                                    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+                                } else {
+                                    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                                }
+                                
+                                li.appendChild(icon);
+                                
+                                const text = document.createElement('span');
+                                text.textContent = item.text;
+                                li.appendChild(text);
+                                
+                                reasonsList.appendChild(li);
+                            });
+                        }
+                    } catch (parseError) {
+                        console.error('❌ Erreur parsing page_pourquoi:', parseError);
+                    }
+                }
+            }
+            
             // Fonction pour personnaliser les éléments
             function personalizePage() {
                 if (!prenom) return;
@@ -2133,15 +2220,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
             }
             
+            // Fonction pour appliquer toutes les personnalisations
+            function applyAllPersonalizations() {
+                personalizePage();
+                if (personalizedContentData) {
+                    displayPersonalizedContent(personalizedContentData);
+                }
+            }
+            
             // Personnaliser immédiatement si le DOM est déjà chargé
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', personalizePage);
+                document.addEventListener('DOMContentLoaded', applyAllPersonalizations);
             } else {
-                personalizePage();
+                applyAllPersonalizations();
             }
             
             // Réessayer après un court délai pour s'assurer que tous les éléments sont chargés
-            setTimeout(personalizePage, 100);
+            setTimeout(applyAllPersonalizations, 100);
         })();
         
         // Token Verification & 24h Countdown
