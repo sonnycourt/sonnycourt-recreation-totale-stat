@@ -126,9 +126,9 @@ Exemple MAUVAIS : "Maximus, voici comment gagner 10K€/mois avec ton business."
 - Reprendre leurs mots exacts entre guillemets si pertinent
 
 **RÈGLES POURQUOI (section "Pourquoi cette offre ?") :**
-- 4 points qui résonnent avec LEUR situation
+- 3 points qui résonnent avec LEUR situation
 - Chaque point commence par "Tu"
-- 3 points positifs (ce qu'ils veulent) + 1 négatif barré (ce qu'ils ne veulent pas)
+- 3 points positifs uniquement (ce qu'ils veulent)
 - Adapter selon leur objectif :
   * Amour → relations, connexion, solitude, être aimé
   * Argent/projet → liberté, blocages financiers, potentiel inexploité
@@ -146,8 +146,7 @@ Retourne UNIQUEMENT ce JSON valide (pas de markdown, pas de texte avant/après) 
   "pourquoi": [
     {"text": "...", "positive": true},
     {"text": "...", "positive": true},
-    {"text": "...", "positive": true},
-    {"text": "...", "positive": false}
+    {"text": "...", "positive": true}
   ]
 }
 
