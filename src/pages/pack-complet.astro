@@ -2213,21 +2213,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 // 1. Remplacer le titre si page_header existe
                 const heroTitle = document.querySelector('.hero-title');
                 if (quizData.page_header && heroTitle) {
-                    let headerHtml = quizData.page_header.replace(/\n/g, '<br>');
+                    let headerText = quizData.page_header.replace(/\n/g, '<br>');
                     
                     // Mettre le prénom en orange avec gradient si disponible
-                    // Le prénom peut apparaître sous différentes formes dans le header (avec/sans majuscule, avec virgule, etc.)
                     if (quizData.prenom) {
                         const prenom = quizData.prenom;
-                        // Créer une regex qui trouve le prénom (insensible à la casse) avec ou sans ponctuation après
-                        const prenomRegex = new RegExp(`\\b${prenom}\\b`, 'gi');
-                        headerHtml = headerHtml.replace(prenomRegex, (match) => {
-                            // Préserver la casse originale du prénom dans le header
-                            return `<span class="prenom-gradient">${match}</span>`;
-                        });
+                        const prenomGradient = `<span style="background: linear-gradient(90deg, #FD6329, #F67635); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;">${prenom}</span>`;
+                        headerText = headerText.replace(prenom, prenomGradient);
                     }
                     
-                    heroTitle.innerHTML = headerHtml;
+                    heroTitle.innerHTML = headerText;
                 }
                 
                 // 2. Ajouter le subheader si page_subheader existe
