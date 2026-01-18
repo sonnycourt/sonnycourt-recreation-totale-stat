@@ -2114,9 +2114,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     let headerHtml = quizData.page_header.replace(/\n/g, '<br>');
                     
                     // Mettre le prénom en orange avec gradient si disponible
+                    // Le prénom peut apparaître sous différentes formes dans le header (avec/sans majuscule, avec virgule, etc.)
                     if (quizData.prenom) {
-                        const prenomRegex = new RegExp(`(${quizData.prenom}[,\\s])`, 'gi');
-                        headerHtml = headerHtml.replace(prenomRegex, '<span class="prenom-gradient">$1</span>');
+                        const prenom = quizData.prenom;
+                        // Créer une regex qui trouve le prénom (insensible à la casse) avec ou sans ponctuation après
+                        const prenomRegex = new RegExp(`\\b${prenom}\\b`, 'gi');
+                        headerHtml = headerHtml.replace(prenomRegex, (match) => {
+                            // Préserver la casse originale du prénom dans le header
+                            return `<span class="prenom-gradient">${match}</span>`;
+                        });
                     }
                     
                     heroTitle.innerHTML = headerHtml;
