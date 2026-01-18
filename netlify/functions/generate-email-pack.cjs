@@ -174,6 +174,43 @@ const handler = async (event) => {
         lockAcquired = true;
         console.log(`🔒 Verrou acquis pour ${emailType} - ${email}`);
 
+        // Vérification de l'ordre des emails
+        if (emailType === '24h') {
+            const checkInitial = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=email_sent`,
+                { method: 'GET', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` } }
+            );
+            const checkData = await checkInitial.json();
+            if (!checkData[0]?.email_sent) {
+                console.log('⏳ ATTENTE: Email 24h demandé mais email initial pas encore envoyé pour', email);
+                // Rollback le lock
+                await fetch(
+                    `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                    { method: 'PATCH', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ [sentColumn]: false }) }
+                );
+                return { statusCode: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ retry: true, reason: 'initial_not_sent_yet' }) };
+            }
+        }
+
+        if (emailType === '4h') {
+            const check24h = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=email_24h_sent`,
+                { method: 'GET', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` } }
+            );
+            const checkData = await check24h.json();
+            if (!checkData[0]?.email_24h_sent) {
+                console.log('⏳ ATTENTE: Email 4h demandé mais email 24h pas encore envoyé pour', email);
+                // Rollback le lock
+                await fetch(
+                    `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                    { method: 'PATCH', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ [sentColumn]: false }) }
+                );
+                return { statusCode: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ retry: true, reason: '24h_not_sent_yet' }) };
+            }
+        }
+
+        console.log('✅ Ordre vérifié, continuation pour', emailType);
+
         // 2. Utiliser le token depuis Supabase (ou générer un nouveau si absent)
         let token = quizData.token;
         
