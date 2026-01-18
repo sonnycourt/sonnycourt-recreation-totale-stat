@@ -966,10 +966,6 @@ import Layout from '../layouts/Layout.astro';
     color: #4caf50;
   }
 
-  .quiz-word-count.warning {
-    color: #ff9800;
-  }
-
   .quiz-word-count.error {
     color: #f44336;
   }
@@ -1383,7 +1379,7 @@ import Layout from '../layouts/Layout.astro';
     const wordCount = countWords(textarea.value);
     
     // Supprimer toutes les classes de couleur
-    counter.classList.remove('minimum', 'valid', 'warning', 'error');
+    counter.classList.remove('minimum', 'valid', 'error');
     
     if (wordCount === 0) {
       counter.textContent = '';
@@ -1403,10 +1399,8 @@ import Layout from '../layouts/Layout.astro';
     if (wordCount < minWords) {
       counter.textContent = `${wordCount} mots (minimum ${minWords})`;
       counter.classList.add('minimum');
-    } else if (wordCount > 400) {
-      counter.textContent = `${wordCount} / ${maxWords} mots`;
-      counter.classList.add('warning');
     } else {
+      // Entre 20 et 500 mots : vert
       counter.textContent = `${wordCount} mots`;
       counter.classList.add('valid');
     }
@@ -1421,11 +1415,17 @@ import Layout from '../layouts/Layout.astro';
   }
 
   // Fonction pour mettre à jour l'état du bouton Continuer
-  function updateContinueButton(buttonId, textareaId, minWords = 20) {
+  function updateContinueButton(buttonId, textareaId, minWords = 20, maxWords = 500) {
     const button = document.getElementById(buttonId);
     if (!button) return;
     
-    if (hasEnoughWords(textareaId, minWords)) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+    
+    const wordCount = countWords(textarea.value);
+    
+    // Désactiver si < minWords ou > maxWords
+    if (wordCount >= minWords && wordCount <= maxWords) {
       button.disabled = false;
     } else {
       button.disabled = true;
@@ -1501,7 +1501,7 @@ import Layout from '../layouts/Layout.astro';
       // Mettre à jour le compteur et le bouton après restauration
       setTimeout(() => {
         updateWordCount('fierte', 'wordCount3');
-        updateContinueButton('nextBtn3', 'fierte');
+        updateContinueButton('nextBtn3', 'fierte', 20, 500);
       }, 100);
     }
     
@@ -1514,7 +1514,7 @@ import Layout from '../layouts/Layout.astro';
       // Mettre à jour le compteur et le bouton après restauration
       setTimeout(() => {
         updateWordCount('reve', 'wordCount4');
-        updateContinueButton('nextBtn4', 'reve');
+        updateContinueButton('nextBtn4', 'reve', 20, 500);
       }, 100);
     }
     
@@ -1527,7 +1527,7 @@ import Layout from '../layouts/Layout.astro';
       // Mettre à jour le compteur et le bouton après restauration
       setTimeout(() => {
         updateWordCount('souffrance', 'wordCount5');
-        updateContinueButton('nextBtn5', 'souffrance');
+        updateContinueButton('nextBtn5', 'souffrance', 20, 500);
       }, 100);
     }
   }
@@ -1722,7 +1722,7 @@ import Layout from '../layouts/Layout.astro';
     
     // Initialiser le compteur et le bouton au chargement
     updateWordCount('fierte', 'wordCount3');
-    updateContinueButton('nextBtn3', 'fierte');
+    updateContinueButton('nextBtn3', 'fierte', 20, 500);
   }
   
   if (nextBtn3) {
@@ -1753,12 +1753,12 @@ import Layout from '../layouts/Layout.astro';
     // Mettre à jour le compteur et le bouton en temps réel
     textarea4.addEventListener('input', () => {
       updateWordCount('reve', 'wordCount4');
-      updateContinueButton('nextBtn4', 'reve');
+      updateContinueButton('nextBtn4', 'reve', 20, 500);
     });
     
     // Initialiser le compteur et le bouton au chargement
     updateWordCount('reve', 'wordCount4');
-    updateContinueButton('nextBtn4', 'reve');
+    updateContinueButton('nextBtn4', 'reve', 20, 500);
   }
   
   if (nextBtn4) {
@@ -1789,12 +1789,12 @@ import Layout from '../layouts/Layout.astro';
     // Mettre à jour le compteur et le bouton en temps réel
     textarea5.addEventListener('input', () => {
       updateWordCount('souffrance', 'wordCount5');
-      updateContinueButton('nextBtn5', 'souffrance');
+      updateContinueButton('nextBtn5', 'souffrance', 20, 500);
     });
     
     // Initialiser le compteur et le bouton au chargement
     updateWordCount('souffrance', 'wordCount5');
-    updateContinueButton('nextBtn5', 'souffrance');
+    updateContinueButton('nextBtn5', 'souffrance', 20, 500);
   }
   
   if (nextBtn5) {
