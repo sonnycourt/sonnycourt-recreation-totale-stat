@@ -1481,6 +1481,37 @@ import Layout from '../layouts/Layout.astro';
       } else {
         // Log après succès
         console.log('Supabase OK', data);
+        
+        // Générer le contenu personnalisé de la page via DeepSeek (non-bloquant)
+        try {
+          console.log('🎨 Génération contenu page pour:', email);
+          
+          const generateResponse = await fetch('/.netlify/functions/generate-page-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email,
+              quizData: {
+                prenom: prenom,
+                objectif: quizDataToSave.objectif,
+                situation: quizDataToSave.situation,
+                fierte: quizDataToSave.fierte,
+                reve: quizDataToSave.reve,
+                souffrance: quizDataToSave.souffrance
+              }
+            })
+          });
+          
+          if (generateResponse.ok) {
+            console.log('✅ Contenu page stocké dans Supabase');
+          } else {
+            const errorText = await generateResponse.text();
+            console.error('❌ Erreur génération contenu page:', errorText);
+          }
+        } catch (genError) {
+          // Ne pas bloquer la redirection si la génération échoue
+          console.log('❌ Erreur génération contenu page:', genError);
+        }
       }
     } catch (error) {
       // Log en cas d'erreur de catch
