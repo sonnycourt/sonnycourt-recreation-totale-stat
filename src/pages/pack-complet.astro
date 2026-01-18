@@ -2144,33 +2144,25 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             ? JSON.parse(quizData.page_pourquoi) 
                             : quizData.page_pourquoi;
                         
-                        const reasonsList = document.querySelector('.reasons-list');
-                        if (reasonsList && Array.isArray(pourquoiArray)) {
-                            // Vider la liste existante
-                            reasonsList.innerHTML = '';
+                        if (Array.isArray(pourquoiArray)) {
+                            // Sélectionner tous les éléments .reason-item existants
+                            const reasonItems = document.querySelectorAll('.reason-item');
                             
-                            // Ajouter chaque élément - reproduire exactement le markup par défaut
-                            pourquoiArray.forEach(item => {
-                                const li = document.createElement('li');
-                                li.className = item.positive ? 'reason-item' : 'reason-item negative';
-                                
-                                const icon = document.createElement('span');
-                                icon.className = 'reason-icon';
-                                
-                                if (item.positive) {
-                                    // SVG pour checkmark (positif)
-                                    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-                                } else {
-                                    // SVG pour cross (négatif)
-                                    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                            pourquoiArray.forEach((item, index) => {
+                                if (reasonItems[index]) {
+                                    // Remplacer le texte (le dernier nœud texte de l'élément)
+                                    const textNode = Array.from(reasonItems[index].childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+                                    if (textNode) {
+                                        textNode.textContent = item.text;
+                                    }
+                                    
+                                    // Gérer la classe negative
+                                    if (item.positive) {
+                                        reasonItems[index].classList.remove('negative');
+                                    } else {
+                                        reasonItems[index].classList.add('negative');
+                                    }
                                 }
-                                
-                                li.appendChild(icon);
-                                
-                                // Le texte doit être un nœud texte directement dans le <li>, pas dans un <span>
-                                li.appendChild(document.createTextNode(item.text));
-                                
-                                reasonsList.appendChild(li);
                             });
                         }
                     } catch (parseError) {
