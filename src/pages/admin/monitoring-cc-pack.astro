@@ -32,6 +32,20 @@ import Layout from '../../layouts/Layout.astro';
         <button class="logout-button" onclick="handleLogout()">Déconnexion</button>
       </div>
       
+      <!-- Section Export -->
+      <section class="export-section">
+        <h2 class="section-title">Export CSV</h2>
+        <div class="export-controls">
+          <button class="export-button" onclick="exportAll()">Exporter tout</button>
+          <div class="export-filter">
+            <input type="date" id="exportDateStart" class="export-date-input" />
+            <span class="export-date-separator">→</span>
+            <input type="date" id="exportDateEnd" class="export-date-input" />
+            <button class="export-button" onclick="exportDateRange()">Exporter période</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Section 1: Résumé (4 cartes) -->
       <section class="stats-section">
         <h2 class="section-title">Résumé des dernières 24h</h2>
@@ -130,6 +144,9 @@ import Layout from '../../layouts/Layout.astro';
         </div>
         <div class="modal-body" id="modalBody">
           <!-- Contenu chargé dynamiquement -->
+        </div>
+        <div class="modal-footer" id="modalFooter" style="display: none;">
+          <button class="export-button modal-export-button" onclick="exportCurrentContact()">Exporter ce contact</button>
         </div>
       </div>
     </div>
@@ -415,12 +432,12 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .monitoring-table tbody tr {
-    cursor: pointer;
+    cursor: default;
     transition: background 0.2s;
   }
 
   .monitoring-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: transparent;
   }
 
   .monitoring-table tbody tr:last-child td {
@@ -432,19 +449,21 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   .btn-details {
-    background: rgba(0, 122, 255, 0.2);
-    border: 1px solid rgba(0, 122, 255, 0.4);
-    color: #64b5f6;
-    padding: 6px 12px;
+    background: linear-gradient(135deg, #FD6329, #F67635);
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
     border-radius: 6px;
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .btn-details:hover {
-    background: rgba(0, 122, 255, 0.3);
-    border-color: rgba(0, 122, 255, 0.6);
+    background: linear-gradient(135deg, #F67635, #FD7A3F);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(253, 99, 41, 0.3);
   }
 
   /* Modal */
@@ -514,35 +533,104 @@ import Layout from '../../layouts/Layout.astro';
     padding: 32px;
   }
 
+  .modal-footer {
+    padding: 24px 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   .detail-section {
     margin-bottom: 32px;
   }
 
+  /* Export Section */
+  .export-section {
+    margin-bottom: 48px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .export-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .export-button {
+    background: linear-gradient(135deg, #FD6329, #F67635);
+    border: none;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .export-button:hover {
+    background: linear-gradient(135deg, #F67635, #FD7A3F);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(253, 99, 41, 0.3);
+  }
+
+  .export-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .export-date-input {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+  }
+
+  .export-date-input:focus {
+    outline: none;
+    border-color: #FD6329;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .export-date-separator {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+  }
+
   .detail-section-title {
     font-size: 18px;
-    font-weight: 600;
-    color: #ff8533;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: bold;
+    color: #FD6329;
+    margin-bottom: 12px;
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   .detail-field {
     margin-bottom: 16px;
   }
 
+  .detail-section {
+    margin-bottom: 24px;
+  }
+
   .detail-field-label {
     font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #A0A0A0;
     margin-bottom: 6px;
   }
 
   .detail-field-value {
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.9);
+    color: #FFFFFF;
     line-height: 1.6;
     padding: 12px;
     background: rgba(255, 255, 255, 0.03);
@@ -550,6 +638,11 @@ import Layout from '../../layouts/Layout.astro';
     border-radius: 8px;
     white-space: pre-wrap;
     word-wrap: break-word;
+  }
+
+  .modal-export-button {
+    margin-top: 24px;
+    width: 100%;
   }
 
   .detail-field-value.email-body {
@@ -903,17 +996,7 @@ import Layout from '../../layouts/Layout.astro';
       `;
     }).join('');
 
-    // Add click handlers to rows
-    tbody.querySelectorAll('tr').forEach(row => {
-      const email = row.getAttribute('data-email');
-      if (email && email !== '-') {
-        row.addEventListener('click', (e) => {
-          if (e.target.tagName !== 'BUTTON') {
-            showDetails(email);
-          }
-        });
-      }
-    });
+    // Remove row click handlers - only button opens modal
   }
 
   function showDetails(email) {
@@ -941,7 +1024,7 @@ import Layout from '../../layouts/Layout.astro';
     modalBody.innerHTML = `
       <!-- Réponses Quiz -->
       <div class="detail-section">
-        <div class="detail-section-title">Réponses Quiz</div>
+        <div class="detail-section-title">📝 Réponses Quiz</div>
         <div class="detail-field">
           <div class="detail-field-label">Objectif</div>
           <div class="detail-field-value">${user.objectif || '-'}</div>
@@ -966,7 +1049,7 @@ import Layout from '../../layouts/Layout.astro';
 
       <!-- Contenu Page -->
       <div class="detail-section">
-        <div class="detail-section-title">Contenu Page Personnalisé</div>
+        <div class="detail-section-title">🎨 Contenu Page Personnalisée</div>
         <div class="detail-field">
           <div class="detail-field-label">Header</div>
           <div class="detail-field-value">${user.page_header || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Non généré'}</div>
@@ -992,44 +1075,55 @@ import Layout from '../../layouts/Layout.astro';
         </div>
       </div>
 
-      <!-- Contenu Emails -->
+      <!-- Email Initial -->
       <div class="detail-section">
-        <div class="detail-section-title">Contenu Emails Générés</div>
-        
+        <div class="detail-section-title">📧 Email Initial</div>
         ${user.email_initial_subject || user.email_initial_body ? `
         <div class="detail-field">
-          <div class="detail-field-label">Email Initial - Subject</div>
+          <div class="detail-field-label">Subject</div>
           <div class="detail-field-value">${user.email_initial_subject || '-'}</div>
         </div>
         <div class="detail-field">
-          <div class="detail-field-label">Email Initial - Body</div>
+          <div class="detail-field-label">Body</div>
           <div class="detail-field-value email-body">${user.email_initial_body || '-'}</div>
         </div>
         ` : '<div class="detail-field-value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Email initial non généré</div>'}
-        
+      </div>
+      
+      <!-- Email 24h -->
+      <div class="detail-section">
+        <div class="detail-section-title">📧 Email 24h</div>
         ${user.email_24h_subject || user.email_24h_body ? `
         <div class="detail-field">
-          <div class="detail-field-label">Email 24h - Subject</div>
+          <div class="detail-field-label">Subject</div>
           <div class="detail-field-value">${user.email_24h_subject || '-'}</div>
         </div>
         <div class="detail-field">
-          <div class="detail-field-label">Email 24h - Body</div>
+          <div class="detail-field-label">Body</div>
           <div class="detail-field-value email-body">${user.email_24h_body || '-'}</div>
         </div>
         ` : '<div class="detail-field-value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Email 24h non généré</div>'}
-        
+      </div>
+      
+      <!-- Email 4h -->
+      <div class="detail-section">
+        <div class="detail-section-title">📧 Email 4h</div>
         ${user.email_4h_subject || user.email_4h_body ? `
         <div class="detail-field">
-          <div class="detail-field-label">Email 4h - Subject</div>
+          <div class="detail-field-label">Subject</div>
           <div class="detail-field-value">${user.email_4h_subject || '-'}</div>
         </div>
         <div class="detail-field">
-          <div class="detail-field-label">Email 4h - Body</div>
+          <div class="detail-field-label">Body</div>
           <div class="detail-field-value email-body">${user.email_4h_body || '-'}</div>
         </div>
         ` : '<div class="detail-field-value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Email 4h non généré</div>'}
       </div>
     `;
+
+    // Show export button in footer
+    document.getElementById('modalFooter').style.display = 'block';
+    window.currentModalUser = user;
 
     modal.style.display = 'flex';
   }
@@ -1037,16 +1131,140 @@ import Layout from '../../layouts/Layout.astro';
   // Modal close handlers
   document.getElementById('modalClose').addEventListener('click', () => {
     document.getElementById('modalOverlay').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    window.currentModalUser = null;
   });
 
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'modalOverlay') {
       document.getElementById('modalOverlay').style.display = 'none';
+      document.getElementById('modalFooter').style.display = 'none';
+      window.currentModalUser = null;
     }
   });
 
   // Make showDetails global for onclick
   window.showDetails = showDetails;
+
+  // Store current user for export
+  window.currentModalUser = null;
+
+  // Export functions
+  function convertToCSV(data) {
+    if (!data || data.length === 0) return '';
+
+    // Headers
+    const headers = [
+      'email', 'prenom', 'created_at',
+      'objectif', 'situation', 'fierte', 'reve', 'souffrance',
+      'page_header', 'page_subheader', 'page_intro_pack', 'page_pourquoi',
+      'email_initial_subject', 'email_initial_body',
+      'email_24h_subject', 'email_24h_body',
+      'email_4h_subject', 'email_4h_body'
+    ];
+
+    // CSV content
+    let csv = headers.join(',') + '\n';
+
+    data.forEach(user => {
+      const row = headers.map(header => {
+        let value = user[header] || '';
+        
+        // Handle array/object fields
+        if (header === 'page_pourquoi' && value) {
+          try {
+            const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+            if (Array.isArray(parsed)) {
+              value = parsed.map(item => item.text || '').join(' | ');
+            }
+          } catch (e) {
+            // Keep original value if parsing fails
+          }
+        }
+        
+        // Escape quotes and wrap in quotes if contains comma, newline, or quote
+        value = String(value).replace(/"/g, '""');
+        if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+          value = `"${value}"`;
+        }
+        
+        return value;
+      });
+      
+      csv += row.join(',') + '\n';
+    });
+
+    return csv;
+  }
+
+  function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function exportAll() {
+    if (!allUsersData || allUsersData.length === 0) {
+      alert('Aucune donnée à exporter');
+      return;
+    }
+    
+    const csv = convertToCSV(allUsersData);
+    const date = new Date().toISOString().split('T')[0];
+    downloadCSV(csv, `export-cc-pack-${date}.csv`);
+  }
+
+  function exportDateRange() {
+    const dateStart = document.getElementById('exportDateStart').value;
+    const dateEnd = document.getElementById('exportDateEnd').value;
+
+    if (!dateStart || !dateEnd) {
+      alert('Veuillez sélectionner une date de début et une date de fin');
+      return;
+    }
+
+    const start = new Date(dateStart);
+    const end = new Date(dateEnd);
+    end.setHours(23, 59, 59, 999); // End of day
+
+    const filtered = allUsersData.filter(user => {
+      if (!user.completed_at) return false;
+      const userDate = new Date(user.completed_at);
+      return userDate >= start && userDate <= end;
+    });
+
+    if (filtered.length === 0) {
+      alert('Aucune donnée trouvée pour cette période');
+      return;
+    }
+
+    const csv = convertToCSV(filtered);
+    downloadCSV(csv, `export-cc-pack-${dateStart}-${dateEnd}.csv`);
+  }
+
+  function exportCurrentContact() {
+    if (!window.currentModalUser) {
+      alert('Aucun contact sélectionné');
+      return;
+    }
+
+    const csv = convertToCSV([window.currentModalUser]);
+    const email = window.currentModalUser.email.split('@')[0];
+    const date = new Date().toISOString().split('T')[0];
+    downloadCSV(csv, `export-contact-${email}-${date}.csv`);
+  }
+
+  // Make export functions global
+  window.exportAll = exportAll;
+  window.exportDateRange = exportDateRange;
+  window.exportCurrentContact = exportCurrentContact;
 
   // Initial load only if authenticated
   if (checkAuth()) {
