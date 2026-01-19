@@ -2,8 +2,24 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="La NewsLetter court-circuit - Sonny Court" description="1 minute de lecture par email pour court-circuiter tes anciens schémas. Mindset, Manifestation Haute performance & plus... Rejoins les +10 000 lecteurs du matin.">
-  <div id="court-circuit-page">
+<Layout 
+  title="La NewsLetter court-circuit - Sonny Court" 
+  description="1 minute de lecture par email pour court-circuiter tes anciens schémas. Mindset, Manifestation Haute performance & plus... Rejoins les +10 000 lecteurs du matin."
+  showHeader={false}
+  showFooter={false}
+>
+  <!-- Password Protection Overlay -->
+  <div id="passwordOverlay" class="password-overlay" style="display: none;">
+    <div class="password-modal">
+      <h2 class="password-title">Accès restreint</h2>
+      <p class="password-subtitle">Entre le mot de passe pour accéder à cette page</p>
+      <input type="password" id="passwordInput" class="password-field" placeholder="Mot de passe" autocomplete="off" />
+      <button id="passwordSubmit" class="password-btn">Valider</button>
+      <p id="passwordError" class="password-error" style="display: none;">Accès refusé</p>
+    </div>
+  </div>
+
+  <div id="court-circuit-page" style="filter: blur(10px);">
     <!-- Background Effects -->
     <div class="background-effects">
       <div class="gradient-mesh"></div>
@@ -48,7 +64,7 @@ import Layout from '../layouts/Layout.astro';
     <!-- Main Content -->
     <section class="court-circuit-content">
       <div class="container">
-        <div class="form-section">
+        <div class="form-section" id="formSection">
           <h2>S'inscrire à Court-Circuit</h2>
           <p class="form-description">Remplis le formulaire et reçois ton premier email maintenant</p>
           
@@ -82,12 +98,294 @@ import Layout from '../layouts/Layout.astro';
             <div id="formMessage" class="form-message"></div>
           </form>
         </div>
+
+        <!-- Quiz Overlay -->
+        <div id="quizOverlay" class="quiz-overlay" style="display: none;">
+          <!-- Quiz Component -->
+          <div id="quizSection" class="quiz-section">
+            <!-- Progress Bar -->
+            <div class="quiz-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <span class="progress-text" id="progressText">0/5</span>
+            </div>
+
+          <!-- Quiz Intro -->
+          <div class="quiz-screen" id="quizIntro">
+            <div class="quiz-intro-content">
+              <p class="quiz-intro-subtitle">Quiz · Moins de 2 minutes</p>
+              <p class="quiz-intro-text">Pour finaliser ton inscription à Court-Circuit et que je puisse t'aider au mieux, réponds à ces 5 questions.</p>
+              <p class="quiz-intro-highlight">Je lis personnellement chaque réponse.</p>
+              <button type="button" class="quiz-button" id="startQuizBtn">Commencer le Quiz</button>
+            </div>
+            <img src="/media/pages/sonny-quiz-1.webp" alt="Sonny Quiz" class="quiz-intro-image">
+          </div>
+
+          <!-- Question 1 -->
+          <div class="quiz-screen" id="question1" style="display: none;">
+            <div class="quiz-question-content">
+              <h3 class="quiz-question-title">Qu'est-ce que tu veux le plus en ce moment ?</h3>
+              <div class="quiz-options">
+                <label class="quiz-option">
+                  <input type="radio" name="objectif" value="Avoir confiance en moi" required>
+                  <span>Avoir confiance en moi</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="objectif" value="Lancer un projet / gagner plus d'argent">
+                  <span>Lancer un projet / gagner plus d'argent</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="objectif" value="Trouver l'amour / améliorer mes relations">
+                  <span>Trouver l'amour / améliorer mes relations</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="objectif" value="Arrêter de procrastiner / être discipliné">
+                  <span>Arrêter de procrastiner / être discipliné</span>
+                </label>
+              </div>
+              <div class="quiz-buttons-container">
+                <button type="button" class="quiz-button" id="nextBtn1">Continuer</button>
+              </div>
+              <div id="errorMsg1" class="quiz-error-message" style="display: none;">Cocher une réponse avant de continuer</div>
+            </div>
+          </div>
+
+          <!-- Question 2 -->
+          <div class="quiz-screen" id="question2" style="display: none;">
+            <div class="quiz-question-content">
+              <h3 class="quiz-question-title">Où tu en es aujourd'hui ?</h3>
+              <div class="quiz-options">
+                <label class="quiz-option">
+                  <input type="radio" name="situation" value="debute" required>
+                  <span>Je débute, je cherche encore ma voie</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="situation" value="bloque">
+                  <span>Je suis bloqué depuis un moment, ça avance pas</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="situation" value="tout_essaye">
+                  <span>J'ai déjà tout essayé, rien ne marche vraiment</span>
+                </label>
+                <label class="quiz-option">
+                  <input type="radio" name="situation" value="pret_changer">
+                  <span>Je suis prêt à tout changer, il me manque juste la méthode</span>
+                </label>
+              </div>
+              <div class="quiz-buttons-container">
+                <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn2">Précédent</button>
+                <button type="button" class="quiz-button" id="nextBtn2">Continuer</button>
+              </div>
+              <div id="errorMsg2" class="quiz-error-message" style="display: none;">Cocher une réponse avant de continuer</div>
+            </div>
+          </div>
+
+          <!-- Question 3 -->
+          <div class="quiz-screen" id="question3" style="display: none;">
+            <div class="quiz-question-content">
+              <h3 class="quiz-question-title">Qu'est-ce que tu as déjà accompli dont tu es fier ?</h3>
+              <textarea 
+                class="quiz-textarea" 
+                id="fierte" 
+                name="fierte" 
+                placeholder="C'est pas le moment d'être humble... ;) Un diplôme, un défi relevé, une habitude changée... tout compte." 
+                rows="5" 
+                required
+              ></textarea>
+              <div id="wordCount3" class="quiz-word-count"></div>
+              <div class="quiz-buttons-container">
+                <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn3">Précédent</button>
+                <button type="button" class="quiz-button" id="nextBtn3">Continuer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question 4 -->
+          <div class="quiz-screen" id="question4" style="display: none;">
+            <div class="quiz-question-content">
+              <h3 class="quiz-question-title">Dans ta vie idéale, tu te vois comment ?</h3>
+              <textarea 
+                class="quiz-textarea" 
+                id="reve" 
+                name="reve" 
+                placeholder="Ferme les yeux 3 secondes et imagine... C'est à quoi ressemble ta vie idéale ? Décris-moi tout, sans filtre." 
+                rows="5" 
+                required
+              ></textarea>
+              <div id="wordCount4" class="quiz-word-count"></div>
+              <div class="quiz-buttons-container">
+                <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn4">Précédent</button>
+                <button type="button" class="quiz-button" id="nextBtn4">Continuer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question 5 -->
+          <div class="quiz-screen" id="question5" style="display: none;">
+            <div class="quiz-question-content">
+              <h3 class="quiz-question-title">Qu'est-ce qui te fait le plus souffrir en ce moment ?</h3>
+              <textarea 
+                class="quiz-textarea" 
+                id="souffrance" 
+                name="souffrance" 
+                placeholder="Ici c'est safe, je suis le seul à lire et tes réponses restent strictement confidentielles. Dis-moi ce qui te pèse vraiment en ce moment..." 
+                rows="5" 
+                required
+              ></textarea>
+              <div id="wordCount5" class="quiz-word-count"></div>
+              <div class="quiz-buttons-container">
+                <button type="button" class="quiz-button quiz-button-secondary" id="prevBtn5">Précédent</button>
+                <button type="button" class="quiz-button" id="nextBtn5">Continuer</button>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
       </div>
     </section>
   </div>
 </Layout>
 
+<script>
+  // Password Protection
+  (function() {
+    const PASSWORD = 'sonny2026';
+    const STORAGE_KEY = 'cc_access';
+    
+    // Check access on page load
+    if (localStorage.getItem(STORAGE_KEY) !== 'ok') {
+      // Show password overlay
+      document.getElementById('passwordOverlay').style.display = 'flex';
+      
+      const passwordInput = document.getElementById('passwordInput');
+      const passwordSubmit = document.getElementById('passwordSubmit');
+      const passwordError = document.getElementById('passwordError');
+      const mainPage = document.getElementById('court-circuit-page');
+      
+      function checkPassword() {
+        if (passwordInput.value === PASSWORD) {
+          localStorage.setItem(STORAGE_KEY, 'ok');
+          document.getElementById('passwordOverlay').style.display = 'none';
+          mainPage.style.filter = 'none';
+          passwordError.style.display = 'none';
+        } else {
+          passwordError.style.display = 'block';
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      }
+      
+      passwordSubmit.addEventListener('click', checkPassword);
+      passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          checkPassword();
+        }
+      });
+      
+      // Focus input
+      passwordInput.focus();
+    } else {
+      // Access granted, remove blur
+      document.getElementById('court-circuit-page').style.filter = 'none';
+    }
+  })();
+</script>
+
 <style>
+  /* Password Protection Overlay */
+  .password-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .password-modal {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 48px 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .password-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #ffffff;
+  }
+
+  .password-subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 32px 0;
+  }
+
+  .password-field {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 16px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+
+  .password-field:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .password-field::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .password-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .password-btn:hover {
+    background: linear-gradient(135deg, #0051D5, #003DA5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+  }
+
+  .password-error {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    border-radius: 8px;
+    color: #ff453a;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
   #court-circuit-page {
     background: #0a0a0a;
     color: #ffffff;
@@ -554,6 +852,388 @@ import Layout from '../layouts/Layout.astro';
     color: #f87171;
   }
 
+  /* Quiz Overlay */
+  .quiz-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeInOverlay 0.3s ease;
+  }
+
+  @keyframes fadeInOverlay {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Quiz Styles */
+  .quiz-section {
+    background: rgba(22, 33, 62, 0.95);
+    border: 1px solid rgba(0, 122, 255, 0.4);
+    border-radius: 24px;
+    padding: 50px 50px 0;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      0 8px 32px rgba(0, 122, 255, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: slideInPopup 0.4s ease;
+  }
+
+  @keyframes slideInPopup {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .quiz-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 122, 255, 0.5), transparent);
+  }
+
+  .quiz-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    gap: 20px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007AFF 0%, #0051D5 100%);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    color: #007AFF;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .quiz-screen {
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .quiz-intro-content {
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .quiz-intro-subtitle {
+    font-size: 0.9rem;
+    color: #007AFF;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+
+  .quiz-intro-text {
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
+    color: #ffffff;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .quiz-intro-highlight {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    color: #007AFF;
+    line-height: 1.6;
+    margin: 20px auto 40px;
+    max-width: 500px;
+    padding: 16px 24px;
+    background: rgba(0, 122, 255, 0.1);
+    border: 1px solid rgba(0, 122, 255, 0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .quiz-intro-image {
+    display: block;
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+    margin: 30px auto 0;
+    margin-bottom: -24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .quiz-question-content {
+    text-align: center;
+  }
+
+  .quiz-question-title {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    color: #ffffff;
+    margin-bottom: 40px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 40px;
+    text-align: left;
+  }
+
+  .quiz-option {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .quiz-option:hover {
+    border-color: rgba(0, 122, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .quiz-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 16px;
+    cursor: pointer;
+    accent-color: #007AFF;
+    flex-shrink: 0;
+  }
+
+  .quiz-option span {
+    color: #ffffff;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .quiz-option input[type="radio"]:checked + span {
+    color: #007AFF;
+    font-weight: 600;
+  }
+
+  .quiz-option:has(input[type="radio"]:checked) {
+    border-color: #007AFF;
+    background: rgba(0, 122, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+  }
+
+  .quiz-textarea {
+    width: 100%;
+    padding: 20px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: #ffffff;
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 120px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .quiz-word-count {
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+    text-align: right;
+    padding-right: 4px;
+    min-height: 20px;
+  }
+
+  .quiz-word-count.minimum {
+    color: #ff5722;
+  }
+
+  .quiz-word-count.valid {
+    color: #4caf50;
+  }
+
+  .quiz-word-count.error {
+    color: #f44336;
+  }
+
+  .quiz-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quiz-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .quiz-textarea:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 0 0 3px rgba(0, 122, 255, 0.15),
+      0 4px 12px rgba(0, 122, 255, 0.1);
+  }
+
+  .quiz-button {
+    padding: 20px 50px;
+    background: linear-gradient(135deg, #007AFF 0%, #0051D5 50%, #007AFF 100%);
+    background-size: 200% 200%;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 
+      0 10px 30px rgba(0, 122, 255, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quiz-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .quiz-button:hover {
+    transform: translateY(-3px) scale(1.02);
+    background-position: 100% 100%;
+    box-shadow: 
+      0 15px 40px rgba(0, 122, 255, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .quiz-button:hover::before {
+    left: 100%;
+  }
+
+  .quiz-button:active {
+    transform: translateY(-1px) scale(1);
+  }
+
+  .quiz-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .quiz-buttons-container {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .quiz-button-secondary {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .quiz-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .quiz-error-message {
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px;
+    color: #f87171;
+    font-size: 0.95rem;
+    text-align: center;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @media (max-width: 768px) {
     .court-circuit-hero {
       padding: 100px 20px 30px;
@@ -585,6 +1265,60 @@ import Layout from '../layouts/Layout.astro';
     .submit-button {
       padding: 16px 30px;
       font-size: 1rem;
+    }
+
+    .quiz-overlay {
+      padding: 10px;
+    }
+
+    .quiz-section {
+      padding: 30px 20px 0;
+      max-height: 95vh;
+    }
+
+    .quiz-intro-image {
+      max-width: 150px;
+      margin: 20px auto 0;
+      margin-bottom: -24px;
+    }
+
+    .quiz-intro-text {
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      margin-bottom: 30px;
+    }
+
+    .quiz-question-title {
+      font-size: clamp(1.2rem, 4vw, 1.5rem);
+      margin-bottom: 30px;
+    }
+
+    .quiz-option {
+      padding: 16px 20px;
+    }
+
+    .quiz-option span {
+      font-size: 0.95rem;
+    }
+
+    .quiz-button {
+      padding: 16px 30px;
+      font-size: 1rem;
+    }
+
+    .quiz-buttons-container {
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .quiz-button-secondary,
+    .quiz-button {
+      width: 100%;
+    }
+
+    .quiz-textarea {
+      padding: 16px 20px;
+      min-height: 100px;
     }
   }
 </style>
@@ -639,8 +1373,8 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
-  const form = document.getElementById('inscriptionForm') as HTMLFormElement | null;
-  const messageDiv = document.getElementById('formMessage') as HTMLElement | null;
+  const form = document.getElementById('inscriptionForm');
+  const messageDiv = document.getElementById('formMessage');
 
   if (form && messageDiv) {
     form.addEventListener('submit', async (e) => {
@@ -653,11 +1387,16 @@ import Layout from '../layouts/Layout.astro';
     // Détecter le pays
     const country = await detectCountry();
     
+    // Générer un token unique pour Court-Circuit et le sauvegarder dans localStorage
+    const uniqueTokenCC = crypto.randomUUID();
+    localStorage.setItem('cc_subscription_token', uniqueTokenCC);
+    
     const data = {
       email: email,
       prenom: prenom,
       groupId: '173790390929851793',
-      country: country
+      country: country,
+      uniqueTokenCC: uniqueTokenCC
     };
 
     // Réinitialiser le message
@@ -665,10 +1404,10 @@ import Layout from '../layouts/Layout.astro';
     messageDiv.textContent = '';
 
     // Désactiver le bouton pendant l'envoi
-    const submitButton = form.querySelector('.submit-button') as HTMLButtonElement | null;
+    const submitButton = form.querySelector('.submit-button');
     if (!submitButton) return;
     
-    const buttonSpan = submitButton.querySelector('span') as HTMLElement | null;
+    const buttonSpan = submitButton.querySelector('span');
     if (!buttonSpan) return;
     
     const originalButtonText = buttonSpan.textContent;
@@ -679,12 +1418,25 @@ import Layout from '../layouts/Layout.astro';
       // Vérifier si on est en local ou en production
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       
+      // Sauvegarder email et prénom dans localStorage pour le quiz
+      localStorage.setItem('quizEmail', email);
+      localStorage.setItem('quizPrenom', prenom || '');
+
       if (isLocal) {
         // Simulation en local pour le développement
         await new Promise(resolve => setTimeout(resolve, 1500));
         console.log('🧪 Mode local : Simulation d\'inscription', data);
-        // Rediriger vers la page de succès
-        window.location.href = `/court-circuit-success`;
+        
+        // Lancer le timer de 5 jours pour pack-complet (même en local)
+        const timerStart = Date.now();
+        const timerDuration = 5 * 24 * 60 * 60 * 1000; // 5 jours en millisecondes
+        const timerEnd = timerStart + timerDuration;
+        localStorage.setItem('pack_complet_timer_start', timerStart.toString());
+        localStorage.setItem('pack_complet_timer_end', timerEnd.toString());
+        console.log('⏰ Timer de 5 jours lancé pour pack-complet (mode local)');
+        
+        // Afficher le Quiz au lieu de rediriger
+        showQuiz();
         return;
       }
 
@@ -717,8 +1469,20 @@ import Layout from '../layouts/Layout.astro';
           console.error('Erreur webhook n8n:', webhookError);
         }
         
-        // Rediriger vers la page de succès
-        window.location.href = `/court-circuit-success`;
+        // Sauvegarder email et prénom dans localStorage pour le quiz
+        localStorage.setItem('quizEmail', email);
+        localStorage.setItem('quizPrenom', prenom || '');
+        
+        // Lancer le timer de 5 jours pour pack-complet
+        const timerStart = Date.now();
+        const timerDuration = 5 * 24 * 60 * 60 * 1000; // 5 jours en millisecondes
+        const timerEnd = timerStart + timerDuration;
+        localStorage.setItem('pack_complet_timer_start', timerStart.toString());
+        localStorage.setItem('pack_complet_timer_end', timerEnd.toString());
+        console.log('⏰ Timer de 5 jours lancé pour pack-complet');
+        
+        // Afficher le Quiz au lieu de rediriger
+        showQuiz();
       } else {
         const result = await response.json().catch(() => ({}));
         messageDiv.textContent = result.message || result.error || 'Une erreur est survenue. Veuillez réessayer.';
@@ -739,6 +1503,455 @@ import Layout from '../layouts/Layout.astro';
       buttonSpan.textContent = originalButtonText || 'Essaie maintenant';
     }
   });
+  }
+
+  // Quiz Logic
+  let currentQuestion = 0;
+  const totalQuestions = 5;
+  let quizData = {};
+
+  // Fonction de comptage de mots
+  function countWords(text) {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  // Fonction pour mettre à jour le compteur de mots
+  function updateWordCount(textareaId, counterId, minWords = 20, maxWords = 500) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    
+    if (!textarea || !counter) return;
+    
+    const wordCount = countWords(textarea.value);
+    
+    // Supprimer toutes les classes de couleur
+    counter.classList.remove('minimum', 'valid', 'error');
+    
+    if (wordCount === 0) {
+      counter.textContent = '';
+      return;
+    }
+    
+    if (wordCount > maxWords) {
+      counter.textContent = `${wordCount} / ${maxWords} mots (limite dépassée)`;
+      counter.classList.add('error');
+    } else if (wordCount < minWords) {
+      counter.textContent = `${wordCount} mots (minimum ${minWords})`;
+      counter.classList.add('minimum');
+    } else {
+      // Entre 20 et 500 mots : vert
+      counter.textContent = `${wordCount} mots`;
+      counter.classList.add('valid');
+    }
+  }
+
+  // Fonction pour vérifier si un textarea a assez de mots
+  function hasEnoughWords(textareaId, minWords = 20) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return false;
+    const wordCount = countWords(textarea.value);
+    return wordCount >= minWords && wordCount <= 500;
+  }
+
+  // Fonction pour mettre à jour l'état du bouton Continuer
+  function updateContinueButton(buttonId, textareaId, minWords = 20, maxWords = 500) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+    
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+    
+    const wordCount = countWords(textarea.value);
+    
+    // Désactiver si < minWords ou > maxWords
+    if (wordCount >= minWords && wordCount <= maxWords) {
+      button.disabled = false;
+    } else {
+      button.disabled = true;
+    }
+  }
+
+  function showQuiz() {
+    const formSection = document.getElementById('formSection');
+    const quizOverlay = document.getElementById('quizOverlay');
+    
+    if (formSection && quizOverlay) {
+      // Hide form section
+      formSection.style.display = 'none';
+      
+      // Show quiz overlay (popup)
+      quizOverlay.style.display = 'flex';
+      
+      // Prevent body scroll when quiz is open
+      document.body.style.overflow = 'hidden';
+      
+      // Show intro screen
+      showQuestion(-1);
+    }
+  }
+
+  function showQuestion(questionIndex) {
+    // Hide all screens
+    const screens = ['quizIntro', 'question1', 'question2', 'question3', 'question4', 'question5'];
+    screens.forEach(screenId => {
+      const screen = document.getElementById(screenId);
+      if (screen) screen.style.display = 'none';
+    });
+
+    // Show current screen
+    if (questionIndex === -1) {
+      // Show intro
+      const intro = document.getElementById('quizIntro');
+      if (intro) {
+        intro.style.display = 'block';
+        updateProgress(0);
+      }
+    } else {
+      // Show question
+      const questionId = `question${questionIndex + 1}`;
+      const question = document.getElementById(questionId);
+      if (question) {
+        question.style.display = 'block';
+        updateProgress(questionIndex + 1);
+        restoreAnswer(questionIndex);
+      }
+    }
+  }
+
+  function restoreAnswer(questionIndex) {
+    // Restore answer for question 1 (objectif)
+    if (questionIndex === 0 && quizData.objectif) {
+      const radio = document.querySelector(`input[name="objectif"][value="${quizData.objectif}"]`);
+      if (radio) radio.checked = true;
+    }
+    
+    // Restore answer for question 2 (situation)
+    if (questionIndex === 1 && quizData.situation) {
+      const radio = document.querySelector(`input[name="situation"][value="${quizData.situation}"]`);
+      if (radio) radio.checked = true;
+    }
+    
+    // Restore answer for question 3 (fierte)
+    if (questionIndex === 2) {
+      const textarea = document.getElementById('fierte');
+      if (textarea && quizData.fierte) {
+        textarea.value = quizData.fierte;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('fierte', 'wordCount3');
+        updateContinueButton('nextBtn3', 'fierte', 20, 500);
+      }, 100);
+    }
+    
+    // Restore answer for question 4 (reve)
+    if (questionIndex === 3) {
+      const textarea = document.getElementById('reve');
+      if (textarea && quizData.reve) {
+        textarea.value = quizData.reve;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('reve', 'wordCount4');
+        updateContinueButton('nextBtn4', 'reve', 20, 500);
+      }, 100);
+    }
+    
+    // Restore answer for question 5 (souffrance)
+    if (questionIndex === 4) {
+      const textarea = document.getElementById('souffrance');
+      if (textarea && quizData.souffrance) {
+        textarea.value = quizData.souffrance;
+      }
+      // Mettre à jour le compteur et le bouton après restauration
+      setTimeout(() => {
+        updateWordCount('souffrance', 'wordCount5');
+        updateContinueButton('nextBtn5', 'souffrance', 20, 500);
+      }, 100);
+    }
+  }
+
+  function updateProgress(questionNumber) {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    if (progressFill && progressText) {
+      const percentage = (questionNumber / totalQuestions) * 100;
+      progressFill.style.width = `${percentage}%`;
+      progressText.textContent = `${questionNumber}/${totalQuestions}`;
+    }
+  }
+
+  async function saveQuizData() {
+    const quizDataToSave = {
+      objectif: quizData.objectif || '',
+      situation: quizData.situation || '',
+      fierte: quizData.fierte || '',
+      reve: quizData.reve || '',
+      souffrance: quizData.souffrance || '',
+      completedAt: new Date().toISOString()
+    };
+    
+    // Sauvegarder dans localStorage
+    localStorage.setItem('quizData', JSON.stringify(quizDataToSave));
+    
+    // Récupérer email, prénom et token depuis localStorage
+    const email = localStorage.getItem('quizEmail') || '';
+    const prenom = localStorage.getItem('quizPrenom') || '';
+    const token = localStorage.getItem('cc_subscription_token') || '';
+    
+    // Préparer les données à envoyer
+    const dataToSend = {
+      email: email,
+      prenom: prenom,
+      objectif: quizDataToSave.objectif,
+      situation: quizDataToSave.situation,
+      fierte: quizDataToSave.fierte,
+      reve: quizDataToSave.reve,
+      souffrance: quizDataToSave.souffrance,
+      completed_at: quizDataToSave.completedAt,
+      token: token
+    };
+    
+    // Envoyer à Supabase
+    try {
+      // Log avant l'envoi
+      console.log('Envoi Supabase...', dataToSend);
+      
+      // Charger dynamiquement Supabase depuis CDN (fonctionne côté client)
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      
+      const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
+      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
+      
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      const { data, error } = await supabase
+        .from('quiz_responses')
+        .insert(dataToSend);
+      
+      if (error) {
+        // Log en cas d'erreur
+        console.error('Supabase ERROR', error);
+        // On continue quand même la redirection même si Supabase échoue
+      } else {
+        // Log après succès
+        console.log('Supabase OK', data);
+      }
+    } catch (error) {
+      // Log en cas d'erreur de catch
+      console.error('Supabase ERROR', error);
+      // On continue quand même la redirection même si Supabase échoue
+    }
+    
+    // Générer le contenu personnalisé de la page via DeepSeek (fire and forget, mais s'assurer qu'il part)
+    try {
+      console.log('📞 Appel de generate-page-content pour:', email);
+      
+      // Lancer le fetch (fire and forget, mais s'assurer qu'il part)
+      const generatePromise = fetch('/api/generate-page-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          quizData: {
+            prenom: prenom,
+            objectif: quizDataToSave.objectif,
+            situation: quizDataToSave.situation,
+            fierte: quizDataToSave.fierte,
+            reve: quizDataToSave.reve,
+            souffrance: quizDataToSave.souffrance
+          }
+        })
+      }).catch(err => {
+        console.error('❌ Erreur génération page:', err);
+      });
+      
+      // Attendre un petit délai pour s'assurer que la requête est partie
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (genError) {
+      // Ne pas bloquer la redirection si la génération échoue
+      console.log('❌ Erreur génération contenu page:', genError);
+    }
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
+    // Rediriger vers la page de succès
+    window.location.href = '/court-circuit-success';
+  }
+
+  // Quiz Event Listeners
+  const startQuizBtn = document.getElementById('startQuizBtn');
+  if (startQuizBtn) {
+    startQuizBtn.addEventListener('click', () => {
+      currentQuestion = 0;
+      showQuestion(0);
+    });
+  }
+
+  // Question 1
+  const nextBtn1 = document.getElementById('nextBtn1');
+  const errorMsg1 = document.getElementById('errorMsg1');
+  if (nextBtn1) {
+    nextBtn1.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="objectif"]:checked');
+      if (selected) {
+        if (errorMsg1) errorMsg1.style.display = 'none';
+        quizData.objectif = selected.value;
+        currentQuestion = 1;
+        showQuestion(1);
+      } else {
+        if (errorMsg1) errorMsg1.style.display = 'block';
+      }
+    });
+  }
+
+  // Hide error message when option is selected for question 1
+  const objectifInputs = document.querySelectorAll('input[name="objectif"]');
+  objectifInputs.forEach(input => {
+    input.addEventListener('change', () => {
+      if (errorMsg1) errorMsg1.style.display = 'none';
+    });
+  });
+
+  // Question 2
+  const nextBtn2 = document.getElementById('nextBtn2');
+  const errorMsg2 = document.getElementById('errorMsg2');
+  const prevBtn2 = document.getElementById('prevBtn2');
+  if (nextBtn2) {
+    nextBtn2.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="situation"]:checked');
+      if (selected) {
+        if (errorMsg2) errorMsg2.style.display = 'none';
+        quizData.situation = selected.value;
+        currentQuestion = 2;
+        showQuestion(2);
+      } else {
+        if (errorMsg2) errorMsg2.style.display = 'block';
+      }
+    });
+  }
+  if (prevBtn2) {
+    prevBtn2.addEventListener('click', () => {
+      currentQuestion = 0;
+      showQuestion(0);
+    });
+  }
+
+  // Hide error message when option is selected for question 2
+  const situationInputs = document.querySelectorAll('input[name="situation"]');
+  situationInputs.forEach(input => {
+    input.addEventListener('change', () => {
+      if (errorMsg2) errorMsg2.style.display = 'none';
+    });
+  });
+
+  // Question 3 - Event listeners pour textarea
+  const textarea3 = document.getElementById('fierte');
+  const nextBtn3 = document.getElementById('nextBtn3');
+  const prevBtn3 = document.getElementById('prevBtn3');
+  
+  if (textarea3) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea3.addEventListener('input', () => {
+      updateWordCount('fierte', 'wordCount3');
+      updateContinueButton('nextBtn3', 'fierte', 20, 500);
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('fierte', 'wordCount3');
+    updateContinueButton('nextBtn3', 'fierte', 20, 500);
+  }
+  
+  if (nextBtn3) {
+    nextBtn3.addEventListener('click', () => {
+      const textarea = document.getElementById('fierte');
+      if (textarea && hasEnoughWords('fierte', 20)) {
+        quizData.fierte = textarea.value.trim();
+        currentQuestion = 3;
+        showQuestion(3);
+      }
+    });
+  }
+  if (prevBtn3) {
+    prevBtn3.addEventListener('click', () => {
+      const textarea = document.getElementById('fierte');
+      if (textarea) quizData.fierte = textarea.value.trim();
+      currentQuestion = 1;
+      showQuestion(1);
+    });
+  }
+
+  // Question 4 - Event listeners pour textarea
+  const textarea4 = document.getElementById('reve');
+  const nextBtn4 = document.getElementById('nextBtn4');
+  const prevBtn4 = document.getElementById('prevBtn4');
+  
+  if (textarea4) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea4.addEventListener('input', () => {
+      updateWordCount('reve', 'wordCount4');
+      updateContinueButton('nextBtn4', 'reve', 20, 500);
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('reve', 'wordCount4');
+    updateContinueButton('nextBtn4', 'reve', 20, 500);
+  }
+  
+  if (nextBtn4) {
+    nextBtn4.addEventListener('click', () => {
+      const textarea = document.getElementById('reve');
+      if (textarea && hasEnoughWords('reve', 20)) {
+        quizData.reve = textarea.value.trim();
+        currentQuestion = 4;
+        showQuestion(4);
+      }
+    });
+  }
+  if (prevBtn4) {
+    prevBtn4.addEventListener('click', () => {
+      const textarea = document.getElementById('reve');
+      if (textarea) quizData.reve = textarea.value.trim();
+      currentQuestion = 2;
+      showQuestion(2);
+    });
+  }
+
+  // Question 5 - Event listeners pour textarea
+  const textarea5 = document.getElementById('souffrance');
+  const nextBtn5 = document.getElementById('nextBtn5');
+  const prevBtn5 = document.getElementById('prevBtn5');
+  
+  if (textarea5) {
+    // Mettre à jour le compteur et le bouton en temps réel
+    textarea5.addEventListener('input', () => {
+      updateWordCount('souffrance', 'wordCount5');
+      updateContinueButton('nextBtn5', 'souffrance', 20, 500);
+    });
+    
+    // Initialiser le compteur et le bouton au chargement
+    updateWordCount('souffrance', 'wordCount5');
+    updateContinueButton('nextBtn5', 'souffrance', 20, 500);
+  }
+  
+  if (nextBtn5) {
+    nextBtn5.addEventListener('click', () => {
+      const textarea = document.getElementById('souffrance');
+      if (textarea && hasEnoughWords('souffrance', 20)) {
+        quizData.souffrance = textarea.value.trim();
+        saveQuizData();
+      }
+    });
+  }
+  if (prevBtn5) {
+    prevBtn5.addEventListener('click', () => {
+      const textarea = document.getElementById('souffrance');
+      if (textarea) quizData.souffrance = textarea.value.trim();
+      currentQuestion = 3;
+      showQuestion(3);
+    });
   }
 </script>
 

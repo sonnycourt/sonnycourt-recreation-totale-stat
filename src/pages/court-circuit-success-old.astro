@@ -34,7 +34,7 @@ import Layout from '../layouts/Layout.astro';
         </div>
         <div class="banner-text">
           <h2>Inscription réussie !</h2>
-          <p>Félicitations ! Tu es maintenant inscrit à <span class="highlight-blue">Court-Circuit</span>.<br>Tu vas recevoir ton premier email dans 5 minutes.<br>Et d'ici 3 jours, Sonny t'enverra une analyse surprenante basée sur tes réponses.<br><br>En attendant, ne ferme <strong>SURTOUT</strong> pas cette page et lis ce qui suit.</p>
+          <p>Félicitations ! Tu es maintenant inscrit à <span class="highlight-blue">Court-Circuit</span>.<br>Tu vas recevoir ton premier email dans 5 minutes.<br>En attendant, ne ferme <strong>SURTOUT</strong> pas cette page et lis ce qui suit.</p>
         </div>
       </div>
     </section>
@@ -57,17 +57,17 @@ import Layout from '../layouts/Layout.astro';
         <!-- Hero Title -->
         <div class="offer-hero">
           <span class="offer-eyebrow">Offre Unique de Bienvenue</span>
-          <h1 class="offer-title" id="dynamicHeadline">
+          <h1 class="offer-title">
             LE CHALLENGE
             <span class="title-highlight">TRANSFORMATION</span>
           </h1>
-          <p class="offer-tagline">4 jours pour apprendre à reprogrammer ton subconscient !</p>
+          <p class="offer-tagline">4 jours pour reprogrammer ton subconscient</p>
         </div>
 
         <!-- Product Image -->
         <div class="product-showcase">
           <div class="product-glow"></div>
-          <img src="/media/pages/challengetrasfo2.webp" alt="Challenge Transformation Pack" loading="lazy" decoding="async">
+          <img src="/media/pages/challenge-main.webp" alt="Challenge Transformation Pack" loading="lazy" decoding="async">
         </div>
 
         <!-- Emotional Hook -->
@@ -559,11 +559,6 @@ import Layout from '../layouts/Layout.astro';
   .offer-hero {
     text-align: center;
     margin-bottom: 32px;
-    width: 100%;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 0 20px;
   }
 
   .offer-eyebrow {
@@ -580,32 +575,18 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .offer-title {
-    font-size: clamp(24px, 5vw, 42px);
+    font-size: clamp(36px, 10vw, 56px);
     font-weight: 900;
-    line-height: 1.3;
+    line-height: 1.05;
+    color: #ffffff;
     margin-bottom: 16px;
-    text-transform: uppercase;
-    width: 100%;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.5);
   }
 
   .title-highlight {
     display: block;
     color: #f59e0b;
     text-shadow: 0 0 40px rgba(245, 158, 11, 0.5);
-  }
-
-  /* Règles spécifiques pour les headlines dynamiques - uniquement pour cette page */
-  :global(#dynamicHeadline .headline-white) {
-    color: #ffffff !important;
-    text-shadow: 0 4px 30px rgba(0,0,0,0.5) !important;
-    display: block !important;
-    margin-bottom: 10px !important;
-  }
-
-  :global(#dynamicHeadline .headline-orange) {
-    color: #f59e0b !important;
-    text-shadow: 0 0 40px rgba(245, 158, 11, 0.5) !important;
-    display: block !important;
   }
 
   .offer-tagline {
@@ -1955,83 +1936,6 @@ import Layout from '../layouts/Layout.astro';
 </style>
 
 <script>
-  // Récupérer quizData et afficher headline dynamique
-  (function() {
-    const headlineEl = document.getElementById('dynamicHeadline');
-    if (!headlineEl) return;
-
-    const quizDataStr = localStorage.getItem('quizData');
-    if (!quizDataStr) {
-      headlineEl.innerHTML = '<span class="headline-white">TU VEUX CHANGER QUELQUE CHOSE DANS TA VIE ?</span> <span class="headline-orange">ÇA COMMENCE ICI.</span>';
-      return;
-    }
-
-    let quizData;
-    try {
-      quizData = JSON.parse(quizDataStr);
-    } catch (e) {
-      headlineEl.innerHTML = '<span class="headline-white">TU VEUX CHANGER QUELQUE CHOSE DANS TA VIE ?</span> <span class="headline-orange">ÇA COMMENCE ICI.</span>';
-      return;
-    }
-
-    // Mapper objectif (texte complet) vers code court
-    const objectifMap = {
-      'Avoir confiance en moi': 'confiance',
-      'Lancer un projet / gagner plus d\'argent': 'argent',
-      'Trouver l\'amour / améliorer mes relations': 'amour',
-      'Arrêter de procrastiner / être discipliné': 'discipline'
-    };
-
-    const objectif = objectifMap[quizData.objectif] || null;
-    const situation = quizData.situation || null;
-
-    if (!objectif || !situation) {
-      headlineEl.innerHTML = '<span class="headline-white">TU VEUX CHANGER QUELQUE CHOSE DANS TA VIE ?</span> <span class="headline-orange">ÇA COMMENCE ICI.</span>';
-      return;
-    }
-
-    // Définir les headlines selon la combinaison
-    const headlines = {
-      confiance: {
-        debute: 'Tu veux avoir confiance en toi mais tu sais pas par où commencer ? Ça commence ici.',
-        bloque: 'Tu veux avoir confiance en toi mais tu te sens bloqué depuis trop longtemps ? Il te manque juste un déclic.',
-        tout_essaye: 'Tu veux avoir confiance en toi mais t\'as l\'impression d\'avoir tout essayé ? Le problème c\'est pas toi, c\'est la méthode.',
-        pret_changer: 'Tu veux avoir confiance en toi et t\'es prêt à tout changer ? Il te manque juste le système.'
-      },
-      argent: {
-        debute: 'Tu veux gagner plus d\'argent mais tu sais pas par où commencer ? Ça commence ici.',
-        bloque: 'Tu veux gagner plus d\'argent mais tu te sens bloqué depuis trop longtemps ? Il te manque juste un déclic.',
-        tout_essaye: 'Tu veux gagner plus d\'argent mais t\'as l\'impression d\'avoir tout essayé ? Le problème c\'est pas toi, c\'est la méthode.',
-        pret_changer: 'Tu veux gagner plus d\'argent et t\'es prêt à tout changer ? Il te manque juste le système.'
-      },
-      amour: {
-        debute: 'Tu veux trouver l\'amour mais tu sais pas par où commencer ? Ça commence par toi.',
-        bloque: 'Tu veux trouver l\'amour mais tu te sens bloqué depuis trop longtemps ? Il te manque juste un déclic.',
-        tout_essaye: 'Tu veux trouver l\'amour mais t\'as l\'impression d\'avoir tout essayé ? Le problème c\'est pas toi, c\'est la méthode.',
-        pret_changer: 'Tu veux trouver l\'amour et t\'es prêt à tout changer ? Ça commence par toi.'
-      },
-      discipline: {
-        debute: 'Tu veux arrêter de procrastiner mais tu sais pas par où commencer ? Ça commence ici.',
-        bloque: 'Tu veux passer à l\'action mais tu te sens bloqué depuis trop longtemps ? Il te manque juste un déclic.',
-        tout_essaye: 'Tu veux être discipliné mais t\'as l\'impression d\'avoir tout essayé ? Le problème c\'est pas toi, c\'est la méthode.',
-        pret_changer: 'Tu veux enfin passer à l\'action et t\'es prêt à tout changer ? Il te manque juste le système.'
-      }
-    };
-
-    const headline = headlines[objectif]?.[situation] || 'Tu veux changer quelque chose dans ta vie ? Ça commence ici.';
-    
-    // Formater la headline : majuscules, première phrase en blanc, deuxième en orange
-    const parts = headline.split(' ? ');
-    if (parts.length === 2) {
-      const firstPart = parts[0].toUpperCase();
-      const secondPart = parts[1].toUpperCase();
-      headlineEl.innerHTML = `<span class="headline-white">${firstPart} ?</span> <span class="headline-orange">${secondPart}</span>`;
-    } else {
-      // Fallback si pas de " ? " dans le texte
-      headlineEl.innerHTML = `<span class="headline-white">${headline.toUpperCase()}</span>`;
-    }
-  })();
-
   // Timer countdown 5 minutes - PERSISTANT
   const storageKey = 'promo_cc_success_end';
   let endTime = localStorage.getItem(storageKey);
