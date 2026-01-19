@@ -147,7 +147,11 @@ import Layout from '../../layouts/Layout.astro';
           <!-- Contenu chargé dynamiquement -->
         </div>
         <div class="modal-footer" id="modalFooter" style="display: none;">
-          <button class="export-button modal-export-button" onclick="exportCurrentContact()">Exporter ce contact</button>
+          <div class="modal-footer-actions">
+            <button class="export-button modal-export-button" onclick="exportCurrentContact()">Exporter ce contact</button>
+            <button class="export-button" id="regenPageBtn" onclick="regeneratePageForCurrentUser()">Regénérer la page</button>
+          </div>
+          <div class="regen-status" id="regenPageStatus"></div>
         </div>
       </div>
     </div>
@@ -538,6 +542,36 @@ import Layout from '../../layouts/Layout.astro';
   .modal-footer {
     padding: 24px 32px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-footer-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .regen-status {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    min-height: 20px;
+  }
+
+  .regen-status.success {
+    color: #10b981;
+  }
+
+  .regen-status.error {
+    color: #ef4444;
+  }
+
+  .export-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .detail-section {
@@ -1165,6 +1199,18 @@ import Layout from '../../layouts/Layout.astro';
     document.getElementById('modalFooter').style.display = 'block';
     window.currentModalUser = user;
 
+    // Reset regenerate UI
+    const regenStatus = document.getElementById('regenPageStatus');
+    if (regenStatus) {
+      regenStatus.textContent = '';
+      regenStatus.className = 'regen-status';
+    }
+    const regenBtn = document.getElementById('regenPageBtn');
+    if (regenBtn) {
+      regenBtn.disabled = false;
+      regenBtn.textContent = 'Regénérer la page';
+    }
+
     modal.style.display = 'flex';
   }
 
@@ -1188,6 +1234,77 @@ import Layout from '../../layouts/Layout.astro';
 
   // Store current user for export
   window.currentModalUser = null;
+
+  async function regeneratePageForCurrentUser() {
+    const user = window.currentModalUser;
+    if (!user || !user.email) {
+      alert('Aucun contact sélectionné');
+      return;
+    }
+
+    const regenBtn = document.getElementById('regenPageBtn');
+    const regenStatus = document.getElementById('regenPageStatus');
+    const email = user.email;
+
+    const quizData = {
+      prenom: user.prenom,
+      objectif: user.objectif,
+      situation: user.situation,
+      fierte: user.fierte,
+      reve: user.reve,
+      souffrance: user.souffrance
+    };
+
+    try {
+      if (regenBtn) {
+        regenBtn.disabled = true;
+        regenBtn.textContent = 'Génération...';
+      }
+      if (regenStatus) {
+        regenStatus.textContent = '⏳ Génération en cours...';
+        regenStatus.className = 'regen-status';
+      }
+
+      const response = await fetch('/api/generate-page-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, quizData })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || `Erreur API (${response.status})`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erreur génération');
+      }
+
+      if (regenStatus) {
+        regenStatus.textContent = '✅ Page générée';
+        regenStatus.className = 'regen-status success';
+      }
+
+      // Rafraîchir les données puis ré-ouvrir le modal pour afficher le contenu mis à jour
+      await fetchData();
+      showDetails(email);
+    } catch (e) {
+      console.error('❌ Erreur regénération page:', e);
+      if (regenStatus) {
+        regenStatus.textContent = '❌ Erreur';
+        regenStatus.className = 'regen-status error';
+      }
+    } finally {
+      if (regenBtn) {
+        regenBtn.disabled = false;
+        regenBtn.textContent = 'Regénérer la page';
+      }
+    }
+  }
+
+  // Make regenerate function global for onclick
+  window.regeneratePageForCurrentUser = regeneratePageForCurrentUser;
 
   // Export functions
   function convertToCSV(data) {
