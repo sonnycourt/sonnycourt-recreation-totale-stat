@@ -117,6 +117,7 @@ import Layout from '../../layouts/Layout.astro';
               <tr>
                 <th>Email</th>
                 <th>Prénom</th>
+                <th>Pays</th>
                 <th>Date inscription</th>
                 <th>Page générée</th>
                 <th>Email initial</th>
@@ -127,7 +128,7 @@ import Layout from '../../layouts/Layout.astro';
             </thead>
             <tbody id="usersTableBody">
               <tr>
-                <td colspan="8" style="text-align: center; padding: 40px;">Chargement...</td>
+                <td colspan="9" style="text-align: center; padding: 40px;">Chargement...</td>
               </tr>
             </tbody>
           </table>
@@ -997,7 +998,7 @@ import Layout from '../../layouts/Layout.astro';
     } catch (error) {
       console.error('❌ Erreur chargement données:', error);
       document.getElementById('usersTableBody').innerHTML = 
-        `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ff5722;">Erreur de chargement: ${error.message}</td></tr>`;
+        `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #ff5722;">Erreur de chargement: ${error.message}</td></tr>`;
     }
   }
 
@@ -1005,7 +1006,7 @@ import Layout from '../../layouts/Layout.astro';
     const tbody = document.getElementById('usersTableBody');
     
     if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Aucun utilisateur trouvé</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;">Aucun utilisateur trouvé</td></tr>';
       return;
     }
 
@@ -1018,11 +1019,13 @@ import Layout from '../../layouts/Layout.astro';
       const hasInitial = user.email_sent ? checkIcon : crossIcon;
       const has24h = user.email_24h_sent ? checkIcon : crossIcon;
       const has4h = user.email_4h_sent ? checkIcon : crossIcon;
+      const country = user.country_code || '—';
 
       return `
         <tr data-email="${user.email}">
           <td>${user.email || '-'}</td>
           <td>${user.prenom || '-'}</td>
+          <td>${country}</td>
           <td>${date}</td>
           <td class="status-icon">${hasPage}</td>
           <td class="status-icon">${hasInitial}</td>

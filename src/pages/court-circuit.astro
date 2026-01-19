@@ -1310,6 +1310,14 @@ import Layout from '../layouts/Layout.astro';
       buttonSpan.textContent = originalButtonText || 'Essaie maintenant';
 
       if (response.ok) {
+        // Récupérer country_code depuis la réponse et le stocker (fallback safe)
+        try {
+          const result = await response.json().catch(() => ({}));
+          localStorage.setItem('cc_country_code', result.country_code || '');
+        } catch (e) {
+          localStorage.setItem('cc_country_code', '');
+        }
+
         // Appel au webhook n8n pour déclencher l'email de bienvenue
         try {
           await fetch('https://n8n.sonnycourt.com/webhook/ebe808c2-e48d-4052-b229-a55e642f3841', {
@@ -1555,11 +1563,13 @@ import Layout from '../layouts/Layout.astro';
     const email = localStorage.getItem('quizEmail') || '';
     const prenom = localStorage.getItem('quizPrenom') || '';
     const token = localStorage.getItem('cc_subscription_token') || '';
+    const countryCode = localStorage.getItem('cc_country_code') || null;
     
     // Préparer les données à envoyer
     const dataToSend = {
       email: email,
       prenom: prenom,
+      country_code: countryCode,
       objectif: quizDataToSave.objectif,
       situation: quizDataToSave.situation,
       fierte: quizDataToSave.fierte,

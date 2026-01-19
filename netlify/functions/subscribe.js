@@ -97,7 +97,9 @@ exports.handler = async (event, context) => {
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS'
             },
-            body: ''
+            body: JSON.stringify({
+                country_code: null
+            })
         };
     }
 
@@ -451,7 +453,8 @@ exports.handler = async (event, context) => {
                 success: true,
                 id: subscriberId,
                 message: contactExists ? 'Contact mis à jour' : 'Inscription réussie',
-                updated: contactExists
+                updated: contactExists,
+                country_code: detectedCountry || null
             })
         };
 
