@@ -141,6 +141,9 @@ exports.handler = async (event, context) => {
         } else if (groupId === 'SSR_2026_EVERGREEN') {
             // Groupe principal SSR
             targetGroupId = process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN;
+        } else if (groupId === 'COURTCIRCUIT_2') {
+            // Court-Circuit version 2 (avec Quiz)
+            targetGroupId = process.env.MAILERLITE_GROUP_COURTCIRCUIT_2;
         } else {
             // Priorité : groupId dans le body > MAILERLITE_GROUP_SSR_2026_EVERGREEN > MAILERLITE_GROUP_COURTCIRCUIT > fallback
             targetGroupId = groupId || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
