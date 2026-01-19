@@ -1629,6 +1629,185 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 font-size: 14px;
             }
         }
+
+        /* Video Reviews Section */
+        .video-reviews-section {
+            padding: 120px 0;
+            background: linear-gradient(180deg, rgba(10, 25, 41, 0.95) 0%, rgba(15, 30, 50, 0.9) 100%);
+            position: relative;
+            z-index: 2;
+        }
+
+        .video-reviews-section .section-subtitle {
+            text-align: center;
+            color: rgba(250, 250, 250, 0.7);
+            font-size: 1.2rem;
+            margin-bottom: 60px;
+            font-style: italic;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .video-card {
+            background: rgba(20, 30, 45, 0.8);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 24px;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3);
+            border-color: rgba(255, 133, 51, 0.8);
+        }
+
+        .review-video {
+            width: 100%;
+            max-width: 280px;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 16px;
+            background: rgba(10, 25, 41, 0.95);
+            outline: none;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .review-video::-webkit-media-controls-panel {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(255, 215, 0, 0.1));
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .video-card:not(.playing):not(.controls-visible) .review-video::-webkit-media-controls-panel {
+            display: none !important;
+        }
+
+        .video-card.paused .review-video::-webkit-media-controls-panel {
+            display: flex !important;
+        }
+
+        .review-video::-webkit-media-controls-play-button {
+            background-color: rgba(255, 133, 51, 0.9);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
+
+        .review-video::-webkit-media-controls-fullscreen-button,
+        .review-video::-webkit-media-controls-download-button {
+            display: none !important;
+        }
+
+        .custom-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 15;
+            transition: all 0.3s ease;
+            opacity: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .custom-play-button:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        .custom-play-button svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.3));
+        }
+
+        .custom-play-button .play-icon,
+        .custom-play-button .pause-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+        }
+
+        .custom-play-button .pause-icon {
+            display: none;
+        }
+
+        .video-card.playing .custom-play-button {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .video-card.paused .custom-play-button {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .video-card:not(.playing):not(.paused)::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg,
+                rgba(139, 92, 246, 0.4) 0%,
+                rgba(255, 215, 0, 0.1) 50%,
+                rgba(139, 92, 246, 0.4) 100%);
+            backdrop-filter: blur(2px);
+            z-index: 5;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .video-card.playing::before,
+        .video-card.paused::before {
+            opacity: 0;
+        }
+
+        @media (max-width: 768px) {
+            .video-reviews-section {
+                padding: 80px 0;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .video-card {
+                padding: 15px;
+                min-height: 520px;
+            }
+
+            .review-video {
+                height: 500px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2138,6 +2317,70 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             </section>
         </div>
     </div>
+
+    <!-- Video Reviews Section -->
+    <section class="video-reviews-section">
+        <div class="container">
+            <h2 class="guarantee-title">Témoignages Vidéo Manifest</h2>
+            <p class="section-subtitle">Découvre les expériences réelles de nos participants</p>
+
+            <div class="video-grid">
+                <div class="video-card fade-in">
+                    <video class="review-video" controls controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata" data-video="1">
+                        <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/AVIS%203%20(M)-3je5ibjh71.mp4" type="video/mp4">
+                        Ton navigateur ne supporte pas la lecture de vidéos.
+                    </video>
+                    <button class="custom-play-button" data-video="1">
+                        <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/>
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <rect x="8" y="8" width="3" height="8" fill="white"/>
+                            <rect x="13" y="8" width="3" height="8" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="video-card fade-in">
+                    <video class="review-video" controls controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata" data-video="2">
+                        <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/SALTANI%20-%20Manifest%20Avis.mp4" type="video/mp4">
+                        Ton navigateur ne supporte pas la lecture de vidéos.
+                    </video>
+                    <button class="custom-play-button" data-video="2">
+                        <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/>
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <rect x="8" y="8" width="3" height="8" fill="white"/>
+                            <rect x="13" y="8" width="3" height="8" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="video-card fade-in">
+                    <video class="review-video" controls controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata" data-video="3">
+                        <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/M%20-%20BEVEN-xddhpupjau.mp4" type="video/mp4">
+                        Ton navigateur ne supporte pas la lecture de vidéos.
+                    </video>
+                    <button class="custom-play-button" data-video="3">
+                        <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/>
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="11" fill="#8B5CF6" stroke="#8B5CF6" stroke-width="2"/>
+                            <rect x="8" y="8" width="3" height="8" fill="white"/>
+                            <rect x="13" y="8" width="3" height="8" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Reviews Section - Full Screen -->
     <section class="reviews-section-detailed">
@@ -2685,6 +2928,98 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
             document.addEventListener('DOMContentLoaded', updateSeasonalBadge);
         })();
+    </script>
+
+    <!-- Script pour les vidéos d'avis -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Custom Video Play Buttons
+            document.querySelectorAll('.custom-play-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const videoId = this.getAttribute('data-video');
+                    const video = document.querySelector(`.review-video[data-video="${videoId}"]`);
+                    const videoCard = this.closest('.video-card');
+                    const playIcon = this.querySelector('.play-icon');
+                    const pauseIcon = this.querySelector('.pause-icon');
+
+                    if (video) {
+                        if (video.paused) {
+                            video.play();
+                            videoCard.classList.add('playing');
+                            videoCard.classList.remove('paused');
+                        } else {
+                            video.pause();
+                            videoCard.classList.remove('playing');
+                            videoCard.classList.add('paused');
+                        }
+                    }
+                });
+            });
+
+            // Handle video play/pause events to show/hide custom button
+            document.querySelectorAll('.review-video').forEach(video => {
+                const videoCard = video.closest('.video-card');
+
+                video.addEventListener('play', function() {
+                    videoCard.classList.add('playing');
+                    videoCard.classList.remove('paused');
+                    const videoId = video.getAttribute('data-video');
+                    const button = document.querySelector(`.custom-play-button[data-video="${videoId}"]`);
+                    if (button) {
+                        button.style.opacity = '0';
+                        button.style.visibility = 'hidden';
+                        button.style.pointerEvents = 'none';
+                    }
+                });
+
+                video.addEventListener('pause', function() {
+                    videoCard.classList.remove('playing');
+
+                    if (this.currentTime === 0 || this.ended) {
+                        videoCard.classList.remove('paused');
+                        const videoId = video.getAttribute('data-video');
+                        const button = document.querySelector(`.custom-play-button[data-video="${videoId}"]`);
+                        if (button) {
+                            button.style.opacity = '0';
+                            button.style.visibility = 'hidden';
+                            button.style.pointerEvents = 'none';
+                        }
+                    } else {
+                        videoCard.classList.add('paused');
+                        const videoId = video.getAttribute('data-video');
+                        const button = document.querySelector(`.custom-play-button[data-video="${videoId}"]`);
+                        if (button) {
+                            button.style.opacity = '1';
+                            button.style.visibility = 'visible';
+                            button.style.pointerEvents = 'auto';
+                        }
+                    }
+                });
+
+                video.addEventListener('ended', function() {
+                    videoCard.classList.remove('playing');
+                    videoCard.classList.remove('paused');
+                    const videoId = video.getAttribute('data-video');
+                    const button = document.querySelector(`.custom-play-button[data-video="${videoId}"]`);
+                    if (button) {
+                        button.style.opacity = '1';
+                        button.style.visibility = 'visible';
+                        button.style.pointerEvents = 'auto';
+                    }
+                });
+
+                video.addEventListener('click', function(e) {
+                    if (!videoCard.classList.contains('playing')) {
+                        return;
+                    }
+                    if (video.paused) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                });
+            });
+        });
     </script>
 
     <!-- Floating CTA Button -->
