@@ -92,6 +92,17 @@ import Layout from '../../layouts/Layout.astro';
             <div class="stat-value" id="stat4h">-</div>
             <div class="stat-label">Emails 4h envoyés</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18"></path>
+                <path d="M7 14l4-4 3 3 7-7"></path>
+              </svg>
+            </div>
+            <div class="stat-value" id="statQuizCompletionRate">-</div>
+            <div class="stat-label">Taux complétion quiz</div>
+            <div class="stat-label" id="statQuizCompletionDetail" style="margin-top: 8px; font-size: 12px; opacity: 0.7; text-transform: none; letter-spacing: 0;">-</div>
+          </div>
         </div>
       </section>
 
@@ -744,6 +755,9 @@ import Layout from '../../layouts/Layout.astro';
   const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
   let allUsersData = [];
+  let mailerliteActiveCountCache = null;
+  let mailerliteActiveCountCacheAt = 0;
+  const MAILERLITE_CACHE_MS = 60 * 1000; // 1 minute
 
   // SVG Icons (no emoji)
   const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #10b981;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -977,6 +991,53 @@ import Layout from '../../layouts/Layout.astro';
       document.getElementById('statInitial').textContent = initialSent;
       document.getElementById('stat24h').textContent = sent24h;
       document.getElementById('stat4h').textContent = sent4h;
+
+      // Quiz completion rate = rows in Supabase / members in MailerLite group
+      const totalQuizRows = Array.isArray(data) ? data.length : 0;
+      let mailerliteActiveCount = mailerliteActiveCountCache;
+      const nowMs = Date.now();
+      const cacheValid = mailerliteActiveCountCacheAt && (nowMs - mailerliteActiveCountCacheAt) < MAILERLITE_CACHE_MS;
+      if (!cacheValid) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+          const mlRes = await fetch('/api/mailerlite-group-count', { method: 'GET', signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (mlRes.ok) {
+            const mlJson = await mlRes.json().catch(() => ({}));
+            const maybe = Number(mlJson?.activeCount);
+            mailerliteActiveCount = Number.isFinite(maybe) ? maybe : null;
+            mailerliteActiveCountCache = mailerliteActiveCount;
+            mailerliteActiveCountCacheAt = nowMs;
+          } else {
+            // Cache the failure briefly to avoid spamming MailerLite
+            mailerliteActiveCountCache = null;
+            mailerliteActiveCountCacheAt = nowMs;
+          }
+        } catch (_) {
+          // Fail-safe: don't block dashboard if MailerLite is down
+          mailerliteActiveCountCache = null;
+          mailerliteActiveCountCacheAt = nowMs;
+        }
+      }
+
+      const rateEl = document.getElementById('statQuizCompletionRate');
+      const detailEl = document.getElementById('statQuizCompletionDetail');
+      if (rateEl) {
+        if (mailerliteActiveCount && mailerliteActiveCount > 0) {
+          const pct = (totalQuizRows / mailerliteActiveCount) * 100;
+          rateEl.textContent = `${Math.round(pct * 10) / 10}%`;
+        } else {
+          rateEl.textContent = '—';
+        }
+      }
+      if (detailEl) {
+        const left = totalQuizRows.toLocaleString('fr-CH');
+        const right = (mailerliteActiveCount || mailerliteActiveCount === 0) ? mailerliteActiveCount.toLocaleString('fr-CH') : '—';
+        detailEl.textContent = `${left} / ${right}`;
+      }
 
       // Check for alerts
       const alerts = [];
