@@ -745,6 +745,15 @@ import Layout from '../../layouts/Layout.astro';
 
   let allUsersData = [];
 
+  // SVG Icons (no emoji)
+  const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #10b981;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  const ICON_CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  const ICON_PENDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #f59e0b;"><path d="M6 2h12"></path><path d="M6 22h12"></path><path d="M8 2v6c0 2.2 1.2 4.2 3.1 5.3L12 14l0.9 0.7C14.8 15.8 16 17.8 16 20v2"></path><path d="M16 2v6c0 2.2-1.2 4.2-3.1 5.3L12 14l-0.9 0.7C9.2 15.8 8 17.8 8 20v2"></path></svg>';
+
+  const ICON_SECTION_QUIZ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
+  const ICON_SECTION_PAGE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 8px;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>';
+  const ICON_SECTION_EMAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 8px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>';
+
   // Authentication Logic
   const AUTH_STORAGE_KEY = 'admin_monitoring_auth';
   const FAILED_ATTEMPTS_KEY = 'admin_monitoring_failed_attempts';
@@ -883,7 +892,7 @@ import Layout from '../../layouts/Layout.astro';
         }
       }
     } catch (error) {
-      console.error('❌ Erreur vérification mot de passe:', error);
+      console.error('Erreur vérification mot de passe:', error);
       passwordError.textContent = 'Erreur de connexion. Réessayez.';
       passwordError.style.display = 'block';
       passwordInput.disabled = false;
@@ -1030,7 +1039,7 @@ import Layout from '../../layouts/Layout.astro';
       updateTable(data);
 
     } catch (error) {
-      console.error('❌ Erreur chargement données:', error);
+      console.error('Erreur chargement données:', error);
       document.getElementById('usersTableBody').innerHTML = 
         `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #ff5722;">Erreur de chargement: ${error.message}</td></tr>`;
     }
@@ -1044,15 +1053,37 @@ import Layout from '../../layouts/Layout.astro';
       return;
     }
 
-    const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #10b981;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-    const crossIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+    const checkIcon = ICON_CHECK;
+    const crossIcon = ICON_CROSS;
+    const pendingIcon = ICON_PENDING;
+    const PAGE_PENDING_HOURS = 1;
+    const EMAIL_INITIAL_PENDING_HOURS = 73; // 3 jours + 1h
+    const EMAIL_24H_PENDING_HOURS = 97; // 4 jours + 1h
+    const EMAIL_4H_PENDING_HOURS = 121; // 5 jours + 1h
     
     tbody.innerHTML = data.map(user => {
-      const date = user.completed_at ? new Date(user.completed_at).toLocaleString('fr-FR') : '-';
-      const hasPage = user.page_header ? checkIcon : crossIcon;
-      const hasInitial = user.email_sent ? checkIcon : crossIcon;
-      const has24h = user.email_24h_sent ? checkIcon : crossIcon;
-      const has4h = user.email_4h_sent ? checkIcon : crossIcon;
+      const dateLocale = user.created_at
+        ? new Date(user.created_at).toLocaleString('fr-CH', { timeZone: 'Europe/Zurich' })
+        : '-';
+
+      const hoursSinceCreation = user.created_at
+        ? (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60)
+        : null;
+
+      /**
+       * @param {boolean} isOk
+       * @param {number} pendingHours
+       */
+      function statusIcon(isOk, pendingHours) {
+        if (isOk) return checkIcon;
+        if (hoursSinceCreation === null) return crossIcon;
+        return hoursSinceCreation < pendingHours ? pendingIcon : crossIcon;
+      }
+
+      const hasPage = statusIcon(!!user.page_header, PAGE_PENDING_HOURS);
+      const hasInitial = statusIcon(!!user.email_sent, EMAIL_INITIAL_PENDING_HOURS);
+      const has24h = statusIcon(!!user.email_24h_sent, EMAIL_24H_PENDING_HOURS);
+      const has4h = statusIcon(!!user.email_4h_sent, EMAIL_4H_PENDING_HOURS);
       const country = user.country_code || '—';
 
       return `
@@ -1060,7 +1091,7 @@ import Layout from '../../layouts/Layout.astro';
           <td>${user.email || '-'}</td>
           <td>${user.prenom || '-'}</td>
           <td>${country}</td>
-          <td>${date}</td>
+          <td>${dateLocale}</td>
           <td class="status-icon">${hasPage}</td>
           <td class="status-icon">${hasInitial}</td>
           <td class="status-icon">${has24h}</td>
@@ -1098,7 +1129,7 @@ import Layout from '../../layouts/Layout.astro';
     modalBody.innerHTML = `
       <!-- Réponses Quiz -->
       <div class="detail-section">
-        <div class="detail-section-title">📝 Réponses Quiz</div>
+        <div class="detail-section-title">${ICON_SECTION_QUIZ}Réponses Quiz</div>
         <div class="detail-field">
           <h3 class="detail-field-label">Objectif</h3>
           <div class="detail-field-value">${user.objectif || '-'}</div>
@@ -1123,7 +1154,7 @@ import Layout from '../../layouts/Layout.astro';
 
       <!-- Contenu Page -->
       <div class="detail-section">
-        <div class="detail-section-title">🎨 Contenu Page Personnalisée</div>
+        <div class="detail-section-title">${ICON_SECTION_PAGE}Contenu Page Personnalisée</div>
         <div class="detail-field">
           <h3 class="detail-field-label">Header</h3>
           <div class="detail-field-value">${user.page_header || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: #ef4444;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Non généré'}</div>
@@ -1151,7 +1182,7 @@ import Layout from '../../layouts/Layout.astro';
 
       <!-- Email Initial -->
       <div class="detail-section">
-        <div class="detail-section-title">📧 Email Initial</div>
+        <div class="detail-section-title">${ICON_SECTION_EMAIL}Email Initial</div>
         ${user.email_initial_subject || user.email_initial_body ? `
         <div class="detail-field">
           <h3 class="detail-field-label">Subject</h3>
@@ -1166,7 +1197,7 @@ import Layout from '../../layouts/Layout.astro';
       
       <!-- Email 24h -->
       <div class="detail-section">
-        <div class="detail-section-title">📧 Email 24h</div>
+        <div class="detail-section-title">${ICON_SECTION_EMAIL}Email 24h</div>
         ${user.email_24h_subject || user.email_24h_body ? `
         <div class="detail-field">
           <h3 class="detail-field-label">Subject</h3>
@@ -1181,7 +1212,7 @@ import Layout from '../../layouts/Layout.astro';
       
       <!-- Email 4h -->
       <div class="detail-section">
-        <div class="detail-section-title">📧 Email 4h</div>
+        <div class="detail-section-title">${ICON_SECTION_EMAIL}Email 4h</div>
         ${user.email_4h_subject || user.email_4h_body ? `
         <div class="detail-field">
           <h3 class="detail-field-label">Subject</h3>
@@ -1202,7 +1233,7 @@ import Layout from '../../layouts/Layout.astro';
     // Reset regenerate UI
     const regenStatus = document.getElementById('regenPageStatus');
     if (regenStatus) {
-      regenStatus.textContent = '';
+      regenStatus.innerHTML = '';
       regenStatus.className = 'regen-status';
     }
     const regenBtn = document.getElementById('regenPageBtn');
@@ -1261,7 +1292,7 @@ import Layout from '../../layouts/Layout.astro';
         regenBtn.textContent = 'Génération...';
       }
       if (regenStatus) {
-        regenStatus.textContent = '⏳ Génération en cours...';
+        regenStatus.innerHTML = `${ICON_PENDING} Génération en cours...`;
         regenStatus.className = 'regen-status';
       }
 
@@ -1282,7 +1313,7 @@ import Layout from '../../layouts/Layout.astro';
       }
 
       if (regenStatus) {
-        regenStatus.textContent = '✅ Page générée';
+        regenStatus.innerHTML = `${ICON_CHECK} Page générée`;
         regenStatus.className = 'regen-status success';
       }
 
@@ -1290,9 +1321,9 @@ import Layout from '../../layouts/Layout.astro';
       await fetchData();
       showDetails(email);
     } catch (e) {
-      console.error('❌ Erreur regénération page:', e);
+      console.error('Erreur regénération page:', e);
       if (regenStatus) {
-        regenStatus.textContent = '❌ Erreur';
+        regenStatus.innerHTML = `${ICON_CROSS} Erreur`;
         regenStatus.className = 'regen-status error';
       }
     } finally {
