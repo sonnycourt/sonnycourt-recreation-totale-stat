@@ -161,8 +161,14 @@ import Layout from '../../layouts/Layout.astro';
           <div class="modal-footer-actions">
             <button class="export-button modal-export-button" onclick="exportCurrentContact()">Exporter ce contact</button>
             <button class="export-button" id="regenPageBtn" onclick="regeneratePageForCurrentUser()">Regénérer la page</button>
+            <button class="export-button" id="regenEmail1Btn" onclick="regenerateEmail1ForCurrentUser()">Régénérer email 1</button>
+            <button class="export-button" id="regenEmail2Btn" onclick="regenerateEmail2ForCurrentUser()">Régénérer email 2</button>
+            <button class="export-button" id="regenEmail3Btn" onclick="regenerateEmail3ForCurrentUser()">Régénérer email 3</button>
           </div>
           <div class="regen-status" id="regenPageStatus"></div>
+          <div class="regen-status" id="regenEmail1Status"></div>
+          <div class="regen-status" id="regenEmail2Status"></div>
+          <div class="regen-status" id="regenEmail3Status"></div>
         </div>
       </div>
     </div>
@@ -1304,6 +1310,45 @@ import Layout from '../../layouts/Layout.astro';
       regenBtn.textContent = 'Regénérer la page';
     }
 
+    // Reset email regenerate UI and set button states
+    const regenEmail1Status = document.getElementById('regenEmail1Status');
+    const regenEmail2Status = document.getElementById('regenEmail2Status');
+    const regenEmail3Status = document.getElementById('regenEmail3Status');
+    if (regenEmail1Status) {
+      regenEmail1Status.innerHTML = '';
+      regenEmail1Status.className = 'regen-status';
+    }
+    if (regenEmail2Status) {
+      regenEmail2Status.innerHTML = '';
+      regenEmail2Status.className = 'regen-status';
+    }
+    if (regenEmail3Status) {
+      regenEmail3Status.innerHTML = '';
+      regenEmail3Status.className = 'regen-status';
+    }
+
+    const regenEmail1Btn = document.getElementById('regenEmail1Btn');
+    const regenEmail2Btn = document.getElementById('regenEmail2Btn');
+    const regenEmail3Btn = document.getElementById('regenEmail3Btn');
+    
+    // Email 1 (initial) - active only if email_sent is false
+    if (regenEmail1Btn) {
+      regenEmail1Btn.disabled = !!user.email_sent;
+      regenEmail1Btn.textContent = 'Régénérer email 1';
+    }
+    
+    // Email 2 (24h) - active only if email_24h_sent is false
+    if (regenEmail2Btn) {
+      regenEmail2Btn.disabled = !!user.email_24h_sent;
+      regenEmail2Btn.textContent = 'Régénérer email 2';
+    }
+    
+    // Email 3 (4h) - active only if email_4h_sent is false
+    if (regenEmail3Btn) {
+      regenEmail3Btn.disabled = !!user.email_4h_sent;
+      regenEmail3Btn.textContent = 'Régénérer email 3';
+    }
+
     modal.style.display = 'flex';
   }
 
@@ -1396,8 +1441,209 @@ import Layout from '../../layouts/Layout.astro';
     }
   }
 
+  async function regenerateEmail1ForCurrentUser() {
+    const user = window.currentModalUser;
+    if (!user || !user.email) {
+      alert('Aucun contact sélectionné');
+      return;
+    }
+
+    const regenBtn = document.getElementById('regenEmail1Btn');
+    const regenStatus = document.getElementById('regenEmail1Status');
+    const email = user.email;
+
+    try {
+      if (regenBtn) {
+        regenBtn.disabled = true;
+        regenBtn.textContent = 'Envoi...';
+      }
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_PENDING} Envoi en cours...`;
+        regenStatus.className = 'regen-status';
+      }
+
+      const response = await fetch('/api/generate-email-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'initial' })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || `Erreur API (${response.status})`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      if (result?.skipped) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CROSS} Email déjà envoyé`;
+          regenStatus.className = 'regen-status error';
+        }
+      } else if (result?.success !== false) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CHECK} Email envoyé`;
+          regenStatus.className = 'regen-status success';
+        }
+
+        // Rafraîchir les données puis ré-ouvrir le modal pour afficher le contenu mis à jour
+        await fetchData();
+        showDetails(email);
+      } else {
+        throw new Error(result?.error || 'Erreur envoi');
+      }
+    } catch (e) {
+      console.error('Erreur régénération email 1:', e);
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_CROSS} Erreur: ${e.message || 'Erreur inconnue'}`;
+        regenStatus.className = 'regen-status error';
+      }
+    } finally {
+      if (regenBtn) {
+        // Use updated user data if available, otherwise use original
+        const updatedUser = window.currentModalUser || user;
+        regenBtn.disabled = !!updatedUser.email_sent;
+        regenBtn.textContent = 'Régénérer email 1';
+      }
+    }
+  }
+
+  async function regenerateEmail2ForCurrentUser() {
+    const user = window.currentModalUser;
+    if (!user || !user.email) {
+      alert('Aucun contact sélectionné');
+      return;
+    }
+
+    const regenBtn = document.getElementById('regenEmail2Btn');
+    const regenStatus = document.getElementById('regenEmail2Status');
+    const email = user.email;
+
+    try {
+      if (regenBtn) {
+        regenBtn.disabled = true;
+        regenBtn.textContent = 'Envoi...';
+      }
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_PENDING} Envoi en cours...`;
+        regenStatus.className = 'regen-status';
+      }
+
+      const response = await fetch('/api/generate-email-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: '24h' })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || `Erreur API (${response.status})`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      if (result?.skipped) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CROSS} Email déjà envoyé`;
+          regenStatus.className = 'regen-status error';
+        }
+      } else if (result?.success !== false) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CHECK} Email envoyé`;
+          regenStatus.className = 'regen-status success';
+        }
+
+        // Rafraîchir les données puis ré-ouvrir le modal pour afficher le contenu mis à jour
+        await fetchData();
+        showDetails(email);
+      } else {
+        throw new Error(result?.error || 'Erreur envoi');
+      }
+    } catch (e) {
+      console.error('Erreur régénération email 2:', e);
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_CROSS} Erreur: ${e.message || 'Erreur inconnue'}`;
+        regenStatus.className = 'regen-status error';
+      }
+    } finally {
+      if (regenBtn) {
+        // Use updated user data if available, otherwise use original
+        const updatedUser = window.currentModalUser || user;
+        regenBtn.disabled = !!updatedUser.email_24h_sent;
+        regenBtn.textContent = 'Régénérer email 2';
+      }
+    }
+  }
+
+  async function regenerateEmail3ForCurrentUser() {
+    const user = window.currentModalUser;
+    if (!user || !user.email) {
+      alert('Aucun contact sélectionné');
+      return;
+    }
+
+    const regenBtn = document.getElementById('regenEmail3Btn');
+    const regenStatus = document.getElementById('regenEmail3Status');
+    const email = user.email;
+
+    try {
+      if (regenBtn) {
+        regenBtn.disabled = true;
+        regenBtn.textContent = 'Envoi...';
+      }
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_PENDING} Envoi en cours...`;
+        regenStatus.className = 'regen-status';
+      }
+
+      const response = await fetch('/api/generate-email-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: '4h' })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.details || err?.error || `Erreur API (${response.status})`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      if (result?.skipped) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CROSS} Email déjà envoyé`;
+          regenStatus.className = 'regen-status error';
+        }
+      } else if (result?.success !== false) {
+        if (regenStatus) {
+          regenStatus.innerHTML = `${ICON_CHECK} Email envoyé`;
+          regenStatus.className = 'regen-status success';
+        }
+
+        // Rafraîchir les données puis ré-ouvrir le modal pour afficher le contenu mis à jour
+        await fetchData();
+        showDetails(email);
+      } else {
+        throw new Error(result?.error || 'Erreur envoi');
+      }
+    } catch (e) {
+      console.error('Erreur régénération email 3:', e);
+      if (regenStatus) {
+        regenStatus.innerHTML = `${ICON_CROSS} Erreur: ${e.message || 'Erreur inconnue'}`;
+        regenStatus.className = 'regen-status error';
+      }
+    } finally {
+      if (regenBtn) {
+        // Use updated user data if available, otherwise use original
+        const updatedUser = window.currentModalUser || user;
+        regenBtn.disabled = !!updatedUser.email_4h_sent;
+        regenBtn.textContent = 'Régénérer email 3';
+      }
+    }
+  }
+
   // Make regenerate function global for onclick
   window.regeneratePageForCurrentUser = regeneratePageForCurrentUser;
+  window.regenerateEmail1ForCurrentUser = regenerateEmail1ForCurrentUser;
+  window.regenerateEmail2ForCurrentUser = regenerateEmail2ForCurrentUser;
+  window.regenerateEmail3ForCurrentUser = regenerateEmail3ForCurrentUser;
 
   // Export functions
   function convertToCSV(data) {
