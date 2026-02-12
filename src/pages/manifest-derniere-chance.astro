@@ -1,0 +1,409 @@
+---
+// Page Dernière Chance Manifest - Pour les ré-inscrits dont le token a expiré (> 7 jours)
+// Timer 15 minutes côté client (localStorage) + checkout direct Spiffy
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manifest - Dernière Chance</title>
+  <meta name="description" content="Dernière opportunité pour rejoindre Manifest - 3 mois pour Manifester la Richesse, l'Amour et la Liberté.">
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  
+  <!-- Spiffy Script - DOIT être dans le head -->
+  <script>
+    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."));
+    f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+    e.async=!1,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t;
+    var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+    spiffy.SNIPPET_VERSION="1.1.0";
+    spiffy.config({ hideSidebar: false });
+    spiffy.load("sonnycourt");
+  </script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 50%, #0a0a1a 100%);
+      color: #ffffff;
+    }
+
+    .checkout-page {
+      min-height: 100vh;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      padding: 60px 20px 40px;
+      text-align: center;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 8px 20px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #f87171;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+    }
+
+    /* Message Dernière Chance */
+    .derniere-chance-container {
+      margin: 0 auto 40px;
+      max-width: 800px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      text-align: left;
+    }
+
+    .derniere-chance-message {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .derniere-chance-message p {
+      margin-bottom: 16px;
+    }
+
+    .derniere-chance-message p:last-child {
+      margin-bottom: 0;
+    }
+
+    .derniere-chance-message strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .derniere-chance-message .highlight {
+      color: #f87171;
+      font-weight: 700;
+    }
+
+    /* Timer Section */
+    .timer-container {
+      margin: 0 auto 40px;
+      max-width: 800px;
+      padding: 30px;
+      background: rgba(239, 68, 68, 0.08);
+      border-radius: 20px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      text-align: center;
+    }
+
+    .timer-label {
+      font-size: 0.85rem;
+      color: #f87171;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+
+    .timer-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .timer-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .timer-number {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-unit {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .timer-separator {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 700;
+      color: rgba(239, 68, 68, 0.6);
+      line-height: 1;
+      padding-bottom: 18px;
+    }
+
+    .timer-warning {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 16px;
+    }
+
+    /* Pulsing animation when time is low */
+    .timer-container.urgent {
+      animation: pulse-border 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(239, 68, 68, 0.3); }
+      50% { border-color: rgba(239, 68, 68, 0.8); }
+    }
+
+    .timer-container.urgent .timer-number {
+      color: #f87171;
+    }
+
+    /* Closed Container */
+    .closed-container {
+      margin: 0 auto 40px;
+      max-width: 600px;
+      padding: 40px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 20px;
+      text-align: center;
+      display: none;
+    }
+
+    .closed-icon {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    .closed-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ef4444;
+      margin-bottom: 10px;
+    }
+
+    .closed-message {
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+    }
+
+    /* Checkout Section */
+    .checkout-section {
+      padding: 0;
+    }
+
+    .checkout-container {
+      width: 100%;
+    }
+
+    .spiffy-embed-wrapper {
+      width: 100%;
+    }
+
+    .spiffy-checkout__container {
+      min-height: 600px;
+      width: 100%;
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .hero-section {
+        padding: 40px 16px 32px;
+      }
+
+      .derniere-chance-container {
+        padding: 20px;
+        margin: 0 16px 30px;
+      }
+
+      .timer-container {
+        padding: 20px;
+        margin: 0 16px 30px;
+      }
+
+      .checkout-section {
+        padding: 0 16px;
+      }
+
+      .closed-container {
+        margin: 0 16px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-badge">DERNIÈRE CHANCE</div>
+        <h1 class="hero-title">MANIFEST</h1>
+        <p class="hero-subtitle">3 MOIS POUR MANIFESTER LA RICHESSE, L'AMOUR ET LA LIBERTÉ</p>
+
+        <!-- Message Dernière Chance -->
+        <div class="derniere-chance-container" id="derniereChanceContainer">
+          <div class="derniere-chance-message">
+            <p>Tu t'es déjà inscrit une fois. Tu n'es pas passé à l'action.</p>
+            <p>C'est pas un reproche — on le voit tout le temps. Tu voulais changer quelque chose dans ta vie, t'as hésité, t'as repoussé, et le temps a passé.</p>
+            <p>Le fait que tu sois là maintenant prouve que <strong>l'envie est toujours là.</strong></p>
+            <p>Mais on va pas te laisser repousser une deuxième fois. Tu as <span class="highlight">15 minutes</span> pour rejoindre Manifest. Après ça, cette page disparaît et l'accès se ferme pour de bon.</p>
+            <p><strong>Pas demain. Pas "je réfléchis". Maintenant.</strong></p>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="timer-container" id="timerContainer">
+          <div class="timer-label">Temps restant</div>
+          <div class="timer-display">
+            <div class="timer-block">
+              <span class="timer-number" id="timerMinutes">15</span>
+              <span class="timer-unit">min</span>
+            </div>
+            <span class="timer-separator">:</span>
+            <div class="timer-block">
+              <span class="timer-number" id="timerSeconds">00</span>
+              <span class="timer-unit">sec</span>
+            </div>
+          </div>
+          <div class="timer-warning">Cette page se ferme définitivement à la fin du décompte.</div>
+        </div>
+
+        <!-- Message Accès Fermé -->
+        <div class="closed-container" id="closedContainer">
+          <div class="closed-icon">🔒</div>
+          <h2 class="closed-title">L'accès est fermé</h2>
+          <p class="closed-message">Le temps imparti est écoulé.<br>Cette offre n'est plus disponible.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Checkout Section -->
+    <section class="checkout-section" id="checkoutSection">
+      <div class="checkout-container">
+        <div class="spiffy-embed-wrapper">
+          <div class="spiffy-checkout__container" data-url="https://sonnycourt.spiffy.co/checkout/manifest"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ===== TIMER 15 MINUTES (localStorage) =====
+    const TIMER_DURATION = 15 * 60; // 15 minutes en secondes
+    const STORAGE_KEY = 'manifest_derniere_chance_start';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Récupérer ou initialiser le timestamp de départ
+      let startTime = localStorage.getItem(STORAGE_KEY);
+      
+      if (!startTime) {
+        // Première visite : démarrer le timer
+        startTime = Math.floor(Date.now() / 1000);
+        localStorage.setItem(STORAGE_KEY, startTime.toString());
+      } else {
+        startTime = parseInt(startTime);
+      }
+
+      const timerMinutesEl = document.getElementById('timerMinutes');
+      const timerSecondsEl = document.getElementById('timerSeconds');
+      const timerContainer = document.getElementById('timerContainer');
+
+      function updateTimer() {
+        const now = Math.floor(Date.now() / 1000);
+        const elapsed = now - startTime;
+        const remaining = Math.max(0, TIMER_DURATION - elapsed);
+
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        if (timerMinutesEl) timerMinutesEl.textContent = minutes.toString().padStart(2, '0');
+        if (timerSecondsEl) timerSecondsEl.textContent = seconds.toString().padStart(2, '0');
+
+        // Ajouter l'effet urgent quand il reste moins de 3 minutes
+        if (remaining <= 180 && timerContainer) {
+          timerContainer.classList.add('urgent');
+        }
+
+        // Timer expiré
+        if (remaining <= 0) {
+          showClosedState();
+          return false;
+        }
+
+        return true;
+      }
+
+      function showClosedState() {
+        // Masquer le message, le timer, le badge saisonnier et le checkout
+        const derniereChanceContainer = document.getElementById('derniereChanceContainer');
+        if (derniereChanceContainer) derniereChanceContainer.style.display = 'none';
+
+        if (timerContainer) timerContainer.style.display = 'none';
+
+        const checkoutSection = document.getElementById('checkoutSection');
+        if (checkoutSection) checkoutSection.style.display = 'none';
+
+        // Afficher le message "accès fermé"
+        const closedContainer = document.getElementById('closedContainer');
+        if (closedContainer) closedContainer.style.display = 'block';
+      }
+
+      // Premier check immédiat
+      const isActive = updateTimer();
+
+      // Mettre à jour chaque seconde si le timer est encore actif
+      if (isActive) {
+        const interval = setInterval(function() {
+          const stillActive = updateTimer();
+          if (!stillActive) {
+            clearInterval(interval);
+          }
+        }, 1000);
+      }
+    });
+  </script>
+</body>
+</html>
