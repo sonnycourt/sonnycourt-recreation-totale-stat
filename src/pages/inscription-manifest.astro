@@ -990,7 +990,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return token;
         }
 
-        function handleStep1() {
+        async function handleStep1() {
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             
@@ -1013,7 +1013,35 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             
             currentName = name;
             currentEmail = email;
-            
+
+            // ===== CHECK RÉ-INSCRIPTION =====
+            // Vérifier si l'email est déjà inscrit à Manifest avant de continuer
+            try {
+                const checkResponse = await fetch(`/.netlify/functions/check-manifest-subscriber?email=${encodeURIComponent(email)}`);
+                const checkData = await checkResponse.json();
+
+                if (checkData.isExisting && checkData.tokenValid && checkData.token) {
+                    // Scénario 1 : Déjà inscrit, encore dans les 7 jours
+                    // → Redirige vers la page de vente avec son token existant (saute la VSL)
+                    console.log('🔄 Ré-inscription détectée (token valide) → page de vente');
+                    localStorage.setItem('manifest_token', checkData.token);
+                    window.location.href = `/manifest/?token=${checkData.token}`;
+                    return;
+                }
+
+                if (checkData.isExisting && checkData.tokenExpired) {
+                    // Scénario 2 : Déjà inscrit, les 7 jours sont passés
+                    // → Redirige vers la page dernière chance
+                    console.log('🔄 Ré-inscription détectée (token expiré) → dernière chance');
+                    window.location.href = '/manifest-derniere-chance/';
+                    return;
+                }
+            } catch (error) {
+                // En cas d'erreur → on continue le tunnel classique (fallback safe)
+                console.error('⚠️ Erreur check ré-inscription, fallback tunnel classique:', error);
+            }
+
+            // ===== TUNNEL CLASSIQUE (nouveau subscriber) =====
             // Générer ou récupérer le token
             userToken = getOrCreateToken();
             
