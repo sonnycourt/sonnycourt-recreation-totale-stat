@@ -2,6 +2,7 @@
 // Page de vente - Système Souhaits Réalisés
 import BlackFridayBanner from '../components/BlackFridayBanner.astro';
 import GAConsentMode from '../components/GAConsentMode.astro';
+import StValentinBanner from '../components/StValentinBanner.astro';
 ---
 <head>
     <meta charset="UTF-8">
@@ -3634,6 +3635,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </style>
 </head>
 <body>
+    <StValentinBanner />
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
     <BlackFridayBanner show={false} discount={70} />
     <div class="page-content">
@@ -5031,15 +5033,67 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             // Vérifier le mode preview
             const previewParam = urlParams.get('preview');
             if (previewParam !== null) {
-                const dayNumber = parseInt(previewParam, 10);
-                if (!isNaN(dayNumber) && dayNumber >= 0 && dayNumber <= 17) {
-                    isPreviewMode = true;
-                    previewDay = dayNumber;
-                    const hoursLabel = dayNumber * 24;
-                    console.log(`🔍 Mode PREVIEW activé - Jour ${dayNumber} (${hoursLabel}h après inscription)`);
-                    showPreviewBanner(dayNumber);
-                    return calculatePreviewData(dayNumber);
+                // Mode stvalentin : pas de bandeau preview, c'est pour de vrais users
+                if (previewParam === 'stvalentin') {
+                    // Géré ci-dessous
+                } else {
+                    const dayNumber = parseInt(previewParam, 10);
+                    if (!isNaN(dayNumber) && dayNumber >= 0 && dayNumber <= 17) {
+                        isPreviewMode = true;
+                        previewDay = dayNumber;
+                        const hoursLabel = dayNumber * 24;
+                        console.log(`🔍 Mode PREVIEW activé - Jour ${dayNumber} (${hoursLabel}h après inscription)`);
+                        showPreviewBanner(dayNumber);
+                        return calculatePreviewData(dayNumber);
+                    }
                 }
+            }
+
+            // Mode stvalentin : countdown + places jusqu'au 15 fév 23h59
+            if (previewParam === 'stvalentin') {
+                console.log('🔍 Mode stvalentin activé');
+                const stvalDeadline = new Date('2026-02-15T23:59:00').getTime();
+                const now = Date.now();
+                const timeRemainingMs = Math.max(0, stvalDeadline - now);
+                const timeRemainingSec = Math.floor(timeRemainingMs / 1000);
+
+                // Paliers de places pour la St-Valentin
+                const stvalPaliers = [
+                    { time: new Date('2026-02-14T16:00:00').getTime(), places: 80 },
+                    { time: new Date('2026-02-14T20:00:00').getTime(), places: 60 },
+                    { time: new Date('2026-02-15T00:00:00').getTime(), places: 45 },
+                    { time: new Date('2026-02-15T10:00:00').getTime(), places: 30 },
+                    { time: new Date('2026-02-15T14:00:00').getTime(), places: 20 },
+                    { time: new Date('2026-02-15T18:00:00').getTime(), places: 12 },
+                    { time: new Date('2026-02-15T21:00:00').getTime(), places: 5 },
+                    { time: new Date('2026-02-15T23:00:00').getTime(), places: 2 },
+                    { time: new Date('2026-02-15T23:59:00').getTime(), places: 0 }
+                ];
+
+                let stvalPlaces = 80;
+                if (now < stvalPaliers[0].time) {
+                    stvalPlaces = 80;
+                } else {
+                    for (let i = stvalPaliers.length - 1; i >= 0; i--) {
+                        if (now >= stvalPaliers[i].time) {
+                            stvalPlaces = stvalPaliers[i].places;
+                            break;
+                        }
+                    }
+                }
+
+                isPreviewMode = true;
+                return {
+                    valid: true,
+                    phase: 1,
+                    places: stvalPlaces,
+                    timeRemaining: timeRemainingSec,
+                    hoursElapsed: 0,
+                    isSoldOut: stvalPlaces === 0,
+                    isReopened: false,
+                    isExpired: timeRemainingSec <= 0,
+                    isPreview: true
+                };
             }
 
             // Mode normal : vérification du token
@@ -5384,6 +5438,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if (!ssrData) {
                 // Mode dégradé ou redirection déjà effectuée
                 return;
+            }
+
+            // Si mode stvalentin, changer le badge et masquer les places
+            const urlParamsBadge = new URLSearchParams(window.location.search);
+            if (urlParamsBadge.get('preview') === 'stvalentin') {
+                const discountBadge = document.querySelector('.discount-badge');
+                if (discountBadge) discountBadge.textContent = '-50% OFFRE ST-VALENTIN ❤️';
+                const scarcityEl = document.getElementById('scarcityText');
+                if (scarcityEl) scarcityEl.style.display = 'none';
+                const exceptionalEl = document.getElementById('exceptionalOffer');
+                if (exceptionalEl) exceptionalEl.style.display = 'none';
             }
 
             // Affichage initial

@@ -1,6 +1,7 @@
 ---
 import BlackFridayBanner from '../components/BlackFridayBanner.astro';
 import GAConsentMode from '../components/GAConsentMode.astro';
+import StValentinBanner from '../components/StValentinBanner.astro';
 ---
 
 <html lang="fr">
@@ -55,6 +56,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <!-- End Spiffy Integration -->
 </head>
 <body>
+    <StValentinBanner />
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
     <BlackFridayBanner show={false} discount={70} />
     <!-- Hero Section -->
@@ -5470,7 +5472,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         // FAQ Toggle - approche avec event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            updateSeasonalBadge();
+            // Si mode stvalentin, forcer le badge St-Valentin
+            const urlParamsBadge = new URLSearchParams(window.location.search);
+            if (urlParamsBadge.get('preview') === 'stvalentin') {
+                const heartSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+                const badgeEl = document.getElementById('scarcityBadge');
+                if (badgeEl) {
+                    const iconEl = badgeEl.querySelector('.badge-icon');
+                    const textEl = badgeEl.querySelector('.badge-text');
+                    if (iconEl) iconEl.innerHTML = heartSVG;
+                    if (textEl) textEl.textContent = 'OFFRE ST-VALENTIN -50%';
+                }
+            } else {
+                updateSeasonalBadge();
+            }
             const faqQuestions = document.querySelectorAll('.faq-question');
 
             faqQuestions.forEach(question => {
@@ -5721,6 +5736,41 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     console.log('🔍 Mode preview activé - affichage 20 places');
                     this.placesRemaining = 20;
                     this.updateUI();
+                    return;
+                }
+
+                // Mode preview stvalentin : paliers de 5 à 0 places du 14 fév 16h au 15 fév 23h59
+                if (previewMode === 'stvalentin') {
+                    const stvalPaliers = [
+                        { time: new Date('2026-02-14T16:00:00').getTime(), places: 5 },
+                        { time: new Date('2026-02-14T22:00:00').getTime(), places: 4 },
+                        { time: new Date('2026-02-15T13:00:00').getTime(), places: 3 },
+                        { time: new Date('2026-02-15T18:00:00').getTime(), places: 2 },
+                        { time: new Date('2026-02-15T22:00:00').getTime(), places: 1 },
+                        { time: new Date('2026-02-15T23:59:00').getTime(), places: 0 }
+                    ];
+
+                    const calcStvalPlaces = () => {
+                        const now = Date.now();
+                        if (now < stvalPaliers[0].time) return 5;
+                        for (let i = stvalPaliers.length - 1; i >= 0; i--) {
+                            if (now >= stvalPaliers[i].time) return stvalPaliers[i].places;
+                        }
+                        return 0;
+                    };
+
+                    this.placesRemaining = calcStvalPlaces();
+                    console.log('🔍 Mode preview stvalentin activé -', this.placesRemaining, 'places');
+                    this.updateUI();
+                    if (this.placesRemaining === 0) this.disableSpiffyButtons();
+
+                    // Mettre à jour toutes les minutes
+                    setInterval(() => {
+                        this.placesRemaining = calcStvalPlaces();
+                        this.updateUI();
+                        if (this.placesRemaining === 0) this.disableSpiffyButtons();
+                    }, 60000);
+
                     return;
                 }
 

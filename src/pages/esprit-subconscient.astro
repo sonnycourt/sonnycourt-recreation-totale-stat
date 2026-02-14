@@ -1,8 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import StValentinBanner from '../components/StValentinBanner.astro';
 ---
 
 <Layout title="Esprit Subconscient - 21 Jours pour Reprogrammer ton Subconscient" description="Libère-toi de tes blocages inconscients et transforme ta vie en 21 jours. Formation complète pour reprogrammer ton subconscient." showHeader={false} showFooter={false}>
+  <StValentinBanner slot="before-header" />
   <div class="esprit-subconscient-page">
     <!-- Hero Section -->
     <section class="hero-section">
@@ -4266,7 +4268,19 @@ import Layout from '../layouts/Layout.astro';
 
   // FAQ Accordion
   document.addEventListener('DOMContentLoaded', function() {
-    updateSeasonalBadges();
+    // Si mode stvalentin, forcer le badge St-Valentin
+    const urlParamsBadge = new URLSearchParams(window.location.search);
+    if (urlParamsBadge.get('preview') === 'stvalentin') {
+      const heartSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+      document.querySelectorAll('.countdown-badge').forEach((badgeEl) => {
+        const iconEl = badgeEl.querySelector('.badge-icon');
+        const textEl = badgeEl.querySelector('.badge-text');
+        if (iconEl) iconEl.innerHTML = heartSVG;
+        if (textEl) textEl.textContent = 'OFFRE ST-VALENTIN -50%';
+      });
+    } else {
+      updateSeasonalBadges();
+    }
     const faqQuestions = document.querySelectorAll('.faq-question');
 
     faqQuestions.forEach(question => {
@@ -4792,6 +4806,30 @@ import Layout from '../layouts/Layout.astro';
       return; // Sortir de la fonction, pas de vérification du token
     }
 
+    // Mode preview stvalentin : countdown jusqu'au 15 février 2026 23h59
+    if (previewMode === 'stvalentin') {
+      console.log('🔍 Mode preview stvalentin activé');
+      const stvalDeadline = new Date('2026-02-15T23:59:00').getTime();
+      const now = Date.now();
+      const timeRemainingMs = Math.max(0, stvalDeadline - now);
+      const timeRemainingSec = Math.floor(timeRemainingMs / 1000);
+
+      if (timeRemainingSec <= 0) {
+        disableSpiffyButtons();
+        showExpiredMessage();
+        return;
+      }
+
+      const countdownContainer = document.getElementById('countdownContainer');
+      if (countdownContainer) countdownContainer.style.display = 'block';
+
+      const countdownContainerSection = document.getElementById('countdownContainerSection');
+      if (countdownContainerSection) countdownContainerSection.style.display = 'block';
+
+      startCountdown(timeRemainingSec);
+      return;
+    }
+
     // Mode normal : vérification du token requise
     // Si pas de token, rediriger vers la page d'inscription
     if (!token) {
@@ -4904,7 +4942,7 @@ import Layout from '../layouts/Layout.astro';
       // Re-vérifier avec le serveur toutes les minutes pour synchronisation (sauf en mode preview)
       const urlParams = new URLSearchParams(window.location.search);
       const previewMode = urlParams.get('preview');
-      const isPreview = previewMode === 'true' || previewMode === 'expired';
+      const isPreview = previewMode === 'true' || previewMode === 'expired' || previewMode === 'stvalentin';
       
       if (!isPreview) {
         setInterval(async () => {
