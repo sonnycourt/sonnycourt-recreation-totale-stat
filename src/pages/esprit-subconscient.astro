@@ -1,10 +1,14 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import StValentinBanner from '../components/StValentinBanner.astro';
+import PromoBanner from '../components/PromoBanner.astro';
+import { promo } from '../config/promo';
 ---
 
 <Layout title="Esprit Subconscient - 21 Jours pour Reprogrammer ton Subconscient" description="Libère-toi de tes blocages inconscients et transforme ta vie en 21 jours. Formation complète pour reprogrammer ton subconscient." showHeader={false} showFooter={false}>
   <StValentinBanner slot="before-header" />
+  <PromoBanner slot="before-header" />
+  <div id="promo-config" data-deadline={promo.deadline} data-badge={promo.badgeText} data-active={promo.active.toString()} style="display:none;"></div>
   <div class="esprit-subconscient-page">
     <!-- Hero Section -->
     <section class="hero-section">
@@ -4830,6 +4834,43 @@ import StValentinBanner from '../components/StValentinBanner.astro';
       return;
     }
 
+    // Mode preview promo : countdown jusqu'à la deadline de la config promo
+    if (previewMode === 'promo') {
+      const promoConfig = document.getElementById('promo-config');
+      const promoActive = promoConfig ? promoConfig.dataset.active === 'true' : false;
+      if (!promoActive || !promoConfig) {
+        window.location.href = '/fin-promo/';
+        return;
+      }
+      if (promoActive && promoConfig) {
+        console.log('🔍 Mode preview promo activé');
+        const promoDeadline = new Date(promoConfig.dataset.deadline).getTime();
+        const now = Date.now();
+        const timeRemainingMs = Math.max(0, promoDeadline - now);
+        const timeRemainingSec = Math.floor(timeRemainingMs / 1000);
+
+        if (timeRemainingSec <= 0) {
+          window.location.href = '/fin-promo/';
+          return;
+        }
+
+        const countdownContainer = document.getElementById('countdownContainer');
+        if (countdownContainer) countdownContainer.style.display = 'block';
+        const countdownContainerSection = document.getElementById('countdownContainerSection');
+        if (countdownContainerSection) countdownContainerSection.style.display = 'block';
+
+        // Mettre à jour le badge
+        const promoBadge = promoConfig.dataset.badge;
+        if (promoBadge) {
+          const badgeEl = document.querySelector('.seasonal-badge-text');
+          if (badgeEl) badgeEl.textContent = promoBadge;
+        }
+
+        startCountdown(timeRemainingSec);
+        return;
+      }
+    }
+
     // Mode normal : vérification du token requise
     // Si pas de token, rediriger vers la page d'inscription
     if (!token) {
@@ -4942,7 +4983,7 @@ import StValentinBanner from '../components/StValentinBanner.astro';
       // Re-vérifier avec le serveur toutes les minutes pour synchronisation (sauf en mode preview)
       const urlParams = new URLSearchParams(window.location.search);
       const previewMode = urlParams.get('preview');
-      const isPreview = previewMode === 'true' || previewMode === 'expired' || previewMode === 'stvalentin';
+      const isPreview = previewMode === 'true' || previewMode === 'expired' || previewMode === 'stvalentin' || previewMode === 'promo';
       
       if (!isPreview) {
         setInterval(async () => {

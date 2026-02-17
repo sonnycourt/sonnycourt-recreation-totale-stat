@@ -1,0 +1,2563 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+import PromoBanner from '../components/PromoBanner.astro';
+import { promo } from '../config/promo';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{`Pack Complet ${promo.name} -${promo.discount}% - Toutes mes formations | Sonny Court`}</title>
+    <meta name="description" content={`Offre ${promo.name} exclusive : accède à TOUT mon système de transformation. 7 formations complètes, 1 seul paiement, accès à vie. -${promo.discount}%.`}>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={`Pack Complet ${promo.name} -${promo.discount}% - Toutes mes formations | Sonny Court`} />
+    <meta property="og:description" content={`Offre ${promo.name} exclusive : accède à TOUT mon système de transformation. -${promo.discount}%.`} />
+    <meta property="og:image" content={new URL("/media/pages/sonnycourt_share.webp", Astro.url)} />
+    <meta property="og:url" content={Astro.url.href} />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={`Pack Complet ${promo.name} -${promo.discount}% - Toutes mes formations | Sonny Court`} />
+    <meta name="twitter:description" content={`Offre ${promo.name} exclusive : accède à TOUT mon système de transformation. -${promo.discount}%.`} />
+    <meta name="twitter:image" content={new URL("/media/pages/sonnycourt_share.webp", Astro.url)} />
+    
+    <!-- GA4 Consent Mode v2 -->
+    <GAConsentMode />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a1929;
+            color: #fafafa;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle gradient background */
+        .page-wrapper {
+            min-height: 100vh;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 87, 34, 0.15) 0%, transparent 50%),
+                #0a1929;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Timer Sticky Mobile */
+        .sticky-timer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 25, 41, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 16px;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .sticky-timer-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sticky-timer-countdown {
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #fafafa;
+        }
+
+        .sticky-timer-cta {
+            background: linear-gradient(135deg, #ff5722, #ff8533);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .sticky-timer-cta:hover {
+            background: linear-gradient(135deg, #ff8533, #ff9a5c);
+        }
+
+        @media (max-width: 768px) {
+            .sticky-timer {
+                display: flex;
+            }
+            body {
+                padding-bottom: 70px;
+            }
+        }
+
+        /* Transition Banner */
+        .transition-banner {
+            position: relative;
+            z-index: 1;
+            padding: 28px 24px;
+            background: linear-gradient(135deg, rgba(255, 87, 34, 0.12) 0%, rgba(255, 87, 34, 0.06) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 87, 34, 0.25);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .transition-banner-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .transition-banner-icon-wrapper {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(255, 133, 51, 0.2) 0%, rgba(255, 87, 34, 0.2) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255, 133, 51, 0.4);
+            animation: bannerPulse 2s ease-in-out infinite;
+        }
+
+        .transition-banner-icon {
+            width: 28px;
+            height: 28px;
+            color: #ff8533;
+        }
+
+        @keyframes bannerPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 133, 51, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 12px rgba(255, 133, 51, 0);
+            }
+        }
+
+        .transition-banner-text {
+            flex: 1;
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            color: #e4e4e7;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .transition-banner-text strong {
+            color: #ff8533;
+            font-weight: 700;
+        }
+
+        .transition-banner-text .highlight {
+            color: #fafafa;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .transition-banner {
+                padding: 20px 16px;
+            }
+            .transition-banner-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 14px;
+            }
+            .transition-banner-icon-wrapper {
+                width: 48px;
+                height: 48px;
+            }
+            .transition-banner-icon {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Social Proof - Fixed Bottom Left */
+        .social-proof {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 999;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .social-proof-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 133, 51, 0.08);
+            border: 1px solid rgba(255, 133, 51, 0.2);
+            padding: 12px 20px;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .social-proof-stars {
+            display: inline-flex;
+            align-items: center;
+            width: 18px;
+            height: 18px;
+            color: #ffd700;
+            flex-shrink: 0;
+        }
+
+        .social-proof-stars svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
+
+        .social-proof-rating {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fafafa;
+            letter-spacing: -0.01em;
+        }
+
+        .social-proof-separator {
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 133, 51, 0.4);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .social-proof-members {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e4e4e7;
+            letter-spacing: -0.01em;
+        }
+
+        @media (max-width: 600px) {
+            .social-proof {
+                bottom: 80px;
+                left: 16px;
+            }
+            .social-proof-content {
+                padding: 10px 18px;
+                gap: 8px;
+            }
+            .social-proof-stars {
+                width: 16px;
+                height: 16px;
+            }
+            .social-proof-rating,
+            .social-proof-members {
+                font-size: 13px;
+            }
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 24px 60px;
+        }
+
+        /* Seasonal Badge */
+        .seasonal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 133, 51, 0.15);
+            border: 1px solid rgba(255, 133, 51, 0.3);
+            color: #ff8533;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 32px;
+        }
+
+        /* Fixed Corner Discount Badge - Premium Design */
+        .discount-sticker {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1000;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #ff5722 0%, #ff8533 100%);
+            border-radius: 50%;
+            transform: rotate(-8deg);
+            box-shadow: 
+                0 20px 60px rgba(255, 87, 34, 0.4),
+                0 8px 24px rgba(255, 87, 34, 0.3),
+                0 0 0 3px rgba(255, 255, 255, 0.15),
+                inset 0 2px 8px rgba(255, 255, 255, 0.2),
+                inset 0 -4px 16px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .discount-sticker::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            50% {
+                transform: translate(-50%, -50%) rotate(180deg);
+            }
+        }
+
+        .discount-sticker:hover {
+            transform: rotate(-8deg) scale(1.08);
+            box-shadow: 
+                0 25px 80px rgba(255, 87, 34, 0.5),
+                0 12px 32px rgba(255, 87, 34, 0.4),
+                0 0 0 3px rgba(255, 255, 255, 0.2),
+                inset 0 2px 8px rgba(255, 255, 255, 0.3),
+                inset 0 -4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .discount-sticker .percent {
+            position: relative;
+            z-index: 1;
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1;
+            text-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                0 0 20px rgba(255, 255, 255, 0.3);
+            letter-spacing: -0.02em;
+        }
+
+        .discount-sticker .label {
+            position: relative;
+            z-index: 1;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-top: 4px;
+            text-shadow: 
+                0 1px 4px rgba(0, 0, 0, 0.3),
+                0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .seasonal-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+        }
+
+        .seasonal-badge-icon svg {
+            width: 14px;
+            height: 14px;
+            color: #ff8533;
+            stroke: #ff8533;
+        }
+
+        .seasonal-badge-text {
+            color: #ff8533;
+        }
+
+        /* Inline discount badge for price card */
+        .discount-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .discount-sticker {
+                width: 90px;
+                height: 90px;
+                top: 80px;
+                right: 10px;
+            }
+            .discount-sticker .percent {
+                font-size: 30px;
+            }
+            .discount-sticker .label {
+                font-size: 9px;
+            }
+        }
+
+        .hero-title {
+            font-size: clamp(32px, 6vw, 48px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            letter-spacing: -0.03em;
+            color: #fafafa;
+        }
+
+        .hero-title .accent {
+            background: linear-gradient(135deg, #ff5722 0%, #ff8533 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-title .prenom-gradient {
+            background: linear-gradient(90deg, #F97316, #FB923C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .personalized-content {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .personalized-content.loaded {
+            opacity: 1;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #a1a1aa;
+            max-width: 520px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        .hero-subtitle strong {
+            color: #fafafa;
+        }
+
+        /* Timer Card - Premium Minimalist Design */
+        .timer-card {
+            position: relative;
+            background: rgba(15, 25, 45, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        }
+
+        .timer-label {
+            position: relative;
+            z-index: 1;
+            font-size: 11px;
+            color: #ff8533;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 32px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .timer-display {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .timer-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .timer-value {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px 28px;
+            min-width: 100px;
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+            transition: all 0.3s ease;
+        }
+
+        .timer-value:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 133, 51, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .timer-value span {
+            font-size: 56px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+            line-height: 1;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer-unit-label {
+            font-size: 10px;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+        }
+
+        .timer-separator {
+            font-size: 32px;
+            font-weight: 300;
+            color: rgba(255, 133, 51, 0.6);
+            margin-bottom: 40px;
+            opacity: 0.7;
+        }
+
+        .timer-note {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #a1a1aa;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .timer-note svg {
+            width: 16px;
+            height: 16px;
+            stroke: #ff8533;
+            opacity: 0.7;
+        }
+
+        .timer-note span {
+            color: #d4d4d8;
+            letter-spacing: 0.01em;
+        }
+
+        @media (max-width: 500px) {
+            .timer-card {
+                padding: 36px 24px;
+            }
+            .timer-label {
+                margin-bottom: 24px;
+                font-size: 10px;
+            }
+            .timer-value {
+                min-width: 75px;
+                padding: 20px 16px;
+            }
+            .timer-value span {
+                font-size: 40px;
+            }
+            .timer-separator {
+                font-size: 24px;
+                margin-bottom: 32px;
+            }
+            .timer-display {
+                gap: 12px;
+            }
+            .timer-unit-label {
+                font-size: 9px;
+            }
+            .timer-note {
+                font-size: 12px;
+                margin-top: 24px;
+                padding-top: 20px;
+            }
+        }
+
+        /* Formations Section */
+        .formations-section {
+            padding: 40px 0 60px;
+        }
+
+        .section-label {
+            text-align: center;
+            font-size: 13px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 32px;
+        }
+
+        .formations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .formation-step-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), transparent);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 24px;
+            padding: 8px 16px;
+            margin-bottom: 12px;
+        }
+
+        .formation-step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.25);
+            color: #10b981;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .formation-step-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .formation-step-title {
+            color: #10b981;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .formation-step-subtitle {
+            color: #a1a1aa;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .formation-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .formation-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .formation-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .formation-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .formation-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 6px;
+        }
+
+        .formation-desc {
+            font-size: 15px;
+            color: #a1a1aa;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .formation-price {
+            font-size: 16px;
+            color: #52525b;
+            text-decoration: line-through;
+            flex-shrink: 0;
+            font-weight: 500;
+        }
+
+        .formation-check {
+            width: 28px;
+            height: 28px;
+            background: rgba(34, 197, 94, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .formation-check svg {
+            width: 14px;
+            height: 14px;
+            stroke: #22c55e;
+            stroke-width: 3;
+        }
+
+        /* Expandable Formation Card */
+        .formation-item.expandable {
+            flex-wrap: wrap;
+            cursor: pointer;
+        }
+
+        .formation-item.expandable .formation-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .formation-toggle {
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 133, 51, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .formation-toggle svg {
+            width: 14px;
+            height: 14px;
+            stroke: #ff8533;
+            stroke-width: 2.5;
+            transition: transform 0.3s ease;
+        }
+
+        .formation-item.expandable.expanded .formation-toggle {
+            background: rgba(255, 133, 51, 0.25);
+        }
+
+        .formation-item.expandable.expanded .formation-toggle svg {
+            transform: rotate(180deg);
+        }
+
+        .formation-details {
+            width: 100%;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            padding: 0 0 0 120px;
+        }
+
+        .formation-item.expandable.expanded .formation-details {
+            max-height: 5000px;
+            padding: 20px 0 0 120px;
+        }
+
+        .formation-details-content {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        /* Video Reviews Section */
+        .formation-video-reviews {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .video-reviews-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff8533;
+            margin-bottom: 16px;
+        }
+
+        .video-reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .video-review-item {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            aspect-ratio: 16 / 9;
+            min-height: 180px;
+        }
+
+        .video-review-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 133, 51, 0.2);
+        }
+
+        .video-review-player {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        @media (max-width: 1024px) {
+            .video-reviews-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .video-reviews-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .video-review-player {
+                object-fit: contain;
+            }
+        }
+
+        .formation-details h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ff8533;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .formation-details ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .formation-details li {
+            font-size: 14px;
+            color: #a1a1aa;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .formation-details li svg {
+            width: 16px;
+            height: 16px;
+            stroke: #22c55e;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .formation-details {
+                padding: 0 0 0 0;
+            }
+            
+            .formation-item.expandable.expanded .formation-details {
+                padding: 16px 0 0 0;
+            }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            .formation-item {
+                padding: 16px;
+                gap: 14px;
+            }
+            
+            .formation-image {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .formation-name {
+                font-size: 15px;
+            }
+            
+            .formation-desc {
+                font-size: 13px;
+                -webkit-line-clamp: 2;
+            }
+            
+            .formation-price {
+                font-size: 14px;
+            }
+        }
+
+        /* Value Statement */
+        .value-statement {
+            text-align: center;
+            margin: 48px 0;
+            padding: 0 20px;
+        }
+
+        .value-statement h2 {
+            font-size: 28px;
+            line-height: 1.4;
+            color: #fafafa;
+            max-width: 700px;
+            margin: 0 auto 16px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+
+        .value-statement h2 .highlight {
+            color: #ff8533;
+            font-weight: 700;
+        }
+
+        .value-statement h3 {
+            font-size: 18px;
+            line-height: 1.5;
+            color: rgba(250, 250, 250, 0.6);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        @media (max-width: 768px) {
+            .value-statement h2 {
+                font-size: 22px;
+            }
+            .value-statement h3 {
+                font-size: 16px;
+            }
+        }
+
+        /* Value Highlights Section */
+        .value-highlights {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 48px 0;
+            padding: 32px 24px;
+            background: rgba(255, 133, 51, 0.05);
+            border: 1px solid rgba(255, 133, 51, 0.15);
+            border-radius: 16px;
+        }
+
+        .value-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .value-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 133, 51, 0.15);
+            border-radius: 12px;
+        }
+
+        .value-icon svg {
+            width: 24px;
+            height: 24px;
+            color: #ff8533;
+            stroke: #ff8533;
+        }
+
+        .value-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fafafa;
+            line-height: 1.4;
+        }
+
+        .value-text span {
+            color: #ff8533;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .value-highlights {
+                flex-direction: column;
+                gap: 24px;
+                padding: 24px 20px;
+            }
+
+            .value-item {
+                flex-direction: row;
+                text-align: left;
+                gap: 16px;
+            }
+
+            .value-icon {
+                width: 44px;
+                height: 44px;
+                flex-shrink: 0;
+            }
+        }
+
+        /* Price Card - Premium Design */
+        .price-card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(15, 30, 50, 0.9) 0%, rgba(10, 25, 41, 0.95) 100%);
+            border: 1px solid rgba(255, 133, 51, 0.2);
+            border-radius: 24px;
+            padding: 56px 40px;
+            text-align: center;
+            overflow: hidden;
+            box-shadow: 
+                0 0 80px rgba(255, 133, 51, 0.08),
+                0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .price-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 133, 51, 0.5), transparent);
+        }
+
+        .price-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 0%, rgba(255, 133, 51, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .price-header {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 32px;
+        }
+
+        .price-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ff8533, #ff5722);
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+            border: none;
+        }
+
+        .price-badge svg {
+            width: 14px;
+            height: 14px;
+            color: #ffffff;
+            stroke: #ffffff;
+        }
+
+        .price-badge .seasonal-badge-text {
+            color: #ffffff;
+        }
+
+        .price-badge .seasonal-badge-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .price-badge .seasonal-badge-icon svg {
+            width: 14px;
+            height: 14px;
+            color: #ffffff;
+            stroke: #ffffff;
+        }
+
+        .price-comparison {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .price-label {
+            font-size: 13px;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .price-original {
+            font-size: 24px;
+            color: #52525b;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+
+        .price-arrow {
+            color: #ff8533;
+            font-size: 20px;
+        }
+
+        .price-main-wrapper {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 12px;
+        }
+
+        .price-main {
+            font-size: 96px;
+            font-weight: 800;
+            background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            display: inline-flex;
+            align-items: flex-start;
+        }
+
+        .price-main .currency {
+            font-size: 40px;
+            font-weight: 600;
+            margin-left: 4px;
+            margin-top: 12px;
+        }
+
+        .price-main .price-period {
+            font-size: 18px;
+            font-weight: 600;
+            margin-left: 10px;
+            margin-top: 44px;
+            opacity: 0.85;
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
+            letter-spacing: normal;
+        }
+
+        .price-installment {
+            font-size: 16px;
+            color: #71717a;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .price-installment strong {
+            color: #a1a1aa;
+        }
+
+        .savings-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        .savings-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-size: 17px;
+            font-weight: 600;
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
+        }
+
+        .savings-tag svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .savings-amount {
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        @media (max-width: 600px) {
+            .price-card {
+                padding: 40px 24px;
+            }
+            .price-main {
+                font-size: 72px;
+            }
+            .price-main .currency {
+                font-size: 32px;
+                margin-top: 8px;
+            }
+            .savings-tag {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 48px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff5722, #ff8533);
+            color: #ffffff;
+            padding: 20px 56px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 24px rgba(255, 133, 51, 0.4);
+        }
+
+        .cta-button:hover {
+            background: linear-gradient(135deg, #ff8533, #ff9a5c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(255, 133, 51, 0.6);
+        }
+
+        .cta-sub {
+            font-size: 15px;
+            color: #71717a;
+            margin-top: 16px;
+        }
+
+        .cta-payments {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .cta-payments img {
+            height: 22px;
+            width: auto;
+            opacity: 0.85;
+        }
+
+        /* Reasons Section */
+        .reasons-section {
+            padding: 48px 0;
+        }
+
+        .reasons-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .reasons-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .reasons-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .reason-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            font-size: 17px;
+            color: #d4d4d8;
+            line-height: 1.5;
+        }
+
+        .reason-icon {
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 133, 51, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .reason-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: #ff8533;
+        }
+
+        .reason-item.negative {
+            opacity: 0.7;
+        }
+
+        .reason-item.negative .reason-icon {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .reason-item.negative .reason-icon svg {
+            stroke: #ef4444;
+        }
+
+        .reason-item.negative {
+            color: #71717a;
+        }
+
+        /* Testimonials */
+        .testimonials-section {
+            padding: 48px 0;
+        }
+
+        .testimonials-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fafafa;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .testimonial-text {
+            font-size: 16px;
+            color: #d4d4d8;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .testimonial-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .testimonial-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 133, 51, 0.3);
+            flex-shrink: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            pointer-events: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        .testimonial-header {
+            position: relative;
+        }
+
+        .testimonial-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: auto;
+        }
+
+        .testimonial-info {
+            flex: 1;
+        }
+
+        .testimonial-author {
+            font-size: 14px;
+            color: #71717a;
+            font-weight: 500;
+        }
+
+        /* Guarantee */
+        .guarantee-section {
+            padding: 48px 0;
+        }
+
+        .guarantee-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 133, 51, 0.2);
+            border-radius: 20px;
+            padding: 50px 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .guarantee-icon {
+            width: auto;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px;
+        }
+
+        .guarantee-icon img {
+            width: auto;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(255, 133, 51, 0.6)) drop-shadow(0 0 40px rgba(255, 133, 51, 0.4));
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 20px rgba(255, 133, 51, 0.6)) drop-shadow(0 0 40px rgba(255, 133, 51, 0.4));
+            }
+            50% {
+                filter: drop-shadow(0 0 30px rgba(255, 133, 51, 0.8)) drop-shadow(0 0 60px rgba(255, 133, 51, 0.6));
+            }
+        }
+
+        .guarantee-text {
+            font-size: 17px;
+            color: #d4d4d8;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        .guarantee-text p {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .guarantee-intro {
+            font-size: 18px;
+            color: #a1a1aa;
+            margin-bottom: 24px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .guarantee-subtitle {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .guarantee-highlight {
+            font-size: 20px;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .guarantee-arrow {
+            padding-left: 32px;
+            position: relative;
+            color: #ff8533;
+            margin-bottom: 14px;
+            font-weight: 500;
+        }
+
+        .guarantee-arrow::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 20px;
+            color: #ff8533;
+            font-weight: 700;
+        }
+
+        .guarantee-final {
+            margin-top: 28px;
+            margin-bottom: 0;
+            font-size: 19px;
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .guarantee-text strong {
+            color: #fafafa;
+            font-weight: 700;
+        }
+
+        .guarantee-highlight strong {
+            font-size: 22px;
+            color: #ff8533;
+        }
+
+        .guarantee-final strong {
+            font-size: 20px;
+            color: #fafafa;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            text-align: center;
+            padding: 48px 0 40px;
+        }
+
+        .final-timer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 40px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #fafafa;
+            margin-bottom: 28px;
+        }
+
+        .final-timer svg {
+            width: 36px;
+            height: 36px;
+            stroke: #ff8533;
+        }
+
+        /* Reviews Section Detailed */
+        .reviews-section-detailed {
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            padding: 60px 24px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .reviews-container {
+            max-width: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+            padding: 0;
+        }
+
+        .formation-reviews {
+            width: 100%;
+        }
+
+        .formation-reviews-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .elfsight-widget {
+            width: 100%;
+            min-height: 300px;
+        }
+
+        /* Floating CTA Button */
+        .floating-cta {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #ff5722, #ff8533);
+            color: #ffffff;
+            padding: 16px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 8px 25px rgba(255, 133, 51, 0.4);
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .floating-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 133, 51, 0.6);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @media (max-width: 768px) {
+            .floating-cta {
+                bottom: 80px;
+                right: 15px;
+                padding: 14px 22px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <PromoBanner forceShow={true} />
+    <div class="page-wrapper">
+        <!-- Timer Sticky Mobile -->
+        <div class="sticky-timer" id="stickyTimer">
+            <div class="sticky-timer-left">
+                <span class="sticky-timer-countdown" id="stickyCountdown">23:59:59</span>
+            </div>
+            <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="sticky-timer-cta">Accéder →</a>
+        </div>
+
+        <!-- Fixed Discount Sticker -->
+        <div class="discount-sticker">
+            <span class="percent">-{promo.discount}%</span>
+            <span class="label">{promo.name}</span>
+        </div>
+
+        <!-- Social Proof -->
+        <div class="social-proof">
+            <div class="social-proof-content">
+                <span class="social-proof-stars">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                    </svg>
+                </span>
+                <span class="social-proof-rating">4.9/5</span>
+                <span class="social-proof-separator"></span>
+                <span class="social-proof-members">12,000+ membres</span>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Hero -->
+            <section class="hero">
+                <div class="seasonal-badge" id="seasonalBadge">
+                    <span class="seasonal-badge-icon">{promo.emoji}</span>
+                    <span class="seasonal-badge-text">{promo.badgeText}</span>
+                </div>
+                
+                <h1 class="hero-title">
+                    Tout ce dont tu as besoin pour transformer ta vie.<br><span class="accent">Un seul paiement.</span>
+                </h1>
+                
+                <p class="hero-subtitle">
+                    <strong>7 formations</strong> au prix de 2.<br>
+                    <strong>Économise 1 232€</strong> aujourd'hui.
+                </p>
+
+                <!-- Timer Card -->
+                <div class="timer-card">
+                    <div class="timer-label">Cette offre expire dans</div>
+                    <div class="timer-display">
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerHours">23</span>
+                            </div>
+                            <div class="timer-unit-label">Heures</div>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerMinutes">59</span>
+                            </div>
+                            <div class="timer-unit-label">Minutes</div>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-unit">
+                            <div class="timer-value">
+                                <span id="timerSeconds">59</span>
+                            </div>
+                            <div class="timer-unit-label">Secondes</div>
+                        </div>
+                    </div>
+                    <div class="timer-note">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span>Cette offre expire bientôt</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formations Section -->
+            <section class="formations-section">
+                <div class="section-label">TON PARCOURS DE TRANSFORMATION</div>
+                
+                <div class="formations-list">
+                    <!-- Challenge Transformation -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">1</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 1 — LE DÉCLIC</span>
+                            <span class="formation-step-subtitle">Ton point de bascule</span>
+                        </div>
+                    </div>
+                    <div class="formation-item expandable" data-formation="challenge">
+                        <div class="formation-row">
+                            <img src="/media/pages/challengetranso2carre.webp" alt="Challenge Transformation" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Challenge Transformation</div>
+                                <div class="formation-desc">4 jours pour poser les bases de la reprogrammation subconsciente.</div>
+                            </div>
+                            <span class="formation-price">97€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Comprendre le fonctionnement de ton subconscient
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Identifier et transformer tes croyances limitantes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser les techniques de base de la reprogrammation
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer de nouvelles habitudes positives en 4 jours
+                                    </li>
+                                </ul>
+                                
+                                <!-- Video Reviews Section -->
+                                <div class="formation-video-reviews">
+                                    <h5 class="video-reviews-title">Avis vidéo</h5>
+                                    <div class="video-reviews-grid">
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Challenge-Transformation-Avis-Videos/video-4-ct.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Challenge-Transformation-Avis-Videos/video-6-ct.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Challenge-Transformation-Avis-Videos/video-7-ct.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Esprit Subconscient -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">2</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 2 — LA REPROGRAMMATION</span>
+                            <span class="formation-step-subtitle">Ta vie se met en ordre, tu as un sens de direction clair</span>
+                        </div>
+                    </div>
+                    <div class="formation-item expandable" data-formation="esprit-subconscient">
+                        <div class="formation-row">
+                            <img src="/media/pages/es-carre.png" alt="Esprit Subconscient" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Esprit Subconscient</div>
+                                <div class="formation-desc">21 jours pour reprogrammer ton subconscient et te libérer de tes blocages.</div>
+                            </div>
+                            <span class="formation-price">297€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Te libérer de l'anxiété une bonne fois pour toutes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Faire exploser ta confiance en toi et ton charisme
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Atteindre tes objectifs facilement (même les plus fous)
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Te débarrasser de n'importe quelle addiction
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser l'autohypnose et les techniques de reprogrammation
+                                    </li>
+                                </ul>
+                                
+                                <!-- Video Reviews Section -->
+                                <div class="formation-video-reviews">
+                                    <h5 class="video-reviews-title">Avis vidéo</h5>
+                                    <div class="video-reviews-grid">
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/ESPRIT_SUBCONSCIENT_AVIS/ESPRIT_SUBCONSCIENT_AVIS_2.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/ESPRIT_SUBCONSCIENT_AVIS/ESPRIT_SUBCONSCIENT_AVIS_1.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/ESPRIT_SUBCONSCIENT_AVIS/ESPRIT_SUBCONSCIENT_AVIS_3.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manifest -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">3</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 3 — LA MAÎTRISE</span>
+                            <span class="formation-step-subtitle">Tu maîtrises les lois universelles et la réalité t'obéit</span>
+                        </div>
+                    </div>
+                    <div class="formation-item expandable" data-formation="manifest">
+                        <div class="formation-row">
+                            <img src="/media/pages/manifest-carre.png" alt="Manifest" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Manifest</div>
+                                <div class="formation-desc">Les techniques de manifestation oubliées pour transformer tes rêves en réalité.</div>
+                            </div>
+                            <span class="formation-price">497€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas apprendre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Transformer tes désirs en réalité concrète (finances, relations, succès)
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        12 exercices mentaux guidés pour manifester richesse, amour et santé
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer l'abondance financière et une mentalité de prospérité
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Attirer des relations authentiques et épanouissantes
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maîtriser l'art de la manifestation en 90 jours
+                                    </li>
+                                </ul>
+                                
+                                <!-- Video Reviews Section -->
+                                <div class="formation-video-reviews">
+                                    <h5 class="video-reviews-title">Avis vidéo</h5>
+                                    <div class="video-reviews-grid">
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/AVIS%203%20(M)-3je5ibjh71.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/SALTANI%20-%20Manifest%20Avis.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Manifest%20Video%20Reviews/M%20-%20BEVEN-xddhpupjau.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Système Souhaits Réalisés -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">4</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 4 — LE SYSTÈME</span>
+                            <span class="formation-step-subtitle">Tu deviens inébranlable et tu es maintenu en haute vibration</span>
+                        </div>
+                    </div>
+                    <div class="formation-item expandable" data-formation="ssr">
+                        <div class="formation-row">
+                            <img src="/media/pages/ssr-carre.png" alt="Système Souhaits Réalisés" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Système Souhaits Réalisés</div>
+                                <div class="formation-desc">La méthode complète inspirée de Neville Goddard pour réaliser tes souhaits.</div>
+                            </div>
+                            <span class="formation-price">397€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas vivre</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        30 audios inspirés des enseignements de Neville Goddard
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        App journal de bord digital pour tracker tes progrès
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Coach IA Neville Goddard disponible 24h/24
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Vivre des synchronicités qui confirment ton alignement
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Maintenir ton état jusqu'à la manifestation complète
+                                    </li>
+                                </ul>
+                                
+                                <!-- Video Reviews Section -->
+                                <div class="formation-video-reviews">
+                                    <h5 class="video-reviews-title">Avis vidéo</h5>
+                                    <div class="video-reviews-grid">
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/Sasha_review_ssr.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/AVIS%20SSR/SSR%20-%20Catherine%20(avis)%20FINAL_low.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                        <div class="video-review-item">
+                                            <video 
+                                                class="video-review-player" 
+                                                controls 
+                                                controlslist="nodownload"
+                                                preload="metadata"
+                                                poster=""
+                                            >
+                                                <source src="https://sonnycourt-videos-public.b-cdn.net/AVIS%20SSR/SSR%20-%20Reviews%20Emilie%20(Avis)_low.mp4" type="video/mp4">
+                                                Votre navigateur ne supporte pas la lecture de vidéos.
+                                            </video>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Neuro IA -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">5</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 5 — L'ACCÉLÉRATEUR</span>
+                            <span class="formation-step-subtitle">Tu influences ton subconscient 10× plus vite, ta réalité suit</span>
+                        </div>
+                    </div>
+                    <div class="formation-item expandable" data-formation="neuro-ia">
+                        <div class="formation-row">
+                            <img src="/media/pages/neuroia-cover.webp" alt="Neuro IA" class="formation-image">
+                            <div class="formation-content">
+                                <div class="formation-name">Neuro IA</div>
+                                <div class="formation-desc">Accélère ta reprogrammation grâce à l'intelligence artificielle.</div>
+                            </div>
+                            <span class="formation-price">297€</span>
+                            <div class="formation-check">
+                                <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="formation-toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="formation-details">
+                            <div class="formation-details-content">
+                                <h4>Ce que tu vas maîtriser</h4>
+                                <ul>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer des musiques de reprogrammation personnalisées avec l'IA
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Reprogrammation conversationnelle avec des IA spécialisées
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        Créer des visualisations guidées sur mesure en moins de 10 min
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        30 musiques de reprogrammation offertes dès l'inscription
+                                    </li>
+                                    <li>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                        L'IA qui analyse tes schémas et crée ton protocole personnalisé
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Réalité Parallèle -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">6</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 6 — L'ANCRAGE</span>
+                            <span class="formation-step-subtitle">Tu crées des situations qui deviennent inévitables depuis ton imagination</span>
+                        </div>
+                    </div>
+                    <div class="formation-item">
+                        <img src="/media/pages/realitepara-carre.png" alt="Réalité Parallèle" class="formation-image">
+                        <div class="formation-content">
+                            <div class="formation-name">Réalité Parallèle</div>
+                            <div class="formation-desc">12 visualisations guidées exclusives pour accélérer tes résultats.</div>
+                        </div>
+                        <span class="formation-price">97€</span>
+                        <div class="formation-check">
+                            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+
+                    <!-- L'art de Se Relaxer Pour Gagner -->
+                    <div class="formation-step-badge">
+                        <span class="formation-step-number">7</span>
+                        <div class="formation-step-text">
+                            <span class="formation-step-title">ÉTAPE 7 — LE CALME INTÉRIEUR</span>
+                            <span class="formation-step-subtitle">Tu réussis tout ce que tu entreprends avec un calme déconcertant</span>
+                        </div>
+                    </div>
+                    <div class="formation-item">
+                        <img src="/media/pages/relaxer-carre.png" alt="L'art de Se Relaxer Pour Gagner" class="formation-image">
+                        <div class="formation-content">
+                            <div class="formation-name">L'art de Se Relaxer Pour Gagner</div>
+                            <div class="formation-desc">La méthode de relaxation des champions olympiques et pilotes de chasse.</div>
+                        </div>
+                        <span class="formation-price">47€</span>
+                        <div class="formation-check">
+                            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Value Highlights -->
+                <div class="value-highlights">
+                    <div class="value-item">
+                        <div class="value-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div class="value-text"><span>24h+</span> de contenu</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </div>
+                        <div class="value-text">À <span>ton rythme</span></div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/></svg>
+                        </div>
+                        <div class="value-text">Accès <span>à vie</span></div>
+                    </div>
+                </div>
+
+                <!-- Value Statement -->
+                <div class="value-statement">
+                    <h2>Ce pack est conçu pour ceux qui veulent des <span class="highlight">résultats rapides et massifs.</span></h2>
+                    <h3>Sans forcer, sans s'épuiser, et sans abandonner en cours de route.</h3>
+                </div>
+
+                <!-- Price Card -->
+                <div class="price-card">
+                    <div class="price-header">
+                        <div class="price-badge seasonal-badge" id="seasonalBadgePrice">
+                            <span class="seasonal-badge-icon">{promo.emoji}</span>
+                            <span class="seasonal-badge-text">{promo.badgeText}</span>
+                        </div>
+                        <div class="price-comparison">
+                            <span class="price-original">1 729€</span>
+                            <span class="price-arrow">→</span>
+                            <span class="price-label">Aujourd'hui</span>
+                        </div>
+                    </div>
+                    <div class="price-main-wrapper">
+                        <div class="price-main">97<span class="currency">€</span><span class="price-period">par mois</span></div>
+                    </div>
+                    <div class="price-installment" style="opacity: 0.9;">
+                        3€ par jour — moins qu'un café
+                        <span style="color: #f59e0b; display: inline-flex; vertical-align: middle; margin-left: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-coffee-icon lucide-coffee"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg>
+                        </span>
+                    </div>
+                    <div class="price-installment">ou <strong>3× 177€</strong> • ou <strong>1× 497€</strong></div>
+                    <div class="savings-wrapper">
+                        <div class="savings-tag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z"/><path d="M16 10h.01"/><path d="M2 8v1a2 2 0 0 0 2 2h1"/></svg>
+                            Tu économises <span class="savings-amount">1 232€</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Principal -->
+            <section class="cta-section">
+                <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="cta-button">
+                    Commencer mon parcours
+                </a>
+                <p class="cta-sub">Accès immédiat • Garantie 30 jours</p>
+                <div class="cta-payments">
+                    <img src="/media/pages/paiements.webp" alt="Méthodes de paiement acceptées" loading="lazy" decoding="async">
+                </div>
+            </section>
+
+            <!-- Reasons Section -->
+            <section class="reasons-section">
+                <div class="reasons-card">
+                    <h2 class="reasons-title">Pourquoi cette offre ?</h2>
+                    <ul class="reasons-list">
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu veux tout — sans devoir choisir entre tes formations
+                        </li>
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu préfères un système complet plutôt que des morceaux éparpillés
+                        </li>
+                        <li class="reason-item">
+                            <span class="reason-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                            Tu refuses de payer 1 232€ de plus que nécessaire
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Testimonials -->
+            <section class="testimonials-section">
+                <h2 class="testimonials-title">Ce qu'ils en disent</h2>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"Ça fait 7 ans que je suis Sonny et j'ai acheté toutes ses formations. Je n'ai jamais été déçu! Et ma vie n'aurait jamais été ce qu'elle est aujourd'hui donc un grand merci."</p>
+                        <div class="testimonial-header">
+                            <img src="/media/pages/thomas-pack.webp" alt="Thomas" class="testimonial-avatar" draggable="false" oncontextmenu="return false;" onselectstart="return false;">
+                            <div class="testimonial-info">
+                                <span class="testimonial-author">Thomas</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">"Tellement reconnaissante d'avoir pu sortir de cette routine qui ne me correspondait pas. Le meilleur investissement de ma vie et merci aussi à cette communauté bienveillante qui tire vers le haut."</p>
+                        <div class="testimonial-header">
+                            <img src="/media/pages/laura-pack.webp" alt="Laura" class="testimonial-avatar" draggable="false" oncontextmenu="return false;" onselectstart="return false;">
+                            <div class="testimonial-info">
+                                <span class="testimonial-author">Laura</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guarantee -->
+            <section class="guarantee-section">
+                <div class="guarantee-card">
+                    <div class="guarantee-icon">
+                        <img src="/media/pages/badge-30-garantee-pack-complet.webp" alt="Garantie 30 jours" />
+                    </div>
+                    <div class="guarantee-text">
+                        <p class="guarantee-intro">Je peux pas décider à ta place.</p>
+                        <p class="guarantee-subtitle"><strong>Mais je peux te dire une chose :</strong></p>
+                        <p class="guarantee-highlight"><strong>Évite les regrets.</strong></p>
+                        <p>Si tu te lances avec le Pack Complet et que ça change pas ta vie</p>
+                        <p class="guarantee-arrow">tu demandes un remboursement.</p>
+                        <p class="guarantee-arrow">et c'est réglé !</p>
+                        <p>Mais si tu rates cette offre et que dans un an tu regardes en arrière...</p>
+                        <p class="guarantee-final"><strong>Personne ne te remboursera l'année perdue.</strong></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Final CTA -->
+            <section class="final-cta">
+                <div class="final-timer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span id="finalCountdown">23:59:59</span>
+                </div>
+                <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="cta-button">
+                    Démarrer ma transformation
+                </a>
+                <p class="cta-sub">Accès immédiat • Garantie 30 jours</p>
+                <div class="cta-payments">
+                    <img src="/media/pages/paiements.webp" alt="Méthodes de paiement acceptées" loading="lazy" decoding="async">
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Reviews Section - Full Screen -->
+    <section class="reviews-section-detailed">
+        <div class="reviews-container">
+            <!-- Esprit Subconscient Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Esprit Subconscient</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | ESPRIT SUBCONSCIENT (FORMATION INDIV. + PACK + Essai Gratuit) -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-18a54320-097b-4c42-a28b-21e1e3a524f3" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Manifest Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Manifest</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | MANIFEST (sur Manifest + Pack Transformation) -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-2af569cb-eeca-4673-b866-0f34bc463e6e" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Neuro IA Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Neuro IA</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | PACK : NEURO IA -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-b42ca93c-4bce-4830-8a99-45096c60cf8e" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+
+            <!-- Challenge Transformation Reviews -->
+            <div class="formation-reviews">
+                <h3 class="formation-reviews-title">Avis Challenge Transformation</h3>
+                <div class="elfsight-widget">
+                    <!-- Elfsight Testimonials Slider | CHALLENGE TRANSFORMATION -->
+                    <script src="https://elfsightcdn.com/platform.js" async></script>
+                    <div class="elfsight-app-8d072c08-e8c5-4aac-9c70-fe873b5a6781" data-elfsight-app-lazy></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Countdown basé sur la deadline promo (lue depuis promo-banner ou promo-config)
+        (function() {
+            var banner = document.getElementById('promo-banner');
+            var config = document.getElementById('promo-config');
+            var deadlineStr = (banner && banner.getAttribute('data-deadline')) || (config && config.dataset.deadline) || '';
+            if (!deadlineStr) return;
+            
+            var deadline = new Date(deadlineStr).getTime();
+            
+            function updateCountdown() {
+                var now = Date.now();
+                var remaining = deadline - now;
+                
+                if (remaining <= 0) {
+                    updateAllDisplays(0, 0, 0);
+                    window.location.href = '/fin-promo/';
+                    return;
+                }
+                
+                var totalSeconds = Math.floor(remaining / 1000);
+                var hours = Math.floor(totalSeconds / 3600);
+                var minutes = Math.floor((totalSeconds % 3600) / 60);
+                var seconds = totalSeconds % 60;
+                
+                updateAllDisplays(hours, minutes, seconds);
+            }
+            
+            function updateAllDisplays(hours, minutes, seconds) {
+                var hoursStr = String(hours).padStart(2, '0');
+                var minutesStr = String(minutes).padStart(2, '0');
+                var secondsStr = String(seconds).padStart(2, '0');
+                var display = hoursStr + ':' + minutesStr + ':' + secondsStr;
+                
+                var timerHours = document.getElementById('timerHours');
+                var timerMinutes = document.getElementById('timerMinutes');
+                var timerSeconds = document.getElementById('timerSeconds');
+                
+                if (timerHours) timerHours.textContent = hoursStr;
+                if (timerMinutes) timerMinutes.textContent = minutesStr;
+                if (timerSeconds) timerSeconds.textContent = secondsStr;
+                
+                var stickyCountdown = document.getElementById('stickyCountdown');
+                var finalCountdown = document.getElementById('finalCountdown');
+                
+                if (stickyCountdown) stickyCountdown.textContent = display;
+                if (finalCountdown) finalCountdown.textContent = display;
+            }
+            
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        })();
+        
+        // Spiffy same tab
+        document.addEventListener('DOMContentLoaded', function() {
+            const spiffyLinks = document.querySelectorAll('a[href*="spiffy.co"]');
+            spiffyLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    this.setAttribute('target', '_self');
+                });
+            });
+        });
+        
+        // Expandable formation cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const expandableCards = document.querySelectorAll('.formation-item.expandable');
+            expandableCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                    this.classList.toggle('expanded');
+                });
+            });
+        });
+    </script>
+
+    <!-- Floating CTA Button -->
+    <a href="https://sonnycourt.spiffy.co/checkout/pack-complet#pop" class="floating-cta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        Accéder au Pack
+    </a>
+</body>
+</html>

@@ -3,6 +3,8 @@
 import BlackFridayBanner from '../components/BlackFridayBanner.astro';
 import GAConsentMode from '../components/GAConsentMode.astro';
 import StValentinBanner from '../components/StValentinBanner.astro';
+import PromoBanner from '../components/PromoBanner.astro';
+import { promo } from '../config/promo';
 ---
 <head>
     <meta charset="UTF-8">
@@ -3636,6 +3638,8 @@ import StValentinBanner from '../components/StValentinBanner.astro';
 </head>
 <body>
     <StValentinBanner />
+    <PromoBanner />
+    <div id="promo-config" data-deadline={promo.deadline} data-badge={promo.badgeText} data-active={promo.active.toString()} style="display:none;"></div>
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
     <BlackFridayBanner show={false} discount={70} />
     <div class="page-content">
@@ -5033,8 +5037,8 @@ import StValentinBanner from '../components/StValentinBanner.astro';
             // Vérifier le mode preview
             const previewParam = urlParams.get('preview');
             if (previewParam !== null) {
-                // Mode stvalentin : pas de bandeau preview, c'est pour de vrais users
-                if (previewParam === 'stvalentin') {
+                // Mode stvalentin/promo : pas de bandeau preview, c'est pour de vrais users
+                if (previewParam === 'stvalentin' || previewParam === 'promo') {
                     // Géré ci-dessous
                 } else {
                     const dayNumber = parseInt(previewParam, 10);
@@ -5046,6 +5050,46 @@ import StValentinBanner from '../components/StValentinBanner.astro';
                         showPreviewBanner(dayNumber);
                         return calculatePreviewData(dayNumber);
                     }
+                }
+            }
+
+            // Mode promo : countdown + places jusqu'à la deadline config
+            if (previewParam === 'promo') {
+                const promoConfig = document.getElementById('promo-config');
+                const promoActive = promoConfig ? promoConfig.dataset.active === 'true' : false;
+                if (!promoActive || !promoConfig) {
+                    window.location.href = '/fin-promo/';
+                    return null;
+                }
+                if (promoActive && promoConfig) {
+                    console.log('🔍 Mode promo activé');
+                    const promoDeadline = new Date(promoConfig.dataset.deadline).getTime();
+                    const now = Date.now();
+                    if (now >= promoDeadline) {
+                        window.location.href = '/fin-promo/';
+                        return null;
+                    }
+                    const timeRemainingMs = Math.max(0, promoDeadline - now);
+                    const timeRemainingSec = Math.floor(timeRemainingMs / 1000);
+
+                    // Places dynamiques basées sur le temps restant
+                    const totalDuration = promoDeadline - (promoDeadline - 48 * 60 * 60 * 1000);
+                    const remaining = promoDeadline - now;
+                    const ratio = Math.max(0, Math.min(1, remaining / (48 * 60 * 60 * 1000)));
+                    const promoPlaces = Math.max(0, Math.round(ratio * 80));
+
+                    isPreviewMode = true;
+                    return {
+                        valid: true,
+                        phase: 1,
+                        places: promoPlaces,
+                        timeRemaining: timeRemainingSec,
+                        hoursElapsed: 0,
+                        isSoldOut: promoPlaces === 0,
+                        isReopened: false,
+                        isExpired: timeRemainingSec <= 0,
+                        isPreview: true
+                    };
                 }
             }
 
@@ -5449,6 +5493,19 @@ import StValentinBanner from '../components/StValentinBanner.astro';
                 if (scarcityEl) scarcityEl.style.display = 'none';
                 const exceptionalEl = document.getElementById('exceptionalOffer');
                 if (exceptionalEl) exceptionalEl.style.display = 'none';
+            }
+
+            // Si mode promo, changer le badge et masquer les places
+            if (urlParamsBadge.get('preview') === 'promo') {
+                const promoConfig = document.getElementById('promo-config');
+                if (promoConfig) {
+                    const discountBadge = document.querySelector('.discount-badge');
+                    if (discountBadge) discountBadge.textContent = promoConfig.dataset.badge;
+                    const scarcityEl = document.getElementById('scarcityText');
+                    if (scarcityEl) scarcityEl.style.display = 'none';
+                    const exceptionalEl = document.getElementById('exceptionalOffer');
+                    if (exceptionalEl) exceptionalEl.style.display = 'none';
+                }
             }
 
             // Affichage initial
