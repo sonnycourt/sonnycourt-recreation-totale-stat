@@ -67,5 +67,11 @@ export const promo = {
       installmentCount: 3,   // Nombre de mensualités
       installmentPrice: 42,  // Prix par mensualité
     },
+    systemeViral: {
+      priceOriginal: 3000,   // Prix barré
+      pricePromo: 1597,      // Prix promo en une fois
+      installmentCount: 6,   // Nombre de mensualités
+      installmentPrice: 293, // Prix par mensualité
+    },
   },
 };
