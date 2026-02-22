@@ -6,7 +6,15 @@ import { promo } from '../config/promo';
 
 <Layout title="Esprit Subconscient - 21 Jours pour Reprogrammer ton Subconscient" description="Libère-toi de tes blocages inconscients et transforme ta vie en 21 jours. Formation complète pour reprogrammer ton subconscient." showHeader={false} showFooter={false}>
   <PromoBanner slot="before-header" />
-  <div id="promo-config" data-deadline={promo.deadline} data-badge={promo.badgeText} data-active={promo.active.toString()} style="display:none;"></div>
+  <div id="promo-config"
+    data-deadline={promo.deadline}
+    data-badge={promo.badgeText}
+    data-active={promo.active.toString()}
+    data-price-original={promo.formations.espritSubconscient.priceOriginal}
+    data-price-promo={promo.formations.espritSubconscient.pricePromo}
+    data-installment-count={promo.formations.espritSubconscient.installmentCount}
+    data-installment-price={promo.formations.espritSubconscient.installmentPrice}
+    style="display:none;"></div>
   <div class="esprit-subconscient-page">
     <!-- Hero Section -->
     <section class="hero-section">
@@ -5356,6 +5364,14 @@ import { promo } from '../config/promo';
   document.querySelectorAll('a[href*="spiffy.co/checkout/esprit-subconscient"]').forEach(function(el) {
     el.setAttribute('href', promoCheckout);
   });
+
+  // Remplacer les prix
+  var priceOriginal = promoConfig.dataset.priceOriginal;
+  var pricePromo = promoConfig.dataset.pricePromo;
+  var installmentCount = promoConfig.dataset.installmentCount;
+  var installmentPrice = promoConfig.dataset.installmentPrice;
+  document.querySelectorAll('.price-old, .final-price-old').forEach(function(el) { if (priceOriginal) el.textContent = priceOriginal + '€'; });
+  document.querySelectorAll('.price-new, .final-price-new').forEach(function(el) { if (pricePromo) el.textContent = pricePromo + '€'; });
 
   var themes = {
     gold: {

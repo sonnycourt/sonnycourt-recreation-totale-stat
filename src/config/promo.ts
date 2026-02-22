@@ -49,5 +49,11 @@ export const promo = {
       installmentCount: 3,   // Nombre de mensualités
       installmentPrice: 69,  // Prix par mensualité
     },
+    espritSubconscient: {
+      priceOriginal: 297,    // Prix barré
+      pricePromo: 117,       // Prix promo en une fois
+      installmentCount: 3,   // Nombre de mensualités
+      installmentPrice: 45,  // Prix par mensualité
+    },
   },
 };
