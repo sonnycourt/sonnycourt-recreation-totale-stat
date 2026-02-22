@@ -58,7 +58,15 @@ import { promo } from '../config/promo';
 </head>
 <body>
     <PromoBanner />
-    <div id="promo-config" data-deadline={promo.deadline} data-badge={promo.badgeText} data-active={promo.active.toString()} style="display:none;"></div>
+    <div id="promo-config"
+      data-deadline={promo.deadline}
+      data-badge={promo.badgeText}
+      data-active={promo.active.toString()}
+      data-price-original={promo.formations.manifest.priceOriginal}
+      data-price-promo={promo.formations.manifest.pricePromo}
+      data-installment-count={promo.formations.manifest.installmentCount}
+      data-installment-price={promo.formations.manifest.installmentPrice}
+      style="display:none;"></div>
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
     <BlackFridayBanner show={false} discount={70} />
     <!-- Hero Section -->
@@ -6934,6 +6942,18 @@ import { promo } from '../config/promo';
       }
 
       document.querySelectorAll('a[href*="spiffy.co/checkout/manifest"]').forEach(function(el) { el.setAttribute('href', 'https://sonnycourt.spiffy.co/checkout/manifest?code=FB1MILLION#pop'); });
+
+      // Remplacer les prix
+      var priceOriginal = promoConfig.dataset.priceOriginal;
+      var pricePromo = promoConfig.dataset.pricePromo;
+      var installmentCount = promoConfig.dataset.installmentCount;
+      var installmentPrice = promoConfig.dataset.installmentPrice;
+      var priceOldEl = document.querySelector('.price-old');
+      var priceNewEl = document.querySelector('.price-new');
+      var priceInstallmentsEl = document.querySelector('.price-installments');
+      if (priceOldEl && priceOriginal) priceOldEl.textContent = priceOriginal + '€';
+      if (priceNewEl && pricePromo) priceNewEl.textContent = pricePromo + '€';
+      if (priceInstallmentsEl && installmentCount && installmentPrice) priceInstallmentsEl.textContent = 'Ou seulement ' + installmentCount + ' paiements de ' + installmentPrice + '€';
 
       var t = {
         bg: 'linear-gradient(105deg, #1a1a1a 0%, #2d2306 40%, #44370a 100%)',

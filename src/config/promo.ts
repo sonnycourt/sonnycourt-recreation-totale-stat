@@ -40,4 +40,14 @@ export const promo = {
   // gold   → Or/noir (luxe, exclusif, Black Friday)
   // green  → Vert/émeraude (nouveau départ, printemps, succès)
   theme: "gold" as "red" | "purple" | "gold" | "green",
+
+  // Prix promo par formation (modifiables sans toucher aux pages)
+  formations: {
+    manifest: {
+      priceOriginal: 497,    // Prix barré
+      pricePromo: 197,       // Prix promo en une fois
+      installmentCount: 3,   // Nombre de mensualités
+      installmentPrice: 69,  // Prix par mensualité
+    },
+  },
 };
