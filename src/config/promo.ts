@@ -55,5 +55,11 @@ export const promo = {
       installmentCount: 3,   // Nombre de mensualités
       installmentPrice: 45,  // Prix par mensualité
     },
+    ssrLancement: {
+      priceOriginal: 397,    // Prix barré
+      pricePromo: 157,       // Prix promo en une fois
+      installmentCount: 3,   // Nombre de mensualités
+      installmentPrice: 58,  // Prix par mensualité
+    },
   },
 };

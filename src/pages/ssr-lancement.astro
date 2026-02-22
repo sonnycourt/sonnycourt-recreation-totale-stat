@@ -3637,7 +3637,15 @@ import { promo } from '../config/promo';
 </head>
 <body>
     <PromoBanner />
-    <div id="promo-config" data-deadline={promo.deadline} data-badge={promo.badgeText} data-active={promo.active.toString()} style="display:none;"></div>
+    <div id="promo-config"
+      data-deadline={promo.deadline}
+      data-badge={promo.badgeText}
+      data-active={promo.active.toString()}
+      data-price-original={promo.formations.ssrLancement.priceOriginal}
+      data-price-promo={promo.formations.ssrLancement.pricePromo}
+      data-installment-count={promo.formations.ssrLancement.installmentCount}
+      data-installment-price={promo.formations.ssrLancement.installmentPrice}
+      style="display:none;"></div>
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
     <BlackFridayBanner show={false} discount={70} />
     <div class="page-content">
@@ -6044,6 +6052,20 @@ import { promo } from '../config/promo';
       var badgeText = promoConfig.dataset.badge || '';
       if (!active || Date.now() >= deadline) { window.location.href = '/fin-promo/'; return; }
       document.querySelectorAll('a[href*="spiffy.co/checkout/souhaits-realises"]').forEach(function(el) { el.setAttribute('href', 'https://sonnycourt.spiffy.co/checkout/souhaits-realises?code=FB1MILLION#pop'); });
+
+      // Remplacer les prix
+      var priceOriginal = promoConfig.dataset.priceOriginal;
+      var pricePromo = promoConfig.dataset.pricePromo;
+      var installmentCount = promoConfig.dataset.installmentCount;
+      var installmentPrice = promoConfig.dataset.installmentPrice;
+      var discount = Math.round((1 - parseInt(pricePromo) / parseInt(priceOriginal)) * 100);
+      document.querySelectorAll('.price-amount').forEach(function(el) { if (pricePromo) el.textContent = pricePromo + ' €'; });
+      document.querySelectorAll('.original-price').forEach(function(el) { if (priceOriginal) el.textContent = '(au lieu de ' + priceOriginal + ' €)'; });
+      document.querySelectorAll('.savings-badge').forEach(function(el) { el.textContent = '-' + discount + '%'; });
+      if (installmentCount && installmentPrice) {
+        var installmentEl = document.querySelector('.price-installments');
+        if (installmentEl) installmentEl.textContent = 'Ou ' + installmentCount + ' paiements de ' + installmentPrice + '€';
+      }
       var t = { bg: 'linear-gradient(105deg, #1a1a1a 0%, #2d2306 40%, #44370a 100%)', accent: 'linear-gradient(100deg, #ffd700 0%, #ffec80 70%)', btn: '#ffd700', btnText: '#1a1a1a' };
       var banner = document.createElement('div');
       banner.id = 'promo-banner-dynamic';
