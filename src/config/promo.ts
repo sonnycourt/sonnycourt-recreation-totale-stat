@@ -61,5 +61,11 @@ export const promo = {
       installmentCount: 3,   // Nombre de mensualités
       installmentPrice: 58,  // Prix par mensualité
     },
+    neuroIa: {
+      priceOriginal: 297,    // Prix barré (valeur originale)
+      pricePromo: 117,       // Prix promo en une fois
+      installmentCount: 3,   // Nombre de mensualités
+      installmentPrice: 42,  // Prix par mensualité
+    },
   },
 };
