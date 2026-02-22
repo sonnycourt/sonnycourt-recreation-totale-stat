@@ -68,10 +68,11 @@ export const promo = {
       installmentPrice: 42,  // Prix par mensualité
     },
     systemeViral: {
-      priceOriginal: 3000,   // Prix barré
+      priceOriginal: 3997,   // Prix barré
       pricePromo: 1597,      // Prix promo en une fois
       installmentCount: 6,   // Nombre de mensualités
       installmentPrice: 293, // Prix par mensualité
+      badgeText: "PROMO FB 1 MILLION -60%", // Texte du badge prix
     },
   },
 };
