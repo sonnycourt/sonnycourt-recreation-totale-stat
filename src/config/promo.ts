@@ -15,19 +15,19 @@ export const promo = {
   active: true,
 
   // Nom affiché (ex: "St-Valentin", "Offre du Weekend", "Offre Spéciale")
-  name: "St-Valentin",
+  name: "1 Million Facebook",
 
   // Emoji affiché à côté du nom
-  emoji: "❤️",
+  emoji: "🏆",
 
   // Pourcentage de réduction affiché
-  discount: 50,
+  discount: 60,
 
   // Date/heure de fin de la promo (format: YYYY-MM-DDTHH:MM:SS)
-  deadline: "2026-02-15T23:59:00",
+  deadline: "2026-02-25T23:00:00",
 
   // Texte du badge sur les pages de vente (ex: "OFFRE ST-VALENTIN -50%")
-  badgeText: "OFFRE ST-VALENTIN -50%",
+  badgeText: "1 MILLION FACEBOOK -60%",
 
   // Texte court pour le banner (ex: "sur toutes les formations")
   bannerMessage: "sur toutes les formations",
@@ -39,5 +39,5 @@ export const promo = {
   // purple → Violet/bleu (spirituel, premium, mystère)
   // gold   → Or/noir (luxe, exclusif, Black Friday)
   // green  → Vert/émeraude (nouveau départ, printemps, succès)
-  theme: "red" as "red" | "purple" | "gold" | "green",
+  theme: "gold" as "red" | "purple" | "gold" | "green",
 };
