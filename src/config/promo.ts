@@ -78,7 +78,7 @@ export const promo = {
         label: "🏆 1 MILLION FACEBOOK",           // Ligne du haut
         highlight: "-60% sur la formation complète", // Texte principal
         btnText: "Rejoindre Système Viral →",       // Texte du bouton
-        checkoutUrl: "https://systemeviral.spiffy.co/checkout/systeme-viral?code=FB1MILLION#pop",
+        checkoutUrl: "https://sonnycourt.spiffy.co/checkout/pack-complet#pop",
       },
     },
   },
