@@ -4,7 +4,7 @@
 // Pour changer la promo de la semaine :
 // 1. Modifie les valeurs ci-dessous
 // 2. Push sur main
-// 3. Envoie tes emails avec les liens /formations-promo/ ou ?preview=promo
+// 3. Envoie tes emails avec les liens /formations-promo/ ou /offre-speciale-promo/ (systemeviral.com)
 //
 // Pour désactiver : mets active à false
 // Pour préparer en avance : change tout mais garde active à false
@@ -73,12 +73,11 @@ export const promo = {
       installmentCount: 6,   // Nombre de mensualités
       installmentPrice: 293, // Prix par mensualité
       badgeText: "PROMO FB 1 MILLION -60%", // Texte du badge prix
-      // Banner spécifique Système Viral
+      // Banner spécifique Système Viral (affiché sur /offre-speciale-promo/)
       banner: {
         label: "🏆 1 MILLION FACEBOOK",           // Ligne du haut
         highlight: "-60% sur la formation complète", // Texte principal
         btnText: "Rejoindre Système Viral →",       // Texte du bouton
-        checkoutUrl: "https://systemeviral.spiffy.co/checkout/systeme-viral?code=FB1MILLION#pop",
       },
     },
   },
