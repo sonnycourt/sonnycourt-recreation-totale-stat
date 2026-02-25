@@ -323,6 +323,7 @@ import Layout from '../layouts/Layout.astro';
         <div class="status" id="status"></div>
 
         <audio id="inspireAudio" preload="auto" src="https://sonnycourt-videos-public.b-cdn.net/Inspire_sonny.mp3"></audio>
+        <audio id="bowlAudio" preload="auto" src="https://sonnycourt-videos-public.b-cdn.net/alex_jauk-zen-tone-high-202554.mp3"></audio>
     </div>
 
     <script>
@@ -337,6 +338,7 @@ import Layout from '../layouts/Layout.astro';
     const status = document.getElementById('status');
     const particles = document.getElementById('particles');
     const inspireAudio = document.getElementById('inspireAudio');
+    const bowlAudio = document.getElementById('bowlAudio');
     const defaultTitle = document.title;
 
     let running = false;
@@ -381,7 +383,9 @@ import Layout from '../layouts/Layout.astro';
 
     function applyVolumeFromSlider() {
         const volumePercent = parseInt(volumeSlider.value, 10);
-        inspireAudio.volume = volumePercent / 100;
+        const normalizedVolume = volumePercent >= 100 ? 0.99 : volumePercent / 100;
+        inspireAudio.volume = normalizedVolume;
+        bowlAudio.volume = normalizedVolume;
         volumeValue.textContent = volumePercent + '%';
     }
 
@@ -395,6 +399,11 @@ import Layout from '../layouts/Layout.astro';
         inspireAudio.play().catch(() => {});
     }
 
+    function playSingingBowl() {
+        bowlAudio.currentTime = 0;
+        bowlAudio.play().catch(() => {});
+    }
+
     function trigger() {
         circle.classList.remove('idle-pulse');
         circle.classList.remove('pulse');
@@ -406,7 +415,10 @@ import Layout from '../layouts/Layout.astro';
         breathCount++;
         countValue.textContent = breathCount;
 
-        playAudio();
+        playSingingBowl();
+        setTimeout(() => {
+            playAudio();
+        }, 180);
 
         setTimeout(() => {
             circle.classList.remove('pulse');
