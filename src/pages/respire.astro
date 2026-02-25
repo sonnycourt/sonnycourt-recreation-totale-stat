@@ -1,0 +1,476 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Inspire — N'oublie pas de respirer" description="Un outil simple qui te rappelle de respirer pendant que tu travailles.">
+    <style>
+        .respire-page {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #060a14;
+            color: #e0e4ed;
+            min-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+            padding: 48px 16px 80px;
+            position: relative;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 40px;
+            max-width: 760px;
+            padding: 0 12px;
+        }
+
+        .tool-header h1 {
+            font-size: clamp(44px, 8vw, 72px);
+            font-weight: 700;
+            line-height: 0.98;
+            margin-bottom: 18px;
+            letter-spacing: -0.04em;
+            background: linear-gradient(180deg, #FFFFFF 0%, #636366 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+        }
+
+        .tool-header p {
+            font-size: 20px;
+            font-weight: 400;
+            color: #8E8E93;
+            line-height: 1.4;
+            letter-spacing: -0.01em;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .tool-header h1 {
+                font-size: 42px;
+                line-height: 1.1;
+                margin-bottom: 16px;
+            }
+
+            .tool-header p {
+                font-size: 18px;
+                padding: 0 6px;
+            }
+        }
+
+        .circle-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin-bottom: 48px;
+        }
+
+        .circle {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 70%);
+            box-shadow: 0 0 60px rgba(59, 130, 246, 0.1);
+            transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+        }
+
+        .circle.pulse {
+            animation: breathePulse 4s ease-in-out;
+        }
+
+        @keyframes breathePulse {
+            0%   { transform: scale(0.6); opacity: 0.3; box-shadow: 0 0 30px rgba(59, 130, 246, 0.1); }
+            40%  { transform: scale(1.15); opacity: 0.9; box-shadow: 0 0 80px rgba(59, 130, 246, 0.3); }
+            100% { transform: scale(0.6); opacity: 0.3; box-shadow: 0 0 30px rgba(59, 130, 246, 0.1); }
+        }
+
+        .circle.idle-pulse {
+            animation: idlePulse 4s ease-in-out infinite;
+        }
+
+        @keyframes idlePulse {
+            0%   { transform: scale(0.92); opacity: 0.4; box-shadow: 0 0 40px rgba(59, 130, 246, 0.08); }
+            50%  { transform: scale(1.0); opacity: 0.6; box-shadow: 0 0 50px rgba(59, 130, 246, 0.15); }
+            100% { transform: scale(0.92); opacity: 0.4; box-shadow: 0 0 40px rgba(59, 130, 246, 0.08); }
+        }
+
+        .circle-ring {
+            position: absolute;
+            inset: 20px;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            transition: border-color 0.6s;
+        }
+
+        .circle-ring.active {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .word {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: 600;
+            letter-spacing: 6px;
+            color: rgba(59, 130, 246, 0);
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+        .word.visible {
+            animation: fadeWord 3.5s ease-in-out;
+        }
+
+        @keyframes fadeWord {
+            0%   { color: rgba(59, 130, 246, 0); text-shadow: 0 0 20px transparent; }
+            20%  { color: rgba(255, 255, 255, 0.95); text-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+            70%  { color: rgba(255, 255, 255, 0.95); text-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+            100% { color: rgba(59, 130, 246, 0); text-shadow: 0 0 20px transparent; }
+        }
+
+        .counter {
+            font-size: 13px;
+            color: #4a5568;
+            letter-spacing: 1px;
+            margin-bottom: 28px;
+            opacity: 0;
+            transition: opacity 0.6s;
+        }
+
+        .counter.visible {
+            opacity: 1;
+        }
+
+        .counter span {
+            color: #8bb5f8;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .btn {
+            width: 180px;
+            padding: 14px 0;
+            border: none;
+            border-radius: 12px;
+            background: #3b82f6;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.3), 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:hover {
+            background: #4b8df8;
+            box-shadow: 0 0 35px rgba(59, 130, 246, 0.45), 0 4px 20px rgba(0, 0, 0, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: transparent;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #8bb5f8;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn.active:hover {
+            border-color: rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.25);
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .slider-group:hover { opacity: 1; }
+
+        .slider-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #8E8E93;
+        }
+
+        .slider-value {
+            font-size: 13px;
+            color: #8bb5f8;
+            font-variant-numeric: tabular-nums;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 200px;
+            height: 2px;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .status {
+            position: fixed;
+            bottom: 24px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #2a3a52;
+        }
+
+        .particles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(59, 130, 246, 0.12);
+            border-radius: 50%;
+            animation: drift linear infinite;
+        }
+
+        @keyframes drift {
+            from { transform: translateY(100vh); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            to   { transform: translateY(-20px); opacity: 0; }
+        }
+
+        :global(body) {
+            background: #060a14;
+        }
+
+        :global(footer) {
+            margin-top: 0;
+        }
+    </style>
+
+    <div class="respire-page">
+        <div class="particles" id="particles"></div>
+
+        <div class="tool-header">
+            <h1>N'oublie pas de respirer.</h1>
+            <p>Lance l'outil, travaille normalement. À intervalles aléatoires, une voix te rappelle de prendre une grande inspiration. C'est tout.</p>
+        </div>
+
+        <div class="circle-container">
+            <div class="circle" id="circle"></div>
+            <div class="circle-ring"></div>
+            <div class="word" id="word">Inspire</div>
+        </div>
+
+        <div class="counter" id="counter"><span id="countValue">0</span> inspiration(s) profonde(s)</div>
+
+        <div class="controls">
+            <button class="btn" id="toggleBtn">Commencer</button>
+
+            <div class="slider-group">
+                <span class="slider-label">Fréquence moyenne</span>
+                <input type="range" id="freqSlider" min="1" max="15" value="5" step="0.5">
+                <span class="slider-value" id="freqValue">5 min</span>
+            </div>
+
+            <div class="slider-group">
+                <span class="slider-label">Volume</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="80" step="1">
+                <span class="slider-value" id="volumeValue">80%</span>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <audio id="inspireAudio" preload="auto" src="https://sonnycourt-videos-public.b-cdn.net/Inspire_sonny.mp3"></audio>
+    </div>
+
+    <script>
+    // @ts-nocheck
+    const toggleBtn = document.getElementById('toggleBtn');
+    const freqSlider = document.getElementById('freqSlider');
+    const freqValue = document.getElementById('freqValue');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeValue = document.getElementById('volumeValue');
+    const circle = document.getElementById('circle');
+    const word = document.getElementById('word');
+    const status = document.getElementById('status');
+    const particles = document.getElementById('particles');
+    const inspireAudio = document.getElementById('inspireAudio');
+    const defaultTitle = document.title;
+
+    let running = false;
+    let timeout = null;
+    let breathCount = 0;
+    const counter = document.getElementById('counter');
+    const countValue = document.getElementById('countValue');
+    const faviconLink = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+    const defaultFaviconHref = faviconLink ? faviconLink.getAttribute('href') : '/favicon.svg';
+    const runningFaviconHref = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="g" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#2563eb"/></radialGradient></defs><rect width="64" height="64" rx="14" fill="#020617"/><circle cx="32" cy="32" r="17" fill="url(#g)"/><circle cx="26" cy="26" r="5" fill="#bfdbfe" opacity="0.85"/></svg>'
+    );
+
+    function setFavicon(href) {
+        let link = document.querySelector('link[rel="icon"]');
+        if (!link) {
+            link = document.createElement('link');
+            link.setAttribute('rel', 'icon');
+            document.head.appendChild(link);
+        }
+        link.setAttribute('href', href);
+    }
+
+    function setRunningTabState(isRunning) {
+        setFavicon(isRunning ? runningFaviconHref : defaultFaviconHref);
+        document.title = isRunning ? 'Inspire — N\'oublie pas de respirer' : defaultTitle;
+    }
+
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (12 + Math.random() * 20) + 's';
+        p.style.animationDelay = (-Math.random() * 30) + 's';
+        p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+        particles.appendChild(p);
+    }
+
+    freqSlider.addEventListener('input', () => {
+        freqValue.textContent = freqSlider.value + ' min';
+    });
+
+    function applyVolumeFromSlider() {
+        const volumePercent = parseInt(volumeSlider.value, 10);
+        inspireAudio.volume = volumePercent / 100;
+        volumeValue.textContent = volumePercent + '%';
+    }
+
+    applyVolumeFromSlider();
+    volumeSlider.addEventListener('input', () => {
+        applyVolumeFromSlider();
+    });
+
+    function playAudio() {
+        inspireAudio.currentTime = 0;
+        inspireAudio.play().catch(() => {});
+    }
+
+    function trigger() {
+        circle.classList.remove('idle-pulse');
+        circle.classList.remove('pulse');
+        word.classList.remove('visible');
+        void circle.offsetWidth;
+        circle.classList.add('pulse');
+        word.classList.add('visible');
+
+        breathCount++;
+        countValue.textContent = breathCount;
+
+        playAudio();
+
+        setTimeout(() => {
+            circle.classList.remove('pulse');
+            word.classList.remove('visible');
+            if (running) circle.classList.add('idle-pulse');
+        }, 4000);
+    }
+
+    function nextInterval() {
+        const avg = parseFloat(freqSlider.value);
+        const min = avg * 0.5;
+        const max = avg * 1.5;
+        const minutes = min + Math.random() * (max - min);
+        return minutes * 60 * 1000;
+    }
+
+    function scheduleNext() {
+        if (!running) return;
+        const delay = nextInterval();
+        const mins = Math.round(delay / 60000 * 10) / 10;
+        status.textContent = 'prochain rappel dans ~' + mins + ' min';
+
+        timeout = setTimeout(() => {
+            if (!running) return;
+            trigger();
+            scheduleNext();
+        }, delay);
+    }
+
+    const ring = document.querySelector('.circle-ring');
+
+    function start() {
+        running = true;
+        setRunningTabState(true);
+        toggleBtn.textContent = 'Arrêter';
+        toggleBtn.classList.add('active');
+        circle.classList.add('idle-pulse');
+        ring.classList.add('active');
+        breathCount = 0;
+        countValue.textContent = '0';
+        counter.classList.add('visible');
+
+        timeout = setTimeout(() => {
+            if (!running) return;
+            trigger();
+            scheduleNext();
+        }, 3000);
+        status.textContent = 'premier rappel dans 3 sec...';
+    }
+
+    function stop() {
+        running = false;
+        setRunningTabState(false);
+        clearTimeout(timeout);
+        toggleBtn.textContent = 'Commencer';
+        toggleBtn.classList.remove('active');
+        circle.classList.remove('idle-pulse');
+        ring.classList.remove('active');
+        counter.classList.remove('visible');
+        status.textContent = '';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (running) stop(); else start();
+    });
+    </script>
+</Layout>
