@@ -1,12 +1,28 @@
 ---
-import { promo } from '../config/promo';
+import { getPromoBannerMessage, getPromoLabel, isPromoActiveFor, promo } from '../config/promo';
+import type { PromoFormationKey } from '../config/promo';
 
 interface Props {
   forceShow?: boolean;
+  formation?: PromoFormationKey;
 }
-const { forceShow = false } = Astro.props;
+const { forceShow = false, formation } = Astro.props;
 const url = Astro.url;
-const isPromo = promo.active && (forceShow || url.searchParams.get('preview') === 'promo');
+const isPreviewMode = forceShow || url.searchParams.get('preview') === 'promo';
+const isFormationInScope = formation ? isPromoActiveFor(formation) : promo.active;
+const isPromo = isPreviewMode && isFormationInScope;
+const promoLabel = getPromoLabel();
+const promoMessage = getPromoBannerMessage();
+
+const promoLandingByFormation: Record<PromoFormationKey, string> = {
+  manifest: '/manifest/?preview=promo',
+  espritSubconscient: '/esprit-subconscient/?preview=promo',
+  ssrLancement: '/ssr-lancement/?preview=promo',
+  neuroIa: '/neuro-ia/?preview=promo',
+  systemeViral: 'https://systemeviral.com/offre-speciale-promo/',
+};
+const ctaHref = promo.mode === 'single' ? promoLandingByFormation[promo.targetFormation] : '/pack-complet-promo/';
+const ctaText = promo.mode === 'single' ? `Offre ${promo.targetFormation === 'ssrLancement' ? 'SSR' : promo.targetFormation === 'espritSubconscient' ? 'Esprit' : promo.targetFormation === 'neuroIa' ? 'Neuro IA' : promo.targetFormation === 'systemeViral' ? 'Système Viral' : 'Manifest'}` : 'Offre Pack Complet';
 
 const themes = {
   red: {
@@ -42,10 +58,10 @@ const t = themes[promo.theme] || themes.red;
 <div id="promo-banner" data-deadline={promo.deadline} style={`position: fixed; top: 0; left: 0; right: 0; width: 100%; background: ${t.bg}; border-bottom: 1px solid rgba(255, 255, 255, 0.08); min-height: 64px; z-index: 99999; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;`}>
   <div style="max-width: 1400px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; justify-content: center;">
     <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; align-items: flex-start; text-align: left;">
-      <span style="font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.85); font-weight: 700;">{promo.emoji} {promo.name}</span>
+      <span style="font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.85); font-weight: 700;">{promoLabel}</span>
       <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; color: #fff;">
         <span style={`font-size: 36px; font-weight: 900; line-height: 1; color: transparent; background: ${t.accent}; -webkit-background-clip: text; background-clip: text;`}>-{promo.discount}%</span>
-        <span style="font-size: 28px; font-weight: 900; line-height: 1.05; color: rgba(255, 255, 255, 0.95);">{promo.bannerMessage}</span>
+        <span style="font-size: 28px; font-weight: 900; line-height: 1.05; color: rgba(255, 255, 255, 0.95);">{promoMessage}</span>
       </div>
     </div>
     <div id="promo-countdown" style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.15); border-radius: 999px; padding: 6px 16px; color: #fff;">
@@ -70,7 +86,7 @@ const t = themes[promo.theme] || themes.red;
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <a href="/pack-complet-promo/" style={`background: ${t.btn}; color: ${t.btnText}; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap;`}>Offre Pack Complet</a>
+      <a href={ctaHref} style={`background: ${t.btn}; color: ${t.btnText}; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap;`}>{ctaText}</a>
     </div>
   </div>
 </div>

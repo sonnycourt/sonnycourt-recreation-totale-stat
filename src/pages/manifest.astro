@@ -2,7 +2,7 @@
 import BlackFridayBanner from '../components/BlackFridayBanner.astro';
 import GAConsentMode from '../components/GAConsentMode.astro';
 import PromoBanner from '../components/PromoBanner.astro';
-import { promo } from '../config/promo';
+import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo } from '../config/promo';
 ---
 
 <html lang="fr">
@@ -57,11 +57,14 @@ import { promo } from '../config/promo';
     <!-- End Spiffy Integration -->
 </head>
 <body>
-    <PromoBanner />
+    <PromoBanner formation="manifest" />
     <div id="promo-config"
       data-deadline={promo.deadline}
       data-badge={promo.badgeText}
-      data-active={promo.active.toString()}
+      data-active={isPromoActiveFor('manifest').toString()}
+      data-promo-label={getPromoLabel()}
+      data-banner-message={getPromoBannerMessage()}
+      data-checkout-code={getPromoCheckoutCode('manifest')}
       data-price-original={promo.formations.manifest.priceOriginal}
       data-price-promo={promo.formations.manifest.pricePromo}
       data-installment-count={promo.formations.manifest.installmentCount}
@@ -6941,7 +6944,15 @@ import { promo } from '../config/promo';
         return;
       }
 
-      document.querySelectorAll('a[href*="spiffy.co/checkout/manifest"]').forEach(function(el) { el.setAttribute('href', 'https://sonnycourt.spiffy.co/checkout/manifest?code=FB1MILLION#pop'); });
+      var checkoutCode = promoConfig.dataset.checkoutCode || '';
+      var promoLabel = promoConfig.dataset.promoLabel || '';
+      var bannerMessage = promoConfig.dataset.bannerMessage || 'sur toutes les formations';
+      var checkoutBase = 'https://sonnycourt.spiffy.co/checkout/manifest#pop';
+      var promoCheckout = checkoutBase;
+      if (checkoutCode) {
+        promoCheckout = checkoutBase.replace('#pop', '?code=' + encodeURIComponent(checkoutCode) + '#pop');
+      }
+      document.querySelectorAll('a[href*="spiffy.co/checkout/manifest"]').forEach(function(el) { el.setAttribute('href', promoCheckout); });
 
       // Remplacer les prix
       var priceOriginal = promoConfig.dataset.priceOriginal;
@@ -6967,10 +6978,10 @@ import { promo } from '../config/promo';
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;width:100%;background:' + t.bg + ';border-bottom:1px solid rgba(255,255,255,0.08);min-height:64px;z-index:99999;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;';
       banner.innerHTML = '<div style="max-width:1400px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center;">' +
         '<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;align-items:flex-start;text-align:left;">' +
-          '<span style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.85);font-weight:700;">🏆 1 Million Facebook</span>' +
+          '<span style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.85);font-weight:700;">' + promoLabel + '</span>' +
           '<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;color:#fff;">' +
             '<span id="promo-banner-discount" style="font-size:36px;font-weight:900;line-height:1;color:transparent;background:' + t.accent + ';-webkit-background-clip:text;background-clip:text;"></span>' +
-            '<span style="font-size:28px;font-weight:900;line-height:1.05;color:rgba(255,255,255,0.95);">sur toutes les formations</span>' +
+            '<span style="font-size:28px;font-weight:900;line-height:1.05;color:rgba(255,255,255,0.95);">' + bannerMessage + '</span>' +
           '</div>' +
         '</div>' +
         '<div id="promo-banner-countdown" style="display:flex;align-items:center;gap:12px;background:rgba(0,0,0,0.15);border-radius:999px;padding:6px 16px;color:#fff;">' +

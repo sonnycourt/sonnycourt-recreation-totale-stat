@@ -2,83 +2,118 @@
 // CONFIGURATION PROMO HEBDOMADAIRE
 // ============================================
 // Pour changer la promo de la semaine :
-// 1. Modifie les valeurs ci-dessous
-// 2. Push sur main
-// 3. Envoie tes emails avec les liens /formations-promo/ ou /offre-speciale-promo/ (systemeviral.com)
-//
-// Pour désactiver : mets active à false
-// Pour préparer en avance : change tout mais garde active à false
+// 1) Active/désactive la promo
+// 2) Choisis la portée :
+//    - mode: "all"    => promo sur toutes les formations
+//    - mode: "single" => promo uniquement sur targetFormation
+// 3) Ajuste les prix/codes checkout dans formations
 // ============================================
 
+export type PromoTheme = "red" | "purple" | "gold" | "green";
+export type PromoMode = "all" | "single";
+export type PromoFormationKey =
+  | "manifest"
+  | "espritSubconscient"
+  | "ssrLancement"
+  | "neuroIa"
+  | "systemeViral";
+
+const formationLabels: Record<PromoFormationKey, string> = {
+  manifest: "Manifest",
+  espritSubconscient: "Esprit Subconscient",
+  ssrLancement: "Système Souhaits Réalisés",
+  neuroIa: "Neuro IA",
+  systemeViral: "Système Viral",
+};
+
 export const promo = {
-  // Est-ce que la promo est active ?
+  // Active/désactive toute la mécanique promo
   active: true,
 
-  // Nom affiché (ex: "St-Valentin", "Offre du Weekend", "Offre Spéciale")
-  name: "1 Million Facebook",
+  // Portée de la promo : "all" (toutes) ou "single" (une seule)
+  mode: "single" as PromoMode,
+  targetFormation: "manifest" as PromoFormationKey,
 
-  // Emoji affiché à côté du nom
-  emoji: "🏆",
-
-  // Pourcentage de réduction affiché
+  // Nom affiché
+  name: "Mimi & Juju",
+  emoji: "🤍",
   discount: 60,
 
-  // Date/heure de fin de la promo (format: YYYY-MM-DDTHH:MM:SS)
-  deadline: "2026-02-25T23:00:00",
+  // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS)
+  deadline: "2026-03-04T23:00:00",
 
-  // Texte du badge sur les pages de vente (ex: "OFFRE ST-VALENTIN -50%")
-  badgeText: "1 MILLION FACEBOOK -60%",
-
-  // Texte court pour le banner (ex: "sur toutes les formations")
+  // Textes affichés
+  badgeText: "EN LEUR MÉMOIRE -60%",
   bannerMessage: "sur toutes les formations",
+  singleBannerMessage: "sur Manifest",
 
   // Thème couleur du banner
-  // Options : "red" | "purple" | "gold" | "green"
-  //
-  // red    → Rouge/rose (St-Valentin, urgence, flash)
-  // purple → Violet/bleu (spirituel, premium, mystère)
-  // gold   → Or/noir (luxe, exclusif, Black Friday)
-  // green  → Vert/émeraude (nouveau départ, printemps, succès)
-  theme: "gold" as "red" | "purple" | "gold" | "green",
+  theme: "purple" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
   formations: {
     manifest: {
-      priceOriginal: 497,    // Prix barré
-      pricePromo: 197,       // Prix promo en une fois
-      installmentCount: 3,   // Nombre de mensualités
-      installmentPrice: 69,  // Prix par mensualité
+      priceOriginal: 497,
+      pricePromo: 199,
+      installmentCount: 3,
+      installmentPrice: 69,
+      checkoutCode: "MIMIJUJU",
     },
     espritSubconscient: {
-      priceOriginal: 297,    // Prix barré
-      pricePromo: 117,       // Prix promo en une fois
-      installmentCount: 3,   // Nombre de mensualités
-      installmentPrice: 45,  // Prix par mensualité
+      priceOriginal: 297,
+      pricePromo: 117,
+      installmentCount: 3,
+      installmentPrice: 45,
+      checkoutCode: "FB1MILLION",
     },
     ssrLancement: {
-      priceOriginal: 397,    // Prix barré
-      pricePromo: 157,       // Prix promo en une fois
-      installmentCount: 3,   // Nombre de mensualités
-      installmentPrice: 58,  // Prix par mensualité
+      priceOriginal: 397,
+      pricePromo: 157,
+      installmentCount: 3,
+      installmentPrice: 58,
+      checkoutCode: "FB1MILLION",
     },
     neuroIa: {
-      priceOriginal: 297,    // Prix barré (valeur originale)
-      pricePromo: 117,       // Prix promo en une fois
-      installmentCount: 3,   // Nombre de mensualités
-      installmentPrice: 42,  // Prix par mensualité
+      priceOriginal: 297,
+      pricePromo: 117,
+      installmentCount: 3,
+      installmentPrice: 42,
+      checkoutCode: "FB1MILLION",
     },
     systemeViral: {
-      priceOriginal: 3997,   // Prix barré
-      pricePromo: 1597,      // Prix promo en une fois
-      installmentCount: 6,   // Nombre de mensualités
-      installmentPrice: 293, // Prix par mensualité
-      badgeText: "PROMO FB 1 MILLION -60%", // Texte du badge prix
-      // Banner spécifique Système Viral (affiché sur /offre-speciale-promo/)
+      priceOriginal: 3997,
+      pricePromo: 1597,
+      installmentCount: 6,
+      installmentPrice: 293,
+      checkoutCode: "FB1MILLION",
+      badgeText: "PROMO FB 1 MILLION -60%",
       banner: {
-        label: "🏆 1 MILLION FACEBOOK",           // Ligne du haut
-        highlight: "-60% sur la formation complète", // Texte principal
-        btnText: "Rejoindre Système Viral →",       // Texte du bouton
+        label: "🏆 1 MILLION FACEBOOK",
+        highlight: "-60% sur la formation complète",
+        btnText: "Rejoindre Système Viral →",
       },
     },
   },
 };
+
+export function isPromoActiveFor(formation: PromoFormationKey): boolean {
+  if (!promo.active) return false;
+  if (promo.mode === "all") return true;
+  return promo.targetFormation === formation;
+}
+
+export function getPromoBannerMessage(): string {
+  if (promo.mode === "single") {
+    return promo.singleBannerMessage || `sur ${formationLabels[promo.targetFormation]}`;
+  }
+  return promo.bannerMessage;
+}
+
+export function getPromoLabel(): string {
+  return `${promo.emoji} ${promo.name}`;
+}
+
+export function getPromoCheckoutCode(formation: PromoFormationKey): string {
+  if (!isPromoActiveFor(formation)) return "";
+  return promo.formations[formation].checkoutCode || "";
+}
