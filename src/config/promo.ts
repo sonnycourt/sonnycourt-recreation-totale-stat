@@ -41,6 +41,8 @@ export const promo = {
 
   // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS)
   deadline: "2026-03-04T23:00:00",
+  // Date/heure de début de la promo (utilisée pour la descente globale des places sur Manifest)
+  start: "2026-03-01T00:00:00",
 
   // Textes affichés
   badgeText: "EN LEUR MÉMOIRE -60%",

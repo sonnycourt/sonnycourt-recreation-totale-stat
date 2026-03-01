@@ -59,6 +59,7 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
 <body>
     <PromoBanner formation="manifest" />
     <div id="promo-config"
+      data-start={promo.start}
       data-deadline={promo.deadline}
       data-badge={promo.badgeText}
       data-active={isPromoActiveFor('manifest').toString()}
@@ -5797,28 +5798,34 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
                     return;
                 }
 
-                // Mode preview promo : places descendent de 5 à 0 jusqu'à la deadline config
+                // Mode preview promo : descente globale de 27 à 0 entre start et deadline
                 if (previewMode === 'promo') {
                     const promoConfig = document.getElementById('promo-config');
+                    const promoStart = promoConfig ? new Date(promoConfig.dataset.start || '').getTime() : 0;
                     const promoDeadline = promoConfig ? new Date(promoConfig.dataset.deadline).getTime() : 0;
                     const promoBadge = promoConfig ? promoConfig.dataset.badge : '';
                     const promoActive = promoConfig ? promoConfig.dataset.active === 'true' : false;
 
-                    if (!promoActive || !promoDeadline || Date.now() >= promoDeadline) {
+                    if (!promoActive || !promoStart || !promoDeadline || promoStart >= promoDeadline) {
                         window.location.href = '/fin-promo/';
                         return;
                     }
 
-                    const promoStart = Date.now();
+                    if (Date.now() >= promoDeadline) {
+                        window.location.href = '/fin-promo/';
+                        return;
+                    }
+
                     const promoDuration = promoDeadline - promoStart;
-                    const promoMaxPlaces = 5;
+                    const promoMaxPlaces = 27;
 
                     const calcPromoPlaces = () => {
                         const now = Date.now();
+                        if (now <= promoStart) return promoMaxPlaces;
                         if (now >= promoDeadline) return 0;
-                        const remaining = promoDeadline - now;
-                        const ratio = remaining / Math.max(promoDuration, 1);
-                        return Math.max(0, Math.ceil(ratio * promoMaxPlaces));
+                        const elapsed = now - promoStart;
+                        const ratioElapsed = elapsed / Math.max(promoDuration, 1);
+                        return Math.max(0, Math.ceil((1 - ratioElapsed) * promoMaxPlaces));
                     };
 
                     this.placesRemaining = calcPromoPlaces();
@@ -6944,14 +6951,9 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
         return;
       }
 
-      var checkoutCode = promoConfig.dataset.checkoutCode || '';
       var promoLabel = promoConfig.dataset.promoLabel || '';
       var bannerMessage = promoConfig.dataset.bannerMessage || 'sur toutes les formations';
-      var checkoutBase = 'https://sonnycourt.spiffy.co/checkout/manifest#pop';
-      var promoCheckout = checkoutBase;
-      if (checkoutCode) {
-        promoCheckout = checkoutBase.replace('#pop', '?code=' + encodeURIComponent(checkoutCode) + '#pop');
-      }
+      var promoCheckout = 'https://sonnycourt.spiffy.co/checkout/manifest?code=PROMO60';
       document.querySelectorAll('a[href*="spiffy.co/checkout/manifest"]').forEach(function(el) { el.setAttribute('href', promoCheckout); });
 
       // Remplacer les prix
