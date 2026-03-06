@@ -1,0 +1,293 @@
+---
+const videos = [
+  { id: "/video-manifest/", label: "Manifest" },
+  { id: "/es-video/", label: "Esprit Subconscient" },
+  { id: "/systeme-souhaits-realises-video/", label: "Systeme Souhaits Realises" },
+  { id: "/ssr-cadeau/", label: "SSR Cadeau" },
+];
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Retention</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #09090b;
+        color: #f4f4f5;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 1.7rem;
+      }
+      .card {
+        background: #121216;
+        border: 1px solid #27272a;
+        border-radius: 14px;
+        padding: 18px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      label {
+        font-size: 0.95rem;
+        color: #d4d4d8;
+      }
+      select,
+      input,
+      button {
+        border-radius: 10px;
+        border: 1px solid #3f3f46;
+        background: #18181b;
+        color: #f4f4f5;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #6366f1;
+      }
+      .hidden {
+        display: none;
+      }
+      .error {
+        color: #fda4af;
+        margin-top: 10px;
+        min-height: 20px;
+      }
+      .meta {
+        color: #a1a1aa;
+        font-size: 0.92rem;
+        margin-top: 10px;
+      }
+      #chartWrap {
+        margin-top: 16px;
+        height: 420px;
+      }
+      #logoutBtn {
+        margin-left: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Retention videos</h1>
+
+      <section id="loginCard" class="card hidden">
+        <form id="loginForm">
+          <div class="row">
+            <label for="password">Mot de passe dashboard</label>
+            <input id="password" name="password" type="password" required />
+            <button type="submit">Entrer</button>
+          </div>
+          <p id="loginError" class="error"></p>
+        </form>
+      </section>
+
+      <section id="dashboardCard" class="card hidden">
+        <div class="row">
+          <label for="videoSelect">Video</label>
+          <select id="videoSelect">
+            {videos.map((video) => (
+              <option value={video.id}>{video.label}</option>
+            ))}
+          </select>
+          <button id="refreshBtn" type="button">Rafraichir</button>
+          <button id="logoutBtn" type="button">Se deconnecter</button>
+        </div>
+
+        <p id="metaText" class="meta"></p>
+        <p id="dataError" class="error"></p>
+        <div id="chartWrap">
+          <canvas id="retentionChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // @ts-nocheck
+      const loginCard = document.getElementById("loginCard");
+      const dashboardCard = document.getElementById("dashboardCard");
+      const loginForm = document.getElementById("loginForm");
+      const loginError = document.getElementById("loginError");
+      const dataError = document.getElementById("dataError");
+      const metaText = document.getElementById("metaText");
+      const videoSelect = document.getElementById("videoSelect");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      let chart;
+
+      function showLogin() {
+        loginCard.classList.remove("hidden");
+        dashboardCard.classList.add("hidden");
+      }
+
+      function showDashboard() {
+        dashboardCard.classList.remove("hidden");
+        loginCard.classList.add("hidden");
+      }
+
+      function renderChart(points, label) {
+        const ctx = document.getElementById("retentionChart");
+        const labels = points.map((p) => p.second);
+        const data = points.map((p) => p.retention_percent);
+
+        if (chart) {
+          chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label,
+                data,
+                borderColor: "#6366f1",
+                backgroundColor: "rgba(99, 102, 241, 0.16)",
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.18,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.parsed.y}%`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: "Secondes" },
+              },
+              y: {
+                title: { display: true, text: "% presents" },
+                min: 0,
+                max: 100,
+              },
+            },
+          },
+        });
+      }
+
+      async function loadRetentionData() {
+        dataError.textContent = "";
+        const videoId = videoSelect.value;
+        const response = await fetch(`/api/retention-data?video_id=${encodeURIComponent(videoId)}`, {
+          credentials: "same-origin",
+        });
+
+        if (response.status === 401) {
+          showLogin();
+          return;
+        }
+
+        if (!response.ok) {
+          dataError.textContent = "Impossible de charger les donnees.";
+          return;
+        }
+
+        const payload = await response.json();
+        const selectedLabel =
+          (payload.videos || []).find((v) => v.id === payload.video_id)?.label || payload.video_id;
+
+        metaText.textContent =
+          `Video: ${selectedLabel} | Vues a 0s: ${payload.baseline_views} | Points: ${payload.points.length}`;
+
+        if (!payload.points.length) {
+          dataError.textContent = "Aucune donnee pour cette video pour le moment.";
+          renderChart([{ second: 0, retention_percent: 0 }], selectedLabel);
+          return;
+        }
+
+        renderChart(payload.points, selectedLabel);
+      }
+
+      async function checkAuthAndInit() {
+        const response = await fetch("/api/retention-auth", {
+          method: "GET",
+          credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+          showLogin();
+          return;
+        }
+
+        const payload = await response.json();
+        if (payload.authenticated) {
+          showDashboard();
+          await loadRetentionData();
+        } else {
+          showLogin();
+        }
+      }
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        loginError.textContent = "";
+        const formData = new FormData(loginForm);
+        const password = String(formData.get("password") || "");
+
+        const response = await fetch("/api/retention-auth", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+
+        if (!response.ok) {
+          loginError.textContent = "Mot de passe incorrect.";
+          return;
+        }
+
+        showDashboard();
+        await loadRetentionData();
+      });
+
+      refreshBtn.addEventListener("click", () => {
+        loadRetentionData();
+      });
+
+      videoSelect.addEventListener("change", () => {
+        loadRetentionData();
+      });
+
+      logoutBtn.addEventListener("click", async () => {
+        await fetch("/api/retention-auth", {
+          method: "DELETE",
+          credentials: "same-origin",
+        });
+        showLogin();
+      });
+
+      checkAuthAndInit();
+    </script>
+  </body>
+</html>
