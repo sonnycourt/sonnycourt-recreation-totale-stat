@@ -7,6 +7,7 @@ const ALLOWED_VIDEO_IDS = new Set([
   "/systeme-souhaits-realises-video/",
   "/ssr-cadeau/",
 ]);
+const ALLOWED_VARIANTS = new Set(["original", "nouveau-timer"]);
 
 function jsonResponse(statusCode, body) {
   return {
@@ -59,10 +60,14 @@ exports.handler = async (event) => {
   try {
     const payload = JSON.parse(decodeBody(event) || "{}");
     const videoId = payload.video_id;
+    const variant = typeof payload.variant === "string" ? payload.variant : "original";
     const seconds = sanitizeSeconds(payload.seconds);
 
     if (!ALLOWED_VIDEO_IDS.has(videoId)) {
       return jsonResponse(400, { error: "Invalid video_id" });
+    }
+    if (!ALLOWED_VARIANTS.has(variant)) {
+      return jsonResponse(400, { error: "Invalid variant" });
     }
 
     if (seconds.length === 0) {
@@ -81,6 +86,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         p_video_id: videoId,
         p_seconds: seconds,
+        p_variant: variant,
       }),
     });
 

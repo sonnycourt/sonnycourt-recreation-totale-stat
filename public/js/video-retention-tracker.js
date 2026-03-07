@@ -8,6 +8,7 @@
 
   const pageId = scriptEl.dataset.retentionPageId || window.location.pathname;
   const endpoint = scriptEl.dataset.retentionEndpoint || "/api/video-retention";
+  const variant = scriptEl.dataset.retentionVariant || "original";
   const SESSION_KEY = "video_retention_session_id";
   const sentSecondsStorageKeyPrefix = "video_retention_sent_seconds";
 
@@ -57,6 +58,7 @@
     return {
       video_id: pageId,
       session_id: sessionId,
+      variant,
       seconds,
     };
   }

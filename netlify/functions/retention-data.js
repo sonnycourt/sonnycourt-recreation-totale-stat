@@ -109,6 +109,7 @@ exports.handler = async (event) => {
       `${SUPABASE_URL}/rest/v1/video_retention` +
       `?select=second_watched,views_count` +
       `&video_id=eq.${encodeURIComponent(videoId)}` +
+      `&variant=eq.original` +
       `&order=second_watched.asc`;
 
     const response = await fetch(url, {
