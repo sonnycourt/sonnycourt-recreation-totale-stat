@@ -9,7 +9,7 @@
 // 3) Ajuste les prix/codes checkout dans formations
 // ============================================
 
-export type PromoTheme = "red" | "purple" | "gold" | "green";
+export type PromoTheme = "red" | "purple" | "gold" | "green" | "summer";
 export type PromoMode = "all" | "single";
 export type PromoFormationKey =
   | "manifest"
@@ -31,26 +31,26 @@ export const promo = {
   active: true,
 
   // Portée de la promo : "all" (toutes) ou "single" (une seule)
-  mode: "single" as PromoMode,
+  mode: "all" as PromoMode,
   targetFormation: "manifest" as PromoFormationKey,
 
   // Nom affiché
-  name: "Mimi & Juju",
-  emoji: "🤍",
+  name: "Offre Printemps",
+  emoji: "🌱",
   discount: 60,
 
   // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS)
-  deadline: "2026-03-04T23:00:00",
+  deadline: "2026-03-19T23:59:00",
   // Date/heure de début de la promo (utilisée pour la descente globale des places sur Manifest)
-  start: "2026-03-01T00:00:00",
+  start: "2026-03-17T09:00:00",
 
   // Textes affichés
-  badgeText: "EN LEUR MÉMOIRE -60%",
+  badgeText: "OFFRE PRINTEMPS -60%",
   bannerMessage: "sur toutes les formations",
   singleBannerMessage: "sur Manifest",
 
   // Thème couleur du banner
-  theme: "purple" as PromoTheme,
+  theme: "green" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
   formations: {
