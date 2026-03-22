@@ -1,0 +1,1509 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webinaire Esprit Subconscient 2.0 - Réserve ta place</title>
+    <meta name="description" content="Masterclass gratuite : reprogramme ton subconscient et manifeste la vie de tes rêves. Réserve ta place au prochain webinaire.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --primary-dark: #2563eb;
+            --accent: #93c5fd;
+            --bg-dark: #0a0a1a;
+            --text-white: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.72);
+            --border: rgba(59, 130, 246, 0.35);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+            z-index: -1;
+        }
+
+        .gate-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(180deg, #0a1628 0%, #0a0a1a 100%);
+        }
+
+        .gate-loading.is-hidden {
+            display: none;
+        }
+
+        .gate-spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: gateSpin 0.85s linear infinite;
+        }
+
+        @keyframes gateSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        .gate-loading p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        #gate-blocked {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(180deg, #0a1628 0%, #0a0a1a 100%);
+        }
+
+        #gate-blocked.is-visible {
+            display: flex;
+        }
+
+        .gate-blocked-inner {
+            max-width: 520px;
+            text-align: center;
+        }
+
+        .gate-blocked-inner h1 {
+            font-size: clamp(1.4rem, 4vw, 2rem);
+            margin-bottom: 14px;
+            color: #fff;
+            line-height: 1.25;
+        }
+
+        .gate-blocked-inner p {
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        #page-main {
+            display: none;
+        }
+
+        #page-main.is-visible {
+            display: block;
+        }
+
+        /* TEMP PRÉ-LANCEMENT — retirer avant mise en public */
+        #masterclass-password-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+                linear-gradient(180deg, #0a1628 0%, #0a0a1a 50%, #06060f 100%);
+        }
+
+        #masterclass-password-gate.is-hidden {
+            display: none;
+        }
+
+        .masterclass-pwd-box {
+            width: 100%;
+            max-width: 380px;
+            padding: 28px 22px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .masterclass-pwd-box h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .masterclass-pwd-box .masterclass-pwd-hint {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .masterclass-pwd-box input {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .masterclass-pwd-box input::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .masterclass-pwd-box input:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.65);
+        }
+
+        #masterclass-pwd-submit {
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #fff;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.35);
+        }
+
+        #masterclass-pwd-submit:hover {
+            filter: brightness(1.06);
+        }
+
+        #masterclass-pwd-error {
+            min-height: 1.2em;
+            font-size: 0.85rem;
+            color: #fca5a5;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .form-error {
+            color: #fca5a5;
+            font-size: 0.85rem;
+            margin: -4px 0 10px;
+            min-height: 1.2em;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 44px;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 4vw, 3.1rem);
+            line-height: 1.2;
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subheadline {
+            font-size: clamp(1rem, 1.9vw, 1.2rem);
+            line-height: 1.65;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .next-session {
+            margin-bottom: 16px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .sessions-visual {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+            gap: 10px;
+            max-width: 360px;
+            margin-bottom: 18px;
+        }
+
+        .sessions-visual--one {
+            grid-template-columns: 1fr;
+            max-width: 200px;
+        }
+
+        .session-bubble {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            border-radius: 12px;
+            padding: 10px 10px;
+            text-align: center;
+            transition: all 0.25s ease;
+        }
+
+        .session-day {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .session-hour {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .session-bubble.active {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: none;
+        }
+
+        .countdown {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(64px, 1fr));
+            gap: 10px;
+            margin-bottom: 24px;
+            max-width: 500px;
+        }
+
+        .count-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .count-value {
+            display: block;
+            font-size: clamp(1.25rem, 3vw, 1.8rem);
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .count-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 30px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 10px 35px rgba(59, 130, 246, 0.45);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .image-wrapper {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 80px rgba(59, 130, 246, 0.25);
+            background: rgba(255, 255, 255, 0.03);
+            aspect-ratio: 3 / 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 0;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 26px 20px;
+            margin-top: 18px;
+        }
+
+        .section h2 {
+            font-size: 1.35rem;
+            margin-bottom: 14px;
+            color: var(--accent);
+        }
+
+        .discover-list {
+            list-style: none;
+            display: grid;
+            gap: 10px;
+        }
+
+        .discover-list li {
+            padding-left: 22px;
+            position: relative;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .discover-list li::before {
+            content: "•";
+            position: absolute;
+            left: 4px;
+            top: -1px;
+            color: var(--primary-light);
+        }
+
+        .social-proof {
+            display: grid;
+            gap: 8px;
+            color: var(--text-white);
+            font-weight: 600;
+        }
+
+        .final-cta {
+            margin-top: 26px;
+            text-align: center;
+        }
+
+        .custom-popup {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(9px);
+            z-index: 9999;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .popup-content {
+            position: relative;
+            max-width: 500px;
+            width: calc(100% - 30px);
+            margin: 40px auto;
+            background: linear-gradient(135deg, #1a1a3a 0%, #0a0a1a 100%);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 22px;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .popup-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .popup-title {
+            font-size: 1.35rem;
+            margin-bottom: 0;
+        }
+
+        .popup-form-lead {
+            margin: 0 0 12px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        .step-indicator {
+            text-align: center;
+            color: var(--accent);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .popup-session-wrap {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .popup-session-kicker {
+            margin: 0 0 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            color: var(--text-muted);
+        }
+
+        .popup-session-bubble {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: min(100%, 300px);
+            padding: 14px 20px;
+            background: linear-gradient(145deg, rgba(59, 130, 246, 0.24) 0%, rgba(15, 23, 42, 0.55) 100%);
+            border: 1px solid rgba(96, 165, 250, 0.5);
+            border-radius: 14px;
+            box-shadow:
+                0 0 0 1px rgba(59, 130, 246, 0.12) inset,
+                0 10px 32px rgba(0, 0, 0, 0.38);
+        }
+
+        .popup-session-line {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .popup-session-tz-line {
+            display: block;
+            margin: 0;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .form-select option {
+            color: #111;
+        }
+
+        .slot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .slot-btn {
+            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            border-radius: 10px;
+            padding: 13px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .slot-btn.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+        }
+
+        .submit-btn {
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.35);
+        }
+
+        .submit-btn.secondary {
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+            margin-bottom: 10px;
+        }
+
+        .form-note {
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 0.78rem;
+            margin: 10px 0 16px;
+        }
+
+        .form-note--after-cta {
+            margin: 14px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            text-align: left;
+        }
+
+        .form-note--after-cta .form-note__shield-icon {
+            flex-shrink: 0;
+            color: rgba(96, 165, 250, 0.92);
+        }
+
+        /* Case engagement — même ADN que session-bubble / champs (bleu profond) */
+        .commit-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin: 16px 0 18px;
+            padding: 14px 16px;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 12px;
+            border: 2px solid rgba(59, 130, 246, 0.45);
+            background: rgba(59, 130, 246, 0.14);
+            box-shadow: 0 4px 24px rgba(59, 130, 246, 0.08);
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .commit-row:hover {
+            border-color: rgba(96, 165, 250, 0.55);
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .commit-row:focus-within {
+            border-color: rgba(96, 165, 250, 0.75);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .commit-row--error {
+            border-color: rgba(248, 113, 113, 0.65) !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
+        }
+
+        .commit-row input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            margin-top: 1px;
+            flex-shrink: 0;
+            border: 2px solid var(--border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .commit-row input[type="checkbox"]:checked {
+            border-color: rgba(147, 197, 253, 0.85);
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background-size: 14px 14px, 100% 100%;
+            background-repeat: no-repeat, no-repeat;
+            background-position: center, center;
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.35);
+        }
+
+        .commit-row input[type="checkbox"]:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+        }
+
+        .commit-row input[type="checkbox"]:checked:focus-visible {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.45), 0 2px 12px rgba(59, 130, 246, 0.35);
+        }
+
+        .commit-row__text {
+            flex: 1;
+            user-select: none;
+            font-size: 0.93rem;
+            font-weight: 600;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .success-copy {
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .iti {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .iti input {
+            width: 100% !important;
+            height: 50px !important;
+            padding-left: 110px !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+            border: 2px solid var(--border) !important;
+            border-radius: 10px !important;
+            color: #fff !important;
+        }
+
+        .iti__selected-flag {
+            background: rgba(59, 130, 246, 0.25) !important;
+            border-right: 2px solid var(--border) !important;
+            border-radius: 10px 0 0 10px !important;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 22px;
+            }
+
+            .hero-image {
+                order: -1;
+            }
+
+            .countdown {
+                max-width: 100%;
+            }
+
+            .cta-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- TEMP PRÉ-LANCEMENT — overlay mot de passe (supprimer bloc + CSS + JS associés avant lancement) -->
+    <div id="masterclass-password-gate" aria-modal="true" role="dialog" aria-labelledby="masterclass-pwd-title">
+        <div class="masterclass-pwd-box">
+            <h2 id="masterclass-pwd-title">Accès masterclass</h2>
+            <p class="masterclass-pwd-hint">Réservé aux tests — mot de passe requis</p>
+            <p id="masterclass-pwd-error" role="alert"></p>
+            <input id="masterclass-pwd-input" type="password" autocomplete="current-password" placeholder="Mot de passe" />
+            <button id="masterclass-pwd-submit" type="button">Accéder</button>
+        </div>
+    </div>
+
+    <div class="bg-gradient"></div>
+
+    <div id="gate-loading" class="gate-loading" aria-live="polite">
+        <div class="gate-spinner" aria-hidden="true"></div>
+        <p>Chargement…</p>
+    </div>
+
+    <div id="gate-blocked">
+        <div class="gate-blocked-inner">
+            <div data-block-variant="closed" style="display:none;">
+                <h1>Cette masterclass n'est plus accessible.</h1>
+            </div>
+            <div data-block-variant="acheteur" style="display:none;">
+                <h1>Tu es déjà membre d'Esprit Subconscient 2.0 !</h1>
+                <p>Consulte tes emails pour accéder à ton espace.</p>
+            </div>
+            <div data-block-variant="excluded" style="display:none;">
+                <h1>Accès réservé</h1>
+                <p>Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-main" class="container">
+        <section class="hero">
+            <div>
+                <div class="badge">🧠 Masterclass gratuite</div>
+                <h1>Reprogramme Ton Subconscient Et Manifeste La Vie De Tes Rêves</h1>
+                <p class="subheadline">45 minutes pour comprendre pourquoi ta réalité ne change pas — et comment tout inverser.</p>
+
+                <p id="next-session-label" class="next-session">Jeudi … à 20h (heure de Paris)</p>
+                <div class="sessions-visual sessions-visual--one" aria-label="Session du jeudi">
+                    <div class="session-bubble active">
+                        <span class="session-day">Jeudi</span>
+                        <span class="session-hour">20h</span>
+                    </div>
+                </div>
+
+                <div class="countdown" aria-live="polite">
+                    <div class="count-card">
+                        <span id="days" class="count-value">00</span>
+                        <span class="count-label">Jours</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="hours" class="count-value">00</span>
+                        <span class="count-label">Heures</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="minutes" class="count-value">00</span>
+                        <span class="count-label">Minutes</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="seconds" class="count-value">00</span>
+                        <span class="count-label">Secondes</span>
+                    </div>
+                </div>
+
+                <button class="cta-button popup-trigger" type="button">RÉSERVER MA PLACE</button>
+            </div>
+
+            <div class="hero-image">
+                <div class="image-wrapper">
+                    <img src="/media/pages/ES20-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" style="width:100%;height:100%;object-fit:cover;" />
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Ce que tu vas découvrir</h2>
+            <ul class="discover-list">
+                <li>[Placeholder] Point clé #1 à compléter</li>
+                <li>[Placeholder] Point clé #2 à compléter</li>
+                <li>[Placeholder] Point clé #3 à compléter</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Preuve sociale</h2>
+            <div class="social-proof">
+                <p>+4M d'abonnés sur les réseaux</p>
+                <p>Rejoins +10 000 personnes qui ont déjà transformé leur réalité</p>
+            </div>
+        </section>
+
+        <div class="final-cta">
+            <button class="cta-button popup-trigger" type="button">RÉSERVER MA PLACE</button>
+        </div>
+    </div>
+
+    <div id="custom-popup" class="custom-popup">
+        <div class="popup-content">
+            <button class="popup-close" id="popup-close-btn" type="button">&times;</button>
+
+            <div class="popup-header">
+                <h2 class="popup-title">Réserve ta place à la Masterclass</h2>
+            </div>
+
+            <div id="step1-form">
+                <div class="popup-session-wrap">
+                    <p class="popup-session-kicker">Date de ta masterclass</p>
+                    <div class="popup-session-bubble" role="status" aria-live="polite">
+                        <span class="popup-session-line" id="popup-session-date">—</span>
+                        <span class="popup-session-tz-line">(heure de Paris)</span>
+                    </div>
+                </div>
+                <p class="popup-form-lead">Entre ton prénom et ton email pour recevoir ton accès gratuit</p>
+                <input id="name" class="form-input" type="text" placeholder="Ton prénom" required />
+                <input id="email" class="form-input" type="email" placeholder="Ton email" required autocomplete="email" />
+                <label class="commit-row" id="commit-row-label" for="commit-present">
+                    <input
+                        id="commit-present"
+                        type="checkbox"
+                        name="commit_present"
+                        autocomplete="off"
+                        required
+                        aria-required="true"
+                    />
+                    <span class="commit-row__text">Je m'engage à être présent(e) jeudi à 20h</span>
+                </label>
+                <p id="step1-message" class="form-error" role="alert"></p>
+                <button id="step1-button" class="submit-btn" type="button">Continuer</button>
+                <p class="form-note form-note--after-cta">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="form-note__shield-icon lucide lucide-shield-check"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                        />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
+                    <span>Nous ne partagerons jamais tes informations.</span>
+                </p>
+            </div>
+
+            <div id="step2-form" style="display:none;">
+                <p class="step-indicator">Étape 2 / 2</p>
+                <input id="phone" type="tel" />
+                <select id="country" class="form-select">
+                    <option value="">Sélectionne ton pays</option>
+                    <option value="France">France</option>
+                    <option value="Belgique">Belgique</option>
+                    <option value="Suisse">Suisse</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Maroc">Maroc</option>
+                    <option value="Sénégal">Sénégal</option>
+                    <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                    <option value="Algérie">Algérie</option>
+                    <option value="Tunisie">Tunisie</option>
+                    <option value="Autre">Autre</option>
+                </select>
+                <p class="form-note">Ton numéro + ton pays nous permettent de t'envoyer le bon rappel.</p>
+                <button id="step2-submit" class="submit-btn" type="button">RÉSERVER MA PLACE</button>
+                <button id="step2-back" class="submit-btn secondary" type="button">Retour</button>
+                <p id="form-status" class="success-copy"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // @ts-nocheck
+        /** Aligné sur netlify/functions/lib/webinaire-session-paris.mjs (cutoff jeudi 19h Paris). Routes : /masterclass. */
+        /** TEMP — supprimer tout le bloc mot de passe avant lancement public */
+        const MASTERCLASS_ACCESS_SESSION = 'masterclass_access';
+        const MASTERCLASS_TEMP_PASSWORD = 'masterclass';
+
+        const TOKEN_KEY = 'masterclass_es2_token';
+        const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
+        const COOKIE_MAX = 365 * 24 * 60 * 60;
+
+        const state = {
+            name: '',
+            email: '',
+            phone: '',
+            country: ''
+        };
+
+        let iti = null;
+
+        function pad(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function getCookie(name) {
+            const esc = name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
+            const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+
+        function setTokenEverywhere(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+            document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX}; SameSite=Lax`;
+        }
+
+        function clearToken() {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(LEGACY_TOKEN_KEY);
+            document.cookie = `${TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+            document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+        }
+
+        function getStoredToken() {
+            let t = (localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY) || '').trim();
+            if (t) return t;
+            const legacy = (localStorage.getItem(LEGACY_TOKEN_KEY) || getCookie(LEGACY_TOKEN_KEY) || '').trim();
+            if (legacy) {
+                setTokenEverywhere(legacy);
+                localStorage.removeItem(LEGACY_TOKEN_KEY);
+                document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+                return legacy;
+            }
+            return '';
+        }
+
+        function parseParisParts(date) {
+            const formatter = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris',
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                weekday: 'short',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                hourCycle: 'h23'
+            });
+            const parts = formatter.formatToParts(date);
+            const value = (type) => Number(parts.find((p) => p.type === type)?.value || 0);
+            const weekRaw = parts.find((p) => p.type === 'weekday')?.value || '';
+            return {
+                year: value('year'),
+                month: value('month'),
+                day: value('day'),
+                hour: value('hour'),
+                minute: value('minute'),
+                second: value('second'),
+                weekdayText: weekRaw.toLowerCase()
+            };
+        }
+
+        function getParisWeekdayNumber(parts) {
+            const dayMap = { lun: 1, mar: 2, mer: 3, jeu: 4, ven: 5, sam: 6, dim: 7 };
+            for (const key of Object.keys(dayMap)) {
+                if (parts.weekdayText.startsWith(key)) return dayMap[key];
+            }
+            return 1;
+        }
+
+        function addDaysParisCalendar(year, month, day, deltaDays) {
+            const d = new Date(Date.UTC(year, month - 1, day + deltaDays, 12, 0, 0));
+            const p = parseParisParts(d);
+            return { year: p.year, month: p.month, day: p.day };
+        }
+
+        function findParisInstantUtc(parisYear, parisMonth, parisDay, parisHour) {
+            let candidate = new Date(Date.UTC(parisYear, parisMonth - 1, parisDay, parisHour - 1, 0, 0));
+            for (let i = 0; i < 4000; i++) {
+                const p = parseParisParts(candidate);
+                if (p.year === parisYear && p.month === parisMonth && p.day === parisDay && p.hour === parisHour) {
+                    return candidate;
+                }
+                candidate = new Date(candidate.getTime() + 60 * 1000);
+            }
+            return null;
+        }
+
+        function getMarketingThursdayDateParts(now) {
+            const parisNow = parseParisParts(now);
+            const dow = getParisWeekdayNumber(parisNow);
+            const daysFromMonday = dow - 1;
+            const mon = addDaysParisCalendar(parisNow.year, parisNow.month, parisNow.day, -daysFromMonday);
+            const thu = addDaysParisCalendar(mon.year, mon.month, mon.day, 3);
+            const thu19 = findParisInstantUtc(thu.year, thu.month, thu.day, 19);
+            if (!thu19) return thu;
+            if (now.getTime() < thu19.getTime()) return thu;
+            return addDaysParisCalendar(thu.year, thu.month, thu.day, 7);
+        }
+
+        function getMarketingCountdownTargetUtc(now) {
+            const thu = getMarketingThursdayDateParts(now);
+            const t20 = findParisInstantUtc(thu.year, thu.month, thu.day, 20);
+            if (!t20) return null;
+            if (now.getTime() < t20.getTime()) return t20;
+            const nextThu = addDaysParisCalendar(thu.year, thu.month, thu.day, 7);
+            return findParisInstantUtc(nextThu.year, nextThu.month, nextThu.day, 20);
+        }
+
+        function formatParisDateNoTime(date) {
+            const fmt = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris',
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            const text = fmt.format(date);
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        /** Créneau d’inscription : aligné sur getRegistrationSessionInstantUtc (serveur). */
+        function getOptinMasterclassSessionUtc(now) {
+            const thu = getMarketingThursdayDateParts(now);
+            return findParisInstantUtc(thu.year, thu.month, thu.day, 20);
+        }
+
+        function updatePopupSessionBubble() {
+            const el = document.getElementById('popup-session-date');
+            if (!el) return;
+            const inst = getOptinMasterclassSessionUtc(new Date());
+            if (!inst) return;
+            el.textContent = formatParisDateNoTime(inst) + ' à 20h';
+        }
+
+        function updateCountdown() {
+            updatePopupSessionBubble();
+            const target = getMarketingCountdownTargetUtc(new Date());
+            if (!target) return;
+
+            const nowMs = Date.now();
+            const diff = Math.max(0, target.getTime() - nowMs);
+            const totalSeconds = Math.floor(diff / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            document.getElementById('days').textContent = pad(days);
+            document.getElementById('hours').textContent = pad(hours);
+            document.getElementById('minutes').textContent = pad(minutes);
+            document.getElementById('seconds').textContent = pad(seconds);
+            document.getElementById('next-session-label').textContent =
+                formatParisDateNoTime(target) + ' à 20h (heure de Paris)';
+        }
+
+        function normalizeReg(payload) {
+            return {
+                statut: payload.statut || 'inscrit',
+                sessionStartsAt: payload.sessionStartsAt || payload.session_date,
+                sessionEndsAt: payload.sessionEndsAt || payload.session_ends_at,
+                offreExpiresAt: payload.offreExpiresAt || payload.offre_expires_at,
+                token: payload.token
+            };
+        }
+
+        function decideRoute(reg, token) {
+            const now = Date.now();
+            const sd = new Date(reg.sessionStartsAt).getTime();
+            const oe = new Date(reg.offreExpiresAt).getTime();
+            const st = reg.statut;
+
+            if (st === 'acheteur') return { type: 'block', variant: 'acheteur' };
+            if (st === 'no-show' || st === 'non-acheteur') return { type: 'block', variant: 'closed' };
+            if (st === 'inscrit') {
+                if (now < sd) {
+                    return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
+                }
+                if (now >= sd && now < oe) {
+                    return { type: 'redirect', url: '/masterclass/session?t=' + encodeURIComponent(token) };
+                }
+                return { type: 'block', variant: 'closed' };
+            }
+            if (st === 'present') {
+                if (now < oe) {
+                    return { type: 'redirect', url: '/masterclass/session?t=' + encodeURIComponent(token) };
+                }
+                return { type: 'block', variant: 'closed' };
+            }
+            return { type: 'main' };
+        }
+
+        function applyRoute(route) {
+            if (route.type === 'redirect') {
+                window.location.replace(route.url);
+                return 'redirect';
+            }
+            if (route.type === 'block') {
+                showBlocked(route.variant);
+                return 'block';
+            }
+            showMain();
+            return 'main';
+        }
+
+        function showMain() {
+            const gl = document.getElementById('gate-loading');
+            if (gl) gl.classList.add('is-hidden');
+            document.getElementById('gate-blocked').classList.remove('is-visible');
+            document.getElementById('page-main').classList.add('is-visible');
+        }
+
+        function showBlocked(variant) {
+            document.getElementById('gate-loading').classList.add('is-hidden');
+            document.getElementById('page-main').classList.remove('is-visible');
+            const gb = document.getElementById('gate-blocked');
+            gb.classList.add('is-visible');
+            gb.querySelectorAll('[data-block-variant]').forEach(function (el) {
+                el.style.display = el.getAttribute('data-block-variant') === variant ? 'block' : 'none';
+            });
+        }
+
+        /** @returns {Promise<boolean>} true si la page opt-in doit s’initialiser */
+        async function runEntryGate() {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('preview') === 'true') {
+                showMain();
+                return true;
+            }
+            const token = getStoredToken();
+            if (!token) {
+                showMain();
+                return true;
+            }
+            try {
+                const res = await fetch(
+                    '/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token),
+                );
+                if (res.status === 404) {
+                    clearToken();
+                    showMain();
+                    return true;
+                }
+                if (!res.ok) {
+                    showMain();
+                    return true;
+                }
+                const data = await res.json();
+                if (!data.valid) {
+                    clearToken();
+                    showMain();
+                    return true;
+                }
+                const reg = normalizeReg(Object.assign({}, data, { token }));
+                const outcome = applyRoute(decideRoute(reg, token));
+                if (outcome === 'redirect') return false;
+                if (outcome === 'block') return false;
+                return true;
+            } catch (e) {
+                showMain();
+                return true;
+            }
+        }
+
+        function routeFromEligibilityPayload(body, token) {
+            const reg = normalizeReg(
+                Object.assign({}, body, {
+                    token: token || body.token,
+                }),
+            );
+            return decideRoute(reg, reg.token);
+        }
+
+        function openPopup() {
+            updatePopupSessionBubble();
+            document.getElementById('custom-popup').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePopup() {
+            document.getElementById('custom-popup').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function showStep(stepNumber) {
+            document.getElementById('step1-form').style.display = stepNumber === 1 ? 'block' : 'none';
+            document.getElementById('step2-form').style.display = stepNumber === 2 ? 'block' : 'none';
+        }
+
+        function goToContactStep() {
+            showStep(2);
+            if (!iti) initPhoneInput();
+        }
+
+        function initPhoneInput() {
+            const input = document.getElementById('phone');
+            if (!input || typeof intlTelInput === 'undefined') {
+                return;
+            }
+            iti = intlTelInput(input, {
+                initialCountry: 'auto',
+                geoIpLookup: function (callback) {
+                    fetch('https://ipapi.co/json/')
+                        .then((res) => res.json())
+                        .then((data) => callback((data.country_code || 'fr').toLowerCase()))
+                        .catch(() => callback('fr'));
+                },
+                preferredCountries: ['fr', 'be', 'ch', 'ca', 'ma', 'sn'],
+                separateDialCode: true,
+                dropdownContainer: document.body,
+                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/utils.js',
+            });
+        }
+
+        function setCommitRowError(on) {
+            const row = document.getElementById('commit-row-label');
+            if (row) row.classList.toggle('commit-row--error', Boolean(on));
+        }
+
+        function validateStep1() {
+            const msg = document.getElementById('step1-message');
+            msg.textContent = '';
+            setCommitRowError(false);
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!name || !email) {
+                alert('Merci de remplir prénom et email.');
+                return false;
+            }
+            if (!emailRegex.test(email)) {
+                alert('Merci de saisir un email valide.');
+                return false;
+            }
+            const commit = document.getElementById('commit-present');
+            if (!commit || !commit.checked) {
+                setCommitRowError(true);
+                msg.textContent = 'Merci de cocher la case pour confirmer ta présence jeudi à 20h.';
+                commit.focus();
+                return false;
+            }
+            state.name = name;
+            state.email = email.toLowerCase();
+            return true;
+        }
+
+        function validateContactStep() {
+            const country = document.getElementById('country').value.trim();
+            const rawPhone = document.getElementById('phone').value.trim();
+            let phone = rawPhone;
+
+            if (iti) {
+                try {
+                    phone = iti.getNumber();
+                } catch (error) {
+                    phone = rawPhone;
+                }
+            }
+
+            if (!phone) {
+                alert('Merci de saisir ton numéro de téléphone.');
+                return false;
+            }
+
+            if (!country) {
+                alert('Merci de sélectionner ton pays.');
+                return false;
+            }
+
+            state.phone = phone;
+            state.country = country;
+            return true;
+        }
+
+        async function submitRegistration() {
+            const formStatus = document.getElementById('form-status');
+            const submitBtn = document.getElementById('step2-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Inscription...';
+            formStatus.textContent = '';
+
+            try {
+                const response = await fetch('/.netlify/functions/register-webinaire', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: state.email,
+                        prenom: state.name,
+                        creneau: '20h',
+                        telephone: state.phone,
+                        pays: state.country,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (response.status === 409 && result.token) {
+                    setTokenEverywhere(result.token);
+                    closePopup();
+                    applyRoute(routeFromEligibilityPayload(result, result.token));
+                    return;
+                }
+
+                if (response.status === 403 && result.reason === 'excluded') {
+                    formStatus.textContent =
+                        'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'RÉSERVER MA PLACE';
+                    return;
+                }
+
+                if (!response.ok || !result?.success || !result?.token) {
+                    throw new Error(result?.error || 'Erreur inconnue');
+                }
+
+                setTokenEverywhere(result.token);
+                window.location.href = '/masterclass/confirmation?t=' + encodeURIComponent(result.token);
+            } catch (error) {
+                formStatus.textContent = 'Une erreur est survenue. Merci de réessayer.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'RÉSERVER MA PLACE';
+            }
+        }
+
+        function initMainInteractions() {
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+
+            document.querySelectorAll('.popup-trigger').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    openPopup();
+                });
+            });
+
+            document.getElementById('commit-present').addEventListener('change', function () {
+                if (this.checked) setCommitRowError(false);
+            });
+
+            document.getElementById('popup-close-btn').addEventListener('click', closePopup);
+            document.getElementById('custom-popup').addEventListener('click', function (event) {
+                if (event.target === this) closePopup();
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') closePopup();
+            });
+
+            document.getElementById('step1-button').addEventListener('click', async function () {
+                const msg = document.getElementById('step1-message');
+                msg.textContent = '';
+                if (!validateStep1()) return;
+                const btn = this;
+                btn.disabled = true;
+                try {
+                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: state.email }),
+                    });
+                    const body = await res.json();
+                    if (!res.ok) {
+                        msg.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'excluded') {
+                        msg.textContent =
+                            'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                        setTokenEverywhere(body.token);
+                        const route = routeFromEligibilityPayload(body, body.token);
+                        if (route.type === 'redirect') {
+                            window.location.replace(route.url);
+                            return;
+                        }
+                        if (route.type === 'block') {
+                            closePopup();
+                            applyRoute(route);
+                            return;
+                        }
+                        goToContactStep();
+                        return;
+                    }
+                    goToContactStep();
+                } catch (e) {
+                    msg.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            document.getElementById('step2-back').addEventListener('click', function () {
+                showStep(1);
+            });
+
+            document.getElementById('step2-submit').addEventListener('click', function () {
+                if (!validateContactStep()) return;
+                submitRegistration();
+            });
+        }
+
+        async function bootstrapAfterAccessGate() {
+            const shouldInit = await runEntryGate();
+            if (shouldInit) {
+                initMainInteractions();
+            }
+        }
+
+        function hasMasterclassSessionAccess() {
+            try {
+                return sessionStorage.getItem(MASTERCLASS_ACCESS_SESSION) === 'true';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const pwdGate = document.getElementById('masterclass-password-gate');
+            const pwdInput = document.getElementById('masterclass-pwd-input');
+            const pwdBtn = document.getElementById('masterclass-pwd-submit');
+            const pwdErr = document.getElementById('masterclass-pwd-error');
+            const url = new URL(window.location.href);
+            const previewBypass = url.searchParams.get('preview') === 'true';
+
+            function unlockAndStart() {
+                pwdGate.classList.add('is-hidden');
+                bootstrapAfterAccessGate();
+            }
+
+            if (previewBypass || hasMasterclassSessionAccess()) {
+                pwdGate.classList.add('is-hidden');
+                bootstrapAfterAccessGate();
+                return;
+            }
+
+            pwdInput.focus();
+
+            function tryPassword() {
+                pwdErr.textContent = '';
+                const v = (pwdInput.value || '').trim();
+                if (v === MASTERCLASS_TEMP_PASSWORD) {
+                    try {
+                        sessionStorage.setItem(MASTERCLASS_ACCESS_SESSION, 'true');
+                    } catch (e) {
+                        /* ignore */
+                    }
+                    unlockAndStart();
+                    return;
+                }
+                pwdErr.textContent = 'Mot de passe incorrect.';
+                pwdInput.value = '';
+                pwdInput.focus();
+            }
+
+            pwdBtn.addEventListener('click', tryPassword);
+            pwdInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') tryPassword();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,489 @@
+---
+import GAConsentMode from '../../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation — Webinaire Esprit Subconscient 2.0</title>
+    <meta name="description" content="Ta place au webinaire Esprit Subconscient 2.0 est réservée. Ajoute la session à ton calendrier.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --accent: #93c5fd;
+            --bg-dark: #0a0a1a;
+            --text-muted: rgba(255, 255, 255, 0.72);
+            --border: rgba(59, 130, 246, 0.35);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 28px 18px 48px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: clamp(1.75rem, 4vw, 2.4rem);
+            line-height: 1.2;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2.2vw, 1.12rem);
+            line-height: 1.55;
+            color: var(--text-muted);
+            margin-bottom: 22px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 22px 18px;
+            margin-bottom: 18px;
+        }
+
+        .section h2 {
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        .countdown {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .count-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+
+        .count-value {
+            display: block;
+            font-size: clamp(1.1rem, 3vw, 1.5rem);
+            font-weight: 700;
+        }
+
+        .count-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .cal-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(59, 130, 246, 0.35);
+        }
+
+        .video-wrap {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.35);
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 16px;
+            font-size: 0.95rem;
+        }
+
+        .steps-list {
+            list-style: none;
+            display: grid;
+            gap: 12px;
+        }
+
+        .steps-list li {
+            color: var(--text-muted);
+            line-height: 1.55;
+            padding-left: 4px;
+        }
+
+        .social-proof {
+            display: grid;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .social-proof strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #loading-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-muted);
+        }
+
+        #main-content {
+            display: none;
+        }
+
+        #main-content.visible {
+            display: block;
+        }
+
+        .preview-hint {
+            display: none;
+            font-size: 0.82rem;
+            color: rgba(251, 191, 36, 0.95);
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            background: rgba(251, 191, 36, 0.08);
+            line-height: 1.45;
+        }
+
+        .preview-hint.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <div class="container">
+        <div id="loading-state">Chargement de ta confirmation…</div>
+
+        <div id="main-content">
+            <div id="badge-label" class="badge">Inscription confirmée</div>
+            <p id="preview-hint" class="preview-hint">
+                Mode aperçu : données fictives (aucun token / API). Retire <code style="opacity:0.9">?preview=true</code> en production.
+            </p>
+            <h1>Ta place est réservée !</h1>
+            <p id="subtitle" class="subtitle"></p>
+
+            <div class="section">
+                <h2>Un message de Sonny pour toi 👇</h2>
+                <div class="video-wrap" id="video-placeholder">
+                    Vidéo courte (~60 s) — placeholder : tu pourras intégrer le player ici.
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Avant la session</h2>
+                <div class="countdown" aria-live="polite">
+                    <div class="count-card">
+                        <span id="cd-days" class="count-value">00</span>
+                        <span class="count-label">Jours</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="cd-hours" class="count-value">00</span>
+                        <span class="count-label">Heures</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="cd-minutes" class="count-value">00</span>
+                        <span class="count-label">Minutes</span>
+                    </div>
+                    <div class="count-card">
+                        <span id="cd-seconds" class="count-value">00</span>
+                        <span class="count-label">Secondes</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Ajouter au calendrier</h2>
+                <div class="calendar-grid">
+                    <a id="link-google" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Google Calendar</a>
+                    <a id="link-outlook" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Outlook</a>
+                    <button type="button" id="btn-apple" class="cal-btn">Apple Calendar</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Prochaines étapes</h2>
+                <ul class="steps-list">
+                    <li>📩 Vérifie tes emails — tu vas recevoir une confirmation</li>
+                    <li>📱 Tu recevras un rappel SMS avant la session</li>
+                    <li>🔗 Ton lien d'accès personnel t'arrivera le jour J</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>Rejoins la communauté</h2>
+                <div class="social-proof">
+                    <p><strong>+4M</strong> d'abonnés sur les réseaux</p>
+                    <p><strong>+10 000</strong> personnes ont déjà transformé leur réalité</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // @ts-nocheck
+        const EVENT_TITLE = 'Masterclass Esprit Subconscient 2.0 — Sonny Court';
+        const EVENT_DESCRIPTION =
+            "Ton lien d'accès personnel te sera envoyé par email et SMS avant la session.";
+
+        function pad(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function toGCalUtc(iso) {
+            return new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+        }
+
+        function formatSubtitle(sessionStartsAt, creneau) {
+            const d = new Date(sessionStartsAt);
+            const dateOnly = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris',
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            }).format(d);
+            const slotLabel = creneau === '20h' ? '20h' : '14h';
+            const cap = dateOnly.charAt(0).toUpperCase() + dateOnly.slice(1);
+            return `Rendez-vous le ${cap} à ${slotLabel} (heure de Paris)`;
+        }
+
+        function buildGoogleUrl(startIso, endIso) {
+            const dates = `${toGCalUtc(startIso)}/${toGCalUtc(endIso)}`;
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: EVENT_TITLE,
+                dates,
+                details: EVENT_DESCRIPTION,
+                location: 'En ligne',
+            });
+            return `https://calendar.google.com/calendar/render?${params.toString()}`;
+        }
+
+        function buildOutlookUrl(startIso, endIso) {
+            const params = new URLSearchParams({
+                path: '/calendar/action/compose',
+                rru: 'addevent',
+                subject: EVENT_TITLE,
+                startdt: new Date(startIso).toISOString(),
+                enddt: new Date(endIso).toISOString(),
+                body: EVENT_DESCRIPTION,
+            });
+            return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+        }
+
+        function escapeIcs(text) {
+            return String(text)
+                .replace(/\\/g, '\\\\')
+                .replace(/;/g, '\\;')
+                .replace(/,/g, '\\,')
+                .replace(/\n/g, '\\n');
+        }
+
+        function buildIcsContent(uid, startIso, endIso) {
+            const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+            const lines = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Sonny Court//Webinaire ES2//FR',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'BEGIN:VEVENT',
+                `UID:${uid}`,
+                `DTSTAMP:${fmt(new Date().toISOString())}`,
+                `DTSTART:${fmt(startIso)}`,
+                `DTEND:${fmt(endIso)}`,
+                `SUMMARY:${escapeIcs(EVENT_TITLE)}`,
+                `DESCRIPTION:${escapeIcs(EVENT_DESCRIPTION)}`,
+                'LOCATION:En ligne',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ];
+            return lines.join('\r\n');
+        }
+
+        function downloadAppleCalendar(uid, startIso, endIso) {
+            const ics = buildIcsContent(uid, startIso, endIso);
+            const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'webinaire-esprit-subconscient-2.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function updateCountdown(targetMs) {
+            const now = Date.now();
+            const diff = Math.max(0, targetMs - now);
+            const totalSec = Math.floor(diff / 1000);
+            document.getElementById('cd-days').textContent = pad(Math.floor(totalSec / 86400));
+            document.getElementById('cd-hours').textContent = pad(Math.floor((totalSec % 86400) / 3600));
+            document.getElementById('cd-minutes').textContent = pad(Math.floor((totalSec % 3600) / 60));
+            document.getElementById('cd-seconds').textContent = pad(totalSec % 60);
+        }
+
+        /** Aperçu design local : pas de token ni d’API Netlify */
+        const PREVIEW_SUBTITLE =
+            'Rendez-vous le jeudi 27 mars 2026 à 20h (heure de Paris)';
+        const PREVIEW_SESSION_START_ISO = '2026-03-27T19:00:00.000Z';
+        const PREVIEW_SESSION_END_ISO = '2026-03-27T19:45:00.000Z';
+
+        function mountConfirmation(data, options) {
+            const tokenForApple = options && options.appleUid ? options.appleUid : 'preview@webinaire-es2.sonnycourt';
+            const startMs = new Date(data.sessionStartsAt).getTime();
+
+            document.getElementById('subtitle').textContent = data.subtitleText || formatSubtitle(data.sessionStartsAt, data.creneau);
+            document.getElementById('link-google').href = buildGoogleUrl(data.sessionStartsAt, data.sessionEndsAt);
+            document.getElementById('link-outlook').href = buildOutlookUrl(data.sessionStartsAt, data.sessionEndsAt);
+            document.getElementById('btn-apple').addEventListener('click', function () {
+                downloadAppleCalendar(tokenForApple, data.sessionStartsAt, data.sessionEndsAt);
+            });
+
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('main-content').classList.add('visible');
+
+            updateCountdown(startMs);
+            setInterval(function () {
+                updateCountdown(startMs);
+            }, 1000);
+        }
+
+        (async function init() {
+            const url = new URL(window.location.href);
+            const token = url.searchParams.get('t');
+            const preview =
+                url.searchParams.get('preview') === 'true' ||
+                url.searchParams.get('preview') === '1';
+
+            if (preview) {
+                document.getElementById('badge-label').textContent = 'Aperçu design';
+                document.getElementById('preview-hint').classList.add('visible');
+                mountConfirmation(
+                    {
+                        sessionStartsAt: PREVIEW_SESSION_START_ISO,
+                        sessionEndsAt: PREVIEW_SESSION_END_ISO,
+                        creneau: '20h',
+                        subtitleText: PREVIEW_SUBTITLE,
+                    },
+                    { appleUid: 'preview-design@webinaire-es2.local' }
+                );
+                return;
+            }
+
+            if (!token || !token.trim()) {
+                window.location.replace('/masterclass');
+                return;
+            }
+
+            let res;
+            try {
+                res = await fetch(`/.netlify/functions/get-webinaire-registration?t=${encodeURIComponent(token.trim())}`);
+            } catch (e) {
+                window.location.replace('/masterclass');
+                return;
+            }
+
+            if (!res.ok) {
+                window.location.replace('/masterclass');
+                return;
+            }
+
+            const data = await res.json();
+            if (!data.valid || !data.sessionStartsAt || !data.sessionEndsAt) {
+                window.location.replace('/masterclass');
+                return;
+            }
+
+            const tk = token.trim();
+            const maxAge = 365 * 24 * 60 * 60;
+            localStorage.setItem('masterclass_es2_token', tk);
+            document.cookie = `masterclass_es2_token=${encodeURIComponent(tk)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+            localStorage.removeItem('webinaire_es2_token');
+            document.cookie = 'webinaire_es2_token=; path=/; max-age=0; SameSite=Lax';
+
+            mountConfirmation(
+                {
+                    sessionStartsAt: data.sessionStartsAt,
+                    sessionEndsAt: data.sessionEndsAt,
+                    creneau: data.creneau,
+                },
+                { appleUid: `${token.trim()}@webinaire-es2.sonnycourt` }
+            );
+        })();
+    </script>
+</body>
+</html>

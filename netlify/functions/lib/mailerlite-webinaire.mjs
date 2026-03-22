@@ -1,0 +1,102 @@
+const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
+
+export async function getMailerLiteSubscriberId(email, apiKey) {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    Accept: 'application/json',
+  };
+  try {
+    const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers,
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
+  if (!subscriberId || !groupId) return;
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    Accept: 'application/json',
+  };
+  const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}/groups/${groupId}`, {
+    method: 'POST',
+    headers,
+  });
+  if (!res.ok && res.status !== 422) {
+    const err = await res.json().catch(() => ({}));
+    console.error('MailerLite add group error:', err);
+  }
+}
+
+/**
+ * Crée ou met à jour le contact + champs unique_token_webinaire, date_optin_masterclass + groupe optionnel.
+ */
+export async function upsertWebinaireSubscriber({
+  email,
+  prenom,
+  telephone,
+  pays,
+  token,
+  dateOptinMasterclass,
+  groupId,
+  apiKey,
+}) {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+
+  const fields = {
+    first_name: prenom,
+    name: prenom,
+    phone: telephone,
+    location: pays,
+    unique_token_webinaire: token,
+    ...(dateOptinMasterclass
+      ? { date_optin_masterclass: dateOptinMasterclass }
+      : {}),
+  };
+
+  let subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+
+  if (subscriberId) {
+    await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ status: 'active', fields }),
+    });
+  } else {
+    const createResponse = await fetch(`${MAILERLITE_API_BASE}/subscribers`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, status: 'active', fields }),
+    });
+    const createJson = await createResponse.json();
+    if (!createResponse.ok) {
+      throw new Error(createJson?.message || 'MailerLite create error');
+    }
+    subscriberId = createJson?.data?.id || null;
+  }
+
+  if (subscriberId && groupId) {
+    await addSubscriberToGroup(subscriberId, groupId, apiKey);
+  }
+
+  return subscriberId;
+}
+
+export function getWebinaireGroupEnv() {
+  return {
+    inscrits: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS,
+    presents: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS,
+    acheteurs: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS,
+    nonAcheteurs: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS,
+  };
+}
