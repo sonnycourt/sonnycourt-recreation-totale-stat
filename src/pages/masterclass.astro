@@ -496,6 +496,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             letter-spacing: 1px;
         }
 
+        .step-indicator--final {
+            text-transform: none;
+            letter-spacing: 0.02em;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
         .popup-session-wrap {
             text-align: center;
             margin-bottom: 18px;
@@ -608,6 +615,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             margin: 10px 0 16px;
         }
 
+        .form-note--step2-top {
+            margin: 0 0 10px;
+            font-size: 0.76rem;
+            line-height: 1.45;
+        }
+
+        .phone-field-wrap {
+            width: 100%;
+        }
+
         .form-note--after-cta {
             margin: 14px 0 0;
             display: flex;
@@ -705,25 +722,98 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             margin-top: 8px;
         }
 
-        .iti {
+        /* intl-tel-input — bloc unique dark (étape 2) */
+        #step2-form .iti {
             width: 100%;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: stretch;
+            flex-wrap: nowrap;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
         }
 
-        .iti input {
+        #step2-form .iti__flag-container {
+            display: flex !important;
+            align-items: center !important;
+            background: transparent !important;
+        }
+
+        #step2-form .iti--separate-dial-code .iti__selected-flag {
+            background: rgba(59, 130, 246, 0.22) !important;
+            border: none !important;
+            border-right: 1px solid rgba(59, 130, 246, 0.35) !important;
+            border-radius: 0 !important;
+        }
+
+        #step2-form .iti--separate-dial-code .iti__selected-dial-code {
+            display: flex !important;
+            align-items: center;
+            padding: 0 12px !important;
+            margin: 0 !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: #fff !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            border: none !important;
+            border-right: 1px solid rgba(59, 130, 246, 0.35) !important;
+        }
+
+        #step2-form .iti input[type='tel'],
+        #step2-form .iti input.iti__tel-input {
+            flex: 1;
             width: 100% !important;
+            min-width: 0;
             height: 50px !important;
-            padding-left: 110px !important;
-            background: rgba(255, 255, 255, 0.06) !important;
-            border: 2px solid var(--border) !important;
-            border-radius: 10px !important;
+            padding: 14px 16px !important;
+            margin: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            color: #fff !important;
+            font-size: 16px !important;
+        }
+
+        #step2-form .iti input::placeholder {
+            color: rgba(255, 255, 255, 0.38);
+        }
+
+        /* Liste pays (dropdown sur body) */
+        .iti__country-list {
+            background: linear-gradient(145deg, #1a1a3a 0%, #0f0f24 100%) !important;
+            border: 1px solid rgba(96, 165, 250, 0.45) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55) !important;
             color: #fff !important;
         }
 
-        .iti__selected-flag {
-            background: rgba(59, 130, 246, 0.25) !important;
-            border-right: 2px solid var(--border) !important;
-            border-radius: 10px 0 0 10px !important;
+        .iti__country-list .iti__country {
+            color: #fff !important;
+        }
+
+        .iti__country-list .iti__country.iti__highlight {
+            background: rgba(59, 130, 246, 0.35) !important;
+        }
+
+        .iti__country-list .iti__divider {
+            border-color: rgba(59, 130, 246, 0.25) !important;
+        }
+
+        .iti__country-list .iti__search-input {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid var(--border) !important;
+            color: #fff !important;
+            border-radius: 8px !important;
+        }
+
+        .iti__country-list .iti__search-input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .iti__arrow {
+            border-top-color: rgba(255, 255, 255, 0.65) !important;
         }
 
         @media (max-width: 900px) {
@@ -857,7 +947,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
             <div id="step1-form">
                 <div class="popup-session-wrap">
-                    <p class="popup-session-kicker">Date de ta masterclass</p>
+                    <p class="popup-session-kicker">Date de la diffusion</p>
                     <div class="popup-session-bubble" role="status" aria-live="polite">
                         <span class="popup-session-line" id="popup-session-date">—</span>
                         <span class="popup-session-tz-line">(heure de Paris)</span>
@@ -878,7 +968,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     <span class="commit-row__text">Je m'engage à être présent(e) jeudi à 20h</span>
                 </label>
                 <p id="step1-message" class="form-error" role="alert"></p>
-                <button id="step1-button" class="submit-btn" type="button">Continuer</button>
+                <button id="step1-button" class="submit-btn" type="button">Réserver ma place</button>
                 <p class="form-note form-note--after-cta">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -903,24 +993,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             </div>
 
             <div id="step2-form" style="display:none;">
-                <p class="step-indicator">Étape 2 / 2</p>
-                <input id="phone" type="tel" />
-                <select id="country" class="form-select">
-                    <option value="">Sélectionne ton pays</option>
-                    <option value="France">France</option>
-                    <option value="Belgique">Belgique</option>
-                    <option value="Suisse">Suisse</option>
-                    <option value="Canada">Canada</option>
-                    <option value="Maroc">Maroc</option>
-                    <option value="Sénégal">Sénégal</option>
-                    <option value="Côte d'Ivoire">Côte d'Ivoire</option>
-                    <option value="Algérie">Algérie</option>
-                    <option value="Tunisie">Tunisie</option>
-                    <option value="Autre">Autre</option>
-                </select>
-                <p class="form-note">Ton numéro + ton pays nous permettent de t'envoyer le bon rappel.</p>
+                <p class="step-indicator step-indicator--final">Dernière étape</p>
+                <p class="form-note form-note--step2-top">
+                    Indicatif détecté selon ta connexion — change-le si besoin en cliquant sur le drapeau.
+                </p>
+                <div class="phone-field-wrap">
+                    <input id="phone" type="tel" autocomplete="tel" />
+                </div>
+                <p class="form-note">Ton numéro nous permet de t'envoyer le bon rappel.</p>
                 <button id="step2-submit" class="submit-btn" type="button">RÉSERVER MA PLACE</button>
-                <button id="step2-back" class="submit-btn secondary" type="button">Retour</button>
                 <p id="form-status" class="success-copy"></p>
             </div>
         </div>
@@ -1263,6 +1344,36 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if (row) row.classList.toggle('commit-row--error', Boolean(on));
         }
 
+        /** Pays FR pour l’API (aligné ancienne liste) — dérivé du pays choisi sur le champ tel (IP + drapeau). */
+        function countryIsoToPaysFr(iso2) {
+            const code = (iso2 || '').toLowerCase();
+            const map = {
+                fr: 'France',
+                be: 'Belgique',
+                ch: 'Suisse',
+                ca: 'Canada',
+                ma: 'Maroc',
+                sn: 'Sénégal',
+                ci: "Côte d'Ivoire",
+                dz: 'Algérie',
+                tn: 'Tunisie',
+                re: 'France',
+                gp: 'France',
+                mq: 'France',
+                gf: 'France',
+                pf: 'France',
+                yt: 'France',
+                nc: 'France',
+                bl: 'France',
+                mf: 'France',
+                pm: 'France',
+                wf: 'France',
+                lu: 'Luxembourg',
+                mc: 'Monaco',
+            };
+            return map[code] || 'Autre';
+        }
+
         function validateStep1() {
             const msg = document.getElementById('step1-message');
             msg.textContent = '';
@@ -1292,7 +1403,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         function validateContactStep() {
-            const country = document.getElementById('country').value.trim();
             const rawPhone = document.getElementById('phone').value.trim();
             let phone = rawPhone;
 
@@ -1309,13 +1419,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 return false;
             }
 
-            if (!country) {
-                alert('Merci de sélectionner ton pays.');
-                return false;
+            let pays = 'Autre';
+            if (iti) {
+                try {
+                    const d = iti.getSelectedCountryData();
+                    if (d && d.iso2) pays = countryIsoToPaysFr(d.iso2);
+                } catch (e) {
+                    /* ignore */
+                }
             }
 
             state.phone = phone;
-            state.country = country;
+            state.country = pays;
             return true;
         }
 
@@ -1434,10 +1549,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 } finally {
                     btn.disabled = false;
                 }
-            });
-
-            document.getElementById('step2-back').addEventListener('click', function () {
-                showStep(1);
             });
 
             document.getElementById('step2-submit').addEventListener('click', function () {
