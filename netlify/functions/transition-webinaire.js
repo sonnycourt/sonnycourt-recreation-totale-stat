@@ -34,10 +34,14 @@ export default async () => {
     let mailerLiteCount = 0;
     const apiKey = process.env.MAILERLITE_API_KEY;
     const groups = getWebinaireGroupEnv();
+    const groupNonAcheteurs =
+      groups.nonAcheteurs ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS;
 
     if (
       apiKey &&
-      groups.nonAcheteurs &&
+      groupNonAcheteurs &&
       presentsRes.ok &&
       Array.isArray(presentsRes.data)
     ) {
@@ -45,7 +49,7 @@ export default async () => {
         if (!row.email) continue;
         const sid = await getMailerLiteSubscriberId(row.email, apiKey);
         if (sid) {
-          await addSubscriberToGroup(sid, groups.nonAcheteurs, apiKey);
+          await addSubscriberToGroup(sid, groupNonAcheteurs, apiKey);
           mailerLiteCount += 1;
         }
       }

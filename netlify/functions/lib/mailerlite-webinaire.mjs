@@ -94,9 +94,19 @@ export async function upsertWebinaireSubscriber({
 
 export function getWebinaireGroupEnv() {
   return {
-    inscrits: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS,
-    presents: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS,
-    acheteurs: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS,
-    nonAcheteurs: process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS,
+    inscrits:
+      process.env.MAILERLITE_GROUP_WEBINAIRE_INSCRITS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
+      process.env.MAILERLITE_GROUP_WEBINAR_ES2,
+    presents:
+      process.env.MAILERLITE_GROUP_WEBINAIRE_PRESENTS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS,
+    acheteurs:
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS,
+    nonAcheteurs:
+      process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS,
   };
 }

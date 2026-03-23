@@ -85,6 +85,8 @@ export default async (req) => {
       const groups = getWebinaireGroupEnv();
       const groupInscrits =
         groups.inscrits ||
+        process.env.MAILERLITE_GROUP_WEBINAIRE_INSCRITS ||
+        process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS ||
         process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
         process.env.MAILERLITE_GROUP_WEBINAR_ES2;
 
@@ -156,6 +158,8 @@ export default async (req) => {
     const groups = getWebinaireGroupEnv();
     const groupInscrits =
       groups.inscrits ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_INSCRITS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
       process.env.MAILERLITE_GROUP_WEBINAR_ES2;
 

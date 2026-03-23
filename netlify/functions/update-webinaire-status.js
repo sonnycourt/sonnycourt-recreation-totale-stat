@@ -62,18 +62,30 @@ export default async (req) => {
 
     const apiKey = process.env.MAILERLITE_API_KEY;
     const groups = getWebinaireGroupEnv();
+    const groupPresents =
+      groups.presents ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_PRESENTS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS;
+    const groupAcheteurs =
+      groups.acheteurs ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS;
+    const groupNonAcheteurs =
+      groups.nonAcheteurs ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
+      process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS;
 
     if (apiKey && email) {
       const subscriberId = await getMailerLiteSubscriberId(email, apiKey);
       if (subscriberId) {
-        if (statut === 'present' && groups.presents) {
-          await addSubscriberToGroup(subscriberId, groups.presents, apiKey);
+        if (statut === 'present' && groupPresents) {
+          await addSubscriberToGroup(subscriberId, groupPresents, apiKey);
         }
-        if (statut === 'acheteur' && groups.acheteurs) {
-          await addSubscriberToGroup(subscriberId, groups.acheteurs, apiKey);
+        if (statut === 'acheteur' && groupAcheteurs) {
+          await addSubscriberToGroup(subscriberId, groupAcheteurs, apiKey);
         }
-        if (statut === 'non-acheteur' && groups.nonAcheteurs) {
-          await addSubscriberToGroup(subscriberId, groups.nonAcheteurs, apiKey);
+        if (statut === 'non-acheteur' && groupNonAcheteurs) {
+          await addSubscriberToGroup(subscriberId, groupNonAcheteurs, apiKey);
         }
       }
     }
