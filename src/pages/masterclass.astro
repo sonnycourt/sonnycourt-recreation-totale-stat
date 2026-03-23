@@ -85,6 +85,105 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             font-size: 0.95rem;
         }
 
+        .pre-optin-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10020;
+            display: none;
+            opacity: 0;
+            align-items: center;
+            justify-content: center;
+            padding: 36px 16px 16px;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.24) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.18) 0%, transparent 50%),
+                linear-gradient(180deg, #071227 0%, #0a0a1a 55%, #050510 100%);
+            transition: opacity 0.3s ease;
+        }
+
+        .pre-optin-overlay.is-visible {
+            display: flex;
+            opacity: 1;
+            align-items: flex-start;
+        }
+
+        .pre-optin-overlay.is-fading {
+            opacity: 0;
+        }
+
+        .pre-optin-overlay__inner {
+            text-align: center;
+            padding: 0 0 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(96, 165, 250, 0.34);
+            background: rgba(10, 20, 42, 0.42);
+            overflow: hidden;
+            box-shadow:
+                0 28px 84px rgba(0, 0, 0, 0.52),
+                0 0 48px rgba(59, 130, 246, 0.18);
+        }
+
+        .pre-optin-overlay__butterfly {
+            width: min(100%, 320px);
+            height: clamp(150px, 24vw, 220px);
+            display: block;
+            margin: 0;
+            object-fit: cover;
+            filter: drop-shadow(0 8px 28px rgba(37, 99, 235, 0.45));
+        }
+
+        .pre-optin-overlay__text {
+            margin: 14px 16px 0;
+            font-size: clamp(1.08rem, 2.3vw, 1.32rem);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: #dbeafe;
+            text-shadow: 0 0 16px rgba(96, 165, 250, 0.35);
+            animation: preOptinPulse 1.4s ease-in-out infinite;
+        }
+
+        .pre-optin-overlay__success {
+            margin: 12px auto 0;
+            width: fit-content;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(96, 165, 250, 0.55);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.24) 0%, rgba(37, 99, 235, 0.2) 100%);
+            color: #bfdbfe;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .pre-optin-overlay__success.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .pre-optin-overlay__success svg {
+            width: 16px;
+            height: 16px;
+            color: #60a5fa;
+        }
+
+        @keyframes preOptinPulse {
+            0%, 100% {
+                opacity: 0.72;
+                transform: translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-1px);
+            }
+        }
+
         #gate-blocked {
             display: none;
             position: fixed;
@@ -832,6 +931,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
     <div class="bg-gradient"></div>
 
+    <div id="pre-optin-overlay" class="pre-optin-overlay" aria-live="polite" aria-hidden="true">
+        <div class="pre-optin-overlay__inner">
+            <img
+                class="pre-optin-overlay__butterfly"
+                src="/media/pages/butterfly blue animation.gif"
+                alt=""
+                aria-hidden="true"
+            />
+            <p class="pre-optin-overlay__text">Vérification des places...</p>
+            <div id="pre-optin-success" class="pre-optin-overlay__success" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Places disponibles</span>
+            </div>
+        </div>
+    </div>
+
     <div id="gate-loading" class="gate-loading" aria-live="polite">
         <div class="gate-spinner" aria-hidden="true"></div>
         <p>Chargement…</p>
@@ -995,6 +1112,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
         const STEP2_SUBMIT_LABEL = 'Confirmer mon inscription';
+        const PRE_OPTIN_DELAY_MS = 4000;
+        const PRE_OPTIN_FADE_MS = 300;
+        const PRE_OPTIN_SUCCESS_MS = 1420;
 
         const state = {
             name: '',
@@ -1004,6 +1124,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         };
 
         let iti = null;
+        let preOptinOverlayBusy = false;
 
         function pad(value) {
             return String(value).padStart(2, '0');
@@ -1285,6 +1406,78 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function closePopup() {
             document.getElementById('custom-popup').style.display = 'none';
             document.body.style.overflow = '';
+        }
+
+        function showPreOptinOverlayThenOpenPopup() {
+            if (preOptinOverlayBusy) return;
+            const overlay = document.getElementById('pre-optin-overlay');
+            if (!overlay) {
+                openPopup();
+                return;
+            }
+            preOptinOverlayBusy = true;
+            overlay.setAttribute('aria-hidden', 'false');
+            overlay.classList.remove('is-fading');
+            overlay.classList.add('is-visible');
+            const success = document.getElementById('pre-optin-success');
+            if (success) success.classList.remove('is-visible');
+            document.body.style.overflow = 'hidden';
+
+            setTimeout(function () {
+                if (success) success.classList.add('is-visible');
+                playValidationTone();
+                setTimeout(function () {
+                    // Ouvre d'abord le popup, puis fond l'overlay par-dessus
+                    // pour éviter tout flash visuel de la page.
+                    openPopup();
+                    requestAnimationFrame(function () {
+                        overlay.classList.add('is-fading');
+                        setTimeout(function () {
+                            overlay.classList.remove('is-visible', 'is-fading');
+                            overlay.setAttribute('aria-hidden', 'true');
+                            if (success) success.classList.remove('is-visible');
+                            preOptinOverlayBusy = false;
+                        }, PRE_OPTIN_FADE_MS);
+                    });
+                }, PRE_OPTIN_SUCCESS_MS);
+            }, PRE_OPTIN_DELAY_MS);
+        }
+
+        function playValidationTone() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+                osc1.frequency.setValueAtTime(880, now);
+                osc2.frequency.setValueAtTime(1320, now + 0.06);
+
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc1.start(now);
+                osc2.start(now + 0.06);
+                osc1.stop(now + 0.24);
+                osc2.stop(now + 0.24);
+
+                osc2.onended = function () {
+                    ctx.close().catch(() => {});
+                };
+            } catch (e) {
+                /* ignore audio errors */
+            }
         }
 
         function showStep(stepNumber) {
@@ -1579,7 +1772,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
             document.querySelectorAll('.popup-trigger').forEach((btn) => {
                 btn.addEventListener('click', function () {
-                    openPopup();
+                    showPreOptinOverlayThenOpenPopup();
                 });
             });
 
