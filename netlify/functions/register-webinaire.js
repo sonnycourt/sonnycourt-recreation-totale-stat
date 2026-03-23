@@ -6,7 +6,7 @@ import {
   formatParisOptinTimestamp,
 } from './lib/webinaire-session-paris.mjs';
 import { upsertWebinaireSubscriber, getWebinaireGroupEnv } from './lib/mailerlite-webinaire.mjs';
-import { supabaseGet, supabasePost } from './lib/supabase-rest.mjs';
+import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -44,8 +44,9 @@ export default async (req) => {
     const prenom = String(body?.prenom || '').trim();
     const telephone = String(body?.telephone || '').trim();
     const pays = String(body?.pays || '').trim();
+    const hasPhonePayload = Boolean(telephone && pays);
 
-    if (!email || !email.includes('@') || !prenom || !telephone || !pays) {
+    if (!email || !email.includes('@') || !prenom) {
       return jsonResponse(400, { error: 'Paramètres manquants' });
     }
 
@@ -59,17 +60,60 @@ export default async (req) => {
     }
 
     const existing = await supabaseGet(
-      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut,session_date,session_ends_at,offre_expires_at`,
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,statut,session_date,session_ends_at,offre_expires_at`,
     );
     if (existing.ok && Array.isArray(existing.data) && existing.data.length > 0) {
       const e = existing.data[0];
-      return jsonResponse(409, {
-        error: 'already_registered',
+      const patchBody = {};
+      if (prenom && prenom !== (e.prenom || '')) patchBody.prenom = prenom;
+      if (hasPhonePayload) {
+        patchBody.telephone = telephone;
+        patchBody.pays = pays;
+      }
+      if (Object.keys(patchBody).length > 0) {
+        const upd = await supabasePatch(
+          'webinaire_registrations',
+          `email=eq.${encodeURIComponent(email)}`,
+          patchBody,
+        );
+        if (!upd.ok) {
+          console.error('Supabase update webinaire_registrations:', upd.status, upd.error);
+        }
+      }
+
+      const apiKey = process.env.MAILERLITE_API_KEY;
+      const groups = getWebinaireGroupEnv();
+      const groupInscrits =
+        groups.inscrits ||
+        process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
+        process.env.MAILERLITE_GROUP_WEBINAR_ES2;
+
+      if (apiKey && groupInscrits) {
+        try {
+          await upsertWebinaireSubscriber({
+            email,
+            prenom: prenom || e.prenom || '',
+            telephone: hasPhonePayload ? telephone : e.telephone || '',
+            pays: hasPhonePayload ? pays : e.pays || '',
+            token: e.token,
+            dateOptinMasterclass: formatParisOptinTimestamp(new Date()),
+            groupId: groupInscrits,
+            apiKey,
+          });
+        } catch (mlErr) {
+          console.error('MailerLite register-webinaire existing:', mlErr);
+        }
+      }
+
+      return jsonResponse(200, {
+        success: true,
+        alreadyRegistered: true,
         token: e.token,
         statut: e.statut,
         sessionStartsAt: e.session_date,
         sessionEndsAt: e.session_ends_at,
         offreExpiresAt: e.offre_expires_at,
+        redirectTo: `/masterclass/confirmation?t=${e.token}`,
       });
     }
 
@@ -90,8 +134,8 @@ export default async (req) => {
       token,
       email,
       prenom,
-      telephone,
-      pays,
+      telephone: telephone || null,
+      pays: pays || null,
       creneau: slotParis,
       session_date: sessionStart.toISOString(),
       session_ends_at: sessionEndsAt.toISOString(),

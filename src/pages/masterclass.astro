@@ -1552,6 +1552,27 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
         }
 
+        async function saveStep1Lead() {
+            const response = await fetch('/.netlify/functions/register-webinaire', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: state.email,
+                    prenom: state.name,
+                    creneau: '20h',
+                }),
+            });
+            const result = await response.json();
+            if (response.status === 403 && result.reason === 'excluded') {
+                return { ok: false, excluded: true };
+            }
+            if (!response.ok || !result?.success || !result?.token) {
+                return { ok: false };
+            }
+            setTokenEverywhere(result.token);
+            return { ok: true, token: result.token };
+        }
+
         function initMainInteractions() {
             updateCountdown();
             setInterval(updateCountdown, 1000);
@@ -1609,6 +1630,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             return;
                         }
                         goToContactStep();
+                        return;
+                    }
+                    const capture = await saveStep1Lead();
+                    if (!capture.ok) {
+                        msg.textContent = capture.excluded
+                            ? 'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.'
+                            : 'Sauvegarde impossible. Réessaie dans un instant.';
                         return;
                     }
                     goToContactStep();
