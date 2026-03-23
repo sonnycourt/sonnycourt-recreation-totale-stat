@@ -6,6 +6,7 @@
 export function parseParisParts(date) {
   const formatter = new Intl.DateTimeFormat('fr-FR', {
     timeZone: 'Europe/Paris',
+    numberingSystem: 'latn',
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -53,6 +54,18 @@ export function findParisInstantUtc(parisYear, parisMonth, parisDay, parisHour) 
     }
     candidate = new Date(candidate.getTime() + 60 * 1000);
   }
+
+  // Fallback robuste : on balaie 48h autour de la date cible.
+  // Utile si l'environnement runtime a un comportement Intl inattendu.
+  const broadStart = Date.UTC(parisYear, parisMonth - 1, parisDay, 0, 0, 0);
+  const broadEnd = broadStart + 48 * 60 * 60 * 1000;
+  for (let t = broadStart; t < broadEnd; t += 60 * 1000) {
+    const p = parseParisParts(new Date(t));
+    if (p.year === parisYear && p.month === parisMonth && p.day === parisDay && p.hour === parisHour) {
+      return new Date(t);
+    }
+  }
+
   return null;
 }
 
