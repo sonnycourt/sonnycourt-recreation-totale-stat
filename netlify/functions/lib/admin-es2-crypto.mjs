@@ -82,7 +82,7 @@ export function getSessionCookieValue(cookieHeader) {
 export function buildSessionSetCookie(opts) {
   const parts = [
     `${COOKIE_NAME}=${encodeURIComponent(opts.value)}`,
-    'Path=/sc-ops-2026',
+    'Path=/',
     `Max-Age=${opts.maxAgeSec}`,
     'HttpOnly',
     'SameSite=Strict',
@@ -94,7 +94,7 @@ export function buildSessionSetCookie(opts) {
 export function buildSessionClearCookie(secure) {
   const parts = [
     `${COOKIE_NAME}=`,
-    'Path=/sc-ops-2026',
+    'Path=/',
     'Max-Age=0',
     'HttpOnly',
     'SameSite=Strict',
