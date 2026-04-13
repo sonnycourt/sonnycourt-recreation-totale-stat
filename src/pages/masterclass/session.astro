@@ -58,6 +58,91 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        .dev-time-banner {
+            display: none;
+            max-width: 1040px;
+            margin: 12px auto 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            background: rgba(10, 20, 42, 0.55);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+        }
+        .dev-time-banner.is-visible { display: block; }
+        .dev-time-title {
+            font-size: 0.78rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .dev-time-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .dev-time-input {
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            padding: 0 10px;
+            font-size: 0.9rem;
+        }
+        .dev-time-btn {
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.16);
+            color: #dbeafe;
+            padding: 0 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dev-time-btn.is-active {
+            border-color: rgba(147, 197, 253, 0.9);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.38), rgba(37, 99, 235, 0.34));
+            color: #fff;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 10px 20px rgba(2, 6, 23, 0.35);
+        }
+        .dev-time-now {
+            margin-left: auto;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .dev-section {
+            margin-bottom: 10px;
+        }
+        .dev-label {
+            display: block;
+            font-size: 0.74rem;
+            color: #93c5fd;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 5px;
+        }
+        .dev-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-size: 0.76rem;
+            color: #dbeafe;
+        }
+        .dev-summary span { white-space: nowrap; }
+        .dev-summary .dev-state-val {
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
         .screen {
             display: none;
             max-width: 1040px;
@@ -79,6 +164,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             letter-spacing: 0.9px;
             margin-bottom: 14px;
         }
+        .screen-main-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
         h1 {
             font-size: clamp(1.55rem, 4vw, 2.25rem);
             line-height: 1.2;
@@ -93,6 +182,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             line-height: 1.55;
             margin-bottom: 18px;
             max-width: 760px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .screen-main-header {
+            text-align: center;
         }
         .blocked {
             text-align: center;
@@ -119,6 +213,25 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             box-shadow: 0 12px 30px rgba(59, 130, 246, 0.32);
         }
 
+        .pre-live-countdown {
+            margin-bottom: 10px;
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        .pre-live-countdown .countdown {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .pre-live-countdown .countdown-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
         .video-shell {
             width: 100%;
             aspect-ratio: 16 / 9;
@@ -129,32 +242,297 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
             margin-bottom: 20px;
         }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
         #masterclass-video {
             width: 100%;
             height: 100%;
             display: block;
             background: #000;
         }
-        .video-placeholder {
-            width: 100%;
-            height: 100%;
+        .video-waiting {
+            position: absolute;
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 12px;
             text-align: center;
             color: var(--text-muted);
             padding: 20px;
             line-height: 1.5;
-            background: radial-gradient(circle at 50% 30%, rgba(59,130,246,0.08), transparent 60%);
+            background:
+                linear-gradient(180deg, rgba(2, 6, 18, 0.35) 0%, rgba(2, 6, 18, 0.6) 100%),
+                url('/media/pages/ES20-banner.webp') center/cover no-repeat;
+            z-index: 4;
         }
+        .video-waiting.is-hidden {
+            display: none;
+        }
+        .waiting-title {
+            font-size: clamp(1rem, 2.2vw, 1.18rem);
+            font-weight: 700;
+            color: #dbeafe;
+            text-shadow: 0 2px 20px rgba(2, 6, 23, 0.5);
+        }
+        .waiting-title.is-ended {
+            color: #fecaca;
+            font-size: clamp(1.08rem, 2.5vw, 1.32rem);
+            letter-spacing: 0.01em;
+            text-shadow: 0 6px 26px rgba(127, 29, 29, 0.55);
+            background: rgba(127, 29, 29, 0.28);
+            border: 1px solid rgba(239, 68, 68, 0.38);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6;
+            transition: opacity 0.25s ease;
+        }
+        .play-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .play-button {
+            border: 1px solid rgba(147, 197, 253, 0.55);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.92));
+            border-radius: 16px;
+            padding: 14px 24px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 16px 36px rgba(37, 99, 235, 0.45);
+        }
+        .play-button:hover { transform: translateY(-1px); }
+        .play-button__label {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.01em;
+            text-shadow: 0 1px 12px rgba(2, 6, 23, 0.35);
+        }
+        .video-controls {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            z-index: 7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(6, 12, 24, 0.72);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .video-container:hover .video-controls,
+        .video-controls.is-visible {
+            opacity: 1;
+        }
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .control-btn svg { width: 18px; height: 18px; }
+        .volume-range {
+            width: 84px;
+            accent-color: var(--primary);
+        }
+        /* ── Heart Column ── */
+        .player-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .player-row .video-shell {
+            flex: 1;
+            min-width: 0;
+            margin-bottom: 0;
+        }
+        .heart-column {
+            position: relative;
+            flex-shrink: 0;
+            width: 50px;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .heart-column.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .heart-column__btn {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.15);
+            font-size: 20px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .heart-column__btn:active { transform: translateX(-50%) scale(0.88); }
+        .heart-column__track {
+            position: absolute;
+            bottom: 58px;
+            left: 0;
+            right: 0;
+            top: 0;
+            overflow: hidden;
+        }
+        @keyframes floatUp {
+            0%   { transform: translateY(0) scale(1);      opacity: 1;  }
+            50%  { transform: translateY(-120px) scale(1.1); opacity: 0.6; }
+            100% { transform: translateY(-260px) scale(0.8); opacity: 0;  }
+        }
+        @media (max-width: 767px) {
+            .player-row { display: block; }
+            .player-row .video-shell { margin-bottom: 20px; }
+            .heart-column {
+                position: fixed;
+                bottom: 20px;
+                right: 12px;
+                width: 44px;
+                height: 200px;
+                z-index: 200;
+            }
+        }
+
+        .purchase-toast {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .purchase-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .purchase-toast__content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 360px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .purchase-toast__thumb-wrap {
+            position: relative;
+            width: 58px;
+            height: 58px;
+            flex-shrink: 0;
+        }
+        .purchase-toast__thumb {
+            width: 58px;
+            height: 58px;
+            border-radius: 9px;
+            object-fit: cover;
+            display: block;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+        }
+        .purchase-toast__thumb-flag {
+            position: absolute;
+            right: -4px;
+            bottom: -4px;
+            font-size: 14px;
+            line-height: 1;
+            filter: drop-shadow(0 2px 6px rgba(2, 6, 23, 0.5));
+        }
+        .purchase-toast__text {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.35;
+            color: #fff;
+        }
+        .purchase-toast__name {
+            color: #60a5fa !important;
+            font-weight: 900 !important;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.35);
+        }
+        .purchase-toast__action {
+            color: rgba(255, 255, 255, 0.72);
+        }
+        .purchase-toast__course {
+            display: block;
+            margin-top: 2px;
+            color: #ffffff !important;
+            font-weight: 400 !important;
+        }
+
         .offer-zone {
             min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding-top: 38px;
         }
-        .offer-zone.hidden { visibility: hidden; pointer-events: none; }
-        .offer-zone.visible { visibility: visible; }
+        .offer-zone.hidden {
+            display: none;
+        }
+        .offer-zone.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+            animation: ctaFadeIn 0.4s ease forwards;
+        }
+        @keyframes ctaFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
         .offer-cta {
             width: 100%;
             max-width: 520px;
+            margin-top: 12px;
             border: none;
             border-radius: 14px;
             padding: 16px 20px;
@@ -166,21 +544,109 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 10px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             box-shadow: 0 14px 34px rgba(59, 130, 246, 0.38);
+            transition: all 0.25s ease;
         }
-        .offer-zone.visible .offer-cta { animation: ctaIn 0.35s ease both; }
+        .offer-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
+        }
         @keyframes ctaIn {
             from { opacity: 0; transform: translateY(6px) scale(0.985); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .offer-countdown-title {
-            margin-top: 14px;
-            margin-bottom: 10px;
-            color: var(--accent);
+            margin-top: 2px;
+            margin-bottom: 16px;
+            color: rgba(255, 255, 255, 0.96);
+            font-size: 0.84rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            text-align: center;
+            text-shadow: 0 2px 12px rgba(2, 6, 23, 0.35);
+        }
+        .scarcity-card {
+            width: 100%;
+            max-width: 520px;
+            margin: 20px 0 16px;
+            padding: 14px 14px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.55);
+            background: radial-gradient(120% 130% at 0% 0%, rgba(220, 38, 38, 0.24) 0%, rgba(69, 10, 10, 0.30) 45%, rgba(15, 23, 42, 0.72) 100%);
+            box-shadow: 0 14px 30px rgba(127, 29, 29, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            text-align: left;
+        }
+        .scarcity-kicker {
+            margin: 0 0 8px;
+            font-size: 0.70rem;
+            text-transform: uppercase;
+            letter-spacing: 0.10em;
+            color: #fee2e2;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scarcity-kicker::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+        }
+        .scarcity-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .scarcity-label {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.96);
             font-size: 0.92rem;
             font-weight: 700;
-            letter-spacing: 0.03em;
+        }
+        .scarcity-value {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(220, 38, 38, 0.28);
+            border: 1px solid rgba(252, 165, 165, 0.72);
+        }
+        .scarcity-number {
+            font-size: 1.42rem;
+            line-height: 1;
+            font-weight: 900;
+            color: #fff;
+        }
+        .scarcity-unit {
+            font-size: 0.80rem;
+            letter-spacing: 0.06em;
+            color: #ffe4e6;
+            font-weight: 700;
+        }
+        .scarcity-meter {
+            margin-top: 10px;
+            width: 100%;
+            height: 7px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(252, 165, 165, 0.35);
+        }
+        .scarcity-meter__fill {
+            height: 100%;
+            width: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.55);
         }
         .countdown {
             display: grid;
@@ -188,6 +654,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             gap: 8px;
             max-width: 520px;
         }
+        .session-ended-note {
+            display: none;
+            margin: 0 0 10px;
+            text-align: center;
+            color: #dbeafe;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .session-ended-note.is-visible { display: block; }
         .count-card {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--border);
@@ -216,11 +691,57 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             .screen { padding: 20px 14px 34px; }
             .offer-cta { width: 100%; }
             .countdown { max-width: 100%; }
+            .volume-range { width: 64px; }
+            .purchase-toast {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+            }
+            .purchase-toast__content {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="bg-gradient"></div>
+
+    <div id="dev-time-banner" class="dev-time-banner">
+        <p class="dev-time-title">Simulation temps (preview uniquement)</p>
+
+        <div class="dev-section">
+            <label class="dev-label">Inscrit le :</label>
+            <div class="dev-time-row">
+                <input id="dev-inscription-input" class="dev-time-input" type="datetime-local" />
+                <button class="dev-time-btn" data-insc-preset="mon-10" type="button">Lundi 10h</button>
+                <button class="dev-time-btn" data-insc-preset="wed-14" type="button">Mercredi 14h</button>
+                <button class="dev-time-btn" data-insc-preset="thu-18" type="button">Jeudi 18h</button>
+                <button class="dev-time-btn" data-insc-preset="thu-1930" type="button">Jeudi 19h30</button>
+                <button class="dev-time-btn" data-insc-preset="fri-10" type="button">Vendredi 10h</button>
+                <button class="dev-time-btn" data-insc-preset="sat-15" type="button">Samedi 15h</button>
+            </div>
+        </div>
+
+        <div class="dev-section">
+            <label class="dev-label">Heure actuelle :</label>
+            <div class="dev-time-row">
+                <input id="dev-time-input" class="dev-time-input" type="datetime-local" />
+                <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
+                <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
+                <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +15min</button>
+                <button class="dev-time-btn" data-now-preset="session-p30" type="button">Session +30min (CTA)</button>
+                <button class="dev-time-btn" data-now-preset="session-p46" type="button">Session +46min (fin)</button>
+                <button class="dev-time-btn" data-now-preset="expired" type="button">Expiré dim 23h30</button>
+            </div>
+        </div>
+
+        <div class="dev-summary" id="dev-summary">
+            <span id="dev-sum-inscription"></span>
+            <span id="dev-sum-session"></span>
+            <span id="dev-sum-now"></span>
+            <span id="dev-sum-state"></span>
+        </div>
+    </div>
 
     <div id="gate-loading" class="gate-loading" aria-live="polite">
         <div class="spinner" aria-hidden="true"></div>
@@ -235,7 +756,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     </section>
 
     <section id="screen-before" class="screen" aria-live="polite">
-        <div class="badge">Session pas encore ouverte</div>
         <h1>La masterclass commence dans...</h1>
         <p class="wait-note">Tu vas être redirigé vers ta page de confirmation.</p>
         <div class="countdown">
@@ -243,29 +763,94 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <div class="count-card"><span id="before-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
             <div class="count-card"><span id="before-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
             <div class="count-card"><span id="before-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
-        </div>
+    </div>
     </section>
 
     <section id="screen-main" class="screen">
-        <div class="badge">Masterclass en direct / replay</div>
-        <h1>Masterclass Esprit Subconscient 2.0</h1>
-        <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
+        <div class="screen-main-header">
+            <div class="badge">UNE SEULE DIFFUSION</div>
+            <h1>Masterclass Esprit Subconscient 2.0</h1>
+            <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
+            </div>
 
+        <div id="pre-live-countdown" class="pre-live-countdown">
+            <p class="countdown-title">Début dans</p>
+            <div class="countdown">
+                <div class="count-card"><span id="pl-days" class="count-value">00</span><span class="count-label">Jours</span></div>
+                <div class="count-card"><span id="pl-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
+                <div class="count-card"><span id="pl-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
+                <div class="count-card"><span id="pl-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+        </div>
+    </div>
+
+        <p id="session-ended-note" class="session-ended-note">La masterclass est terminée</p>
+        <div class="player-row">
         <div class="video-shell">
-            <video id="masterclass-video" controls controlslist="nodownload noplaybackrate" preload="metadata" playsinline></video>
-            <div id="video-placeholder" class="video-placeholder" style="display:none;">
-                URL Bunny Stream à brancher dans <code style="margin-left:6px;opacity:0.9;">VIDEO_SOURCE_URL</code>.
+            <div class="video-container" id="video-container">
+                <video id="masterclass-video" preload="metadata" playsinline controlslist="nodownload noremoteplayback nofullscreen" oncontextmenu="return false;"></video>
+                <div id="video-waiting" class="video-waiting">
+                    <p class="waiting-title">Début de la diffusion jeudi — à 20h (Paris)</p>
+                </div>
+                <div class="play-overlay" id="playOverlay">
+                    <button class="play-button" id="playButton" aria-label="Lancer la vidéo">
+                        <span id="playOverlayLabel" class="play-button__label">On clique pour rejoindre la diffusion en cours</span>
+                    </button>
+                </div>
+                <div class="video-controls" id="videoControls">
+                    <div class="controls-group">
+                        <button class="control-btn" id="muteBtn" aria-label="Activer / couper le son">
+                            <svg id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                            <svg id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                        </button>
+                        <input id="volumeRange" class="volume-range" type="range" min="0" max="100" value="100">
+                    </div>
+                    <div class="controls-group">
+                        <button class="control-btn" id="fullscreenBtn" aria-label="Plein écran">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <div id="heart-column" class="heart-column" aria-hidden="true">
+            <div id="heart-track" class="heart-column__track"></div>
+            <button id="heart-btn" class="heart-column__btn" type="button" aria-label="Envoyer un cœur"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.479 19.374-.971.939a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5a5.2 5.2 0 0 1-.219 1.49"/><path d="M15 15h6"/><path d="M18 12v6"/></svg></button>
+        </div>
+        </div>
+
         <div id="offer-zone" class="offer-zone hidden">
-            <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
             <p class="offer-countdown-title">L'offre expire dans :</p>
             <div class="countdown">
                 <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
                 <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
                 <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
                 <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+            </div>
+            <div class="scarcity-card" id="scarcity-card" aria-live="polite">
+                <p class="scarcity-kicker">Nombre de places limitées</p>
+                <div class="scarcity-main">
+                    <p class="scarcity-label">Places restantes</p>
+                    <div class="scarcity-value">
+                        <span class="scarcity-number" id="scarcity-places">30</span>
+                        <span class="scarcity-unit">/ 30</span>
+                        <span class="scarcity-unit">places</span>
+                    </div>
+                </div>
+                <div class="scarcity-meter" aria-hidden="true">
+                    <div class="scarcity-meter__fill"></div>
+                </div>
+            </div>
+            <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
+        </div>
+
+        <div id="purchase-toast" class="purchase-toast" aria-live="polite">
+            <div class="purchase-toast__content">
+                <div class="purchase-toast__thumb-wrap">
+                    <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
+                    <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
+                </div>
+                <p class="purchase-toast__text" id="purchase-toast-text"><span class="purchase-toast__name">Sophie</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span></p>
             </div>
         </div>
     </section>
@@ -275,10 +860,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const TOKEN_KEY = 'masterclass_es2_token';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
-        const CTA_APPEAR_SECONDS = 2100; // 35 min
-        const VIDEO_SOURCE_URL = ''; // TODO: URL Bunny Stream (source vidéo)
-        const CTA_STATE_PREFIX = 'masterclass_es2_cta_visible_';
-        const REDIRECT_TO_CONFIRMATION_MS = 2200;
+        const CTA_APPEAR_SECONDS = 1800; // minute 30
+        const VIDEO_DURATION_SECONDS = 2700; // 45 min
+        const VIDEO_SOURCE_URL = 'https://sonnycourt-videos-public.b-cdn.net/45%20Minute%20Countdown%20Timer%20with%20Alarm%20and%20Deep%20Space%20Ambient%20Music%20%F0%9F%8C%A0Deep%20Space%20Galaxy%20%F0%9F%8C%A0.mp4';
+        const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
+        const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
+        const REPLAY_LABEL = 'Lancer la vidéo';
+        let simulatedNowMs = null;
+        let simulatedAnchorRealMs = null;
+
+        function getNowMs() {
+            if (!Number.isFinite(simulatedNowMs)) return Date.now();
+            if (!Number.isFinite(simulatedAnchorRealMs)) return simulatedNowMs;
+            return simulatedNowMs + (Date.now() - simulatedAnchorRealMs);
+        }
 
         function pad(n) { return String(n).padStart(2, '0'); }
         function getCookie(name) {
@@ -326,78 +921,476 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             };
         }
         function updateCountdown(targetMs, ids) {
-            const diff = Math.max(0, targetMs - Date.now());
+            const diff = Math.max(0, targetMs - getNowMs());
             const total = Math.floor(diff / 1000);
             document.getElementById(ids.days).textContent = pad(Math.floor(total / 86400));
             document.getElementById(ids.hours).textContent = pad(Math.floor((total % 86400) / 3600));
             document.getElementById(ids.minutes).textContent = pad(Math.floor((total % 3600) / 60));
             document.getElementById(ids.seconds).textContent = pad(total % 60);
         }
+        /* ── Heart Column ── */
+        const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
+
+        function spawnHeart(track) {
+            const h = document.createElement('span');
+            var HEART_BLUES = ['#3b82f6','#60a5fa','#93c5fd','#2563eb','#a5b4fc','#bfdbfe'];
+            var color = HEART_BLUES[Math.floor(Math.random() * HEART_BLUES.length)];
+            h.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="' + color + '" stroke="none"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>';
+            h.style.cssText = `
+                position:absolute;bottom:0;left:${6 + Math.random() * 24}px;
+                font-size:${12 + Math.random() * 10}px;opacity:1;pointer-events:none;
+                animation:floatUp ${2 + Math.random()}s ease-out forwards;
+            `;
+            track.appendChild(h);
+            h.addEventListener('animationend', () => h.remove());
+        }
+
+        function getSimInterval(sessionStartMs) {
+            const now = getNowMs();
+            const pre15 = sessionStartMs - 15 * 60 * 1000; // 19h45
+            const pre5  = sessionStartMs - 5  * 60 * 1000; // 19h55
+            const endMs = sessionStartMs + VIDEO_DURATION_SECONDS * 1000; // 20h45
+            const min15 = sessionStartMs + 15 * 60 * 1000; // 20h15
+            const min30 = sessionStartMs + 30 * 60 * 1000; // 20h30
+
+            if (now < pre15) return null;       // avant 19h45 — invisible
+            if (now >= endMs) return -1;        // après fin — disparaît
+            // 19h45 → 19h55 : montée lente
+            if (now < pre5)  return 3000 + Math.random() * 2000;
+            // 19h55 → 20h00 : montée rapide
+            if (now < sessionStartMs) return 1200 + Math.random() * 800;
+            // 20h00 → 20h15 : pic intense
+            if (now < min15) return 600 + Math.random() * 600;
+            // 20h15 → 20h30 : bon débit mais moins intense
+            if (now < min30) return 1500 + Math.random() * 1000;
+            // 20h30 → fin : débit modéré
+            return 2500 + Math.random() * 1500;
+        }
+
+        function initHeartColumn(sessionStartMs) {
+            const col   = document.getElementById('heart-column');
+            const track = document.getElementById('heart-track');
+            const btn   = document.getElementById('heart-btn');
+            if (!col || !track || !btn) return { recalc: () => {}, destroy: () => {} };
+
+            let timer = null;
+            let burstTimers = [];
+
+            function spawnBurst() {
+                var count = 3 + Math.floor(Math.random() * 5); // 3-7 cœurs par "personne"
+                for (var i = 0; i < count; i++) {
+                    var t = setTimeout(function() { spawnHeart(track); }, i * (80 + Math.random() * 120));
+                    burstTimers.push(t);
+                }
+            }
+
+            function scheduleNext() {
+                if (timer) clearTimeout(timer);
+                var delay = getSimInterval(sessionStartMs);
+                if (delay === null) return;
+                if (delay === -1) { col.classList.remove('is-visible'); return; }
+                timer = setTimeout(function() {
+                    if (col.classList.contains('is-visible')) spawnBurst();
+                    scheduleNext();
+                }, delay);
+            }
+
+            function updateVisibility() {
+                const now = getNowMs();
+                const endMs = sessionStartMs + VIDEO_DURATION_SECONDS * 1000;
+                if (now >= endMs) {
+                    col.classList.remove('is-visible');
+                    if (timer) { clearTimeout(timer); timer = null; }
+                    return;
+                }
+                const show = now >= sessionStartMs - HEART_SHOW_BEFORE_MS;
+                if (show && !col.classList.contains('is-visible')) {
+                    col.classList.add('is-visible');
+                    scheduleNext();
+                } else if (!show && col.classList.contains('is-visible')) {
+                    col.classList.remove('is-visible');
+                    if (timer) { clearTimeout(timer); timer = null; }
+                } else if (show) {
+                    scheduleNext();
+                }
+            }
+
+            btn.addEventListener('click', () => {
+                spawnHeart(track);
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => { spawnHeart(track); scheduleNext(); }, 300 + Math.random() * 500);
+            });
+
+            updateVisibility();
+            return {
+                recalc: updateVisibility,
+                destroy: function () {
+                    if (timer) { clearTimeout(timer); timer = null; }
+                    burstTimers.forEach((t) => clearTimeout(t));
+                    burstTimers = [];
+                    col.classList.remove('is-visible');
+                },
+            };
+        }
+
+        function initPurchaseToasts(sessionStartMs) {
+            const toast = document.getElementById('purchase-toast');
+            const text = document.getElementById('purchase-toast-text');
+            const flagEl = document.getElementById('purchase-toast-flag');
+            if (!toast || !text || !flagEl) return { recalc: () => {}, destroy: () => {} };
+
+            const prenoms = [
+                'Sophie', 'Karim', 'Julie', 'Antoine', 'Fatima', 'Romain', 'Léa', 'Mehdi', 'Camille', 'Théo',
+                'Nora', 'Alexandre', 'Chloé', 'Youssef', 'Marine', 'Sarah', 'Lucas', 'Inès', 'Maxime', 'Amina',
+                'Thomas', 'Emma', 'Omar', 'Charlotte', 'Mathis', 'Yasmine', 'Hugo', 'Manon', 'Adam', 'Clara',
+            ];
+            const flags = ['🇫🇷', '🇧🇪', '🇨🇭', '🇨🇦'];
+            let used = [];
+            let hideTimer = null;
+            let nextTimer = null;
+
+            function pickUniqueName() {
+                if (used.length >= prenoms.length) used = [];
+                let idx = 0;
+                do idx = Math.floor(Math.random() * prenoms.length);
+                while (used.includes(idx));
+                used.push(idx);
+                return prenoms[idx];
+            }
+
+            function shouldRun() {
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
+                return elapsedSec >= CTA_APPEAR_SECONDS;
+            }
+
+            function hideNow() {
+                toast.classList.remove('show');
+                if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+            }
+
+            function scheduleNext() {
+                if (nextTimer) clearTimeout(nextTimer);
+                if (!shouldRun()) return;
+                const delay = 45000 + Math.random() * 45000; // 45-90s
+                nextTimer = setTimeout(showOne, delay);
+            }
+
+            function showOne() {
+                if (!shouldRun()) {
+                    hideNow();
+                    return;
+                }
+                const prenom = pickUniqueName();
+                const flag = flags[Math.floor(Math.random() * flags.length)];
+                flagEl.textContent = flag;
+                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${prenom}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                toast.classList.add('show');
+                if (hideTimer) clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                    scheduleNext();
+                }, 4000);
+            }
+
+            function recalc() {
+                if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+                hideNow();
+                if (shouldRun()) showOne();
+                else scheduleNext();
+            }
+
+            recalc();
+            return {
+                recalc,
+                destroy: function () {
+                    if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+                    hideNow();
+                },
+            };
+        }
+        /* ──────────────────────────────── */
+
         function showOfferZone(token) {
             const zone = document.getElementById('offer-zone');
-            if (!zone.classList.contains('visible')) {
-                zone.classList.remove('hidden');
-                zone.classList.add('visible');
-            }
-            try { localStorage.setItem(CTA_STATE_PREFIX + token, '1'); } catch {}
+            if (!zone || zone.classList.contains('visible')) return;
+            const cta = document.getElementById('offer-cta');
+            cta.href = '/es2?t=' + encodeURIComponent(token);
+            zone.classList.remove('hidden');
+            void zone.offsetWidth; // reflow needed to trigger animation from display:none
+            zone.classList.add('visible');
         }
-        function shouldShowOfferImmediately(reg) {
-            try {
-                if (localStorage.getItem(CTA_STATE_PREFIX + reg.token) === '1') return true;
-            } catch {}
-            return reg.statut === 'present';
+        function hideOfferZone() {
+            const zone = document.getElementById('offer-zone');
+            if (!zone || zone.classList.contains('hidden')) return;
+            zone.classList.remove('visible');
+            zone.classList.add('hidden');
         }
 
         function mountVideoAndOffer(reg) {
-            const offerHref = '/es2?t=' + encodeURIComponent(reg.token);
-            document.getElementById('offer-cta').href = offerHref;
-
             const expiryMs = new Date(reg.offreExpiresAt).getTime();
             const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
             const tick = () => {
                 updateCountdown(expiryMs, offerIds);
-                if (Date.now() >= expiryMs) {
+                if (getNowMs() >= expiryMs) {
                     showBlocked("Cette masterclass n'est plus accessible.", '');
                 }
             };
-            setInterval(tick, 1000);
+            const offerInterval = setInterval(tick, 1000);
 
             const video = document.getElementById('masterclass-video');
-            const placeholder = document.getElementById('video-placeholder');
+            const videoContainer = document.getElementById('video-container');
+            const waiting = document.getElementById('video-waiting');
+            const playOverlay = document.getElementById('playOverlay');
+            const playBtn = document.getElementById('playButton');
+            const muteBtn = document.getElementById('muteBtn');
+            const volRange = document.getElementById('volumeRange');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const preLive = document.getElementById('pre-live-countdown');
+            const endedNote = document.getElementById('session-ended-note');
+            const volumeIcon = document.getElementById('icon-volume');
+            const muteIcon = document.getElementById('icon-mute');
+            const playOverlayLabel = document.getElementById('playOverlayLabel');
+            const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
+            const hideCountdownMs = sessionStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
+
+            function formatSessionParisLabel(ms) {
+                return new Intl.DateTimeFormat('fr-FR', {
+                    timeZone: 'Europe/Paris',
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                }).format(new Date(ms));
+            }
 
             let maxWatched = 0;
+            let liveStarted = false;
+            let launchInterval = null;
+            let isLiveJoin = false;
+            let isSessionEnded = false;
+            let hasAppliedLiveOffset = false;
+
+            function syncIcons() {
+                const muted = video.muted || video.volume === 0;
+                volumeIcon.style.display = muted ? 'none' : 'block';
+                muteIcon.style.display = muted ? 'block' : 'none';
+            }
+
+            function disableNativeSeekAndFastForward() {
+                video.playbackRate = 1;
+                video.defaultPlaybackRate = 1;
+                video.addEventListener('ratechange', function () {
+                    if (video.playbackRate !== 1) video.playbackRate = 1;
+                });
+            }
+
+            function updatePlayOverlayLabel() {
+                if (!playOverlayLabel) return;
+                playOverlayLabel.textContent = isLiveJoin ? LIVE_JOIN_LABEL : REPLAY_LABEL;
+            }
+
+            function applySimulatedLiveOffset() {
+                if (hasAppliedLiveOffset) return;
+                if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
+                if (elapsedSec > 0 && elapsedSec < VIDEO_DURATION_SECONDS) {
+                    isLiveJoin = true;
+                    // Important: update max first so anti-seek guard doesn't snap back.
+                    maxWatched = Math.max(maxWatched, elapsedSec);
+                    video.currentTime = elapsedSec;
+                } else {
+                    isLiveJoin = false;
+                }
+                hasAppliedLiveOffset = true;
+                updatePlayOverlayLabel();
+            }
+
+            function showEndedState() {
+                isSessionEnded = true;
+                liveStarted = false;
+                if (preLive) preLive.style.display = 'none';
+                if (endedNote) endedNote.classList.remove('is-visible');
+                if (waiting) {
+                    waiting.classList.remove('is-hidden');
+                    const wt = waiting.querySelector('.waiting-title');
+                    if (wt) {
+                        wt.textContent = 'La masterclass est terminée';
+                        wt.classList.add('is-ended');
+                    }
+                }
+                playOverlay.classList.add('hidden');
+                video.pause();
+                video.currentTime = 0;
+                updatePlayOverlayLabel();
+                showOfferZone(reg.token);
+            }
+
+            function activateLiveJoinState() {
+                if (isSessionEnded) return;
+                liveStarted = true;
+                if (endedNote) endedNote.classList.remove('is-visible');
+                if (preLive) preLive.style.display = 'none';
+                if (!video.paused) {
+                    if (waiting) waiting.classList.add('is-hidden');
+                    playOverlay.classList.add('hidden');
+                } else {
+                    if (waiting) {
+                        waiting.classList.remove('is-hidden');
+                        const wt = waiting.querySelector('.waiting-title');
+                        if (wt) {
+                            wt.textContent = '';
+                            wt.classList.remove('is-ended');
+                        }
+                    }
+                    playOverlay.classList.remove('hidden');
+                }
+                applySimulatedLiveOffset();
+                syncIcons();
+            }
+
+            function refreshPreLiveCountdown() {
+                const now = getNowMs();
+                if (now < sessionStartMs) {
+                    liveStarted = false;
+                    isSessionEnded = false;
+                    hasAppliedLiveOffset = false;
+                    if (endedNote) endedNote.classList.remove('is-visible');
+                    if (preLive) preLive.style.display = 'block';
+                    updateCountdown(sessionStartMs, {
+                        days: 'pl-days',
+                        hours: 'pl-hours',
+                        minutes: 'pl-minutes',
+                        seconds: 'pl-seconds',
+                    });
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    if (waiting) {
+                        waiting.classList.remove('is-hidden');
+                        const wt = waiting.querySelector('.waiting-title');
+                        if (wt) {
+                            wt.textContent = `Début de la diffusion ${formatSessionParisLabel(sessionStartMs)} à 20h (Paris)`;
+                            wt.classList.remove('is-ended');
+                        }
+                    }
+                    return;
+                }
+
+                if (now >= sessionStartMs + VIDEO_DURATION_SECONDS * 1000) {
+                    showEndedState();
+                    return;
+                }
+
+                if (now >= sessionStartMs && now < hideCountdownMs && preLive) {
+                    preLive.style.display = 'none';
+                }
+                activateLiveJoinState();
+                updateCtaStateByTime();
+            }
+
+            function updateCtaStateByTime() {
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
+                if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
+                    showOfferZone(reg.token);
+                } else if (elapsedSec < CTA_APPEAR_SECONDS) {
+                    hideOfferZone();
+                }
+            }
+
             video.addEventListener('timeupdate', function () {
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
-                if (video.currentTime >= CTA_APPEAR_SECONDS) showOfferZone(reg.token);
+                updateCtaStateByTime();
+                if (video.currentTime >= VIDEO_DURATION_SECONDS) {
+                    showEndedState();
+                }
             });
             video.addEventListener('seeking', function () {
                 if (video.currentTime > maxWatched + 1) {
                     video.currentTime = maxWatched;
                 }
             });
+            video.addEventListener('play', function () {
+                if (waiting) waiting.classList.add('is-hidden');
+                playOverlay.classList.add('hidden');
+                syncIcons();
+            });
+            video.addEventListener('pause', function () {
+                // No pause experience once user has joined.
+                if (liveStarted && !isSessionEnded) {
+                    video.play().catch(() => {});
+                    playOverlay.classList.add('hidden');
+                }
+                syncIcons();
+            });
+            video.addEventListener('volumechange', syncIcons);
+            playBtn.addEventListener('click', function () {
+                if (isSessionEnded) return;
+                if (video.readyState >= 1) applySimulatedLiveOffset();
+                if (waiting) waiting.classList.add('is-hidden');
+                video.play().catch(() => {});
+                playOverlay.classList.add('hidden');
+            });
+            muteBtn.addEventListener('click', function () {
+                video.muted = !video.muted;
+                syncIcons();
+            });
+            volRange.addEventListener('input', function () {
+                const v = Number(volRange.value) / 100;
+                video.volume = Math.max(0, Math.min(1, v));
+                video.muted = video.volume === 0;
+                syncIcons();
+            });
+            fullscreenBtn.addEventListener('click', function () {
+                if (!document.fullscreenElement && videoContainer.requestFullscreen) {
+                    videoContainer.requestFullscreen().catch(() => {});
+                } else if (document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            });
+            videoContainer.addEventListener('keydown', function (e) {
+                // Empêche les raccourcis seek du navigateur.
+                if (['ArrowLeft', 'ArrowRight', 'j', 'l', 'J', 'L'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
 
-            if (shouldShowOfferImmediately(reg)) showOfferZone(reg.token);
+            updateCtaStateByTime();
             tick();
-
-            if (!VIDEO_SOURCE_URL) {
-                video.style.display = 'none';
-                placeholder.style.display = 'flex';
-                return;
-            }
+            disableNativeSeekAndFastForward();
             video.src = VIDEO_SOURCE_URL;
-        }
+            syncIcons();
+            updatePlayOverlayLabel();
+            video.addEventListener('loadedmetadata', applySimulatedLiveOffset);
+            video.addEventListener('loadedmetadata', updateCtaStateByTime);
+            refreshPreLiveCountdown();
+            launchInterval = setInterval(refreshPreLiveCountdown, 1000);
+            const beforeUnloadHandler = function () {
+                if (launchInterval) clearInterval(launchInterval);
+                if (offerInterval) clearInterval(offerInterval);
+            };
+            window.addEventListener('beforeunload', beforeUnloadHandler);
 
-        function runBeforeSession(reg) {
-            const targetMs = new Date(reg.sessionStartsAt).getTime();
-            const ids = { days: 'before-days', hours: 'before-hours', minutes: 'before-minutes', seconds: 'before-seconds' };
-            const redirectUrl = '/masterclass/confirmation?t=' + encodeURIComponent(reg.token);
-            showScreen('screen-before');
-            updateCountdown(targetMs, ids);
-            const t = setInterval(() => updateCountdown(targetMs, ids), 1000);
-            setTimeout(() => {
-                clearInterval(t);
-                window.location.replace(redirectUrl);
-            }, REDIRECT_TO_CONFIRMATION_MS);
+            const hearts = initHeartColumn(sessionStartMs);
+            const purchaseToasts = initPurchaseToasts(sessionStartMs);
+
+            return {
+                recalcFromSimulatedTime: function () {
+                    hasAppliedLiveOffset = false;
+                    isSessionEnded = false;
+                    hideOfferZone();
+                    refreshPreLiveCountdown();
+                    tick();
+                    updateCtaStateByTime();
+                    hearts.recalc();
+                    purchaseToasts.recalc();
+                },
+                sessionStartMs,
+                destroy: function () {
+                    if (launchInterval) clearInterval(launchInterval);
+                    if (offerInterval) clearInterval(offerInterval);
+                    hearts.destroy();
+                    purchaseToasts.destroy();
+                    window.removeEventListener('beforeunload', beforeUnloadHandler);
+                },
+            };
         }
 
         async function maybeMarkPresent(reg) {
@@ -411,22 +1404,233 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             } catch {}
         }
 
-        document.addEventListener('DOMContentLoaded', async function () {
-            const params = new URLSearchParams(window.location.search);
-            const preview = params.get('preview') === 'true' || params.get('preview') === '1';
+        function toLocalDatetimeInputValue(ms) {
+            const d = new Date(ms);
+            const z = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+        }
 
-            if (preview) {
-                const now = new Date();
-                const offerMs = now.getTime() + 48 * 60 * 60 * 1000;
-                const previewReg = {
+        /* ── Session date calc (mirrors webinaire-session-paris.mjs logic, client-side) ── */
+        function devParisParts(date) {
+            var fmt = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris', numberingSystem: 'latn',
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                weekday: 'short', hour: 'numeric', minute: 'numeric',
+                hourCycle: 'h23',
+            });
+            var parts = fmt.formatToParts(date);
+            var v = function(type) { return Number((parts.find(function(p) { return p.type === type; }) || {}).value || 0); };
+            var wd = (parts.find(function(p) { return p.type === 'weekday'; }) || {}).value || '';
+            return { year: v('year'), month: v('month'), day: v('day'), hour: v('hour'), minute: v('minute'), wd: wd.toLowerCase() };
+        }
+        function devParisWeekday(p) {
+            var map = { lun: 1, mar: 2, mer: 3, jeu: 4, ven: 5, sam: 6, dim: 7 };
+            for (var k in map) { if (p.wd.indexOf(k) === 0) return map[k]; }
+            return 1;
+        }
+        function devAddDays(y, m, d, delta) {
+            var dt = new Date(Date.UTC(y, m - 1, d + delta, 12, 0, 0));
+            var p = devParisParts(dt);
+            return { year: p.year, month: p.month, day: p.day };
+        }
+        function devFindParisInstant(py, pm, pd, ph) {
+            var start = Date.UTC(py, pm - 1, pd, 0, 0, 0);
+            var end = start + 48 * 3600 * 1000;
+            for (var t = start; t < end; t += 60000) {
+                var p = devParisParts(new Date(t));
+                if (p.year === py && p.month === pm && p.day === pd && p.hour === ph) return new Date(t);
+            }
+            return null;
+        }
+        function devCalcSession(inscriptionDate) {
+            var p = devParisParts(inscriptionDate);
+            var dow = devParisWeekday(p);
+            var mon = devAddDays(p.year, p.month, p.day, -(dow - 1));
+            var thu = devAddDays(mon.year, mon.month, mon.day, 3);
+            var thu19 = devFindParisInstant(thu.year, thu.month, thu.day, 19);
+            var targetThu = thu;
+            if (!thu19 || inscriptionDate.getTime() >= thu19.getTime()) {
+                targetThu = devAddDays(thu.year, thu.month, thu.day, 7);
+            }
+            var sessionStart = devFindParisInstant(targetThu.year, targetThu.month, targetThu.day, 20);
+            var sun = devAddDays(targetThu.year, targetThu.month, targetThu.day, 3);
+            var offerExpiry = devFindParisInstant(sun.year, sun.month, sun.day, 23);
+            return { sessionStart: sessionStart, offerExpiry: offerExpiry };
+        }
+        function devFormatParis(ms) {
+            return new Date(ms).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+        }
+        function devGetState(sessionMs, nowMs) {
+            var elapsed = (nowMs - sessionMs) / 1000;
+            if (elapsed < -900) return 'Attente';
+            if (elapsed < 0)    return 'Pré-live';
+            if (elapsed < CTA_APPEAR_SECONDS) return 'Live';
+            if (elapsed < VIDEO_DURATION_SECONDS) return 'CTA visible';
+            var endMs = sessionMs + VIDEO_DURATION_SECONDS * 1000;
+            var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
+            if (nowMs < sun23) return 'Vidéo terminée / Replay';
+            return 'Expiré';
+        }
+
+        function initDevBanner() {
+            var banner = document.getElementById('dev-time-banner');
+            if (!banner) return;
+            banner.classList.add('is-visible');
+
+            var inscInput = document.getElementById('dev-inscription-input');
+            var nowInput  = document.getElementById('dev-time-input');
+            var sumInsc   = document.getElementById('dev-sum-inscription');
+            var sumSession = document.getElementById('dev-sum-session');
+            var sumNow    = document.getElementById('dev-sum-now');
+            var sumState  = document.getElementById('dev-sum-state');
+
+            var inscBtns = Array.from(banner.querySelectorAll('[data-insc-preset]'));
+            var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
+
+            var currentSessionMs = 0;
+            var currentOfferExpiryMs = 0;
+            var currentMounted = null;
+
+            function setActiveInsc(key) { inscBtns.forEach(function(b) { b.classList.toggle('is-active', b.getAttribute('data-insc-preset') === key); }); }
+            function setActiveNow(key)  { nowBtns.forEach(function(b)  { b.classList.toggle('is-active', b.getAttribute('data-now-preset') === key); }); }
+
+            function refreshSummary() {
+                var nowMs = getNowMs();
+                sumInsc.textContent = 'Inscrit le : ' + devFormatParis(new Date(inscInput.value).getTime());
+                sumSession.textContent = 'Session : ' + devFormatParis(currentSessionMs);
+                sumNow.textContent = 'Heure simulée : ' + devFormatParis(nowMs);
+                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span>';
+            }
+
+            function remountWithSession(sessionMs, offerMs) {
+                if (currentMounted && typeof currentMounted.destroy === 'function') {
+                    currentMounted.destroy();
+                }
+                currentSessionMs = sessionMs;
+                currentOfferExpiryMs = offerMs;
+                var reg = {
                     token: 'preview-session',
                     statut: 'present',
                     prenom: 'Preview',
-                    sessionStartsAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+                    sessionStartsAt: new Date(sessionMs).toISOString(),
                     offreExpiresAt: new Date(offerMs).toISOString(),
                 };
                 showScreen('screen-main');
-                mountVideoAndOffer(previewReg);
+                currentMounted = mountVideoAndOffer(reg);
+            }
+
+            function setSimNow(ms) {
+                simulatedNowMs = ms;
+                simulatedAnchorRealMs = Date.now();
+                nowInput.value = toLocalDatetimeInputValue(ms);
+                if (currentMounted) currentMounted.recalcFromSimulatedTime();
+                refreshSummary();
+            }
+
+            function onInscriptionChange(inscMs) {
+                inscInput.value = toLocalDatetimeInputValue(inscMs);
+                var result = devCalcSession(new Date(inscMs));
+                var sesMs = result.sessionStart ? result.sessionStart.getTime() : null;
+                var offMs = result.offerExpiry ? result.offerExpiry.getTime() : null;
+                if (!Number.isFinite(sesMs) || !Number.isFinite(offMs)) {
+                    // Fallback robuste pour éviter tout blocage du mode preview
+                    sesMs = new Date(inscMs + 24 * 60 * 60 * 1000).getTime();
+                    offMs = sesMs + 3 * 24 * 60 * 60 * 1000;
+                }
+                remountWithSession(sesMs, offMs);
+                setSimNow(getNowMs());
+                refreshSummary();
+            }
+
+            // Inscription presets: relative to current real week
+            function getInscPresetMs(key) {
+                var now = new Date();
+                var p = devParisParts(now);
+                var dow = devParisWeekday(p);
+                var mon = devAddDays(p.year, p.month, p.day, -(dow - 1));
+                var map = {
+                    'mon-10':   { dayOffset: 0, hour: 10, minute: 0 },
+                    'wed-14':   { dayOffset: 2, hour: 14, minute: 0 },
+                    'thu-18':   { dayOffset: 3, hour: 18, minute: 0 },
+                    'thu-1930': { dayOffset: 3, hour: 19, minute: 30 },
+                    'fri-10':   { dayOffset: 4, hour: 10, minute: 0 },
+                    'sat-15':   { dayOffset: 5, hour: 15, minute: 0 },
+                };
+                var cfg = map[key];
+                if (!cfg) return null;
+                var d = devAddDays(mon.year, mon.month, mon.day, cfg.dayOffset);
+                var instant = devFindParisInstant(d.year, d.month, d.day, cfg.hour);
+                if (instant && cfg.minute) instant = new Date(instant.getTime() + cfg.minute * 60000);
+                return instant ? instant.getTime() : null;
+            }
+
+            inscBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var key = btn.getAttribute('data-insc-preset');
+                    var ms = getInscPresetMs(key);
+                    if (!ms) return;
+                    setActiveInsc(key);
+                    onInscriptionChange(ms);
+                });
+            });
+            inscInput.addEventListener('change', function() {
+                var ms = new Date(inscInput.value).getTime();
+                if (!Number.isFinite(ms)) return;
+                setActiveInsc(null);
+                onInscriptionChange(ms);
+            });
+
+            // Now presets: relative to currentSessionMs
+            var nowPresetOffsets = {
+                'session-m15':  -15 * 60 * 1000,
+                'session-p2':   2 * 60 * 1000,
+                'session-p15':  15 * 60 * 1000,
+                'session-p30':  30 * 60 * 1000,
+                'session-p46':  46 * 60 * 1000,
+            };
+            function getNowPresetMs(key) {
+                if (nowPresetOffsets[key] !== undefined) return currentSessionMs + nowPresetOffsets[key];
+                if (key === 'expired') {
+                    var p2 = devParisParts(new Date(currentSessionMs));
+                    var sun = devAddDays(p2.year, p2.month, p2.day, 3);
+                    var inst2 = devFindParisInstant(sun.year, sun.month, sun.day, 23);
+                    return inst2 ? inst2.getTime() + 30 * 60 * 1000 : currentSessionMs + 76 * 3600 * 1000;
+                }
+                return null;
+            }
+
+            nowBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var key = btn.getAttribute('data-now-preset');
+                    var ms = getNowPresetMs(key);
+                    if (!ms) return;
+                    setActiveNow(key);
+                    setSimNow(ms);
+                });
+            });
+            nowInput.addEventListener('change', function() {
+                var ms = new Date(nowInput.value).getTime();
+                if (!Number.isFinite(ms)) return;
+                setActiveNow(null);
+                setSimNow(ms);
+            });
+
+            // Initialize: default inscription = now, session = next Thursday
+            var initNow = new Date();
+            simulatedNowMs = initNow.getTime();
+            simulatedAnchorRealMs = Date.now();
+            onInscriptionChange(initNow.getTime());
+            setSimNow(initNow.getTime());
+
+            setInterval(refreshSummary, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const params = new URLSearchParams(window.location.search);
+            const preview = params.get('preview') === 'dev';
+
+            if (preview) {
+                initDevBanner();
                 return;
             }
 
@@ -475,13 +1679,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     showBlocked("Cette masterclass n'est plus accessible.", '');
                     return;
                 }
-                if (reg.statut === 'inscrit' && now < sessionMs) {
-                    runBeforeSession(reg);
-                    return;
-                }
-
                 showScreen('screen-main');
-                await maybeMarkPresent(reg);
+                if (now >= sessionMs) await maybeMarkPresent(reg);
                 mountVideoAndOffer(reg);
             } catch (e) {
                 showBlocked('Erreur', 'Impossible de charger la session pour le moment.');

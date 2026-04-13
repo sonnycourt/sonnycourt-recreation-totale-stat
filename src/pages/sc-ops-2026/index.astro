@@ -1,0 +1,210 @@
+---
+import '../../styles/admin-es2.css';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Accès admin — ES2</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center px-4 py-10">
+    <main class="w-full max-w-sm">
+      <div class="flex flex-col items-center gap-6 mb-8">
+        <img src="/favicon.svg" alt="" class="w-14 h-14 opacity-90" width="56" height="56" />
+        <p id="tagline" class="text-sm text-slate-400 text-center leading-relaxed">Chargement…</p>
+      </div>
+
+      <p id="config-error" class="hidden mb-4 rounded-lg border border-amber-900/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-100/90 leading-relaxed"></p>
+
+      <div id="setup-wrap" class="hidden space-y-4">
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Première utilisation : choisis un mot de passe fort (min. 12 caractères). Tu pourras le modifier plus tard dans le dashboard.
+        </p>
+        <form id="setup-form" class="space-y-4">
+          <label class="block">
+            <span class="sr-only">Mot de passe</span>
+            <input
+              type="password"
+              id="setup-password"
+              autocomplete="new-password"
+              required
+              minlength="12"
+              class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Nouveau mot de passe (12+ caractères)"
+            />
+          </label>
+          <label class="block">
+            <span class="sr-only">Confirmation</span>
+            <input
+              type="password"
+              id="setup-confirm"
+              autocomplete="new-password"
+              required
+              minlength="12"
+              class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Confirmer le mot de passe"
+            />
+          </label>
+          <p id="setup-error" class="hidden text-sm text-red-400" role="alert"></p>
+          <button
+            type="submit"
+            id="setup-submit"
+            class="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+          >
+            Enregistrer et accéder
+          </button>
+        </form>
+      </div>
+
+      <div id="login-wrap" class="hidden space-y-4">
+        <form id="login-form" class="space-y-4">
+          <label class="block">
+            <span class="sr-only">Mot de passe</span>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              autocomplete="current-password"
+              required
+              class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Mot de passe"
+            />
+          </label>
+          <p id="login-error" class="hidden text-sm text-red-400" role="alert"></p>
+          <button
+            type="submit"
+            id="login-submit"
+            class="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+          >
+            Accéder
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <script>
+      const tagline = document.getElementById('tagline');
+      const configErr = document.getElementById('config-error');
+      const setupWrap = document.getElementById('setup-wrap');
+      const loginWrap = document.getElementById('login-wrap');
+
+      async function boot() {
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-session', { credentials: 'same-origin' });
+          if (r.ok) {
+            const d = await r.json();
+            if (d.authenticated) {
+              window.location.replace('/sc-ops-2026/dashboard');
+              return;
+            }
+          }
+        } catch {
+          /* continue */
+        }
+
+        let st;
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-auth-state', { credentials: 'same-origin' });
+          st = await r.json();
+        } catch {
+          tagline.textContent = 'Erreur réseau.';
+          return;
+        }
+
+        if (st.message && (st.dbError || st.supabaseConfigured === false)) {
+          configErr.textContent = st.message;
+          configErr.classList.remove('hidden');
+        }
+
+        if (st.authenticated) {
+          window.location.replace('/sc-ops-2026/dashboard');
+          return;
+        }
+
+        if (st.needsSetup && !st.dbError) {
+          tagline.textContent = 'Crée ton accès administrateur';
+          setupWrap.classList.remove('hidden');
+        } else if (!st.dbError) {
+          tagline.textContent = 'Espace réservé — authentification requise';
+          loginWrap.classList.remove('hidden');
+        } else {
+          tagline.textContent = 'Action requise (voir message ci-dessus)';
+        }
+      }
+
+      document.getElementById('setup-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const err = document.getElementById('setup-error');
+        const btn = document.getElementById('setup-submit');
+        const p1 = document.getElementById('setup-password');
+        const p2 = document.getElementById('setup-confirm');
+        err.classList.add('hidden');
+        err.textContent = '';
+        btn.disabled = true;
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-setup-password', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: p1.value, confirm: p2.value }),
+          });
+          if (r.ok) {
+            window.location.replace('/sc-ops-2026/dashboard');
+            return;
+          }
+          const d = await r.json().catch(function () { return {}; });
+          err.textContent = d.error || 'Erreur.';
+          if (r.status === 429) err.textContent = 'Trop de tentatives. Réessaie dans 15 minutes.';
+          err.classList.remove('hidden');
+        } catch {
+          err.textContent = 'Erreur réseau.';
+          err.classList.remove('hidden');
+        } finally {
+          btn.disabled = false;
+          p1.value = '';
+          p2.value = '';
+        }
+      });
+
+      document.getElementById('login-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const err = document.getElementById('login-error');
+        const btn = document.getElementById('login-submit');
+        const pwd = document.getElementById('password');
+        err.classList.add('hidden');
+        err.textContent = '';
+        btn.disabled = true;
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-login', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pwd.value }),
+          });
+          if (r.ok) {
+            window.location.replace('/sc-ops-2026/dashboard');
+            return;
+          }
+          const d = await r.json().catch(function () { return {}; });
+          let msg = d.error || 'Mot de passe incorrect.';
+          if (d.code === 'SETUP_REQUIRED') msg = 'Configure d’abord ton mot de passe (recharge la page).';
+          if (r.status === 429) msg = 'Trop de tentatives. Réessaie dans 15 minutes.';
+          err.textContent = msg;
+          err.classList.remove('hidden');
+        } catch {
+          err.textContent = 'Erreur réseau.';
+          err.classList.remove('hidden');
+        } finally {
+          btn.disabled = false;
+          pwd.value = '';
+        }
+      });
+
+      boot();
+    </script>
+  </body>
+</html>

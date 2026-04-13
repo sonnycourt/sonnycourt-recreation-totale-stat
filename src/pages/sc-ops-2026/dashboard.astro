@@ -1,0 +1,237 @@
+---
+import '../../styles/admin-es2.css';
+
+const tabs = [
+  { id: 'overview', label: "Vue d'ensemble" },
+  { id: 'funnel', label: 'Funnel' },
+  { id: 'behavior', label: 'Comportement utilisateur' },
+  { id: 'content', label: 'Contenu' },
+  { id: 'ops', label: 'Ops / Debug' },
+  { id: 'health', label: 'Santé client' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Dashboard admin — ES2</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div id="gate" class="min-h-screen flex items-center justify-center text-slate-400 text-sm">Vérification…</div>
+
+    <div id="app" class="hidden min-h-screen flex flex-col md:flex-row">
+      <aside class="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/80 p-4 md:min-h-screen">
+        <div class="mb-6 flex items-center justify-between md:block">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Admin</span>
+        </div>
+        <nav class="flex flex-row flex-wrap gap-1 md:flex-col md:gap-0.5" id="nav" aria-label="Sections">
+          {tabs.map((t, i) => (
+            <button
+              type="button"
+              class:list={[
+                'tab-btn rounded-md px-3 py-2 text-left text-sm font-medium transition md:w-full',
+                i === 0 ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
+              ]}
+              data-tab={t.id}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <div class="flex min-h-0 flex-1 flex-col">
+        <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/90 px-4 py-3 md:px-6">
+          <h1 class="text-sm font-semibold text-slate-300 md:text-base" id="panel-title">{tabs[0].label}</h1>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              id="pwd-btn"
+              class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              Mot de passe
+            </button>
+            <button
+              type="button"
+              id="logout-btn"
+              class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              Se déconnecter
+            </button>
+          </div>
+        </header>
+
+        <main class="flex-1 p-4 md:p-8">
+          {tabs.map((t, i) => (
+            <section
+              class:list={['tab-panel', i === 0 ? '' : 'hidden']}
+              data-panel={t.id}
+              role="tabpanel"
+            >
+              <p class="text-slate-500 text-sm">À venir</p>
+            </section>
+          ))}
+        </main>
+      </div>
+    </div>
+
+    <div
+      id="pwd-modal"
+      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pwd-modal-title"
+    >
+      <div class="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+        <h2 id="pwd-modal-title" class="text-base font-semibold text-white mb-1">Changer le mot de passe</h2>
+        <p class="text-xs text-slate-500 mb-4">Minimum 12 caractères.</p>
+        <form id="pwd-form" class="space-y-3">
+          <input
+            type="password"
+            id="pwd-current"
+            autocomplete="current-password"
+            required
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Mot de passe actuel"
+          />
+          <input
+            type="password"
+            id="pwd-new"
+            autocomplete="new-password"
+            required
+            minlength="12"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Nouveau mot de passe"
+          />
+          <input
+            type="password"
+            id="pwd-confirm"
+            autocomplete="new-password"
+            required
+            minlength="12"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Confirmer le nouveau"
+          />
+          <p id="pwd-modal-err" class="hidden text-sm text-red-400"></p>
+          <p id="pwd-modal-ok" class="hidden text-sm text-emerald-400"></p>
+          <div class="flex gap-2 justify-end pt-2">
+            <button type="button" id="pwd-cancel" class="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800">
+              Annuler
+            </button>
+            <button type="submit" id="pwd-save" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script define:vars={{ tabIds: tabs.map((t) => t.id), tabLabels: tabs.map((t) => t.label) }}>
+      const gate = document.getElementById('gate');
+      const app = document.getElementById('app');
+      const titleEl = document.getElementById('panel-title');
+
+      async function requireAuth() {
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-session', { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('unauth');
+          const d = await r.json();
+          if (!d.authenticated) throw new Error('unauth');
+          gate.classList.add('hidden');
+          app.classList.remove('hidden');
+        } catch {
+          window.location.replace('/sc-ops-2026/');
+        }
+      }
+
+      const pwdModal = document.getElementById('pwd-modal');
+      document.getElementById('pwd-btn').addEventListener('click', function () {
+        pwdModal.classList.remove('hidden');
+      });
+      document.getElementById('pwd-cancel').addEventListener('click', function () {
+        pwdModal.classList.add('hidden');
+        document.getElementById('pwd-modal-err').classList.add('hidden');
+      });
+      pwdModal.addEventListener('click', function (e) {
+        if (e.target === pwdModal) pwdModal.classList.add('hidden');
+      });
+
+      document.getElementById('pwd-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const errEl = document.getElementById('pwd-modal-err');
+        const btn = document.getElementById('pwd-save');
+        errEl.classList.add('hidden');
+        errEl.textContent = '';
+        btn.disabled = true;
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-change-password', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currentPassword: document.getElementById('pwd-current').value,
+              newPassword: document.getElementById('pwd-new').value,
+              confirm: document.getElementById('pwd-confirm').value,
+            }),
+          });
+          const d = await r.json().catch(function () { return {}; });
+          if (r.ok) {
+            document.getElementById('pwd-current').value = '';
+            document.getElementById('pwd-new').value = '';
+            document.getElementById('pwd-confirm').value = '';
+            errEl.classList.add('hidden');
+            const okEl = document.getElementById('pwd-modal-ok');
+            okEl.textContent = 'Mot de passe mis à jour.';
+            okEl.classList.remove('hidden');
+            setTimeout(function () {
+              okEl.classList.add('hidden');
+              pwdModal.classList.add('hidden');
+            }, 1200);
+            return;
+          }
+          errEl.textContent = d.error || 'Erreur.';
+          if (r.status === 429) errEl.textContent = 'Trop de tentatives. Réessaie plus tard.';
+          if (r.status === 401) errEl.textContent = d.error || 'Session expirée. Reconnecte-toi.';
+          errEl.classList.remove('hidden');
+        } catch {
+          errEl.textContent = 'Erreur réseau.';
+          errEl.classList.remove('hidden');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById('logout-btn').addEventListener('click', async function () {
+        try {
+          await fetch('/.netlify/functions/admin-es2-logout', { method: 'POST', credentials: 'same-origin' });
+        } catch {
+          /* ignore */
+        }
+        window.location.replace('/sc-ops-2026/');
+      });
+
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const id = btn.getAttribute('data-tab');
+          document.querySelectorAll('.tab-btn').forEach(function (b) {
+            b.classList.remove('bg-slate-800', 'text-white');
+            b.classList.add('text-slate-400');
+          });
+          btn.classList.add('bg-slate-800', 'text-white');
+          btn.classList.remove('text-slate-400');
+          document.querySelectorAll('.tab-panel').forEach(function (p) {
+            p.classList.toggle('hidden', p.getAttribute('data-panel') !== id);
+          });
+          const idx = tabIds.indexOf(id);
+          if (idx >= 0) titleEl.textContent = tabLabels[idx];
+        });
+      });
+
+      requireAuth();
+    </script>
+  </body>
+</html>

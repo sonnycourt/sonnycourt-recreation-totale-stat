@@ -106,13 +106,13 @@ export function getSessionEndsAtUtc(sessionStartUtc) {
 }
 
 /**
- * Dimanche 20h (Paris) de la même semaine que le jeudi de session (jeudi + 3 jours).
+ * Dimanche 23h (Paris) de la même semaine que le jeudi de session (jeudi + 3 jours).
  */
 export function getOffreExpiresAtUtc(sessionStartUtc) {
   if (!sessionStartUtc) return null;
   const p = parseParisParts(new Date(sessionStartUtc));
   const sun = addDaysParisCalendar(p.year, p.month, p.day, 3);
-  return findParisInstantUtc(sun.year, sun.month, sun.day, 20);
+  return findParisInstantUtc(sun.year, sun.month, sun.day, 23);
 }
 
 /**

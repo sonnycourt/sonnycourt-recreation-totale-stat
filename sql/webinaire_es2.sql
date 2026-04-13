@@ -1,6 +1,6 @@
 -- Webinaire Esprit Subconscient 2.0 — à exécuter dans Supabase (SQL editor)
 -- Source de vérité : Supabase. Les Netlify Functions utilisent SUPABASE_SERVICE_ROLE_KEY.
-
+khjioh
 create table if not exists public.webinaire_registrations (
   id uuid primary key default gen_random_uuid(),
   token text not null unique,

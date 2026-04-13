@@ -17,7 +17,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         :root {
             --primary: #3b82f6;
             --primary-dark: #2563eb;
-            --accent: #93c5fd;
+            --accent: #e2e8f0;
             --bg-dark: #0a0a1a;
             --text-muted: rgba(255, 255, 255, 0.72);
             --border: rgba(59, 130, 246, 0.35);
@@ -50,15 +50,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .badge {
             display: inline-flex;
             align-items: center;
+            gap: 8px;
             padding: 8px 16px;
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid var(--border);
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.36);
             border-radius: 999px;
             font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--accent);
+            font-weight: 700;
+            color: #bbf7d0;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.04em;
             margin-bottom: 16px;
         }
 
@@ -89,9 +90,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         .section h2 {
             font-size: 1.1rem;
-            color: var(--accent);
+            color: #fff;
             margin-bottom: 14px;
             font-weight: 700;
+        }
+
+        .section-h2-icon {
+            width: 18px;
+            height: 18px;
+            margin-left: 6px;
+            vertical-align: -3px;
         }
 
         .countdown {
@@ -150,19 +158,198 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             box-shadow: 0 10px 28px rgba(59, 130, 246, 0.35);
         }
 
-        .video-wrap {
-            border-radius: 14px;
+        .video-player {
+            position: relative;
+            border-radius: 16px;
             overflow: hidden;
-            border: 1px solid var(--border);
-            background: rgba(0, 0, 0, 0.35);
             aspect-ratio: 16 / 9;
+            background: #000;
+            box-shadow:
+                0 0 0 1px rgba(96, 165, 250, 0.15),
+                0 16px 48px rgba(0, 0, 0, 0.45),
+                0 0 60px rgba(59, 130, 246, 0.08);
+        }
+
+        .video-player video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+        }
+
+        /* ── Initial overlay (before first play) ── */
+        .video-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.52) 100%);
+            transition: opacity 0.4s ease;
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .play-btn {
+            width: clamp(56px, 12vw, 72px);
+            height: clamp(56px, 12vw, 72px);
+            border-radius: 50%;
+            border: 2px solid rgba(96, 165, 250, 0.7);
+            background: rgba(59, 130, 246, 0.25);
+            backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-muted);
+            transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .play-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #60a5fa;
+            margin-left: 3px;
+        }
+
+        .video-player:hover .play-btn {
+            transform: scale(1.08);
+            background: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 32px rgba(59, 130, 246, 0.35);
+        }
+
+        .play-btn-ring {
+            position: absolute;
+            width: clamp(72px, 15vw, 92px);
+            height: clamp(72px, 15vw, 92px);
+            border-radius: 50%;
+            border: 1.5px solid rgba(96, 165, 250, 0.25);
+            animation: ringPulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.12); opacity: 0; }
+        }
+
+        /* ── Custom controls bar ── */
+        .vp-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.72) 0%, transparent 100%);
+            z-index: 4;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-player.playing .vp-controls,
+        .video-player.paused .vp-controls {
+            pointer-events: auto;
+        }
+
+        .video-player.playing:hover .vp-controls,
+        .video-player.paused .vp-controls {
+            opacity: 1;
+        }
+
+        .vp-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .vp-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .vp-progress-wrap {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vp-progress-wrap:hover {
+            height: 6px;
+        }
+
+        .vp-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #3b82f6;
+            border-radius: 4px;
+            transition: width 0.15s linear;
+        }
+
+        .vp-volume-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .vp-volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 52px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .vp-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .vp-volume-slider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .vp-volume-wrap { display: none; }
+        }
+
+        .video-caption {
             text-align: center;
-            padding: 16px;
-            font-size: 0.95rem;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: rgba(226, 232, 240, 0.5);
+            font-weight: 500;
         }
 
         .steps-list {
@@ -171,10 +358,75 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             gap: 12px;
         }
 
-        .steps-list li {
+        .step-item {
+            display: grid;
+            grid-template-columns: 28px 1fr;
+            gap: 12px;
+            align-items: start;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .step-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .step-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #93c5fd;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-icon svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        .step-title {
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.35;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .step-text {
             color: var(--text-muted);
             line-height: 1.55;
-            padding-left: 4px;
+            font-size: 0.9rem;
+        }
+
+        .step-btn {
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(37, 211, 102, 0.72);
+            background: rgba(37, 211, 102, 0.05);
+            color: #8ff0b6;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .step-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(37, 211, 102, 0.12);
+            box-shadow: 0 8px 20px rgba(37, 211, 102, 0.2);
         }
 
         .social-proof {
@@ -203,42 +455,86 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             display: block;
         }
 
-        .preview-hint {
+        .dev-preview-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10000;
             display: none;
-            font-size: 0.82rem;
-            color: rgba(251, 191, 36, 0.95);
-            margin-bottom: 14px;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: rgba(251, 191, 36, 0.96);
+            background: rgba(20, 20, 34, 0.94);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.32);
             padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(251, 191, 36, 0.35);
-            background: rgba(251, 191, 36, 0.08);
-            line-height: 1.45;
+            backdrop-filter: blur(6px);
         }
 
-        .preview-hint.visible {
+        .dev-preview-banner.visible {
             display: block;
+        }
+
+        .confetti-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
         }
     </style>
 </head>
 <body>
     <div class="bg-gradient"></div>
+    <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+    <div id="dev-preview-banner" class="dev-preview-banner">
+        Mode aperçu actif (`?preview=dev`) — rendu visuel de préproduction
+    </div>
 
     <div class="container">
         <div id="loading-state">Chargement de ta confirmation…</div>
 
         <div id="main-content">
             <div id="badge-label" class="badge">Inscription confirmée</div>
-            <p id="preview-hint" class="preview-hint">
-                Mode aperçu : données fictives (aucun token / API). Retire <code style="opacity:0.9">?preview=true</code> en production.
-            </p>
             <h1>Ta place est réservée !</h1>
             <p id="subtitle" class="subtitle"></p>
 
             <div class="section">
-                <h2>Un message de Sonny pour toi 👇</h2>
-                <div class="video-wrap" id="video-placeholder">
-                    Vidéo courte (~60 s) — placeholder : tu pourras intégrer le player ici.
+                <h2>
+                    Un message de Sonny pour toi
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="section-h2-icon icon icon-tabler icons-tabler-outline icon-tabler-hand-finger-down" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 12v8.5a1.5 1.5 0 0 0 3 0v-7.5"></path><path d="M11 13.5v2a1.5 1.5 0 0 0 3 0v-2.5"></path><path d="M14 14.5a1.5 1.5 0 0 0 3 0v-1.5"></path><path d="M17 13.5a1.5 1.5 0 0 0 3 0v-4.5a6 6 0 0 0 -6 -6h-2h.208a6 6 0 0 0 -5.012 2.7l-.196 .3q -.468 .718 -3.286 5.728a1.5 1.5 0 0 0 .536 2.022c.734 .44 1.674 .325 2.28 -.28l1.47 -1.47"></path></svg>
+                </h2>
+                <div class="video-player" id="video-player">
+                    <video id="confirmation-video" playsinline preload="metadata">
+                        <source src="https://sonnycourt-videos-public.b-cdn.net/FE%CC%81LICITATIONS%20(inscription%20Webinaire%20V2).mp4" type="video/mp4" />
+                    </video>
+                    <div class="video-overlay" id="video-overlay">
+                        <span class="play-btn-ring"></span>
+                        <span class="play-btn">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polygon points="6,3 20,12 6,21"/></svg>
+                        </span>
+                    </div>
+                    <div class="vp-controls" id="vp-controls">
+                        <button class="vp-btn" id="vp-playpause" aria-label="Play/Pause">
+                            <svg id="vp-icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+                            <svg id="vp-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+                        </button>
+                        <div class="vp-progress-wrap" id="vp-progress-wrap">
+                            <div class="vp-progress-bar" id="vp-progress-bar"></div>
+                        </div>
+                        <div class="vp-volume-wrap">
+                            <button class="vp-btn" id="vp-mute" aria-label="Mute">
+                                <svg id="vp-icon-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                                <svg id="vp-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                            </button>
+                            <input type="range" class="vp-volume-slider" id="vp-volume" min="0" max="1" step="0.05" value="1" />
+                        </div>
+                    </div>
                 </div>
+                <p class="video-caption">1 min — un message personnel de Sonny</p>
             </div>
 
             <div class="section">
@@ -264,6 +560,50 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             </div>
 
             <div class="section">
+                <h2>Prochaines étapes</h2>
+                <ul class="steps-list">
+                    <li class="step-item">
+                        <span class="step-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-brand-whatsapp">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                                <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="step-title">Rejoins le groupe WhatsApp privé</p>
+                            <p class="step-text">Lien d'accès, rappels, ressources exclusives — tout passe par là.</p>
+                            <a class="step-btn" href="https://chat.whatsapp.com/LdwhySpcmRvGu5IgHE6ciB?mode=gi_t" target="_blank" rel="noopener noreferrer">Rejoindre le groupe</a>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                                <path d="m3 7 9 6 9-6"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="step-title">Vérifie ta boîte email</p>
+                            <p class="step-text">Une confirmation arrive dans quelques minutes. Si elle est en spam, marque-la "non spam" et ajoute mon adresse à tes contacts pour ne rien manquer.</p>
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                                <path d="M8 2v4M16 2v4M3 10h18"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="step-title">Bloque jeudi 20h dans ton agenda maintenant</p>
+                            <p class="step-text">Prévois 1h de calme et de quoi écrire.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="section">
                 <h2>Ajouter au calendrier</h2>
                 <div class="calendar-grid">
                     <a id="link-google" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Google Calendar</a>
@@ -272,22 +612,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 </div>
             </div>
 
-            <div class="section">
-                <h2>Prochaines étapes</h2>
-                <ul class="steps-list">
-                    <li>📩 Vérifie tes emails — tu vas recevoir une confirmation</li>
-                    <li>📱 Tu recevras un rappel SMS avant la session</li>
-                    <li>🔗 Ton lien d'accès personnel t'arrivera le jour J</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>Rejoins la communauté</h2>
-                <div class="social-proof">
-                    <p><strong>+4M</strong> d'abonnés sur les réseaux</p>
-                    <p><strong>+10 000</strong> personnes ont déjà transformé leur réalité</p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -396,6 +720,96 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             document.getElementById('cd-seconds').textContent = pad(totalSec % 60);
         }
 
+        let confettiPlayed = false;
+        function launchConfetti() {
+            if (confettiPlayed) return;
+            confettiPlayed = true;
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const particles = [];
+            const colors = ['#60a5fa', '#93c5fd', '#f8fafc', '#22c55e', '#f59e0b'];
+            const durationMs = 4600;
+            const gravity = 0.12;
+            const drag = 0.992;
+            const start = performance.now();
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+
+            const burstCount = Math.min(120, Math.max(70, Math.floor(window.innerWidth / 12)));
+            for (let i = 0; i < burstCount; i++) {
+                const fromLeft = i % 2 === 0;
+                particles.push({
+                    x: fromLeft ? -20 - Math.random() * 80 : canvas.width + 20 + Math.random() * 80,
+                    y: Math.random() * canvas.height * 0.45,
+                    vx: fromLeft ? 2 + Math.random() * 4 : -2 - Math.random() * 4,
+                    vy: -1.8 + Math.random() * 2.2,
+                    size: 3 + Math.random() * 6,
+                    rot: Math.random() * Math.PI,
+                    vr: (Math.random() - 0.5) * 0.25,
+                    color: colors[(Math.random() * colors.length) | 0],
+                    life: 0.75 + Math.random() * 0.9,
+                });
+            }
+
+            const topRainCount = Math.min(140, Math.max(80, Math.floor(window.innerWidth / 10)));
+            for (let i = 0; i < topRainCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -20 - Math.random() * 240,
+                    vx: (Math.random() - 0.5) * 1.4,
+                    vy: 1.6 + Math.random() * 2.3,
+                    size: 2.8 + Math.random() * 5.2,
+                    rot: Math.random() * Math.PI,
+                    vr: (Math.random() - 0.5) * 0.22,
+                    color: colors[(Math.random() * colors.length) | 0],
+                    life: 0.95 + Math.random() * 1.05,
+                });
+            }
+
+            function frame(now) {
+                const elapsed = now - start;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.vx *= drag;
+                    p.vy = p.vy * drag + gravity;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.rot += p.vr;
+                    p.life -= 0.0062;
+                    if (p.life <= 0 || p.y > canvas.height + 30) continue;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.globalAlpha = Math.max(0, p.life);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.64);
+                    ctx.restore();
+                }
+
+                if (elapsed < durationMs) {
+                    requestAnimationFrame(frame);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    window.removeEventListener('resize', resize);
+                }
+            }
+
+            window.addEventListener('resize', resize);
+            requestAnimationFrame(frame);
+        }
+
         /** Aperçu design local : pas de token ni d’API Netlify */
         const PREVIEW_SUBTITLE =
             'Rendez-vous le jeudi 27 mars 2026 à 20h (heure de Paris)';
@@ -415,6 +829,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             document.getElementById('loading-state').style.display = 'none';
             document.getElementById('main-content').classList.add('visible');
+            launchConfetti();
 
             updateCountdown(startMs);
             setInterval(function () {
@@ -422,16 +837,157 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }, 1000);
         }
 
+        /* ── Custom Video Player ── */
+        (function initVideoPlayer() {
+            var player = document.getElementById('video-player');
+            var video = document.getElementById('confirmation-video');
+            var overlay = document.getElementById('video-overlay');
+            var controls = document.getElementById('vp-controls');
+            var btnPlayPause = document.getElementById('vp-playpause');
+            var iconPlay = document.getElementById('vp-icon-play');
+            var iconPause = document.getElementById('vp-icon-pause');
+            var progressWrap = document.getElementById('vp-progress-wrap');
+            var progressBar = document.getElementById('vp-progress-bar');
+            var btnMute = document.getElementById('vp-mute');
+            var iconVol = document.getElementById('vp-icon-vol');
+            var iconMuted = document.getElementById('vp-icon-muted');
+            var volumeSlider = document.getElementById('vp-volume');
+            if (!player || !video || !overlay) return;
+
+            var hasStarted = false;
+            var hideTimer = null;
+
+            function fmtTime(s) {
+                var m = Math.floor(s / 60);
+                var sec = Math.floor(s % 60);
+                return m + ':' + (sec < 10 ? '0' : '') + sec;
+            }
+
+            function syncIcons() {
+                if (video.paused) {
+                    iconPlay.style.display = '';
+                    iconPause.style.display = 'none';
+                    player.classList.remove('playing');
+                    player.classList.add('paused');
+                } else {
+                    iconPlay.style.display = 'none';
+                    iconPause.style.display = '';
+                    player.classList.add('playing');
+                    player.classList.remove('paused');
+                }
+            }
+
+            function syncVolume() {
+                if (video.muted || video.volume === 0) {
+                    iconVol.style.display = 'none';
+                    iconMuted.style.display = '';
+                } else {
+                    iconVol.style.display = '';
+                    iconMuted.style.display = 'none';
+                }
+                volumeSlider.value = video.muted ? 0 : video.volume;
+            }
+
+            function startAutoHide() {
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(function () {
+                    if (!video.paused) controls.style.opacity = '0';
+                }, 2800);
+            }
+
+            function showControls() {
+                controls.style.opacity = '1';
+                startAutoHide();
+            }
+
+            /* First play from overlay */
+            overlay.addEventListener('click', function (e) {
+                e.stopPropagation();
+                hasStarted = true;
+                overlay.classList.add('hidden');
+                video.play().catch(function () {});
+            });
+
+            /* Click on video to toggle play/pause */
+            video.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!hasStarted) {
+                    hasStarted = true;
+                    overlay.classList.add('hidden');
+                    video.play().catch(function () {});
+                    return;
+                }
+                if (video.paused) {
+                    video.play().catch(function () {});
+                } else {
+                    video.pause();
+                }
+            });
+
+            /* Controls play/pause button */
+            btnPlayPause.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (video.paused) {
+                    video.play().catch(function () {});
+                } else {
+                    video.pause();
+                }
+            });
+
+            video.addEventListener('play', function () { syncIcons(); showControls(); });
+            video.addEventListener('pause', function () { syncIcons(); clearTimeout(hideTimer); });
+
+            /* Progress bar */
+            video.addEventListener('timeupdate', function () {
+                var pct = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+                progressBar.style.width = pct + '%';
+            });
+
+            /* Volume */
+            btnMute.addEventListener('click', function (e) {
+                e.stopPropagation();
+                video.muted = !video.muted;
+                syncVolume();
+            });
+
+            volumeSlider.addEventListener('input', function (e) {
+                e.stopPropagation();
+                video.volume = parseFloat(this.value);
+                video.muted = video.volume === 0;
+                syncVolume();
+            });
+            volumeSlider.addEventListener('click', function (e) { e.stopPropagation(); });
+
+            /* Auto-hide controls on mouse leave/move */
+            player.addEventListener('mousemove', function () { if (hasStarted) showControls(); });
+            player.addEventListener('mouseleave', function () {
+                if (!video.paused) { clearTimeout(hideTimer); controls.style.opacity = '0'; }
+            });
+
+            /* End of video — reset to overlay */
+            video.addEventListener('ended', function () {
+                hasStarted = false;
+                video.currentTime = 0;
+                player.classList.remove('playing', 'paused');
+                overlay.classList.remove('hidden');
+                controls.style.opacity = '0';
+                progressBar.style.width = '0%';
+                syncIcons();
+            });
+        })();
+
         (async function init() {
             const url = new URL(window.location.href);
             const token = url.searchParams.get('t');
-            const preview =
-                url.searchParams.get('preview') === 'true' ||
-                url.searchParams.get('preview') === '1';
+            const preview = url.searchParams.get('preview') === 'dev';
 
             if (preview) {
-                document.getElementById('badge-label').textContent = 'Aperçu design';
-                document.getElementById('preview-hint').classList.add('visible');
+                document.getElementById('badge-label').textContent = '✓ INSCRIPTION CONFIRMÉE';
+                const previewBanner = document.getElementById('dev-preview-banner');
+                if (previewBanner) {
+                    previewBanner.classList.add('visible');
+                    document.body.style.paddingTop = `${previewBanner.offsetHeight}px`;
+                }
                 mountConfirmation(
                     {
                         sessionStartsAt: PREVIEW_SESSION_START_ISO,
