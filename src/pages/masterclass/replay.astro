@@ -166,15 +166,23 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             document.getElementById('blocked-copy').textContent = text;
             show('screen-blocked');
         }
-        function showAccess(token) {
+        function showAccess(token, opts) {
             setTokenEverywhere(token);
             document.getElementById('replay-link').href = '/masterclass/session?t=' + encodeURIComponent(token);
+            const copy = document.getElementById('access-copy');
+            if (copy) {
+                copy.textContent = opts && opts.late
+                    ? "Tu es arrivé(e) trop tard pour le direct. Le replay est disponible ci-dessous."
+                    : 'Tu peux accéder au replay maintenant.';
+            }
             show('screen-access');
         }
         function decideFromPayload(payload, token) {
             const now = Date.now();
             const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
             const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+            const liveStartMs = sd - 15 * 60 * 1000;
+            const lateCutoffMs = liveStartMs + 30 * 60 * 1000;
             if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
                 showBlocked('Erreur', 'Dates invalides pour cette inscription.');
                 return;
@@ -183,11 +191,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 showBlocked('Replay indisponible', "La période d'accès au replay est terminée.");
                 return;
             }
-            if (now < sd) {
+            if (now < liveStartMs) {
                 window.location.replace('/masterclass/confirmation?t=' + encodeURIComponent(token));
                 return;
             }
-            showAccess(token);
+            if (now >= liveStartMs && now < lateCutoffMs) {
+                window.location.replace('/masterclass/session?t=' + encodeURIComponent(token));
+                return;
+            }
+            showAccess(token, { late: true });
         }
         async function checkTokenAndRoute(token) {
             const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
@@ -201,11 +213,21 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         document.addEventListener('DOMContentLoaded', async function () {
             const params = new URLSearchParams(window.location.search);
             const tokenFromUrl = (params.get('t') || '').trim();
+            const reason = (params.get('reason') || '').trim();
             const token = tokenFromUrl || getStoredToken();
             if (token) {
                 try {
                     const ok = await checkTokenAndRoute(token);
-                    if (ok) return;
+                    if (ok) {
+                        if (reason === 'late' && document.getElementById('screen-access').classList.contains('visible')) {
+                            const copy = document.getElementById('access-copy');
+                            if (copy) {
+                                copy.textContent =
+                                    "Tu es arrivé(e) trop tard pour le direct. Le replay est disponible ci-dessous.";
+                            }
+                        }
+                        return;
+                    }
                 } catch (e) {}
             }
 

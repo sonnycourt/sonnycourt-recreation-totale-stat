@@ -159,6 +159,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         .badge {
             display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 8px 16px;
             border-radius: 999px;
             border: 1px solid var(--border);
@@ -170,6 +172,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             letter-spacing: 0.9px;
             margin-bottom: 14px;
         }
+        .badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #ef4444;
+            box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+            animation: liveDotPulse 1.3s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes liveDotPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+            }
+            50% {
+                opacity: 0.45;
+                transform: scale(0.84);
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
         .screen-main-header {
             text-align: center;
             margin-bottom: 8px;
@@ -177,6 +201,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         h1 {
             font-size: clamp(1.55rem, 4vw, 2.25rem);
             line-height: 1.2;
+            font-weight: 800;
             margin-bottom: 10px;
             background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
             -webkit-background-clip: text;
@@ -525,6 +550,43 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .offer-zone.hidden {
             display: none;
         }
+        .diagnostic-guide-zone {
+            display: none;
+            margin-top: 22px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .diagnostic-guide-zone.visible {
+            display: block;
+            animation: ctaFadeIn 0.35s ease forwards;
+        }
+        .diagnostic-guide-btn {
+            width: 100%;
+            max-width: 520px;
+            border-radius: 12px;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            background: rgba(59, 130, 246, 0.16);
+            color: #dbeafe;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.93rem;
+            padding: 13px 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.28);
+        }
+        .diagnostic-guide-btn:hover {
+            background: rgba(59, 130, 246, 0.24);
+            border-color: rgba(147, 197, 253, 0.65);
+            color: #fff;
+        }
+        .diagnostic-guide-note {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: rgba(226, 232, 240, 0.68);
+        }
         .offer-zone.visible {
             display: flex;
             opacity: 1;
@@ -693,6 +755,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             margin-bottom: 14px;
             line-height: 1.55;
         }
+        .form-error {
+            color: #fca5a5;
+            font-size: 0.85rem;
+        }
         @media (max-width: 640px) {
             .screen { padding: 20px 14px 34px; }
             .offer-cta { width: 100%; }
@@ -732,6 +798,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <label class="dev-label">Heure actuelle :</label>
             <div class="dev-time-row">
                 <input id="dev-time-input" class="dev-time-input" type="datetime-local" />
+                <button class="dev-time-btn" data-now-preset="session-m60" type="button">Session -60min</button>
+                <button class="dev-time-btn" data-now-preset="session-m30" type="button">Session -30min</button>
                 <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
                 <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
                 <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +15min</button>
@@ -761,6 +829,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         <a class="btn" href="/masterclass">Retour à la masterclass</a>
     </section>
 
+    <section id="screen-recovery" class="screen blocked" aria-live="polite">
+        <div class="badge">Retrouver mon accès</div>
+        <h1>Entre l'email utilisé à l'inscription</h1>
+        <p>On vérifie ton accès et on te redirige automatiquement.</p>
+        <div style="max-width:420px;margin:16px auto 0;display:grid;gap:10px;">
+            <input id="recovery-email" type="email" placeholder="Ton email" autocomplete="email" class="dev-time-input" style="height:44px;" />
+            <button id="recovery-submit" type="button" class="btn" style="width:100%;margin-top:0;">Vérifier mon accès</button>
+            <p id="recovery-error" class="form-error" style="text-align:center;min-height:1.2em;"></p>
+        </div>
+    </section>
+
     <section id="screen-before" class="screen" aria-live="polite">
         <h1>La masterclass commence dans...</h1>
         <p class="wait-note">Tu vas être redirigé vers ta page de confirmation.</p>
@@ -774,7 +853,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     <section id="screen-main" class="screen">
         <div class="screen-main-header">
-            <div class="badge">UNE SEULE DIFFUSION</div>
+            <div class="badge">UNE SEULE DIFFUSION EN DIRECT</div>
             <h1>Masterclass Esprit Subconscient 2.0</h1>
             <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
             </div>
@@ -849,6 +928,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             </div>
             <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
         </div>
+        <div id="diagnostic-guide-zone" class="diagnostic-guide-zone" aria-live="polite">
+            <a class="diagnostic-guide-btn" href="/media/pages/Guide-Diagnostic-ES2.pdf" target="_blank" rel="noopener">
+                Télécharge ton guide diagnostique personnel
+            </a>
+            <p class="diagnostic-guide-note">Imprime ce PDF avant la diffusion si possible.</p>
+        </div>
 
         <div id="purchase-toast" class="purchase-toast" aria-live="polite">
             <div class="purchase-toast__content">
@@ -866,9 +951,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const TOKEN_KEY = 'masterclass_es2_token';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
+        const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
+        const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
+        const LATE_DIRECT_CUTOFF_MS = 30 * 60 * 1000; // +30 min après début live = trop tard pour le direct
         const CTA_APPEAR_SECONDS = 1800; // minute 30
-        const VIDEO_DURATION_SECONDS = 2700; // 45 min
-        const VIDEO_SOURCE_URL = 'https://sonnycourt-videos-public.b-cdn.net/45%20Minute%20Countdown%20Timer%20with%20Alarm%20and%20Deep%20Space%20Ambient%20Music%20%F0%9F%8C%A0Deep%20Space%20Galaxy%20%F0%9F%8C%A0.mp4';
+        const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
+        let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
+        const VIDEO_SOURCE_URL = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
         const REPLAY_LABEL = 'Lancer la vidéo';
@@ -882,6 +971,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         function pad(n) { return String(n).padStart(2, '0'); }
+        function getVideoDurationSeconds() {
+            return ACTIVE_VIDEO_DURATION_SECONDS || VIDEO_DURATION_FALLBACK_SECONDS;
+        }
         function getCookie(name) {
             const esc = name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
             const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
@@ -907,7 +999,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             document.getElementById('gate-loading').style.display = on ? 'flex' : 'none';
         }
         function showScreen(id) {
-            ['screen-blocked', 'screen-before', 'screen-main'].forEach((x) => {
+            ['screen-blocked', 'screen-before', 'screen-main', 'screen-recovery'].forEach((x) => {
                 document.getElementById(x).classList.toggle('is-visible', x === id);
             });
             showLoading(false);
@@ -925,6 +1017,72 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 sessionStartsAt: data.sessionStartsAt || data.session_date,
                 offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
             };
+        }
+        function decideRouteFromPayload(payload, token) {
+            const now = Date.now();
+            const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
+            const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+            const liveStart = sd - LIVE_VIDEO_LEAD_MS;
+            const lateCutoff = liveStart + LATE_DIRECT_CUTOFF_MS;
+            if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
+                return { type: 'block', title: 'Erreur', text: 'Dates de session invalides.' };
+            }
+            if (now < liveStart) {
+                return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
+            }
+            if (now >= liveStart && now < lateCutoff) {
+                return { type: 'redirect', url: '/masterclass/session?t=' + encodeURIComponent(token) };
+            }
+            if (now >= lateCutoff && now < oe) {
+                return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=late' };
+            }
+            return { type: 'block', title: "Cette masterclass n'est plus accessible.", text: '' };
+        }
+        function setupRecoveryForm() {
+            const submit = document.getElementById('recovery-submit');
+            const input = document.getElementById('recovery-email');
+            const err = document.getElementById('recovery-error');
+            if (!submit || !input || !err) return;
+            submit.addEventListener('click', async function () {
+                err.textContent = '';
+                const email = String(input.value || '').trim().toLowerCase();
+                if (!email || !email.includes('@')) {
+                    err.textContent = 'Merci de saisir un email valide.';
+                    return;
+                }
+                submit.disabled = true;
+                try {
+                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                    const body = await res.json();
+                    if (!res.ok) {
+                        err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'excluded') {
+                        err.textContent = "Tu n'es pas éligible pour suivre cette masterclass.";
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                        setTokenEverywhere(body.token);
+                        const route = decideRouteFromPayload(body, body.token);
+                        if (route.type === 'redirect') {
+                            window.location.replace(route.url);
+                            return;
+                        }
+                        showBlocked(route.title, route.text || '');
+                        return;
+                    }
+                    err.textContent = "Aucune inscription trouvée avec cet email.";
+                } catch (e) {
+                    err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    submit.disabled = false;
+                }
+            });
         }
         function updateCountdown(targetMs, ids) {
             const diff = Math.max(0, targetMs - getNowMs());
@@ -955,7 +1113,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const now = getNowMs();
             const pre15 = sessionStartMs - 15 * 60 * 1000; // 19h45
             const pre5  = sessionStartMs - 5  * 60 * 1000; // 19h55
-            const endMs = sessionStartMs + VIDEO_DURATION_SECONDS * 1000; // 20h45
+            const endMs = sessionStartMs + getVideoDurationSeconds() * 1000;
             const min15 = sessionStartMs + 15 * 60 * 1000; // 20h15
             const min30 = sessionStartMs + 30 * 60 * 1000; // 20h30
 
@@ -1003,7 +1161,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function updateVisibility() {
                 const now = getNowMs();
-                const endMs = sessionStartMs + VIDEO_DURATION_SECONDS * 1000;
+                const endMs = sessionStartMs + getVideoDurationSeconds() * 1000;
                 if (now >= endMs) {
                     col.classList.remove('is-visible');
                     if (timer) { clearTimeout(timer); timer = null; }
@@ -1157,7 +1315,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const muteIcon = document.getElementById('icon-mute');
             const playOverlayLabel = document.getElementById('playOverlayLabel');
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
-            const hideCountdownMs = sessionStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
+            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
+            const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
 
             function formatSessionParisLabel(ms) {
                 return new Intl.DateTimeFormat('fr-FR', {
@@ -1197,8 +1356,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             function applySimulatedLiveOffset() {
                 if (hasAppliedLiveOffset) return;
                 if (!Number.isFinite(video.duration) || video.duration <= 0) return;
-                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
-                if (elapsedSec > 0 && elapsedSec < VIDEO_DURATION_SECONDS) {
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
+                if (elapsedSec > 0 && elapsedSec < getVideoDurationSeconds()) {
                     isLiveJoin = true;
                     // Important: update max first so anti-seek guard doesn't snap back.
                     maxWatched = Math.max(maxWatched, elapsedSec);
@@ -1255,13 +1414,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
-                if (now < sessionStartMs) {
+                if (now < liveStartMs) {
                     liveStarted = false;
                     isSessionEnded = false;
                     hasAppliedLiveOffset = false;
                     if (endedNote) endedNote.classList.remove('is-visible');
                     if (preLive) preLive.style.display = 'block';
-                    updateCountdown(sessionStartMs, {
+                    updateCountdown(liveStartMs, {
                         days: 'pl-days',
                         hours: 'pl-hours',
                         minutes: 'pl-minutes',
@@ -1273,38 +1432,48 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         waiting.classList.remove('is-hidden');
                         const wt = waiting.querySelector('.waiting-title');
                         if (wt) {
-                            wt.textContent = `Début de la diffusion ${formatSessionParisLabel(sessionStartMs)} à 20h (Paris)`;
+                            wt.textContent = `Début de la diffusion ${formatSessionParisLabel(sessionStartMs)} à 19h45 (Paris)`;
                             wt.classList.remove('is-ended');
                         }
                     }
                     return;
                 }
 
-                if (now >= sessionStartMs + VIDEO_DURATION_SECONDS * 1000) {
+                if (now >= liveStartMs + getVideoDurationSeconds() * 1000) {
                     showEndedState();
                     return;
                 }
 
-                if (now >= sessionStartMs && now < hideCountdownMs && preLive) {
+                if (now >= liveStartMs && now < hideCountdownMs && preLive) {
                     preLive.style.display = 'none';
                 }
                 activateLiveJoinState();
                 updateCtaStateByTime();
+                updateDiagnosticGuideState();
             }
 
             function updateCtaStateByTime() {
-                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
                 if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
                 } else if (elapsedSec < CTA_APPEAR_SECONDS) {
                     hideOfferZone();
                 }
             }
+            function updateDiagnosticGuideState() {
+                const zone = document.getElementById('diagnostic-guide-zone');
+                if (!zone) return;
+                const now = getNowMs();
+                const showAt = sessionStartMs - GUIDE_RELEASE_LEAD_MS;
+                const hideAt = sessionStartMs + 15 * 60 * 1000;
+                const shouldShow = now >= showAt && now <= hideAt && !isSessionEnded;
+                zone.classList.toggle('visible', shouldShow);
+            }
 
             video.addEventListener('timeupdate', function () {
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
                 updateCtaStateByTime();
-                if (video.currentTime >= VIDEO_DURATION_SECONDS) {
+                if (video.currentTime >= getVideoDurationSeconds()) {
                     showEndedState();
                 }
             });
@@ -1359,13 +1528,21 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
 
             updateCtaStateByTime();
+            updateDiagnosticGuideState();
             tick();
             disableNativeSeekAndFastForward();
             video.src = VIDEO_SOURCE_URL;
             syncIcons();
             updatePlayOverlayLabel();
-            video.addEventListener('loadedmetadata', applySimulatedLiveOffset);
-            video.addEventListener('loadedmetadata', updateCtaStateByTime);
+            video.addEventListener('loadedmetadata', function () {
+                if (Number.isFinite(video.duration) && video.duration > 0) {
+                    ACTIVE_VIDEO_DURATION_SECONDS = Math.ceil(video.duration);
+                } else {
+                    ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
+                }
+                applySimulatedLiveOffset();
+                updateCtaStateByTime();
+            });
             refreshPreLiveCountdown();
             launchInterval = setInterval(refreshPreLiveCountdown, 1000);
             const beforeUnloadHandler = function () {
@@ -1374,8 +1551,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
-            const hearts = initHeartColumn(sessionStartMs);
-            const purchaseToasts = initPurchaseToasts(sessionStartMs);
+            const hearts = initHeartColumn(liveStartMs);
+            const purchaseToasts = initPurchaseToasts(liveStartMs);
 
             return {
                 recalcFromSimulatedTime: function () {
@@ -1385,6 +1562,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     refreshPreLiveCountdown();
                     tick();
                     updateCtaStateByTime();
+                    updateDiagnosticGuideState();
                     hearts.recalc();
                     purchaseToasts.recalc();
                 },
@@ -1471,8 +1649,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
             if (elapsed < CTA_APPEAR_SECONDS) return 'Live';
-            if (elapsed < VIDEO_DURATION_SECONDS) return 'CTA visible';
-            var endMs = sessionMs + VIDEO_DURATION_SECONDS * 1000;
+            if (elapsed < getVideoDurationSeconds()) return 'CTA visible';
+            var endMs = sessionMs + getVideoDurationSeconds() * 1000;
             var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
             if (nowMs < sun23) return 'Vidéo terminée / Replay';
             return 'Expiré';
@@ -1588,6 +1766,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             // Now presets: relative to currentSessionMs
             var nowPresetOffsets = {
+                'session-m60':  -60 * 60 * 1000,
+                'session-m30':  -30 * 60 * 1000,
                 'session-m15':  -15 * 60 * 1000,
                 'session-p2':   2 * 60 * 1000,
                 'session-p15':  15 * 60 * 1000,
@@ -1640,22 +1820,24 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 return;
             }
 
+            setupRecoveryForm();
+
             let token = (params.get('t') || '').trim();
             if (!token) token = getStoredTokenWithLegacy();
             if (!token) {
-                window.location.replace('/masterclass');
+                showScreen('screen-recovery');
                 return;
             }
 
             try {
                 const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
                 if (!res.ok) {
-                    window.location.replace('/masterclass');
+                    showScreen('screen-recovery');
                     return;
                 }
                 const data = await res.json();
                 if (!data.valid || !data.sessionStartsAt || !data.offreExpiresAt) {
-                    window.location.replace('/masterclass');
+                    showScreen('screen-recovery');
                     return;
                 }
                 setTokenEverywhere(token);
@@ -1674,8 +1856,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     showBlocked("Cette masterclass n'est plus accessible.", '');
                     return;
                 }
+                const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
+                if (now >= liveStartMs + LATE_DIRECT_CUTOFF_MS) {
+                    window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=late');
+                    return;
+                }
                 showScreen('screen-main');
-                if (now >= sessionMs) await maybeMarkPresent(reg);
+                if (now >= liveStartMs) await maybeMarkPresent(reg);
                 mountVideoAndOffer(reg);
             } catch (e) {
                 showBlocked('Erreur', 'Impossible de charger la session pour le moment.');
