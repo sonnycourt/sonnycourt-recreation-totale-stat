@@ -51,6 +51,7 @@ export async function upsertWebinaireSubscriber({
   pays,
   token,
   dateOptinMasterclass,
+  dateWebinaire,
   groupId,
   apiKey,
 }) {
@@ -68,6 +69,13 @@ export async function upsertWebinaireSubscriber({
     unique_token_webinaire: token,
     ...(dateOptinMasterclass
       ? { date_optin_masterclass: dateOptinMasterclass }
+      : {}),
+    ...(dateWebinaire
+      ? {
+          es_2_0_date_webinaire: dateWebinaire,
+          date_webinaire: dateWebinaire,
+          es2_date_webinaire: dateWebinaire,
+        }
       : {}),
   };
 
@@ -97,6 +105,19 @@ export async function upsertWebinaireSubscriber({
     const groupResult = await addSubscriberToGroup(subscriberId, groupId, apiKey);
     if (groupResult.assigned || groupResult.alreadyInGroup) {
       groupAssignedAt = new Date().toISOString();
+      const groupDateFields = {
+        sajoute_dans_le_groupe_le: groupAssignedAt,
+        es2_ajoute_dans_le_groupe_le: groupAssignedAt,
+        date_ajout_groupe_webinaire: groupAssignedAt,
+      };
+      await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          status: 'active',
+          fields: groupDateFields,
+        }),
+      }).catch(() => {});
     }
   }
 

@@ -99,6 +99,7 @@ export default async (req) => {
             pays: hasPhonePayload ? pays : e.pays || '',
             token: e.token,
             dateOptinMasterclass: formatParisOptinTimestamp(new Date()),
+            dateWebinaire: e.session_date || null,
             groupId: groupInscrits,
             apiKey,
           });
@@ -187,6 +188,7 @@ export default async (req) => {
           pays,
           token,
           dateOptinMasterclass: formatParisOptinTimestamp(new Date()),
+          dateWebinaire: sessionStart.toISOString(),
           groupId: groupInscrits,
           apiKey,
         });
