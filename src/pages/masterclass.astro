@@ -7,7 +7,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webinaire Esprit Subconscient 2.0 - Réserve ta place</title>
+    <title>Masterclass Esprit Subconscient 2.0 - Réserve ta place</title>
     <meta name="description" content="Masterclass gratuite : reprogramme ton subconscient et manifeste la vie de tes rêves. Réserve ta place au prochain webinaire.">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <GAConsentMode />
@@ -383,6 +383,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         h1 {
             font-size: clamp(2rem, 4vw, 3.1rem);
             line-height: 1.2;
+            font-weight: 800;
             margin-bottom: 18px;
             background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
             -webkit-background-clip: text;
@@ -1391,17 +1392,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <p class="popup-form-lead">Entre ton prénom et ton email pour recevoir ton accès gratuit</p>
                 <input id="name" class="form-input" type="text" placeholder="Ton prénom" required />
                 <input id="email" class="form-input" type="email" placeholder="Ton email" required autocomplete="email" />
-                <label class="commit-row" id="commit-row-label" for="commit-present">
-                    <input
-                        id="commit-present"
-                        type="checkbox"
-                        name="commit_present"
-                        autocomplete="off"
-                        required
-                        aria-required="true"
-                    />
-                    <span class="commit-row__text">Je m'engage à être présent(e) jeudi à 20h</span>
-                </label>
                 <p id="step1-message" class="form-error" role="alert"></p>
                 <button id="step1-button" class="submit-btn" type="button">Réserver ma place</button>
                 <p class="form-note form-note--after-cta">
@@ -1428,10 +1418,27 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             </div>
 
             <div id="step2-form" style="display:none;">
-                <p class="step-indicator step-indicator--final">Dernière étape</p>
+                <p class="step-indicator">Étape 2 sur 3</p>
                 <div id="step2-phone-container" class="phone-field-wrap" aria-live="polite"></div>
                 <p class="form-note">Ton numéro sera utilisé pour t'envoyer un rappel avant la diffusion.</p>
-                <button id="step2-submit" class="submit-btn" type="button">Confirmer mon inscription</button>
+                <button id="step2-next" class="submit-btn" type="button">Continuer</button>
+            </div>
+
+            <div id="step3-form" style="display:none;">
+                <p class="step-indicator step-indicator--final">Dernière étape</p>
+                <label class="commit-row" id="commit-row-label" for="commit-present">
+                    <input
+                        id="commit-present"
+                        type="checkbox"
+                        name="commit_present"
+                        autocomplete="off"
+                        required
+                        aria-required="true"
+                    />
+                    <span class="commit-row__text">Je m'engage à être présent(e) jeudi à 20h</span>
+                </label>
+                <p id="step3-message" class="form-error" role="alert"></p>
+                <button id="step3-submit" class="submit-btn" type="button">Confirmer mon inscription</button>
                 <p id="form-status" class="success-copy"></p>
             </div>
         </div>
@@ -1447,7 +1454,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const TOKEN_KEY = 'masterclass_es2_token';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
-        const STEP2_SUBMIT_LABEL = 'Confirmer mon inscription';
+        const STEP3_SUBMIT_LABEL = 'Confirmer mon inscription';
         const PRE_OPTIN_DELAY_MS = 4000;
         const PRE_OPTIN_FADE_MS = 300;
         const PRE_OPTIN_SUCCESS_MS = 1420;
@@ -1570,6 +1577,30 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return findParisInstantUtc(nextThu.year, nextThu.month, nextThu.day, 20);
         }
 
+        /**
+         * Fallback robuste pour navigateurs qui gèrent mal certains formats Intl.
+         * On calcule le prochain jeudi 20h (heure de Paris) via une projection locale.
+         */
+        function getFallbackParisThursday20Utc(now) {
+            const parisProjected = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+            const offsetMs = now.getTime() - parisProjected.getTime();
+            const day = parisProjected.getDay(); // 0=dimanche ... 4=jeudi
+            let deltaToThu = (4 - day + 7) % 7;
+            const thu20 = new Date(parisProjected);
+            thu20.setDate(thu20.getDate() + deltaToThu);
+            thu20.setHours(20, 0, 0, 0);
+            if (parisProjected.getTime() >= thu20.getTime()) {
+                thu20.setDate(thu20.getDate() + 7);
+            }
+            return new Date(thu20.getTime() + offsetMs);
+        }
+
+        function getMarketingCountdownTargetUtcSafe(now) {
+            const primary = getMarketingCountdownTargetUtc(now);
+            if (primary) return primary;
+            return getFallbackParisThursday20Utc(now);
+        }
+
         function formatParisDateNoTime(date) {
             const fmt = new Intl.DateTimeFormat('fr-FR', {
                 timeZone: 'Europe/Paris',
@@ -1591,14 +1622,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function updatePopupSessionBubble() {
             const el = document.getElementById('popup-session-date');
             if (!el) return;
-            const inst = getOptinMasterclassSessionUtc(new Date());
+            const now = new Date();
+            const inst = getOptinMasterclassSessionUtc(now) || getFallbackParisThursday20Utc(now);
             if (!inst) return;
             el.textContent = formatParisDateNoTime(inst) + ' à 20h';
         }
 
         function updateCountdown() {
             updatePopupSessionBubble();
-            const target = getMarketingCountdownTargetUtc(new Date());
+            const target = getMarketingCountdownTargetUtcSafe(new Date());
             if (!target) return;
 
             const nowMs = Date.now();
@@ -1819,11 +1851,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function showStep(stepNumber) {
             document.getElementById('step1-form').style.display = stepNumber === 1 ? 'block' : 'none';
             document.getElementById('step2-form').style.display = stepNumber === 2 ? 'block' : 'none';
+            document.getElementById('step3-form').style.display = stepNumber === 3 ? 'block' : 'none';
         }
 
         function goToContactStep() {
             showStep(2);
             if (!iti) initPhoneInput();
+        }
+
+        function goToCommitStep() {
+            showStep(3);
         }
 
         function injectMasterclassPhoneDropdownStyles() {
@@ -1974,7 +2011,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function validateStep1() {
             const msg = document.getElementById('step1-message');
             msg.textContent = '';
-            setCommitRowError(false);
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1985,13 +2021,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
             if (!emailRegex.test(email)) {
                 alert('Merci de saisir un email valide.');
-                return false;
-            }
-            const commit = document.getElementById('commit-present');
-            if (!commit || !commit.checked) {
-                setCommitRowError(true);
-                msg.textContent = 'Merci de cocher la case pour confirmer ta présence jeudi à 20h.';
-                commit.focus();
                 return false;
             }
             state.name = name;
@@ -2031,9 +2060,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return true;
         }
 
+        function validateCommitStep() {
+            const msg = document.getElementById('step3-message');
+            const commit = document.getElementById('commit-present');
+            msg.textContent = '';
+            setCommitRowError(false);
+            if (!commit || !commit.checked) {
+                setCommitRowError(true);
+                msg.textContent = 'Merci de cocher la case pour confirmer ta présence jeudi à 20h.';
+                commit?.focus();
+                return false;
+            }
+            return true;
+        }
+
         async function submitRegistration() {
             const formStatus = document.getElementById('form-status');
-            const submitBtn = document.getElementById('step2-submit');
+            const submitBtn = document.getElementById('step3-submit');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inscription...';
             formStatus.textContent = '';
@@ -2064,7 +2107,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     formStatus.textContent =
                         'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.';
                     submitBtn.disabled = false;
-                    submitBtn.textContent = STEP2_SUBMIT_LABEL;
+                    submitBtn.textContent = STEP3_SUBMIT_LABEL;
                     return;
                 }
 
@@ -2077,7 +2120,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             } catch (error) {
                 formStatus.textContent = 'Une erreur est survenue. Merci de réessayer.';
                 submitBtn.disabled = false;
-                submitBtn.textContent = STEP2_SUBMIT_LABEL;
+                submitBtn.textContent = STEP3_SUBMIT_LABEL;
             }
         }
 
@@ -2250,8 +2293,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
             });
 
-            document.getElementById('step2-submit').addEventListener('click', function () {
+            document.getElementById('step2-next').addEventListener('click', function () {
                 if (!validateContactStep()) return;
+                goToCommitStep();
+            });
+
+            document.getElementById('step3-submit').addEventListener('click', function () {
+                if (!validateCommitStep()) return;
                 submitRegistration();
             });
         }

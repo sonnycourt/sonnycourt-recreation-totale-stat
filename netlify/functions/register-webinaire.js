@@ -60,7 +60,7 @@ export default async (req) => {
     }
 
     const existing = await supabaseGet(
-      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,statut,session_date,session_ends_at,offre_expires_at`,
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at`,
     );
     if (existing.ok && Array.isArray(existing.data) && existing.data.length > 0) {
       const e = existing.data[0];
@@ -92,7 +92,7 @@ export default async (req) => {
 
       if (apiKey && groupInscrits) {
         try {
-          await upsertWebinaireSubscriber({
+          const ml = await upsertWebinaireSubscriber({
             email,
             prenom: prenom || e.prenom || '',
             telephone: hasPhonePayload ? telephone : e.telephone || '',
@@ -102,6 +102,21 @@ export default async (req) => {
             groupId: groupInscrits,
             apiKey,
           });
+
+          if (ml?.groupAssignedAt && !e.mailerlite_group_added_at) {
+            const markAddedAt = await supabasePatch(
+              'webinaire_registrations',
+              `email=eq.${encodeURIComponent(email)}`,
+              { mailerlite_group_added_at: ml.groupAssignedAt },
+            );
+            if (!markAddedAt.ok) {
+              console.error(
+                'Supabase update mailerlite_group_added_at (existing):',
+                markAddedAt.status,
+                markAddedAt.error,
+              );
+            }
+          }
         } catch (mlErr) {
           console.error('MailerLite register-webinaire existing:', mlErr);
         }
@@ -165,7 +180,7 @@ export default async (req) => {
 
     if (apiKey && groupInscrits) {
       try {
-        await upsertWebinaireSubscriber({
+        const ml = await upsertWebinaireSubscriber({
           email,
           prenom,
           telephone,
@@ -175,6 +190,21 @@ export default async (req) => {
           groupId: groupInscrits,
           apiKey,
         });
+
+        if (ml?.groupAssignedAt) {
+          const markAddedAt = await supabasePatch(
+            'webinaire_registrations',
+            `email=eq.${encodeURIComponent(email)}`,
+            { mailerlite_group_added_at: ml.groupAssignedAt },
+          );
+          if (!markAddedAt.ok) {
+            console.error(
+              'Supabase update mailerlite_group_added_at (new):',
+              markAddedAt.status,
+              markAddedAt.error,
+            );
+          }
+        }
       } catch (mlErr) {
         console.error('MailerLite register-webinaire:', mlErr);
       }

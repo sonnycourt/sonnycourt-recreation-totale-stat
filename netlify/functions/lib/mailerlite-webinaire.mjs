@@ -19,7 +19,9 @@ export async function getMailerLiteSubscriberId(email, apiKey) {
 }
 
 export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
-  if (!subscriberId || !groupId) return;
+  if (!subscriberId || !groupId) {
+    return { assigned: false, alreadyInGroup: false };
+  }
   const headers = {
     Authorization: `Bearer ${apiKey}`,
     Accept: 'application/json',
@@ -31,7 +33,12 @@ export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
   if (!res.ok && res.status !== 422) {
     const err = await res.json().catch(() => ({}));
     console.error('MailerLite add group error:', err);
+    return { assigned: false, alreadyInGroup: false };
   }
+  if (res.status === 422) {
+    return { assigned: false, alreadyInGroup: true };
+  }
+  return { assigned: true, alreadyInGroup: false };
 }
 
 /**
@@ -85,11 +92,15 @@ export async function upsertWebinaireSubscriber({
     subscriberId = createJson?.data?.id || null;
   }
 
+  let groupAssignedAt = null;
   if (subscriberId && groupId) {
-    await addSubscriberToGroup(subscriberId, groupId, apiKey);
+    const groupResult = await addSubscriberToGroup(subscriberId, groupId, apiKey);
+    if (groupResult.assigned || groupResult.alreadyInGroup) {
+      groupAssignedAt = new Date().toISOString();
+    }
   }
 
-  return subscriberId;
+  return { subscriberId, groupAssignedAt };
 }
 
 export function getWebinaireGroupEnv() {
