@@ -18,6 +18,11 @@ export default async (req) => {
     return json(405, { error: 'Method not allowed' });
   }
 
+  // Bypass local/dev explicite pour accélérer les tests UI (ne pas activer en prod).
+  if (process.env.ADMIN_DEV_BYPASS === 'true') {
+    return json(200, { authenticated: true, exp: Date.now() + 60 * 60 * 1000, devBypass: true });
+  }
+
   const secret = getAdminEs2CookieSecret();
   if (!secret) {
     return json(500, { error: 'Server misconfigured' });
