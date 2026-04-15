@@ -2287,14 +2287,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             'Tu es d\u00e9j\u00e0 inscrit(e). Tu ne peux pas te r\u00e9inscrire.';
                         return;
                     }
-                    const capture = await saveStep1Lead();
-                    if (!capture.ok) {
-                        msg.textContent = capture.excluded
-                            ? 'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.'
-                            : 'Sauvegarde impossible. Réessaie dans un instant.';
-                        return;
-                    }
                     goToContactStep();
+                    // UX: on passe immédiatement à l'étape 2 et on fait la capture en arrière-plan.
+                    saveStep1Lead()
+                        .then(function (capture) {
+                            if (capture && capture.ok && capture.token) {
+                                state._preCapturedToken = capture.token;
+                            }
+                        })
+                        .catch(function () {});
                 } catch (e) {
                     msg.textContent = 'Vérification impossible. Réessaie dans un instant.';
                 } finally {
