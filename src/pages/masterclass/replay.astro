@@ -1,0 +1,265 @@
+---
+import GAConsentMode from '../../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Replay — Masterclass Esprit Subconscient 2.0</title>
+    <meta name="description" content="Accède au replay de la masterclass Esprit Subconscient 2.0." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <GAConsentMode />
+    <style>
+        html { opacity: 0; }
+        html.ready { opacity: 1; transition: opacity 0.15s ease; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+                linear-gradient(180deg, #0a1628 0%, #0a0a1a 50%, #06060f 100%);
+            padding: 24px 16px;
+        }
+        .wrap {
+            max-width: 680px;
+            margin: 0 auto;
+            border: 1px solid rgba(59, 130, 246, 0.32);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+            padding: clamp(20px, 3vw, 28px);
+        }
+        .badge {
+            display: inline-block;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.16);
+            color: #bfdbfe;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        h1 {
+            font-size: clamp(1.45rem, 3vw, 2.1rem);
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+        p {
+            color: rgba(226, 232, 240, 0.82);
+            line-height: 1.6;
+        }
+        .muted { color: rgba(226, 232, 240, 0.66); font-size: 0.9rem; margin-top: 10px; }
+        .stack { margin-top: 16px; display: grid; gap: 10px; }
+        input {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: rgba(255, 255, 255, 0.07);
+            color: #fff;
+            padding: 13px 14px;
+            font-size: 16px;
+        }
+        button, .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 16px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+        }
+        .btn-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.32);
+        }
+        .error { color: #fca5a5; margin-top: 10px; min-height: 1.2em; }
+        #screen-email, #screen-access, #screen-blocked { display: none; }
+        #screen-email.visible, #screen-access.visible, #screen-blocked.visible { display: block; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <div id="screen-email" class="visible">
+            <div class="badge">Accès replay</div>
+            <h1>Retrouve ton accès au replay</h1>
+            <p>Entre l'email utilisé lors de ton inscription à la masterclass.</p>
+            <div class="stack">
+                <input id="email-input" type="email" placeholder="Ton email" autocomplete="email" />
+                <button id="email-submit" type="button">Vérifier mon accès</button>
+            </div>
+            <p id="email-error" class="error"></p>
+        </div>
+
+        <div id="screen-access">
+            <div class="badge">Replay disponible</div>
+            <h1>Ton accès est prêt</h1>
+            <p id="access-copy">Tu peux accéder au replay maintenant.</p>
+            <div class="btn-row">
+                <a id="replay-link" class="btn" href="/masterclass/session">Voir le replay</a>
+                <a class="btn secondary" href="/masterclass">Retour masterclass</a>
+            </div>
+        </div>
+
+        <div id="screen-blocked">
+            <div class="badge">Accès indisponible</div>
+            <h1 id="blocked-title">Replay indisponible</h1>
+            <p id="blocked-copy">L'accès au replay n'est plus disponible.</p>
+            <div class="btn-row">
+                <a class="btn secondary" href="/masterclass">Retour masterclass</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // @ts-nocheck
+        const TOKEN_KEY = 'masterclass_es2_token';
+        const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
+        const COOKIE_MAX = 365 * 24 * 60 * 60;
+
+        function getCookie(name) {
+            const esc = name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
+            const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+        function setTokenEverywhere(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+            document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX}; SameSite=Lax`;
+            localStorage.removeItem(LEGACY_TOKEN_KEY);
+            document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+        }
+        function getStoredToken() {
+            let t = (localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY) || '').trim();
+            if (t) return t;
+            const legacy = (localStorage.getItem(LEGACY_TOKEN_KEY) || getCookie(LEGACY_TOKEN_KEY) || '').trim();
+            if (legacy) {
+                setTokenEverywhere(legacy);
+                return legacy;
+            }
+            return '';
+        }
+        function show(id) {
+            ['screen-email', 'screen-access', 'screen-blocked'].forEach((x) => {
+                document.getElementById(x).classList.toggle('visible', x === id);
+            });
+        }
+        function showBlocked(title, text) {
+            document.getElementById('blocked-title').textContent = title;
+            document.getElementById('blocked-copy').textContent = text;
+            show('screen-blocked');
+        }
+        function showAccess(token) {
+            setTokenEverywhere(token);
+            document.getElementById('replay-link').href = '/masterclass/session?t=' + encodeURIComponent(token);
+            show('screen-access');
+        }
+        function decideFromPayload(payload, token) {
+            const now = Date.now();
+            const st = payload.statut || 'inscrit';
+            const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
+            const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+
+            if (st === 'acheteur') {
+                showBlocked("Tu es déjà membre d'Esprit Subconscient 2.0", 'Consulte tes emails pour accéder à ton espace.');
+                return;
+            }
+            if (st === 'no-show' || st === 'non-acheteur') {
+                showBlocked("Replay indisponible", "Ton accès à cette session n'est plus disponible.");
+                return;
+            }
+            if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
+                showBlocked('Erreur', 'Dates invalides pour cette inscription.');
+                return;
+            }
+            if (now >= oe) {
+                showBlocked('Replay indisponible', "La période d'accès au replay est terminée.");
+                return;
+            }
+            if (now < sd) {
+                window.location.replace('/masterclass/confirmation?t=' + encodeURIComponent(token));
+                return;
+            }
+            showAccess(token);
+        }
+        async function checkTokenAndRoute(token) {
+            const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
+            if (!res.ok) return false;
+            const data = await res.json();
+            if (!data.valid) return false;
+            decideFromPayload(data, token);
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const params = new URLSearchParams(window.location.search);
+            const tokenFromUrl = (params.get('t') || '').trim();
+            const token = tokenFromUrl || getStoredToken();
+            if (token) {
+                try {
+                    const ok = await checkTokenAndRoute(token);
+                    if (ok) return;
+                } catch (e) {}
+            }
+
+            const btn = document.getElementById('email-submit');
+            const input = document.getElementById('email-input');
+            const err = document.getElementById('email-error');
+
+            btn.addEventListener('click', async function () {
+                err.textContent = '';
+                const email = String(input.value || '').trim().toLowerCase();
+                if (!email || !email.includes('@')) {
+                    err.textContent = 'Merci de saisir un email valide.';
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                    const body = await res.json();
+                    if (!res.ok) {
+                        err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'excluded') {
+                        err.textContent = "Tu n'es pas éligible pour suivre cette masterclass.";
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                        decideFromPayload(body, body.token);
+                        return;
+                    }
+                    err.textContent = "Aucun accès replay trouvé avec cet email.";
+                } catch (e) {
+                    err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+    <script>document.documentElement.classList.add('ready');</script>
+</body>
+</html>
+

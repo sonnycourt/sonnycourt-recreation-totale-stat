@@ -1677,13 +1677,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
                 }
                 if (now >= sd && now < oe) {
-                    return { type: 'redirect', url: '/masterclass/session?t=' + encodeURIComponent(token) };
+                    return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
                 }
                 return { type: 'block', variant: 'closed' };
             }
             if (st === 'present') {
                 if (now < oe) {
-                    return { type: 'redirect', url: '/masterclass/session?t=' + encodeURIComponent(token) };
+                    return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
                 }
                 return { type: 'block', variant: 'closed' };
             }
@@ -2285,9 +2285,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         }
                         if (body.token) {
                             setTokenEverywhere(body.token);
-                            state._existingToken = body.token;
-                            state._eligibilityPayload = body;
-                            goToContactStep();
+                            closePopup();
+                            applyRoute(routeFromEligibilityPayload(body, body.token));
                             return;
                         }
                         msg.textContent =
