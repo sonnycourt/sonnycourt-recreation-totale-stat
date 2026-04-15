@@ -1258,15 +1258,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <div id="gate-blocked">
         <div class="gate-blocked-inner">
             <div data-block-variant="closed" style="display:none;">
-                <h1>Cette masterclass n'est plus accessible.</h1>
+                <h1>Cette session de masterclass est terminée.</h1>
+                <p>La masterclass à laquelle tu étais inscrit(e) a déjà eu lieu. Tu ne peux pas accéder au replay depuis cette page.</p>
             </div>
             <div data-block-variant="acheteur" style="display:none;">
                 <h1>Tu es déjà membre d'Esprit Subconscient 2.0 !</h1>
                 <p>Consulte tes emails pour accéder à ton espace.</p>
             </div>
             <div data-block-variant="excluded" style="display:none;">
-                <h1>Accès réservé</h1>
-                <p>Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.</p>
+                <h1>Accès non disponible</h1>
+                <p>Tu n'es pas éligible pour suivre cette masterclass.</p>
             </div>
         </div>
     </div>
@@ -2111,7 +2112,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
                 if (response.status === 403 && result.reason === 'excluded') {
                     formStatus.textContent =
-                        'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.';
+                        'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.';
                     submitBtn.disabled = false;
                     submitBtn.textContent = STEP3_SUBMIT_LABEL;
                     return;
@@ -2269,20 +2270,35 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     }
                     if (body.eligible === false && body.reason === 'excluded') {
                         msg.textContent =
-                            'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.';
+                            'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.';
                         return;
                     }
-                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
-                        setTokenEverywhere(body.token);
-                        state._existingToken = body.token;
-                        state._eligibilityPayload = body;
-                        goToContactStep();
+                    if (body.eligible === false && body.reason === 'already_registered') {
+                        var sessionDate = body.session_date ? new Date(body.session_date).getTime() : 0;
+                        var offreExpires = body.offre_expires_at ? new Date(body.offre_expires_at).getTime() : 0;
+                        var now = Date.now();
+                        var sessionPassed = sessionDate > 0 && now >= (offreExpires || sessionDate);
+
+                        if (sessionPassed) {
+                            msg.textContent =
+                                'Tu es d\u00e9j\u00e0 inscrit(e) \u00e0 une session pr\u00e9c\u00e9dente. Tu ne peux pas te r\u00e9inscrire.';
+                            return;
+                        }
+                        if (body.token) {
+                            setTokenEverywhere(body.token);
+                            state._existingToken = body.token;
+                            state._eligibilityPayload = body;
+                            goToContactStep();
+                            return;
+                        }
+                        msg.textContent =
+                            'Tu es d\u00e9j\u00e0 inscrit(e). Tu ne peux pas te r\u00e9inscrire.';
                         return;
                     }
                     const capture = await saveStep1Lead();
                     if (!capture.ok) {
                         msg.textContent = capture.excluded
-                            ? 'Tu as déjà accès à une de nos formations. Consulte tes emails pour y accéder.'
+                            ? 'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.'
                             : 'Sauvegarde impossible. Réessaie dans un instant.';
                         return;
                     }
