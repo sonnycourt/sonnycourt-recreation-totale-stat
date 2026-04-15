@@ -47,11 +47,10 @@ import Layout from '../layouts/Layout.astro';
 
         <div class="contact-form">
           <h2>Envoie-moi un message</h2>
-          <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+          <form name="contact" method="POST" netlify data-netlify="true" netlify-honeypot="bot-field" data-netlify-recaptcha="true">
             <input type="hidden" name="form-name" value="contact" />
-            <!-- Champ anti-spam (caché) -->
-            <p style="display: none;">
-              <label>Ne pas remplir ce champ si vous êtes humain : <input name="bot-field" /></label>
+            <p class="hidden" aria-hidden="true">
+              <label>Ne pas remplir : <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
             </p>
             
             <div class="form-group">
@@ -80,6 +79,7 @@ import Layout from '../layouts/Layout.astro';
               <textarea id="message" name="message" rows="6" required></textarea>
             </div>
             
+            <div data-netlify-recaptcha="true"></div>
             <button type="submit" class="submit-btn">
               Envoyer le message
             </button>
@@ -239,6 +239,10 @@ import Layout from '../layouts/Layout.astro';
     color: #636366;
   }
 
+  .hidden {
+    display: none !important;
+  }
+
   .submit-btn {
     width: 100%;
     padding: 18px 32px;
@@ -396,30 +400,27 @@ import Layout from '../layouts/Layout.astro';
     const form = document.querySelector('form[name="contact"]');
     const submitBtn = form.querySelector('.submit-btn');
     const formMessage = document.getElementById('form-message');
-    
-    // Soumission SANS redirection (AJAX Netlify Forms)
+
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       submitBtn.disabled = true;
       submitBtn.textContent = 'Envoi en cours...';
 
       const formData = new FormData(form);
-      // file -> string (Netlify Forms nécessite x-www-form-urlencoded)
-      const encoded = new URLSearchParams();
-      for (const [key, value] of formData.entries()) {
-        encoded.append(key, value as string);
+      const recaptchaToken = document.querySelector('[name="g-recaptcha-response"]')?.value;
+      if (recaptchaToken !== undefined) {
+        formData.set('g-recaptcha-response', recaptchaToken);
       }
 
       try {
-        // IMPORTANT: envoyer sur la racine, pas /contact (Netlify requirement)
+        const body = new URLSearchParams(formData).toString();
         const res = await fetch('/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: encoded.toString(),
+          body
         });
 
-        // Considérer 200/302 comme succès (Netlify peut répondre 302)
-        if (res.ok || res.status === 302) {
+        if (res.ok) {
           formMessage.innerHTML = '<div class="form-message-icon">✅</div><div class="form-message-content"><h3>Message envoyé avec succès</h3><p>Merci pour ton message. <strong>Mon équipe</strong> te répond sous 24h (jours ouvrés).</p></div>';
           formMessage.className = 'form-message show';
           form.reset();
