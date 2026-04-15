@@ -1668,26 +1668,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const now = Date.now();
             const sd = new Date(reg.sessionStartsAt).getTime();
             const oe = new Date(reg.offreExpiresAt).getTime();
-            const st = reg.statut;
-
-            if (st === 'acheteur') return { type: 'block', variant: 'acheteur' };
-            if (st === 'no-show' || st === 'non-acheteur') return { type: 'block', variant: 'closed' };
-            if (st === 'inscrit') {
-                if (now < sd) {
-                    return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
-                }
-                if (now >= sd && now < oe) {
-                    return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
-                }
-                return { type: 'block', variant: 'closed' };
+            if (!Number.isFinite(sd) || !Number.isFinite(oe)) return { type: 'main' };
+            if (now < sd) {
+                return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
             }
-            if (st === 'present') {
-                if (now < oe) {
-                    return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
-                }
-                return { type: 'block', variant: 'closed' };
+            if (now >= sd && now < oe) {
+                return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
             }
-            return { type: 'main' };
+            return { type: 'block', variant: 'closed' };
         }
 
         function applyRoute(route) {

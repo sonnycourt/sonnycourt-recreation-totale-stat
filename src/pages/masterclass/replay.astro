@@ -173,18 +173,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
         function decideFromPayload(payload, token) {
             const now = Date.now();
-            const st = payload.statut || 'inscrit';
             const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
             const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
-
-            if (st === 'acheteur') {
-                showBlocked("Tu es déjà membre d'Esprit Subconscient 2.0", 'Consulte tes emails pour accéder à ton espace.');
-                return;
-            }
-            if (st === 'no-show' || st === 'non-acheteur') {
-                showBlocked("Replay indisponible", "Ton accès à cette session n'est plus disponible.");
-                return;
-            }
             if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
                 showBlocked('Erreur', 'Dates invalides pour cette inscription.');
                 return;
