@@ -12,6 +12,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <GAConsentMode />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <link rel="preload" as="image" href="/media/pages/blue butterfly animation 2.gif">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js"></script>
 
@@ -133,6 +139,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             margin: 0;
             object-fit: cover;
             filter: drop-shadow(0 8px 28px rgba(37, 99, 235, 0.45));
+            will-change: transform;
+            image-rendering: auto;
+            transform: translateZ(0);
         }
 
         .pre-optin-overlay__text {
@@ -1784,6 +1793,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 return;
             }
             preOptinOverlayBusy = true;
+            var bfImg = overlay.querySelector('.pre-optin-overlay__butterfly');
+            if (bfImg && bfImg.decode) {
+                bfImg.decode().catch(function () {});
+            }
             overlay.setAttribute('aria-hidden', 'false');
             overlay.classList.remove('is-fading');
             overlay.classList.add('is-visible');
@@ -2223,6 +2236,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             setInterval(updateCountdown, 1000);
             initProofSectionCountUp();
 
+            var _preImg = new Image();
+            _preImg.src = '/media/pages/blue butterfly animation 2.gif';
+
             document.querySelectorAll('.popup-trigger').forEach((btn) => {
                 btn.addEventListener('click', function () {
                     showPreOptinOverlayThenOpenPopup();
@@ -2265,16 +2281,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     }
                     if (body.eligible === false && body.reason === 'already_registered' && body.token) {
                         setTokenEverywhere(body.token);
-                        const route = routeFromEligibilityPayload(body, body.token);
-                        if (route.type === 'redirect') {
-                            window.location.replace(route.url);
-                            return;
-                        }
-                        if (route.type === 'block') {
-                            closePopup();
-                            applyRoute(route);
-                            return;
-                        }
+                        state._existingToken = body.token;
+                        state._eligibilityPayload = body;
                         goToContactStep();
                         return;
                     }
