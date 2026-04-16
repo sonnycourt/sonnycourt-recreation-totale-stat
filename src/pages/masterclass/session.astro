@@ -377,6 +377,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .video-controls.is-visible {
             opacity: 1;
         }
+        /* Verrou strict: aucun contrôle visible avant le "join" explicite */
+        .video-container:not(.is-joined) .video-controls {
+            display: none !important;
+        }
         .controls-group {
             display: flex;
             align-items: center;
@@ -454,6 +458,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
         }
         .fullscreen-floating.hidden {
+            display: none !important;
+        }
+        .video-container:not(.is-joined) .fullscreen-floating {
             display: none !important;
         }
         /* ── Heart Column ── */
@@ -1501,6 +1508,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function setJoinedControlsVisible(visible) {
                 if (!videoControls || !fullscreenBtn) return;
+                videoContainer.classList.toggle('is-joined', Boolean(visible));
                 videoControls.classList.toggle('hidden', !visible);
                 fullscreenBtn.classList.toggle('hidden', !visible);
             }
