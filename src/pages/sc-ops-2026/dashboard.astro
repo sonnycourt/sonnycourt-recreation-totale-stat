@@ -130,11 +130,59 @@ const tabs = [
                       <p class="text-xs text-slate-400">Session: <span id="ops-session-date" class="text-slate-200">—</span></p>
                       <p class="text-xs text-slate-400">Expire: <span id="ops-expire-date" class="text-slate-200">—</span></p>
                       <p class="text-xs text-slate-400">Fenêtre live: <span id="ops-live-window" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">
+                        Diffusion détectée:
+                        <span id="ops-stream-state-badge" class="ml-1 inline-flex items-center gap-1 rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300">
+                          <span id="ops-stream-dot" class="h-2 w-2 rounded-full bg-slate-500"></span>
+                          <span id="ops-stream-state" class="text-slate-200">—</span>
+                        </span>
+                      </p>
+                      <p class="text-xs text-slate-400">Position live (médiane): <span id="ops-stream-second" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Position live (max): <span id="ops-stream-max" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Lecteurs en play: <span id="ops-stream-playing" class="text-slate-200">0</span></p>
                       <div class="pt-2 text-xs text-slate-400">
                         <p>Inscrits: <span id="ops-pop-inscrit" class="text-slate-200">0</span></p>
                         <p>Présents: <span id="ops-pop-present" class="text-slate-200">0</span></p>
                         <p>Acheteurs: <span id="ops-pop-acheteur" class="text-slate-200">0</span></p>
                         <p>Non-acheteurs: <span id="ops-pop-nonacheteur" class="text-slate-200">0</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Prochaine session</p>
+                        <span id="ops-next-session-state" class="inline-flex items-center rounded-full border border-slate-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">—</span>
+                      </div>
+                      <p class="text-xs text-slate-400">Session: <span id="ops-next-session-date" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Expire: <span id="ops-next-expire-date" class="text-slate-200">—</span></p>
+                      <div class="pt-1 text-xs text-slate-400">
+                        <p>Inscrits: <span id="ops-next-inscrit" class="text-slate-200">0</span></p>
+                        <p>Présents: <span id="ops-next-present" class="text-slate-200">0</span></p>
+                        <p>Acheteurs: <span id="ops-next-acheteur" class="text-slate-200">0</span></p>
+                        <p>Non-acheteurs: <span id="ops-next-nonacheteur" class="text-slate-200">0</span></p>
+                        <p>No-show: <span id="ops-next-noshow" class="text-slate-200">0</span></p>
+                      </div>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Historique sessions</p>
+                        <div class="flex flex-wrap gap-1">
+                          <button type="button" class="ops-history-filter rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300" data-filter="all">Toutes</button>
+                          <button type="button" class="ops-history-filter rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300" data-filter="upcoming">À venir</button>
+                          <button type="button" class="ops-history-filter rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300" data-filter="live">En cours</button>
+                          <button type="button" class="ops-history-filter rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300" data-filter="closed">Clôturées</button>
+                        </div>
+                      </div>
+                      <input
+                        id="ops-history-search"
+                        type="search"
+                        placeholder="Rechercher une date (ex: 17/04 ou 2026)"
+                        class="w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
+                      />
+                      <div id="ops-past-sessions" class="space-y-2 text-xs text-slate-300">
+                        <p class="text-slate-500">Aucune session passée.</p>
                       </div>
                     </div>
                   </div>
@@ -305,12 +353,192 @@ const tabs = [
 
       let opsPollingTimer = null;
       let opsBusy = false;
+      let streamCounterTimer = null;
+      let streamCounterBaseSecond = null;
+      let streamCounterBaseAtMs = null;
+      let streamCounterIsRunning = false;
+      let opsHistoryFilter = 'all';
+      let opsHistorySearch = '';
+      let opsHistoryItems = [];
 
       function statusText(check) {
         if (!check) return '—';
         if (check.ok) return `OK (${check.status || '200'})`;
         if (check.status) return `KO (${check.status})`;
         return `KO (${check.error || 'error'})`;
+      }
+
+      function formatSecond(second) {
+        if (!Number.isFinite(Number(second))) return '—';
+        const total = Math.max(0, Math.floor(Number(second)));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} (${total}s)`;
+      }
+
+      function formatShortIso(value) {
+        if (!value) return '—';
+        const dt = new Date(value);
+        if (!Number.isFinite(dt.getTime())) return '—';
+        return dt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
+      }
+
+      function buildHistoryItems(d) {
+        const out = [];
+        if (d?.nextSession?.sessionDateIso) {
+          out.push({
+            state: 'upcoming',
+            sessionDateIso: d.nextSession.sessionDateIso,
+            offerExpiresIso: d.nextSession.offerExpiresIso,
+            population: d.nextSession.population || {},
+          });
+        }
+        if (d?.currentSession?.sessionDateIso) {
+          out.push({
+            state: d?.currentSession?.isLiveWindow ? 'live' : 'closed',
+            sessionDateIso: d.currentSession.sessionDateIso,
+            offerExpiresIso: d.currentSession.offerExpiresIso,
+            population: d.sessionPopulation || {},
+          });
+        }
+        const closed = Array.isArray(d?.pastSessions) ? d.pastSessions : [];
+        for (const item of closed) {
+          out.push({
+            state: 'closed',
+            sessionDateIso: item?.sessionDateIso,
+            offerExpiresIso: item?.offerExpiresIso,
+            population: item?.population || {},
+          });
+        }
+        const dedup = new Map();
+        for (const item of out) {
+          if (!item.sessionDateIso) continue;
+          if (!dedup.has(item.sessionDateIso)) dedup.set(item.sessionDateIso, item);
+        }
+        return Array.from(dedup.values()).sort(function (a, b) {
+          return new Date(b.sessionDateIso).getTime() - new Date(a.sessionDateIso).getTime();
+        });
+      }
+
+      function normalizeText(value) {
+        return String(value || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+      }
+
+      function renderPastSessions(items) {
+        const root = document.getElementById('ops-past-sessions');
+        if (!root) return;
+        root.innerHTML = '';
+        const list = (Array.isArray(items) ? items : []).filter(function (item) {
+          if (opsHistoryFilter !== 'all' && item.state !== opsHistoryFilter) return false;
+          if (!opsHistorySearch) return true;
+          const dateText = normalizeText(formatShortIso(item.sessionDateIso));
+          const expireText = normalizeText(formatShortIso(item.offerExpiresIso));
+          return dateText.includes(opsHistorySearch) || expireText.includes(opsHistorySearch);
+        });
+        if (!list.length) {
+          const empty = document.createElement('p');
+          empty.className = 'text-slate-500';
+          empty.textContent = 'Aucune session pour ce filtre.';
+          root.appendChild(empty);
+          return;
+        }
+        for (const item of list) {
+          const row = document.createElement('div');
+          row.className = 'rounded-lg border border-slate-800 bg-slate-950/70 p-2';
+          const p = item.population || {};
+          const inscrits = Math.max(0, Number(p.inscrit || 0));
+          const presents = Math.max(0, Number(p.present || 0));
+          const ratio = inscrits > 0 ? Math.min(100, Math.round((presents / inscrits) * 100)) : 0;
+          const stateLabel = item.state === 'live' ? 'En cours' : item.state === 'upcoming' ? 'À venir' : 'Clôturée';
+          const stateClass =
+            item.state === 'live'
+              ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+              : item.state === 'upcoming'
+                ? 'border-blue-500/50 bg-blue-500/10 text-blue-200'
+                : 'border-slate-700 bg-slate-900 text-slate-300';
+          row.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-slate-200">${formatShortIso(item.sessionDateIso)}</p>
+              <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${stateClass}">${stateLabel}</span>
+            </div>
+            <p class="text-[11px] text-slate-500">Expire: ${formatShortIso(item.offerExpiresIso)}</p>
+            <p class="text-[11px] text-slate-400">Inscrits ${inscrits} · Présents ${presents} · Acheteurs ${p.acheteur || 0} · Non-acheteurs ${p.non_acheteur || 0} · No-show ${p.no_show || 0}</p>
+            <div class="mt-1">
+              <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div class="h-1.5 rounded-full bg-emerald-400" style="width:${ratio}%"></div>
+              </div>
+              <p class="mt-1 text-[10px] text-slate-500">Présence: ${ratio}% (${presents}/${inscrits || 0})</p>
+            </div>
+          `;
+          root.appendChild(row);
+        }
+      }
+
+      function setCurrentSessionBadge(isLiveWindow) {
+        const el = document.getElementById('ops-live-window');
+        if (!el) return;
+        if (isLiveWindow) {
+          el.textContent = 'En cours';
+          el.classList.remove('text-slate-200');
+          el.classList.add('text-emerald-300');
+          return;
+        }
+        el.textContent = 'Hors live';
+        el.classList.remove('text-emerald-300');
+        el.classList.add('text-slate-200');
+      }
+
+      function setNextSessionBadge(nextSession) {
+        const label = document.getElementById('ops-next-session-state');
+        if (!label) return;
+        if (!nextSession) {
+          label.textContent = 'Aucune';
+          label.className = 'inline-flex items-center rounded-full border border-slate-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-400';
+          return;
+        }
+        label.textContent = 'À venir';
+        label.className = 'inline-flex items-center rounded-full border border-blue-500/50 bg-blue-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-blue-200';
+      }
+
+      function setStreamBadgeState(isRunning) {
+        const badge = document.getElementById('ops-stream-state-badge');
+        const dot = document.getElementById('ops-stream-dot');
+        const stateText = document.getElementById('ops-stream-state');
+        if (!badge || !dot || !stateText) return;
+        if (isRunning) {
+          badge.classList.remove('border-slate-700', 'text-slate-300');
+          badge.classList.add('border-emerald-500/50', 'text-emerald-200');
+          dot.classList.remove('bg-slate-500', 'bg-red-500');
+          dot.classList.add('bg-emerald-400', 'animate-pulse');
+          stateText.textContent = 'Oui';
+        } else {
+          badge.classList.remove('border-emerald-500/50', 'text-emerald-200');
+          badge.classList.add('border-red-500/50', 'text-red-200');
+          dot.classList.remove('bg-slate-500', 'bg-emerald-400', 'animate-pulse');
+          dot.classList.add('bg-red-500');
+          stateText.textContent = 'Non';
+        }
+      }
+
+      function startStreamCounter(baseSecond, isRunning) {
+        streamCounterBaseSecond = Number.isFinite(Number(baseSecond)) ? Math.max(0, Math.floor(Number(baseSecond))) : null;
+        streamCounterBaseAtMs = Date.now();
+        streamCounterIsRunning = Boolean(isRunning && Number.isFinite(streamCounterBaseSecond));
+        if (streamCounterTimer) clearInterval(streamCounterTimer);
+        const el = document.getElementById('ops-stream-second');
+        if (!el) return;
+        if (!streamCounterIsRunning) {
+          el.textContent = formatSecond(streamCounterBaseSecond);
+          return;
+        }
+        streamCounterTimer = setInterval(function () {
+          const elapsed = Math.floor((Date.now() - streamCounterBaseAtMs) / 1000);
+          el.textContent = formatSecond((streamCounterBaseSecond || 0) + Math.max(0, elapsed));
+        }, 1000);
       }
 
       async function refreshOpsStatus() {
@@ -344,12 +572,28 @@ const tabs = [
           document.getElementById('ops-now-paris').textContent = d?.now?.parisIso || '—';
           document.getElementById('ops-session-date').textContent = d?.currentSession?.sessionDateIso || '—';
           document.getElementById('ops-expire-date').textContent = d?.currentSession?.offerExpiresIso || '—';
-          document.getElementById('ops-live-window').textContent = d?.currentSession?.isLiveWindow ? 'Oui' : 'Non';
+          setCurrentSessionBadge(Boolean(d?.currentSession?.isLiveWindow));
+          const hasStream = Boolean(d?.presence?.stream?.hasStream);
+          setStreamBadgeState(hasStream);
+          startStreamCounter(d?.presence?.stream?.medianSecond, hasStream);
+          document.getElementById('ops-stream-max').textContent = formatSecond(d?.presence?.stream?.maxSecond);
+          document.getElementById('ops-stream-playing').textContent = String(d?.presence?.stream?.sessionPlaying || 0);
 
           document.getElementById('ops-pop-inscrit').textContent = String(d?.sessionPopulation?.inscrit || 0);
           document.getElementById('ops-pop-present').textContent = String(d?.sessionPopulation?.present || 0);
           document.getElementById('ops-pop-acheteur').textContent = String(d?.sessionPopulation?.acheteur || 0);
           document.getElementById('ops-pop-nonacheteur').textContent = String(d?.sessionPopulation?.non_acheteur || 0);
+
+          document.getElementById('ops-next-session-date').textContent = formatShortIso(d?.nextSession?.sessionDateIso);
+          document.getElementById('ops-next-expire-date').textContent = formatShortIso(d?.nextSession?.offerExpiresIso);
+          setNextSessionBadge(d?.nextSession || null);
+          document.getElementById('ops-next-inscrit').textContent = String(d?.nextSession?.population?.inscrit || 0);
+          document.getElementById('ops-next-present').textContent = String(d?.nextSession?.population?.present || 0);
+          document.getElementById('ops-next-acheteur').textContent = String(d?.nextSession?.population?.acheteur || 0);
+          document.getElementById('ops-next-nonacheteur').textContent = String(d?.nextSession?.population?.non_acheteur || 0);
+          document.getElementById('ops-next-noshow').textContent = String(d?.nextSession?.population?.no_show || 0);
+          opsHistoryItems = buildHistoryItems(d);
+          renderPastSessions(opsHistoryItems);
 
           document.getElementById('ops-updated').textContent = `MAJ ${new Date().toLocaleTimeString('fr-FR')}`;
         } catch (e) {
@@ -402,6 +646,25 @@ const tabs = [
       if (opsBackupBtn) opsBackupBtn.addEventListener('click', function () { sendOpsControl('switch_backup'); });
       const opsResetBtn = document.getElementById('ops-clear-override');
       if (opsResetBtn) opsResetBtn.addEventListener('click', function () { sendOpsControl('clear_override'); });
+      const opsSearch = document.getElementById('ops-history-search');
+      if (opsSearch) {
+        opsSearch.addEventListener('input', function (e) {
+          opsHistorySearch = normalizeText(e?.target?.value || '');
+          renderPastSessions(opsHistoryItems);
+        });
+      }
+      document.querySelectorAll('.ops-history-filter').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          opsHistoryFilter = btn.getAttribute('data-filter') || 'all';
+          document.querySelectorAll('.ops-history-filter').forEach(function (b) {
+            b.classList.remove('border-blue-500', 'text-blue-200', 'bg-blue-500/10');
+          });
+          btn.classList.add('border-blue-500', 'text-blue-200', 'bg-blue-500/10');
+          renderPastSessions(opsHistoryItems);
+        });
+      });
+      const defaultFilterBtn = document.querySelector('.ops-history-filter[data-filter="all"]');
+      if (defaultFilterBtn) defaultFilterBtn.classList.add('border-blue-500', 'text-blue-200', 'bg-blue-500/10');
 
       requireAuth();
     </script>

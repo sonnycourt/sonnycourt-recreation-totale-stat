@@ -25,6 +25,12 @@ function cleanStage(value) {
   return 'session';
 }
 
+function cleanCurrentSecond(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.floor(n);
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -33,6 +39,8 @@ export default async (req) => {
     const body = await req.json();
     const token = cleanToken(body?.token);
     const stage = cleanStage(body?.stage);
+    const currentSecond = cleanCurrentSecond(body?.currentSecond);
+    const isPlaying = Boolean(body?.isPlaying);
     if (!token) return jsonResponse(400, { error: 'Token manquant' });
 
     const store = getStore(STORE_NAME);
@@ -41,6 +49,8 @@ export default async (req) => {
       token,
       stage,
       ts: Date.now(),
+      currentSecond,
+      isPlaying,
     };
     await store.set(key, JSON.stringify(payload));
     return jsonResponse(200, { ok: true });

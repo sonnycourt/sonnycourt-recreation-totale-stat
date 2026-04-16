@@ -56,6 +56,43 @@ function pickCurrentSession(rows, nowMs) {
   return parsed.sort((a, b) => b.sessionMs - a.sessionMs)[0];
 }
 
+function buildSessionHistory(rows, nowMs) {
+  const grouped = new Map();
+  for (const r of rows) {
+    const sessionMs = new Date(r.session_date).getTime();
+    const offerMs = new Date(r.offre_expires_at).getTime();
+    if (!Number.isFinite(sessionMs) || !Number.isFinite(offerMs)) continue;
+    const key = `${sessionMs}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        sessionMs,
+        offerMs,
+        total: 0,
+        inscrit: 0,
+        present: 0,
+        acheteur: 0,
+        non_acheteur: 0,
+        no_show: 0,
+      });
+    }
+    const bucket = grouped.get(key);
+    bucket.total += 1;
+    if (r.statut === 'inscrit') bucket.inscrit += 1;
+    else if (r.statut === 'present') bucket.present += 1;
+    else if (r.statut === 'acheteur') bucket.acheteur += 1;
+    else if (r.statut === 'non-acheteur') bucket.non_acheteur += 1;
+    else if (r.statut === 'no-show') bucket.no_show += 1;
+  }
+
+  const sessions = Array.from(grouped.values()).sort((a, b) => b.sessionMs - a.sessionMs);
+  const nextUpcoming = sessions
+    .filter((s) => s.sessionMs > nowMs)
+    .sort((a, b) => a.sessionMs - b.sessionMs)[0] || null;
+  const pastSessions = sessions.filter((s) => s.offerMs <= nowMs).slice(0, 12);
+
+  return { nextUpcoming, pastSessions };
+}
+
 async function getPresenceCounts() {
   try {
     const store = getStore(PRESENCE_STORE);
@@ -65,6 +102,8 @@ async function getPresenceCounts() {
     let session = 0;
     let replay = 0;
     let activeTotal = 0;
+    const sessionSeconds = [];
+    let sessionPlaying = 0;
     const now = Date.now();
 
     for (const item of blobs) {
@@ -81,16 +120,46 @@ async function getPresenceCounts() {
       activeTotal += 1;
       if (data.stage === 'waiting') waiting += 1;
       else if (data.stage === 'replay') replay += 1;
-      else session += 1;
+      else {
+        session += 1;
+        if (Number.isFinite(Number(data.currentSecond))) {
+          sessionSeconds.push(Number(data.currentSecond));
+        }
+        if (data.isPlaying) sessionPlaying += 1;
+      }
     }
 
-    return { activeTotal, waiting, session, replay };
+    sessionSeconds.sort((a, b) => a - b);
+    const medianSecond =
+      sessionSeconds.length > 0
+        ? sessionSeconds[Math.floor(sessionSeconds.length / 2)]
+        : null;
+    const maxSecond = sessionSeconds.length > 0 ? sessionSeconds[sessionSeconds.length - 1] : null;
+
+    return {
+      activeTotal,
+      waiting,
+      session,
+      replay,
+      stream: {
+        sessionPlaying,
+        hasStream: sessionPlaying > 0,
+        medianSecond,
+        maxSecond,
+      },
+    };
   } catch (error) {
     return {
       activeTotal: 0,
       waiting: 0,
       session: 0,
       replay: 0,
+      stream: {
+        sessionPlaying: 0,
+        hasStream: false,
+        medianSecond: null,
+        maxSecond: null,
+      },
       error: error?.message || 'presence unavailable',
     };
   }
@@ -111,6 +180,7 @@ export default async (req) => {
     );
     const rows = Array.isArray(registrations.data) ? registrations.data : [];
     const currentSession = pickCurrentSession(rows, nowMs);
+    const sessionHistory = buildSessionHistory(rows, nowMs);
 
     let sessionPopulation = {
       total: 0,
@@ -155,6 +225,33 @@ export default async (req) => {
               nowMs >= currentSession.sessionMs - 15 * 60 * 1000 && nowMs < currentSession.offerMs,
           }
         : null,
+      nextSession: sessionHistory.nextUpcoming
+        ? {
+            sessionDateIso: new Date(sessionHistory.nextUpcoming.sessionMs).toISOString(),
+            offerExpiresIso: new Date(sessionHistory.nextUpcoming.offerMs).toISOString(),
+            population: {
+              total: sessionHistory.nextUpcoming.total,
+              inscrit: sessionHistory.nextUpcoming.inscrit,
+              present: sessionHistory.nextUpcoming.present,
+              acheteur: sessionHistory.nextUpcoming.acheteur,
+              non_acheteur: sessionHistory.nextUpcoming.non_acheteur,
+              no_show: sessionHistory.nextUpcoming.no_show,
+            },
+          }
+        : null,
+      pastSessions: sessionHistory.pastSessions.map((s) => ({
+        sessionDateIso: new Date(s.sessionMs).toISOString(),
+        offerExpiresIso: new Date(s.offerMs).toISOString(),
+        isClosed: true,
+        population: {
+          total: s.total,
+          inscrit: s.inscrit,
+          present: s.present,
+          acheteur: s.acheteur,
+          non_acheteur: s.non_acheteur,
+          no_show: s.no_show,
+        },
+      })),
       sessionPopulation,
       video: {
         activeSource: cfg.activeSource,
