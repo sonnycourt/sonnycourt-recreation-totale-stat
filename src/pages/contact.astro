@@ -401,6 +401,28 @@ import Layout from '../layouts/Layout.astro';
     const submitBtn = form.querySelector('.submit-btn');
     const formMessage = document.getElementById('form-message');
 
+    function isGibberish(text) {
+      if (!text || text.length < 2) return false;
+
+      // 1. Pas de voyelle = charabia
+      const vowelCount = (text.match(/[aeiouyàâäéèêëîïôöùûüAEIOUYÀÂÄÉÈÊËÎÏÔÖÙÛÜ]/g) || []).length;
+      const letterCount = (text.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+      if (letterCount >= 5 && vowelCount / letterCount < 0.2) return true;
+
+      // 2. Alternance majuscules/minuscules chaotique
+      const alternations = (text.match(/[a-z][A-Z]|[A-Z][a-z][A-Z]/g) || []).length;
+      if (text.length >= 8 && alternations >= 3) return true;
+
+      // 3. Message long sans aucun espace
+      if (text.length >= 20 && !text.includes(' ')) return true;
+
+      // 4. Ratio chiffres/lettres suspect
+      const digits = (text.match(/\d/g) || []).length;
+      if (text.length >= 10 && digits / text.length > 0.3) return true;
+
+      return false;
+    }
+
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       submitBtn.disabled = true;
@@ -410,6 +432,18 @@ import Layout from '../layouts/Layout.astro';
       const recaptchaToken = document.querySelector('[name="g-recaptcha-response"]')?.value;
       if (recaptchaToken !== undefined) {
         formData.set('g-recaptcha-response', recaptchaToken);
+      }
+
+      const nom = String(formData.get('nom') || formData.get('name') || '').trim();
+      const message = String(formData.get('message') || '').trim();
+
+      if (isGibberish(nom) || isGibberish(message)) {
+        formMessage.innerHTML = '<div class="form-message-icon">✅</div><div class="form-message-content"><h3>Message envoyé avec succès</h3><p>Merci pour ton message.</p></div>';
+        formMessage.className = 'form-message show';
+        form.reset();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Envoyer le message';
+        return;
       }
 
       try {
