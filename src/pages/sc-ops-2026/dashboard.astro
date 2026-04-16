@@ -140,8 +140,16 @@ const tabs = [
                           <span id="ops-stream-state" class="text-slate-200">—</span>
                         </span>
                       </p>
-                      <p class="text-xs text-slate-400">Position live (médiane): <span id="ops-stream-second" class="text-slate-200">—</span></p>
-                      <p class="text-xs text-slate-400">Position live (max): <span id="ops-stream-max" class="text-slate-200">—</span></p>
+                      <div class="rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+                        <video
+                          id="ops-stream-thumb"
+                          class="w-full max-w-[220px] rounded border border-slate-700 bg-black"
+                          muted
+                          playsinline
+                          preload="metadata"
+                        ></video>
+                        <p class="mt-1 text-xs text-slate-400">Timing vidéo: <span id="ops-stream-second" class="text-slate-200">—</span></p>
+                      </div>
                       <p class="text-xs text-slate-400">Lecteurs en play: <span id="ops-stream-playing" class="text-slate-200">0</span></p>
                       <div class="pt-2 text-xs text-slate-400">
                         <p>Inscrits: <span id="ops-pop-inscrit" class="text-slate-200">0</span></p>
@@ -360,6 +368,7 @@ const tabs = [
       let streamCounterBaseSecond = null;
       let streamCounterBaseAtMs = null;
       let streamCounterIsRunning = false;
+      let streamThumbLoadedUrl = '';
       let opsHistoryFilter = 'all';
       let opsHistorySearch = '';
       let opsHistoryItems = [];
@@ -544,6 +553,35 @@ const tabs = [
         }, 1000);
       }
 
+      function syncStreamThumbnail(url, second, hasStream) {
+        const thumb = document.getElementById('ops-stream-thumb');
+        if (!thumb) return;
+        if (!url) {
+          thumb.pause();
+          streamThumbLoadedUrl = '';
+          return;
+        }
+        if (streamThumbLoadedUrl !== url) {
+          streamThumbLoadedUrl = url;
+          thumb.src = url;
+          thumb.load();
+        }
+        const targetSec = Number.isFinite(Number(second)) ? Math.max(0, Math.floor(Number(second))) : null;
+        if (targetSec != null) {
+          const seekTo = function () {
+            try {
+              thumb.currentTime = targetSec;
+            } catch {
+              /* ignore */
+            }
+          };
+          if (thumb.readyState >= 1) seekTo();
+          else thumb.addEventListener('loadedmetadata', seekTo, { once: true });
+        }
+        if (hasStream) thumb.play().catch(function () {});
+        else thumb.pause();
+      }
+
       async function refreshOpsStatus() {
         if (opsBusy) return;
         const root = document.getElementById('ops-cockpit');
@@ -579,7 +617,7 @@ const tabs = [
           const hasStream = Boolean(d?.presence?.stream?.hasStream);
           setStreamBadgeState(hasStream);
           startStreamCounter(d?.presence?.stream?.medianSecond, hasStream);
-          document.getElementById('ops-stream-max').textContent = formatSecond(d?.presence?.stream?.maxSecond);
+          syncStreamThumbnail(d?.video?.activeUrl || '', d?.presence?.stream?.medianSecond, hasStream);
           document.getElementById('ops-stream-playing').textContent = String(d?.presence?.stream?.sessionPlaying || 0);
 
           document.getElementById('ops-pop-inscrit').textContent = String(d?.sessionPopulation?.inscrit || 0);
