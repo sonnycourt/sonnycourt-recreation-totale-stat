@@ -5,6 +5,7 @@ import {
   clearActiveVideoSourceOverride,
 } from './lib/webinaire-video-config.mjs';
 import { setPlaybackCommand } from './lib/webinaire-live-playback-command.mjs';
+import { setUiTimingConfig } from './lib/webinaire-ui-timing.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -34,6 +35,12 @@ export default async (req) => {
       await setActiveVideoSource('backup');
     } else if (action === 'seek_live_offset') {
       await setPlaybackCommand({ action: 'seek_live_offset' });
+    } else if (action === 'set_ui_timing') {
+      await setUiTimingConfig({
+        ctaAppearSeconds: body?.ctaAppearSeconds,
+        guideShowBeforeMinutes: body?.guideShowBeforeMinutes,
+        guideHideAfterMinutes: body?.guideHideAfterMinutes,
+      });
     } else if (action === 'clear_override') {
       await clearActiveVideoSourceOverride();
     } else {

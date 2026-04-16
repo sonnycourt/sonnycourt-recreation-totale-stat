@@ -1033,10 +1033,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const TOKEN_KEY = 'masterclass_es2_token';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
-        const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
+        const DEFAULT_GUIDE_SHOW_BEFORE_MINUTES = 60;
         const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
         const LATE_DIRECT_CUTOFF_MS = 30 * 60 * 1000; // +30 min après début live = trop tard pour le direct
-        const CTA_APPEAR_SECONDS = 1800; // minute 30
+        const DEFAULT_CTA_APPEAR_SECONDS = 1800; // minute 30
+        const DEFAULT_GUIDE_HIDE_AFTER_MINUTES = 15;
         const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
@@ -1044,6 +1045,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
         const REPLAY_LABEL = 'Lancer la vidéo';
+        let UI_CTA_APPEAR_SECONDS = DEFAULT_CTA_APPEAR_SECONDS;
+        let UI_GUIDE_SHOW_BEFORE_MINUTES = DEFAULT_GUIDE_SHOW_BEFORE_MINUTES;
+        let UI_GUIDE_HIDE_AFTER_MINUTES = DEFAULT_GUIDE_HIDE_AFTER_MINUTES;
         let simulatedNowMs = null;
         let simulatedAnchorRealMs = null;
 
@@ -1062,6 +1066,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
             return m ? decodeURIComponent(m[1]) : '';
         }
+        function applyUiTimingConfig(uiTiming) {
+            if (!uiTiming || typeof uiTiming !== 'object') return;
+            const ctaAppearSeconds = Number(uiTiming.ctaAppearSeconds);
+            const guideShowBeforeMinutes = Number(uiTiming.guideShowBeforeMinutes);
+            const guideHideAfterMinutes = Number(uiTiming.guideHideAfterMinutes);
+            if (Number.isFinite(ctaAppearSeconds) && ctaAppearSeconds >= 0) {
+                UI_CTA_APPEAR_SECONDS = Math.floor(ctaAppearSeconds);
+            }
+            if (Number.isFinite(guideShowBeforeMinutes) && guideShowBeforeMinutes >= 0) {
+                UI_GUIDE_SHOW_BEFORE_MINUTES = Math.floor(guideShowBeforeMinutes);
+            }
+            if (Number.isFinite(guideHideAfterMinutes) && guideHideAfterMinutes >= 0) {
+                UI_GUIDE_HIDE_AFTER_MINUTES = Math.floor(guideHideAfterMinutes);
+            }
+        }
+
         async function fetchActiveVideoSourceConfig() {
             try {
                 const res = await fetch('/.netlify/functions/webinaire-video-config');
@@ -1070,6 +1090,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (data && data.activeUrl) {
                     ACTIVE_VIDEO_SOURCE_URL = String(data.activeUrl);
                 }
+                applyUiTimingConfig(data?.uiTiming);
             } catch {
                 /* ignore */
             }
@@ -1346,7 +1367,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function shouldRun() {
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
-                return elapsedSec >= CTA_APPEAR_SECONDS;
+                return elapsedSec >= UI_CTA_APPEAR_SECONDS;
             }
 
             function hideNow() {
@@ -1642,9 +1663,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function updateCtaStateByTime() {
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
-                if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
+                if (elapsedSec >= UI_CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
-                } else if (elapsedSec < CTA_APPEAR_SECONDS) {
+                } else if (elapsedSec < UI_CTA_APPEAR_SECONDS) {
                     hideOfferZone();
                 }
             }
@@ -1652,8 +1673,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const zone = document.getElementById('diagnostic-guide-zone');
                 if (!zone) return;
                 const now = getNowMs();
-                const showAt = sessionStartMs - GUIDE_RELEASE_LEAD_MS;
-                const hideAt = sessionStartMs + 15 * 60 * 1000;
+                const showAt = sessionStartMs - UI_GUIDE_SHOW_BEFORE_MINUTES * 60 * 1000;
+                const hideAt = sessionStartMs + UI_GUIDE_HIDE_AFTER_MINUTES * 60 * 1000;
                 const shouldShow = now >= showAt && now <= hideAt && !isSessionEnded;
                 zone.classList.toggle('visible', shouldShow);
             }
@@ -1803,6 +1824,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
                     const d = await res.json().catch(function () { return null; });
                     if (!d) return;
+                    applyUiTimingConfig(d?.uiTiming);
+                    updateCtaStateByTime();
+                    updateDiagnosticGuideState();
 
                     // 1) Switch source if ops changed primary/backup.
                     if (d?.activeUrl && String(d.activeUrl) !== lastSeenActiveUrl) {
@@ -1942,7 +1966,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             var elapsed = (nowMs - sessionMs) / 1000;
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
-            if (elapsed < CTA_APPEAR_SECONDS) return 'Live';
+            if (elapsed < UI_CTA_APPEAR_SECONDS) return 'Live';
             if (elapsed < getVideoDurationSeconds()) return 'CTA visible';
             var endMs = sessionMs + getVideoDurationSeconds() * 1000;
             var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
