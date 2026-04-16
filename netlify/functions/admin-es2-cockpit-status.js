@@ -2,7 +2,6 @@ import { getStore } from '@netlify/blobs';
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 import { supabaseGet } from './lib/supabase-rest.mjs';
 import { resolveActiveVideoConfig } from './lib/webinaire-video-config.mjs';
-import { getUiTimingConfig } from './lib/webinaire-ui-timing.mjs';
 
 const PRESENCE_STORE = 'webinaire-live-presence';
 const PRESENCE_PREFIX = 'presence:';
@@ -223,12 +222,11 @@ export default async (req) => {
     }
 
     const cfg = await resolveActiveVideoConfig();
-    const [primaryCheck, backupCheck, activeCheck, presence, uiTiming] = await Promise.all([
+    const [primaryCheck, backupCheck, activeCheck, presence] = await Promise.all([
       headCheck(cfg.sources.primary),
       headCheck(cfg.sources.backup),
       headCheck(cfg.activeUrl),
       getPresenceCounts(),
-      getUiTimingConfig(),
     ]);
 
     return jsonResponse(200, {
@@ -284,7 +282,6 @@ export default async (req) => {
           backup: backupCheck,
         },
       },
-      uiTiming,
       presence,
     });
   } catch (error) {
