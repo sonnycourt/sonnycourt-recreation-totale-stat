@@ -1031,6 +1031,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     <script>
         // @ts-nocheck
+        import { startScarcityEngine } from '../../lib/scarcity-engine';
         const TOKEN_KEY = 'masterclass_es2_token';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
@@ -1320,77 +1321,71 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             };
         }
 
-        function initPurchaseToasts(sessionStartMs) {
+        function initPurchaseToasts(sessionStartMs, options) {
             const toast = document.getElementById('purchase-toast');
             const text = document.getElementById('purchase-toast-text');
             const flagEl = document.getElementById('purchase-toast-flag');
             if (!toast || !text || !flagEl) return { recalc: () => {}, destroy: () => {} };
 
-            const prenoms = [
-                'Sophie', 'Karim', 'Julie', 'Antoine', 'Fatima', 'Romain', 'Léa', 'Mehdi', 'Camille', 'Théo',
-                'Nora', 'Alexandre', 'Chloé', 'Youssef', 'Marine', 'Sarah', 'Lucas', 'Inès', 'Maxime', 'Amina',
-                'Thomas', 'Emma', 'Omar', 'Charlotte', 'Mathis', 'Yasmine', 'Hugo', 'Manon', 'Adam', 'Clara',
-            ];
-            const flags = ['🇫🇷', '🇧🇪', '🇨🇭', '🇨🇦'];
-            let used = [];
+            const setSeatsLeft = typeof options?.setSeatsLeft === 'function' ? options.setSeatsLeft : () => {};
             let hideTimer = null;
-            let nextTimer = null;
+            let engine = null;
 
-            function pickUniqueName() {
-                if (used.length >= prenoms.length) used = [];
-                let idx = 0;
-                do idx = Math.floor(Math.random() * prenoms.length);
-                while (used.includes(idx));
-                used.push(idx);
-                return prenoms[idx];
-            }
+            const isEnded = typeof options?.isEnded === 'function' ? options.isEnded : () => false;
 
             function shouldRun() {
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
-                return elapsedSec >= CTA_APPEAR_SECONDS;
+                return elapsedSec >= CTA_APPEAR_SECONDS && !isEnded();
             }
 
             function hideNow() {
                 toast.classList.remove('show');
-                if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
+                }
             }
 
-            function scheduleNext() {
-                if (nextTimer) clearTimeout(nextTimer);
-                if (!shouldRun()) return;
-                const delay = 45000 + Math.random() * 45000; // 45-90s
-                nextTimer = setTimeout(showOne, delay);
-            }
-
-            function showOne() {
+            function showPurchase(purchase) {
                 if (!shouldRun()) {
                     hideNow();
                     return;
                 }
-                const prenom = pickUniqueName();
-                const flag = flags[Math.floor(Math.random() * flags.length)];
-                flagEl.textContent = flag;
-                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${prenom}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                flagEl.textContent = purchase.flag;
+                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
                 toast.classList.add('show');
                 if (hideTimer) clearTimeout(hideTimer);
                 hideTimer = setTimeout(() => {
                     toast.classList.remove('show');
-                    scheduleNext();
                 }, 4000);
             }
 
-            function recalc() {
-                if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
-                hideNow();
-                if (shouldRun()) showOne();
-                else scheduleNext();
+            function startEngine() {
+                if (engine) engine.stop();
+                const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
+                engine = startScarcityEngine({
+                    now: getNowMs,
+                    isActive: shouldRun,
+                    onSeatsLeft: function (seatsLeft) {
+                        setSeatsLeft(seatsLeft);
+                    },
+                    onNotification: function (purchase) {
+                        showPurchase(purchase);
+                    },
+                    debug,
+                });
             }
 
-            recalc();
+            startEngine();
             return {
-                recalc,
+                recalc: function () {
+                    if (engine && typeof engine.debugSnapshot === 'function') {
+                        setSeatsLeft(engine.debugSnapshot().seatsLeft);
+                    }
+                },
                 destroy: function () {
-                    if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+                    if (engine) engine.stop();
+                    engine = null;
                     hideNow();
                 },
             };
@@ -1440,6 +1435,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const playOverlayLabel = document.getElementById('playOverlayLabel');
             const rewind15Btn = document.getElementById('rewind15Btn');
             const liveJumpBtn = document.getElementById('liveJumpBtn');
+            const scarcityPlacesEl = document.getElementById('scarcity-places');
+            const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
@@ -1470,6 +1467,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let pendingSourceSwitchToLive = false;
             let pendingSourceSwitchRestoreTimeSec = null;
             let hasJoinedSession = false;
+
+            function setScarcitySeats(seatsLeft) {
+                const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
+                if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
+                if (scarcityMeterFillEl) {
+                    const pct = (seats / 30) * 100;
+                    scarcityMeterFillEl.style.width = `${pct}%`;
+                }
+            }
 
             function syncIcons() {
                 const muted = video.muted || video.volume === 0;
@@ -1844,7 +1850,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs);
-            const purchaseToasts = initPurchaseToasts(liveStartMs);
+            const purchaseToasts = initPurchaseToasts(liveStartMs, {
+                setSeatsLeft: setScarcitySeats,
+                isEnded: function () { return isSessionEnded; },
+            });
 
             return {
                 recalcFromSimulatedTime: function () {

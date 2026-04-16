@@ -5714,7 +5714,56 @@ const currentYear = new Date().getFullYear();
                 font-size: 0.68rem;
             }
         }
+
+        .purchase-toast {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 99;
+            max-width: min(92vw, 360px);
+            padding: 11px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            background: rgba(7, 17, 34, 0.95);
+            color: #f1f5f9;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            backdrop-filter: blur(8px);
+            font-family: 'Inter', sans-serif;
+        }
+        .purchase-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .purchase-toast__flag {
+            font-size: 20px;
+            line-height: 1;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .purchase-toast__text {
+            font-size: 13px;
+            line-height: 1.35;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @media (max-width: 640px) {
+            .purchase-toast {
+                right: 12px;
+                left: 12px;
+                bottom: 12px;
+                max-width: none;
+            }
+        }
     </style>
+
+    <div id="purchase-toast" class="purchase-toast" aria-live="polite">
+        <span id="purchase-toast-flag" class="purchase-toast__flag">🇫🇷</span>
+        <div id="purchase-toast-text" class="purchase-toast__text"></div>
+    </div>
 
     <script>
         // Seasonal Badge System
@@ -5968,42 +6017,164 @@ const currentYear = new Date().getFullYear();
         });
 
         // Invitation page uses webinaire token flow (Supabase), not Manifest Blobs.
+        import { startScarcityEngine } from '../lib/scarcity-engine';
         document.addEventListener('DOMContentLoaded', async function () {
             const params = new URLSearchParams(window.location.search);
             const isPreviewDev = params.get('preview') === 'dev';
-            let token = (params.get('t') || '').trim();
-            if (!token) token = (localStorage.getItem('masterclass_es2_token') || '').trim();
-            if (!token && !isPreviewDev) {
-                window.location.href = '/masterclass';
-                return;
+            const TOKEN_KEY = 'masterclass_es2_token';
+            const COOKIE_MAX = 365 * 24 * 60 * 60;
+            const debugScarcity = params.get('scarcity_debug') === '1';
+
+            function setTokenEverywhere(nextToken) {
+                localStorage.setItem(TOKEN_KEY, nextToken);
+                document.cookie = `${TOKEN_KEY}=${encodeURIComponent(nextToken)}; path=/; max-age=${COOKIE_MAX}; SameSite=Lax`;
             }
 
+            function propagateTokenToCheckoutLinks(activeToken) {
+                document.querySelectorAll('a[href*="spiffy.co/checkout"]').forEach(function (a) {
+                    const href = a.getAttribute('href') || '';
+                    a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(activeToken));
+                });
+            }
+
+            function initInvitationScarcity() {
+                const placesEl = document.getElementById('current-places');
+                const meterFill = document.querySelector('.scarcity-meter__fill');
+                const toast = document.getElementById('purchase-toast');
+                const toastText = document.getElementById('purchase-toast-text');
+                const toastFlag = document.getElementById('purchase-toast-flag');
+                if (!placesEl || !toast || !toastText || !toastFlag) return null;
+
+                let hideTimer = null;
+                const engine = startScarcityEngine({
+                    now: () => Date.now(),
+                    isActive: () => true,
+                    debug: debugScarcity,
+                    onSeatsLeft: function (seatsLeft) {
+                        const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
+                        placesEl.textContent = String(seats);
+                        if (meterFill) meterFill.style.width = `${(seats / 30) * 100}%`;
+                    },
+                    onNotification: function (purchase) {
+                        toastFlag.textContent = purchase.flag;
+                        toastText.innerHTML = `<span style="color:#60a5fa;font-weight:900;">${purchase.name}</span> vient de rejoindre<br /><span style="color:#fff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                        toast.classList.add('show');
+                        if (hideTimer) clearTimeout(hideTimer);
+                        hideTimer = setTimeout(function () {
+                            toast.classList.remove('show');
+                        }, 4000);
+                    },
+                });
+                return {
+                    stop() {
+                        if (hideTimer) clearTimeout(hideTimer);
+                        hideTimer = null;
+                        engine.stop();
+                    },
+                };
+            }
+
+            async function requestTokenFromEmail() {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;padding:16px;';
+                overlay.innerHTML = `
+                    <div style="width:100%;max-width:420px;border:1px solid rgba(148,163,184,.25);background:#0f172a;border-radius:16px;padding:18px;color:#e2e8f0;">
+                        <p style="margin:0 0 8px;font-size:20px;font-weight:700;">Accès invitation</p>
+                        <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">Entre l'email utilisé à l'inscription pour retrouver ton accès.</p>
+                        <input id="inv-recovery-email" type="email" placeholder="Ton email" autocomplete="email" style="width:100%;height:44px;border-radius:10px;border:1px solid #334155;background:#020617;color:#e2e8f0;padding:0 12px;outline:none;" />
+                        <button id="inv-recovery-submit" type="button" style="margin-top:10px;width:100%;height:44px;border:none;border-radius:10px;background:#38bdf8;color:#082f49;font-weight:800;cursor:pointer;">Vérifier mon accès</button>
+                        <p id="inv-recovery-error" style="min-height:1.2em;margin:10px 0 0;color:#fca5a5;font-size:13px;"></p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                const input = overlay.querySelector('#inv-recovery-email');
+                const submit = overlay.querySelector('#inv-recovery-submit');
+                const err = overlay.querySelector('#inv-recovery-error');
+
+                async function submitEmail() {
+                    err.textContent = '';
+                    const email = String(input.value || '').trim().toLowerCase();
+                    if (!email || !email.includes('@')) {
+                        err.textContent = 'Merci de saisir un email valide.';
+                        return;
+                    }
+                    submit.disabled = true;
+                    try {
+                        const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email }),
+                        });
+                        const body = await res.json().catch(function () { return {}; });
+                        if (!res.ok) {
+                            err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                            return;
+                        }
+                        if (body.eligible === false && body.reason === 'excluded') {
+                            err.textContent = "Tu n'es pas éligible pour cette invitation.";
+                            return;
+                        }
+                        if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                            overlay.remove();
+                            window.__invitationRecoveredToken = String(body.token);
+                            return;
+                        }
+                        err.textContent = "Aucune inscription trouvée avec cet email.";
+                    } catch {
+                        err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                    } finally {
+                        submit.disabled = false;
+                    }
+                }
+
+                submit.addEventListener('click', submitEmail);
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') submitEmail();
+                });
+
+                // Wait until token is resolved by submitEmail
+                return new Promise(function (resolve) {
+                    const t = setInterval(function () {
+                        if (window.__invitationRecoveredToken) {
+                            const recovered = window.__invitationRecoveredToken;
+                            window.__invitationRecoveredToken = '';
+                            clearInterval(t);
+                            resolve(recovered);
+                        }
+                    }, 120);
+                });
+            }
+
+            let token = (params.get('t') || '').trim();
+            if (!token) token = (localStorage.getItem(TOKEN_KEY) || '').trim();
+
             try {
+                if (!token && !isPreviewDev) {
+                    token = await requestTokenFromEmail();
+                }
+
                 if (!isPreviewDev) {
                     const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
                     if (!res.ok) throw new Error('registration lookup failed');
                     const data = await res.json();
                     if (!data || !data.valid) {
-                        window.location.href = '/masterclass';
-                        return;
+                        token = await requestTokenFromEmail();
+                        const retryRes = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
+                        const retryData = await retryRes.json().catch(function () { return null; });
+                        if (!retryRes.ok || !retryData || !retryData.valid) throw new Error('registration lookup failed');
                     }
                 }
 
                 // Persist token and propagate it to CTA links.
                 if (!token && isPreviewDev) token = 'preview-invitation';
-                localStorage.setItem('masterclass_es2_token', token);
-                document.querySelectorAll('a[href*="spiffy.co/checkout"]').forEach(function (a) {
-                    const href = a.getAttribute('href') || '';
-                    if (href.includes('#pop')) {
-                        a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(token));
-                    } else {
-                        a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(token));
-                    }
-                });
+                setTokenEverywhere(token);
+                propagateTokenToCheckoutLinks(token);
+                initInvitationScarcity();
 
                 // Static visual placeholder for invitation baseline (logic comes next iterations).
                 const placesEl = document.getElementById('current-places');
-                if (placesEl) placesEl.textContent = '30';
+                if (placesEl && !placesEl.textContent) placesEl.textContent = '30';
             } catch (e) {
                 window.location.href = '/masterclass';
             }
@@ -6407,110 +6578,6 @@ const currentYear = new Date().getFullYear();
             syncMirrorScarcity();
             setInterval(syncMirrorScarcity, 1000);
         });
-    </script>
-
-    <!-- Live Viewers Sticker -->
-    <div class="live-viewers-sticker" id="liveViewersSticker">
-        <div class="live-viewers-icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span class="live-pulse-ring"></span>
-        </div>
-        <div class="live-viewers-content">
-            <div class="live-viewers-count-row">
-                <span class="live-viewers-count" id="liveViewersCount">19</span>
-                <span class="live-viewers-label">visiteurs</span>
-            </div>
-            <span class="live-viewers-sublabel">consultent cette page</span>
-        </div>
-    </div>
-
-    <script>
-        (function() {
-            const viewersCountEl = document.getElementById('liveViewersCount');
-            const placesEl = document.getElementById('current-places');
-            
-            if (!viewersCountEl) return;
-
-            // Base range: 7-28, ajusté selon les places restantes
-            function calculateViewersRange() {
-                const places = placesEl ? parseInt(placesEl.textContent) || 27 : 27;
-                
-                // Plus il reste peu de places, plus il y a de viewers (tension)
-                if (places <= 5) {
-                    return { min: 22, max: 28 }; // Très haute tension
-                } else if (places <= 10) {
-                    return { min: 18, max: 26 }; // Haute tension
-                } else if (places <= 15) {
-                    return { min: 14, max: 23 }; // Tension moyenne
-                } else if (places <= 20) {
-                    return { min: 11, max: 20 }; // Tension modérée
-                } else {
-                    return { min: 7, max: 17 }; // Normal
-                }
-            }
-
-            let currentViewers = 0;
-            
-            function initViewers() {
-                const range = calculateViewersRange();
-                currentViewers = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-                viewersCountEl.textContent = currentViewers;
-            }
-
-            function updateViewers() {
-                const range = calculateViewersRange();
-                
-                // Micro-variation: +1, -1, ou 0 (avec tendance à rester dans le range)
-                const variation = Math.random();
-                let change = 0;
-                
-                if (variation < 0.35) {
-                    change = -1;
-                } else if (variation < 0.7) {
-                    change = 1;
-                }
-                // 30% chance de rester stable
-                
-                let newViewers = currentViewers + change;
-                
-                // Garder dans le range
-                if (newViewers < range.min) newViewers = range.min + 1;
-                if (newViewers > range.max) newViewers = range.max - 1;
-                
-                currentViewers = newViewers;
-                viewersCountEl.textContent = currentViewers;
-            }
-
-            // Initialiser après un petit délai
-            setTimeout(() => {
-                initViewers();
-                
-                // Micro-variations toutes les 4-8 secondes
-                setInterval(() => {
-                    updateViewers();
-                }, 4000 + Math.random() * 4000);
-                
-            }, 2500);
-
-            // Observer les changements du compteur de places
-            if (placesEl) {
-                const placesObserver = new MutationObserver(() => {
-                    // Recalculer le range quand les places changent
-                    const range = calculateViewersRange();
-                    if (currentViewers < range.min) {
-                        currentViewers = range.min + Math.floor(Math.random() * 3);
-                        viewersCountEl.textContent = currentViewers;
-                    }
-                });
-                
-                placesObserver.observe(placesEl, { childList: true, characterData: true, subtree: true });
-            }
-        })();
     </script>
 
     <!-- Banner promo injecté uniquement si ?preview=promo dans l'URL -->
