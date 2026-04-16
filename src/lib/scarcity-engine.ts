@@ -171,13 +171,14 @@ export function startScarcityEngine(options: EngineOptions = {}) {
 
   function emitReplay(nowMs: number) {
     const pool = getAlreadySoldPool(nowMs);
-    if (!pool.length) return;
+    if (!pool.length) return false;
     const candidates = pool.filter((p) => p.name !== lastReplayName);
     const src = candidates.length ? candidates : pool;
     const picked = src[Math.floor(Math.random() * src.length)];
-    if (!picked) return;
+    if (!picked) return false;
     lastReplayName = picked.name;
     onNotification(picked, 'replay');
+    return true;
   }
 
   function tick() {
@@ -211,10 +212,17 @@ export function startScarcityEngine(options: EngineOptions = {}) {
       return;
     }
 
+    // Before the first timeline purchase, the sold pool is empty:
+    // keep intentional silence (no replay notification).
+    if (soldCount <= 0) {
+      nextReplayAt = 0;
+      return;
+    }
+
     if (!nextReplayAt) scheduleReplay(nowMs);
     if (nowMs >= nextReplayAt) {
-      emitReplay(nowMs);
-      log('replay emit', `sold=${soldCount}`, `seats=${seatsLeft}`);
+      const emitted = emitReplay(nowMs);
+      if (emitted) log('replay emit', `sold=${soldCount}`, `seats=${seatsLeft}`);
       scheduleReplay(nowMs);
     }
   }
