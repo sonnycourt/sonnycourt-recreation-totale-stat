@@ -399,6 +399,60 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             width: 84px;
             accent-color: var(--primary);
         }
+        .rotate-hint {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+        }
+        .rotate-hint__inner {
+            max-width: 420px;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(6, 12, 24, 0.72);
+            padding: 14px 16px;
+            text-align: center;
+            color: #dbeafe;
+            font-weight: 700;
+            font-size: 13px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+        }
+        /* Sur mobile/iPad: recommandation en portrait uniquement */
+        @media (orientation: portrait) and (max-width: 1023px) {
+            .rotate-hint {
+                display: flex;
+            }
+        }
+
+        .fullscreen-floating {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 18;
+            display: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .fullscreen-floating svg { width: 18px; height: 18px; }
+        /* Desktop uniquement */
+        @media (min-width: 1024px) {
+            .fullscreen-floating {
+                display: inline-flex;
+            }
+        }
         /* ── Heart Column ── */
         .player-row {
             display: flex;
@@ -873,6 +927,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         <div class="video-shell">
             <div class="video-container" id="video-container">
                 <video id="masterclass-video" preload="metadata" playsinline controlslist="nodownload noremoteplayback nofullscreen" oncontextmenu="return false;"></video>
+                <div id="rotate-hint" class="rotate-hint" aria-hidden="true">
+                    <div class="rotate-hint__inner">Passe ton appareil en mode paysage</div>
+                </div>
+                <button class="fullscreen-floating" id="fullscreenBtnDesktop" aria-label="Plein écran" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                </button>
                 <div id="video-waiting" class="video-waiting">
                     <p class="waiting-title">Début de la diffusion jeudi — à 20h (Paris)</p>
                 </div>
@@ -883,6 +948,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 </div>
                 <div class="video-controls" id="videoControls">
                     <div class="controls-group">
+                        <button class="control-btn" id="rewind15Btn" aria-label="Reculer de 15 secondes" style="width:auto;padding:0 12px;font-size:12px;font-weight:800;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;margin-right:6px;">
+                                <polyline points="11 19 3 12 11 5"></polyline>
+                                <path d="M21 12H3"></path>
+                            </svg>
+                            <span style="white-space:nowrap;">15s</span>
+                        </button>
+                    </div>
+                    <div class="controls-group">
                         <button class="control-btn" id="muteBtn" aria-label="Activer / couper le son">
                             <svg id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
                             <svg id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
@@ -890,15 +964,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         <input id="volumeRange" class="volume-range" type="range" min="0" max="100" value="100">
                     </div>
                     <div class="controls-group">
-                        <button class="control-btn" id="fullscreenBtn" aria-label="Plein écran">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-                        </button>
-                    </div>
-                    <div class="controls-group">
-                        <button class="control-btn" id="rewind15Btn" aria-label="Reculer de 15 secondes" style="font-size:12px;font-weight:700;">-15s</button>
-                    </div>
-                    <div class="controls-group">
-                        <button class="control-btn hidden" id="liveJumpBtn" aria-label="Revenir au live" style="font-size:12px;font-weight:800;background:rgba(245,158,11,0.18);border-color:rgba(245,158,11,0.55);">LIVE</button>
+                        <button class="control-btn hidden" id="liveJumpBtn" aria-label="Revenir au live" style="font-size:12px;font-weight:900;background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.55);">LIVE</button>
                     </div>
                 </div>
             </div>
@@ -1344,7 +1410,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const playBtn = document.getElementById('playButton');
             const muteBtn = document.getElementById('muteBtn');
             const volRange = document.getElementById('volumeRange');
-            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const fullscreenBtn = document.getElementById('fullscreenBtnDesktop');
             const preLive = document.getElementById('pre-live-countdown');
             const endedNote = document.getElementById('session-ended-note');
             const volumeIcon = document.getElementById('icon-volume');
@@ -1609,13 +1675,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 video.muted = video.volume === 0;
                 syncIcons();
             });
-            fullscreenBtn.addEventListener('click', function () {
-                if (!document.fullscreenElement && videoContainer.requestFullscreen) {
-                    videoContainer.requestFullscreen().catch(() => {});
-                } else if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                }
-            });
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', function () {
+                    if (!document.fullscreenElement && videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen().catch(() => {});
+                    } else if (document.fullscreenElement && document.exitFullscreen) {
+                        document.exitFullscreen().catch(() => {});
+                    }
+                });
+            }
 
             if (rewind15Btn) {
                 rewind15Btn.addEventListener('click', function () {
