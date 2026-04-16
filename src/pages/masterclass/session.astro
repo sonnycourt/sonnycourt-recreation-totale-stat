@@ -453,6 +453,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 display: inline-flex;
             }
         }
+        .fullscreen-floating.hidden {
+            display: none !important;
+        }
         /* ── Heart Column ── */
         .player-row {
             display: flex;
@@ -930,7 +933,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 <div id="rotate-hint" class="rotate-hint" aria-hidden="true">
                     <div class="rotate-hint__inner">Passe ton appareil en mode paysage</div>
                 </div>
-                <button class="fullscreen-floating" id="fullscreenBtnDesktop" aria-label="Plein écran" type="button">
+                <button class="fullscreen-floating hidden" id="fullscreenBtnDesktop" aria-label="Plein écran" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 3 21 3 21 9"></polyline>
                         <polyline points="9 21 3 21 3 15"></polyline>
@@ -946,7 +949,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         <span id="playOverlayLabel" class="play-button__label">On clique pour rejoindre la diffusion en cours</span>
                     </button>
                 </div>
-                <div class="video-controls" id="videoControls">
+                <div class="video-controls hidden" id="videoControls">
                     <div class="controls-group">
                         <button class="control-btn" id="rewind15Btn" aria-label="Reculer de 15 secondes" style="width:auto;padding:0 12px;font-size:12px;font-weight:800;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;margin-right:6px;">
@@ -1405,6 +1408,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             const video = document.getElementById('masterclass-video');
             const videoContainer = document.getElementById('video-container');
+            const videoControls = document.getElementById('videoControls');
             const waiting = document.getElementById('video-waiting');
             const playOverlay = document.getElementById('playOverlay');
             const playBtn = document.getElementById('playButton');
@@ -1447,6 +1451,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let pendingSourceSwitch = false;
             let pendingSourceSwitchToLive = false;
             let pendingSourceSwitchRestoreTimeSec = null;
+            let hasJoinedSession = false;
 
             function syncIcons() {
                 const muted = video.muted || video.volume === 0;
@@ -1478,7 +1483,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function updateLiveJumpUi() {
                 if (!rewind15Btn || !liveJumpBtn) return;
-                if (isSessionEnded || getNowMs() < liveStartMs) {
+                if (!hasJoinedSession || isSessionEnded || getNowMs() < liveStartMs) {
                     liveJumpBtn.classList.add('hidden');
                     rewind15Btn.classList.add('hidden');
                     return;
@@ -1490,8 +1495,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
 
                 // On limite le recule total pour rester cohérent avec les fenêtres/CTA basés sur le timing live.
-                const canRewind = diff > 0 && diff < MAX_BEHIND_LIVE_SECONDS;
+                const canRewind = cur >= 15 && diff > 0 && diff < MAX_BEHIND_LIVE_SECONDS;
                 rewind15Btn.classList.toggle('hidden', !canRewind);
+            }
+
+            function setJoinedControlsVisible(visible) {
+                if (!videoControls || !fullscreenBtn) return;
+                videoControls.classList.toggle('hidden', !visible);
+                fullscreenBtn.classList.toggle('hidden', !visible);
             }
 
             function applySimulatedLiveOffset(opts) {
@@ -1660,10 +1671,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             video.addEventListener('volumechange', syncIcons);
             playBtn.addEventListener('click', function () {
                 if (isSessionEnded) return;
+                hasJoinedSession = true;
+                setJoinedControlsVisible(true);
                 if (video.readyState >= 1) applySimulatedLiveOffset();
                 if (waiting) waiting.classList.add('is-hidden');
                 video.play().catch(() => {});
                 playOverlay.classList.add('hidden');
+                updateLiveJumpUi();
             });
             muteBtn.addEventListener('click', function () {
                 video.muted = !video.muted;
@@ -1687,7 +1701,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             if (rewind15Btn) {
                 rewind15Btn.addEventListener('click', function () {
-                    if (isSessionEnded) return;
+                    if (!hasJoinedSession || isSessionEnded) return;
                     const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
                     const liveOffset = getLiveOffsetSeconds();
                     const minAllowed = Math.max(0, liveOffset - MAX_BEHIND_LIVE_SECONDS);
@@ -1703,7 +1717,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
             if (liveJumpBtn) {
                 liveJumpBtn.addEventListener('click', function () {
-                    if (isSessionEnded) return;
+                    if (!hasJoinedSession || isSessionEnded) return;
                     applySimulatedLiveOffset({ force: true });
                     updateLiveJumpUi();
                 });
@@ -1722,6 +1736,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             video.src = ACTIVE_VIDEO_SOURCE_URL;
             syncIcons();
             updatePlayOverlayLabel();
+            setJoinedControlsVisible(false);
             video.addEventListener('loadedmetadata', function () {
                 if (Number.isFinite(video.duration) && video.duration > 0) {
                     ACTIVE_VIDEO_DURATION_SECONDS = Math.ceil(video.duration);
