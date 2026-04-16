@@ -176,6 +176,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     : 'Tu peux accéder au replay maintenant.';
             }
             show('screen-access');
+            sendPresencePing(token, 'replay');
+        }
+        async function sendPresencePing(token, stage) {
+            if (!token) return;
+            try {
+                await fetch('/.netlify/functions/webinaire-presence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, stage }),
+                });
+            } catch {
+                /* ignore */
+            }
         }
         function decideFromPayload(payload, token) {
             const now = Date.now();

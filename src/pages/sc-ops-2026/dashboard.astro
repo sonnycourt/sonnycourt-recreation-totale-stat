@@ -72,7 +72,78 @@ const tabs = [
               data-panel={t.id}
               role="tabpanel"
             >
-              <p class="text-slate-500 text-sm">À venir</p>
+              {t.id === 'ops' ? (
+                <div class="space-y-4" id="ops-cockpit">
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Cockpit live</p>
+                        <h3 class="text-sm font-semibold text-white">Surveillance diffusion ES2</h3>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button id="ops-refresh" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-500">Actualiser</button>
+                        <span id="ops-updated" class="text-xs text-slate-500">—</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">En attente (live)</p>
+                      <p id="ops-waiting" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">En session (live)</p>
+                      <p id="ops-session" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">En replay (live)</p>
+                      <p id="ops-replay" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Actifs totaux</p>
+                      <p id="ops-total" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 xl:grid-cols-2">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+                      <p class="text-xs uppercase tracking-wider text-slate-500">Santé vidéo</p>
+                      <p class="text-xs text-slate-400">Source active: <span id="ops-source" class="font-semibold text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400 break-all">URL active: <span id="ops-url" class="text-slate-300">—</span></p>
+                      <div class="space-y-1 text-xs text-slate-400">
+                        <p>Check active: <span id="ops-check-active">—</span></p>
+                        <p>Check primary: <span id="ops-check-primary">—</span></p>
+                        <p>Check backup: <span id="ops-check-backup">—</span></p>
+                      </div>
+                      <div class="flex flex-wrap gap-2 pt-1">
+                        <button id="ops-switch-primary" type="button" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500">Passer en Primary</button>
+                        <button id="ops-switch-backup" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-500">Passer en Backup</button>
+                        <button id="ops-clear-override" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500">Reset</button>
+                      </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
+                      <p class="text-xs uppercase tracking-wider text-slate-500">Session courante</p>
+                      <p class="text-xs text-slate-400">Heure UTC: <span id="ops-now-utc" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Heure Paris: <span id="ops-now-paris" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Session: <span id="ops-session-date" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Expire: <span id="ops-expire-date" class="text-slate-200">—</span></p>
+                      <p class="text-xs text-slate-400">Fenêtre live: <span id="ops-live-window" class="text-slate-200">—</span></p>
+                      <div class="pt-2 text-xs text-slate-400">
+                        <p>Inscrits: <span id="ops-pop-inscrit" class="text-slate-200">0</span></p>
+                        <p>Présents: <span id="ops-pop-present" class="text-slate-200">0</span></p>
+                        <p>Acheteurs: <span id="ops-pop-acheteur" class="text-slate-200">0</span></p>
+                        <p>Non-acheteurs: <span id="ops-pop-nonacheteur" class="text-slate-200">0</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p id="ops-error" class="hidden text-xs text-red-400"></p>
+                </div>
+              ) : (
+                <p class="text-slate-500 text-sm">À venir</p>
+              )}
             </section>
           ))}
         </main>
@@ -228,8 +299,109 @@ const tabs = [
           });
           const idx = tabIds.indexOf(id);
           if (idx >= 0) titleEl.textContent = tabLabels[idx];
+          if (id === 'ops') startOpsPolling();
         });
       });
+
+      let opsPollingTimer = null;
+      let opsBusy = false;
+
+      function statusText(check) {
+        if (!check) return '—';
+        if (check.ok) return `OK (${check.status || '200'})`;
+        if (check.status) return `KO (${check.status})`;
+        return `KO (${check.error || 'error'})`;
+      }
+
+      async function refreshOpsStatus() {
+        if (opsBusy) return;
+        const root = document.getElementById('ops-cockpit');
+        if (!root) return;
+        if (root.closest('.hidden')) return;
+        opsBusy = true;
+        const errEl = document.getElementById('ops-error');
+        if (errEl) {
+          errEl.classList.add('hidden');
+          errEl.textContent = '';
+        }
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-cockpit-status', { credentials: 'same-origin' });
+          const d = await r.json().catch(function () { return {}; });
+          if (!r.ok) throw new Error(d.error || 'Erreur cockpit');
+
+          document.getElementById('ops-waiting').textContent = String(d?.presence?.waiting || 0);
+          document.getElementById('ops-session').textContent = String(d?.presence?.session || 0);
+          document.getElementById('ops-replay').textContent = String(d?.presence?.replay || 0);
+          document.getElementById('ops-total').textContent = String(d?.presence?.activeTotal || 0);
+
+          document.getElementById('ops-source').textContent = d?.video?.activeSource || '—';
+          document.getElementById('ops-url').textContent = d?.video?.activeUrl || '—';
+          document.getElementById('ops-check-active').textContent = statusText(d?.video?.checks?.active);
+          document.getElementById('ops-check-primary').textContent = statusText(d?.video?.checks?.primary);
+          document.getElementById('ops-check-backup').textContent = statusText(d?.video?.checks?.backup);
+
+          document.getElementById('ops-now-utc').textContent = d?.now?.utcIso || '—';
+          document.getElementById('ops-now-paris').textContent = d?.now?.parisIso || '—';
+          document.getElementById('ops-session-date').textContent = d?.currentSession?.sessionDateIso || '—';
+          document.getElementById('ops-expire-date').textContent = d?.currentSession?.offerExpiresIso || '—';
+          document.getElementById('ops-live-window').textContent = d?.currentSession?.isLiveWindow ? 'Oui' : 'Non';
+
+          document.getElementById('ops-pop-inscrit').textContent = String(d?.sessionPopulation?.inscrit || 0);
+          document.getElementById('ops-pop-present').textContent = String(d?.sessionPopulation?.present || 0);
+          document.getElementById('ops-pop-acheteur').textContent = String(d?.sessionPopulation?.acheteur || 0);
+          document.getElementById('ops-pop-nonacheteur').textContent = String(d?.sessionPopulation?.non_acheteur || 0);
+
+          document.getElementById('ops-updated').textContent = `MAJ ${new Date().toLocaleTimeString('fr-FR')}`;
+        } catch (e) {
+          if (errEl) {
+            errEl.textContent = e?.message || 'Erreur cockpit';
+            errEl.classList.remove('hidden');
+          }
+        } finally {
+          opsBusy = false;
+        }
+      }
+
+      function startOpsPolling() {
+        if (opsPollingTimer) return;
+        refreshOpsStatus();
+        opsPollingTimer = setInterval(refreshOpsStatus, 7000);
+      }
+
+      async function sendOpsControl(action) {
+        const errEl = document.getElementById('ops-error');
+        if (errEl) {
+          errEl.classList.add('hidden');
+          errEl.textContent = '';
+        }
+        try {
+          const r = await fetch('/.netlify/functions/admin-es2-cockpit-control', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action }),
+          });
+          const d = await r.json().catch(function () { return {}; });
+          if (!r.ok) throw new Error(d.error || 'Action impossible');
+          await refreshOpsStatus();
+        } catch (e) {
+          if (errEl) {
+            errEl.textContent = e?.message || 'Erreur action';
+            errEl.classList.remove('hidden');
+          }
+        }
+      }
+
+      const opsRefreshBtn = document.getElementById('ops-refresh');
+      if (opsRefreshBtn) {
+        opsRefreshBtn.addEventListener('click', refreshOpsStatus);
+      }
+      const opsPrimaryBtn = document.getElementById('ops-switch-primary');
+      if (opsPrimaryBtn) opsPrimaryBtn.addEventListener('click', function () { sendOpsControl('switch_primary'); });
+      const opsBackupBtn = document.getElementById('ops-switch-backup');
+      if (opsBackupBtn) opsBackupBtn.addEventListener('click', function () { sendOpsControl('switch_backup'); });
+      const opsResetBtn = document.getElementById('ops-clear-override');
+      if (opsResetBtn) opsResetBtn.addEventListener('click', function () { sendOpsControl('clear_override'); });
 
       requireAuth();
     </script>

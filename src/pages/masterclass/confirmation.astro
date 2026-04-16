@@ -1038,6 +1038,23 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             localStorage.removeItem('webinaire_es2_token');
             document.cookie = 'webinaire_es2_token=; path=/; max-age=0; SameSite=Lax';
 
+            async function pingWaiting() {
+                try {
+                    await fetch('/.netlify/functions/webinaire-presence', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: tk, stage: 'waiting' }),
+                    });
+                } catch {
+                    /* ignore */
+                }
+            }
+            pingWaiting();
+            const waitingInterval = setInterval(pingWaiting, 20000);
+            window.addEventListener('beforeunload', function () {
+                clearInterval(waitingInterval);
+            });
+
             mountConfirmation(
                 {
                     sessionStartsAt: data.sessionStartsAt,

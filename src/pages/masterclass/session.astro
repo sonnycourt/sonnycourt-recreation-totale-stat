@@ -957,7 +957,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const CTA_APPEAR_SECONDS = 1800; // minute 30
         const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
-        const VIDEO_SOURCE_URL = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
+        const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
+        let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
         const REPLAY_LABEL = 'Lancer la vidéo';
@@ -978,6 +979,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const esc = name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
             const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
             return m ? decodeURIComponent(m[1]) : '';
+        }
+        async function fetchActiveVideoSourceConfig() {
+            try {
+                const res = await fetch('/.netlify/functions/webinaire-video-config');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.activeUrl) {
+                    ACTIVE_VIDEO_SOURCE_URL = String(data.activeUrl);
+                }
+            } catch {
+                /* ignore */
+            }
         }
         function setTokenEverywhere(token) {
             localStorage.setItem(TOKEN_KEY, token);
@@ -1091,6 +1104,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             document.getElementById(ids.hours).textContent = pad(Math.floor((total % 86400) / 3600));
             document.getElementById(ids.minutes).textContent = pad(Math.floor((total % 3600) / 60));
             document.getElementById(ids.seconds).textContent = pad(total % 60);
+        }
+        async function sendPresencePing(token, stage) {
+            if (!token) return;
+            try {
+                await fetch('/.netlify/functions/webinaire-presence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, stage }),
+                });
+            } catch {
+                /* ignore */
+            }
         }
         /* ── Heart Column ── */
         const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
@@ -1330,6 +1355,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let maxWatched = 0;
             let liveStarted = false;
             let launchInterval = null;
+            let presenceInterval = null;
             let isLiveJoin = false;
             let isSessionEnded = false;
             let hasAppliedLiveOffset = false;
@@ -1415,6 +1441,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
                 if (now < liveStartMs) {
+                    sendPresencePing(reg.token, 'waiting');
                     liveStarted = false;
                     isSessionEnded = false;
                     hasAppliedLiveOffset = false;
@@ -1450,6 +1477,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 activateLiveJoinState();
                 updateCtaStateByTime();
                 updateDiagnosticGuideState();
+                sendPresencePing(reg.token, 'session');
             }
 
             function updateCtaStateByTime() {
@@ -1531,7 +1559,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             updateDiagnosticGuideState();
             tick();
             disableNativeSeekAndFastForward();
-            video.src = VIDEO_SOURCE_URL;
+            video.src = ACTIVE_VIDEO_SOURCE_URL;
             syncIcons();
             updatePlayOverlayLabel();
             video.addEventListener('loadedmetadata', function () {
@@ -1545,9 +1573,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             refreshPreLiveCountdown();
             launchInterval = setInterval(refreshPreLiveCountdown, 1000);
+            presenceInterval = setInterval(function () {
+                const now = getNowMs();
+                const stage = now < liveStartMs ? 'waiting' : 'session';
+                sendPresencePing(reg.token, stage);
+            }, 20000);
             const beforeUnloadHandler = function () {
                 if (launchInterval) clearInterval(launchInterval);
                 if (offerInterval) clearInterval(offerInterval);
+                if (presenceInterval) clearInterval(presenceInterval);
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
@@ -1570,6 +1604,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 destroy: function () {
                     if (launchInterval) clearInterval(launchInterval);
                     if (offerInterval) clearInterval(offerInterval);
+                    if (presenceInterval) clearInterval(presenceInterval);
                     hearts.destroy();
                     purchaseToasts.destroy();
                     window.removeEventListener('beforeunload', beforeUnloadHandler);
@@ -1820,6 +1855,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 return;
             }
 
+            await fetchActiveVideoSourceConfig();
             setupRecoveryForm();
 
             let token = (params.get('t') || '').trim();
