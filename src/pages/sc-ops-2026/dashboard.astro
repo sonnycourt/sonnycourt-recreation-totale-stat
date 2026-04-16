@@ -396,6 +396,21 @@ const tabs = [
         return dt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
       }
 
+      function formatHistoryLabel(value) {
+        if (!value) return '—';
+        const dt = new Date(value);
+        if (!Number.isFinite(dt.getTime())) return '—';
+        return dt.toLocaleString('fr-FR', {
+          timeZone: 'Europe/Paris',
+          weekday: 'long',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
       function buildHistoryItems(d) {
         const out = [];
         if (d?.nextSession?.sessionDateIso) {
@@ -474,7 +489,7 @@ const tabs = [
                 : 'border-slate-700 bg-slate-900 text-slate-300';
           row.innerHTML = `
             <div class="flex items-center justify-between gap-2">
-              <p class="text-slate-200">${formatShortIso(item.sessionDateIso)}</p>
+              <p class="text-slate-200">${formatHistoryLabel(item.sessionDateIso)}</p>
               <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${stateClass}">${stateLabel}</span>
             </div>
             <p class="text-[11px] text-slate-500">Expire: ${formatShortIso(item.offerExpiresIso)}</p>
