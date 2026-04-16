@@ -531,21 +531,33 @@ const tabs = [
         label.className = 'inline-flex items-center rounded-full border border-blue-500/50 bg-blue-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-blue-200';
       }
 
-      function setStreamBadgeState(isRunning) {
+      function setStreamBadgeState(isRunning, mode) {
         const badge = document.getElementById('ops-stream-state-badge');
         const dot = document.getElementById('ops-stream-dot');
         const stateText = document.getElementById('ops-stream-state');
         if (!badge || !dot || !stateText) return;
+        const streamMode = String(mode || 'none');
         if (isRunning) {
-          badge.classList.remove('border-slate-700', 'text-slate-300');
-          badge.classList.add('border-emerald-500/50', 'text-emerald-200');
-          dot.classList.remove('bg-slate-500', 'bg-red-500');
-          dot.classList.add('bg-emerald-400', 'animate-pulse');
-          stateText.textContent = 'Oui';
+          badge.classList.remove('border-slate-700', 'text-slate-300', 'border-red-500/50', 'text-red-200', 'border-amber-500/50', 'text-amber-200', 'border-sky-500/50', 'text-sky-200');
+          dot.classList.remove('bg-slate-500', 'bg-red-500', 'bg-amber-400', 'bg-sky-400');
+          dot.classList.add('animate-pulse');
+          if (streamMode === 'test') {
+            badge.classList.add('border-amber-500/50', 'text-amber-200');
+            dot.classList.add('bg-amber-400');
+            stateText.textContent = 'Oui (test)';
+          } else if (streamMode === 'mixed') {
+            badge.classList.add('border-sky-500/50', 'text-sky-200');
+            dot.classList.add('bg-sky-400');
+            stateText.textContent = 'Oui (mixte)';
+          } else {
+            badge.classList.add('border-emerald-500/50', 'text-emerald-200');
+            dot.classList.add('bg-emerald-400');
+            stateText.textContent = 'Oui (réelle)';
+          }
         } else {
-          badge.classList.remove('border-emerald-500/50', 'text-emerald-200');
+          badge.classList.remove('border-emerald-500/50', 'text-emerald-200', 'border-amber-500/50', 'text-amber-200', 'border-sky-500/50', 'text-sky-200');
           badge.classList.add('border-red-500/50', 'text-red-200');
-          dot.classList.remove('bg-slate-500', 'bg-emerald-400', 'animate-pulse');
+          dot.classList.remove('bg-slate-500', 'bg-emerald-400', 'bg-amber-400', 'bg-sky-400', 'animate-pulse');
           dot.classList.add('bg-red-500');
           stateText.textContent = 'Non';
         }
@@ -630,7 +642,7 @@ const tabs = [
           document.getElementById('ops-expire-date').textContent = d?.currentSession?.offerExpiresIso || '—';
           setCurrentSessionBadge(Boolean(d?.currentSession?.isLiveWindow));
           const hasStream = Boolean(d?.presence?.stream?.hasStream);
-          setStreamBadgeState(hasStream);
+          setStreamBadgeState(hasStream, d?.presence?.stream?.mode);
           startStreamCounter(d?.presence?.stream?.medianSecond, hasStream);
           syncStreamThumbnail(d?.video?.activeUrl || '', d?.presence?.stream?.medianSecond, hasStream);
           document.getElementById('ops-stream-playing').textContent = String(d?.presence?.stream?.sessionPlaying || 0);

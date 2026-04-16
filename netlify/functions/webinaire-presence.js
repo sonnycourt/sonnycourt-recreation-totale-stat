@@ -31,6 +31,12 @@ function cleanCurrentSecond(value) {
   return Math.floor(n);
 }
 
+function cleanMode(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'test') return 'test';
+  return 'real';
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -41,6 +47,7 @@ export default async (req) => {
     const stage = cleanStage(body?.stage);
     const currentSecond = cleanCurrentSecond(body?.currentSecond);
     const isPlaying = Boolean(body?.isPlaying);
+    const mode = cleanMode(body?.mode);
     if (!token) return jsonResponse(400, { error: 'Token manquant' });
 
     const store = getStore(STORE_NAME);
@@ -51,6 +58,7 @@ export default async (req) => {
       ts: Date.now(),
       currentSecond,
       isPlaying,
+      mode,
     };
     await store.set(key, JSON.stringify(payload));
     return jsonResponse(200, { ok: true });

@@ -104,6 +104,8 @@ async function getPresenceCounts() {
     let activeTotal = 0;
     const sessionSeconds = [];
     let sessionPlaying = 0;
+    let sessionPlayingReal = 0;
+    let sessionPlayingTest = 0;
     const now = Date.now();
 
     for (const item of blobs) {
@@ -125,7 +127,11 @@ async function getPresenceCounts() {
         if (Number.isFinite(Number(data.currentSecond))) {
           sessionSeconds.push(Number(data.currentSecond));
         }
-        if (data.isPlaying) sessionPlaying += 1;
+        if (data.isPlaying) {
+          sessionPlaying += 1;
+          if (String(data.mode || 'real') === 'test') sessionPlayingTest += 1;
+          else sessionPlayingReal += 1;
+        }
       }
     }
 
@@ -135,6 +141,12 @@ async function getPresenceCounts() {
         ? sessionSeconds[Math.floor(sessionSeconds.length / 2)]
         : null;
     const maxSecond = sessionSeconds.length > 0 ? sessionSeconds[sessionSeconds.length - 1] : null;
+    let mode = 'none';
+    if (sessionPlaying > 0) {
+      if (sessionPlayingReal > 0 && sessionPlayingTest > 0) mode = 'mixed';
+      else if (sessionPlayingTest > 0) mode = 'test';
+      else mode = 'real';
+    }
 
     return {
       activeTotal,
@@ -143,7 +155,10 @@ async function getPresenceCounts() {
       replay,
       stream: {
         sessionPlaying,
+        sessionPlayingReal,
+        sessionPlayingTest,
         hasStream: sessionPlaying > 0,
+        mode,
         medianSecond,
         maxSecond,
       },
@@ -156,7 +171,10 @@ async function getPresenceCounts() {
       replay: 0,
       stream: {
         sessionPlaying: 0,
+        sessionPlayingReal: 0,
+        sessionPlayingTest: 0,
         hasStream: false,
+        mode: 'none',
         medianSecond: null,
         maxSecond: null,
       },
