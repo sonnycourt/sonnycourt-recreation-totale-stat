@@ -1355,6 +1355,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
+            const MAX_BEHIND_LIVE_SECONDS = 3 * 60; // on évite des incohérences UI si l'utilisateur recule trop
 
             function formatSessionParisLabel(ms) {
                 return new Intl.DateTimeFormat('fr-FR', {
@@ -1421,7 +1422,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const diff = liveOffset - cur;
                 const shouldShowLive = diff > 4;
                 liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
-                rewind15Btn.classList.remove('hidden');
+
+                // On limite le recule total pour rester cohérent avec les fenêtres/CTA basés sur le timing live.
+                const canRewind = diff > 0 && diff < MAX_BEHIND_LIVE_SECONDS;
+                rewind15Btn.classList.toggle('hidden', !canRewind);
             }
 
             function applySimulatedLiveOffset(opts) {
@@ -1616,7 +1620,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             if (rewind15Btn) {
                 rewind15Btn.addEventListener('click', function () {
                     if (isSessionEnded) return;
-                    const target = Math.max(0, Number.isFinite(video.currentTime) ? video.currentTime - 15 : 0);
+                    const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                    const liveOffset = getLiveOffsetSeconds();
+                    const minAllowed = Math.max(0, liveOffset - MAX_BEHIND_LIVE_SECONDS);
+                    const target = Math.max(minAllowed, cur - 15);
                     liveSeekInProgress = true;
                     video.currentTime = target;
                     video.play().catch(() => {});
