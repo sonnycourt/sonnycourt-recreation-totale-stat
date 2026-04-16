@@ -894,6 +894,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
                         </button>
                     </div>
+                    <div class="controls-group">
+                        <button class="control-btn" id="rewind15Btn" aria-label="Reculer de 15 secondes" style="font-size:12px;font-weight:700;">-15s</button>
+                    </div>
+                    <div class="controls-group">
+                        <button class="control-btn hidden" id="liveJumpBtn" aria-label="Revenir au live" style="font-size:12px;font-weight:800;background:rgba(245,158,11,0.18);border-color:rgba(245,158,11,0.55);">LIVE</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1344,6 +1350,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const volumeIcon = document.getElementById('icon-volume');
             const muteIcon = document.getElementById('icon-mute');
             const playOverlayLabel = document.getElementById('playOverlayLabel');
+            const rewind15Btn = document.getElementById('rewind15Btn');
+            const liveJumpBtn = document.getElementById('liveJumpBtn');
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
@@ -1361,9 +1369,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let liveStarted = false;
             let launchInterval = null;
             let presenceInterval = null;
+            let configPollInterval = null;
             let isLiveJoin = false;
             let isSessionEnded = false;
             let hasAppliedLiveOffset = false;
+            let pendingForceLiveSeek = false;
+            let liveSeekInProgress = false;
+            let lastSeenPlaybackCommandId = null;
+            let lastSeenActiveUrl = ACTIVE_VIDEO_SOURCE_URL;
+            let pendingSourceSwitch = false;
+            let pendingSourceSwitchToLive = false;
+            let pendingSourceSwitchRestoreTimeSec = null;
 
             function syncIcons() {
                 const muted = video.muted || video.volume === 0;
@@ -1384,15 +1400,53 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 playOverlayLabel.textContent = isLiveJoin ? LIVE_JOIN_LABEL : REPLAY_LABEL;
             }
 
-            function applySimulatedLiveOffset() {
-                if (hasAppliedLiveOffset) return;
-                if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+            function getLiveOffsetSeconds() {
+                const now = getNowMs();
+                const elapsedSec = Math.floor((now - liveStartMs) / 1000);
+                const dur = getVideoDurationSeconds();
+                if (!Number.isFinite(elapsedSec) || elapsedSec < 0) return 0;
+                if (!Number.isFinite(dur) || dur <= 0) return Math.max(0, elapsedSec);
+                return Math.max(0, Math.min(dur - 1, elapsedSec));
+            }
+
+            function updateLiveJumpUi() {
+                if (!rewind15Btn || !liveJumpBtn) return;
+                if (isSessionEnded || getNowMs() < liveStartMs) {
+                    liveJumpBtn.classList.add('hidden');
+                    rewind15Btn.classList.add('hidden');
+                    return;
+                }
+                const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                const liveOffset = getLiveOffsetSeconds();
+                const diff = liveOffset - cur;
+                const shouldShowLive = diff > 4;
+                liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
+                rewind15Btn.classList.remove('hidden');
+            }
+
+            function applySimulatedLiveOffset(opts) {
+                const force = Boolean(opts && opts.force);
+                if (!force && hasAppliedLiveOffset) return;
+                if (getNowMs() < liveStartMs) return;
+
+                if (!Number.isFinite(video.duration) || video.duration <= 0) {
+                    if (force) pendingForceLiveSeek = true;
+                    return;
+                }
+                pendingForceLiveSeek = false;
+
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
-                if (elapsedSec > 0 && elapsedSec < getVideoDurationSeconds()) {
+                const durationSec = getVideoDurationSeconds();
+                if (elapsedSec >= 0 && elapsedSec < durationSec) {
                     isLiveJoin = true;
                     // Important: update max first so anti-seek guard doesn't snap back.
                     maxWatched = Math.max(maxWatched, elapsedSec);
+                    liveSeekInProgress = true;
                     video.currentTime = elapsedSec;
+                    setTimeout(function () {
+                        liveSeekInProgress = false;
+                    }, 1500);
+                    if (force) video.play().catch(() => {});
                 } else {
                     isLiveJoin = false;
                 }
@@ -1417,6 +1471,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 video.pause();
                 video.currentTime = 0;
                 updatePlayOverlayLabel();
+                updateLiveJumpUi();
                 showOfferZone(reg.token);
             }
 
@@ -1460,6 +1515,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     });
                     video.pause();
                     playOverlay.classList.add('hidden');
+                    updateLiveJumpUi();
                     if (waiting) {
                         waiting.classList.remove('is-hidden');
                         const wt = waiting.querySelector('.waiting-title');
@@ -1506,14 +1562,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             video.addEventListener('timeupdate', function () {
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
                 updateCtaStateByTime();
+                updateLiveJumpUi();
                 if (video.currentTime >= getVideoDurationSeconds()) {
                     showEndedState();
                 }
             });
             video.addEventListener('seeking', function () {
-                if (video.currentTime > maxWatched + 1) {
-                    video.currentTime = maxWatched;
-                }
+                if (liveSeekInProgress) return;
+                if (video.currentTime > maxWatched + 1) video.currentTime = maxWatched;
+            });
+            video.addEventListener('seeked', function () {
+                liveSeekInProgress = false;
             });
             video.addEventListener('play', function () {
                 if (waiting) waiting.classList.add('is-hidden');
@@ -1553,6 +1612,27 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     document.exitFullscreen().catch(() => {});
                 }
             });
+
+            if (rewind15Btn) {
+                rewind15Btn.addEventListener('click', function () {
+                    if (isSessionEnded) return;
+                    const target = Math.max(0, Number.isFinite(video.currentTime) ? video.currentTime - 15 : 0);
+                    liveSeekInProgress = true;
+                    video.currentTime = target;
+                    video.play().catch(() => {});
+                    setTimeout(function () {
+                        liveSeekInProgress = false;
+                    }, 900);
+                    updateLiveJumpUi();
+                });
+            }
+            if (liveJumpBtn) {
+                liveJumpBtn.addEventListener('click', function () {
+                    if (isSessionEnded) return;
+                    applySimulatedLiveOffset({ force: true });
+                    updateLiveJumpUi();
+                });
+            }
             videoContainer.addEventListener('keydown', function (e) {
                 // Empêche les raccourcis seek du navigateur.
                 if (['ArrowLeft', 'ArrowRight', 'j', 'l', 'J', 'L'].includes(e.key)) {
@@ -1573,8 +1653,34 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 } else {
                     ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
                 }
-                applySimulatedLiveOffset();
+                if (pendingSourceSwitch) {
+                    // Source changed by ops: either re-sync to live (recommended) or restore user's position.
+                    const targetRaw = pendingSourceSwitchRestoreTimeSec;
+                    const durSec = getVideoDurationSeconds();
+                    const targetSec = Number.isFinite(targetRaw) ? Math.max(0, Math.min(durSec - 1, targetRaw)) : 0;
+                    if (pendingSourceSwitchToLive) {
+                        applySimulatedLiveOffset({ force: true });
+                    } else {
+                        isLiveJoin = false;
+                        maxWatched = Math.max(maxWatched, targetSec);
+                        liveSeekInProgress = true;
+                        video.currentTime = targetSec;
+                        setTimeout(function () {
+                            liveSeekInProgress = false;
+                        }, 1200);
+                    }
+                    pendingSourceSwitch = false;
+                    pendingSourceSwitchToLive = false;
+                    pendingSourceSwitchRestoreTimeSec = null;
+                    updatePlayOverlayLabel();
+                } else if (pendingForceLiveSeek) {
+                    pendingForceLiveSeek = false;
+                    applySimulatedLiveOffset({ force: true });
+                } else {
+                    applySimulatedLiveOffset();
+                }
                 updateCtaStateByTime();
+                updateLiveJumpUi();
             });
             refreshPreLiveCountdown();
             launchInterval = setInterval(refreshPreLiveCountdown, 1000);
@@ -1583,10 +1689,49 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const stage = now < liveStartMs ? 'waiting' : 'session';
                 sendPresencePing(reg.token, stage, { currentSecond: video.currentTime, isPlaying: !video.paused });
             }, 20000);
+
+            configPollInterval = setInterval(async function () {
+                try {
+                    const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
+                    const d = await res.json().catch(function () { return null; });
+                    if (!d) return;
+
+                    // 1) Switch source if ops changed primary/backup.
+                    if (d?.activeUrl && String(d.activeUrl) !== lastSeenActiveUrl) {
+                        const newUrl = String(d.activeUrl);
+                        lastSeenActiveUrl = newUrl;
+                        ACTIVE_VIDEO_SOURCE_URL = newUrl;
+
+                        pendingSourceSwitch = true;
+                        const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                        const liveOffset = getLiveOffsetSeconds();
+                        pendingSourceSwitchToLive = (liveOffset - cur) <= 4;
+                        pendingSourceSwitchRestoreTimeSec = Math.floor(cur);
+
+                        video.pause();
+                        video.src = ACTIVE_VIDEO_SOURCE_URL;
+                        video.load();
+                        video.play().catch(() => {});
+                    }
+
+                    // 2) Apply playback command if ops requested a re-sync.
+                    const cmd = d?.playbackCommand;
+                    if (cmd?.id && cmd.id !== lastSeenPlaybackCommandId) {
+                        lastSeenPlaybackCommandId = cmd.id;
+                        if (cmd.action === 'seek_live_offset') {
+                            applySimulatedLiveOffset({ force: true });
+                            updateLiveJumpUi();
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }, 7000);
             const beforeUnloadHandler = function () {
                 if (launchInterval) clearInterval(launchInterval);
                 if (offerInterval) clearInterval(offerInterval);
                 if (presenceInterval) clearInterval(presenceInterval);
+                if (configPollInterval) clearInterval(configPollInterval);
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
@@ -1610,6 +1755,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (launchInterval) clearInterval(launchInterval);
                     if (offerInterval) clearInterval(offerInterval);
                     if (presenceInterval) clearInterval(presenceInterval);
+                    if (configPollInterval) clearInterval(configPollInterval);
                     hearts.destroy();
                     purchaseToasts.destroy();
                     window.removeEventListener('beforeunload', beforeUnloadHandler);

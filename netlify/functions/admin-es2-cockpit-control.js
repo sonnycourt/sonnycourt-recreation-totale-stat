@@ -4,6 +4,7 @@ import {
   setActiveVideoSource,
   clearActiveVideoSourceOverride,
 } from './lib/webinaire-video-config.mjs';
+import { setPlaybackCommand } from './lib/webinaire-live-playback-command.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -31,6 +32,8 @@ export default async (req) => {
       await setActiveVideoSource('primary');
     } else if (action === 'switch_backup') {
       await setActiveVideoSource('backup');
+    } else if (action === 'seek_live_offset') {
+      await setPlaybackCommand({ action: 'seek_live_offset' });
     } else if (action === 'clear_override') {
       await clearActiveVideoSourceOverride();
     } else {
