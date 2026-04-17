@@ -134,16 +134,11 @@ export function getNextScheduledPurchase(nowMs = Date.now()): Purchase | null {
   return WEEKLY_TIMELINE.find((p) => p.offsetMs > elapsed) || null;
 }
 
-export function getAlreadySoldPool(nowMs = Date.now()): Purchase[] {
-  const sold = getSoldCount(nowMs);
-  return WEEKLY_TIMELINE.slice(0, sold);
-}
-
 type EngineOptions = {
   now?: () => number;
   isActive?: () => boolean;
   onSeatsLeft?: (seatsLeft: number, soldCount: number) => void;
-  onNotification?: (purchase: Purchase, mode: 'timeline' | 'replay') => void;
+  onNotification?: (purchase: Purchase, mode: 'timeline') => void;
   debug?: boolean;
 };
 
@@ -155,30 +150,11 @@ export function startScarcityEngine(options: EngineOptions = {}) {
   const debug = Boolean(options.debug);
 
   let timer: ReturnType<typeof setInterval> | null = null;
-  let nextReplayAt = 0;
   let emittedTimelineCount = getSoldCount(now());
-  let lastReplayName = '';
   let lastSeatPushSec = -1;
 
   function log(...args: unknown[]) {
     if (debug) console.log('[scarcity]', ...args);
-  }
-
-  function scheduleReplay(nowMs: number) {
-    const jitter = 12_000 + Math.random() * 6_000; // 12-18s
-    nextReplayAt = nowMs + Math.floor(jitter);
-  }
-
-  function emitReplay(nowMs: number) {
-    const pool = getAlreadySoldPool(nowMs);
-    if (!pool.length) return false;
-    const candidates = pool.filter((p) => p.name !== lastReplayName);
-    const src = candidates.length ? candidates : pool;
-    const picked = src[Math.floor(Math.random() * src.length)];
-    if (!picked) return false;
-    lastReplayName = picked.name;
-    onNotification(picked, 'replay');
-    return true;
   }
 
   function tick() {
@@ -195,35 +171,19 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     }
 
     if (!active) {
-      nextReplayAt = 0;
       emittedTimelineCount = soldCount;
       return;
     }
 
     if (soldCount > emittedTimelineCount) {
-      const latest = WEEKLY_TIMELINE[soldCount - 1];
-      if (latest) {
-        lastReplayName = latest.name;
-        onNotification(latest, 'timeline');
-        log('timeline emit', latest.name, `sold=${soldCount}`);
+      // Emit one purchase at a time in order. No replay.
+      const nextIdx = emittedTimelineCount;
+      const nextPurchase = WEEKLY_TIMELINE[nextIdx];
+      if (nextPurchase) {
+        onNotification(nextPurchase, 'timeline');
+        log('timeline emit', nextPurchase.name, `sold=${soldCount}`);
+        emittedTimelineCount += 1;
       }
-      emittedTimelineCount = soldCount;
-      scheduleReplay(nowMs);
-      return;
-    }
-
-    // Before the first timeline purchase, the sold pool is empty:
-    // keep intentional silence (no replay notification).
-    if (soldCount <= 0) {
-      nextReplayAt = 0;
-      return;
-    }
-
-    if (!nextReplayAt) scheduleReplay(nowMs);
-    if (nowMs >= nextReplayAt) {
-      const emitted = emitReplay(nowMs);
-      if (emitted) log('replay emit', `sold=${soldCount}`, `seats=${seatsLeft}`);
-      scheduleReplay(nowMs);
     }
   }
 
@@ -243,7 +203,6 @@ export function startScarcityEngine(options: EngineOptions = {}) {
         soldCount: getSoldCount(n),
         seatsLeft: getSeatsLeft(n),
         next: getNextScheduledPurchase(n),
-        pool: getAlreadySoldPool(n).map((p) => p.name),
       };
     },
   };
