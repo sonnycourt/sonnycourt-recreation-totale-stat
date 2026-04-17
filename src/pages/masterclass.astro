@@ -19,7 +19,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <link rel="preload" as="image" href="/media/pages/blue%20butterfly%20animation%202.gif" type="image/gif">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js" defer></script>
 
     <style>
         * {
@@ -1552,13 +1552,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         function findParisInstantUtc(parisYear, parisMonth, parisDay, parisHour) {
-            let candidate = new Date(Date.UTC(parisYear, parisMonth - 1, parisDay, parisHour - 1, 0, 0));
-            for (let i = 0; i < 4000; i++) {
-                const p = parseParisParts(candidate);
+            // Calcul direct de l’offset UTC ↔ Paris (converge en 1–2 itérations,
+            // gère DST naturellement). Remplace l’ancienne boucle minute-par-minute
+            // qui pouvait itérer jusqu’à 4000 fois et saturait le thread principal.
+            const targetWallMs = Date.UTC(parisYear, parisMonth - 1, parisDay, parisHour, 0, 0);
+            let utcGuess = targetWallMs;
+            for (let i = 0; i < 3; i++) {
+                const p = parseParisParts(new Date(utcGuess));
                 if (p.year === parisYear && p.month === parisMonth && p.day === parisDay && p.hour === parisHour) {
-                    return candidate;
+                    return new Date(utcGuess);
                 }
-                candidate = new Date(candidate.getTime() + 60 * 1000);
+                const parisWallMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+                const offsetMs = parisWallMs - utcGuess;
+                utcGuess = targetWallMs - offsetMs;
+            }
+            const p = parseParisParts(new Date(utcGuess));
+            if (p.year === parisYear && p.month === parisMonth && p.day === parisDay && p.hour === parisHour) {
+                return new Date(utcGuess);
             }
             return null;
         }
@@ -1635,24 +1645,58 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             el.textContent = formatParisDateNoTime(inst) + ' à 20h';
         }
 
-        function updateCountdown() {
-            updatePopupSessionBubble();
-            const target = getMarketingCountdownTargetUtcSafe(new Date());
-            if (!target) return;
+        // --- Countdown: cible pré-calculée, recalcul uniquement au rollover ---
+        // Évite d’appeler Intl.DateTimeFormat + formatToParts chaque seconde
+        // (principale cause de lag Safari/Firefox sur le main thread).
+        let __countdownTargetMs = null;
+        let __countdownTicker = null;
 
-            const nowMs = Date.now();
-            const diff = Math.max(0, target.getTime() - nowMs);
+        function refreshCountdownTarget() {
+            const t = getMarketingCountdownTargetUtcSafe(new Date());
+            __countdownTargetMs = t ? t.getTime() : null;
+            const labelEl = document.getElementById('next-session-label');
+            if (labelEl && t) {
+                labelEl.textContent = formatParisDateNoTime(t) + ' à 20h (heure de Paris)';
+            }
+            updatePopupSessionBubble();
+        }
+
+        function updateCountdown() {
+            if (__countdownTargetMs === null) {
+                refreshCountdownTarget();
+                if (__countdownTargetMs === null) return;
+            }
+            let diff = __countdownTargetMs - Date.now();
+            if (diff <= 0) {
+                refreshCountdownTarget();
+                if (__countdownTargetMs === null) return;
+                diff = Math.max(0, __countdownTargetMs - Date.now());
+            }
             const totalSeconds = Math.floor(diff / 1000);
             const days = Math.floor(totalSeconds / 86400);
             const hours = Math.floor((totalSeconds % 86400) / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
-            document.getElementById('days').textContent = pad(days);
-            document.getElementById('hours').textContent = pad(hours);
-            document.getElementById('minutes').textContent = pad(minutes);
-            document.getElementById('seconds').textContent = pad(seconds);
-            document.getElementById('next-session-label').textContent =
-                formatParisDateNoTime(target) + ' à 20h (heure de Paris)';
+            const dEl = document.getElementById('days');
+            const hEl = document.getElementById('hours');
+            const mEl = document.getElementById('minutes');
+            const sEl = document.getElementById('seconds');
+            if (dEl) dEl.textContent = pad(days);
+            if (hEl) hEl.textContent = pad(hours);
+            if (mEl) mEl.textContent = pad(minutes);
+            if (sEl) sEl.textContent = pad(seconds);
+        }
+
+        function startCountdownTicker() {
+            if (__countdownTicker) return;
+            __countdownTicker = setInterval(updateCountdown, 1000);
+        }
+
+        function stopCountdownTicker() {
+            if (__countdownTicker) {
+                clearInterval(__countdownTicker);
+                __countdownTicker = null;
+            }
         }
 
         function normalizeReg(payload) {
@@ -2214,8 +2258,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         function initMainInteractions() {
+            refreshCountdownTarget();
             updateCountdown();
-            setInterval(updateCountdown, 1000);
+            startCountdownTicker();
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    stopCountdownTicker();
+                } else {
+                    refreshCountdownTarget();
+                    updateCountdown();
+                    startCountdownTicker();
+                }
+            });
             initProofSectionCountUp();
 
             var _preGif = new Image();
