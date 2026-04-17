@@ -66,6 +66,7 @@ export async function upsertWebinaireSubscriber({
     name: prenom,
     phone: telephone,
     location: pays,
+    es_country: pays,
     unique_token_webinaire: token,
     ...(dateOptinMasterclass
       ? { date_optin_masterclass: dateOptinMasterclass }

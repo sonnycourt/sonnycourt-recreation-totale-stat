@@ -31,7 +31,7 @@ function computeKpis(rows) {
   const watchedReplay = rows.filter((r) => toBool(r.watched_replay)).length;
 
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
-  const ctaConversionRate = presents > 0 ? (clickedCta / presents) * 100 : 0;
+  const ctaConversionRate = sawOffer > 0 ? (clickedCta / sawOffer) * 100 : 0;
 
   const funnel = [
     { id: 'inscrits', label: 'Inscrits', count: inscrits },
