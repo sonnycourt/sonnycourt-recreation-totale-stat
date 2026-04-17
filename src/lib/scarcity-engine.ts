@@ -138,7 +138,8 @@ type EngineOptions = {
   now?: () => number;
   isActive?: () => boolean;
   onSeatsLeft?: (seatsLeft: number, soldCount: number) => void;
-  onNotification?: (purchase: Purchase, mode: 'timeline') => void;
+  onNotification?: (purchase: Purchase, mode: 'timeline' | 'replay', detail?: string) => void;
+  enableReplay?: boolean;
   debug?: boolean;
 };
 
@@ -147,14 +148,45 @@ export function startScarcityEngine(options: EngineOptions = {}) {
   const isActive = options.isActive || (() => true);
   const onSeatsLeft = options.onSeatsLeft || (() => {});
   const onNotification = options.onNotification || (() => {});
+  const enableReplay = Boolean(options.enableReplay);
   const debug = Boolean(options.debug);
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let emittedTimelineCount = getSoldCount(now());
   let lastSeatPushSec = -1;
+  let lastReplayName = '';
+  let lastTimelineName = '';
+  let nextReplayAt = 0;
 
   function log(...args: unknown[]) {
     if (debug) console.log('[scarcity]', ...args);
+  }
+
+  function formatReplayRelative(nowMs: number, purchaseOffsetMs: number, windowStartMs: number): string {
+    const diffMs = Math.max(0, nowMs - (windowStartMs + purchaseOffsetMs));
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 2) return 'quelques instants';
+    if (diffMin < 60) {
+      const rounded = Math.max(5, Math.round(diffMin / 5) * 5);
+      return `${rounded} min`;
+    }
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `${diffH}h`;
+    const diffD = Math.floor(diffH / 24);
+    return diffD <= 1 ? '1 jour' : `${diffD} jours`;
+  }
+
+  function replayDelayMs(seatsLeft: number): number {
+    if (seatsLeft <= 5) return 20_000 + Math.floor(Math.random() * 10_000); // 20-30s
+    return 30_000 + Math.floor(Math.random() * 15_000); // 30-45s
+  }
+
+  function scheduleReplay(nowMs: number, seatsLeft: number, initial = false) {
+    if (initial) {
+      nextReplayAt = nowMs + 5_000 + Math.floor(Math.random() * 5_000); // 5-10s after refresh
+      return;
+    }
+    nextReplayAt = nowMs + replayDelayMs(seatsLeft);
   }
 
   function tick() {
@@ -172,6 +204,9 @@ export function startScarcityEngine(options: EngineOptions = {}) {
 
     if (!active) {
       emittedTimelineCount = soldCount;
+      nextReplayAt = 0;
+      lastReplayName = '';
+      lastTimelineName = '';
       return;
     }
 
@@ -181,10 +216,40 @@ export function startScarcityEngine(options: EngineOptions = {}) {
       const nextPurchase = WEEKLY_TIMELINE[nextIdx];
       if (nextPurchase) {
         onNotification(nextPurchase, 'timeline');
+        lastTimelineName = nextPurchase.name;
         log('timeline emit', nextPurchase.name, `sold=${soldCount}`);
         emittedTimelineCount += 1;
       }
+      return;
     }
+
+    // Replay mode is opt-in (for invitation only).
+    if (!enableReplay) return;
+    if (soldCount < 10 || soldCount >= TOTAL_SEATS) {
+      nextReplayAt = 0;
+      return;
+    }
+
+    if (!nextReplayAt) scheduleReplay(nowMs, seatsLeft, true);
+    if (nowMs < nextReplayAt) return;
+
+    const soldPool = WEEKLY_TIMELINE.slice(0, soldCount);
+    const filtered = soldPool.filter((p) => p.name !== lastReplayName && p.name !== lastTimelineName);
+    const candidates = filtered.length ? filtered : soldPool.filter((p) => p.name !== lastReplayName);
+    if (!candidates.length) {
+      scheduleReplay(nowMs, seatsLeft);
+      return;
+    }
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+    if (!picked) {
+      scheduleReplay(nowMs, seatsLeft);
+      return;
+    }
+    const relative = formatReplayRelative(nowMs, picked.offsetMs, win.startMs);
+    onNotification(picked, 'replay', relative);
+    lastReplayName = picked.name;
+    log('replay emit', picked.name, relative, `sold=${soldCount}`);
+    scheduleReplay(nowMs, seatsLeft);
   }
 
   tick();
@@ -197,14 +262,19 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     },
     debugSnapshot() {
       const n = now();
+      const win = getCurrentWindow(n);
+      const soldCountNow = getSoldCount(n);
       return {
         nowMs: n,
-        window: getCurrentWindow(n),
-        soldCount: getSoldCount(n),
+        window: win,
+        soldCount: soldCountNow,
         seatsLeft: getSeatsLeft(n),
         next: getNextScheduledPurchase(n),
+        replayEnabled: enableReplay,
+        replayEligible: enableReplay && soldCountNow >= 10 && soldCountNow < TOTAL_SEATS,
+        nextReplayAt,
       };
-    },
+    }
   };
 }
 

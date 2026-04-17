@@ -6049,15 +6049,19 @@ const currentYear = new Date().getFullYear();
                 const engine = startScarcityEngine({
                     now: () => Date.now(),
                     isActive: () => true,
+                    enableReplay: true,
                     debug: debugScarcity,
                     onSeatsLeft: function (seatsLeft) {
                         const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
                         placesEl.textContent = String(seats);
                         if (meterFill) meterFill.style.width = `${(seats / 30) * 100}%`;
                     },
-                    onNotification: function (purchase) {
+                    onNotification: function (purchase, mode, detail) {
                         toastFlag.textContent = purchase.flag;
-                        toastText.innerHTML = `<span style="color:#60a5fa;font-weight:900;">${purchase.name}</span> vient de rejoindre<br /><span style="color:#fff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                        const actionText = mode === 'replay'
+                          ? `a rejoint il y a ${detail || 'quelques instants'}`
+                          : 'vient de rejoindre';
+                        toastText.innerHTML = `<span style="color:#60a5fa;font-weight:900;">${purchase.name}</span> ${actionText}<br /><span style="color:#fff;font-weight:400;">Esprit Subconscient 2.0</span>`;
                         toast.classList.add('show');
                         if (hideTimer) clearTimeout(hideTimer);
                         hideTimer = setTimeout(function () {
