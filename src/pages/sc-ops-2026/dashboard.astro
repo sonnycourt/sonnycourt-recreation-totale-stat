@@ -72,7 +72,64 @@ const tabs = [
               data-panel={t.id}
               role="tabpanel"
             >
-              {t.id === 'ops' ? (
+              {t.id === 'overview' ? (
+                <div class="space-y-4" id="overview-kpis">
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Vue d'ensemble</p>
+                        <h3 class="text-sm font-semibold text-white">KPIs Funnel ES 2.0</h3>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <label for="overview-session-select" class="text-xs text-slate-400">Session</label>
+                        <select
+                          id="overview-session-select"
+                          class="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 focus:border-blue-500 focus:outline-none"
+                        >
+                          <option value="">Toutes sessions</option>
+                        </select>
+                        <button id="overview-refresh" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-500">
+                          Actualiser
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Inscrits</p>
+                      <p id="kpi-inscrits" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Présents</p>
+                      <p id="kpi-presents" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Taux de présence</p>
+                      <p id="kpi-presence-rate" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Ont vu l'offre</p>
+                      <p id="kpi-saw-offer" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Ont cliqué CTA</p>
+                      <p id="kpi-clicked-cta" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Taux conversion CTA</p>
+                      <p id="kpi-cta-rate" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Funnel visuel</p>
+                    <div id="overview-funnel" class="mt-3 space-y-3"></div>
+                  </div>
+
+                  <p id="overview-error" class="hidden text-xs text-red-400"></p>
+                </div>
+              ) : t.id === 'ops' ? (
                 <div class="space-y-4" id="ops-cockpit">
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -358,12 +415,15 @@ const tabs = [
           });
           const idx = tabIds.indexOf(id);
           if (idx >= 0) titleEl.textContent = tabLabels[idx];
+          if (id === 'overview') refreshOverviewKpis();
           if (id === 'ops') startOpsPolling();
         });
       });
 
       let opsPollingTimer = null;
       let opsBusy = false;
+      let overviewBusy = false;
+      let overviewSessionsHydrated = false;
       let streamCounterTimer = null;
       let streamCounterBaseSecond = null;
       let streamCounterBaseAtMs = null;
@@ -372,6 +432,108 @@ const tabs = [
       let opsHistoryFilter = 'all';
       let opsHistorySearch = '';
       let opsHistoryItems = [];
+
+      function formatPct(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '0%';
+        return `${Math.round(n)}%`;
+      }
+
+      function funnelGradient(index) {
+        const palette = [
+          'from-emerald-400 to-emerald-500',
+          'from-emerald-400 to-lime-500',
+          'from-lime-400 to-yellow-500',
+          'from-yellow-400 to-amber-500',
+          'from-amber-400 to-orange-500',
+          'from-orange-400 to-red-500',
+          'from-orange-500 to-red-600',
+        ];
+        return palette[index] || 'from-slate-400 to-slate-500';
+      }
+
+      function renderOverviewFunnel(items) {
+        const root = document.getElementById('overview-funnel');
+        if (!root) return;
+        root.innerHTML = '';
+        const list = Array.isArray(items) ? items : [];
+        if (!list.length) {
+          const empty = document.createElement('p');
+          empty.className = 'text-xs text-slate-500';
+          empty.textContent = 'Aucune donnée disponible.';
+          root.appendChild(empty);
+          return;
+        }
+        list.forEach(function (item, idx) {
+          const row = document.createElement('div');
+          const pct = Math.max(0, Math.min(100, Number(item?.percent || 0)));
+          row.className = 'grid grid-cols-[120px_1fr_auto] items-center gap-3 text-xs';
+          row.innerHTML = `
+            <p class="text-slate-300">${item?.label || '—'}</p>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-800">
+              <div class="h-3 rounded-full bg-gradient-to-r ${funnelGradient(idx)}" style="width:${pct}%"></div>
+            </div>
+            <p class="text-slate-300">${Math.round(pct)}% <span class="text-slate-500">(${Number(item?.count || 0)})</span></p>
+          `;
+          root.appendChild(row);
+        });
+      }
+
+      function hydrateSessionDropdown(sessionDates, selectedValue) {
+        const select = document.getElementById('overview-session-select');
+        if (!select) return;
+        if (!overviewSessionsHydrated) {
+          select.innerHTML = '<option value="">Toutes sessions</option>';
+          (Array.isArray(sessionDates) ? sessionDates : []).forEach(function (day) {
+            const opt = document.createElement('option');
+            opt.value = day;
+            opt.textContent = day;
+            select.appendChild(opt);
+          });
+          overviewSessionsHydrated = true;
+        }
+        select.value = selectedValue || '';
+      }
+
+      async function refreshOverviewKpis() {
+        if (overviewBusy) return;
+        const root = document.getElementById('overview-kpis');
+        if (!root || root.closest('.hidden')) return;
+        overviewBusy = true;
+        const errEl = document.getElementById('overview-error');
+        if (errEl) {
+          errEl.classList.add('hidden');
+          errEl.textContent = '';
+        }
+        try {
+          const select = document.getElementById('overview-session-select');
+          const selected = select ? String(select.value || '').trim() : '';
+          const qs = selected ? `?session_date=${encodeURIComponent(selected)}` : '';
+          const r = await fetch(`/.netlify/functions/admin-es2-dashboard-kpis${qs}`, {
+            credentials: 'same-origin',
+          });
+          const d = await r.json().catch(function () { return {}; });
+          if (!r.ok) throw new Error(d.error || 'Erreur KPIs');
+
+          hydrateSessionDropdown(d?.sessions, d?.filter?.session_date || '');
+
+          document.getElementById('kpi-inscrits').textContent = String(d?.cards?.inscrits || 0);
+          document.getElementById('kpi-presents').textContent = String(d?.cards?.presents || 0);
+          document.getElementById('kpi-presence-rate').textContent = formatPct(d?.cards?.presenceRate);
+          document.getElementById('kpi-saw-offer').textContent = String(d?.cards?.sawOffer || 0);
+          document.getElementById('kpi-clicked-cta').textContent = String(d?.cards?.clickedCta || 0);
+          document.getElementById('kpi-cta-rate').textContent = formatPct(d?.cards?.ctaConversionRate);
+
+          renderOverviewFunnel(d?.funnel);
+        } catch (e) {
+          if (errEl) {
+            errEl.textContent = e?.message || 'Erreur KPIs';
+            errEl.classList.remove('hidden');
+          }
+        } finally {
+          overviewBusy = false;
+        }
+      }
 
       function statusText(check) {
         if (!check) return '—';
@@ -736,7 +898,13 @@ const tabs = [
       const defaultFilterBtn = document.querySelector('.ops-history-filter[data-filter="all"]');
       if (defaultFilterBtn) defaultFilterBtn.classList.add('border-blue-500', 'text-blue-200', 'bg-blue-500/10');
 
+      const overviewRefreshBtn = document.getElementById('overview-refresh');
+      if (overviewRefreshBtn) overviewRefreshBtn.addEventListener('click', refreshOverviewKpis);
+      const overviewSessionSelect = document.getElementById('overview-session-select');
+      if (overviewSessionSelect) overviewSessionSelect.addEventListener('change', refreshOverviewKpis);
+
       requireAuth();
+      refreshOverviewKpis();
     </script>
   </body>
 </html>
