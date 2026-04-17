@@ -1039,6 +1039,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
         const LATE_DIRECT_CUTOFF_MS = 30 * 60 * 1000; // +30 min après début live = trop tard pour le direct
         const CTA_APPEAR_SECONDS = 82 * 60 + 12; // 21:07:12 (82m12 après 19:45)
+        const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 82];
         const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
@@ -1215,6 +1216,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             } catch {
                 /* ignore */
             }
+        }
+        function trackWebinaireEvent(token, eventName, value) {
+            if (!token || !eventName) return;
+            const payload = { token, event: eventName };
+            if (value !== undefined && value !== null) payload.value = String(value);
+            fetch('/.netlify/functions/track-webinaire-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }).catch(function () {
+                /* best-effort */
+            });
         }
         /* ── Heart Column ── */
         const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
@@ -1420,6 +1433,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const offerInterval = setInterval(tick, 1000);
 
             const video = document.getElementById('masterclass-video');
+            video.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
             const videoContainer = document.getElementById('video-container');
             const videoControls = document.getElementById('videoControls');
             const waiting = document.getElementById('video-waiting');
@@ -1467,6 +1483,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let pendingSourceSwitchToLive = false;
             let pendingSourceSwitchRestoreTimeSec = null;
             let hasJoinedSession = false;
+            let didTrackCtaReached = false;
+            const emittedCheckpointMinutes = new Set();
+
+            trackWebinaireEvent(reg.token, 'session_joined');
 
             function setScarcitySeats(seatsLeft) {
                 const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
@@ -1651,6 +1671,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
                 if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
+                    if (!didTrackCtaReached) {
+                        didTrackCtaReached = true;
+                        trackWebinaireEvent(reg.token, 'cta_reached');
+                    }
                 } else if (elapsedSec < CTA_APPEAR_SECONDS) {
                     hideOfferZone();
                 }
@@ -1669,6 +1693,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
                 updateCtaStateByTime();
                 updateLiveJumpUi();
+                const watchedMinutes = Math.floor((video.currentTime || 0) / 60);
+                VIDEO_TRACKING_CHECKPOINTS_MIN.forEach(function (checkpointMin) {
+                    if (watchedMinutes >= checkpointMin && !emittedCheckpointMinutes.has(checkpointMin)) {
+                        emittedCheckpointMinutes.add(checkpointMin);
+                        trackWebinaireEvent(reg.token, 'video_checkpoint', checkpointMin);
+                    }
+                });
                 if (video.currentTime >= getVideoDurationSeconds()) {
                     showEndedState();
                 }
@@ -1714,6 +1745,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 video.muted = video.volume === 0;
                 syncIcons();
             });
+            const offerCtaEl = document.getElementById('offer-cta');
+            if (offerCtaEl) {
+                offerCtaEl.addEventListener('click', function () {
+                    trackWebinaireEvent(reg.token, 'cta_clicked');
+                });
+            }
             if (fullscreenBtn) {
                 fullscreenBtn.addEventListener('click', function () {
                     if (!document.fullscreenElement && videoContainer.requestFullscreen) {

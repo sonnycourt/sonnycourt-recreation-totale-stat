@@ -6024,10 +6024,21 @@ const currentYear = new Date().getFullYear();
             const TOKEN_KEY = 'masterclass_es2_token';
             const COOKIE_MAX = 365 * 24 * 60 * 60;
             const debugScarcity = params.get('scarcity_debug') === '1';
+            const INVITATION_VISITED_SESSION_KEY = 'es2_invitation_visited_tracked';
 
             function setTokenEverywhere(nextToken) {
                 localStorage.setItem(TOKEN_KEY, nextToken);
                 document.cookie = `${TOKEN_KEY}=${encodeURIComponent(nextToken)}; path=/; max-age=${COOKIE_MAX}; SameSite=Lax`;
+            }
+            function trackWebinaireEvent(token, eventName, value) {
+                if (!token || !eventName) return;
+                const payload = { token, event: eventName };
+                if (value !== undefined && value !== null) payload.value = String(value);
+                fetch('/.netlify/functions/track-webinaire-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                }).catch(function () {});
             }
 
             function propagateTokenToCheckoutLinks(activeToken) {
@@ -6175,6 +6186,10 @@ const currentYear = new Date().getFullYear();
                 setTokenEverywhere(token);
                 propagateTokenToCheckoutLinks(token);
                 initInvitationScarcity();
+                if (!sessionStorage.getItem(INVITATION_VISITED_SESSION_KEY)) {
+                    sessionStorage.setItem(INVITATION_VISITED_SESSION_KEY, '1');
+                    trackWebinaireEvent(token, 'invitation_visited');
+                }
 
                 // Static visual placeholder for invitation baseline (logic comes next iterations).
                 const placesEl = document.getElementById('current-places');
