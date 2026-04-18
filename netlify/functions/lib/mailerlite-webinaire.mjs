@@ -1,5 +1,18 @@
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 
+/** session_date ISO → jour de session en Europe/Paris (YYYY-MM-DD) pour champ MailerLite es_session_date */
+export function formatParisSessionDateYyyyMmDd(isoString) {
+  if (!isoString) return undefined;
+  const d = new Date(isoString);
+  if (!Number.isFinite(d.getTime())) return undefined;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
 export async function getMailerLiteSubscriberId(email, apiKey) {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
@@ -61,12 +74,15 @@ export async function upsertWebinaireSubscriber({
     Accept: 'application/json',
   };
 
+  const esSessionDate = formatParisSessionDateYyyyMmDd(dateWebinaire);
+
   const fields = {
     first_name: prenom,
     name: prenom,
     phone: telephone,
     location: pays,
-    es_country: pays,
+    es_country: pays || '',
+    ...(esSessionDate ? { es_session_date: esSessionDate } : {}),
     unique_token_webinaire: token,
     ...(dateOptinMasterclass
       ? { date_optin_masterclass: dateOptinMasterclass }
@@ -111,18 +127,52 @@ export async function upsertWebinaireSubscriber({
         es2_ajoute_dans_le_groupe_le: groupAssignedAt,
         date_ajout_groupe_webinaire: groupAssignedAt,
       };
+      // Ré-envoyer les champs métier + dates groupe pour éviter d’écraser
+      // unique_token_webinaire / es_session_date / es_country si l’API fusionne mal.
       await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
           status: 'active',
-          fields: groupDateFields,
+          fields: { ...fields, ...groupDateFields },
         }),
       }).catch(() => {});
     }
   }
 
   return { subscriberId, groupAssignedAt };
+}
+
+/**
+ * Met à jour uniquement les champs ES2 utiles au dashboard / segments (backfill one-shot).
+ * Ne modifie pas les groupes.
+ */
+export async function patchMailerLiteWebinaireCoreFields({ email, token, pays, sessionDateIso, apiKey }) {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  const subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+  if (!subscriberId) {
+    return { ok: false, reason: 'subscriber_not_found' };
+  }
+  const esSessionDate = formatParisSessionDateYyyyMmDd(sessionDateIso);
+  const fields = {
+    unique_token_webinaire: token,
+    es_country: pays || '',
+    ...(esSessionDate ? { es_session_date: esSessionDate } : {}),
+  };
+  const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ status: 'active', fields }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, reason: json?.message || `http_${res.status}`, status: res.status };
+  }
+  return { ok: true, subscriberId };
 }
 
 export function getWebinaireGroupEnv() {

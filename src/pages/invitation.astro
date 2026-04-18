@@ -5717,52 +5717,93 @@ const currentYear = new Date().getFullYear();
 
         .purchase-toast {
             position: fixed;
-            right: 18px;
-            bottom: 18px;
-            z-index: 99;
-            max-width: min(92vw, 360px);
-            padding: 11px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(96, 165, 250, 0.35);
-            background: rgba(7, 17, 34, 0.95);
-            color: #f1f5f9;
-            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+            left: 20px;
+            bottom: 20px;
+            z-index: 9999;
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(20px);
             pointer-events: none;
-            transition: opacity 0.22s ease, transform 0.22s ease;
-            backdrop-filter: blur(8px);
-            font-family: 'Inter', sans-serif;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .purchase-toast.show {
             opacity: 1;
             transform: translateY(0);
         }
-        .purchase-toast__flag {
-            font-size: 20px;
+        .purchase-toast__content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 360px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .purchase-toast__thumb-wrap {
+            position: relative;
+            width: 58px;
+            height: 58px;
+            flex-shrink: 0;
+        }
+        .purchase-toast__thumb {
+            width: 58px;
+            height: 58px;
+            border-radius: 9px;
+            object-fit: cover;
+            display: block;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+        }
+        .purchase-toast__thumb-flag {
+            position: absolute;
+            right: -4px;
+            bottom: -4px;
+            font-size: 14px;
             line-height: 1;
-            margin-right: 8px;
-            vertical-align: middle;
+            filter: drop-shadow(0 2px 6px rgba(2, 6, 23, 0.5));
         }
         .purchase-toast__text {
-            font-size: 13px;
+            margin: 0;
+            font-size: 14px;
             line-height: 1.35;
-            display: inline-block;
-            vertical-align: middle;
+            color: #fff;
+        }
+        .purchase-toast__name {
+            color: #60a5fa !important;
+            font-weight: 900 !important;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.35);
+        }
+        .purchase-toast__action {
+            color: rgba(255, 255, 255, 0.72);
+        }
+        .purchase-toast__course {
+            display: block;
+            margin-top: 2px;
+            color: #ffffff !important;
+            font-weight: 400 !important;
         }
         @media (max-width: 640px) {
             .purchase-toast {
-                right: 12px;
-                left: 12px;
-                bottom: 12px;
-                max-width: none;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+            }
+            .purchase-toast__content {
+                max-width: 100%;
             }
         }
     </style>
 
     <div id="purchase-toast" class="purchase-toast" aria-live="polite">
-        <span id="purchase-toast-flag" class="purchase-toast__flag">🇫🇷</span>
-        <div id="purchase-toast-text" class="purchase-toast__text"></div>
+        <div class="purchase-toast__content">
+            <div class="purchase-toast__thumb-wrap">
+                <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
+                <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
+            </div>
+            <p class="purchase-toast__text" id="purchase-toast-text"><span class="purchase-toast__name">Sophie</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span></p>
+        </div>
     </div>
 
     <script>
@@ -6073,7 +6114,7 @@ const currentYear = new Date().getFullYear();
                         const actionText = mode === 'replay'
                           ? `a rejoint il y a ${detail || 'quelques instants'}`
                           : 'vient de rejoindre';
-                        toastText.innerHTML = `<span style="color:#60a5fa;font-weight:900;">${purchase.name}</span> ${actionText}<br /><span style="color:#fff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                        toastText.innerHTML = `<span class="purchase-toast__name">${purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
                         toast.classList.add('show');
                         if (hideTimer) clearTimeout(hideTimer);
                         hideTimer = setTimeout(function () {

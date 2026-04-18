@@ -90,6 +90,7 @@ export default async (req) => {
         process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
         process.env.MAILERLITE_GROUP_WEBINAR_ES2;
 
+      // MailerLite : unique_token_webinaire, es_session_date (YYYY-MM-DD Paris), es_country, dates webinaire — voir upsertWebinaireSubscriber.
       if (apiKey && groupInscrits) {
         try {
           const ml = await upsertWebinaireSubscriber({
@@ -179,6 +180,7 @@ export default async (req) => {
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
       process.env.MAILERLITE_GROUP_WEBINAR_ES2;
 
+    // MailerLite : unique_token_webinaire, es_session_date (YYYY-MM-DD Paris), es_country, dates webinaire — voir upsertWebinaireSubscriber.
     if (apiKey && groupInscrits) {
       try {
         const ml = await upsertWebinaireSubscriber({
