@@ -634,6 +634,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         <div>
                             <p class="step-title">Rejoins le groupe WhatsApp privé</p>
                             <p class="step-text">Lien d'accès, rappels, ressources exclusives — tout passe par là.</p>
+                            <div id="whatsapp-groups-complete" style="display:none;margin:6px 0 8px;"></div>
                             <a id="link-whatsapp" class="step-btn" href="#" target="_blank" rel="noopener noreferrer">Rejoindre le Groupe</a>
                         </div>
                     </li>
@@ -974,16 +975,36 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const startMs = new Date(data.sessionStartsAt).getTime();
             const whatsappStep = document.getElementById('whatsapp-step');
             const whatsappLinkEl = document.getElementById('link-whatsapp');
+            const whatsappGroupsCompleteEl = document.getElementById('whatsapp-groups-complete');
             const whatsappLink = data && data.whatsappLink ? String(data.whatsappLink).trim() : '';
             const whatsappGroupNumber = Number(data?.whatsappGroupNumber);
 
             if (whatsappStep && whatsappLinkEl) {
                 if (whatsappLink) {
                     whatsappLinkEl.href = whatsappLink;
-                    whatsappLinkEl.textContent =
-                        Number.isFinite(whatsappGroupNumber) && whatsappGroupNumber > 0
-                            ? `Rejoindre le Groupe ${Math.floor(whatsappGroupNumber)}`
-                            : 'Rejoindre le Groupe';
+                    const baseGroup = Number.isFinite(whatsappGroupNumber) && whatsappGroupNumber > 0
+                        ? Math.floor(whatsappGroupNumber)
+                        : 0;
+                    const visualGroup = baseGroup > 0 ? baseGroup + 1 : 1;
+                    whatsappLinkEl.textContent = `Rejoindre le Groupe ${visualGroup}`;
+                    if (whatsappGroupsCompleteEl) {
+                        if (baseGroup > 0) {
+                            whatsappGroupsCompleteEl.innerHTML = '';
+                            for (let i = 1; i <= baseGroup; i += 1) {
+                                const line = document.createElement('p');
+                                line.className = 'step-text';
+                                line.style.margin = '0 0 4px';
+                                line.style.color = 'rgba(148,163,184,.95)';
+                                line.style.fontWeight = '600';
+                                line.textContent = `Groupe ${i} — Complet ✓`;
+                                whatsappGroupsCompleteEl.appendChild(line);
+                            }
+                            whatsappGroupsCompleteEl.style.display = '';
+                        } else {
+                            whatsappGroupsCompleteEl.innerHTML = '';
+                            whatsappGroupsCompleteEl.style.display = 'none';
+                        }
+                    }
                     whatsappLinkEl.onclick = function () {
                         const payload = {
                             session_date: String(data?.sessionStartsAt || '').slice(0, 10),
@@ -1003,6 +1024,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     };
                     whatsappStep.style.display = '';
                 } else {
+                    if (whatsappGroupsCompleteEl) {
+                        whatsappGroupsCompleteEl.innerHTML = '';
+                        whatsappGroupsCompleteEl.style.display = 'none';
+                    }
                     whatsappStep.style.display = 'none';
                 }
             }

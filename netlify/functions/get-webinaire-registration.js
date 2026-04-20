@@ -50,6 +50,55 @@ function syncPurchasedFlag(token) {
   ).catch(() => {});
 }
 
+function toFiniteNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+async function resolveWhatsappGroupForSession(sessionDateIso) {
+  const sessionDate = String(sessionDateIso || '').slice(0, 10);
+  if (!sessionDate) return { whatsappLink: '', whatsappGroupNumber: null };
+
+  try {
+    const cfg = await supabaseGet(
+      `webi_sessions_config?session_date=eq.${encodeURIComponent(sessionDate)}&select=*`,
+    );
+    if (!cfg.ok || !Array.isArray(cfg.data) || cfg.data.length === 0) {
+      return { whatsappLink: '', whatsappGroupNumber: null };
+    }
+
+    const rows = cfg.data
+      .map((row) => {
+        const groupNumber = toFiniteNumber(row.group_number, NaN);
+        const currentMembers = toFiniteNumber(row.current_members, NaN);
+        const maxMembers = toFiniteNumber(row.max_members, NaN);
+        const whatsappLink = String(
+          row.whatsapp_link || row.group_link || row.link || '',
+        ).trim();
+        return { groupNumber, currentMembers, maxMembers, whatsappLink };
+      })
+      .filter((row) => Number.isFinite(row.groupNumber) && row.whatsappLink);
+
+    if (!rows.length) return { whatsappLink: '', whatsappGroupNumber: null };
+
+    const open = rows
+      .filter((row) => Number.isFinite(row.currentMembers) && Number.isFinite(row.maxMembers) && row.currentMembers < row.maxMembers)
+      .sort((a, b) => {
+        if (a.currentMembers !== b.currentMembers) return a.currentMembers - b.currentMembers;
+        return a.groupNumber - b.groupNumber;
+      });
+
+    const chosen = (open[0] || rows.sort((a, b) => a.groupNumber - b.groupNumber)[0]) || null;
+    if (!chosen) return { whatsappLink: '', whatsappGroupNumber: null };
+    return {
+      whatsappLink: chosen.whatsappLink,
+      whatsappGroupNumber: chosen.groupNumber,
+    };
+  } catch {
+    return { whatsappLink: '', whatsappGroupNumber: null };
+  }
+}
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -104,6 +153,7 @@ export default async (req) => {
       purchased = await isInMailerLiteAcheteursGroup(String(row.email || '').trim().toLowerCase());
       if (purchased) syncPurchasedFlag(token);
     }
+    const whatsapp = await resolveWhatsappGroupForSession(row.session_date);
 
     return jsonResponse(200, {
       valid: true,
@@ -115,6 +165,8 @@ export default async (req) => {
       sessionEndsAt: row.session_ends_at,
       offreExpiresAt: row.offre_expires_at,
       purchased,
+      whatsappLink: whatsapp.whatsappLink || '',
+      whatsappGroupNumber: Number.isFinite(whatsapp.whatsappGroupNumber) ? whatsapp.whatsappGroupNumber : null,
     });
   } catch (error) {
     console.error('get-webinaire-registration error:', error);
