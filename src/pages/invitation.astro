@@ -6462,6 +6462,9 @@ const currentYear = new Date().getFullYear();
                 if (!placesEl || !toast || !toastText || !toastFlag) return null;
 
                 let hideTimer = null;
+                let queueGapTimer = null;
+                const toastQueue = [];
+                let toastBusy = false;
                 let lastPhase = 'phase1';
                 let lastSeats = 30;
                 function updatePhaseUi(phase, seats) {
@@ -6480,7 +6483,8 @@ const currentYear = new Date().getFullYear();
                         el.classList.toggle('is-visible', isPhase2);
                     });
                     document.querySelectorAll('.scarcity-denominator').forEach(function (el) {
-                        el.classList.toggle('is-visible', isPhase2);
+                        el.classList.add('is-visible');
+                        el.textContent = `/ ${isPhase2 ? 10 : 30}`;
                     });
                     const denominator = isPhase2 ? 10 : 30;
                     const pct = (Math.max(0, Math.min(denominator, seats)) / denominator) * 100;
@@ -6492,6 +6496,31 @@ const currentYear = new Date().getFullYear();
                     if (previewStatusEl) {
                         previewStatusEl.textContent = `Phase: ${lastPhase} • Places: ${lastSeats}`;
                     }
+                }
+                function enqueueToast(purchase, mode, detail) {
+                    toastQueue.push({ purchase, mode, detail });
+                    if (!toastBusy) flushToastQueue();
+                }
+                function flushToastQueue() {
+                    if (toastBusy) return;
+                    const next = toastQueue.shift();
+                    if (!next) return;
+                    toastBusy = true;
+                    const actionText = next.mode === 'replay'
+                      ? `a rejoint il y a ${next.detail || 'quelques instants'}`
+                      : 'vient de rejoindre';
+                    toastFlag.textContent = next.purchase.flag;
+                    toastText.innerHTML = `<span class="purchase-toast__name">${next.purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
+                    toast.classList.add('show');
+                    if (hideTimer) clearTimeout(hideTimer);
+                    if (queueGapTimer) clearTimeout(queueGapTimer);
+                    hideTimer = setTimeout(function () {
+                        toast.classList.remove('show');
+                        queueGapTimer = setTimeout(function () {
+                            toastBusy = false;
+                            flushToastQueue();
+                        }, 1000);
+                    }, 4000);
                 }
                 const engine = startScarcityEngine({
                     now: () => invitationNowMs(),
@@ -6506,22 +6535,17 @@ const currentYear = new Date().getFullYear();
                         updatePhaseUi(phase, seats);
                     },
                     onNotification: function (purchase, mode, detail) {
-                        toastFlag.textContent = purchase.flag;
-                        const actionText = mode === 'replay'
-                          ? `a rejoint il y a ${detail || 'quelques instants'}`
-                          : 'vient de rejoindre';
-                        toastText.innerHTML = `<span class="purchase-toast__name">${purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
-                        toast.classList.add('show');
-                        if (hideTimer) clearTimeout(hideTimer);
-                        hideTimer = setTimeout(function () {
-                            toast.classList.remove('show');
-                        }, 4000);
+                        enqueueToast(purchase, mode, detail);
                     },
                 });
                 return {
                     stop() {
                         if (hideTimer) clearTimeout(hideTimer);
+                        if (queueGapTimer) clearTimeout(queueGapTimer);
                         hideTimer = null;
+                        queueGapTimer = null;
+                        toastQueue.length = 0;
+                        toastBusy = false;
                         engine.stop();
                     },
                     recalc() {

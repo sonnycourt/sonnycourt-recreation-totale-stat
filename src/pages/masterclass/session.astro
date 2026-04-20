@@ -1153,6 +1153,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     <p class="scarcity-label">Places restantes</p>
                     <div class="scarcity-value">
                         <span class="scarcity-number" id="scarcity-places">30</span>
+                        <span class="scarcity-denominator" id="scarcity-denominator">/ 30</span>
                         <span class="scarcity-unit">places</span>
                     </div>
                 </div>
@@ -1222,6 +1223,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
         const LATE_DIRECT_AFTER_SESSION_MS = 15 * 60 * 1000;
         const CTA_APPEAR_SECONDS = 82 * 60 + 12; // 21:07:12 (82m12 après 19:45)
+        const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 82];
         const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
@@ -1566,7 +1568,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (engine) engine.stop();
                 const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
                 engine = startScarcityEngine({
-                    now: getNowMs,
+                    now: function () {
+                        return getNowMs() - SESSION_SCARCITY_DELAY_MS;
+                    },
                     isActive: shouldRun,
                     windowStartMs: options?.windowStartMs,
                     windowEndMs: options?.windowEndMs,
@@ -1698,6 +1702,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const rewind15Btn = document.getElementById('rewind15Btn');
             const liveJumpBtn = document.getElementById('liveJumpBtn');
             const scarcityPlacesEl = document.getElementById('scarcity-places');
+            const scarcityDenominatorEl = document.getElementById('scarcity-denominator');
             const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
             const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
             const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
@@ -1747,13 +1752,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const bounds = Number.isFinite(scarcityWindowStartMs) && Number.isFinite(scarcityWindowEndMs) && scarcityWindowEndMs > scarcityWindowStartMs
                     ? { startMs: scarcityWindowStartMs, endMs: scarcityWindowEndMs }
                     : null;
+                const phase = getPhase(nowMs, bounds);
+                const seatsLeft = getSeatsLeft(nowMs, bounds);
                 scarcityAuditEl.textContent = [
                     `sessionStartsAt : ${formatAuditDate(sessionStartMs)}`,
                     `windowStartMs : ${formatAuditDate(scarcityWindowStartMs)}`,
                     `offreExpiresAt : ${formatAuditDate(scarcityWindowEndMs)}`,
-                    `Phase actuelle : ${getPhase(nowMs, bounds)}`,
+                    `Phase actuelle : ${phase}`,
                     `soldCount : ${getSoldCount(nowMs, bounds)}`,
-                    `seatsLeft : ${getSeatsLeft(nowMs, bounds)}`,
+                    `seatsLeft : ${formatDevScarcityLabel(phase, seatsLeft)}`,
                 ].join('\n');
             }
 
@@ -1786,13 +1793,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             trackWebinaireEvent(reg.token, 'session_joined');
 
             function setScarcitySeats(seatsLeft, phase) {
-                const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
-                if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
                 const isPhase2 = phase === 'phase2';
+                const denominator = isPhase2 ? 10 : 30;
+                const seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
+                if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
+                if (scarcityDenominatorEl) scarcityDenominatorEl.textContent = `/ ${denominator}`;
                 if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.toggle('hidden', !isPhase2);
                 if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.toggle('hidden', !isPhase2);
                 if (scarcityMeterFillEl) {
-                    const denominator = isPhase2 ? 10 : 30;
                     const pct = (Math.max(0, Math.min(denominator, seats)) / denominator) * 100;
                     scarcityMeterFillEl.style.width = `${pct}%`;
                 }
@@ -2352,6 +2360,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             if (nowMs < sun23) return 'Vidéo terminée / Replay';
             return 'Expiré';
         }
+        function formatDevScarcityLabel(phase, seatsLeft) {
+            if (phase === 'sold_out') return '0 / 30 places (sold out)';
+            var denominator = phase === 'phase2' ? 10 : 30;
+            var seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
+            return seats + ' / ' + denominator + ' places';
+        }
 
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
@@ -2380,7 +2394,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 sumInsc.textContent = 'Inscrit le : ' + devFormatParis(new Date(inscInput.value).getTime());
                 sumSession.textContent = 'Session : ' + devFormatParis(currentSessionMs);
                 sumNow.textContent = 'Heure simulée : ' + devFormatParis(nowMs);
-                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span>';
+                var hasBounds = Number.isFinite(currentSessionMs) && Number.isFinite(currentOfferExpiryMs) && currentOfferExpiryMs > currentSessionMs;
+                var bounds = hasBounds
+                    ? { startMs: currentSessionMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS, endMs: currentOfferExpiryMs }
+                    : null;
+                var scarcityPhase = getPhase(nowMs, bounds);
+                var scarcitySeats = getSeatsLeft(nowMs, bounds);
+                var scarcityLabel = formatDevScarcityLabel(scarcityPhase, scarcitySeats);
+                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span> · Scarcity : <span class="dev-state-val">' + scarcityPhase + ' · ' + scarcityLabel + '</span>';
             }
 
             function remountWithSession(sessionMs, offerMs) {
