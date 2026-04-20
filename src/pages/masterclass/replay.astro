@@ -719,6 +719,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <h1 id="blocked-title">Replay indisponible</h1>
       <p id="blocked-copy">L'accès au replay n'est pas disponible.</p>
       <div class="btn-row">
+        <a id="blocked-volt-link" class="btn secondary" href="https://volt.sonnycourt.com" target="_blank" rel="noopener" style="display:none;">Accéder à mon compte</a>
         <a class="btn secondary" href="/masterclass">Retour masterclass</a>
       </div>
     </section>
@@ -932,6 +933,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     function showBlocked(title, copy) {
       document.getElementById('blocked-title').textContent = title;
       document.getElementById('blocked-copy').textContent = copy;
+      const voltLink = document.getElementById('blocked-volt-link');
+      if (voltLink) voltLink.style.display = 'none';
+      show('screen-blocked');
+    }
+    function showBuyerBlocked() {
+      document.getElementById('blocked-title').textContent = 'Le replay est accessible sur Volt.';
+      document.getElementById('blocked-copy').textContent = 'Ton accès élève est déjà actif sur Volt.';
+      const voltLink = document.getElementById('blocked-volt-link');
+      if (voltLink) voltLink.style.display = '';
       show('screen-blocked');
     }
     function updateCountdown(targetMs) {
@@ -1531,7 +1541,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           data = createPreviewRegistration();
         }
         if (!isPreviewDev && isBuyer(data)) {
-          showBlocked('Le replay est accessible sur Volt.', 'Ton accès élève est déjà actif sur Volt.');
+          showBuyerBlocked();
           return;
         }
         show('screen-replay');
@@ -1575,7 +1585,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
             setTokenEverywhere(body.token);
             if (isBuyer(reg)) {
-              showBlocked('Le replay est accessible sur Volt.', 'Ton accès élève est déjà actif sur Volt.');
+              showBuyerBlocked();
               return;
             }
             show('screen-replay');
