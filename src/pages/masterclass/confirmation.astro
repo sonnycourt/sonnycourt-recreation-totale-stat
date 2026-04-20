@@ -436,6 +436,60 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             box-shadow: 0 8px 20px rgba(37, 211, 102, 0.2);
         }
 
+        /* Lien diffusion — volontairement plus discret que le CTA WhatsApp */
+        .session-access-step .step-icon {
+            background: rgba(148, 163, 184, 0.1);
+            border-color: rgba(148, 163, 184, 0.28);
+            color: #94a3b8;
+        }
+
+        .session-access-title {
+            font-weight: 700;
+            color: #e2e8f0;
+            line-height: 1.35;
+            margin-bottom: 6px;
+            font-size: 0.92rem;
+        }
+
+        .session-access-sub {
+            color: var(--text-muted);
+            line-height: 1.5;
+            font-size: 0.84rem;
+            margin-bottom: 10px;
+        }
+
+        .session-access-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+        }
+
+        .session-access-link:hover {
+            border-color: rgba(96, 165, 250, 0.55);
+            color: #e2e8f0;
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .session-access-note {
+            margin-top: 10px;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .session-access-step.is-hidden {
+            display: none !important;
+        }
+
         .social-proof {
             display: grid;
             gap: 6px;
@@ -569,7 +623,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <div class="section">
                 <h2>Prochaines étapes</h2>
                 <ul class="steps-list">
-                    <li class="step-item">
+                    <li class="step-item" id="whatsapp-step">
                         <span class="step-icon" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-brand-whatsapp">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -580,7 +634,21 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         <div>
                             <p class="step-title">Rejoins le groupe WhatsApp privé</p>
                             <p class="step-text">Lien d'accès, rappels, ressources exclusives — tout passe par là.</p>
-                            <a class="step-btn" href="https://chat.whatsapp.com/LdwhySpcmRvGu5IgHE6ciB?mode=gi_t" target="_blank" rel="noopener noreferrer">Rejoindre le groupe</a>
+                            <a id="link-whatsapp" class="step-btn" href="#" target="_blank" rel="noopener noreferrer">Rejoindre le Groupe</a>
+                        </div>
+                    </li>
+                    <li class="step-item session-access-step is-hidden" id="session-access-step">
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="session-access-title">Ton lien d'accès à la masterclass</p>
+                            <p class="session-access-sub">Sauvegarde ce lien — c'est ton accès le jour J</p>
+                            <a id="link-masterclass-session" class="session-access-link" href="#">Ouvrir la page de diffusion</a>
+                            <p class="session-access-note">Ce lien te sera aussi renvoyé par email avant la session.</p>
                         </div>
                     </li>
                     <li class="step-item">
@@ -604,7 +672,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         </span>
                         <div>
                             <p class="step-title">Bloque jeudi 20h dans ton agenda maintenant</p>
-                            <p class="step-text">Prévois 1h de calme et de quoi écrire.</p>
+                            <p class="step-text">Prévois 1h30 de calme et de quoi écrire.</p>
                         </div>
                     </li>
                 </ul>
@@ -627,6 +695,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const EVENT_TITLE = 'Masterclass Esprit Subconscient 2.0 — Sonny Court';
         const EVENT_DESCRIPTION =
             "Ton lien d'accès personnel te sera envoyé par email et SMS avant la session.";
+        const TOKEN_KEY = 'masterclass_es2_token';
 
         function pad(n) {
             return String(n).padStart(2, '0');
@@ -817,15 +886,140 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             requestAnimationFrame(frame);
         }
 
+        function setTokenEverywhere(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+
+        async function requestTokenFromEmail() {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;padding:16px;';
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:420px;border:1px solid rgba(148,163,184,.25);background:#0f172a;border-radius:16px;padding:18px;color:#e2e8f0;">
+                    <p style="margin:0 0 8px;font-size:20px;font-weight:700;">Retrouve ton accès</p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">Entre l'email utilisé à l'inscription.</p>
+                    <input id="conf-recovery-email" type="email" placeholder="Ton email" autocomplete="email" style="width:100%;height:44px;border-radius:10px;border:1px solid #334155;background:#020617;color:#e2e8f0;padding:0 12px;outline:none;" />
+                    <button id="conf-recovery-submit" type="button" style="margin-top:10px;width:100%;height:44px;border:none;border-radius:10px;background:#38bdf8;color:#082f49;font-weight:800;cursor:pointer;">Vérifier mon accès</button>
+                    <p id="conf-recovery-error" style="min-height:1.2em;margin:10px 0 0;color:#fca5a5;font-size:13px;"></p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const input = overlay.querySelector('#conf-recovery-email');
+            const submit = overlay.querySelector('#conf-recovery-submit');
+            const err = overlay.querySelector('#conf-recovery-error');
+
+            async function submitEmail() {
+                err.textContent = '';
+                const email = String(input.value || '').trim().toLowerCase();
+                if (!email || !email.includes('@')) {
+                    err.textContent = 'Merci de saisir un email valide.';
+                    return;
+                }
+                submit.disabled = true;
+                try {
+                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                    const body = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                        overlay.remove();
+                        window.__confirmationRecoveredToken = String(body.token);
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'excluded') {
+                        err.textContent = "Tu n'es pas éligible pour cette session.";
+                        return;
+                    }
+                    err.textContent = "Aucune inscription trouvée avec cet email.";
+                } catch {
+                    err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    submit.disabled = false;
+                }
+            }
+
+            submit.addEventListener('click', submitEmail);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') submitEmail();
+            });
+
+            return new Promise(function (resolve) {
+                const t = setInterval(function () {
+                    if (window.__confirmationRecoveredToken) {
+                        const recovered = window.__confirmationRecoveredToken;
+                        window.__confirmationRecoveredToken = '';
+                        clearInterval(t);
+                        resolve(recovered);
+                    }
+                }, 120);
+            });
+        }
+
         /** Aperçu design local : pas de token ni d’API Netlify */
         const PREVIEW_SUBTITLE =
             'Rendez-vous le jeudi 27 mars 2026 à 20h (heure de Paris)';
         const PREVIEW_SESSION_START_ISO = '2026-03-27T19:00:00.000Z';
         const PREVIEW_SESSION_END_ISO = '2026-03-27T19:45:00.000Z';
+        /** Token factice pour afficher le bloc « lien session » en preview=dev (ou utiliser ?preview=dev&t=TON_TOKEN) */
+        const PREVIEW_SESSION_ACCESS_TOKEN = '00000000-0000-4000-8000-000000000001';
 
         function mountConfirmation(data, options) {
             const tokenForApple = options && options.appleUid ? options.appleUid : 'preview@webinaire-es2.sonnycourt';
             const startMs = new Date(data.sessionStartsAt).getTime();
+            const whatsappStep = document.getElementById('whatsapp-step');
+            const whatsappLinkEl = document.getElementById('link-whatsapp');
+            const whatsappLink = data && data.whatsappLink ? String(data.whatsappLink).trim() : '';
+            const whatsappGroupNumber = Number(data?.whatsappGroupNumber);
+
+            if (whatsappStep && whatsappLinkEl) {
+                if (whatsappLink) {
+                    whatsappLinkEl.href = whatsappLink;
+                    whatsappLinkEl.textContent =
+                        Number.isFinite(whatsappGroupNumber) && whatsappGroupNumber > 0
+                            ? `Rejoindre le Groupe ${Math.floor(whatsappGroupNumber)}`
+                            : 'Rejoindre le Groupe';
+                    whatsappLinkEl.onclick = function () {
+                        const payload = {
+                            session_date: String(data?.sessionStartsAt || '').slice(0, 10),
+                            group_number:
+                                Number.isFinite(whatsappGroupNumber) && whatsappGroupNumber > 0
+                                    ? Math.floor(whatsappGroupNumber)
+                                    : null,
+                        };
+                        if (payload.session_date && payload.group_number) {
+                            fetch('/.netlify/functions/track-whatsapp-join', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload),
+                                keepalive: true,
+                            }).catch(function () {});
+                        }
+                    };
+                    whatsappStep.style.display = '';
+                } else {
+                    whatsappStep.style.display = 'none';
+                }
+            }
+
+            const sessionAccessRow = document.getElementById('session-access-step');
+            const sessionAccessLink = document.getElementById('link-masterclass-session');
+            const accessToken = options && options.sessionAccessToken ? String(options.sessionAccessToken).trim() : '';
+            if (sessionAccessRow && sessionAccessLink) {
+                if (accessToken) {
+                    sessionAccessLink.href = '/masterclass/session?t=' + encodeURIComponent(accessToken);
+                    sessionAccessRow.classList.remove('is-hidden');
+                    sessionAccessRow.style.display = 'grid';
+                } else {
+                    sessionAccessRow.classList.add('is-hidden');
+                    sessionAccessRow.style.removeProperty('display');
+                }
+            }
 
             document.getElementById('subtitle').textContent = data.subtitleText || formatSubtitle(data.sessionStartsAt, data.creneau);
             document.getElementById('link-google').href = buildGoogleUrl(data.sessionStartsAt, data.sessionEndsAt);
@@ -985,7 +1179,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         (async function init() {
             const url = new URL(window.location.href);
-            const token = url.searchParams.get('t');
+            let token = (url.searchParams.get('t') || '').trim();
             const preview = url.searchParams.get('preview') === 'dev';
 
             if (preview) {
@@ -995,18 +1189,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     previewBanner.classList.add('visible');
                     document.body.style.paddingTop = `${previewBanner.offsetHeight}px`;
                 }
+                const sessionTokenPreview =
+                    token && String(token).trim() ? String(token).trim() : PREVIEW_SESSION_ACCESS_TOKEN;
                 mountConfirmation(
                     {
                         sessionStartsAt: PREVIEW_SESSION_START_ISO,
                         sessionEndsAt: PREVIEW_SESSION_END_ISO,
                         creneau: '20h',
                         subtitleText: PREVIEW_SUBTITLE,
+                        whatsappLink: 'https://chat.whatsapp.com/PLACEHOLDER',
+                        whatsappGroupNumber: 1,
                     },
-                    { appleUid: 'preview-design@webinaire-es2.local' }
+                    { appleUid: 'preview-design@webinaire-es2.local', sessionAccessToken: sessionTokenPreview },
                 );
                 return;
             }
 
+            if (!token) {
+                token = (localStorage.getItem(TOKEN_KEY) || '').trim();
+            }
+            if (!token) {
+                token = await requestTokenFromEmail();
+            }
             if (!token || !token.trim()) {
                 window.location.replace('/masterclass');
                 return;
@@ -1032,11 +1236,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
 
             const tk = token.trim();
-            const maxAge = 365 * 24 * 60 * 60;
-            localStorage.setItem('masterclass_es2_token', tk);
-            document.cookie = `masterclass_es2_token=${encodeURIComponent(tk)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-            localStorage.removeItem('webinaire_es2_token');
-            document.cookie = 'webinaire_es2_token=; path=/; max-age=0; SameSite=Lax';
+            setTokenEverywhere(tk);
 
             async function pingWaiting() {
                 try {
@@ -1060,8 +1260,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     sessionStartsAt: data.sessionStartsAt,
                     sessionEndsAt: data.sessionEndsAt,
                     creneau: data.creneau,
+                    whatsappLink: data.whatsappLink || '',
+                    whatsappGroupNumber: data.whatsappGroupNumber,
                 },
-                { appleUid: `${token.trim()}@webinaire-es2.sonnycourt` }
+                {
+                    appleUid: `${token.trim()}@webinaire-es2.sonnycourt`,
+                    sessionAccessToken: tk,
+                },
             );
         })();
     </script>

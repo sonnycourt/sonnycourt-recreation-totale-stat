@@ -231,14 +231,27 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       color: rgba(226,232,240,.68);
     }
     .dev-time-banner {
-      margin-top: 12px;
       padding: 10px;
-      border-radius: 10px;
-      border: 1px dashed rgba(148,163,184,.45);
-      background: rgba(15,23,42,.45);
+      border-radius: 12px;
+      border: 1px solid rgba(96,165,250,.45);
+      background: rgba(15,23,42,.92);
+      box-shadow: 0 12px 30px rgba(2,6,23,.45);
       display: none;
     }
-    .dev-time-banner.is-visible { display: block; }
+    .dev-time-banner.is-visible {
+      display: block;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      left: auto;
+      z-index: 460000;
+      width: min(340px, calc(100vw - 24px));
+      max-height: min(420px, 70vh);
+      overflow-x: hidden;
+      overflow-y: auto;
+      margin: 0;
+      -webkit-overflow-scrolling: touch;
+    }
     .dev-time-title {
       font-size: .76rem;
       text-transform: uppercase;
@@ -274,6 +287,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       padding: 0 8px;
       font-size: .78rem;
     }
+    .dev-time-status {
+      margin-top: 8px;
+      font-size: .74rem;
+      line-height: 1.4;
+      color: rgba(191,219,254,.95);
+    }
+    .dev-scarcity-force {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .dev-scarcity-force .dev-time-btn { padding: 5px 8px; font-size: .72rem; }
     .offer-zone.visible {
       display: flex;
       opacity: 1;
@@ -353,6 +379,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     }
     .scarcity-number { font-size: 1.42rem; line-height: 1; font-weight: 900; color: #fff; }
     .scarcity-unit { font-size: 0.80rem; letter-spacing: 0.06em; color: #ffe4e6; font-weight: 700; }
+    .scarcity-denominator {
+      display: none;
+      font-size: 0.95rem;
+      line-height: 1;
+      font-weight: 800;
+      color: rgba(255, 228, 230, 0.92);
+    }
+    .scarcity-denominator.is-visible { display: inline; }
     .scarcity-meter {
       margin-top: 10px;
       width: 100%;
@@ -369,6 +403,148 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       background: linear-gradient(90deg, #ef4444, #dc2626);
       box-shadow: 0 0 14px rgba(239, 68, 68, 0.55);
     }
+    .scarcity-phase1-total {
+      display: none;
+      margin: 10px 0 12px;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(153, 27, 27, 0.28));
+      box-shadow: inset 0 0 0 1px rgba(127, 29, 29, 0.35), 0 8px 22px rgba(127, 29, 29, 0.30);
+    }
+    .scarcity-soldout-stamp {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #b91c1c;
+      color: #fff;
+      font-size: 0.66rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      border: 1px solid rgba(254, 202, 202, 0.55);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+      transform: rotate(-3deg);
+    }
+    .scarcity-soldout-line {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.2;
+      min-width: 0;
+    }
+    .scarcity-soldout-count {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(254, 202, 202, 0.9);
+    }
+    .scarcity-soldout-slash { opacity: 0.75; font-weight: 700; }
+    .scarcity-soldout-text {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #fecaca;
+      margin-top: 3px;
+      letter-spacing: 0.01em;
+    }
+    .scarcity-phase2-note {
+      display: none;
+      margin: 0 0 12px;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(110, 231, 183, 0.45);
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.55), rgba(4, 120, 87, 0.20));
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #d1fae5;
+      box-shadow: 0 6px 16px rgba(6, 95, 70, 0.18);
+    }
+    .scarcity-phase2-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.65);
+      animation: scarcityPulse 1.6s ease-out infinite;
+    }
+    .scarcity-phase2-text strong { color: #fff; font-weight: 800; }
+    .scarcity-phase1-total.is-visible { display: flex; }
+    .scarcity-phase2-note.is-visible { display: inline-flex; }
+    @keyframes scarcityPulse {
+      0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.65); }
+      70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+    .mc-gate-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(10px);
+    }
+    .mc-gate-overlay.is-visible { display: flex; }
+    html.mc-page-lock,
+    html.mc-page-lock body {
+      overflow: hidden;
+      height: 100%;
+    }
+    .mc-gate-overlay__panel {
+      width: min(560px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+      box-shadow: 0 24px 70px rgba(127, 29, 29, 0.35);
+      padding: 22px 18px 18px;
+      text-align: center;
+    }
+    .mc-gate-overlay__title {
+      margin: 0;
+      font-size: clamp(1.12rem, 2.6vw, 1.42rem);
+      font-weight: 900;
+      color: #fff1f2;
+    }
+    .mc-gate-overlay__copy {
+      margin: 10px 0 14px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #fecdd3;
+    }
+    .mc-gate-overlay__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 113, 133, 0.55);
+      background: rgba(225, 29, 72, 0.35);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+    .late-replay-banner {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      background: rgba(30, 64, 175, 0.35);
+      color: #dbeafe;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .late-replay-banner.hidden { display: none !important; }
     .offer-cta {
       width: 100%;
       max-width: 520px;
@@ -393,18 +569,60 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       transform: translateY(-1px);
       box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
     }
+    .offer-expired-state {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.38), rgba(69, 10, 10, 0.45));
+      padding: 16px 16px 14px;
+      text-align: center;
+    }
+    .offer-expired-title {
+      margin: 0;
+      color: #fff1f2;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .offer-expired-copy {
+      margin: 8px 0 12px;
+      color: #fecdd3;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .offer-expired-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 113, 133, 0.55);
+      color: #fff;
+      background: rgba(225, 29, 72, 0.32);
+      text-decoration: none;
+      font-size: .85rem;
+      font-weight: 800;
+    }
 
     .purchase-toast {
       position: fixed;
       left: 20px;
-      bottom: 20px;
+      top: 20px;
       z-index: 9999;
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(-20px);
       pointer-events: none;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
     .purchase-toast.show { opacity: 1; transform: translateY(0); }
+    .purchase-toast.is-top {
+      top: 20px;
+      bottom: auto;
+      transform: translateY(-20px);
+    }
+    .purchase-toast.is-top.show { transform: translateY(0); }
     .purchase-toast__content {
       display: flex;
       align-items: center;
@@ -441,7 +659,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     .purchase-toast__course { display: block; margin-top: 2px; color: #ffffff !important; font-weight: 400 !important; }
     @media (max-width: 640px) {
       .offer-cta { width: 100%; }
-      .purchase-toast { left: 10px; right: 10px; bottom: 10px; }
+      .purchase-toast { left: 10px; right: 10px; top: 10px; }
+      .purchase-toast.is-top { top: 10px; bottom: auto; }
       .purchase-toast__content { max-width: 100%; }
       .countdown { grid-template-columns: repeat(2,minmax(0,1fr)); }
     }
@@ -458,8 +677,29 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         <button class="dev-time-btn" type="button" data-jump-seconds="4950">+30s après CTA</button>
         <button class="dev-time-btn" type="button" data-jump-seconds="5400">Replay 01:30:00</button>
         <button class="dev-time-btn" type="button" data-jump-seconds="-1">Fin vidéo</button>
+        <button class="dev-time-btn" type="button" data-offer-state="active">Offre active</button>
+        <button class="dev-time-btn" type="button" data-offer-state="expired">Offre expirée</button>
         <input id="dev-time-input" class="dev-time-input" type="text" placeholder="hh:mm:ss" />
         <button id="dev-time-apply" class="dev-time-btn" type="button">Aller</button>
+      </div>
+      <div class="dev-time-row" style="margin-top:8px;">
+        <button class="dev-time-btn" type="button" data-wallclock-preset="thu-start">Début fenêtre</button>
+        <button class="dev-time-btn" type="button" data-wallclock-preset="fri-22">Vendredi 22h</button>
+        <button class="dev-time-btn" type="button" data-wallclock-preset="sun-14">Dimanche 14h</button>
+        <button class="dev-time-btn" type="button" data-wallclock-preset="sun-2250">Dimanche 22h50</button>
+        <button class="dev-time-btn" type="button" data-wallclock-preset="after-end">Après clôture</button>
+      </div>
+      <p id="dev-now-status" class="dev-time-status">Horloge replay: --</p>
+      <p id="dev-scarcity-status" class="dev-time-status">Scarcity: --</p>
+      <p class="dev-time-title" style="margin-top:10px;">Scarcity (saut moteur)</p>
+      <p id="dev-scarcity-audit" class="dev-time-status" style="white-space:pre-line;">--</p>
+      <div class="dev-scarcity-force">
+        <button class="dev-time-btn" type="button" data-scarcity-jump="0">Phase1 start</button>
+        <button class="dev-time-btn" type="button" data-scarcity-jump="1200000">Phase1 live</button>
+        <button class="dev-time-btn" type="button" data-scarcity-jump="45596000">Phase1 fin / Phase2 start</button>
+        <button class="dev-time-btn" type="button" data-scarcity-jump="149499000">Phase2 mid</button>
+        <button class="dev-time-btn" type="button" data-scarcity-jump="255663000">Phase2 fin</button>
+        <button class="dev-time-btn" type="button" data-scarcity-jump="">Temps réel</button>
       </div>
     </div>
 
@@ -486,6 +726,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <section id="screen-replay" class="screen">
       <div class="badge">Replay privé</div>
       <h1>Masterclass Esprit Subconscient 2.0</h1>
+      <p id="late-replay-banner" class="late-replay-banner hidden" role="status">
+        Tu accèdes au replay après la fin de la fenêtre du direct — reprends la vidéo où tu veux.
+      </p>
       <p>Replay disponible jusqu'à dimanche 23h (Paris).</p>
 
       <p id="expiry-banner" class="expiry-banner">Cette session privée expire dimanche à 23h.</p>
@@ -537,20 +780,44 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         </div>
         <div class="scarcity-card" id="scarcity-card" aria-live="polite">
           <p class="scarcity-kicker">Nombre de places limitées</p>
+          <div class="scarcity-phase1-total">
+            <span class="scarcity-soldout-stamp">Sold out</span>
+            <div class="scarcity-soldout-line">
+              <span class="scarcity-soldout-count">30<span class="scarcity-soldout-slash">/30</span> places vendues</span>
+              <span class="scarcity-soldout-text">parties en quelques heures</span>
+            </div>
+          </div>
+          <div class="scarcity-phase2-note">
+            <span class="scarcity-phase2-pulse"></span>
+            <span class="scarcity-phase2-text"><strong>10 places rouvertes</strong> exceptionnellement</span>
+          </div>
           <div class="scarcity-main">
             <p class="scarcity-label">Places restantes</p>
             <div class="scarcity-value">
               <span class="scarcity-number" id="scarcity-places">30</span>
-              <span class="scarcity-unit">/ 30</span>
-              <span class="scarcity-unit">places</span>
+              <span class="scarcity-denominator">/ 10</span>
+              <span class="scarcity-unit" id="scarcity-unit">places</span>
             </div>
           </div>
           <div class="scarcity-meter"><div class="scarcity-meter__fill" id="scarcity-meter-fill"></div></div>
         </div>
         <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
+        <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
+          <p class="offer-expired-title">L'offre n'est plus disponible</p>
+          <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
+          <a class="offer-expired-btn" href="/contact">Contacter le support</a>
+        </div>
       </section>
     </section>
   </main>
+
+  <div id="replay-unavailable-overlay" class="mc-gate-overlay" aria-hidden="true">
+    <div class="mc-gate-overlay__panel">
+      <p class="mc-gate-overlay__title">La masterclass n'est plus disponible</p>
+      <p class="mc-gate-overlay__copy">Si vous avez des questions, contactez le support.</p>
+      <a class="mc-gate-overlay__btn" href="/contact">Contacter le support</a>
+    </div>
+  </div>
 
   <div id="purchase-toast" class="purchase-toast" aria-live="polite">
     <div class="purchase-toast__content">
@@ -564,16 +831,31 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
   <script>
     // @ts-nocheck
-    import { startScarcityEngine } from '../../lib/scarcity-engine';
+    import { startScarcityEngine, getCurrentWindow, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
 
     const TOKEN_KEY = 'masterclass_es2_token';
-    const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
-    const COOKIE_MAX = 365 * 24 * 60 * 60;
     const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000;
     const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
     const CTA_TRIGGER_SECONDS = 82 * 60; // 1h22
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 82];
     const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
+    const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
+
+    function getMcWallClockMs() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('preview') === 'dev') {
+          const raw = sessionStorage.getItem(DEV_CLOCK_KEY);
+          if (raw) {
+            const c = JSON.parse(raw);
+            if (Number.isFinite(c.simulatedNowMs) && Number.isFinite(c.simulatedAnchorRealMs)) {
+              return c.simulatedNowMs + (Date.now() - c.simulatedAnchorRealMs);
+            }
+          }
+        }
+      } catch (e) {}
+      return Date.now();
+    }
 
     function parseGmtOffsetMinutes(label) {
       const m = String(label || '').match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
@@ -632,32 +914,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       };
     }
 
-    function getCookie(name) {
-      const esc = name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
-      const m = document.cookie.match(new RegExp('(?:^|; )' + esc + '=([^;]*)'));
-      return m ? decodeURIComponent(m[1]) : '';
-    }
     function setTokenEverywhere(token) {
       localStorage.setItem(TOKEN_KEY, token);
-      document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX}; SameSite=Lax`;
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
-      document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
     }
     function clearTokenEverywhere() {
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(LEGACY_TOKEN_KEY);
-      document.cookie = `${TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
-      document.cookie = `${LEGACY_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
     }
     function getStoredToken() {
-      let t = (localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY) || '').trim();
-      if (t) return t;
-      const legacy = (localStorage.getItem(LEGACY_TOKEN_KEY) || getCookie(LEGACY_TOKEN_KEY) || '').trim();
-      if (legacy) {
-        setTokenEverywhere(legacy);
-        return legacy;
-      }
-      return '';
+      const t = (localStorage.getItem(TOKEN_KEY) || '').trim();
+      return t;
     }
     function show(screenId) {
       ['screen-email', 'screen-blocked', 'screen-replay'].forEach((id) => {
@@ -670,7 +935,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       show('screen-blocked');
     }
     function updateCountdown(targetMs) {
-      const diff = Math.max(0, targetMs - Date.now());
+      const diff = Math.max(0, targetMs - getMcWallClockMs());
       const total = Math.floor(diff / 1000);
       const d = Math.floor(total / 86400);
       const h = Math.floor((total % 86400) / 3600);
@@ -725,14 +990,26 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const expiryBanner = document.getElementById('expiry-banner');
       const offerZone = document.getElementById('offer-zone');
       const offerCta = document.getElementById('offer-cta');
+      const offerCountdownTitle = document.querySelector('#offer-zone .offer-countdown-title');
+      const offerCountdownGrid = document.querySelector('#offer-zone .countdown');
+      const offerScarcityCard = document.getElementById('scarcity-card');
+      const offerExpiredState = document.getElementById('offer-expired-state');
       const scarcityPlaces = document.getElementById('scarcity-places');
       const scarcityFill = document.getElementById('scarcity-meter-fill');
+      const scarcityPhase1TotalEl = document.querySelector('#offer-zone .scarcity-phase1-total');
+      const scarcityPhase2NoteEl = document.querySelector('#offer-zone .scarcity-phase2-note');
+      const scarcityDenominatorEl = document.querySelector('#offer-zone .scarcity-denominator');
+      const scarcityUnitEl = document.getElementById('scarcity-unit');
+      const replayUnavailableOverlay = document.getElementById('replay-unavailable-overlay');
       const toast = document.getElementById('purchase-toast');
       const toastFlag = document.getElementById('purchase-toast-flag');
       const toastText = document.getElementById('purchase-toast-text');
 
       const sessionStartMs = new Date(reg.sessionStartsAt || reg.session_date || Date.now() + 2 * 60 * 60 * 1000).getTime();
       const offerExpiryMs = new Date(reg.offreExpiresAt).getTime();
+      const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
+      const scarcityWindowEndMs = offerExpiryMs;
+      const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
       let maxWatched = 0;
       let ctaActivated = false;
       let allowProgrammaticSeek = false;
@@ -740,14 +1017,174 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       let countdownInterval = null;
       let presenceInterval = null;
       let scarcityEngine = null;
+      let previewOfferStateOverride = null;
       let didTrackCtaReached = false;
       let didTrackReplayStarted = false;
       const emittedCheckpointMinutes = new Set();
+      const handleToastViewportUpdate = () => updateToastPositionByOfferVisibility();
+      let previewScarcityAnchorStartMs = null;
+      let soldOutExpired = false;
 
-      function setSeatsLeft(seatsLeft) {
-        const seats = Math.max(0, Math.min(30, Number(seatsLeft) || 0));
-        scarcityPlaces.textContent = String(seats);
-        scarcityFill.style.width = `${(seats / 30) * 100}%`;
+      function getPreviewScarcityAnchorStartMs() {
+        if (Number.isFinite(previewScarcityAnchorStartMs)) return previewScarcityAnchorStartMs;
+        if (Number.isFinite(scarcityWindowStartMs)) {
+          previewScarcityAnchorStartMs = scarcityWindowStartMs;
+          return previewScarcityAnchorStartMs;
+        }
+        const now = Date.now();
+        const win = getCurrentWindow(now);
+        if (win.phase === 'closed') {
+          previewScarcityAnchorStartMs = win.startMs + (7 * 24 * 60 * 60 * 1000);
+        } else {
+          previewScarcityAnchorStartMs = win.startMs;
+        }
+        return previewScarcityAnchorStartMs;
+      }
+
+      function setPreviewWallClockFromReplaySeconds(replaySeconds) {
+        if (!isPreviewDev) return;
+        const sec = Number(replaySeconds);
+        if (!Number.isFinite(sec)) return;
+        const scarcityAnchorStartMs = getPreviewScarcityAnchorStartMs();
+        const relativeToCtaMs = Math.floor((sec - CTA_TRIGGER_SECONDS) * 1000);
+        const simulatedNowMs = scarcityAnchorStartMs + relativeToCtaMs;
+        const payload = {
+          simulatedNowMs,
+          simulatedAnchorRealMs: Date.now(),
+        };
+        try {
+          sessionStorage.setItem(DEV_CLOCK_KEY, JSON.stringify(payload));
+        } catch {}
+      }
+      function setPreviewWallClockAbsolute(ms) {
+        if (!isPreviewDev || !Number.isFinite(ms)) return;
+        try {
+          sessionStorage.setItem(DEV_CLOCK_KEY, JSON.stringify({
+            simulatedNowMs: ms,
+            simulatedAnchorRealMs: Date.now(),
+          }));
+        } catch {}
+      }
+      function getPreviewWallClockPresetMs(key) {
+        const anchorStartMs = getPreviewScarcityAnchorStartMs();
+        const thu = getParisYmd(anchorStartMs);
+        const fri = addYmdDays(thu.year, thu.month, thu.day, 1);
+        const sun = addYmdDays(thu.year, thu.month, thu.day, 3);
+        if (key === 'thu-start') return anchorStartMs + 60 * 1000;
+        if (key === 'fri-22') return parisLocalToUtcMs(fri.year, fri.month, fri.day, 22, 0, 0);
+        if (key === 'sun-14') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 14, 0, 0);
+        if (key === 'sun-2250') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 22, 50, 0);
+        if (key === 'after-end') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 23, 5, 0);
+        return null;
+      }
+      function formatParisDateTime(ms) {
+        try {
+          return new Intl.DateTimeFormat('fr-FR', {
+            timeZone: 'Europe/Paris',
+            weekday: 'short',
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }).format(new Date(ms));
+        } catch {
+          return '--';
+        }
+      }
+      function updateDevPreviewStatus() {
+        if (!isPreviewDev) return;
+        const nowEl = document.getElementById('dev-now-status');
+        const scarcityEl = document.getElementById('dev-scarcity-status');
+        const auditEl = document.getElementById('dev-scarcity-audit');
+        const nowMs = getMcWallClockMs();
+        if (nowEl) nowEl.textContent = `Horloge replay (Paris): ${formatParisDateTime(nowMs)}`;
+        const bounds = Number.isFinite(scarcityWindowStartMs) && Number.isFinite(scarcityWindowEndMs) && scarcityWindowEndMs > scarcityWindowStartMs
+          ? { startMs: scarcityWindowStartMs, endMs: scarcityWindowEndMs }
+          : null;
+        const phase = getPhase(nowMs, bounds);
+        const soldCount = getSoldCount(nowMs, bounds);
+        const seatsLeft = getSeatsLeft(nowMs, bounds);
+        if (scarcityEl) {
+          scarcityEl.textContent = `Scarcity: ${phase} · ${seatsLeft} place${seatsLeft === 1 ? '' : 's'}`;
+        }
+        if (auditEl) {
+          auditEl.textContent = [
+            `sessionStartsAt : ${formatParisDateTime(sessionStartMs)}`,
+            `windowStartMs : ${formatParisDateTime(scarcityWindowStartMs)}`,
+            `offreExpiresAt : ${formatParisDateTime(scarcityWindowEndMs)}`,
+            `Phase actuelle : ${phase}`,
+            `soldCount : ${soldCount}`,
+            `seatsLeft : ${seatsLeft}`,
+          ].join('\n');
+        }
+      }
+
+      function updateToastPositionByOfferVisibility() {
+        if (!toast || !offerZone) return;
+        const offerVisible = !offerZone.classList.contains('hidden');
+        if (!offerVisible) {
+          toast.classList.remove('is-top');
+          return;
+        }
+        const rect = offerZone.getBoundingClientRect();
+        const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+        toast.classList.toggle('is-top', isInViewport);
+      }
+
+      window.addEventListener('scroll', handleToastViewportUpdate, { passive: true });
+      window.addEventListener('resize', handleToastViewportUpdate);
+
+      function renderScarcityVisual(seatsLeft, phase) {
+        const isPhase2 = phase === 'phase2';
+        const maxSeats = isPhase2 ? 10 : 30;
+        const seats = Math.max(0, Math.min(maxSeats, Number(seatsLeft) || 0));
+        if (scarcityPlaces) scarcityPlaces.textContent = String(seats);
+        if (scarcityUnitEl) scarcityUnitEl.textContent = seats === 1 ? 'place' : 'places';
+        if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.toggle('is-visible', isPhase2);
+        if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.toggle('is-visible', isPhase2);
+        if (scarcityDenominatorEl) scarcityDenominatorEl.classList.toggle('is-visible', isPhase2);
+        const pct = (seats / maxSeats) * 100;
+        if (scarcityFill) scarcityFill.style.width = `${pct}%`;
+      }
+      function setSeatsLeft(seatsLeft, _soldCount, phase) {
+        const seats = Math.max(0, Number(seatsLeft) || 0);
+        if (phase === 'sold_out' && seats <= 0) {
+          soldOutExpired = true;
+          syncReplayUnavailableLock();
+          return;
+        }
+        soldOutExpired = false;
+        renderScarcityVisual(seats, phase);
+      }
+      function isOfferExpiredNow() {
+        if (previewOfferStateOverride === 'expired') return true;
+        if (previewOfferStateOverride === 'active') return false;
+        if (soldOutExpired) return true;
+        return getMcWallClockMs() >= offerExpiryMs;
+      }
+      function syncReplayUnavailableLock() {
+        const expired = isOfferExpiredNow();
+        if (!replayUnavailableOverlay) return;
+        replayUnavailableOverlay.classList.toggle('is-visible', expired);
+        replayUnavailableOverlay.setAttribute('aria-hidden', expired ? 'false' : 'true');
+        document.documentElement.classList.toggle('mc-page-lock', expired);
+        if (expired && scarcityEngine) {
+          scarcityEngine.stop();
+          scarcityEngine = null;
+        }
+        if (expired) {
+          const v = document.getElementById('replay-video');
+          if (v) v.pause();
+        }
+      }
+      function setOfferExpiredState(expired) {
+        const isExpired = Boolean(expired);
+        if (offerCountdownTitle) offerCountdownTitle.classList.toggle('hidden', isExpired);
+        if (offerCountdownGrid) offerCountdownGrid.classList.toggle('hidden', isExpired);
+        if (offerScarcityCard) offerScarcityCard.classList.toggle('hidden', isExpired);
+        if (offerCta) offerCta.classList.toggle('hidden', isExpired);
+        if (offerExpiredState) offerExpiredState.classList.toggle('hidden', !isExpired);
       }
       function showToast(purchase, mode, detail) {
         if (new URLSearchParams(window.location.search).get('scarcity_debug') === '1') {
@@ -762,8 +1199,25 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         if (hideToastTimer) clearTimeout(hideToastTimer);
         hideToastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
       }
+      function startScarcityEngineIfNeeded() {
+        if (!ctaActivated || isOfferExpiredNow() || scarcityEngine) return;
+        scarcityEngine = startScarcityEngine({
+          now: () => getMcWallClockMs(),
+          isActive: () => ctaActivated && !isOfferExpiredNow(),
+          windowStartMs: scarcityWindowStartMs,
+          windowEndMs: scarcityWindowEndMs,
+          enableReplay: true,
+          debug: new URLSearchParams(window.location.search).get('scarcity_debug') === '1',
+          onSeatsLeft: setSeatsLeft,
+          onNotification: showToast,
+        });
+      }
       function activateOfferAndScarcity() {
         if (ctaActivated) return;
+        if (isOfferExpiredNow()) {
+          syncReplayUnavailableLock();
+          return;
+        }
         ctaActivated = true;
         if (!didTrackCtaReached) {
           didTrackCtaReached = true;
@@ -772,14 +1226,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         offerZone.classList.remove('hidden');
         offerZone.classList.add('visible');
         expiryBanner.classList.add('hidden');
-        scarcityEngine = startScarcityEngine({
-          now: () => Date.now(),
-          isActive: () => ctaActivated,
-          enableReplay: true,
-          debug: new URLSearchParams(window.location.search).get('scarcity_debug') === '1',
-          onSeatsLeft: setSeatsLeft,
-          onNotification: showToast,
-        });
+        setOfferExpiredState(isOfferExpiredNow());
+        updateToastPositionByOfferVisibility();
+        startScarcityEngineIfNeeded();
       }
       function hideOfferAndScarcity() {
         ctaActivated = false;
@@ -791,13 +1240,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           scarcityEngine = null;
         }
         toast.classList.remove('show');
+        updateToastPositionByOfferVisibility();
       }
       function updateCtaStateByVideoTime() {
         if (video.currentTime >= CTA_TRIGGER_SECONDS) {
           activateOfferAndScarcity();
+          setOfferExpiredState(isOfferExpiredNow());
         } else {
           hideOfferAndScarcity();
         }
+      }
+      function ensureOfferVisibleForPreview() {
+        if (!isPreviewDev) return;
+        if ((video.currentTime || 0) >= CTA_TRIGGER_SECONDS) return;
+        allowProgrammaticSeek = true;
+        video.currentTime = CTA_TRIGGER_SECONDS + 30;
+        maxWatched = Math.max(maxWatched, video.currentTime);
       }
       function jumpToSeconds(targetSec) {
         const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null;
@@ -808,8 +1266,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         allowProgrammaticSeek = true;
         video.currentTime = Math.max(0, sec);
         maxWatched = Math.max(maxWatched, video.currentTime);
+        setPreviewWallClockFromReplaySeconds(sec);
         updateCtaStateByVideoTime();
         updateDiagnosticGuideState();
+        updateDevPreviewStatus();
         if (video.paused) {
           overlay.classList.add('hidden');
           playPauseBtn.textContent = 'Pause';
@@ -894,15 +1354,40 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       video.addEventListener('keydown', (e) => {
         if (['ArrowRight', 'l', 'L', 'j', 'J'].includes(e.key)) e.preventDefault();
       });
-      if (new URLSearchParams(window.location.search).get('preview') === 'dev') {
+      if (isPreviewDev) {
         const devPanel = document.getElementById('dev-time-banner');
         const devTimeInput = document.getElementById('dev-time-input');
         const devTimeApply = document.getElementById('dev-time-apply');
         if (devPanel) devPanel.classList.add('is-visible');
+        // If no shared preview clock exists yet, seed it from replay start.
+        try {
+          const rawClock = sessionStorage.getItem(DEV_CLOCK_KEY);
+          if (!rawClock) setPreviewWallClockFromReplaySeconds(0);
+        } catch {}
         document.querySelectorAll('[data-jump-seconds]').forEach((btn) => {
           btn.addEventListener('click', () => {
             const sec = Number(btn.getAttribute('data-jump-seconds'));
             jumpToSeconds(sec);
+          });
+        });
+        document.querySelectorAll('[data-wallclock-preset]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const key = String(btn.getAttribute('data-wallclock-preset') || '').trim();
+            const targetMs = getPreviewWallClockPresetMs(key);
+            if (!Number.isFinite(targetMs)) return;
+            setPreviewWallClockAbsolute(targetMs);
+            ensureOfferVisibleForPreview();
+            updateCtaStateByVideoTime();
+            startScarcityEngineIfNeeded();
+            updateDevPreviewStatus();
+          });
+        });
+        document.querySelectorAll('[data-offer-state]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            previewOfferStateOverride = btn.getAttribute('data-offer-state') || null;
+            updateCtaStateByVideoTime();
+            startScarcityEngineIfNeeded();
+            updateDevPreviewStatus();
           });
         });
         if (devTimeApply && devTimeInput) {
@@ -912,15 +1397,56 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             jumpToSeconds(parsed);
           });
         }
+        document.querySelectorAll('[data-scarcity-jump]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const raw = btn.getAttribute('data-scarcity-jump');
+            if (raw === null || raw === '') {
+              try { sessionStorage.removeItem(DEV_CLOCK_KEY); } catch {}
+              previewScarcityAnchorStartMs = null;
+              previewOfferStateOverride = null;
+              soldOutExpired = false;
+            } else {
+              const offset = Number(raw);
+              const base = Number.isFinite(scarcityWindowStartMs) ? scarcityWindowStartMs : getCurrentWindow(Date.now()).startMs;
+              soldOutExpired = false;
+              previewOfferStateOverride = null;
+              setPreviewWallClockAbsolute(base + (Number.isFinite(offset) ? offset : 0));
+            }
+            syncReplayUnavailableLock();
+            ensureOfferVisibleForPreview();
+            updateCtaStateByVideoTime();
+            startScarcityEngineIfNeeded();
+            if (scarcityEngine && typeof scarcityEngine.debugSnapshot === 'function') {
+              const snap = scarcityEngine.debugSnapshot();
+              setSeatsLeft(snap.seatsLeft, snap.soldCount, snap.phase);
+            } else {
+              const nowMs = getMcWallClockMs();
+              const bounds = Number.isFinite(scarcityWindowStartMs) && Number.isFinite(scarcityWindowEndMs) && scarcityWindowEndMs > scarcityWindowStartMs
+                ? { startMs: scarcityWindowStartMs, endMs: scarcityWindowEndMs }
+                : null;
+              setSeatsLeft(getSeatsLeft(nowMs, bounds), getSoldCount(nowMs, bounds), getPhase(nowMs, bounds));
+            }
+            updateDevPreviewStatus();
+          });
+        });
+        updateDevPreviewStatus();
       }
 
       countdownInterval = setInterval(() => {
         updateCountdown(offerExpiryMs);
         updateDiagnosticGuideState();
-        if (Date.now() >= offerExpiryMs) showBlocked('Ce replay a expiré.', "L'accès au replay n'est plus disponible.");
+        syncReplayUnavailableLock();
+        startScarcityEngineIfNeeded();
+        updateDevPreviewStatus();
+        if (ctaActivated && !isOfferExpiredNow()) {
+          setOfferExpiredState(false);
+        } else if (ctaActivated) {
+          setOfferExpiredState(true);
+        }
       }, 1000);
       updateCountdown(offerExpiryMs);
       updateDiagnosticGuideState();
+      syncReplayUnavailableLock();
       offerCta.href = '/es2?t=' + encodeURIComponent(token);
       offerCta.addEventListener('click', () => {
         trackWebinaireEvent(token, 'cta_clicked');
@@ -941,6 +1467,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           if (presenceInterval) clearInterval(presenceInterval);
           if (scarcityEngine) scarcityEngine.stop();
           if (hideToastTimer) clearTimeout(hideToastTimer);
+          document.documentElement.classList.remove('mc-page-lock');
+          window.removeEventListener('scroll', handleToastViewportUpdate);
+          window.removeEventListener('resize', handleToastViewportUpdate);
         },
       };
     }
@@ -986,6 +1515,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         if (!data) {
           clearTokenEverywhere();
           token = '';
+        } else {
+          setTokenEverywhere(token);
         }
       }
 
@@ -998,21 +1529,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         if (!data && isPreviewDev) {
           data = createPreviewRegistration();
         }
-        const now = Date.now();
-        const window = getFriday8ToSunday23Window(now);
         if (!isPreviewDev && isBuyer(data)) {
           showBlocked('Le replay est accessible sur Volt.', 'Ton accès élève est déjà actif sur Volt.');
           return;
         }
-        if (!isPreviewDev && now < window.startMs) {
-          showBlocked('Le replay sera disponible vendredi à 8h.', "Reviens dans la fenêtre de replay.");
-          return;
-        }
-        if (!isPreviewDev && now >= window.endMs) {
-          showBlocked('Ce replay a expiré.', "L'accès au replay est terminé.");
-          return;
-        }
         show('screen-replay');
+        const lateReplayBanner = document.getElementById('late-replay-banner');
+        if (lateReplayBanner) lateReplayBanner.classList.toggle('hidden', params.get('reason') !== 'late');
         const mounted = mountReplay(data, token);
         await mounted.initVideo();
       }
@@ -1050,18 +1573,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
               return;
             }
             setTokenEverywhere(body.token);
-            const now = Date.now();
-            const window = getFriday8ToSunday23Window(now);
             if (isBuyer(reg)) {
               showBlocked('Le replay est accessible sur Volt.', 'Ton accès élève est déjà actif sur Volt.');
-              return;
-            }
-            if (now < window.startMs) {
-              showBlocked('Le replay sera disponible vendredi à 8h.', "Reviens dans la fenêtre de replay.");
-              return;
-            }
-            if (now >= window.endMs) {
-              showBlocked('Ce replay a expiré.', "L'accès au replay est terminé.");
               return;
             }
             show('screen-replay');

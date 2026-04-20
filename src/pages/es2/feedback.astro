@@ -1,0 +1,413 @@
+---
+import GAConsentMode from '../../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilan 30 jours — ES 2.0</title>
+  <meta name="description" content="Formulaire feedback J+30 Esprit Subconscient 2.0." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+  <GAConsentMode />
+  <style>
+    html { opacity: 0; }
+    html.ready { opacity: 1; transition: opacity .15s ease; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --accent: #dbeafe;
+      --bg-dark: #0a0a1a;
+      --text-muted: rgba(255, 255, 255, 0.72);
+      --border: rgba(59, 130, 246, 0.35);
+      --danger: #fca5a5;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      background: var(--bg-dark);
+      color: #fff;
+      overflow-x: hidden;
+    }
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(59,130,246,.3) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(37,99,235,.2) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+    }
+    .container {
+      width: min(720px, 100%);
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      border-radius: 999px;
+      border: 1px solid rgba(147,197,253,.45);
+      background: rgba(59,130,246,.18);
+      color: #bfdbfe;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .76rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.35rem);
+      line-height: 1.18;
+      margin-bottom: 12px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 18px;
+      font-size: 1rem;
+    }
+    .panel {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 20px 16px;
+      margin-bottom: 14px;
+    }
+    .hidden { display: none !important; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: .9rem;
+      color: #dbeafe;
+      font-weight: 600;
+    }
+    input, select, textarea {
+      width: 100%;
+      border-radius: 11px;
+      border: 1px solid rgba(59,130,246,.45);
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      padding: 12px 13px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    input[readonly] {
+      opacity: .85;
+      cursor: default;
+      background: rgba(255,255,255,.05);
+    }
+    textarea {
+      min-height: 108px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .slider-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .score-pill {
+      min-width: 44px;
+      text-align: center;
+      border-radius: 999px;
+      border: 1px solid rgba(147,197,253,.45);
+      background: rgba(59,130,246,.2);
+      color: #dbeafe;
+      font-weight: 800;
+      padding: 8px 10px;
+    }
+    .help {
+      margin-top: 8px;
+      color: rgba(226,232,240,.74);
+      font-size: .84rem;
+    }
+    .error {
+      min-height: 1.2em;
+      color: var(--danger);
+      font-size: .88rem;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #fff;
+      font-size: .96rem;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      box-shadow: 0 14px 34px rgba(59,130,246,.36);
+    }
+    .btn[disabled] { opacity: .6; cursor: wait; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <main class="container">
+    <div id="screen-loading" class="panel">
+      Chargement…
+    </div>
+
+    <section id="screen-gate" class="hidden">
+      <div class="badge">ES 2.0 • Bilan</div>
+      <h1>Ton bilan à 30 jours</h1>
+      <p class="subtitle">Prends 5 minutes. Sois honnête avec toi-même. Tes réponses me permettront de te donner un retour personnalisé adapté à ta situation. 🦋</p>
+      <div class="panel">
+        <div class="field">
+          <label for="gate-email">Entre l'email avec lequel tu t'es inscrit</label>
+          <input id="gate-email" type="email" placeholder="ton@email.com" autocomplete="email" />
+          <p id="gate-error" class="error"></p>
+        </div>
+        <button id="gate-submit" type="button" class="btn">Continuer</button>
+      </div>
+    </section>
+
+    <section id="screen-form" class="hidden">
+      <div class="badge">ES 2.0 • Bilan</div>
+      <h1>Ton bilan à 30 jours</h1>
+      <p class="subtitle">Prends 5 minutes. Sois honnête avec toi-même. Tes réponses me permettront de te donner un retour personnalisé adapté à ta situation. 🦋</p>
+
+      <form id="feedback-form" class="panel">
+        <div class="field">
+          <label for="prenom">Prénom</label>
+          <input id="prenom" name="prenom" type="text" readonly />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" readonly />
+        </div>
+        <div class="field">
+          <label for="module-reached">Où en es-tu dans le programme ?</label>
+          <select id="module-reached" name="module_reached" required>
+            <option value="">Choisis une option</option>
+            <option>Module 1</option>
+            <option>Module 2</option>
+            <option>Module 3</option>
+            <option>Module 4</option>
+            <option>Module 5</option>
+            <option>J'ai terminé</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="what-changed">Qu'est-ce qui a le plus changé chez toi en 30 jours ?</label>
+          <textarea id="what-changed" name="what_changed" required></textarea>
+        </div>
+        <div class="field">
+          <label for="what-blocks">Qu'est-ce qui te bloque encore ?</label>
+          <textarea id="what-blocks" name="what_blocks" required></textarea>
+        </div>
+        <div class="field">
+          <label for="help-needed">Sur quoi voudrais-tu que je t'aide spécifiquement ?</label>
+          <textarea id="help-needed" name="help_needed" required></textarea>
+        </div>
+        <div class="field">
+          <label for="score">Comment tu te sens par rapport à il y a 30 jours ?</label>
+          <div class="slider-row">
+            <input id="score" name="score" type="range" min="1" max="10" value="5" />
+            <div id="score-pill" class="score-pill">5/10</div>
+          </div>
+          <p class="help">1 = pareil, 10 = transformé</p>
+        </div>
+        <p id="form-error" class="error"></p>
+        <button id="form-submit" type="submit" class="btn">Envoyer mon bilan</button>
+      </form>
+    </section>
+
+    <section id="screen-success" class="hidden">
+      <div class="panel">
+        <div class="badge">Merci 🦋</div>
+        <h1 id="success-title">Merci.</h1>
+        <p class="subtitle">Je reviens vers toi personnellement dans les prochains jours.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = { token: '' };
+    const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
+
+    function show(id) {
+      ['screen-loading', 'screen-gate', 'screen-form', 'screen-success'].forEach((x) => {
+        const el = document.getElementById(x);
+        if (!el) return;
+        el.classList.toggle('hidden', x !== id);
+      });
+    }
+
+    async function fetchAccess({ token = '', email = '' } = {}) {
+      const qs = new URLSearchParams();
+      if (token) qs.set('t', token);
+      if (email) qs.set('email', email);
+      const res = await fetch('/.netlify/functions/get-es2-feedback-access?' + qs.toString(), {
+        cache: 'no-store',
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, body };
+    }
+
+    function fillIdentity(payload) {
+      document.getElementById('prenom').value = payload.prenom || '';
+      document.getElementById('email').value = payload.email || '';
+      state.token = payload.token || '';
+      if (payload.token) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('t', payload.token);
+        history.replaceState({}, '', nextUrl.toString());
+      }
+    }
+
+    async function bootstrap() {
+      if (isPreviewDev) {
+        fillIdentity({
+          token: 'preview-dev-feedback',
+          prenom: 'Sonny',
+          email: 'preview@es2.local',
+        });
+        show('screen-form');
+        return;
+      }
+      const token = String(new URLSearchParams(window.location.search).get('t') || '').trim();
+      if (!token) {
+        show('screen-gate');
+        return;
+      }
+      const access = await fetchAccess({ token });
+      if (access.ok && access.body?.allowed) {
+        fillIdentity(access.body);
+        show('screen-form');
+        return;
+      }
+      if (access.status === 403) {
+        const gateError = document.getElementById('gate-error');
+        gateError.textContent = 'Cette page est réservée aux membres ES 2.0';
+        show('screen-gate');
+        return;
+      }
+      show('screen-gate');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const gateSubmit = document.getElementById('gate-submit');
+      const gateEmail = document.getElementById('gate-email');
+      const gateError = document.getElementById('gate-error');
+      const scoreEl = document.getElementById('score');
+      const scorePill = document.getElementById('score-pill');
+      const form = document.getElementById('feedback-form');
+      const formError = document.getElementById('form-error');
+      const formSubmit = document.getElementById('form-submit');
+
+      scoreEl.addEventListener('input', () => {
+        scorePill.textContent = `${scoreEl.value}/10`;
+      });
+
+      gateSubmit.addEventListener('click', async () => {
+        gateError.textContent = '';
+        const email = String(gateEmail.value || '').trim().toLowerCase();
+        if (!email || !email.includes('@')) {
+          gateError.textContent = 'Merci de saisir un email valide.';
+          return;
+        }
+        gateSubmit.disabled = true;
+        try {
+          const access = await fetchAccess({ email });
+          if (access.ok && access.body?.allowed) {
+            fillIdentity(access.body);
+            show('screen-form');
+            return;
+          }
+          if (access.status === 403) {
+            gateError.textContent = 'Cette page est réservée aux membres ES 2.0';
+            return;
+          }
+          if (access.status === 404) {
+            gateError.textContent = 'Aucun compte trouvé avec cet email';
+            return;
+          }
+          gateError.textContent = 'Vérification impossible pour le moment.';
+        } catch {
+          gateError.textContent = 'Vérification impossible pour le moment.';
+        } finally {
+          gateSubmit.disabled = false;
+        }
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formError.textContent = '';
+
+        const moduleReached = String(document.getElementById('module-reached').value || '').trim();
+        const whatChanged = String(document.getElementById('what-changed').value || '').trim();
+        const whatBlocks = String(document.getElementById('what-blocks').value || '').trim();
+        const helpNeeded = String(document.getElementById('help-needed').value || '').trim();
+        const score = Number(scoreEl.value);
+
+        if (!state.token) {
+          formError.textContent = 'Token manquant. Recharge la page.';
+          return;
+        }
+        if (!moduleReached || !whatChanged || !whatBlocks || !helpNeeded) {
+          formError.textContent = 'Merci de compléter tous les champs.';
+          return;
+        }
+        if (isPreviewDev) {
+          const prenom = String(document.getElementById('prenom').value || '').trim();
+          document.getElementById('success-title').textContent = `Merci ${prenom || ''}.`;
+          show('screen-success');
+          return;
+        }
+
+        formSubmit.disabled = true;
+        try {
+          const res = await fetch('/.netlify/functions/submit-es2-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: state.token,
+              module_reached: moduleReached,
+              what_changed: whatChanged,
+              what_blocks: whatBlocks,
+              help_needed: helpNeeded,
+              score,
+            }),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            formError.textContent = body?.error || 'Impossible d’envoyer ton bilan.';
+            return;
+          }
+          const prenom = (body?.prenom || document.getElementById('prenom').value || '').trim();
+          document.getElementById('success-title').textContent = `Merci ${prenom || ''}.`;
+          show('screen-success');
+        } catch {
+          formError.textContent = 'Impossible d’envoyer ton bilan.';
+        } finally {
+          formSubmit.disabled = false;
+        }
+      });
+
+      await bootstrap();
+    });
+  </script>
+  <script>document.documentElement.classList.add('ready');</script>
+</body>
+</html>

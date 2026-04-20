@@ -1,4 +1,11 @@
-import { TOTAL_SEATS, WEEKLY_TIMELINE, type Purchase } from '../data/scarcity-timeline';
+import {
+  PHASE1_SEATS,
+  PHASE2_SEATS,
+  PHASE2_START_OFFSET,
+  TOTAL_SEATS,
+  WEEKLY_TIMELINE,
+  type Purchase,
+} from '../data/scarcity-timeline';
 
 type WindowPhase = 'upcoming' | 'active' | 'closed';
 
@@ -7,6 +14,10 @@ export type ScarcityWindow = {
   endMs: number;
   phase: WindowPhase;
 };
+
+export type ScarcityPhase = 'phase1' | 'sold_out' | 'phase2';
+export type ScarcityWindowBounds = { startMs: number; endMs: number };
+export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (67 * 60 + 12) * 1000; // 21:07:12 if session starts at 20:00
 
 const TZ = 'Europe/Paris';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -114,20 +125,53 @@ export function getCurrentWindow(nowMs = Date.now()): ScarcityWindow {
   return { ...thisWin, phase: 'active' };
 }
 
-export function getSoldCount(nowMs = Date.now()): number {
-  const win = getCurrentWindow(nowMs);
+function resolveWindow(nowMs: number, bounds?: ScarcityWindowBounds | null): ScarcityWindow {
+  if (bounds && Number.isFinite(bounds.startMs) && Number.isFinite(bounds.endMs) && bounds.endMs > bounds.startMs) {
+    if (nowMs < bounds.startMs) return { ...bounds, phase: 'upcoming' };
+    if (nowMs >= bounds.endMs) return { ...bounds, phase: 'closed' };
+    return { ...bounds, phase: 'active' };
+  }
+  return getCurrentWindow(nowMs);
+}
+
+export function getSoldCount(nowMs = Date.now(), bounds?: ScarcityWindowBounds | null): number {
+  const win = resolveWindow(nowMs, bounds);
   if (nowMs < win.startMs) return 0;
   if (nowMs >= win.endMs) return TOTAL_SEATS;
   const elapsed = nowMs - win.startMs;
   return WEEKLY_TIMELINE.filter((p) => p.offsetMs <= elapsed).length;
 }
 
-export function getSeatsLeft(nowMs = Date.now()): number {
-  return Math.max(0, TOTAL_SEATS - getSoldCount(nowMs));
+export function getSeatsLeft(nowMs = Date.now(), bounds?: ScarcityWindowBounds | null): number {
+  const win = resolveWindow(nowMs, bounds);
+  const elapsed = nowMs - win.startMs;
+  const sold = getSoldCount(nowMs, bounds);
+  if (sold <= PHASE1_SEATS) {
+    // Phase 2 reopens a fresh batch right after the sold-out gap.
+    if (sold === PHASE1_SEATS && elapsed >= PHASE2_START_OFFSET) {
+      return PHASE2_SEATS;
+    }
+    return Math.max(0, PHASE1_SEATS - sold);
+  }
+  return Math.max(0, PHASE2_SEATS - (sold - PHASE1_SEATS));
 }
 
-export function getNextScheduledPurchase(nowMs = Date.now()): Purchase | null {
-  const win = getCurrentWindow(nowMs);
+export function getPhase(nowMs = Date.now(), bounds?: ScarcityWindowBounds | null): ScarcityPhase {
+  const win = resolveWindow(nowMs, bounds);
+  if (nowMs < win.startMs) return 'phase1';
+
+  const sold = getSoldCount(nowMs, bounds);
+  const elapsed = nowMs - win.startMs;
+
+  if (sold < PHASE1_SEATS) return 'phase1';
+  if (sold >= TOTAL_SEATS) return 'sold_out';
+  if (sold === PHASE1_SEATS && elapsed < PHASE2_START_OFFSET) return 'sold_out';
+  if (sold >= PHASE1_SEATS && elapsed >= PHASE2_START_OFFSET) return 'phase2';
+  return 'sold_out';
+}
+
+export function getNextScheduledPurchase(nowMs = Date.now(), bounds?: ScarcityWindowBounds | null): Purchase | null {
+  const win = resolveWindow(nowMs, bounds);
   if (nowMs < win.startMs) return WEEKLY_TIMELINE[0] || null;
   if (nowMs >= win.endMs) return null;
   const elapsed = nowMs - win.startMs;
@@ -137,7 +181,9 @@ export function getNextScheduledPurchase(nowMs = Date.now()): Purchase | null {
 type EngineOptions = {
   now?: () => number;
   isActive?: () => boolean;
-  onSeatsLeft?: (seatsLeft: number, soldCount: number) => void;
+  windowStartMs?: number;
+  windowEndMs?: number;
+  onSeatsLeft?: (seatsLeft: number, soldCount: number, phase: ScarcityPhase) => void;
   onNotification?: (purchase: Purchase, mode: 'timeline' | 'replay', detail?: string) => void;
   enableReplay?: boolean;
   debug?: boolean;
@@ -150,9 +196,12 @@ export function startScarcityEngine(options: EngineOptions = {}) {
   const onNotification = options.onNotification || (() => {});
   const enableReplay = Boolean(options.enableReplay);
   const debug = Boolean(options.debug);
+  const windowBounds = (Number.isFinite(options.windowStartMs) && Number.isFinite(options.windowEndMs) && Number(options.windowEndMs) > Number(options.windowStartMs))
+    ? { startMs: Number(options.windowStartMs), endMs: Number(options.windowEndMs) }
+    : null;
 
   let timer: ReturnType<typeof setInterval> | null = null;
-  let emittedTimelineCount = getSoldCount(now());
+  let emittedTimelineCount = getSoldCount(now(), windowBounds);
   let lastSeatPushSec = -1;
   let lastReplayName = '';
   let lastTimelineName = '';
@@ -191,15 +240,16 @@ export function startScarcityEngine(options: EngineOptions = {}) {
 
   function tick() {
     const nowMs = now();
-    const win = getCurrentWindow(nowMs);
+    const win = resolveWindow(nowMs, windowBounds);
     const active = isActive() && win.phase === 'active';
-    const soldCount = getSoldCount(nowMs);
-    const seatsLeft = Math.max(0, TOTAL_SEATS - soldCount);
+    const soldCount = getSoldCount(nowMs, windowBounds);
+    const seatsLeft = getSeatsLeft(nowMs, windowBounds);
+    const phase = getPhase(nowMs, windowBounds);
 
     const nowSec = Math.floor(nowMs / 1000);
     if (nowSec !== lastSeatPushSec) {
       lastSeatPushSec = nowSec;
-      onSeatsLeft(seatsLeft, soldCount);
+      onSeatsLeft(seatsLeft, soldCount, phase);
     }
 
     if (!active) {
@@ -262,14 +312,15 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     },
     debugSnapshot() {
       const n = now();
-      const win = getCurrentWindow(n);
-      const soldCountNow = getSoldCount(n);
+      const win = resolveWindow(n, windowBounds);
+      const soldCountNow = getSoldCount(n, windowBounds);
       return {
         nowMs: n,
         window: win,
+        phase: getPhase(n, windowBounds),
         soldCount: soldCountNow,
-        seatsLeft: getSeatsLeft(n),
-        next: getNextScheduledPurchase(n),
+        seatsLeft: getSeatsLeft(n, windowBounds),
+        next: getNextScheduledPurchase(n, windowBounds),
         replayEnabled: enableReplay,
         replayEligible: enableReplay && soldCountNow >= 10 && soldCountNow < TOTAL_SEATS,
         nextReplayAt,
