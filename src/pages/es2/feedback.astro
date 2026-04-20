@@ -209,8 +209,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           </select>
         </div>
         <div class="field">
+          <label for="daily-practice">Est-ce que tu as fait les exercices quotidiens ?</label>
+          <select id="daily-practice" name="daily_practice" required>
+            <option value="">Choisis une option</option>
+            <option>Tous les jours</option>
+            <option>La plupart du temps</option>
+            <option>De temps en temps</option>
+            <option>Presque pas</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="what-changed">Qu'est-ce qui a le plus changé chez toi en 30 jours ?</label>
           <textarea id="what-changed" name="what_changed" required></textarea>
+        </div>
+        <div class="field">
+          <label for="biggest-win">Quel a été ton plus grand déclic ou ta plus grande victoire pendant ces 30 jours ?</label>
+          <textarea id="biggest-win" name="biggest_win"></textarea>
         </div>
         <div class="field">
           <label for="what-blocks">Qu'est-ce qui te bloque encore ?</label>
@@ -356,7 +370,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         formError.textContent = '';
 
         const moduleReached = String(document.getElementById('module-reached').value || '').trim();
+        const dailyPractice = String(document.getElementById('daily-practice').value || '').trim();
         const whatChanged = String(document.getElementById('what-changed').value || '').trim();
+        const biggestWin = String(document.getElementById('biggest-win').value || '').trim();
         const whatBlocks = String(document.getElementById('what-blocks').value || '').trim();
         const helpNeeded = String(document.getElementById('help-needed').value || '').trim();
         const score = Number(scoreEl.value);
@@ -365,7 +381,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           formError.textContent = 'Token manquant. Recharge la page.';
           return;
         }
-        if (!moduleReached || !whatChanged || !whatBlocks || !helpNeeded) {
+        if (!moduleReached || !dailyPractice || !whatChanged || !whatBlocks || !helpNeeded) {
           formError.textContent = 'Merci de compléter tous les champs.';
           return;
         }
@@ -384,7 +400,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             body: JSON.stringify({
               token: state.token,
               module_reached: moduleReached,
+              daily_practice: dailyPractice,
               what_changed: whatChanged,
+              biggest_win: biggestWin,
               what_blocks: whatBlocks,
               help_needed: helpNeeded,
               score,
