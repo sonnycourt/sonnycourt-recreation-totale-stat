@@ -609,20 +609,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     .purchase-toast {
       position: fixed;
       left: 20px;
-      top: 20px;
+      bottom: 20px;
       z-index: 9999;
       opacity: 0;
-      transform: translateY(-20px);
+      transform: translateY(20px);
       pointer-events: none;
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
     .purchase-toast.show { opacity: 1; transform: translateY(0); }
-    .purchase-toast.is-top {
-      top: 20px;
-      bottom: auto;
-      transform: translateY(-20px);
-    }
-    .purchase-toast.is-top.show { transform: translateY(0); }
     .purchase-toast__content {
       display: flex;
       align-items: center;
@@ -657,10 +651,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     .purchase-toast__name { color: #60a5fa !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(96, 165, 250, 0.35); }
     .purchase-toast__action { color: rgba(255, 255, 255, 0.72); }
     .purchase-toast__course { display: block; margin-top: 2px; color: #ffffff !important; font-weight: 400 !important; }
-    @media (max-width: 640px) {
+    @media (max-width: 1023px) {
       .offer-cta { width: 100%; }
-      .purchase-toast { left: 10px; right: 10px; top: 10px; }
-      .purchase-toast.is-top { top: 10px; bottom: auto; }
+      .purchase-toast { left: 10px; right: 10px; top: 10px; bottom: auto; transform: translateY(-20px); }
       .purchase-toast__content { max-width: 100%; }
       .countdown { grid-template-columns: repeat(2,minmax(0,1fr)); }
     }
@@ -1031,7 +1024,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       let didTrackCtaReached = false;
       let didTrackReplayStarted = false;
       const emittedCheckpointMinutes = new Set();
-      const handleToastViewportUpdate = () => updateToastPositionByOfferVisibility();
       let previewScarcityAnchorStartMs = null;
       let soldOutExpired = false;
 
@@ -1130,21 +1122,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
       }
 
-      function updateToastPositionByOfferVisibility() {
-        if (!toast || !offerZone) return;
-        const offerVisible = !offerZone.classList.contains('hidden');
-        if (!offerVisible) {
-          toast.classList.remove('is-top');
-          return;
-        }
-        const rect = offerZone.getBoundingClientRect();
-        const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
-        toast.classList.toggle('is-top', isInViewport);
-      }
-
-      window.addEventListener('scroll', handleToastViewportUpdate, { passive: true });
-      window.addEventListener('resize', handleToastViewportUpdate);
-
       function renderScarcityVisual(seatsLeft, phase) {
         const isPhase2 = phase === 'phase2';
         const maxSeats = isPhase2 ? 10 : 30;
@@ -1237,7 +1214,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         offerZone.classList.add('visible');
         expiryBanner.classList.add('hidden');
         setOfferExpiredState(isOfferExpiredNow());
-        updateToastPositionByOfferVisibility();
         startScarcityEngineIfNeeded();
       }
       function hideOfferAndScarcity() {
@@ -1250,7 +1226,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           scarcityEngine = null;
         }
         toast.classList.remove('show');
-        updateToastPositionByOfferVisibility();
       }
       function updateCtaStateByVideoTime() {
         if (video.currentTime >= CTA_TRIGGER_SECONDS) {
@@ -1457,7 +1432,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       updateCountdown(offerExpiryMs);
       updateDiagnosticGuideState();
       syncReplayUnavailableLock();
-      offerCta.href = '/es2?t=' + encodeURIComponent(token);
+      offerCta.href = '/invitation?t=' + encodeURIComponent(token);
       offerCta.addEventListener('click', () => {
         trackWebinaireEvent(token, 'cta_clicked');
       });
@@ -1478,8 +1453,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           if (scarcityEngine) scarcityEngine.stop();
           if (hideToastTimer) clearTimeout(hideToastTimer);
           document.documentElement.classList.remove('mc-page-lock');
-          window.removeEventListener('scroll', handleToastViewportUpdate);
-          window.removeEventListener('resize', handleToastViewportUpdate);
         },
       };
     }

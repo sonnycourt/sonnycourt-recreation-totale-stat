@@ -5978,11 +5978,13 @@ const currentYear = new Date().getFullYear();
             color: #ffffff !important;
             font-weight: 400 !important;
         }
-        @media (max-width: 640px) {
+        @media (max-width: 1023px) {
             .purchase-toast {
                 left: 10px;
                 right: 10px;
-                bottom: 10px;
+                top: 10px;
+                bottom: auto;
+                transform: translateY(-20px);
             }
             .purchase-toast__content {
                 max-width: 100%;
@@ -6441,6 +6443,16 @@ const currentYear = new Date().getFullYear();
                     a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(activeToken));
                 });
             }
+            function bindCheckoutClickTracking(activeToken) {
+                if (!activeToken) return;
+                document.querySelectorAll('a[href*="spiffy.co/checkout"]').forEach(function (a) {
+                    if (a.dataset.ctaTrackedBound === '1') return;
+                    a.dataset.ctaTrackedBound = '1';
+                    a.addEventListener('click', function () {
+                        trackWebinaireEvent(activeToken, 'cta_clicked');
+                    });
+                });
+            }
 
             function initInvitationScarcity() {
                 const placesEl = document.getElementById('current-places');
@@ -6714,6 +6726,7 @@ const currentYear = new Date().getFullYear();
                 if (!token && isPreviewDev) token = 'preview-invitation';
                 setTokenEverywhere(token);
                 propagateTokenToCheckoutLinks(token);
+                bindCheckoutClickTracking(token);
                 mountScarcityAudit();
                 updateScarcityAudit(sessionStartsAtMsForAudit, scarcityWindowStartMs, offerExpiryMs);
                 if (!isPreviewDev && Number.isFinite(offerExpiryMs) && invitationNowMs() >= offerExpiryMs) {

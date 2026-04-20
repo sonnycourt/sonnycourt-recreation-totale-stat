@@ -564,14 +564,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             opacity: 1;
             transform: translateY(0);
         }
-        .purchase-toast.is-top {
-            top: 20px;
-            bottom: auto;
-            transform: translateY(-20px);
-        }
-        .purchase-toast.is-top.show {
-            transform: translateY(0);
-        }
         .purchase-toast__content {
             display: flex;
             align-items: center;
@@ -976,7 +968,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             color: #fca5a5;
             font-size: 0.85rem;
         }
-        @media (max-width: 640px) {
+        @media (max-width: 1023px) {
             .screen { padding: 20px 14px 34px; }
             .offer-cta { width: 100%; }
             .countdown { max-width: 100%; }
@@ -984,11 +976,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             .purchase-toast {
                 left: 10px;
                 right: 10px;
-                bottom: 10px;
-            }
-            .purchase-toast.is-top {
                 top: 10px;
                 bottom: auto;
+                transform: translateY(-20px);
             }
             .purchase-toast__content {
                 max-width: 100%;
@@ -1611,31 +1601,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const zone = document.getElementById('offer-zone');
             if (!zone || zone.classList.contains('visible')) return;
             const cta = document.getElementById('offer-cta');
-            cta.href = '/es2?t=' + encodeURIComponent(token);
+            cta.href = '/invitation?t=' + encodeURIComponent(token);
             zone.classList.remove('hidden');
             void zone.offsetWidth; // reflow needed to trigger animation from display:none
             zone.classList.add('visible');
-            updateToastPositionByOfferVisibility();
         }
         function hideOfferZone() {
             const zone = document.getElementById('offer-zone');
             if (!zone || zone.classList.contains('hidden')) return;
             zone.classList.remove('visible');
             zone.classList.add('hidden');
-            updateToastPositionByOfferVisibility();
-        }
-        function updateToastPositionByOfferVisibility() {
-            const toast = document.getElementById('purchase-toast');
-            const offerZone = document.getElementById('offer-zone');
-            if (!toast || !offerZone) return;
-            const offerVisible = !offerZone.classList.contains('hidden');
-            if (!offerVisible) {
-                toast.classList.remove('is-top');
-                return;
-            }
-            const rect = offerZone.getBoundingClientRect();
-            const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
-            toast.classList.toggle('is-top', isInViewport);
         }
 
         function mountVideoAndOffer(reg) {
@@ -1732,11 +1707,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
-            const handleToastViewportUpdate = function () {
-                updateToastPositionByOfferVisibility();
-            };
-            window.addEventListener('scroll', handleToastViewportUpdate, { passive: true });
-            window.addEventListener('resize', handleToastViewportUpdate);
 
             function formatSessionParisLabel(ms) {
                 return new Intl.DateTimeFormat('fr-FR', {
@@ -2254,8 +2224,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (offerInterval) clearInterval(offerInterval);
                 if (presenceInterval) clearInterval(presenceInterval);
                 if (configPollInterval) clearInterval(configPollInterval);
-                window.removeEventListener('scroll', handleToastViewportUpdate);
-                window.removeEventListener('resize', handleToastViewportUpdate);
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
@@ -2302,8 +2270,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     purchaseToasts.destroy();
                     document.documentElement.classList.remove('mc-page-lock');
                     window.removeEventListener('beforeunload', beforeUnloadHandler);
-                    window.removeEventListener('scroll', handleToastViewportUpdate);
-                    window.removeEventListener('resize', handleToastViewportUpdate);
                 },
             };
         }
