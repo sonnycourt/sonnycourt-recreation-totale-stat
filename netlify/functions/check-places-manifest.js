@@ -81,7 +81,7 @@ export default async (req, context) => {
 
     try {
         const url = new URL(req.url);
-        const token = url.searchParams.get('token');
+        const token = (url.searchParams.get('token') || url.searchParams.get('t') || '').trim();
 
         if (!token) {
             return new Response(JSON.stringify({ 

@@ -129,7 +129,7 @@ export default async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = (url.searchParams.get('t') || '').trim();
+    const token = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
 
     if (!token) {
       return jsonResponse(400, { error: 'Token manquant' });

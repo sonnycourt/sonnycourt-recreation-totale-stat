@@ -48,7 +48,7 @@ export default async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = String(url.searchParams.get('t') || '').trim();
+    const token = String(url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
     const email = String(url.searchParams.get('email') || '')
       .trim()
       .toLowerCase();
