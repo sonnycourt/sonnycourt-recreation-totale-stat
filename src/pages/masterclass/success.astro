@@ -137,19 +137,191 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             line-height: 1.55;
         }
 
-        .video-placeholder {
+        .video-player {
+            position: relative;
             margin-bottom: 8px;
             border-radius: 14px;
             border: 1px solid rgba(148, 163, 184, 0.2);
-            background: rgba(15, 23, 42, 0.55);
+            background: #000;
             aspect-ratio: 16 / 9;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(96, 165, 250, 0.15),
+                0 16px 48px rgba(0, 0, 0, 0.45),
+                0 0 60px rgba(59, 130, 246, 0.08);
+        }
+
+        .video-player video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            background: #000;
+            cursor: pointer;
+        }
+
+        .video-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.52) 100%);
+            transition: opacity 0.4s ease;
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .play-btn {
+            width: clamp(56px, 12vw, 72px);
+            height: clamp(56px, 12vw, 72px);
+            border-radius: 50%;
+            border: 2px solid rgba(96, 165, 250, 0.7);
+            background: rgba(59, 130, 246, 0.25);
+            backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            color: var(--muted);
-            padding: 18px;
-            line-height: 1.55;
+            transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .play-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #60a5fa;
+            margin-left: 3px;
+        }
+
+        .video-player:hover .play-btn {
+            transform: scale(1.08);
+            background: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 32px rgba(59, 130, 246, 0.35);
+        }
+
+        .play-btn-ring {
+            position: absolute;
+            width: clamp(72px, 15vw, 92px);
+            height: clamp(72px, 15vw, 92px);
+            border-radius: 50%;
+            border: 1.5px solid rgba(96, 165, 250, 0.25);
+            animation: ringPulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.12); opacity: 0; }
+        }
+
+        .vp-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.72) 0%, transparent 100%);
+            z-index: 4;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-player.playing .vp-controls,
+        .video-player.paused .vp-controls {
+            pointer-events: auto;
+        }
+
+        .video-player.playing:hover .vp-controls,
+        .video-player.paused .vp-controls {
+            opacity: 1;
+        }
+
+        .vp-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .vp-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .vp-progress-wrap {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vp-progress-wrap:hover {
+            height: 6px;
+        }
+
+        .vp-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #3b82f6;
+            border-radius: 4px;
+            transition: width 0.15s linear;
+        }
+
+        .vp-volume-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .vp-volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 52px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .vp-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .vp-volume-slider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .vp-volume-wrap { display: none; }
         }
 
         .video-caption {
@@ -282,8 +454,41 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 Tu viens de prendre une décision importante. Cette décision est la preuve que tu crois en ton avenir et que tu as déjà en toi tout ce qu'il faut pour y arriver.<br />Sinon, tu ne te serais pas inscrit.
             </p>
 
-            <div class="video-placeholder">
-                Video de bienvenue (placeholder) — intègre ici le player Loom/Vimeo/YouTube.
+            <div class="video-player" id="video-player">
+                <video
+                    id="success-video"
+                    controls
+                    playsinline
+                    preload="metadata"
+                    controlsList="nodownload noremoteplayback"
+                    disablepictureinpicture
+                    disableremoteplayback
+                    src="https://sonnycourt-videos-public.b-cdn.net/Felicitations%20-%20Achat%20(V2).mp4"
+                >
+                    Votre navigateur ne prend pas en charge la lecture vidéo.
+                </video>
+                <div class="video-overlay" id="video-overlay">
+                    <span class="play-btn-ring"></span>
+                    <span class="play-btn">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polygon points="6,3 20,12 6,21"/></svg>
+                    </span>
+                </div>
+                <div class="vp-controls" id="vp-controls">
+                    <button class="vp-btn" id="vp-playpause" aria-label="Play/Pause">
+                        <svg id="vp-icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+                        <svg id="vp-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+                    </button>
+                    <div class="vp-progress-wrap" id="vp-progress-wrap">
+                        <div class="vp-progress-bar" id="vp-progress-bar"></div>
+                    </div>
+                    <div class="vp-volume-wrap">
+                        <button class="vp-btn" id="vp-mute" aria-label="Mute">
+                            <svg id="vp-icon-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                            <svg id="vp-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                        </button>
+                        <input type="range" class="vp-volume-slider" id="vp-volume" min="0" max="1" step="0.05" value="1" />
+                    </div>
+                </div>
             </div>
             <p class="video-caption">Un mot personnel avant que tu commences ↑</p>
 
@@ -340,7 +545,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             </section>
 
             <div class="cta-row">
-                <a class="btn btn-primary" href="/masterclass/session">Créer mon compte</a>
+                <a class="btn btn-primary" href="https://volt.sonnycourt.com/join?invitation_token=059556d1a273adac410bc1692b83a0c907348322-1304e0b3-8467-4430-815e-9e21500a0d98">Créer mon compte</a>
             </div>
             <p class="support-note">Pour toute question, mon équipe est joignable à support@sonnycourt.com.</p>
         </section>
@@ -430,5 +635,134 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         })();
     </script>
     <script>document.documentElement.classList.add('ready');</script>
+    <script>
+        (function () {
+            const player = document.getElementById('video-player');
+            const video = document.getElementById('success-video');
+            const overlay = document.getElementById('video-overlay');
+            const controls = document.getElementById('vp-controls');
+            const btnPlayPause = document.getElementById('vp-playpause');
+            const iconPlay = document.getElementById('vp-icon-play');
+            const iconPause = document.getElementById('vp-icon-pause');
+            const progressBar = document.getElementById('vp-progress-bar');
+            const btnMute = document.getElementById('vp-mute');
+            const iconVol = document.getElementById('vp-icon-vol');
+            const iconMuted = document.getElementById('vp-icon-muted');
+            const volumeSlider = document.getElementById('vp-volume');
+            if (!player || !video || !overlay || !controls) return;
+
+            video.controls = false;
+            video.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+            video.addEventListener('keydown', function (e) {
+                const key = String(e.key || '').toLowerCase();
+                if ((e.ctrlKey || e.metaKey) && (key === 's' || key === 'u')) e.preventDefault();
+            });
+
+            let hasStarted = false;
+            let hideTimer = null;
+
+            function syncIcons() {
+                if (video.paused) {
+                    iconPlay.style.display = '';
+                    iconPause.style.display = 'none';
+                    player.classList.remove('playing');
+                    player.classList.add('paused');
+                } else {
+                    iconPlay.style.display = 'none';
+                    iconPause.style.display = '';
+                    player.classList.add('playing');
+                    player.classList.remove('paused');
+                }
+            }
+
+            function syncVolume() {
+                if (video.muted || video.volume === 0) {
+                    iconVol.style.display = 'none';
+                    iconMuted.style.display = '';
+                } else {
+                    iconVol.style.display = '';
+                    iconMuted.style.display = 'none';
+                }
+                volumeSlider.value = video.muted ? 0 : video.volume;
+            }
+
+            function startAutoHide() {
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(function () {
+                    if (!video.paused) controls.style.opacity = '0';
+                }, 2800);
+            }
+
+            function showControls() {
+                controls.style.opacity = '1';
+                startAutoHide();
+            }
+
+            overlay.addEventListener('click', function (e) {
+                e.stopPropagation();
+                hasStarted = true;
+                overlay.classList.add('hidden');
+                video.play().catch(function () {});
+            });
+
+            video.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!hasStarted) {
+                    hasStarted = true;
+                    overlay.classList.add('hidden');
+                    video.play().catch(function () {});
+                    return;
+                }
+                if (video.paused) video.play().catch(function () {});
+                else video.pause();
+            });
+
+            btnPlayPause.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (video.paused) video.play().catch(function () {});
+                else video.pause();
+            });
+
+            video.addEventListener('play', function () { syncIcons(); showControls(); });
+            video.addEventListener('pause', function () { syncIcons(); clearTimeout(hideTimer); });
+
+            video.addEventListener('timeupdate', function () {
+                const pct = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+                progressBar.style.width = pct + '%';
+            });
+
+            btnMute.addEventListener('click', function (e) {
+                e.stopPropagation();
+                video.muted = !video.muted;
+                syncVolume();
+            });
+
+            volumeSlider.addEventListener('input', function (e) {
+                e.stopPropagation();
+                video.volume = parseFloat(this.value);
+                video.muted = video.volume === 0;
+                syncVolume();
+            });
+            volumeSlider.addEventListener('click', function (e) { e.stopPropagation(); });
+
+            player.addEventListener('mousemove', function () { if (hasStarted) showControls(); });
+            player.addEventListener('mouseleave', function () {
+                if (!video.paused) { clearTimeout(hideTimer); controls.style.opacity = '0'; }
+            });
+
+            video.addEventListener('ended', function () {
+                hasStarted = false;
+                video.currentTime = 0;
+                player.classList.remove('playing', 'paused');
+                overlay.classList.remove('hidden');
+                controls.style.opacity = '0';
+                progressBar.style.width = '0%';
+                syncIcons();
+            });
+
+            syncIcons();
+            syncVolume();
+        })();
+    </script>
 </body>
 </html>

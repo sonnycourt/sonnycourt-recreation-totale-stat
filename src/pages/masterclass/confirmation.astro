@@ -569,7 +569,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="section-h2-icon icon icon-tabler icons-tabler-outline icon-tabler-hand-finger-down" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 12v8.5a1.5 1.5 0 0 0 3 0v-7.5"></path><path d="M11 13.5v2a1.5 1.5 0 0 0 3 0v-2.5"></path><path d="M14 14.5a1.5 1.5 0 0 0 3 0v-1.5"></path><path d="M17 13.5a1.5 1.5 0 0 0 3 0v-4.5a6 6 0 0 0 -6 -6h-2h.208a6 6 0 0 0 -5.012 2.7l-.196 .3q -.468 .718 -3.286 5.728a1.5 1.5 0 0 0 .536 2.022c.734 .44 1.674 .325 2.28 -.28l1.47 -1.47"></path></svg>
                 </h2>
                 <div class="video-player" id="video-player">
-                    <video id="confirmation-video" playsinline preload="metadata">
+                    <video
+                        id="confirmation-video"
+                        playsinline
+                        preload="metadata"
+                        controlsList="nodownload noremoteplayback"
+                        disablepictureinpicture
+                        disableremoteplayback
+                    >
                         <source src="https://sonnycourt-videos-public.b-cdn.net/FE%CC%81LICITATIONS%20(inscription%20Webinaire%20V2).mp4" type="video/mp4" />
                     </video>
                     <div class="video-overlay" id="video-overlay">
@@ -1079,6 +1086,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             var iconMuted = document.getElementById('vp-icon-muted');
             var volumeSlider = document.getElementById('vp-volume');
             if (!player || !video || !overlay) return;
+            video.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+            video.addEventListener('keydown', function (e) {
+                const key = String(e.key || '').toLowerCase();
+                if ((e.ctrlKey || e.metaKey) && (key === 's' || key === 'u')) {
+                    e.preventDefault();
+                }
+            });
 
             var hasStarted = false;
             var hideTimer = null;
