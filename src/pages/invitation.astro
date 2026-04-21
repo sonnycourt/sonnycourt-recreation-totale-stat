@@ -6623,6 +6623,16 @@ const currentYear = new Date().getFullYear();
             }
 
             async function requestTokenFromEmail() {
+                function setBodyScrollLocked(locked) {
+                    if (locked) {
+                        document.body.style.overflow = 'hidden';
+                        document.body.style.touchAction = 'none';
+                        return;
+                    }
+                    document.body.style.overflow = '';
+                    document.body.style.touchAction = '';
+                }
+
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;padding:16px;';
                 overlay.innerHTML = `
@@ -6635,6 +6645,7 @@ const currentYear = new Date().getFullYear();
                     </div>
                 `;
                 document.body.appendChild(overlay);
+                setBodyScrollLocked(true);
 
                 const input = overlay.querySelector('#inv-recovery-email');
                 const submit = overlay.querySelector('#inv-recovery-submit');
@@ -6665,6 +6676,7 @@ const currentYear = new Date().getFullYear();
                         }
                         if (body.eligible === false && body.reason === 'already_registered' && body.token) {
                             overlay.remove();
+                            setBodyScrollLocked(false);
                             window.__invitationRecoveredToken = String(body.token);
                             return;
                         }
