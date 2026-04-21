@@ -751,6 +751,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
         }
 
+        function computeCalendarEndIso(startIso) {
+            const startMs = new Date(startIso).getTime();
+            if (!Number.isFinite(startMs)) return startIso;
+            return new Date(startMs + (90 * 60 * 1000)).toISOString();
+        }
+
         function escapeIcs(text) {
             return String(text)
                 .replace(/\\/g, '\\\\')
@@ -1053,11 +1059,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
             }
 
+            const calendarEndIso = computeCalendarEndIso(data.sessionStartsAt);
             document.getElementById('subtitle').textContent = data.subtitleText || formatSubtitle(data.sessionStartsAt, data.creneau);
-            document.getElementById('link-google').href = buildGoogleUrl(data.sessionStartsAt, data.sessionEndsAt);
-            document.getElementById('link-outlook').href = buildOutlookUrl(data.sessionStartsAt, data.sessionEndsAt);
+            document.getElementById('link-google').href = buildGoogleUrl(data.sessionStartsAt, calendarEndIso);
+            document.getElementById('link-outlook').href = buildOutlookUrl(data.sessionStartsAt, calendarEndIso);
             document.getElementById('btn-apple').addEventListener('click', function () {
-                downloadAppleCalendar(tokenForApple, data.sessionStartsAt, data.sessionEndsAt);
+                downloadAppleCalendar(tokenForApple, data.sessionStartsAt, calendarEndIso);
             });
 
             document.getElementById('loading-state').style.display = 'none';
