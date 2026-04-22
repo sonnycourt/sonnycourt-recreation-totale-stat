@@ -102,13 +102,13 @@ export async function upsertWebinaireSubscriber({
     await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ status: 'active', fields }),
+      body: JSON.stringify({ status: 'active', resubscribe: true, fields }),
     });
   } else {
     const createResponse = await fetch(`${MAILERLITE_API_BASE}/subscribers`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, status: 'active', fields }),
+      body: JSON.stringify({ email, status: 'active', resubscribe: true, fields }),
     });
     const createJson = await createResponse.json();
     if (!createResponse.ok) {
@@ -134,6 +134,7 @@ export async function upsertWebinaireSubscriber({
         headers,
         body: JSON.stringify({
           status: 'active',
+          resubscribe: true,
           fields: { ...fields, ...groupDateFields },
         }),
       }).catch(() => {});
