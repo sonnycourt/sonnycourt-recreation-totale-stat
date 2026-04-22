@@ -27,6 +27,19 @@ function generateToken() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+function buildAlreadyRegisteredResponse(row) {
+  return {
+    success: true,
+    alreadyRegistered: true,
+    token: row.token,
+    statut: row.statut,
+    sessionStartsAt: row.session_date,
+    sessionEndsAt: row.session_ends_at,
+    offreExpiresAt: row.offre_expires_at,
+    redirectTo: `/masterclass/confirmation?t=${row.token}`,
+  };
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') {
     return jsonResponse(200, { ok: true });
@@ -124,16 +137,7 @@ export default async (req) => {
         }
       }
 
-      return jsonResponse(200, {
-        success: true,
-        alreadyRegistered: true,
-        token: e.token,
-        statut: e.statut,
-        sessionStartsAt: e.session_date,
-        sessionEndsAt: e.session_ends_at,
-        offreExpiresAt: e.offre_expires_at,
-        redirectTo: `/masterclass/confirmation?t=${e.token}`,
-      });
+      return jsonResponse(200, buildAlreadyRegisteredResponse(e));
     }
 
     const token = generateToken();
@@ -164,6 +168,23 @@ export default async (req) => {
 
     const ins = await supabasePost('webinaire_registrations', row, { prefer: 'return=minimal' });
     if (!ins.ok) {
+      const rawErr = typeof ins.error === 'string' ? ins.error : JSON.stringify(ins.error || {});
+      const looksLikeDuplicate =
+        ins.status === 409 ||
+        rawErr.includes('duplicate key') ||
+        rawErr.includes('23505');
+      if (looksLikeDuplicate) {
+        const existingAfterConflict = await supabaseGet(
+          `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at`,
+        );
+        if (
+          existingAfterConflict.ok &&
+          Array.isArray(existingAfterConflict.data) &&
+          existingAfterConflict.data.length > 0
+        ) {
+          return jsonResponse(200, buildAlreadyRegisteredResponse(existingAfterConflict.data[0]));
+        }
+      }
       console.error('Supabase insert webinaire_registrations:', ins.status, ins.error);
       return jsonResponse(500, {
         error: 'Erreur enregistrement',
