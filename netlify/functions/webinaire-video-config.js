@@ -17,11 +17,14 @@ export default async (req) => {
 
   try {
     const cfg = await resolveActiveVideoConfig();
+    const activeSource = cfg.activeSource || 'primary';
+    const activeUrl =
+      activeSource === 'backup' && cfg.sources.backup ? cfg.sources.backup : cfg.sources.primary;
     const playbackCommand = await getPlaybackCommand();
     return jsonResponse(200, {
       ok: true,
-      activeSource: cfg.activeSource,
-      activeUrl: cfg.activeUrl,
+      activeSource,
+      activeUrl,
       hasBackup: Boolean(cfg.sources.backup),
       playbackCommand,
     });

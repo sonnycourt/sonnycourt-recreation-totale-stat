@@ -4,7 +4,7 @@ const STORE_NAME = 'webinaire-video-config';
 const KEY = 'active-source';
 
 const PRIMARY_DEFAULT =
-  'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20V1%20(Pour%20Partage%20Et%20Timing).mp4';
+  'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20Final%20V3%20(22.04.2026).mp4';
 
 function normalizeSource(raw) {
   if (raw === 'backup') return 'backup';
