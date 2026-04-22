@@ -2017,6 +2017,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if (row) row.classList.toggle('commit-row--error', Boolean(on));
         }
 
+        function setExcludedMessage(targetEl) {
+            if (!targetEl) return;
+            targetEl.innerHTML =
+                'Tu fais déjà partie de la famille Sonny Court !<br>' +
+                'Cette masterclass est réservée aux nouvelles personnes.<br>' +
+                'Accède à tes formations ici :<br>' +
+                '<a href="https://volt.sonnycourt.com" target="_blank" rel="noopener noreferrer">Accéder à mon compte</a>';
+        }
+
         /** Pays FR pour l’API (aligné ancienne liste) - dérivé du pays choisi sur le champ tel (IP + drapeau). */
         function countryIsoToPaysFr(iso2) {
             const code = (iso2 || '').toLowerCase();
@@ -2143,8 +2152,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
 
                 if (response.status === 403 && result.reason === 'excluded') {
-                    formStatus.textContent =
-                        'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.';
+                    setExcludedMessage(formStatus);
                     submitBtn.disabled = false;
                     submitBtn.textContent = STEP3_SUBMIT_LABEL;
                     return;
@@ -2311,8 +2319,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         return;
                     }
                     if (body.eligible === false && body.reason === 'excluded') {
-                        msg.textContent =
-                            'Tu n\u2019es pas \u00e9ligible pour suivre cette masterclass.';
+                        setExcludedMessage(msg);
                         return;
                     }
                     if (body.eligible === false && body.reason === 'already_registered') {
