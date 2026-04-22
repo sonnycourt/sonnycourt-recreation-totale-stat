@@ -13,8 +13,8 @@ const DAY_OFFSETS: Record<string, number> = {
 };
 
 const WINDOW_START_H = 21;
-const WINDOW_START_M = 7;
-const WINDOW_START_S = 12;
+const WINDOW_START_M = 6;
+const WINDOW_START_S = 6;
 
 export function toOffset(day: keyof typeof DAY_OFFSETS, hhmmss: string): number {
   const dayOffset = DAY_OFFSETS[day];

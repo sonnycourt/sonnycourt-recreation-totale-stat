@@ -17,7 +17,7 @@ export type ScarcityWindow = {
 
 export type ScarcityPhase = 'phase1' | 'sold_out' | 'phase2';
 export type ScarcityWindowBounds = { startMs: number; endMs: number };
-export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (67 * 60 + 12) * 1000; // 21:07:12 if session starts at 20:00
+export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (66 * 60 + 6) * 1000; // 21:06:06 if session starts at 20:00
 
 const TZ = 'Europe/Paris';
 const DAY_MS = 24 * 60 * 60 * 1000;
