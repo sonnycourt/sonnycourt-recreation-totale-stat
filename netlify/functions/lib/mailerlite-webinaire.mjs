@@ -31,6 +31,26 @@ export async function getMailerLiteSubscriberId(email, apiKey) {
   }
 }
 
+async function getMailerLiteSubscriberSnapshot(email, apiKey) {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    Accept: 'application/json',
+  };
+  try {
+    const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers,
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = json?.data || null;
+    if (!data?.id) return null;
+    return { id: data.id, status: data.status || null };
+  } catch {
+    return null;
+  }
+}
+
 export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
   if (!subscriberId || !groupId) {
     return { assigned: false, alreadyInGroup: false };
@@ -96,14 +116,28 @@ export async function upsertWebinaireSubscriber({
       : {}),
   };
 
-  let subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+  const existingSubscriber = await getMailerLiteSubscriberSnapshot(email, apiKey);
+  let subscriberId = existingSubscriber?.id || null;
 
   if (subscriberId) {
-    await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({ status: 'active', resubscribe: true, fields }),
-    });
+    if (existingSubscriber?.status === 'unsubscribed') {
+      const upsertResponse = await fetch(`${MAILERLITE_API_BASE}/subscribers`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email, status: 'active', resubscribe: true, fields }),
+      });
+      const upsertJson = await upsertResponse.json().catch(() => ({}));
+      if (!upsertResponse.ok) {
+        throw new Error(upsertJson?.message || 'MailerLite resubscribe upsert error');
+      }
+      subscriberId = upsertJson?.data?.id || subscriberId;
+    } else {
+      await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ status: 'active', resubscribe: true, fields }),
+      });
+    }
   } else {
     const createResponse = await fetch(`${MAILERLITE_API_BASE}/subscribers`, {
       method: 'POST',
