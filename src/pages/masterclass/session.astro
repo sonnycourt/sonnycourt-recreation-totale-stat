@@ -2094,14 +2094,34 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
 
                 if (now >= broadcastEndMs) {
-                    const canStayOnSessionEndedState = hasJoinedSession || reg.attendedLive === true || !video.paused;
-                    if (canStayOnSessionEndedState) {
-                        syncMcEndedGateUi(false);
-                        applyInlineEndedUi({
-                            preserveFrame: true,
-                            keepOfferVisible: true,
-                            showInlineNote: true,
-                        });
+                    const isPresentUser = hasJoinedSession || reg.attendedLive === true;
+                    if (isPresentUser) {
+                        const durationSec = getVideoDurationSeconds();
+                        const atFileEnd = Number.isFinite(video.currentTime)
+                            && video.currentTime >= Math.max(0, durationSec - 0.25);
+
+                        // For present users, rely on real file end for the ended state.
+                        // If they open after the live window ended, show ended inline immediately.
+                        if (!hasJoinedSession || atFileEnd) {
+                            if (!hasJoinedSession && Number.isFinite(durationSec) && durationSec > 0) {
+                                liveSeekInProgress = true;
+                                video.currentTime = Math.max(0, durationSec - 0.01);
+                                maxWatched = Math.max(maxWatched, video.currentTime);
+                                setTimeout(function () {
+                                    liveSeekInProgress = false;
+                                }, 500);
+                            }
+                            syncMcEndedGateUi(false);
+                            applyInlineEndedUi({
+                                preserveFrame: true,
+                                keepOfferVisible: true,
+                                showInlineNote: true,
+                            });
+                        } else {
+                            syncMcEndedGateUi(false);
+                            updateCtaStateByTime();
+                            updateDiagnosticGuideState();
+                        }
                     } else {
                         syncMcEndedGateUi(true);
                         applyInlineEndedUi();
