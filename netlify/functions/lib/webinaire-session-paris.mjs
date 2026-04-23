@@ -98,7 +98,7 @@ export function getRegistrationSessionInstantUtc(now, _creneau) {
   return findParisInstantUtc(thu.year, thu.month, thu.day, 20);
 }
 
-const SESSION_MS = 45 * 60 * 1000;
+const SESSION_MS = 90 * 60 * 1000;
 
 export function getSessionEndsAtUtc(sessionStartUtc) {
   if (!sessionStartUtc) return null;

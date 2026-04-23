@@ -1318,6 +1318,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 statut: data.statut || 'inscrit',
                 prenom: data.prenom || '',
                 sessionStartsAt: data.sessionStartsAt || data.session_date,
+                sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
                 offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
             };
         }
@@ -1722,6 +1723,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
             const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
+            const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
+            const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
+                ? sessionEndsRawMs
+                : (sessionStartMs + (90 * 60 * 1000));
             const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
             const scarcityWindowEndMs = expiryMs;
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
@@ -1959,7 +1964,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
-                const broadcastEndMs = liveStartMs + getVideoDurationSeconds() * 1000;
+                const broadcastEndMs = sessionEndsMs;
 
                 if (Number.isFinite(expiryMs) && now >= expiryMs) {
                     syncMcLateUi(false);
@@ -2016,7 +2021,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     return;
                 }
 
-                if (now >= broadcastEndMs) {
+                if (now >= broadcastEndMs && !hasJoinedSession && video.paused) {
                     syncMcEndedGateUi(true);
                     applyInlineEndedUi();
                     return;
@@ -2608,6 +2613,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 const now = Date.now();
                 const sessionMs = new Date(reg.sessionStartsAt).getTime();
+                const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
+                const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
+                    ? sessionEndsRawMs
+                    : (sessionMs + (90 * 60 * 1000));
                 const offerMs = new Date(reg.offreExpiresAt).getTime();
                 const attendedLive = data?.attended_live === true;
 
@@ -2617,6 +2626,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
+                if (now >= sessionEndsMs && !attendedLive) {
+                    window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=ended');
+                    return;
+                }
                 if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
                     window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=late');
                     return;
