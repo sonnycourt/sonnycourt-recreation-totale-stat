@@ -393,6 +393,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 opacity: 1;
             }
         }
+        @media (max-width: 1023px) and (orientation: landscape) {
+            .video-container.is-joined .video-controls.mobile-autohide-hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
         /* Verrou strict: aucun contrôle visible avant le "join" explicite */
         .video-container:not(.is-joined) .video-controls {
             display: none !important;
@@ -1802,6 +1808,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let hasJoinedSession = false;
             let didTrackCtaReached = false;
             const emittedCheckpointMinutes = new Set();
+            let mobileControlsHideTimer = null;
+            const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
 
             const lateReplayLinkEl = document.getElementById('mc-late-replay-link');
             const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
@@ -1881,6 +1889,60 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 videoContainer.classList.toggle('is-joined', Boolean(visible));
                 videoControls.classList.toggle('hidden', !visible);
                 fullscreenBtn.classList.toggle('hidden', !visible);
+                if (!visible) {
+                    clearMobileControlsHideTimer();
+                    videoControls.classList.remove('mobile-autohide-hidden');
+                } else {
+                    syncMobileControlsAutoHide();
+                }
+            }
+
+            function isMobileLandscapeViewport() {
+                return window.matchMedia('(max-width: 1023px) and (orientation: landscape)').matches;
+            }
+
+            function clearMobileControlsHideTimer() {
+                if (mobileControlsHideTimer) {
+                    clearTimeout(mobileControlsHideTimer);
+                    mobileControlsHideTimer = null;
+                }
+            }
+
+            function showMobileControlsNow() {
+                if (!videoControls) return;
+                videoControls.classList.add('is-visible');
+                videoControls.classList.remove('mobile-autohide-hidden');
+            }
+
+            function hideMobileControlsNow() {
+                if (!videoControls) return;
+                videoControls.classList.remove('is-visible');
+                videoControls.classList.add('mobile-autohide-hidden');
+            }
+
+            function syncMobileControlsAutoHide() {
+                if (!videoControls || !videoContainer.classList.contains('is-joined')) return;
+                clearMobileControlsHideTimer();
+                if (!isMobileLandscapeViewport()) {
+                    videoControls.classList.remove('mobile-autohide-hidden');
+                    return;
+                }
+                if (video.paused || video.ended || isSessionEnded) {
+                    showMobileControlsNow();
+                    return;
+                }
+                showMobileControlsNow();
+                mobileControlsHideTimer = setTimeout(function () {
+                    if (!video.paused && !video.ended && !isSessionEnded && isMobileLandscapeViewport()) {
+                        hideMobileControlsNow();
+                    }
+                }, MOBILE_CONTROLS_HIDE_DELAY_MS);
+            }
+
+            function onMobileControlsActivity() {
+                if (!isMobileLandscapeViewport() || !videoContainer.classList.contains('is-joined')) return;
+                showMobileControlsNow();
+                syncMobileControlsAutoHide();
             }
 
             function applySimulatedLiveOffset(opts) {
@@ -2085,6 +2147,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (waiting) waiting.classList.add('is-hidden');
                 playOverlay.classList.add('hidden');
                 syncIcons();
+                syncMobileControlsAutoHide();
             });
             video.addEventListener('pause', function () {
                 // No pause experience once user has joined.
@@ -2093,6 +2156,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     playOverlay.classList.add('hidden');
                 }
                 syncIcons();
+                syncMobileControlsAutoHide();
             });
             video.addEventListener('volumechange', syncIcons);
             playBtn.addEventListener('click', function () {
@@ -2104,6 +2168,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 video.play().catch(() => {});
                 playOverlay.classList.add('hidden');
                 updateLiveJumpUi();
+                syncMobileControlsAutoHide();
             });
             muteBtn.addEventListener('click', function () {
                 video.muted = !video.muted;
@@ -2128,6 +2193,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     } else if (document.fullscreenElement && document.exitFullscreen) {
                         document.exitFullscreen().catch(() => {});
                     }
+                    syncMobileControlsAutoHide();
                 });
             }
 
@@ -2145,6 +2211,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         liveSeekInProgress = false;
                     }, 900);
                     updateLiveJumpUi();
+                    syncMobileControlsAutoHide();
                 });
             }
             if (liveJumpBtn) {
@@ -2152,8 +2219,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (!hasJoinedSession || isSessionEnded) return;
                     applySimulatedLiveOffset({ force: true });
                     updateLiveJumpUi();
+                    syncMobileControlsAutoHide();
                 });
             }
+            ['touchstart', 'touchmove', 'pointermove'].forEach(function (evt) {
+                videoContainer.addEventListener(evt, onMobileControlsActivity, { passive: true });
+            });
+            window.addEventListener('resize', syncMobileControlsAutoHide);
             videoContainer.addEventListener('keydown', function (e) {
                 // Empêche les raccourcis seek du navigateur.
                 if (['ArrowLeft', 'ArrowRight', 'j', 'l', 'J', 'L'].includes(e.key)) {
@@ -2203,6 +2275,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
                 updateCtaStateByTime();
                 updateLiveJumpUi();
+                syncMobileControlsAutoHide();
             });
             refreshPreLiveCountdown();
             launchInterval = setInterval(refreshPreLiveCountdown, 1000);

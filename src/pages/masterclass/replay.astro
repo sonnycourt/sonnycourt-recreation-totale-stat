@@ -170,6 +170,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       padding: 10px 12px;
       border-top: 1px solid rgba(148,163,184,.2);
       background: rgba(15,23,42,.8);
+      opacity: 1;
+      max-height: 90px;
+      overflow: hidden;
+      transition: opacity .25s ease, max-height .25s ease, padding .25s ease, border-color .25s ease;
+    }
+    @media (max-width: 1023px) and (orientation: landscape) {
+      .controls.mobile-autohide-hidden {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-top-color: transparent;
+        pointer-events: none;
+      }
     }
     .ctrl-group { display: flex; gap: 8px; align-items: center; }
     .ctrl-btn {
@@ -999,6 +1013,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const muteBtn = document.getElementById('mute-btn');
       const volumeRange = document.getElementById('volume-range');
       const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const controlsBar = document.querySelector('.controls');
+      const videoBox = document.getElementById('video-box');
       const expiryBanner = document.getElementById('expiry-banner');
       const offerZone = document.getElementById('offer-zone');
       const offerCta = document.getElementById('offer-cta');
@@ -1038,6 +1054,49 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const emittedCheckpointMinutes = new Set();
       let previewScarcityAnchorStartMs = null;
       let soldOutExpired = false;
+      let mobileControlsHideTimer = null;
+      const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
+
+      function isMobileLandscapeViewport() {
+        return window.matchMedia('(max-width: 1023px) and (orientation: landscape)').matches;
+      }
+      function clearMobileControlsHideTimer() {
+        if (mobileControlsHideTimer) {
+          clearTimeout(mobileControlsHideTimer);
+          mobileControlsHideTimer = null;
+        }
+      }
+      function showMobileControlsNow() {
+        if (!controlsBar) return;
+        controlsBar.classList.remove('mobile-autohide-hidden');
+      }
+      function hideMobileControlsNow() {
+        if (!controlsBar) return;
+        controlsBar.classList.add('mobile-autohide-hidden');
+      }
+      function syncMobileControlsAutoHide() {
+        if (!controlsBar) return;
+        clearMobileControlsHideTimer();
+        if (!isMobileLandscapeViewport()) {
+          showMobileControlsNow();
+          return;
+        }
+        if (video.paused || video.ended) {
+          showMobileControlsNow();
+          return;
+        }
+        showMobileControlsNow();
+        mobileControlsHideTimer = setTimeout(() => {
+          if (!video.paused && !video.ended && isMobileLandscapeViewport()) {
+            hideMobileControlsNow();
+          }
+        }, MOBILE_CONTROLS_HIDE_DELAY_MS);
+      }
+      function onMobileControlsActivity() {
+        if (!isMobileLandscapeViewport()) return;
+        showMobileControlsNow();
+        syncMobileControlsAutoHide();
+      }
 
       function getPreviewScarcityAnchorStartMs() {
         if (Number.isFinite(previewScarcityAnchorStartMs)) return previewScarcityAnchorStartMs;
@@ -1350,6 +1409,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const box = document.getElementById('video-box');
         if (!document.fullscreenElement) box.requestFullscreen?.().catch(() => {});
         else document.exitFullscreen?.().catch(() => {});
+        syncMobileControlsAutoHide();
       });
       video.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -1358,10 +1418,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       video.addEventListener('play', () => {
         overlay.classList.add('hidden');
         playPauseBtn.textContent = 'Pause';
+        syncMobileControlsAutoHide();
       });
       video.addEventListener('pause', () => {
         if (!video.ended) overlay.classList.remove('hidden');
         playPauseBtn.textContent = 'Play';
+        syncMobileControlsAutoHide();
       });
       video.addEventListener('timeupdate', () => {
         if (video.currentTime > maxWatched) maxWatched = video.currentTime;
@@ -1385,6 +1447,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       video.addEventListener('keydown', (e) => {
         if (['ArrowRight', 'l', 'L', 'j', 'J'].includes(e.key)) e.preventDefault();
       });
+      [videoBox, controlsBar].forEach((target) => {
+        if (!target) return;
+        ['touchstart', 'touchmove', 'pointermove'].forEach((evt) => {
+          target.addEventListener(evt, onMobileControlsActivity, { passive: true });
+        });
+      });
+      window.addEventListener('resize', syncMobileControlsAutoHide);
       if (isPreviewDev) {
         const devPanel = document.getElementById('dev-time-banner');
         const devTimeInput = document.getElementById('dev-time-input');
@@ -1478,6 +1547,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       updateCountdown(offerExpiryMs);
       updateDiagnosticGuideState();
       syncReplayUnavailableLock();
+      syncMobileControlsAutoHide();
       offerCta.href = '/invitation?t=' + encodeURIComponent(token);
       offerCta.addEventListener('click', () => {
         trackWebinaireEvent(token, 'cta_clicked');
