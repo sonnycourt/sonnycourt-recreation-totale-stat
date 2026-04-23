@@ -12,6 +12,8 @@ export interface Props {
   noindex?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
+  hideFormationsInHeader?: boolean;
+  hideFormationsInFooter?: boolean;
 }
 
 const { 
@@ -21,7 +23,9 @@ const {
   canonical = Astro.url.href,
   noindex = false,
   showHeader = true,
-  showFooter = true
+  showFooter = true,
+  hideFormationsInHeader = false,
+  hideFormationsInFooter = false
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -68,11 +72,11 @@ const GTM_ID = 'GTM-NGS86CLW';
   </head>
   <body>
     <slot name="before-header" />
-    {showHeader && <Header currentPath={currentPath} />}
+    {showHeader && <Header currentPath={currentPath} hideFormations={hideFormationsInHeader} />}
     <main>
       <slot />
     </main>
-    {showFooter && <Footer />}
+    {showFooter && <Footer hideFormations={hideFormationsInFooter} />}
     <CookieConsent />
   </body>
 </html>

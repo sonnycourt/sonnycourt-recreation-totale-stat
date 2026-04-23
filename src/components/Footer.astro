@@ -1,4 +1,9 @@
 ---
+interface Props {
+  hideFormations?: boolean;
+}
+
+const { hideFormations = false } = Astro.props;
 const currentYear = new Date().getFullYear();
 ---
 
@@ -19,16 +24,18 @@ const currentYear = new Date().getFullYear();
         </p>
       </div>
       
-      <div class="footer-links">
-        <div class="footer-column">
-          <h4>Formations</h4>
-          <ul>
-            <li><a href="/ssr-lancement/">Système Souhaits Réalisés</a></li>
-            <li><a href="/neuro-ia/">Neuro IA</a></li>
-            <li><a href="/manifest/">Manifest</a></li>
-            <li><a href="/esprit-subconscient/">Esprit Subconscient</a></li>
-          </ul>
-        </div>
+      <div class:list={['footer-links', hideFormations ? 'footer-links--no-formations' : '']}>
+        {!hideFormations && (
+          <div class="footer-column">
+            <h4>Formations</h4>
+            <ul>
+              <li><a href="/ssr-lancement/">Système Souhaits Réalisés</a></li>
+              <li><a href="/neuro-ia/">Neuro IA</a></li>
+              <li><a href="/manifest/">Manifest</a></li>
+              <li><a href="/esprit-subconscient/">Esprit Subconscient</a></li>
+            </ul>
+          </div>
+        )}
         
         <div class="footer-column">
           <h4>Ressources</h4>
@@ -145,6 +152,10 @@ const currentYear = new Date().getFullYear();
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 40px;
+  }
+
+  .footer-links--no-formations {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .footer-column h4 {
