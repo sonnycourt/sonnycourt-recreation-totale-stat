@@ -2103,19 +2103,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         // For present users, rely on real file end for the ended state.
                         // If they open after the live window ended, show ended inline immediately.
                         if (!hasJoinedSession || atFileEnd) {
-                            if (!hasJoinedSession && Number.isFinite(durationSec) && durationSec > 0) {
-                                liveSeekInProgress = true;
-                                video.currentTime = Math.max(0, durationSec - 0.01);
-                                maxWatched = Math.max(maxWatched, video.currentTime);
-                                setTimeout(function () {
-                                    liveSeekInProgress = false;
-                                }, 500);
-                            }
                             syncMcEndedGateUi(false);
                             applyInlineEndedUi({
-                                preserveFrame: true,
+                                preserveFrame: false,
                                 keepOfferVisible: true,
-                                showInlineNote: true,
+                                showInlineNote: false,
                             });
                         } else {
                             syncMcEndedGateUi(false);
@@ -2176,9 +2168,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (hasJoinedSession || reg.attendedLive === true) {
                         syncMcEndedGateUi(false);
                         applyInlineEndedUi({
-                            preserveFrame: true,
+                            preserveFrame: false,
                             keepOfferVisible: true,
-                            showInlineNote: true,
+                            showInlineNote: false,
                         });
                     } else {
                         showEndedState();
