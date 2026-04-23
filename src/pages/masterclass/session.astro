@@ -1326,6 +1326,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 sessionStartsAt: data.sessionStartsAt || data.session_date,
                 sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
                 offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
+                attendedLive: data?.attended_live === true,
             };
         }
         function decideRouteFromPayload(payload, token) {
@@ -1975,14 +1976,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 updatePlayOverlayLabel();
             }
 
-            function applyInlineEndedUi() {
+            function applyInlineEndedUi(opts) {
+                const preserveFrame = opts?.preserveFrame === true;
+                const keepOfferVisible = opts?.keepOfferVisible === true;
+                const showInlineNote = opts?.showInlineNote === true;
                 isSessionEnded = true;
                 liveStarted = false;
                 isLiveJoin = false;
                 if (preLive) preLive.style.display = 'none';
-                if (endedNote) endedNote.classList.remove('is-visible');
+                if (endedNote) endedNote.classList.toggle('is-visible', showInlineNote);
                 if (waiting) {
-                    waiting.classList.remove('is-hidden');
+                    waiting.classList.toggle('is-hidden', showInlineNote);
                     const wt = waiting.querySelector('.waiting-title');
                     if (wt) {
                         wt.textContent = 'La masterclass est terminée';
@@ -1991,10 +1995,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
                 playOverlay.classList.add('hidden');
                 video.pause();
-                video.currentTime = 0;
+                if (!preserveFrame) {
+                    video.currentTime = 0;
+                }
                 updatePlayOverlayLabel();
                 updateLiveJumpUi();
-                hideOfferZone();
+                if (keepOfferVisible) {
+                    showOfferZone(reg.token);
+                } else {
+                    hideOfferZone();
+                }
             }
             function showEndedState() {
                 syncMcEndedGateUi(true);
@@ -2083,9 +2093,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     return;
                 }
 
-                if (now >= broadcastEndMs && !hasJoinedSession && video.paused) {
-                    syncMcEndedGateUi(true);
-                    applyInlineEndedUi();
+                if (now >= broadcastEndMs) {
+                    const canStayOnSessionEndedState = hasJoinedSession || reg.attendedLive === true || !video.paused;
+                    if (canStayOnSessionEndedState) {
+                        syncMcEndedGateUi(false);
+                        applyInlineEndedUi({
+                            preserveFrame: true,
+                            keepOfferVisible: true,
+                            showInlineNote: true,
+                        });
+                    } else {
+                        syncMcEndedGateUi(true);
+                        applyInlineEndedUi();
+                    }
                     return;
                 }
 
@@ -2133,7 +2153,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     }
                 });
                 if (video.currentTime >= getVideoDurationSeconds()) {
-                    showEndedState();
+                    if (hasJoinedSession || reg.attendedLive === true) {
+                        syncMcEndedGateUi(false);
+                        applyInlineEndedUi({
+                            preserveFrame: true,
+                            keepOfferVisible: true,
+                            showInlineNote: true,
+                        });
+                    } else {
+                        showEndedState();
+                    }
                 }
             });
             video.addEventListener('seeking', function () {
