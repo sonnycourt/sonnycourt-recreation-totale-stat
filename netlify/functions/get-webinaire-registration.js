@@ -136,7 +136,7 @@ export default async (req) => {
     }
 
     const res = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,purchased`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,purchased,attended_live`,
     );
 
     if (!res.ok) {
@@ -164,6 +164,7 @@ export default async (req) => {
       sessionStartsAt: row.session_date,
       sessionEndsAt: row.session_ends_at,
       offreExpiresAt: row.offre_expires_at,
+      attended_live: row.attended_live === true,
       purchased,
       whatsappLink: whatsapp.whatsappLink || '',
       whatsappGroupNumber: Number.isFinite(whatsapp.whatsappGroupNumber) ? whatsapp.whatsappGroupNumber : null,

@@ -2609,6 +2609,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const now = Date.now();
                 const sessionMs = new Date(reg.sessionStartsAt).getTime();
                 const offerMs = new Date(reg.offreExpiresAt).getTime();
+                const attendedLive = data?.attended_live === true;
 
                 if (!Number.isFinite(sessionMs) || !Number.isFinite(offerMs)) {
                     showBlocked('Erreur', 'Dates de session invalides.');
@@ -2616,7 +2617,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
-                if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS) {
+                if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
                     window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=late');
                     return;
                 }
