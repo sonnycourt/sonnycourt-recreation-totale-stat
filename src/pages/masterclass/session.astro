@@ -1960,7 +1960,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
                 const broadcastEndMs = liveStartMs + getVideoDurationSeconds() * 1000;
-                const lateCutoffMs = sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS;
 
                 if (Number.isFinite(expiryMs) && now >= expiryMs) {
                     syncMcLateUi(false);
@@ -1975,7 +1974,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 try {
                     devLatePreview = window.__mcSessionDevLatePreview === true;
                 } catch (e) {}
-                if ((!isPreviewPage && now >= lateCutoffMs) || (isPreviewPage && devLatePreview && now >= lateCutoffMs)) {
+                // Retardataire gate must only apply on initial page load.
+                // Keep this runtime branch for explicit dev preview simulation only.
+                if (isPreviewPage && devLatePreview) {
                     isLiveJoin = false;
                     syncMcLateUi(true);
                     syncMcEndedGateUi(false);
