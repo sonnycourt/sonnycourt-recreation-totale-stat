@@ -2387,46 +2387,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         document.addEventListener('DOMContentLoaded', function () {
             const pwdGate = document.getElementById('masterclass-password-gate');
-            const pwdInput = document.getElementById('masterclass-pwd-input');
-            const pwdBtn = document.getElementById('masterclass-pwd-submit');
-            const pwdErr = document.getElementById('masterclass-pwd-error');
-            const url = new URL(window.location.href);
-            const previewBypass = url.searchParams.get('preview') === 'dev';
-
-            function unlockAndStart() {
-                pwdGate.classList.add('is-hidden');
-                bootstrapAfterAccessGate();
-            }
-
-            if (previewBypass || hasMasterclassSessionAccess()) {
-                pwdGate.classList.add('is-hidden');
-                bootstrapAfterAccessGate();
-                return;
-            }
-
-            pwdInput.focus();
-
-            function tryPassword() {
-                pwdErr.textContent = '';
-                const v = (pwdInput.value || '').trim();
-                if (v === MASTERCLASS_TEMP_PASSWORD) {
-                    try {
-                        sessionStorage.setItem(MASTERCLASS_ACCESS_SESSION, 'true');
-                    } catch (e) {
-                        /* ignore */
-                    }
-                    unlockAndStart();
-                    return;
-                }
-                pwdErr.textContent = 'Mot de passe incorrect.';
-                pwdInput.value = '';
-                pwdInput.focus();
-            }
-
-            pwdBtn.addEventListener('click', tryPassword);
-            pwdInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') tryPassword();
-            });
+            if (pwdGate) pwdGate.classList.add('is-hidden');
+            bootstrapAfterAccessGate();
         });
     </script>
 </body>
