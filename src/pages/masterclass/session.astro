@@ -421,6 +421,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             cursor: pointer;
         }
         .control-btn svg { width: 18px; height: 18px; }
+        .control-btn:disabled,
+        .control-btn.is-disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         .volume-range {
             width: 84px;
             accent-color: var(--primary);
@@ -1872,6 +1878,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (!hasJoinedSession || isSessionEnded || getNowMs() < liveStartMs) {
                     liveJumpBtn.classList.add('hidden');
                     rewind15Btn.classList.add('hidden');
+                    rewind15Btn.disabled = true;
+                    rewind15Btn.classList.add('is-disabled');
                     return;
                 }
                 const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
@@ -1882,7 +1890,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 // On limite le recule total pour rester cohérent avec les fenêtres/CTA basés sur le timing live.
                 const canRewind = cur >= 15 && diff > 0 && diff < MAX_BEHIND_LIVE_SECONDS;
-                rewind15Btn.classList.toggle('hidden', !canRewind);
+                rewind15Btn.classList.remove('hidden');
+                rewind15Btn.disabled = !canRewind;
+                rewind15Btn.classList.toggle('is-disabled', !canRewind);
             }
 
             function setJoinedControlsVisible(visible) {
@@ -2241,6 +2251,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             if (rewind15Btn) {
                 rewind15Btn.addEventListener('click', function () {
                     if (!hasJoinedSession || isSessionEnded) return;
+                    if (rewind15Btn.disabled) return;
                     const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
                     const liveOffset = getLiveOffsetSeconds();
                     const minAllowed = Math.max(0, liveOffset - MAX_BEHIND_LIVE_SECONDS);
