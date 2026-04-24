@@ -1825,7 +1825,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             mountScarcityAudit();
             updateScarcityAudit();
 
-            trackWebinaireEvent(reg.token, 'session_joined');
+            let didTrackSessionJoined = false;
+            function trackSessionJoinedIfEligible() {
+                if (didTrackSessionJoined) return;
+                // Guard: do not mark attended_live before the live access window opens.
+                if (Date.now() < sessionStartMs - LIVE_VIDEO_LEAD_MS) return;
+                // Send when the player is actually available to play.
+                const playerReady = video.readyState >= 1 || !video.paused;
+                if (!playerReady) return;
+                didTrackSessionJoined = true;
+                trackWebinaireEvent(reg.token, 'session_joined');
+            }
 
             function setScarcitySeats(seatsLeft, phase) {
                 const isPhase2 = phase === 'phase2';
@@ -2199,6 +2209,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 playOverlay.classList.add('hidden');
                 syncIcons();
                 syncMobileControlsAutoHide();
+                trackSessionJoinedIfEligible();
             });
             video.addEventListener('pause', function () {
                 // No pause experience once user has joined.
@@ -2299,6 +2310,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 } else {
                     ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
                 }
+                trackSessionJoinedIfEligible();
                 if (pendingSourceSwitch) {
                     // Source changed by ops: either re-sync to live (recommended) or restore user's position.
                     const targetRaw = pendingSourceSwitchRestoreTimeSec;
