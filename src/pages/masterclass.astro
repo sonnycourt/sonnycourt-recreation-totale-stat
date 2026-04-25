@@ -224,6 +224,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             color: var(--text-muted);
             line-height: 1.65;
         }
+        .gate-blocked-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 18px;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #fff;
+            background: rgba(37, 99, 235, 0.32);
+            text-decoration: none;
+            font-weight: 800;
+        }
 
         #page-main {
             display: none;
@@ -1269,6 +1283,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <h1>Accès non disponible</h1>
                 <p>Tu n'es pas éligible pour suivre cette masterclass.</p>
             </div>
+            <div data-block-variant="already-registered-before-live" style="display:none;">
+                <h1>Tu es déjà inscrit(e)</h1>
+                <p>Ta session n'a pas encore commencé. Clique sur le bouton ci-dessous pour accéder à ta page d'inscription.</p>
+                <a id="gate-go-confirmation" class="gate-blocked-action" href="#">Voir ma page d'inscription</a>
+            </div>
+            <div data-block-variant="already-registered-replay" style="display:none;">
+                <h1>Tu es déjà inscrit(e)</h1>
+                <p>Le replay est disponible. Clique sur le bouton ci-dessous pour y accéder.</p>
+                <a id="gate-go-replay" class="gate-blocked-action" href="#">Accéder au replay</a>
+            </div>
         </div>
     </div>
 
@@ -1715,21 +1739,21 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const oe = new Date(reg.offreExpiresAt).getTime();
             if (!Number.isFinite(sd) || !Number.isFinite(oe)) return { type: 'main' };
             if (now < sd) {
-                return { type: 'redirect', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
+                return { type: 'block', variant: 'already-registered-before-live', url: '/masterclass/confirmation?t=' + encodeURIComponent(token) };
             }
             if (now >= sd && now < oe) {
-                return { type: 'redirect', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
+                return { type: 'block', variant: 'already-registered-replay', url: '/masterclass/replay?t=' + encodeURIComponent(token) };
             }
             return { type: 'block', variant: 'closed' };
         }
 
         function applyRoute(route) {
-            if (route.type === 'redirect') {
-                window.location.replace(route.url);
-                return 'redirect';
-            }
             if (route.type === 'block') {
                 showBlocked(route.variant);
+                const confirmationLink = document.getElementById('gate-go-confirmation');
+                if (confirmationLink) confirmationLink.href = route.url || '#';
+                const replayLink = document.getElementById('gate-go-replay');
+                if (replayLink) replayLink.href = route.url || '#';
                 return 'block';
             }
             showMain();
@@ -1760,7 +1784,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 showMain();
                 return true;
             }
-            const token = getStoredToken();
+            const urlToken = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
+            if (urlToken) setTokenEverywhere(urlToken);
+            const token = urlToken || getStoredToken();
             if (!token) {
                 showMain();
                 return true;
@@ -1786,7 +1812,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
                 const reg = normalizeReg(Object.assign({}, data, { token }));
                 const outcome = applyRoute(decideRoute(reg, token));
-                if (outcome === 'redirect') return false;
                 if (outcome === 'block') return false;
                 return true;
             } catch (e) {

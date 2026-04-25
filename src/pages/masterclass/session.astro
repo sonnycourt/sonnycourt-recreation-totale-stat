@@ -1149,7 +1149,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                             <svg id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
                             <svg id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
                         </button>
-                        <input id="volumeRange" class="volume-range" type="range" min="0" max="100" value="100">
+                        <input id="volumeRange" class="volume-range" type="range" min="0" max="100" value="80">
                     </div>
                     <div class="controls-group">
                         <button class="control-btn hidden" id="liveJumpBtn" aria-label="Revenir au live" style="font-size:12px;font-weight:900;background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.55);">LIVE</button>
@@ -1822,6 +1822,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
             if (lateReplayLinkEl) lateReplayLinkEl.href = '/masterclass/replay?t=' + encodeURIComponent(reg.token) + '&reason=late';
             if (endedReplayLinkEl) endedReplayLinkEl.href = '/masterclass/replay?t=' + encodeURIComponent(reg.token);
+            let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
+            let forceEndedOverlay = window.__mcSessionForceEndedOverlay === true;
             mountScarcityAudit();
             updateScarcityAudit();
 
@@ -2067,6 +2069,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
                 syncMcUnavailableUi(false);
 
+                if (forceEndedOverlay) {
+                    isLiveJoin = false;
+                    syncMcLateUi(false);
+                    syncMcEndedGateUi(true);
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    setJoinedControlsVisible(false);
+                    updatePlayOverlayLabel();
+                    return;
+                }
+
+                if (forceLateOverlay) {
+                    isLiveJoin = false;
+                    syncMcLateUi(true);
+                    syncMcEndedGateUi(false);
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    setJoinedControlsVisible(false);
+                    updatePlayOverlayLabel();
+                    return;
+                }
+
                 var devLatePreview = false;
                 try {
                     devLatePreview = window.__mcSessionDevLatePreview === true;
@@ -2301,6 +2325,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             tick();
             disableNativeSeekAndFastForward();
             video.src = ACTIVE_VIDEO_SOURCE_URL;
+            video.volume = 0.8;
+            video.muted = false;
+            if (volRange) volRange.value = '80';
             syncIcons();
             updatePlayOverlayLabel();
             setJoinedControlsVisible(false);
@@ -2759,12 +2786,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
                 if (now >= sessionEndsMs && !attendedLive) {
-                    window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=ended');
-                    return;
+                    window.__mcSessionForceEndedOverlay = true;
                 }
                 if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
-                    window.location.replace('/masterclass/replay?t=' + encodeURIComponent(token) + '&reason=late');
-                    return;
+                    window.__mcSessionForceLateOverlay = true;
                 }
                 showScreen('screen-main');
                 if (now >= liveStartMs) await maybeMarkPresent(reg);
