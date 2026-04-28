@@ -903,11 +903,30 @@ const tabs = [
         else thumb.pause();
       }
 
-      async function refreshOpsStatus() {
+      function setOpsRefreshLoading(isLoading) {
+        const btn = document.getElementById('ops-refresh');
+        const stamp = document.getElementById('ops-updated');
+        if (btn) {
+          if (!btn.dataset.idleLabel) btn.dataset.idleLabel = btn.textContent || 'Actualiser';
+          btn.disabled = isLoading;
+          btn.innerHTML = isLoading
+            ? '<span class="inline-flex items-center gap-2"><span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-transparent"></span><span>Chargement...</span></span>'
+            : (btn.dataset.idleLabel || 'Actualiser');
+          btn.classList.toggle('opacity-60', isLoading);
+          btn.classList.toggle('cursor-not-allowed', isLoading);
+        }
+        if (isLoading && stamp) {
+          stamp.textContent = 'Mise à jour en cours...';
+        }
+      }
+
+      async function refreshOpsStatus(options = {}) {
+        const manual = options?.manual === true;
         if (opsBusy) return;
         const root = document.getElementById('ops-cockpit');
         if (!root) return;
         if (root.closest('.hidden')) return;
+        if (manual) setOpsRefreshLoading(true);
         opsBusy = true;
         const errEl = document.getElementById('ops-error');
         if (errEl) {
@@ -957,7 +976,7 @@ const tabs = [
           opsHistoryItems = buildHistoryItems(d);
           renderPastSessions(opsHistoryItems);
 
-          document.getElementById('ops-updated').textContent = `MAJ ${new Date().toLocaleTimeString('fr-FR')}`;
+          document.getElementById('ops-updated').textContent = `MAJ ${new Date().toLocaleString('fr-FR')}`;
         } catch (e) {
           if (errEl) {
             errEl.textContent = e?.message || 'Erreur cockpit';
@@ -965,6 +984,7 @@ const tabs = [
           }
         } finally {
           opsBusy = false;
+          if (manual) setOpsRefreshLoading(false);
         }
       }
 
@@ -1000,7 +1020,9 @@ const tabs = [
 
       const opsRefreshBtn = document.getElementById('ops-refresh');
       if (opsRefreshBtn) {
-        opsRefreshBtn.addEventListener('click', refreshOpsStatus);
+        opsRefreshBtn.addEventListener('click', function () {
+          refreshOpsStatus({ manual: true });
+        });
       }
       const opsPrimaryBtn = document.getElementById('ops-switch-primary');
       if (opsPrimaryBtn) opsPrimaryBtn.addEventListener('click', function () { sendOpsControl('switch_primary'); });
