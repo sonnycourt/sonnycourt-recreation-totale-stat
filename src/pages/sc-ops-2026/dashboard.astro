@@ -91,6 +91,7 @@ const tabs = [
                         <button id="overview-refresh" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-500">
                           Actualiser
                         </button>
+                        <span id="overview-updated" class="text-xs text-slate-500">—</span>
                       </div>
                     </div>
                   </div>
@@ -619,10 +620,29 @@ const tabs = [
         select.value = selectedValue || '';
       }
 
-      async function refreshOverviewKpis() {
+      function setOverviewRefreshLoading(isLoading) {
+        const btn = document.getElementById('overview-refresh');
+        const stamp = document.getElementById('overview-updated');
+        if (btn) {
+          if (!btn.dataset.idleLabel) btn.dataset.idleLabel = btn.textContent || 'Actualiser';
+          btn.disabled = isLoading;
+          btn.innerHTML = isLoading
+            ? '<span class="inline-flex items-center gap-2"><span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-transparent"></span><span>Chargement...</span></span>'
+            : (btn.dataset.idleLabel || 'Actualiser');
+          btn.classList.toggle('opacity-60', isLoading);
+          btn.classList.toggle('cursor-not-allowed', isLoading);
+        }
+        if (isLoading && stamp) {
+          stamp.textContent = 'Mise à jour en cours...';
+        }
+      }
+
+      async function refreshOverviewKpis(options = {}) {
+        const manual = options?.manual === true;
         if (overviewBusy) return;
         const root = document.getElementById('overview-kpis');
         if (!root || root.closest('.hidden')) return;
+        if (manual) setOverviewRefreshLoading(true);
         overviewBusy = true;
         const errEl = document.getElementById('overview-error');
         if (errEl) {
@@ -657,6 +677,8 @@ const tabs = [
 
           renderOverviewFunnel(d?.funnel);
           renderOverviewCountrySegments(d?.countrySegments);
+          const stamp = document.getElementById('overview-updated');
+          if (stamp) stamp.textContent = `MAJ ${new Date().toLocaleString('fr-FR')}`;
         } catch (e) {
           if (errEl) {
             errEl.textContent = e?.message || 'Erreur KPIs';
@@ -664,6 +686,7 @@ const tabs = [
           }
         } finally {
           overviewBusy = false;
+          if (manual) setOverviewRefreshLoading(false);
         }
       }
 
@@ -1109,7 +1132,11 @@ const tabs = [
       if (defaultFilterBtn) defaultFilterBtn.classList.add('border-blue-500', 'text-blue-200', 'bg-blue-500/10');
 
       const overviewRefreshBtn = document.getElementById('overview-refresh');
-      if (overviewRefreshBtn) overviewRefreshBtn.addEventListener('click', refreshOverviewKpis);
+      if (overviewRefreshBtn) {
+        overviewRefreshBtn.addEventListener('click', function () {
+          refreshOverviewKpis({ manual: true });
+        });
+      }
       const overviewSessionSelect = document.getElementById('overview-session-select');
       if (overviewSessionSelect) overviewSessionSelect.addEventListener('change', refreshOverviewKpis);
 

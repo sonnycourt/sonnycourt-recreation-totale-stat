@@ -1,5 +1,5 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
-import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
+import { getSupabaseConfig, supabaseHeaders, supabasePatch } from './lib/supabase-rest.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 
@@ -181,6 +181,39 @@ function computeKpis(rows, buyerEmailSet) {
   };
 }
 
+async function fetchAllRegistrations() {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) {
+    return { ok: false, error: 'Supabase non configuré', data: [] };
+  }
+
+  const pageSize = 1000;
+  let offset = 0;
+  const out = [];
+
+  while (true) {
+    const qs = new URLSearchParams({
+      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at',
+      order: 'session_date.desc',
+      limit: String(pageSize),
+      offset: String(offset),
+    });
+    const res = await fetch(`${url}/rest/v1/webinaire_registrations?${qs.toString()}`, {
+      headers: supabaseHeaders(),
+    });
+    const json = await res.json().catch(() => []);
+    if (!res.ok) {
+      return { ok: false, error: 'Erreur lecture base', data: [] };
+    }
+    const batch = Array.isArray(json) ? json : [];
+    out.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return { ok: true, error: null, data: out };
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'GET') return jsonResponse(405, { error: 'Method not allowed' });
@@ -192,9 +225,7 @@ export default async (req) => {
     const url = new URL(req.url);
     const sessionDateFilter = String(url.searchParams.get('session_date') || '').trim(); // YYYY-MM-DD
 
-    const res = await supabaseGet(
-      'webinaire_registrations?select=token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at&order=session_date.desc&limit=10000',
-    );
+    const res = await fetchAllRegistrations();
     if (!res.ok) {
       return jsonResponse(500, { error: 'Erreur lecture base' });
     }
