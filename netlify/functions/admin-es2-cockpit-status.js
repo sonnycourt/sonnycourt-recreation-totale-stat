@@ -6,6 +6,8 @@ import { resolveActiveVideoConfig } from './lib/webinaire-video-config.mjs';
 const PRESENCE_STORE = 'webinaire-live-presence';
 const PRESENCE_PREFIX = 'presence:';
 const PRESENCE_ACTIVE_MS = 45 * 1000;
+const PRESENCE_BUDGET_MS = 2000;
+const PRESENCE_BATCH_SIZE = 25;
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -102,94 +104,135 @@ function buildSessionHistory(rows, nowMs) {
   return { nextUpcoming, pastSessions };
 }
 
+function emptyPresence(extra = {}) {
+  return {
+    activeTotal: 0,
+    waiting: 0,
+    session: 0,
+    replay: 0,
+    stream: {
+      sessionPlaying: 0,
+      sessionPlayingReal: 0,
+      sessionPlayingTest: 0,
+      hasStream: false,
+      mode: 'none',
+      medianSecond: null,
+      maxSecond: null,
+    },
+    ...extra,
+  };
+}
+
 async function getPresenceCounts() {
+  const startedAt = Date.now();
+
+  let store;
   try {
-    const store = getStore(PRESENCE_STORE);
-    const listed = await store.list({ prefix: PRESENCE_PREFIX });
-    const blobs = listed?.blobs || [];
-    let waiting = 0;
-    let session = 0;
-    let replay = 0;
-    let activeTotal = 0;
-    const sessionSeconds = [];
-    let sessionPlaying = 0;
-    let sessionPlayingReal = 0;
-    let sessionPlayingTest = 0;
-    const now = Date.now();
-
-    for (const item of blobs) {
-      const raw = await store.get(item.key);
-      if (!raw) continue;
-      let data = null;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        continue;
-      }
-      const ts = Number(data?.ts || 0);
-      if (!Number.isFinite(ts) || now - ts > PRESENCE_ACTIVE_MS) continue;
-      activeTotal += 1;
-      if (data.stage === 'waiting') waiting += 1;
-      else if (data.stage === 'replay') replay += 1;
-      else {
-        session += 1;
-        if (Number.isFinite(Number(data.currentSecond))) {
-          sessionSeconds.push(Number(data.currentSecond));
-        }
-        if (data.isPlaying) {
-          sessionPlaying += 1;
-          if (String(data.mode || 'real') === 'test') sessionPlayingTest += 1;
-          else sessionPlayingReal += 1;
-        }
-      }
-    }
-
-    sessionSeconds.sort((a, b) => a - b);
-    const medianSecond =
-      sessionSeconds.length > 0
-        ? sessionSeconds[Math.floor(sessionSeconds.length / 2)]
-        : null;
-    const maxSecond = sessionSeconds.length > 0 ? sessionSeconds[sessionSeconds.length - 1] : null;
-    let mode = 'none';
-    if (sessionPlaying > 0) {
-      if (sessionPlayingReal > 0 && sessionPlayingTest > 0) mode = 'mixed';
-      else if (sessionPlayingTest > 0) mode = 'test';
-      else mode = 'real';
-    }
-
-    return {
-      activeTotal,
-      waiting,
-      session,
-      replay,
-      stream: {
-        sessionPlaying,
-        sessionPlayingReal,
-        sessionPlayingTest,
-        hasStream: sessionPlaying > 0,
-        mode,
-        medianSecond,
-        maxSecond,
-      },
-    };
+    store = getStore(PRESENCE_STORE);
   } catch (error) {
-    return {
-      activeTotal: 0,
-      waiting: 0,
-      session: 0,
-      replay: 0,
-      stream: {
-        sessionPlaying: 0,
-        sessionPlayingReal: 0,
-        sessionPlayingTest: 0,
-        hasStream: false,
-        mode: 'none',
-        medianSecond: null,
-        maxSecond: null,
-      },
-      error: error?.message || 'presence unavailable',
-    };
+    return emptyPresence({
+      degraded: true,
+      error: error?.message || 'presence store unavailable',
+    });
   }
+
+  let blobs = [];
+  try {
+    const listed = await store.list({ prefix: PRESENCE_PREFIX });
+    blobs = listed?.blobs || [];
+  } catch (error) {
+    return emptyPresence({
+      degraded: true,
+      error: error?.message || 'presence list failed',
+    });
+  }
+
+  let waiting = 0;
+  let session = 0;
+  let replay = 0;
+  let activeTotal = 0;
+  const sessionSeconds = [];
+  let sessionPlaying = 0;
+  let sessionPlayingReal = 0;
+  let sessionPlayingTest = 0;
+  let processed = 0;
+  let degraded = false;
+  const now = Date.now();
+
+  function ingest(raw) {
+    if (!raw) return;
+    let data = null;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const ts = Number(data?.ts || 0);
+    if (!Number.isFinite(ts) || now - ts > PRESENCE_ACTIVE_MS) return;
+    activeTotal += 1;
+    if (data.stage === 'waiting') waiting += 1;
+    else if (data.stage === 'replay') replay += 1;
+    else {
+      session += 1;
+      if (Number.isFinite(Number(data.currentSecond))) {
+        sessionSeconds.push(Number(data.currentSecond));
+      }
+      if (data.isPlaying) {
+        sessionPlaying += 1;
+        if (String(data.mode || 'real') === 'test') sessionPlayingTest += 1;
+        else sessionPlayingReal += 1;
+      }
+    }
+  }
+
+  for (let i = 0; i < blobs.length; i += PRESENCE_BATCH_SIZE) {
+    if (Date.now() - startedAt > PRESENCE_BUDGET_MS) {
+      degraded = true;
+      break;
+    }
+    const slice = blobs.slice(i, i + PRESENCE_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      slice.map((item) => store.get(item.key)),
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled') ingest(r.value);
+    }
+    processed += slice.length;
+  }
+
+  sessionSeconds.sort((a, b) => a - b);
+  const medianSecond =
+    sessionSeconds.length > 0
+      ? sessionSeconds[Math.floor(sessionSeconds.length / 2)]
+      : null;
+  const maxSecond =
+    sessionSeconds.length > 0 ? sessionSeconds[sessionSeconds.length - 1] : null;
+  let mode = 'none';
+  if (sessionPlaying > 0) {
+    if (sessionPlayingReal > 0 && sessionPlayingTest > 0) mode = 'mixed';
+    else if (sessionPlayingTest > 0) mode = 'test';
+    else mode = 'real';
+  }
+
+  return {
+    activeTotal,
+    waiting,
+    session,
+    replay,
+    stream: {
+      sessionPlaying,
+      sessionPlayingReal,
+      sessionPlayingTest,
+      hasStream: sessionPlaying > 0,
+      mode,
+      medianSecond,
+      maxSecond,
+    },
+    degraded,
+    processed,
+    totalBlobs: blobs.length,
+    durationMs: Date.now() - startedAt,
+  };
 }
 
 export default async (req) => {
@@ -231,12 +274,23 @@ export default async (req) => {
     }
 
     const cfg = await resolveActiveVideoConfig();
-    const [primaryCheck, backupCheck, activeCheck, presence] = await Promise.all([
+    const settled = await Promise.allSettled([
       headCheck(cfg.sources.primary),
       headCheck(cfg.sources.backup),
       headCheck(cfg.activeUrl),
       getPresenceCounts(),
     ]);
+    const checkFallback = { ok: false, status: null, error: 'check failed' };
+    const primaryCheck =
+      settled[0].status === 'fulfilled' ? settled[0].value : checkFallback;
+    const backupCheck =
+      settled[1].status === 'fulfilled' ? settled[1].value : checkFallback;
+    const activeCheck =
+      settled[2].status === 'fulfilled' ? settled[2].value : checkFallback;
+    const presence =
+      settled[3].status === 'fulfilled'
+        ? settled[3].value
+        : emptyPresence({ degraded: true, error: 'presence unavailable' });
 
     return jsonResponse(200, {
       ok: true,
