@@ -6287,6 +6287,7 @@ const currentYear = new Date().getFullYear();
             const isPreviewDev = params.get('preview') === 'dev';
             const TOKEN_KEY = 'masterclass_es2_token';
             const INVITATION_SCARCITY_DELAY_MS = 60 * 1000;
+            const INVITATION_GATE_DELAY_MS = 60 * 60 * 1000;
             const debugScarcity = params.get('scarcity_debug') === '1';
             const INVITATION_VISITED_SESSION_KEY = 'es2_invitation_visited_tracked';
             let simulatedNowMs = null;
@@ -6622,17 +6623,68 @@ const currentYear = new Date().getFullYear();
                 });
             }
 
-            async function requestTokenFromEmail() {
-                function setBodyScrollLocked(locked) {
-                    if (locked) {
-                        document.body.style.overflow = 'hidden';
-                        document.body.style.touchAction = 'none';
-                        return;
-                    }
-                    document.body.style.overflow = '';
-                    document.body.style.touchAction = '';
+            function setBodyScrollLocked(locked) {
+                if (locked) {
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.touchAction = 'none';
+                    return;
                 }
+                document.body.style.overflow = '';
+                document.body.style.touchAction = '';
+            }
 
+            function lockInvitationGateUntil(gateOpensAtMs) {
+                if (!Number.isFinite(gateOpensAtMs)) return;
+                const existing = document.getElementById('inv-gate-not-open-overlay');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.id = 'inv-gate-not-open-overlay';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:10010;background:rgba(2,6,23,.9);display:flex;align-items:center;justify-content:center;padding:16px;';
+                overlay.innerHTML = `
+                    <div style="width:100%;max-width:460px;border:1px solid rgba(148,163,184,.25);background:#0f172a;border-radius:16px;padding:20px;color:#e2e8f0;text-align:center;">
+                        <p style="margin:0 0 8px;font-size:24px;font-weight:800;">Les portes ne sont pas encore ouvertes</p>
+                        <p style="margin:0 0 14px;font-size:14px;color:#94a3b8;">Ouverture dans :</p>
+                        <p id="inv-gate-not-open-countdown" style="margin:0;font-size:30px;font-weight:900;letter-spacing:.03em;color:#7dd3fc;">00:00:00</p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                setBodyScrollLocked(true);
+
+                const countdownEl = overlay.querySelector('#inv-gate-not-open-countdown');
+                const formatRemaining = function (remainingMs) {
+                    const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = totalSeconds % 60;
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                };
+                const refreshFromServer = function () {
+                    window.location.reload();
+                };
+                const tick = function () {
+                    const remaining = gateOpensAtMs - Date.now();
+                    if (countdownEl) countdownEl.textContent = formatRemaining(remaining);
+                    if (remaining <= 0) refreshFromServer();
+                };
+                tick();
+                const timer = setInterval(tick, 1000);
+                const autoRefreshDelay = Math.max(300, gateOpensAtMs - Date.now() + 300);
+                const autoRefreshTimer = setTimeout(refreshFromServer, autoRefreshDelay);
+                const onVisibility = function () {
+                    if (document.visibilityState === 'visible' && Date.now() >= gateOpensAtMs) {
+                        refreshFromServer();
+                    }
+                };
+                document.addEventListener('visibilitychange', onVisibility);
+                window.addEventListener('beforeunload', function () {
+                    clearInterval(timer);
+                    clearTimeout(autoRefreshTimer);
+                    document.removeEventListener('visibilitychange', onVisibility);
+                }, { once: true });
+            }
+
+            async function requestTokenFromEmail() {
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;padding:16px;';
                 overlay.innerHTML = `
@@ -6712,6 +6764,7 @@ const currentYear = new Date().getFullYear();
             let offerExpiryMs = null;
             let scarcityWindowStartMs = null;
             let sessionStartsAtMsForAudit = null;
+            let sessionStartsAtMsForGate = null;
             try {
                 if (!token && !isPreviewDev) {
                     token = await requestTokenFromEmail();
@@ -6735,6 +6788,7 @@ const currentYear = new Date().getFullYear();
                         const retrySessionMs = new Date(retryData.sessionStartsAt || retryData.session_date || '').getTime();
                         if (Number.isFinite(retrySessionMs)) {
                             sessionStartsAtMsForAudit = retrySessionMs;
+                            sessionStartsAtMsForGate = retrySessionMs;
                             scarcityWindowStartMs = retrySessionMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
                         }
                     } else {
@@ -6747,6 +6801,7 @@ const currentYear = new Date().getFullYear();
                         const sessionMs = new Date(data.sessionStartsAt || data.session_date || '').getTime();
                         if (Number.isFinite(sessionMs)) {
                             sessionStartsAtMsForAudit = sessionMs;
+                            sessionStartsAtMsForGate = sessionMs;
                             scarcityWindowStartMs = sessionMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
                         }
                     }
@@ -6765,6 +6820,7 @@ const currentYear = new Date().getFullYear();
                                 const sessionMs = new Date(data.sessionStartsAt || data.session_date || '').getTime();
                                 if (Number.isFinite(sessionMs)) {
                                     sessionStartsAtMsForAudit = sessionMs;
+                                    sessionStartsAtMsForGate = sessionMs;
                                     scarcityWindowStartMs = sessionMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
                                 }
                             }
@@ -6777,6 +6833,18 @@ const currentYear = new Date().getFullYear();
                     }
                     if (Number.isFinite(offerExpiryMs) && offerExpiryMs <= invitationNowMs()) {
                         offerExpiryMs = getCurrentWindow(invitationNowMs()).endMs;
+                    }
+                }
+
+                if (Number.isFinite(sessionStartsAtMsForGate)) {
+                    const gateOpensAtMs = sessionStartsAtMsForGate + INVITATION_GATE_DELAY_MS;
+                    const isGateClosed = Date.now() < gateOpensAtMs;
+                    if (isGateClosed) {
+                        if (!token && isPreviewDev) token = 'preview-invitation';
+                        setTokenEverywhere(token);
+                        propagateTokenToCheckoutLinks(token);
+                        lockInvitationGateUntil(gateOpensAtMs);
+                        return;
                     }
                 }
 
