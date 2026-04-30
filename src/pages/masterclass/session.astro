@@ -1970,6 +1970,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             function applySimulatedLiveOffset(opts) {
                 const force = Boolean(opts && opts.force);
+                if (isSessionEnded) return;
                 if (!force && hasAppliedLiveOffset) return;
                 if (getNowMs() < liveStartMs) return;
 
@@ -2059,6 +2060,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
                 const broadcastEndMs = sessionEndsMs;
+
+                // Watchdog: if session is ended, video must stay paused. Always.
+                if (isSessionEnded && !video.paused) {
+                    video.pause();
+                }
 
                 if (Number.isFinite(expiryMs) && now >= expiryMs) {
                     syncMcLateUi(false);
@@ -2382,6 +2388,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }, 60000);
 
             configPollInterval = setInterval(async function () {
+                if (isSessionEnded) return;
                 try {
                     const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
                     const d = await res.json().catch(function () { return null; });
