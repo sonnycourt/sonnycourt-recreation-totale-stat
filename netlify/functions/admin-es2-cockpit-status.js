@@ -278,7 +278,6 @@ export default async (req) => {
       headCheck(cfg.sources.primary),
       headCheck(cfg.sources.backup),
       headCheck(cfg.activeUrl),
-      getPresenceCounts(),
     ]);
     const checkFallback = { ok: false, status: null, error: 'check failed' };
     const primaryCheck =
@@ -287,10 +286,12 @@ export default async (req) => {
       settled[1].status === 'fulfilled' ? settled[1].value : checkFallback;
     const activeCheck =
       settled[2].status === 'fulfilled' ? settled[2].value : checkFallback;
-    const presence =
-      settled[3].status === 'fulfilled'
-        ? settled[3].value
-        : emptyPresence({ degraded: true, error: 'presence unavailable' });
+    // Hotfix: presence Blobs reads cause function timeouts (>10s).
+    // Disabled until the store is cleaned up; cockpit shows the rest.
+    const presence = emptyPresence({
+      degraded: true,
+      error: 'presence disabled (hotfix)',
+    });
 
     return jsonResponse(200, {
       ok: true,
