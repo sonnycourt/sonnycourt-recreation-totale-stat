@@ -2197,6 +2197,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 zone.classList.toggle('visible', shouldShow);
             }
 
+            function applyVideoEndedState() {
+                if (hasJoinedSession || reg.attendedLive === true) {
+                    syncMcEndedGateUi(false);
+                    applyInlineEndedUi({
+                        preserveFrame: false,
+                        keepOfferVisible: true,
+                        showInlineNote: false,
+                    });
+                } else {
+                    showEndedState();
+                }
+            }
+
             video.addEventListener('timeupdate', function () {
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
                 updateCtaStateByTime();
@@ -2208,18 +2221,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         trackWebinaireEvent(reg.token, 'video_checkpoint', checkpointMin);
                     }
                 });
-                if (video.currentTime >= getVideoDurationSeconds()) {
-                    if (hasJoinedSession || reg.attendedLive === true) {
-                        syncMcEndedGateUi(false);
-                        applyInlineEndedUi({
-                            preserveFrame: false,
-                            keepOfferVisible: true,
-                            showInlineNote: false,
-                        });
-                    } else {
-                        showEndedState();
-                    }
-                }
+                if (video.currentTime >= getVideoDurationSeconds()) applyVideoEndedState();
+            });
+            video.addEventListener('ended', function () {
+                applyVideoEndedState();
             });
             video.addEventListener('seeking', function () {
                 if (liveSeekInProgress) return;
@@ -2237,7 +2242,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             video.addEventListener('pause', function () {
                 // No pause experience once user has joined.
-                if (liveStarted && !isSessionEnded) {
+                if (liveStarted && !isSessionEnded && !video.ended) {
                     video.play().catch(() => {});
                     playOverlay.classList.add('hidden');
                 }
