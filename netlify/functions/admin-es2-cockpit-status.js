@@ -23,11 +23,20 @@ function formatParisIso(now = new Date()) {
 
 async function headCheck(url) {
   if (!url) return { ok: false, status: null, error: 'URL absente' };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
-    const res = await fetch(url, { method: 'HEAD' });
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeoutId);
     return { ok: res.ok, status: res.status, error: null };
   } catch (error) {
-    return { ok: false, status: null, error: error?.message || 'network error' };
+    clearTimeout(timeoutId);
+    const isTimeout = error?.name === 'AbortError';
+    return {
+      ok: false,
+      status: null,
+      error: isTimeout ? 'timeout 3s' : (error?.message || 'network error'),
+    };
   }
 }
 
