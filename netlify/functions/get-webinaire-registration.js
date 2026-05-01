@@ -117,10 +117,7 @@ async function resolveAndAssignWhatsappGroup(token, registrationRow) {
 
     const open = rows
       .filter((row) => Number.isFinite(row.maxMembers) && row.currentMembers < row.maxMembers)
-      .sort((a, b) => {
-        if (a.currentMembers !== b.currentMembers) return a.currentMembers - b.currentMembers;
-        return a.groupNumber - b.groupNumber;
-      });
+      .sort((a, b) => a.groupNumber - b.groupNumber);
     if (!open.length) return { whatsappLink: '', whatsappGroupNumber: null };
 
     let reserved = null;
