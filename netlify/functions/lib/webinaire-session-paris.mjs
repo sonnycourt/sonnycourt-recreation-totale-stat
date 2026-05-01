@@ -38,6 +38,13 @@ function getParisWeekdayNumber(parts) {
   return 1;
 }
 
+/**
+ * Sessions a ignorer (tests internes / dates non ouvertes au public).
+ * Format: YYYY-MM-DD (date Paris du jeudi de session).
+ * Pour ajouter/supprimer un skip, modifier simplement ce tableau.
+ */
+const SKIP_SESSION_DATES = ['2026-05-07'];
+
 /** Ajoute des jours au calendrier en passant par une date UTC midi (évite dérives). */
 export function addDaysParisCalendar(year, month, day, deltaDays) {
   const d = new Date(Date.UTC(year, month - 1, day + deltaDays, 12, 0, 0));
@@ -94,7 +101,17 @@ export function getMarketingThursdayDateParts(now = new Date()) {
  * @param {'14h'|'20h'} [_creneau] — ignoré, conservé pour compatibilité API
  */
 export function getRegistrationSessionInstantUtc(now, _creneau) {
-  const thu = getMarketingThursdayDateParts(now);
+  let thu = getMarketingThursdayDateParts(now);
+  for (let i = 0; i < 52; i++) {
+    const y = String(thu.year).padStart(4, '0');
+    const m = String(thu.month).padStart(2, '0');
+    const d = String(thu.day).padStart(2, '0');
+    const sessionDate = `${y}-${m}-${d}`;
+    if (!SKIP_SESSION_DATES.includes(sessionDate)) {
+      return findParisInstantUtc(thu.year, thu.month, thu.day, 20);
+    }
+    thu = addDaysParisCalendar(thu.year, thu.month, thu.day, 7);
+  }
   return findParisInstantUtc(thu.year, thu.month, thu.day, 20);
 }
 
