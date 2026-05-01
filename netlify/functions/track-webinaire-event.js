@@ -5,6 +5,7 @@ const ALLOWED_EVENTS = new Set([
   'video_checkpoint',
   'cta_reached',
   'cta_clicked',
+  'auto_redirect_to_offer',
   'invitation_visited',
   'replay_started',
 ]);

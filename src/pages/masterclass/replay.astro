@@ -1058,6 +1058,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       let previewOfferStateOverride = null;
       let didTrackCtaReached = false;
       let didTrackReplayStarted = false;
+      let didAutoRedirectToOffer = false;
       const emittedCheckpointMinutes = new Set();
       let previewScarcityAnchorStartMs = null;
       let soldOutExpired = false;
@@ -1382,6 +1383,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         zone.classList.toggle('visible', now >= showAt && now <= hideAt);
       }
 
+      function scheduleAutoRedirectToOffer() {
+        if (didAutoRedirectToOffer || !token) return;
+        didAutoRedirectToOffer = true;
+        trackWebinaireEvent(token, 'auto_redirect_to_offer');
+        window.location.href = '/invitation?t=' + encodeURIComponent(token);
+      }
+
       playOverlayBtn.addEventListener('click', () => {
         if (!didTrackReplayStarted) {
           didTrackReplayStarted = true;
@@ -1447,6 +1455,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             trackWebinaireEvent(token, 'video_checkpoint', checkpointMin);
           }
         });
+      });
+      video.addEventListener('ended', () => {
+        scheduleAutoRedirectToOffer();
       });
       video.addEventListener('seeking', () => {
         if (allowProgrammaticSeek) return;

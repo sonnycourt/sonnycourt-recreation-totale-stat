@@ -1819,6 +1819,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             let pendingSourceSwitch = false;
             let pendingSourceSwitchToLive = false;
             let pendingSourceSwitchRestoreTimeSec = null;
+            let didAutoRedirectToOffer = false;
             let hasJoinedSession = false;
             let didTrackCtaReached = false;
             const emittedCheckpointMinutes = new Set();
@@ -2223,6 +2224,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
             }
 
+            function scheduleAutoRedirectToOffer() {
+                if (didAutoRedirectToOffer || !reg?.token) return;
+                didAutoRedirectToOffer = true;
+                trackWebinaireEvent(reg.token, 'auto_redirect_to_offer');
+                window.location.href = '/invitation?t=' + encodeURIComponent(reg.token);
+            }
+
             video.addEventListener('timeupdate', function () {
                 if (video.currentTime > maxWatched) maxWatched = video.currentTime;
                 updateCtaStateByTime();
@@ -2238,6 +2246,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             video.addEventListener('ended', function () {
                 applyVideoEndedState();
+                if (hasJoinedSession || reg.attendedLive === true) {
+                    scheduleAutoRedirectToOffer();
+                }
             });
             video.addEventListener('seeking', function () {
                 if (liveSeekInProgress) return;
