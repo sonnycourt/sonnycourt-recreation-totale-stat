@@ -1483,6 +1483,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         const MASTERCLASS_TEMP_PASSWORD = 'masterclass';
 
         const TOKEN_KEY = 'masterclass_es2_token';
+        const SKIP_SESSION_DATES = ['2026-05-07'];
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
         const STEP3_SUBMIT_LABEL = 'Confirmer mon inscription';
@@ -1638,8 +1639,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         function getMarketingCountdownTargetUtcSafe(now) {
             const primary = getMarketingCountdownTargetUtc(now);
-            if (primary) return primary;
-            return getFallbackParisThursday20Utc(now);
+            if (primary) return applySkipWeeks(primary);
+            return applySkipWeeks(getFallbackParisThursday20Utc(now));
         }
 
         function formatParisDateNoTime(date) {
@@ -1654,10 +1655,31 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return text.charAt(0).toUpperCase() + text.slice(1);
         }
 
+        function toParisYyyyMmDd(date) {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Europe/Paris',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        }
+
+        function applySkipWeeks(date) {
+            let d = date;
+            for (let i = 0; i < 52; i++) {
+                if (!d) return d;
+                const key = toParisYyyyMmDd(d);
+                if (!SKIP_SESSION_DATES.includes(key)) return d;
+                d = new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+            return d;
+        }
+
         /** Créneau d’inscription : aligné sur getRegistrationSessionInstantUtc (serveur). */
         function getOptinMasterclassSessionUtc(now) {
             const thu = getMarketingThursdayDateParts(now);
-            return findParisInstantUtc(thu.year, thu.month, thu.day, 20);
+            const base = findParisInstantUtc(thu.year, thu.month, thu.day, 20);
+            return applySkipWeeks(base);
         }
 
         function updatePopupSessionBubble() {
