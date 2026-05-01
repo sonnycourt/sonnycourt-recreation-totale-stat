@@ -55,22 +55,20 @@ function toFiniteNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function resolveWhatsappGroupForSession(sessionDateIso) {
+async function fetchSessionWhatsappConfigRows(sessionDateIso) {
   const sessionDate = String(sessionDateIso || '').slice(0, 10);
-  if (!sessionDate) return { whatsappLink: '', whatsappGroupNumber: null };
+  if (!sessionDate) return [];
 
   try {
     const cfg = await supabaseGet(
       `webi_sessions_config?session_date=eq.${encodeURIComponent(sessionDate)}&select=*`,
     );
-    if (!cfg.ok || !Array.isArray(cfg.data) || cfg.data.length === 0) {
-      return { whatsappLink: '', whatsappGroupNumber: null };
-    }
+    if (!cfg.ok || !Array.isArray(cfg.data) || cfg.data.length === 0) return [];
 
-    const rows = cfg.data
+    return cfg.data
       .map((row) => {
         const groupNumber = toFiniteNumber(row.group_number, NaN);
-        const currentMembers = toFiniteNumber(row.current_members, NaN);
+        const currentMembers = Math.max(0, toFiniteNumber(row.current_members, 0));
         const maxMembers = toFiniteNumber(row.max_members, NaN);
         const whatsappLink = String(
           row.whatsapp_link || row.group_link || row.link || '',
@@ -78,25 +76,87 @@ async function resolveWhatsappGroupForSession(sessionDateIso) {
         return { groupNumber, currentMembers, maxMembers, whatsappLink };
       })
       .filter((row) => Number.isFinite(row.groupNumber) && row.whatsappLink);
+  } catch {
+    return [];
+  }
+}
 
+async function resolveWhatsappGroupForAssignedRow(row) {
+  const assignedGroup = toFiniteNumber(row?.whatsapp_group_number, NaN);
+  const assignedLink = String(row?.whatsapp_link || '').trim();
+  if (Number.isFinite(assignedGroup) && assignedGroup > 0 && assignedLink) {
+    return { whatsappLink: assignedLink, whatsappGroupNumber: assignedGroup };
+  }
+
+  if (!Number.isFinite(assignedGroup) || assignedGroup <= 0) {
+    return { whatsappLink: '', whatsappGroupNumber: null };
+  }
+
+  // Backfill in case old rows have group number but missing link.
+  const rows = await fetchSessionWhatsappConfigRows(row?.session_date);
+  const match = rows.find((r) => r.groupNumber === assignedGroup) || null;
+  return {
+    whatsappLink: match?.whatsappLink || '',
+    whatsappGroupNumber: assignedGroup,
+  };
+}
+
+async function resolveAndAssignWhatsappGroup(token, registrationRow) {
+  const alreadyAssigned = await resolveWhatsappGroupForAssignedRow(registrationRow);
+  if (alreadyAssigned.whatsappLink && Number.isFinite(alreadyAssigned.whatsappGroupNumber)) {
+    return alreadyAssigned;
+  }
+
+  const sessionDate = String(registrationRow?.session_date || '').slice(0, 10);
+  if (!sessionDate) return { whatsappLink: '', whatsappGroupNumber: null };
+
+  // Optimistic lock loop for concurrent assignments.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const rows = await fetchSessionWhatsappConfigRows(registrationRow?.session_date);
     if (!rows.length) return { whatsappLink: '', whatsappGroupNumber: null };
 
     const open = rows
-      .filter((row) => Number.isFinite(row.currentMembers) && Number.isFinite(row.maxMembers) && row.currentMembers < row.maxMembers)
+      .filter((row) => Number.isFinite(row.maxMembers) && row.currentMembers < row.maxMembers)
       .sort((a, b) => {
         if (a.currentMembers !== b.currentMembers) return a.currentMembers - b.currentMembers;
         return a.groupNumber - b.groupNumber;
       });
+    if (!open.length) return { whatsappLink: '', whatsappGroupNumber: null };
 
-    const chosen = (open[0] || rows.sort((a, b) => a.groupNumber - b.groupNumber)[0]) || null;
-    if (!chosen) return { whatsappLink: '', whatsappGroupNumber: null };
-    return {
-      whatsappLink: chosen.whatsappLink,
-      whatsappGroupNumber: chosen.groupNumber,
-    };
-  } catch {
-    return { whatsappLink: '', whatsappGroupNumber: null };
+    let reserved = null;
+    for (const candidate of open) {
+      const expected = Math.max(0, toFiniteNumber(candidate.currentMembers, 0));
+      const reserve = await supabasePatch(
+        'webi_sessions_config',
+        `session_date=eq.${encodeURIComponent(sessionDate)}&group_number=eq.${candidate.groupNumber}&current_members=eq.${expected}`,
+        { current_members: expected + 1 },
+      );
+      if (reserve.ok && Array.isArray(reserve.data) && reserve.data.length > 0) {
+        reserved = candidate;
+        break;
+      }
+    }
+    if (!reserved) continue;
+
+    const saveAssigned = await supabasePatch(
+      'webinaire_registrations',
+      `token=eq.${encodeURIComponent(token)}`,
+      {
+        whatsapp_group_number: reserved.groupNumber,
+        whatsapp_link: reserved.whatsappLink,
+      },
+    );
+    if (saveAssigned.ok) {
+      return {
+        whatsappLink: reserved.whatsappLink,
+        whatsappGroupNumber: reserved.groupNumber,
+      };
+    }
+
+    // If save fails, loop/retry to avoid hard-fail on transient issues.
   }
+
+  return { whatsappLink: '', whatsappGroupNumber: null };
 }
 
 function jsonResponse(status, payload) {
@@ -136,7 +196,7 @@ export default async (req) => {
     }
 
     const res = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,purchased,attended_live`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,purchased,attended_live,whatsapp_group_number,whatsapp_link`,
     );
 
     if (!res.ok) {
@@ -153,7 +213,7 @@ export default async (req) => {
       purchased = await isInMailerLiteAcheteursGroup(String(row.email || '').trim().toLowerCase());
       if (purchased) syncPurchasedFlag(token);
     }
-    const whatsapp = await resolveWhatsappGroupForSession(row.session_date);
+    const whatsapp = await resolveAndAssignWhatsappGroup(token, row);
 
     return jsonResponse(200, {
       valid: true,

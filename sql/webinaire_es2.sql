@@ -21,6 +21,12 @@ create table if not exists public.webinaire_registrations (
 alter table public.webinaire_registrations
   add column if not exists mailerlite_group_added_at timestamptz;
 
+alter table public.webinaire_registrations
+  add column if not exists whatsapp_group_number integer;
+
+alter table public.webinaire_registrations
+  add column if not exists whatsapp_link text;
+
 create index if not exists idx_webinaire_registrations_token
   on public.webinaire_registrations (token);
 
