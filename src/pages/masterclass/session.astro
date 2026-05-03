@@ -339,6 +339,49 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             border-radius: 12px;
             padding: 10px 14px;
         }
+        .video-recovery-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+            background: rgba(2, 6, 23, 0.82);
+        }
+        .video-recovery-overlay.is-visible {
+            display: flex;
+        }
+        .video-recovery-overlay__panel {
+            max-width: 420px;
+            border-radius: 14px;
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+            box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
+            padding: 18px 16px;
+            color: #fee2e2;
+        }
+        .video-recovery-overlay__title {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff1f2;
+        }
+        .video-recovery-overlay__text {
+            margin: 0 0 14px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+        .video-recovery-overlay__btn {
+            border: 1px solid rgba(248, 113, 113, 0.55);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.92));
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
         .play-overlay {
             position: absolute;
             inset: 0;
@@ -1136,6 +1179,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 <div id="video-waiting" class="video-waiting">
                     <p class="waiting-title">Début de la diffusion jeudi - à 20h (Paris)</p>
                 </div>
+                <div id="video-recovery-overlay" class="video-recovery-overlay" aria-hidden="true">
+                    <div class="video-recovery-overlay__panel">
+                        <p class="video-recovery-overlay__title">Lecture interrompue</p>
+                        <p class="video-recovery-overlay__text">Cliquez pour relancer la vidéo.</p>
+                        <button id="video-recovery-reload-btn" type="button" class="video-recovery-overlay__btn">Relancer maintenant</button>
+                    </div>
+                </div>
                 <div class="play-overlay" id="playOverlay">
                     <button class="play-button" id="playButton" aria-label="Lancer la vidéo">
                         <span id="playOverlayLabel" class="play-button__label">On clique pour rejoindre la diffusion en cours</span>
@@ -1259,6 +1309,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const CTA_APPEAR_SECONDS = 81 * 60 + 6; // 21:06:06 (81m06 après 19:45)
         const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 82];
+        const FREEZE_RECOVERY_ENABLED = true;
         const VIDEO_DURATION_FALLBACK_SECONDS = 2700; // fallback si metadata indisponible
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/Webinaire%20-%20Final%20V3%20(22.04.2026).mp4';
@@ -1825,9 +1876,27 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const emittedCheckpointMinutes = new Set();
             let mobileControlsHideTimer = null;
             const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
+            const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
+            const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
+            const FREEZE_THRESHOLD_MS = 5000;
+            const FREEZE_RECOVERY_COOLDOWN_MS = 10000;
+            const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 10000;
+            const FREEZE_VISIBILITY_GRACE_MS = 3000;
+            const MAX_FREEZE_RECOVERIES = 3;
+            let freezeWatchdogInterval = null;
+            let stalledAccumulatedMs = 0;
+            let lastProgressCurrentTime = 0;
+            let suppressFreezeDetectionUntilMs = 0;
+            let freezeRecoveryCount = 0;
+            let lastRecoveryAtMs = 0;
+            let pendingRecoveryValidation = null;
+            let recoveryValidationDeadlineMs = 0;
+            let isRecoveringInProgress = false;
 
             const lateReplayLinkEl = document.getElementById('mc-late-replay-link');
             const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
+            const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
+            const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
             if (lateReplayLinkEl) lateReplayLinkEl.href = '/masterclass/replay?t=' + encodeURIComponent(reg.token) + '&reason=late';
             if (endedReplayLinkEl) endedReplayLinkEl.href = '/masterclass/replay?t=' + encodeURIComponent(reg.token);
             let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
@@ -1866,6 +1935,160 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 volumeIcon.style.display = muted ? 'none' : 'block';
                 muteIcon.style.display = muted ? 'block' : 'none';
             }
+
+            function setFreezeRecoveryOverlayVisible(on) {
+                if (!freezeRecoveryOverlay) return;
+                freezeRecoveryOverlay.classList.toggle('is-visible', Boolean(on));
+                freezeRecoveryOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+            }
+
+            function buildFreezeRecoveryPayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, recovered) {
+                return {
+                    trigger,
+                    currentTime_at_freeze: Number.isFinite(currentTimeAtFreeze) ? Math.floor(currentTimeAtFreeze * 100) / 100 : 0,
+                    freeze_duration_sec: Number.isFinite(freezeDurationSec) ? Math.max(0, Math.round(freezeDurationSec * 10) / 10) : 0,
+                    recovery_attempt_number: recoveryAttemptNumber,
+                    recovered: Boolean(recovered),
+                };
+            }
+
+            function trackFreezeRecoveryPayload(payload) {
+                if (!reg?.token) return;
+                trackWebinaireEvent(reg.token, 'video_freeze_recovery', JSON.stringify(payload));
+            }
+
+            function resetFreezeProgressBaseline() {
+                lastProgressCurrentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                stalledAccumulatedMs = 0;
+            }
+
+            function isVideoActivelyPlayingForFreeze() {
+                if (!FREEZE_RECOVERY_ENABLED) return false;
+                if (video.ended || video.paused) return false;
+                if (isSessionEnded || !hasJoinedSession) return false;
+                if (pendingSourceSwitch) return false;
+                if (suppressFreezeDetectionUntilMs === Number.POSITIVE_INFINITY) return false;
+                if (Number.isFinite(suppressFreezeDetectionUntilMs) && Date.now() < suppressFreezeDetectionUntilMs) return false;
+                return true;
+            }
+
+            function finishRecoveryValidation(recovered) {
+                if (!pendingRecoveryValidation) {
+                    isRecoveringInProgress = false;
+                    return;
+                }
+                const meta = pendingRecoveryValidation;
+                const payload = buildFreezeRecoveryPayload(
+                    meta.trigger,
+                    meta.currentTimeAtFreeze,
+                    meta.freezeDurationSec,
+                    meta.recoveryAttemptNumber,
+                    recovered,
+                );
+                trackFreezeRecoveryPayload(payload);
+                pendingRecoveryValidation = null;
+                recoveryValidationDeadlineMs = 0;
+                if (recovered) {
+                    freezeRecoveryCount = 0;
+                    setFreezeRecoveryOverlayVisible(false);
+                } else if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                    setFreezeRecoveryOverlayVisible(true);
+                }
+                isRecoveringInProgress = false;
+            }
+
+            async function triggerFreezeRecovery(trigger, freezeDurationSec) {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                if (!isVideoActivelyPlayingForFreeze()) return;
+                if (video.ended) return;
+                if (pendingRecoveryValidation || isRecoveringInProgress) return;
+                const now = Date.now();
+                if (now - lastRecoveryAtMs < FREEZE_RECOVERY_COOLDOWN_MS) return;
+                if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                    setFreezeRecoveryOverlayVisible(true);
+                    return;
+                }
+
+                freezeRecoveryCount += 1;
+                isRecoveringInProgress = true;
+                lastRecoveryAtMs = now;
+                stalledAccumulatedMs = 0;
+                suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+                const currentTimeAtFreeze = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                const recoveryAttemptNumber = freezeRecoveryCount;
+
+                try {
+                    video.load();
+                    await video.play();
+                } catch {
+                    const payload = buildFreezeRecoveryPayload(
+                        trigger,
+                        currentTimeAtFreeze,
+                        freezeDurationSec,
+                        recoveryAttemptNumber,
+                        false,
+                    );
+                    trackFreezeRecoveryPayload(payload);
+                    isRecoveringInProgress = false;
+                    if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                        setFreezeRecoveryOverlayVisible(true);
+                    }
+                    return;
+                }
+
+                pendingRecoveryValidation = {
+                    trigger,
+                    currentTimeAtFreeze,
+                    freezeDurationSec,
+                    recoveryAttemptNumber,
+                };
+                recoveryValidationDeadlineMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
+                resetFreezeProgressBaseline();
+            }
+
+            function runFreezeWatchdogTick() {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                const now = Date.now();
+
+                if (pendingRecoveryValidation && recoveryValidationDeadlineMs > 0 && now >= recoveryValidationDeadlineMs) {
+                    finishRecoveryValidation(false);
+                }
+
+                if (!isVideoActivelyPlayingForFreeze()) {
+                    resetFreezeProgressBaseline();
+                    return;
+                }
+
+                const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                if (cur > lastProgressCurrentTime + FREEZE_PROGRESS_EPSILON_SEC) {
+                    lastProgressCurrentTime = cur;
+                    stalledAccumulatedMs = 0;
+                    if (pendingRecoveryValidation) {
+                        finishRecoveryValidation(true);
+                    }
+                    return;
+                }
+
+                stalledAccumulatedMs += FREEZE_WATCHDOG_INTERVAL_MS;
+                if (stalledAccumulatedMs >= FREEZE_THRESHOLD_MS) {
+                    void triggerFreezeRecovery('watchdog', stalledAccumulatedMs / 1000);
+                }
+            }
+
+            const freezeVisibilityHandler = function () {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                if (document.hidden) {
+                    suppressFreezeDetectionUntilMs = Number.POSITIVE_INFINITY;
+                    resetFreezeProgressBaseline();
+                    return;
+                }
+                suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+                resetFreezeProgressBaseline();
+            };
+
+            const manualFreezeRecoveryReloadHandler = function () {
+                window.location.reload();
+            };
 
             function disableNativeSeekAndFastForward() {
                 video.playbackRate = 1;
@@ -2265,6 +2488,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 trackSessionJoinedIfEligible();
             });
             video.addEventListener('pause', function () {
+                if (isRecoveringInProgress) return;
                 // No pause experience once user has joined.
                 if (liveStarted && !isSessionEnded && !video.ended) {
                     video.play().catch(() => {});
@@ -2274,6 +2498,21 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 syncMobileControlsAutoHide();
             });
             video.addEventListener('volumechange', syncIcons);
+            if (FREEZE_RECOVERY_ENABLED) {
+                video.addEventListener('stalled', function () {
+                    void triggerFreezeRecovery('stalled', stalledAccumulatedMs / 1000);
+                });
+                video.addEventListener('waiting', function () {
+                    void triggerFreezeRecovery('waiting', stalledAccumulatedMs / 1000);
+                });
+                video.addEventListener('error', function () {
+                    void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+                });
+                document.addEventListener('visibilitychange', freezeVisibilityHandler);
+                if (freezeRecoveryReloadBtn) {
+                    freezeRecoveryReloadBtn.addEventListener('click', manualFreezeRecoveryReloadHandler);
+                }
+            }
             playBtn.addEventListener('click', function () {
                 if (isSessionEnded) return;
                 hasJoinedSession = true;
@@ -2399,6 +2638,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             refreshPreLiveCountdown();
             launchInterval = setInterval(refreshPreLiveCountdown, 1000);
+            if (FREEZE_RECOVERY_ENABLED) {
+                resetFreezeProgressBaseline();
+                freezeWatchdogInterval = setInterval(runFreezeWatchdogTick, FREEZE_WATCHDOG_INTERVAL_MS);
+            }
             presenceInterval = setInterval(function () {
                 const now = getNowMs();
                 const stage = now < liveStartMs ? 'waiting' : 'session';
@@ -2416,6 +2659,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         const newUrl = String(d.activeUrl);
                         lastSeenActiveUrl = newUrl;
                         ACTIVE_VIDEO_SOURCE_URL = newUrl;
+                        suppressFreezeDetectionUntilMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
 
                         pendingSourceSwitch = true;
                         const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
@@ -2447,6 +2691,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (offerInterval) clearInterval(offerInterval);
                 if (presenceInterval) clearInterval(presenceInterval);
                 if (configPollInterval) clearInterval(configPollInterval);
+                if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
@@ -2484,10 +2729,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (offerInterval) clearInterval(offerInterval);
                     if (presenceInterval) clearInterval(presenceInterval);
                     if (configPollInterval) clearInterval(configPollInterval);
+                    if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
                     hearts.destroy();
                     purchaseToasts.destroy();
                     document.documentElement.classList.remove('mc-page-lock');
                     window.removeEventListener('beforeunload', beforeUnloadHandler);
+                    document.removeEventListener('visibilitychange', freezeVisibilityHandler);
+                    if (freezeRecoveryReloadBtn) {
+                        freezeRecoveryReloadBtn.removeEventListener('click', manualFreezeRecoveryReloadHandler);
+                    }
                 },
             };
         }

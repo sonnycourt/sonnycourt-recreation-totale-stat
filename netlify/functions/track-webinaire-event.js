@@ -8,6 +8,7 @@ const ALLOWED_EVENTS = new Set([
   'auto_redirect_to_offer',
   'invitation_visited',
   'replay_started',
+  'video_freeze_recovery',
 ]);
 
 function jsonResponse(status, payload) {
