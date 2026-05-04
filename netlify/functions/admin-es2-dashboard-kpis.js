@@ -9,6 +9,9 @@ const PAYS_RICHES = ['France', 'Belgique', 'Suisse', 'Canada', 'Luxembourg', 'Mo
 /** Checkpoints rétention vidéo (en minutes). 75 mesure les 9 questions « Face à toi-même ». */
 const RETENTION_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 82];
 
+/** Prix ES2 en € (utilisé pour calculer les valeurs financières par lead). Ajuster ici si le prix change. */
+const ES2_OFFER_PRICE_EUR = 1997;
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -154,7 +157,9 @@ const FUNNEL_BENCHMARKS = {
 function buildFunnel(rows, buyerEmailSet) {
   const inscrits = rows.length;
   const presents = rows.filter((r) => toBool(r.attended_live)).length;
-  const watched30 = rows.filter((r) => toInt(r.watch_max_minutes) >= 30).length;
+  const presentsReplay = rows.filter((r) => toBool(r.watched_replay)).length;
+  const watched30 = rows.filter((r) => toBool(r.attended_live) && toInt(r.watch_max_minutes) >= 30).length;
+  const watched30Replay = rows.filter((r) => toBool(r.watched_replay) && toInt(r.watch_max_minutes) >= 30).length;
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
@@ -162,8 +167,20 @@ function buildFunnel(rows, buyerEmailSet) {
 
   const steps = [
     { id: 'inscrits', label: 'Inscrits', count: inscrits, benchKey: null },
-    { id: 'presents', label: 'Présents', count: presents, benchKey: 'presents' },
-    { id: 'watch30', label: 'Vu > 30 min', count: watched30, benchKey: null },
+    {
+      id: 'presents',
+      label: 'Présents',
+      count: presents + presentsReplay,
+      benchKey: 'presents',
+      split: { live: presents, replay: presentsReplay },
+    },
+    {
+      id: 'watch30',
+      label: 'Vu > 30 min',
+      count: watched30 + watched30Replay,
+      benchKey: null,
+      split: { live: watched30, replay: watched30Replay },
+    },
     { id: 'offer', label: 'Vu offre (CTA)', count: sawOffer, benchKey: 'offer' },
     { id: 'clicked', label: 'Cliqué CTA', count: clickedCta, benchKey: 'clicked' },
     { id: 'sales', label: 'Page de vente', count: visitedSales, benchKey: 'sales' },
@@ -183,6 +200,7 @@ function buildFunnel(rows, buyerEmailSet) {
       prevCount: prev,
       stepRate,
       benchmark: bench ? { warn: bench[0], good: bench[1] } : null,
+      split: item.split || null,
     };
   });
 }
@@ -190,6 +208,7 @@ function buildFunnel(rows, buyerEmailSet) {
 function computeKpis(rows, buyerEmailSet) {
   const inscrits = rows.length;
   const presents = rows.filter((r) => toBool(r.attended_live)).length;
+  const presentsReplay = rows.filter((r) => toBool(r.watched_replay)).length;
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
@@ -202,6 +221,13 @@ function computeKpis(rows, buyerEmailSet) {
 
   const richRows = rows.filter((r) => isRichCountry(r.pays));
   const autresRows = rows.filter((r) => !isRichCountry(r.pays));
+  const richBuyers = richRows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+  const conversionRichRate = richRows.length > 0 ? (richBuyers / richRows.length) * 100 : 0;
+
+  const totalRevenueEur = acheteurs * ES2_OFFER_PRICE_EUR;
+  const richRevenueEur = richBuyers * ES2_OFFER_PRICE_EUR;
+  const valuePerLeadGlobal = inscrits > 0 ? totalRevenueEur / inscrits : 0;
+  const valuePerLeadRich = richRows.length > 0 ? richRevenueEur / richRows.length : 0;
 
   const funnel = buildFunnel(rows, buyerEmailSet);
 
@@ -271,6 +297,7 @@ function computeKpis(rows, buyerEmailSet) {
     cards: {
       inscrits,
       presents,
+      presentsReplay,
       presenceRate,
       sawOffer,
       clickedCta,
@@ -279,6 +306,10 @@ function computeKpis(rows, buyerEmailSet) {
       acheteurs,
       conversionGlobalRate,
       conversionPresentsRate,
+      conversionRichRate,
+      valuePerLeadGlobal,
+      valuePerLeadRich,
+      offerPriceEur: ES2_OFFER_PRICE_EUR,
     },
     funnel,
     funnelBenchmarks: FUNNEL_BENCHMARKS,

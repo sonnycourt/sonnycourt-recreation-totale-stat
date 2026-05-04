@@ -102,11 +102,15 @@ const tabs = [
                       <p id="kpi-inscrits" class="mt-1 text-2xl font-semibold text-white">0</p>
                     </div>
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <p class="text-xs text-slate-500">Présents</p>
+                      <p class="text-xs text-slate-500">Présents (live)</p>
                       <p id="kpi-presents" class="mt-1 text-2xl font-semibold text-white">0</p>
                     </div>
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                      <p class="text-xs text-slate-500">Taux de présence</p>
+                      <p class="text-xs text-slate-500">Présents (replay)</p>
+                      <p id="kpi-presents-replay" class="mt-1 text-2xl font-semibold text-white">0</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">Taux de présence (live)</p>
                       <p id="kpi-presence-rate" class="mt-1 text-2xl font-semibold text-white">0%</p>
                     </div>
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -130,20 +134,30 @@ const tabs = [
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Conversion PdV → Achat (pays riches)</p>
-                    <p class="mt-1 text-xs text-slate-500">Benchmarks: &lt;2% problème · 2-5% normal · &gt;5% excellent.</p>
-                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Performance financière</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Prix de référence : <span id="kpi-offer-price" class="text-slate-300">1 997 €</span> par acheteur. Comparaison global vs pays riches (France, Belgique, Suisse, Canada, Luxembourg, Monaco, Allemagne).
+                    </p>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">PdV (pays riches)</p>
-                        <p id="kpi-rich-pdv" class="mt-1 text-2xl font-semibold text-white">0</p>
+                        <p class="text-xs text-slate-500">Taux conversion global</p>
+                        <p id="kpi-conv-global" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                        <p id="kpi-conv-global-detail" class="mt-1 text-xs text-slate-500">— / —</p>
                       </div>
                       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Acheteurs (pays riches)</p>
-                        <p id="kpi-rich-buyers" class="mt-1 text-2xl font-semibold text-white">0</p>
+                        <p class="text-xs text-slate-500">Taux conversion pays riches</p>
+                        <p id="kpi-conv-rich" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                        <p id="kpi-conv-rich-detail" class="mt-1 text-xs text-slate-500">— / —</p>
                       </div>
                       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Taux PdV → Achat</p>
-                        <p id="kpi-rich-conv" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                        <p class="text-xs text-slate-500">Valeur / lead global</p>
+                        <p id="kpi-vpl-global" class="mt-1 text-2xl font-semibold text-white">0 €</p>
+                        <p id="kpi-vpl-global-detail" class="mt-1 text-xs text-slate-500">— € / —</p>
+                      </div>
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">Valeur / lead pays riches</p>
+                        <p id="kpi-vpl-rich" class="mt-1 text-2xl font-semibold text-white">0 €</p>
+                        <p id="kpi-vpl-rich-detail" class="mt-1 text-xs text-slate-500">— € / —</p>
                       </div>
                     </div>
                   </div>
@@ -173,20 +187,6 @@ const tabs = [
 
                   <div id="overview-spiffy-warning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
                     ⚠️ Aucun acheteur détecté pour cette session. Les achats peuvent avoir un délai de synchronisation Spiffy → Supabase. Vérifiez Spiffy directement.
-                  </div>
-
-                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Replay temps réel</p>
-                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Replay actifs (15 min)</p>
-                        <p id="kpi-replay-active" class="mt-1 text-2xl font-semibold text-white">0</p>
-                      </div>
-                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Replay total (cumul)</p>
-                        <p id="kpi-replay-total" class="mt-1 text-2xl font-semibold text-white">0</p>
-                      </div>
-                    </div>
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -608,7 +608,14 @@ const tabs = [
       function formatPct(value) {
         const n = Number(value);
         if (!Number.isFinite(n)) return '0%';
+        if (n === 0) return '0%';
+        if (n < 10) return `${(Math.round(n * 10) / 10).toFixed(1)}%`;
         return `${Math.round(n)}%`;
+      }
+      function formatEur(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '0 €';
+        return `${Math.round(n).toLocaleString('fr-FR')} €`;
       }
 
       function funnelGradient(index) {
@@ -676,7 +683,19 @@ const tabs = [
         return 'text-red-400';
       }
 
-      function renderOverviewFunnel(items) {
+      function buildFunnelBarHtml(label, count, percentVsInscrits, gradientClass) {
+        const pct = Math.max(0, Math.min(100, Number(percentVsInscrits || 0)));
+        return `
+          <div class="grid grid-cols-[120px_1fr_auto] items-center gap-3 text-xs">
+            <p class="text-slate-300">${label}</p>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-800">
+              <div class="h-3 rounded-full bg-gradient-to-r ${gradientClass}" style="width:${pct}%"></div>
+            </div>
+            <p class="text-slate-300">${Math.round(pct)}% <span class="text-slate-500">(${Number(count || 0)})</span></p>
+          </div>`;
+      }
+
+      function renderOverviewFunnel(items, totalInscrits) {
         const root = document.getElementById('overview-funnel');
         if (!root) return;
         root.innerHTML = '';
@@ -688,6 +707,7 @@ const tabs = [
           root.appendChild(empty);
           return;
         }
+        const inscrits = Number(totalInscrits || 0);
         list.forEach(function (item, idx) {
           if (idx > 0) {
             const arrow = document.createElement('div');
@@ -704,17 +724,20 @@ const tabs = [
             `;
             root.appendChild(arrow);
           }
-          const row = document.createElement('div');
-          const pct = Math.max(0, Math.min(100, Number(item?.percent || 0)));
-          row.className = 'grid grid-cols-[120px_1fr_auto] items-center gap-3 text-xs';
-          row.innerHTML = `
-            <p class="text-slate-300">${item?.label || '—'}</p>
-            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-800">
-              <div class="h-3 rounded-full bg-gradient-to-r ${funnelGradient(idx)}" style="width:${pct}%"></div>
-            </div>
-            <p class="text-slate-300">${Math.round(pct)}% <span class="text-slate-500">(${Number(item?.count || 0)})</span></p>
-          `;
-          root.appendChild(row);
+          if (item?.split) {
+            const livePct = inscrits > 0 ? (Number(item.split.live || 0) / inscrits) * 100 : 0;
+            const replayPct = inscrits > 0 ? (Number(item.split.replay || 0) / inscrits) * 100 : 0;
+            const wrap = document.createElement('div');
+            wrap.className = 'space-y-1';
+            wrap.innerHTML =
+              buildFunnelBarHtml(`${item.label} (live)`, item.split.live, livePct, 'from-blue-400 to-blue-500') +
+              buildFunnelBarHtml(`${item.label} (replay)`, item.split.replay, replayPct, 'from-slate-400 to-slate-500');
+            root.appendChild(wrap);
+          } else {
+            const row = document.createElement('div');
+            row.innerHTML = buildFunnelBarHtml(item?.label || '—', item?.count, item?.percent, funnelGradient(idx));
+            root.appendChild(row.firstElementChild);
+          }
         });
       }
 
@@ -850,30 +873,54 @@ const tabs = [
         banner.classList.toggle('hidden', !show);
       }
 
-      function renderRichPdvConversion(segments) {
-        const list = Array.isArray(segments) ? segments : [];
-        const rich = list.find(function (s) { return s?.segment === 'Pays riches'; });
-        const pdv = Number(rich?.visitedSales || 0);
-        const buyers = Number(rich?.acheteurs || 0);
-        const rate = Number(rich?.salesConversionRate || 0);
-        const pdvEl = document.getElementById('kpi-rich-pdv');
-        const buyEl = document.getElementById('kpi-rich-buyers');
-        const convEl = document.getElementById('kpi-rich-conv');
-        if (pdvEl) pdvEl.textContent = String(pdv);
-        if (buyEl) buyEl.textContent = String(buyers);
-        if (convEl) {
-          convEl.textContent = pdv > 0 ? `${rate.toFixed(1)}%` : '—';
-          convEl.classList.remove('text-emerald-400', 'text-amber-400', 'text-red-400', 'text-white');
-          if (pdv === 0) {
-            convEl.classList.add('text-white');
-          } else if (rate >= 5) {
-            convEl.classList.add('text-emerald-400');
-          } else if (rate >= 2) {
-            convEl.classList.add('text-amber-400');
-          } else {
-            convEl.classList.add('text-red-400');
-          }
+      function colorByConvBenchmark(el, rate) {
+        if (!el) return;
+        el.classList.remove('text-emerald-400', 'text-amber-400', 'text-red-400', 'text-white');
+        if (!Number.isFinite(rate) || rate === 0) {
+          el.classList.add('text-white');
+          return;
         }
+        if (rate >= 5) el.classList.add('text-emerald-400');
+        else if (rate >= 2) el.classList.add('text-amber-400');
+        else el.classList.add('text-red-400');
+      }
+
+      function renderFinancialKpis(d) {
+        const cards = d?.cards || {};
+        const segments = Array.isArray(d?.countrySegments) ? d.countrySegments : [];
+        const richSegment = segments.find(function (s) { return s?.segment === 'Pays riches'; });
+        const inscritsTotal = Number(cards.inscrits || 0);
+        const acheteursTotal = Number(cards.acheteurs || 0);
+        const richInscrits = Number(richSegment?.inscrits || 0);
+        const richBuyers = Number(richSegment?.acheteurs || 0);
+        const convGlobal = Number(cards.conversionGlobalRate || 0);
+        const convRich = Number(cards.conversionRichRate || 0);
+        const vplGlobal = Number(cards.valuePerLeadGlobal || 0);
+        const vplRich = Number(cards.valuePerLeadRich || 0);
+        const offerPrice = Number(cards.offerPriceEur || 0);
+
+        const priceEl = document.getElementById('kpi-offer-price');
+        if (priceEl) priceEl.textContent = formatEur(offerPrice);
+
+        const gEl = document.getElementById('kpi-conv-global');
+        if (gEl) { gEl.textContent = formatPct(convGlobal); colorByConvBenchmark(gEl, convGlobal); }
+        const gDetail = document.getElementById('kpi-conv-global-detail');
+        if (gDetail) gDetail.textContent = `${acheteursTotal} / ${inscritsTotal}`;
+
+        const rEl = document.getElementById('kpi-conv-rich');
+        if (rEl) { rEl.textContent = formatPct(convRich); colorByConvBenchmark(rEl, convRich); }
+        const rDetail = document.getElementById('kpi-conv-rich-detail');
+        if (rDetail) rDetail.textContent = `${richBuyers} / ${richInscrits}`;
+
+        const vgEl = document.getElementById('kpi-vpl-global');
+        if (vgEl) vgEl.textContent = formatEur(vplGlobal);
+        const vgDetail = document.getElementById('kpi-vpl-global-detail');
+        if (vgDetail) vgDetail.textContent = `${formatEur(acheteursTotal * offerPrice)} / ${inscritsTotal} inscrits`;
+
+        const vrEl = document.getElementById('kpi-vpl-rich');
+        if (vrEl) vrEl.textContent = formatEur(vplRich);
+        const vrDetail = document.getElementById('kpi-vpl-rich-detail');
+        if (vrDetail) vrDetail.textContent = `${formatEur(richBuyers * offerPrice)} / ${richInscrits} inscrits`;
       }
 
       function hydrateSessionDropdown(sessionDates, selectedValue) {
@@ -935,6 +982,8 @@ const tabs = [
 
           document.getElementById('kpi-inscrits').textContent = String(d?.cards?.inscrits || 0);
           document.getElementById('kpi-presents').textContent = String(d?.cards?.presents || 0);
+          const presReplayEl = document.getElementById('kpi-presents-replay');
+          if (presReplayEl) presReplayEl.textContent = String(d?.cards?.presentsReplay || 0);
           document.getElementById('kpi-presence-rate').textContent = formatPct(d?.cards?.presenceRate);
           document.getElementById('kpi-saw-offer').textContent = String(d?.cards?.sawOffer || 0);
           document.getElementById('kpi-clicked-cta').textContent = String(d?.cards?.clickedCta || 0);
@@ -947,17 +996,13 @@ const tabs = [
           const cpEl = document.getElementById('kpi-conversion-presents');
           if (cpEl) cpEl.textContent = formatPct(d?.cards?.conversionPresentsRate);
 
-          renderOverviewFunnel(d?.funnel);
+          renderOverviewFunnel(d?.funnel, d?.cards?.inscrits);
           renderRetention(d?.retention);
           renderOverviewCountrySegments(d?.countrySegments);
-          renderRichPdvConversion(d?.countrySegments);
+          renderFinancialKpis(d);
           renderLiveReplay(d?.liveReplay);
           renderBuyerDetails(d?.buyerDetails);
           renderSpiffyWarning(d);
-          const replayActiveEl = document.getElementById('kpi-replay-active');
-          const replayTotalEl = document.getElementById('kpi-replay-total');
-          if (replayActiveEl) replayActiveEl.textContent = String(d?.replayActiveNow ?? 0);
-          if (replayTotalEl) replayTotalEl.textContent = String(d?.replayTotal ?? 0);
           const stamp = document.getElementById('overview-updated');
           if (stamp) stamp.textContent = `MAJ ${new Date().toLocaleString('fr-FR')}`;
         } catch (e) {
