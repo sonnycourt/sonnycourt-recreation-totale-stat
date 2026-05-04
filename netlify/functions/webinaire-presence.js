@@ -1,7 +1,4 @@
-import { getStore } from '@netlify/blobs';
-
-const STORE_NAME = 'webinaire-live-presence';
-const PREFIX = 'presence:';
+import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -27,7 +24,7 @@ function cleanStage(value) {
 
 function cleanCurrentSecond(value) {
   const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) return null;
+  if (!Number.isFinite(n) || n < 0) return 0;
   return Math.floor(n);
 }
 
@@ -44,27 +41,36 @@ export default async (req) => {
   try {
     const body = await req.json();
     const token = cleanToken(body?.token);
-    const stage = cleanStage(body?.stage);
-    const currentSecond = cleanCurrentSecond(body?.currentSecond);
-    const isPlaying = Boolean(body?.isPlaying);
-    const mode = cleanMode(body?.mode);
     if (!token) return jsonResponse(400, { error: 'Token manquant' });
 
-    const store = getStore(STORE_NAME);
-    const key = `${PREFIX}${token}`;
+    const { url, key } = getSupabaseConfig();
+    if (!url || !key) return jsonResponse(500, { error: 'Supabase non configuré' });
+
     const payload = {
       token,
-      stage,
-      ts: Date.now(),
-      currentSecond,
-      isPlaying,
-      mode,
+      stage: cleanStage(body?.stage),
+      current_second: cleanCurrentSecond(body?.currentSecond),
+      is_playing: Boolean(body?.isPlaying),
+      mode: cleanMode(body?.mode),
+      updated_at: new Date().toISOString(),
     };
-    await store.set(key, JSON.stringify(payload));
+
+    const res = await fetch(`${url}/rest/v1/webinaire_presence?on_conflict=token`, {
+      method: 'POST',
+      headers: supabaseHeaders({
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      }),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('webinaire-presence upsert failed:', res.status, errText);
+      return jsonResponse(500, { error: 'Internal server error' });
+    }
     return jsonResponse(200, { ok: true });
   } catch (error) {
     console.error('webinaire-presence error:', error);
     return jsonResponse(500, { error: 'Internal server error' });
   }
 };
-

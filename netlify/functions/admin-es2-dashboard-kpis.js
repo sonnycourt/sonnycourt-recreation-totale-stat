@@ -6,6 +6,9 @@ const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 /** Liste « pays riches » — matching insensible à la casse et aux accents (colonne pays). */
 const PAYS_RICHES = ['France', 'Belgique', 'Suisse', 'Canada', 'Luxembourg', 'Monaco', 'Allemagne'];
 
+/** Checkpoints rétention vidéo (en minutes). 75 mesure les 9 questions « Face à toi-même ». */
+const RETENTION_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 82];
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -60,15 +63,21 @@ function computeSegmentStats(subset, buyerEmailSet) {
   const presents = subset.filter((r) => toBool(r.attended_live)).length;
   const sawOffer = subset.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = subset.filter((r) => toBool(r.clicked_cta)).length;
+  const visitedSales = subset.filter((r) => toBool(r.visited_sales)).length;
+  const watchedReplay = subset.filter((r) => toBool(r.watched_replay)).length;
   const acheteurs = subset.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
+  const salesConversionRate = visitedSales > 0 ? (acheteurs / visitedSales) * 100 : 0;
   return {
     inscrits,
     presents,
     presenceRate,
     sawOffer,
     clickedCta,
+    visitedSales,
+    watchedReplay,
     acheteurs,
+    salesConversionRate,
   };
 }
 
@@ -130,14 +139,60 @@ function fireForgetSyncPurchasedToSupabase(rows, buyerEmailSet) {
   }
 }
 
+/**
+ * Benchmarks par étape (en % du précédent). [warn, good]
+ * - en dessous de warn → rouge ; entre warn et good → jaune ; au-dessus de good → vert.
+ */
+const FUNNEL_BENCHMARKS = {
+  presents: [55, 70],
+  offer: [50, 65],
+  clicked: [20, 40],
+  sales: [60, 85],
+  achat: [2, 5],
+};
+
+function buildFunnel(rows, buyerEmailSet) {
+  const inscrits = rows.length;
+  const presents = rows.filter((r) => toBool(r.attended_live)).length;
+  const watched30 = rows.filter((r) => toInt(r.watch_max_minutes) >= 30).length;
+  const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
+  const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
+  const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
+  const acheteurs = rows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+
+  const steps = [
+    { id: 'inscrits', label: 'Inscrits', count: inscrits, benchKey: null },
+    { id: 'presents', label: 'Présents', count: presents, benchKey: 'presents' },
+    { id: 'watch30', label: 'Vu > 30 min', count: watched30, benchKey: null },
+    { id: 'offer', label: 'Vu offre (CTA)', count: sawOffer, benchKey: 'offer' },
+    { id: 'clicked', label: 'Cliqué CTA', count: clickedCta, benchKey: 'clicked' },
+    { id: 'sales', label: 'Page de vente', count: visitedSales, benchKey: 'sales' },
+    { id: 'achat', label: 'Acheté', count: acheteurs, benchKey: 'achat' },
+  ];
+
+  return steps.map((item, idx) => {
+    const prev = idx > 0 ? steps[idx - 1].count : null;
+    const stepRate = prev && prev > 0 ? (item.count / prev) * 100 : null;
+    const percent = inscrits > 0 ? Math.max(0, Math.min(100, (item.count / inscrits) * 100)) : 0;
+    const bench = item.benchKey ? FUNNEL_BENCHMARKS[item.benchKey] : null;
+    return {
+      id: item.id,
+      label: item.label,
+      count: item.count,
+      percent,
+      prevCount: prev,
+      stepRate,
+      benchmark: bench ? { warn: bench[0], good: bench[1] } : null,
+    };
+  });
+}
+
 function computeKpis(rows, buyerEmailSet) {
   const inscrits = rows.length;
   const presents = rows.filter((r) => toBool(r.attended_live)).length;
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
-  const watched30 = rows.filter((r) => toInt(r.watch_max_minutes) >= 30).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
-  const watchedReplay = rows.filter((r) => toBool(r.watched_replay)).length;
   const acheteurs = rows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
 
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
@@ -148,18 +203,69 @@ function computeKpis(rows, buyerEmailSet) {
   const richRows = rows.filter((r) => isRichCountry(r.pays));
   const autresRows = rows.filter((r) => !isRichCountry(r.pays));
 
-  const funnel = [
-    { id: 'inscrits', label: 'Inscrits', count: inscrits },
-    { id: 'presents', label: 'Présents', count: presents },
-    { id: 'watch30', label: 'Vu > 30 min', count: watched30 },
-    { id: 'offer', label: 'Vu offre (CTA)', count: sawOffer },
-    { id: 'clicked', label: 'Cliqué CTA', count: clickedCta },
-    { id: 'sales', label: 'Page vente', count: visitedSales },
-    { id: 'replay', label: 'Vu replay', count: watchedReplay },
-  ].map((item) => ({
-    ...item,
-    percent: inscrits > 0 ? Math.max(0, Math.min(100, (item.count / inscrits) * 100)) : 0,
-  }));
+  const funnel = buildFunnel(rows, buyerEmailSet);
+
+  const retention = RETENTION_CHECKPOINTS_MIN.map((minute) => {
+    const rich = richRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
+    const other = autresRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
+    return {
+      minute,
+      rich,
+      other,
+      total: rich + other,
+      richBase: richRows.length,
+      otherBase: autresRows.length,
+    };
+  });
+
+  const REPLAY_ACTIVE_WINDOW_MS = 15 * 60 * 1000;
+  const nowMs = Date.now();
+  const replayTotal = rows.filter((r) => toBool(r.watched_replay)).length;
+  const replayActiveNow = rows.filter((r) => {
+    if (!toBool(r.watched_replay)) return false;
+    const ts = Date.parse(r?.last_event_at || '');
+    return Number.isFinite(ts) && nowMs - ts < REPLAY_ACTIVE_WINDOW_MS;
+  }).length;
+
+  function liveReplayBreakdown(subset) {
+    const liveOnly = subset.filter(
+      (r) => toBool(r.attended_live) && !toBool(r.watched_replay),
+    ).length;
+    const replayOnly = subset.filter(
+      (r) => !toBool(r.attended_live) && toBool(r.watched_replay),
+    ).length;
+    const liveAndReplay = subset.filter(
+      (r) => toBool(r.attended_live) && toBool(r.watched_replay),
+    ).length;
+    const engaged = liveOnly + replayOnly + liveAndReplay;
+    return { liveOnly, replayOnly, liveAndReplay, engaged };
+  }
+
+  const liveReplay = {
+    rich: liveReplayBreakdown(richRows),
+    other: liveReplayBreakdown(autresRows),
+    total: liveReplayBreakdown(rows),
+  };
+
+  const buyerDetails = rows
+    .filter((r) => buyerEmailSet.has(normalizeEmail(r.email)))
+    .map((r) => ({
+      prenom: String(r?.prenom || '').trim(),
+      pays: String(r?.pays || '').trim(),
+      isRich: isRichCountry(r?.pays),
+      attendedLive: toBool(r.attended_live),
+      watchedReplay: toBool(r.watched_replay),
+      watchMaxMinutes: toInt(r.watch_max_minutes),
+      clickedCta: toBool(r.clicked_cta),
+      visitedSales: toBool(r.visited_sales),
+      lastEventAt: r?.last_event_at || null,
+      sessionDate: r?.session_date || null,
+    }))
+    .sort((a, b) => {
+      const tb = Date.parse(b.lastEventAt || '') || 0;
+      const ta = Date.parse(a.lastEventAt || '') || 0;
+      return tb - ta;
+    });
 
   return {
     cards: {
@@ -169,11 +275,18 @@ function computeKpis(rows, buyerEmailSet) {
       sawOffer,
       clickedCta,
       ctaConversionRate,
+      visitedSales,
       acheteurs,
       conversionGlobalRate,
       conversionPresentsRate,
     },
     funnel,
+    funnelBenchmarks: FUNNEL_BENCHMARKS,
+    retention,
+    replayTotal,
+    replayActiveNow,
+    liveReplay,
+    buyerDetails,
     countrySegments: [
       { segment: 'Pays riches', ...computeSegmentStats(richRows, buyerEmailSet) },
       { segment: 'Autres', ...computeSegmentStats(autresRows, buyerEmailSet) },
@@ -193,7 +306,7 @@ async function fetchAllRegistrations() {
 
   while (true) {
     const qs = new URLSearchParams({
-      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at',
+      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
       order: 'session_date.desc',
       limit: String(pageSize),
       offset: String(offset),
@@ -264,6 +377,12 @@ export default async (req) => {
       totalRows: filteredRows.length,
       cards: kpis.cards,
       funnel: kpis.funnel,
+      funnelBenchmarks: kpis.funnelBenchmarks,
+      retention: kpis.retention,
+      replayTotal: kpis.replayTotal,
+      replayActiveNow: kpis.replayActiveNow,
+      liveReplay: kpis.liveReplay,
+      buyerDetails: kpis.buyerDetails,
       countrySegments: kpis.countrySegments,
       buyers: {
         source: 'mailerlite_group',

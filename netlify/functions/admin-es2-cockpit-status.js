@@ -1,13 +1,8 @@
-import { getStore } from '@netlify/blobs';
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
-import { supabaseGet } from './lib/supabase-rest.mjs';
+import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
 import { resolveActiveVideoConfig } from './lib/webinaire-video-config.mjs';
 
-const PRESENCE_STORE = 'webinaire-live-presence';
-const PRESENCE_PREFIX = 'presence:';
 const PRESENCE_ACTIVE_MS = 45 * 1000;
-const PRESENCE_BUDGET_MS = 2000;
-const PRESENCE_BATCH_SIZE = 25;
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -40,6 +35,32 @@ async function headCheck(url) {
       error: isTimeout ? 'timeout 3s' : (error?.message || 'network error'),
     };
   }
+}
+
+async function fetchAllStatusRows() {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) return [];
+  const pageSize = 1000;
+  let offset = 0;
+  const out = [];
+  while (true) {
+    const qs = new URLSearchParams({
+      select: 'session_date,offre_expires_at,statut',
+      order: 'session_date.desc',
+      limit: String(pageSize),
+      offset: String(offset),
+    });
+    const res = await fetch(`${url}/rest/v1/webinaire_registrations?${qs.toString()}`, {
+      headers: supabaseHeaders(),
+    });
+    if (!res.ok) break;
+    const json = await res.json().catch(() => []);
+    const batch = Array.isArray(json) ? json : [];
+    out.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+  return out;
 }
 
 function pickCurrentSession(rows, nowMs) {
@@ -125,79 +146,60 @@ function emptyPresence(extra = {}) {
 
 async function getPresenceCounts() {
   const startedAt = Date.now();
-
-  let store;
-  try {
-    store = getStore(PRESENCE_STORE);
-  } catch (error) {
-    return emptyPresence({
-      degraded: true,
-      error: error?.message || 'presence store unavailable',
-    });
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) {
+    return emptyPresence({ degraded: true, error: 'supabase non configuré' });
   }
 
-  let blobs = [];
+  const cutoffIso = new Date(Date.now() - PRESENCE_ACTIVE_MS).toISOString();
+  const qs = new URLSearchParams({
+    select: 'stage,current_second,is_playing,mode',
+    updated_at: `gte.${cutoffIso}`,
+    limit: '5000',
+  });
+
+  let rows = [];
   try {
-    const listed = await store.list({ prefix: PRESENCE_PREFIX });
-    blobs = listed?.blobs || [];
+    const res = await fetch(`${url}/rest/v1/webinaire_presence?${qs.toString()}`, {
+      headers: supabaseHeaders(),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      return emptyPresence({
+        degraded: true,
+        error: `presence query http_${res.status}: ${errText.slice(0, 120)}`,
+      });
+    }
+    const json = await res.json().catch(() => []);
+    rows = Array.isArray(json) ? json : [];
   } catch (error) {
     return emptyPresence({
       degraded: true,
-      error: error?.message || 'presence list failed',
+      error: error?.message || 'presence query failed',
     });
   }
 
   let waiting = 0;
   let session = 0;
   let replay = 0;
-  let activeTotal = 0;
   const sessionSeconds = [];
   let sessionPlaying = 0;
   let sessionPlayingReal = 0;
   let sessionPlayingTest = 0;
-  let processed = 0;
-  let degraded = false;
-  const now = Date.now();
 
-  function ingest(raw) {
-    if (!raw) return;
-    let data = null;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    const ts = Number(data?.ts || 0);
-    if (!Number.isFinite(ts) || now - ts > PRESENCE_ACTIVE_MS) return;
-    activeTotal += 1;
-    if (data.stage === 'waiting') waiting += 1;
-    else if (data.stage === 'replay') replay += 1;
+  for (const r of rows) {
+    if (r?.stage === 'waiting') waiting += 1;
+    else if (r?.stage === 'replay') replay += 1;
     else {
       session += 1;
-      if (Number.isFinite(Number(data.currentSecond))) {
-        sessionSeconds.push(Number(data.currentSecond));
-      }
-      if (data.isPlaying) {
+      const sec = Number(r?.current_second);
+      if (Number.isFinite(sec)) sessionSeconds.push(sec);
+      if (r?.is_playing) {
         sessionPlaying += 1;
-        if (String(data.mode || 'real') === 'test') sessionPlayingTest += 1;
+        if (String(r?.mode || 'real') === 'test') sessionPlayingTest += 1;
         else sessionPlayingReal += 1;
       }
     }
-  }
-
-  for (let i = 0; i < blobs.length; i += PRESENCE_BATCH_SIZE) {
-    if (Date.now() - startedAt > PRESENCE_BUDGET_MS) {
-      degraded = true;
-      break;
-    }
-    const slice = blobs.slice(i, i + PRESENCE_BATCH_SIZE);
-    const results = await Promise.allSettled(
-      slice.map((item) => store.get(item.key)),
-    );
-    for (const r of results) {
-      if (r.status === 'fulfilled') ingest(r.value);
-    }
-    processed += slice.length;
   }
 
   sessionSeconds.sort((a, b) => a - b);
@@ -215,7 +217,7 @@ async function getPresenceCounts() {
   }
 
   return {
-    activeTotal,
+    activeTotal: rows.length,
     waiting,
     session,
     replay,
@@ -228,9 +230,7 @@ async function getPresenceCounts() {
       medianSecond,
       maxSecond,
     },
-    degraded,
-    processed,
-    totalBlobs: blobs.length,
+    degraded: false,
     durationMs: Date.now() - startedAt,
   };
 }
@@ -245,10 +245,7 @@ export default async (req) => {
   try {
     const now = new Date();
     const nowMs = now.getTime();
-    const registrations = await supabaseGet(
-      'webinaire_registrations?select=session_date,offre_expires_at,statut&order=session_date.desc&limit=1000',
-    );
-    const rows = Array.isArray(registrations.data) ? registrations.data : [];
+    const rows = await fetchAllStatusRows();
     const currentSession = pickCurrentSession(rows, nowMs);
     const sessionHistory = buildSessionHistory(rows, nowMs);
 
@@ -286,12 +283,15 @@ export default async (req) => {
       settled[1].status === 'fulfilled' ? settled[1].value : checkFallback;
     const activeCheck =
       settled[2].status === 'fulfilled' ? settled[2].value : checkFallback;
-    // Hotfix: presence Blobs reads cause function timeouts (>10s).
-    // Disabled until the store is cleaned up; cockpit shows the rest.
-    const presence = emptyPresence({
-      degraded: true,
-      error: 'presence disabled (hotfix)',
-    });
+    let presence;
+    try {
+      presence = await getPresenceCounts();
+    } catch (error) {
+      presence = emptyPresence({
+        degraded: true,
+        error: error?.message || 'presence error',
+      });
+    }
 
     return jsonResponse(200, {
       ok: true,
