@@ -12,16 +12,6 @@ const RETENTION_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 82];
 /** Prix ES2 en € (utilisé pour calculer les valeurs financières par lead). Ajuster ici si le prix change. */
 const ES2_OFFER_PRICE_EUR = 1997;
 
-/**
- * Date de la première VRAIE session ES2 (YYYY-MM-DD, jour Paris).
- * Toutes les sessions strictement antérieures à cette date sont des tests internes
- * et sont exclues des comparaisons "session N-1".
- */
-const ES2_FIRST_REAL_SESSION_DATE = '2026-04-30';
-
-/** Minute exacte d'apparition du CTA dans le webinaire (81m06s ≈ 81). Utilisé pour annoter la rétention. */
-const CTA_APPEAR_MINUTE = 81;
-
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -393,9 +383,6 @@ export default async (req) => {
       ),
     ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-    // Sessions « réelles » = à partir de ES2_FIRST_REAL_SESSION_DATE (les antérieures sont des tests).
-    const realSessionDates = sessionDates.filter((d) => d >= ES2_FIRST_REAL_SESSION_DATE);
-
     const filteredRows = sessionDateFilter
       ? allRows.filter((r) => String(r?.session_date || '').slice(0, 10) === sessionDateFilter)
       : allRows;
@@ -412,39 +399,12 @@ export default async (req) => {
 
     const kpis = computeKpis(filteredRows, buyerEmailSet);
 
-    // Calcul des KPIs de la session N-1 (uniquement si filtre sur une session réelle).
-    let previousSession = null;
-    let previousReason = null;
-    if (sessionDateFilter) {
-      if (sessionDateFilter < ES2_FIRST_REAL_SESSION_DATE) {
-        previousReason = 'session_test';
-      } else {
-        const prevDate = realSessionDates.find((d) => d < sessionDateFilter);
-        if (!prevDate) {
-          previousReason = 'first_real_session';
-        } else {
-          const prevRows = allRows.filter(
-            (r) => String(r?.session_date || '').slice(0, 10) === prevDate,
-          );
-          const prevKpis = computeKpis(prevRows, buyerEmailSet);
-          previousSession = {
-            sessionDate: prevDate,
-            cards: prevKpis.cards,
-            funnel: prevKpis.funnel,
-          };
-        }
-      }
-    }
-
     return jsonResponse(200, {
       ok: true,
       filter: {
         session_date: sessionDateFilter || null,
       },
       sessions: sessionDates,
-      realSessions: realSessionDates,
-      firstRealSessionDate: ES2_FIRST_REAL_SESSION_DATE,
-      ctaAppearMinute: CTA_APPEAR_MINUTE,
       totalRows: filteredRows.length,
       cards: kpis.cards,
       funnel: kpis.funnel,
@@ -455,8 +415,6 @@ export default async (req) => {
       liveReplay: kpis.liveReplay,
       buyerDetails: kpis.buyerDetails,
       countrySegments: kpis.countrySegments,
-      previousSession,
-      previousReason,
       buyers: {
         source: 'mailerlite_group',
         groupEnv: 'MAILERLITE_GROUP_WEBINAIRE_ACHETEURS',
