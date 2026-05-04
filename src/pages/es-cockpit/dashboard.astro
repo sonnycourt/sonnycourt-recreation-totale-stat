@@ -125,7 +125,27 @@ const tabs = [
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                     <p class="text-xs uppercase tracking-wider text-slate-500">Funnel visuel</p>
-                    <div id="overview-funnel" class="mt-3 space-y-3"></div>
+                    <p class="mt-1 text-xs text-slate-500">Taux inter-étapes (vs étape précédente). Couleur : <span class="text-emerald-400">vert</span> au-dessus du benchmark, <span class="text-amber-400">jaune</span> dans la norme, <span class="text-red-400">rouge</span> en dessous.</p>
+                    <div id="overview-funnel" class="mt-3 space-y-1"></div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Conversion PdV → Achat (pays riches)</p>
+                    <p class="mt-1 text-xs text-slate-500">Benchmarks: &lt;2% problème · 2-5% normal · &gt;5% excellent.</p>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">PdV (pays riches)</p>
+                        <p id="kpi-rich-pdv" class="mt-1 text-2xl font-semibold text-white">0</p>
+                      </div>
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">Acheteurs (pays riches)</p>
+                        <p id="kpi-rich-buyers" class="mt-1 text-2xl font-semibold text-white">0</p>
+                      </div>
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">Taux PdV → Achat</p>
+                        <p id="kpi-rich-conv" class="mt-1 text-2xl font-semibold text-white">0%</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -151,13 +171,76 @@ const tabs = [
                     </div>
                   </div>
 
+                  <div id="overview-spiffy-warning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    ⚠️ Aucun acheteur détecté pour cette session. Les achats peuvent avoir un délai de synchronisation Spiffy → Supabase. Vérifiez Spiffy directement.
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Replay temps réel</p>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">Replay actifs (15 min)</p>
+                        <p id="kpi-replay-active" class="mt-1 text-2xl font-semibold text-white">0</p>
+                      </div>
+                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <p class="text-xs text-slate-500">Replay total (cumul)</p>
+                        <p id="kpi-replay-total" class="mt-1 text-2xl font-semibold text-white">0</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Live vs Replay</p>
+                    <div class="mt-3 overflow-x-auto">
+                      <table class="w-full min-w-[480px] border-collapse text-left text-xs text-slate-300">
+                        <thead>
+                          <tr class="border-b border-slate-700 text-slate-500">
+                            <th class="py-2 pr-4 font-medium">Segment</th>
+                            <th class="py-2 pr-4 font-medium">Live only</th>
+                            <th class="py-2 pr-4 font-medium">Replay only</th>
+                            <th class="py-2 pr-4 font-medium">Live + Replay</th>
+                            <th class="py-2 pr-4 font-medium">Total engagés</th>
+                          </tr>
+                        </thead>
+                        <tbody id="overview-livereplay"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Détail acheteurs</p>
+                    <p class="mt-1 text-xs text-slate-500">Triés par dernier événement (plus récent en haut).</p>
+                    <div class="mt-3 overflow-x-auto">
+                      <table class="w-full min-w-[760px] border-collapse text-left text-xs text-slate-300">
+                        <thead>
+                          <tr class="border-b border-slate-700 text-slate-500">
+                            <th class="py-2 pr-4 font-medium">Prénom</th>
+                            <th class="py-2 pr-4 font-medium">Pays</th>
+                            <th class="py-2 pr-4 font-medium">Mode</th>
+                            <th class="py-2 pr-4 font-medium">Min vue</th>
+                            <th class="py-2 pr-4 font-medium">CTA</th>
+                            <th class="py-2 pr-4 font-medium">PdV</th>
+                            <th class="py-2 pr-4 font-medium">Dernier event</th>
+                          </tr>
+                        </thead>
+                        <tbody id="overview-buyer-details"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo</p>
+                    <p class="mt-1 text-xs text-slate-500">Nombre de personnes ayant atteint chaque minute (cumulatif). Bleu = pays riches · gris = autres.</p>
+                    <div id="overview-retention" class="mt-3 space-y-2"></div>
+                  </div>
+
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                     <p class="text-xs uppercase tracking-wider text-slate-500">Segmentation pays</p>
                     <p class="mt-1 text-xs text-slate-500">
                       Pays « riches » : France, Belgique, Suisse, Canada, Luxembourg, Monaco, Allemagne — match insensible à la casse / accents sur <code class="rounded bg-slate-950 px-1 py-0.5 text-slate-400">pays</code>.
                     </p>
                     <div class="mt-3 overflow-x-auto">
-                      <table class="w-full min-w-[640px] border-collapse text-left text-xs text-slate-300">
+                      <table class="w-full min-w-[820px] border-collapse text-left text-xs text-slate-300">
                         <thead>
                           <tr class="border-b border-slate-700 text-slate-500">
                             <th class="py-2 pr-4 font-medium">Segment</th>
@@ -166,7 +249,10 @@ const tabs = [
                             <th class="py-2 pr-4 font-medium">Taux présence</th>
                             <th class="py-2 pr-4 font-medium">Vu offre</th>
                             <th class="py-2 pr-4 font-medium">Cliqué CTA</th>
+                            <th class="py-2 pr-4 font-medium">Visité PdV</th>
+                            <th class="py-2 pr-4 font-medium">Replay</th>
                             <th class="py-2 pr-4 font-medium">Acheteurs</th>
+                            <th class="py-2 pr-4 font-medium">PdV → Achat</th>
                           </tr>
                         </thead>
                         <tbody id="overview-country-segments"></tbody>
@@ -547,7 +633,7 @@ const tabs = [
           const tr = document.createElement('tr');
           tr.className = 'border-t border-slate-800';
           const td = document.createElement('td');
-          td.colSpan = 7;
+          td.colSpan = 10;
           td.className = 'py-3 text-slate-500';
           td.textContent = 'Aucune donnée.';
           tr.appendChild(td);
@@ -564,7 +650,10 @@ const tabs = [
             formatPct(row?.presenceRate),
             String(row?.sawOffer ?? 0),
             String(row?.clickedCta ?? 0),
+            String(row?.visitedSales ?? 0),
+            String(row?.watchedReplay ?? 0),
             String(row?.acheteurs ?? 0),
+            formatPct(row?.salesConversionRate),
           ];
           cells.forEach(function (text, i) {
             const td = document.createElement('td');
@@ -575,6 +664,16 @@ const tabs = [
           });
           tbody.appendChild(tr);
         }
+      }
+
+      function benchmarkClass(stepRate, benchmark) {
+        if (!Number.isFinite(stepRate) || !benchmark) return 'text-slate-300';
+        const warn = Number(benchmark.warn);
+        const good = Number(benchmark.good);
+        if (!Number.isFinite(warn) || !Number.isFinite(good)) return 'text-slate-300';
+        if (stepRate >= good) return 'text-emerald-400';
+        if (stepRate >= warn) return 'text-amber-400';
+        return 'text-red-400';
       }
 
       function renderOverviewFunnel(items) {
@@ -590,6 +689,21 @@ const tabs = [
           return;
         }
         list.forEach(function (item, idx) {
+          if (idx > 0) {
+            const arrow = document.createElement('div');
+            const stepRate = Number.isFinite(Number(item?.stepRate)) ? Number(item.stepRate) : null;
+            const cls = benchmarkClass(stepRate, item?.benchmark);
+            const benchHint = item?.benchmark
+              ? ` <span class="text-slate-600">[norme ${item.benchmark.warn}-${item.benchmark.good}%]</span>`
+              : '';
+            arrow.className = 'grid grid-cols-[120px_1fr_auto] items-center gap-3 text-[11px]';
+            arrow.innerHTML = `
+              <p class="text-slate-600 text-right pr-2">↓</p>
+              <p class="${cls} font-medium">${stepRate == null ? '—' : `${stepRate.toFixed(1)}%`}${benchHint}</p>
+              <p class="text-slate-600"></p>
+            `;
+            root.appendChild(arrow);
+          }
           const row = document.createElement('div');
           const pct = Math.max(0, Math.min(100, Number(item?.percent || 0)));
           row.className = 'grid grid-cols-[120px_1fr_auto] items-center gap-3 text-xs';
@@ -602,6 +716,164 @@ const tabs = [
           `;
           root.appendChild(row);
         });
+      }
+
+      function renderRetention(items) {
+        const root = document.getElementById('overview-retention');
+        if (!root) return;
+        root.innerHTML = '';
+        const list = Array.isArray(items) ? items : [];
+        if (!list.length) {
+          const empty = document.createElement('p');
+          empty.className = 'text-xs text-slate-500';
+          empty.textContent = 'Aucune donnée disponible.';
+          root.appendChild(empty);
+          return;
+        }
+        const maxTotal = list.reduce(function (acc, item) {
+          return Math.max(acc, Number(item?.total || 0));
+        }, 0) || 1;
+        list.forEach(function (item) {
+          const rich = Math.max(0, Number(item?.rich || 0));
+          const other = Math.max(0, Number(item?.other || 0));
+          const total = rich + other;
+          const richBase = Math.max(0, Number(item?.richBase || 0));
+          const otherBase = Math.max(0, Number(item?.otherBase || 0));
+          const richPctOfBase = richBase > 0 ? Math.round((rich / richBase) * 100) : 0;
+          const otherPctOfBase = otherBase > 0 ? Math.round((other / otherBase) * 100) : 0;
+          const richWidth = (rich / maxTotal) * 100;
+          const otherWidth = (other / maxTotal) * 100;
+          const row = document.createElement('div');
+          row.className = 'grid grid-cols-[64px_1fr_auto] items-center gap-3 text-xs';
+          row.innerHTML = `
+            <p class="text-slate-300 tabular-nums">${item.minute} min</p>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-800 flex">
+              <div class="h-3 bg-blue-500" style="width:${richWidth}%" title="Pays riches: ${rich} (${richPctOfBase}% de ${richBase})"></div>
+              <div class="h-3 bg-slate-500" style="width:${otherWidth}%" title="Autres: ${other} (${otherPctOfBase}% de ${otherBase})"></div>
+            </div>
+            <p class="text-slate-300 tabular-nums">${total} <span class="text-slate-500">(${rich}/${other})</span></p>
+          `;
+          root.appendChild(row);
+        });
+      }
+
+      function renderLiveReplay(liveReplay) {
+        const tbody = document.getElementById('overview-livereplay');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const rows = [
+          { segment: 'Pays riches', d: liveReplay?.rich },
+          { segment: 'Autres', d: liveReplay?.other },
+          { segment: 'Total', d: liveReplay?.total },
+        ];
+        rows.forEach(function (row) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-t border-slate-800';
+          const d = row.d || {};
+          const cells = [
+            row.segment,
+            String(d.liveOnly || 0),
+            String(d.replayOnly || 0),
+            String(d.liveAndReplay || 0),
+            String(d.engaged || 0),
+          ];
+          cells.forEach(function (text, i) {
+            const td = document.createElement('td');
+            td.className =
+              i === 0 ? 'py-2.5 pr-4 font-medium text-slate-200' : 'py-2.5 pr-4 text-slate-300';
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderBuyerDetails(items) {
+        const tbody = document.getElementById('overview-buyer-details');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const list = Array.isArray(items) ? items : [];
+        if (!list.length) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-t border-slate-800';
+          const td = document.createElement('td');
+          td.colSpan = 7;
+          td.className = 'py-3 text-slate-500';
+          td.textContent = 'Aucun acheteur.';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        list.forEach(function (b) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-t border-slate-800';
+          const mode =
+            b.attendedLive && b.watchedReplay
+              ? 'Live + Replay'
+              : b.attendedLive
+                ? 'Live'
+                : b.watchedReplay
+                  ? 'Replay'
+                  : '—';
+          const cells = [
+            b.prenom || '—',
+            (b.pays || '—') + (b.isRich ? ' ★' : ''),
+            mode,
+            String(b.watchMaxMinutes || 0),
+            b.clickedCta ? 'oui' : 'non',
+            b.visitedSales ? 'oui' : 'non',
+            b.lastEventAt ? new Date(b.lastEventAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : '—',
+          ];
+          cells.forEach(function (text, i) {
+            const td = document.createElement('td');
+            td.className =
+              i === 0 ? 'py-2.5 pr-4 font-medium text-slate-200' : 'py-2.5 pr-4 text-slate-300';
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderSpiffyWarning(d) {
+        const banner = document.getElementById('overview-spiffy-warning');
+        if (!banner) return;
+        const acheteurs = Number(d?.cards?.acheteurs || 0);
+        const filterDate = d?.filter?.session_date || '';
+        let show = false;
+        if (acheteurs === 0 && filterDate) {
+          const sessionMs = Date.parse(`${filterDate}T20:00:00+02:00`);
+          if (Number.isFinite(sessionMs) && Date.now() - sessionMs > 30 * 60 * 1000) {
+            show = true;
+          }
+        }
+        banner.classList.toggle('hidden', !show);
+      }
+
+      function renderRichPdvConversion(segments) {
+        const list = Array.isArray(segments) ? segments : [];
+        const rich = list.find(function (s) { return s?.segment === 'Pays riches'; });
+        const pdv = Number(rich?.visitedSales || 0);
+        const buyers = Number(rich?.acheteurs || 0);
+        const rate = Number(rich?.salesConversionRate || 0);
+        const pdvEl = document.getElementById('kpi-rich-pdv');
+        const buyEl = document.getElementById('kpi-rich-buyers');
+        const convEl = document.getElementById('kpi-rich-conv');
+        if (pdvEl) pdvEl.textContent = String(pdv);
+        if (buyEl) buyEl.textContent = String(buyers);
+        if (convEl) {
+          convEl.textContent = pdv > 0 ? `${rate.toFixed(1)}%` : '—';
+          convEl.classList.remove('text-emerald-400', 'text-amber-400', 'text-red-400', 'text-white');
+          if (pdv === 0) {
+            convEl.classList.add('text-white');
+          } else if (rate >= 5) {
+            convEl.classList.add('text-emerald-400');
+          } else if (rate >= 2) {
+            convEl.classList.add('text-amber-400');
+          } else {
+            convEl.classList.add('text-red-400');
+          }
+        }
       }
 
       function hydrateSessionDropdown(sessionDates, selectedValue) {
@@ -676,7 +948,16 @@ const tabs = [
           if (cpEl) cpEl.textContent = formatPct(d?.cards?.conversionPresentsRate);
 
           renderOverviewFunnel(d?.funnel);
+          renderRetention(d?.retention);
           renderOverviewCountrySegments(d?.countrySegments);
+          renderRichPdvConversion(d?.countrySegments);
+          renderLiveReplay(d?.liveReplay);
+          renderBuyerDetails(d?.buyerDetails);
+          renderSpiffyWarning(d);
+          const replayActiveEl = document.getElementById('kpi-replay-active');
+          const replayTotalEl = document.getElementById('kpi-replay-total');
+          if (replayActiveEl) replayActiveEl.textContent = String(d?.replayActiveNow ?? 0);
+          if (replayTotalEl) replayTotalEl.textContent = String(d?.replayTotal ?? 0);
           const stamp = document.getElementById('overview-updated');
           if (stamp) stamp.textContent = `MAJ ${new Date().toLocaleString('fr-FR')}`;
         } catch (e) {
