@@ -96,6 +96,46 @@ const tabs = [
                     </div>
                   </div>
 
+                  <div id="overview-hero" class="sticky top-0 z-20 -mx-4 px-4 md:-mx-8 md:px-8 py-3 backdrop-blur bg-slate-950/85 border-b border-slate-800">
+                    <div class="flex flex-wrap items-baseline justify-between gap-3 gap-y-2">
+                      <div class="flex flex-wrap items-baseline gap-3">
+                        <p id="hero-title" class="text-sm font-semibold text-white">Toutes sessions</p>
+                        <p id="hero-comparison" class="text-[11px] text-slate-500">—</p>
+                      </div>
+                      <div class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs">
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-slate-500">Inscrits</span>
+                          <span id="hero-inscrits" class="font-semibold text-white">0</span>
+                          <span id="hero-inscrits-delta" class="text-slate-500"></span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-slate-500">Présents</span>
+                          <span id="hero-presents" class="font-semibold text-white">0</span>
+                          <span id="hero-presents-delta" class="text-slate-500"></span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-slate-500">Conv</span>
+                          <span id="hero-conv" class="font-semibold text-white">0%</span>
+                          <span id="hero-conv-delta" class="text-slate-500"></span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-slate-500">Revenus</span>
+                          <span id="hero-revenue" class="font-semibold text-white">0 €</span>
+                          <span id="hero-revenue-delta" class="text-slate-500"></span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-slate-500">€/lead</span>
+                          <span id="hero-vpl" class="font-semibold text-white">0 €</span>
+                          <span id="hero-vpl-delta" class="text-slate-500"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="overview-spiffy-warning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    ⏳ Sync Spiffy en cours pour cette session. Le webhook peut prendre 5-30 min — les acheteurs apparaîtront dès la prochaine synchro. Vérifiez Spiffy directement si urgent.
+                  </div>
+
                   <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                       <p class="text-xs text-slate-500">Inscrits</p>
@@ -163,30 +203,30 @@ const tabs = [
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Acheteurs</p>
-                    <p class="mt-1 text-xs text-slate-500">
-                      Comptage : emails des inscrits (filtre session) croisés avec le groupe MailerLite
-                      <code class="rounded bg-slate-950 px-1 py-0.5 text-slate-400">MAILERLITE_GROUP_WEBINAIRE_ACHETEURS</code>.
-                      La colonne <code class="rounded bg-slate-950 px-1 py-0.5 text-slate-400">purchased</code> (Supabase) est mise à jour en arrière-plan à chaque match (webhook Spiffy / manuel toujours possibles).
-                    </p>
-                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Acheteurs</p>
-                        <p id="kpi-acheteurs" class="mt-1 text-2xl font-semibold text-white">0</p>
-                      </div>
-                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Taux conversion global</p>
-                        <p id="kpi-conversion-global" class="mt-1 text-2xl font-semibold text-white">0%</p>
-                      </div>
-                      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                        <p class="text-xs text-slate-500">Taux conversion présents</p>
-                        <p id="kpi-conversion-presents" class="mt-1 text-2xl font-semibold text-white">0%</p>
-                      </div>
-                    </div>
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo</p>
+                    <p class="mt-1 text-xs text-slate-500">Nombre de personnes ayant atteint chaque minute (cumulatif). Bleu = pays riches · gris = autres. <span class="text-red-400">●</span> Apparition CTA.</p>
+                    <div id="overview-retention" class="mt-3 space-y-2"></div>
                   </div>
 
-                  <div id="overview-spiffy-warning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-                    ⚠️ Aucun acheteur détecté pour cette session. Les achats peuvent avoir un délai de synchronisation Spiffy → Supabase. Vérifiez Spiffy directement.
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Segmentation pays</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Pays « riches » : France, Belgique, Suisse, Canada, Luxembourg, Monaco, Allemagne. Métriques détaillées (vu offre, CTA, PdV) → voir le funnel.
+                    </p>
+                    <div class="mt-3 overflow-x-auto">
+                      <table class="w-full min-w-[480px] border-collapse text-left text-xs text-slate-300">
+                        <thead>
+                          <tr class="border-b border-slate-700 text-slate-500">
+                            <th class="py-2 pr-4 font-medium">Segment</th>
+                            <th class="py-2 pr-4 font-medium">Inscrits</th>
+                            <th class="py-2 pr-4 font-medium">Engagés</th>
+                            <th class="py-2 pr-4 font-medium">Acheteurs</th>
+                            <th class="py-2 pr-4 font-medium">€ / lead</th>
+                          </tr>
+                        </thead>
+                        <tbody id="overview-country-segments"></tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -224,38 +264,6 @@ const tabs = [
                           </tr>
                         </thead>
                         <tbody id="overview-buyer-details"></tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo</p>
-                    <p class="mt-1 text-xs text-slate-500">Nombre de personnes ayant atteint chaque minute (cumulatif). Bleu = pays riches · gris = autres.</p>
-                    <div id="overview-retention" class="mt-3 space-y-2"></div>
-                  </div>
-
-                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Segmentation pays</p>
-                    <p class="mt-1 text-xs text-slate-500">
-                      Pays « riches » : France, Belgique, Suisse, Canada, Luxembourg, Monaco, Allemagne — match insensible à la casse / accents sur <code class="rounded bg-slate-950 px-1 py-0.5 text-slate-400">pays</code>.
-                    </p>
-                    <div class="mt-3 overflow-x-auto">
-                      <table class="w-full min-w-[820px] border-collapse text-left text-xs text-slate-300">
-                        <thead>
-                          <tr class="border-b border-slate-700 text-slate-500">
-                            <th class="py-2 pr-4 font-medium">Segment</th>
-                            <th class="py-2 pr-4 font-medium">Inscrits</th>
-                            <th class="py-2 pr-4 font-medium">Présents</th>
-                            <th class="py-2 pr-4 font-medium">Taux présence</th>
-                            <th class="py-2 pr-4 font-medium">Vu offre</th>
-                            <th class="py-2 pr-4 font-medium">Cliqué CTA</th>
-                            <th class="py-2 pr-4 font-medium">Visité PdV</th>
-                            <th class="py-2 pr-4 font-medium">Replay</th>
-                            <th class="py-2 pr-4 font-medium">Acheteurs</th>
-                            <th class="py-2 pr-4 font-medium">PdV → Achat</th>
-                          </tr>
-                        </thead>
-                        <tbody id="overview-country-segments"></tbody>
                       </table>
                     </div>
                   </div>
@@ -631,7 +639,7 @@ const tabs = [
         return palette[index] || 'from-slate-400 to-slate-500';
       }
 
-      function renderOverviewCountrySegments(segments) {
+      function renderOverviewCountrySegments(segments, offerPriceEur) {
         const tbody = document.getElementById('overview-country-segments');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -640,27 +648,30 @@ const tabs = [
           const tr = document.createElement('tr');
           tr.className = 'border-t border-slate-800';
           const td = document.createElement('td');
-          td.colSpan = 10;
+          td.colSpan = 5;
           td.className = 'py-3 text-slate-500';
           td.textContent = 'Aucune donnée.';
           tr.appendChild(td);
           tbody.appendChild(tr);
           return;
         }
+        const price = Number(offerPriceEur || 0);
         for (const row of list) {
           const tr = document.createElement('tr');
           tr.className = 'border-t border-slate-800';
+          const inscrits = Number(row?.inscrits || 0);
+          const presents = Number(row?.presents || 0);
+          const replay = Number(row?.watchedReplay || 0);
+          // engagés = total ayant attended_live OU watched_replay (pas de dedup ici, donc max(presents+replay, presents))
+          const engaged = Math.max(presents, replay);
+          const acheteurs = Number(row?.acheteurs || 0);
+          const vpl = inscrits > 0 ? (acheteurs * price) / inscrits : 0;
           const cells = [
             String(row?.segment || '—'),
-            String(row?.inscrits ?? 0),
-            String(row?.presents ?? 0),
-            formatPct(row?.presenceRate),
-            String(row?.sawOffer ?? 0),
-            String(row?.clickedCta ?? 0),
-            String(row?.visitedSales ?? 0),
-            String(row?.watchedReplay ?? 0),
-            String(row?.acheteurs ?? 0),
-            formatPct(row?.salesConversionRate),
+            String(inscrits),
+            String(engaged),
+            String(acheteurs),
+            formatEur(vpl),
           ];
           cells.forEach(function (text, i) {
             const td = document.createElement('td');
@@ -671,6 +682,94 @@ const tabs = [
           });
           tbody.appendChild(tr);
         }
+      }
+
+      // Delta helpers ----------------------------------------------------
+      function deltaCount(curr, prev) {
+        const c = Number(curr); const p = Number(prev);
+        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null;
+        return ((c - p) / p) * 100;
+      }
+      function deltaPctPoints(curr, prev) {
+        const c = Number(curr); const p = Number(prev);
+        if (!Number.isFinite(c) || !Number.isFinite(p)) return null;
+        return c - p;
+      }
+      function deltaSpan(value, opts) {
+        const o = opts || {};
+        const suffix = o.suffix || '';
+        if (value == null) return '<span class="text-slate-600 text-[11px]">—</span>';
+        const v = Number(value);
+        if (!Number.isFinite(v)) return '<span class="text-slate-600 text-[11px]">—</span>';
+        const arrow = v > 0.05 ? '▲' : v < -0.05 ? '▼' : '·';
+        const cls = v > 0.05 ? 'text-emerald-400' : v < -0.05 ? 'text-red-400' : 'text-slate-500';
+        const formatted = Math.abs(v) < 10 ? v.toFixed(1) : Math.round(v).toString();
+        const sign = v > 0 ? '+' : '';
+        return `<span class="${cls} text-[11px] font-medium">${arrow} ${sign}${formatted}${suffix}</span>`;
+      }
+
+      function renderHeroStrip(d) {
+        const cards = d?.cards || {};
+        const prev = d?.previousSession?.cards || null;
+        const filterDate = d?.filter?.session_date || '';
+        const titleEl = document.getElementById('hero-title');
+        const compareEl = document.getElementById('hero-comparison');
+        if (titleEl) {
+          titleEl.textContent = filterDate
+            ? `Session ${new Date(filterDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+            : 'Toutes sessions';
+        }
+        if (compareEl) {
+          if (!filterDate) {
+            compareEl.textContent = 'Agrégat de toutes les sessions (deltas indisponibles)';
+          } else if (d?.previousReason === 'session_test') {
+            compareEl.textContent = 'Session de test (avant lancement) · pas de comparaison';
+          } else if (d?.previousReason === 'first_real_session') {
+            compareEl.textContent = 'Première session ES2 · pas de N-1 disponible';
+          } else if (prev) {
+            const prevDate = d?.previousSession?.sessionDate || '';
+            const prevLabel = prevDate
+              ? new Date(prevDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+              : '—';
+            compareEl.textContent = `vs session du ${prevLabel}`;
+          } else {
+            compareEl.textContent = '—';
+          }
+        }
+
+        const inscrits = Number(cards.inscrits || 0);
+        const presentsTotal = Math.max(Number(cards.presents || 0), Number(cards.presentsReplay || 0));
+        const conv = Number(cards.conversionGlobalRate || 0);
+        const acheteurs = Number(cards.acheteurs || 0);
+        const offerPrice = Number(cards.offerPriceEur || 0);
+        const revenue = acheteurs * offerPrice;
+        const vpl = Number(cards.valuePerLeadGlobal || 0);
+
+        const setVal = function (id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; };
+        const setHtml = function (id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+        setVal('hero-inscrits', inscrits.toLocaleString('fr-FR'));
+        setVal('hero-presents', presentsTotal.toLocaleString('fr-FR'));
+        setVal('hero-conv', formatPct(conv));
+        setVal('hero-revenue', formatEur(revenue));
+        setVal('hero-vpl', formatEur(vpl));
+
+        const showDeltas = Boolean(prev);
+        if (!showDeltas) {
+          setHtml('hero-inscrits-delta', '');
+          setHtml('hero-presents-delta', '');
+          setHtml('hero-conv-delta', '');
+          setHtml('hero-revenue-delta', '');
+          setHtml('hero-vpl-delta', '');
+          return;
+        }
+        const prevPresentsTotal = Math.max(Number(prev.presents || 0), Number(prev.presentsReplay || 0));
+        const prevRevenue = Number(prev.acheteurs || 0) * Number(prev.offerPriceEur || offerPrice);
+        setHtml('hero-inscrits-delta', deltaSpan(deltaCount(inscrits, prev.inscrits), { suffix: '%' }));
+        setHtml('hero-presents-delta', deltaSpan(deltaCount(presentsTotal, prevPresentsTotal), { suffix: '%' }));
+        setHtml('hero-conv-delta', deltaSpan(deltaPctPoints(conv, prev.conversionGlobalRate), { suffix: 'pts' }));
+        setHtml('hero-revenue-delta', deltaSpan(deltaCount(revenue, prevRevenue), { suffix: '%' }));
+        setHtml('hero-vpl-delta', deltaSpan(deltaCount(vpl, prev.valuePerLeadGlobal), { suffix: '%' }));
       }
 
       function benchmarkClass(stepRate, benchmark) {
@@ -741,22 +840,50 @@ const tabs = [
         });
       }
 
-      function renderRetention(items) {
+      function renderRetention(items, ctaAppearMinute) {
         const root = document.getElementById('overview-retention');
         if (!root) return;
         root.innerHTML = '';
         const list = Array.isArray(items) ? items : [];
-        if (!list.length) {
+        if (!list.length || list.every(function (it) { return Number(it?.total || 0) === 0; })) {
           const empty = document.createElement('p');
           empty.className = 'text-xs text-slate-500';
-          empty.textContent = 'Aucune donnée disponible.';
+          empty.textContent = 'En attente des premières données vidéo (les checkpoints se remplissent en cours de session).';
           root.appendChild(empty);
           return;
         }
         const maxTotal = list.reduce(function (acc, item) {
           return Math.max(acc, Number(item?.total || 0));
         }, 0) || 1;
-        list.forEach(function (item) {
+        const ctaMin = Number(ctaAppearMinute);
+        const ctaMarkerInserted = { done: false };
+        list.forEach(function (item, idx) {
+          // Insert CTA marker just before the first checkpoint >= CTA appear minute
+          const minute = Number(item?.minute || 0);
+          if (Number.isFinite(ctaMin) && !ctaMarkerInserted.done && minute >= ctaMin) {
+            const prev = list[idx - 1];
+            let dropLabel = '';
+            if (prev) {
+              const richDrop = prev.richBase > 0
+                ? Math.round(((Number(prev.rich || 0) - Number(item.rich || 0)) / prev.richBase) * 100)
+                : null;
+              const otherDrop = prev.otherBase > 0
+                ? Math.round(((Number(prev.other || 0) - Number(item.other || 0)) / prev.otherBase) * 100)
+                : null;
+              if (richDrop != null || otherDrop != null) {
+                dropLabel = ` · drop ${richDrop ?? '—'}% riches / ${otherDrop ?? '—'}% autres`;
+              }
+            }
+            const marker = document.createElement('div');
+            marker.className = 'grid grid-cols-[64px_1fr_auto] items-center gap-3 text-[11px] py-1 border-y border-red-500/30 bg-red-500/5';
+            marker.innerHTML = `
+              <p class="text-red-400 tabular-nums font-semibold">${ctaMin} min</p>
+              <p class="text-red-300 font-medium">→ Apparition CTA${dropLabel}</p>
+              <p class="text-slate-500"></p>
+            `;
+            root.appendChild(marker);
+            ctaMarkerInserted.done = true;
+          }
           const rich = Math.max(0, Number(item?.rich || 0));
           const other = Math.max(0, Number(item?.other || 0));
           const total = rich + other;
@@ -774,7 +901,7 @@ const tabs = [
               <div class="h-3 bg-blue-500" style="width:${richWidth}%" title="Pays riches: ${rich} (${richPctOfBase}% de ${richBase})"></div>
               <div class="h-3 bg-slate-500" style="width:${otherWidth}%" title="Autres: ${other} (${otherPctOfBase}% de ${otherBase})"></div>
             </div>
-            <p class="text-slate-300 tabular-nums">${total} <span class="text-slate-500">(${rich}/${other})</span></p>
+            <p class="text-slate-300 tabular-nums">${total} <span class="text-slate-500">(${richPctOfBase}%/${otherPctOfBase}%)</span></p>
           `;
           root.appendChild(row);
         });
@@ -811,7 +938,7 @@ const tabs = [
         });
       }
 
-      function renderBuyerDetails(items) {
+      function renderBuyerDetails(items, opts) {
         const tbody = document.getElementById('overview-buyer-details');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -822,7 +949,9 @@ const tabs = [
           const td = document.createElement('td');
           td.colSpan = 7;
           td.className = 'py-3 text-slate-500';
-          td.textContent = 'Aucun acheteur.';
+          td.textContent = opts && opts.spiffyPending
+            ? '⏳ Sync Spiffy en cours — les acheteurs s\'afficheront dès la prochaine synchro (5-30 min).'
+            : 'Aucun acheteur pour cette session.';
           tr.appendChild(td);
           tbody.appendChild(tr);
           return;
@@ -980,6 +1109,8 @@ const tabs = [
 
           hydrateSessionDropdown(d?.sessions, d?.filter?.session_date || '');
 
+          renderHeroStrip(d);
+
           document.getElementById('kpi-inscrits').textContent = String(d?.cards?.inscrits || 0);
           document.getElementById('kpi-presents').textContent = String(d?.cards?.presents || 0);
           const presReplayEl = document.getElementById('kpi-presents-replay');
@@ -989,20 +1120,20 @@ const tabs = [
           document.getElementById('kpi-clicked-cta').textContent = String(d?.cards?.clickedCta || 0);
           document.getElementById('kpi-cta-rate').textContent = formatPct(d?.cards?.ctaConversionRate);
 
-          const achEl = document.getElementById('kpi-acheteurs');
-          if (achEl) achEl.textContent = String(d?.cards?.acheteurs ?? 0);
-          const cgEl = document.getElementById('kpi-conversion-global');
-          if (cgEl) cgEl.textContent = formatPct(d?.cards?.conversionGlobalRate);
-          const cpEl = document.getElementById('kpi-conversion-presents');
-          if (cpEl) cpEl.textContent = formatPct(d?.cards?.conversionPresentsRate);
-
           renderOverviewFunnel(d?.funnel, d?.cards?.inscrits);
-          renderRetention(d?.retention);
-          renderOverviewCountrySegments(d?.countrySegments);
+          renderRetention(d?.retention, d?.ctaAppearMinute);
+          renderOverviewCountrySegments(d?.countrySegments, d?.cards?.offerPriceEur);
           renderFinancialKpis(d);
           renderLiveReplay(d?.liveReplay);
-          renderBuyerDetails(d?.buyerDetails);
           renderSpiffyWarning(d);
+          // Empty state buyers : si la session est passée depuis >30min sans acheteurs, on parle de sync en cours
+          const filterDate = d?.filter?.session_date || '';
+          const sessionMs = filterDate ? Date.parse(`${filterDate}T20:00:00+02:00`) : 0;
+          const spiffyPending = (Number(d?.cards?.acheteurs || 0) === 0)
+            && filterDate
+            && Number.isFinite(sessionMs)
+            && (Date.now() - sessionMs > 30 * 60 * 1000);
+          renderBuyerDetails(d?.buyerDetails, { spiffyPending });
           const stamp = document.getElementById('overview-updated');
           if (stamp) stamp.textContent = `MAJ ${new Date().toLocaleString('fr-FR')}`;
         } catch (e) {
