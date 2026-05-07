@@ -840,18 +840,27 @@ const tabs = [
           });
           toggleWrap.appendChild(btn);
         });
+        const isLiveMode = String(payload?.mode || '') === 'concurrent';
         const toggleHint = document.createElement('span');
         toggleHint.style.cssText = 'font-size:11px;color:#64748b;margin-left:6px;';
-        toggleHint.textContent = isPct ? '% du segment ayant atteint cette minute' : 'Nombre absolu de viewers à cette minute';
+        if (isPct) {
+          toggleHint.textContent = isLiveMode
+            ? '% du pic concurrent atteint à cette minute'
+            : '% des présents replay encore présents à cette minute';
+        } else {
+          toggleHint.textContent = isLiveMode
+            ? 'Nombre de viewers concurrents à cette minute'
+            : 'Nombre de viewers ayant atteint cette minute';
+        }
         toggleWrap.appendChild(toggleHint);
         root.appendChild(toggleWrap);
 
         // Chart container
-        const chartHeight = 200;
-        const padLeft = 38; // place pour les labels d'axe Y
-        const padRight = 6;
-        const padTop = 14; // place pour le label CTA
-        const padBottom = 0;
+        const chartHeight = 250;
+        const padLeft = 44;   // place pour les labels d'axe Y
+        const padRight = 12;
+        const padTop = 24;    // place pour le badge CTA en haut
+        const padBottom = 22; // place pour les labels d'axe X intégrés au SVG
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:relative;height:' + chartHeight + 'px;';
 
@@ -914,11 +923,12 @@ const tabs = [
           gl.setAttribute('stroke-width', '1');
           svg.appendChild(gl);
           const yLabel = document.createElementNS(svgNs, 'text');
-          yLabel.setAttribute('x', String(padLeft - 5));
-          yLabel.setAttribute('y', String(yPx + 3));
+          yLabel.setAttribute('x', String(padLeft - 6));
+          // Placer le label juste au-dessus de sa ligne (centré verticalement sur la ligne).
+          yLabel.setAttribute('y', String(yPx + 3.5));
           yLabel.setAttribute('text-anchor', 'end');
-          yLabel.setAttribute('fill', '#64748b');
-          yLabel.setAttribute('font-size', '10');
+          yLabel.setAttribute('fill', '#94a3b8');
+          yLabel.setAttribute('font-size', '11');
           yLabel.textContent = isPct ? Math.round(val) + '%' : String(Math.round(val));
           svg.appendChild(yLabel);
         });
@@ -1003,30 +1013,35 @@ const tabs = [
           svg.appendChild(strip);
         }
 
+        // Axe X intégré au SVG (positionné aux mêmes coordonnées proportionnelles que les courbes
+        // → alignement parfait avec le marqueur CTA, contrairement à un axe HTML flex).
+        const xTicks = [1];
+        for (var t = 15; t < durationMin; t += 15) xTicks.push(t);
+        if (xTicks[xTicks.length - 1] !== durationMin) xTicks.push(durationMin);
+        const uniqueXTicks = xTicks.filter(function (v, idx, arr) { return arr.indexOf(v) === idx; });
+        uniqueXTicks.forEach(function (tickMin) {
+          const tickX = xFor(tickMin);
+          const tickLabel = document.createElementNS(svgNs, 'text');
+          tickLabel.setAttribute('x', String(tickX));
+          tickLabel.setAttribute('y', String(svgHeight - 6));
+          tickLabel.setAttribute('text-anchor', tickMin === 1 ? 'start' : (tickMin === durationMin ? 'end' : 'middle'));
+          tickLabel.setAttribute('fill', '#94a3b8');
+          tickLabel.setAttribute('font-size', '11');
+          tickLabel.textContent = tickMin + 'min';
+          svg.appendChild(tickLabel);
+        });
+
         wrap.appendChild(svg);
         root.appendChild(wrap);
-
-        // Axe X (HTML, alignement avec le viewBox via padding-left)
-        const axis = document.createElement('div');
-        axis.style.cssText = 'display:flex;justify-content:space-between;margin-top:4px;padding-left:38px;padding-right:6px;font-size:10px;color:#64748b;';
-        const ticks = [1];
-        for (var t = 15; t < durationMin; t += 15) ticks.push(t);
-        ticks.push(durationMin);
-        const uniqueTicks = ticks.filter(function (v, idx, arr) { return arr.indexOf(v) === idx; });
-        uniqueTicks.forEach(function (t) {
-          const tickEl = document.createElement('span');
-          tickEl.textContent = t + 'min';
-          axis.appendChild(tickEl);
-        });
-        root.appendChild(axis);
 
         // Légende
         const legend = document.createElement('p');
         legend.className = 'mt-2 text-[11px] text-slate-500';
+        const baseLabel = isLiveMode ? 'pic concurrent' : 'présents replay';
         legend.innerHTML = '<span style="color:#3b82f6;font-weight:700;">━</span> Pays riches ('
-          + richBase + ' inscrits) · '
+          + richBase + ' ' + baseLabel + ') · '
           + '<span style="color:#94a3b8;font-weight:700;">━</span> Autres ('
-          + otherBase + ' inscrits) · '
+          + otherBase + ' ' + baseLabel + ') · '
           + '<span style="color:#ef4444;font-weight:700;">┊</span> Apparition CTA';
         root.appendChild(legend);
       }

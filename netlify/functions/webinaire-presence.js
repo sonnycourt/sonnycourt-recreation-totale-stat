@@ -72,19 +72,34 @@ export default async (req) => {
     // Bump watch_max_seconds_{live|replay} dans webinaire_registrations (atomique via filter lt).
     // Permet le graphique de rétention à la minute dans le cockpit.
     if (payload.current_second > 0 && (payload.stage === 'session' || payload.stage === 'replay')) {
-      const column = payload.stage === 'session' ? 'watch_max_seconds_live' : 'watch_max_seconds_replay';
+      const maxColumn = payload.stage === 'session' ? 'watch_max_seconds_live' : 'watch_max_seconds_replay';
       const encodedToken = encodeURIComponent(token);
       // PATCH ne s'applique que si la valeur en base est strictement inférieure à la nouvelle (atomique).
       void fetch(
-        `${url}/rest/v1/webinaire_registrations?token=eq.${encodedToken}&${column}=lt.${payload.current_second}`,
+        `${url}/rest/v1/webinaire_registrations?token=eq.${encodedToken}&${maxColumn}=lt.${payload.current_second}`,
         {
           method: 'PATCH',
           headers: supabaseHeaders({ Prefer: 'return=minimal' }),
-          body: JSON.stringify({ [column]: payload.current_second }),
+          body: JSON.stringify({ [maxColumn]: payload.current_second }),
         },
       ).catch((err) => {
         console.error('webinaire-presence watch_max bump failed:', err?.message);
       });
+
+      // LIVE uniquement : enregistrer le moment d'entrée (premier ping où current_second > 0).
+      // Atomique via filter is.null : ne s'applique que si la colonne est encore NULL.
+      if (payload.stage === 'session') {
+        void fetch(
+          `${url}/rest/v1/webinaire_registrations?token=eq.${encodedToken}&watch_first_second_live=is.null`,
+          {
+            method: 'PATCH',
+            headers: supabaseHeaders({ Prefer: 'return=minimal' }),
+            body: JSON.stringify({ watch_first_second_live: payload.current_second }),
+          },
+        ).catch((err) => {
+          console.error('webinaire-presence watch_first bump failed:', err?.message);
+        });
+      }
     }
 
     return jsonResponse(200, { ok: true });

@@ -246,34 +246,76 @@ function computeKpis(rows, buyerEmailSet) {
 
   let retention;
   if (hasNewFormat) {
-    function buildMinuteSeries(durationMin, secondsField) {
+    // === LIVE : rétention CONCURRENT (présents simultanés à la minute X) ===
+    // Un user compte à la minute X si first_second <= X*60 ET max_second >= X*60.
+    // La courbe monte (entries) puis descend (drops). Base = pic (max concurrent atteint).
+    const richLive = richRows.filter((r) => toBool(r.attended_live));
+    const otherLive = autresRows.filter((r) => toBool(r.attended_live));
+    function buildLiveSeries(durationMin) {
       const series = [];
       for (let minute = 1; minute <= durationMin; minute += 1) {
         const threshold = minute * 60;
-        const rich = richRows.filter((r) => toInt(r[secondsField]) >= threshold).length;
-        const other = autresRows.filter((r) => toInt(r[secondsField]) >= threshold).length;
+        const richCount = richLive.filter((r) => {
+          const first = r.watch_first_second_live;
+          const max = toInt(r.watch_max_seconds_live);
+          // Si pas de first_second (entry pas trackée), on retombe sur le comportement classique
+          // (présent si max >= X) — préserve la rétro-compatibilité avec rows pré-fix.
+          const firstOk = first == null ? true : Number(first) <= threshold;
+          return firstOk && max >= threshold;
+        }).length;
+        const otherCount = otherLive.filter((r) => {
+          const first = r.watch_first_second_live;
+          const max = toInt(r.watch_max_seconds_live);
+          const firstOk = first == null ? true : Number(first) <= threshold;
+          return firstOk && max >= threshold;
+        }).length;
+        series.push({ minute, rich: richCount, other: otherCount, total: richCount + otherCount });
+      }
+      // Pic = max concurrent (riches + autres) sur toute la courbe — sert de base pour le mode %.
+      const peakRich = series.reduce((acc, it) => Math.max(acc, it.rich), 0);
+      const peakOther = series.reduce((acc, it) => Math.max(acc, it.other), 0);
+      return series.map((it) => ({
+        ...it,
+        richBase: peakRich || richLive.length,
+        otherBase: peakOther || otherLive.length,
+      }));
+    }
+
+    // === REPLAY : rétention CUMULATIVE classique (style YouTube VOD) ===
+    // Un user compte à la minute X si max_replay >= X*60. Base = total des présents replay.
+    const richReplay = richRows.filter((r) => toBool(r.watched_replay));
+    const otherReplay = autresRows.filter((r) => toBool(r.watched_replay));
+    function buildReplaySeries(durationMin) {
+      const series = [];
+      for (let minute = 1; minute <= durationMin; minute += 1) {
+        const threshold = minute * 60;
+        const richCount = richReplay.filter((r) => toInt(r.watch_max_seconds_replay) >= threshold).length;
+        const otherCount = otherReplay.filter((r) => toInt(r.watch_max_seconds_replay) >= threshold).length;
         series.push({
           minute,
-          rich,
-          other,
-          total: rich + other,
-          richBase: richRows.length,
-          otherBase: autresRows.length,
+          rich: richCount,
+          other: otherCount,
+          total: richCount + otherCount,
+          richBase: richReplay.length,
+          otherBase: otherReplay.length,
         });
       }
       return series;
     }
+
     retention = {
       kind: 'new',
       live: {
         durationMin: W2_LIVE_DURATION_MIN,
         ctaMin: W2_LIVE_CTA_MIN,
-        series: buildMinuteSeries(W2_LIVE_DURATION_MIN, 'watch_max_seconds_live'),
+        mode: 'concurrent', // pour info au front
+        series: buildLiveSeries(W2_LIVE_DURATION_MIN),
       },
       replay: {
         durationMin: W2_REPLAY_DURATION_MIN,
         ctaMin: W2_REPLAY_CTA_MIN,
-        series: buildMinuteSeries(W2_REPLAY_DURATION_MIN, 'watch_max_seconds_replay'),
+        mode: 'cumulative',
+        series: buildReplaySeries(W2_REPLAY_DURATION_MIN),
       },
     };
   } else {
@@ -387,7 +429,7 @@ async function fetchAllRegistrations() {
 
   while (true) {
     const qs = new URLSearchParams({
-      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
+      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
       order: 'session_date.desc',
       limit: String(pageSize),
       offset: String(offset),

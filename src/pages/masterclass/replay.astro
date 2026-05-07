@@ -1035,13 +1035,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         return VIDEO_SOURCE_URL_PRIMARY;
       }
     }
-    async function sendPresencePing(token, stage) {
+    async function sendPresencePing(token, stage, currentSecond) {
       if (!token) return;
       try {
+        const payload = { token, stage };
+        if (Number.isFinite(Number(currentSecond))) {
+          payload.currentSecond = Math.max(0, Math.floor(Number(currentSecond)));
+        }
         await fetch('/.netlify/functions/webinaire-presence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, stage }),
+          body: JSON.stringify(payload),
         });
       } catch {}
     }
@@ -1784,9 +1788,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       });
 
       presenceInterval = setInterval(() => {
-        sendPresencePing(token, 'replay');
+        sendPresencePing(token, 'replay', video.currentTime);
       }, 60000);
-      sendPresencePing(token, 'replay');
+      sendPresencePing(token, 'replay', video.currentTime);
 
       return {
         async initVideo() {
