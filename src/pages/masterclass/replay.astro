@@ -1482,7 +1482,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const FREEZE_RECOVERY_ENABLED = true;
       const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
       const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
-      const FREEZE_THRESHOLD_MS = 8000;
+      const FREEZE_THRESHOLD_MS = 12000; // 12s = tolérant aux mini-buffers mobile
       const FREEZE_RECOVERY_COOLDOWN_MS = 10000;
       const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 10000;
       const FREEZE_VISIBILITY_GRACE_MS = 3000;
@@ -1616,8 +1616,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       }
 
       if (FREEZE_RECOVERY_ENABLED) {
-        video.addEventListener('stalled', () => { void triggerFreezeRecovery('stalled', stalledAccumulatedMs / 1000); });
-        video.addEventListener('waiting', () => { void triggerFreezeRecovery('waiting', stalledAccumulatedMs / 1000); });
+        // FIX (2026-05-07) : suppression triggers immédiats sur 'stalled' / 'waiting'.
+        // Ces events surviennent souvent en lecture normale (mobile surtout), causaient
+        // recovery loops avec écran noir toutes les ~10s. Watchdog seul juge dorénavant.
         video.addEventListener('error', () => { void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000); });
         document.addEventListener('visibilitychange', () => {
           if (!FREEZE_RECOVERY_ENABLED) return;
