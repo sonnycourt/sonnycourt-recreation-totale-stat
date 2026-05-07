@@ -2348,7 +2348,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 if (now < liveStartMs) {
                     syncMcEndedGateUi(false);
-                    sendPresencePing(reg.token, 'waiting', { currentSecond: 0, isPlaying: false });
                     liveStarted = false;
                     isSessionEnded = false;
                     hasAppliedLiveOffset = false;
@@ -2409,7 +2408,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 activateLiveJoinState();
                 updateCtaStateByTime();
                 updateDiagnosticGuideState();
-                sendPresencePing(reg.token, 'session', { currentSecond: video.currentTime, isPlaying: !video.paused });
             }
 
             function updateCtaStateByTime() {
@@ -2642,11 +2640,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 resetFreezeProgressBaseline();
                 freezeWatchdogInterval = setInterval(runFreezeWatchdogTick, FREEZE_WATCHDOG_INTERVAL_MS);
             }
-            presenceInterval = setInterval(function () {
+            function sendStagedPresencePing() {
                 const now = getNowMs();
                 const stage = now < liveStartMs ? 'waiting' : 'session';
-                sendPresencePing(reg.token, stage, { currentSecond: video.currentTime, isPlaying: !video.paused });
-            }, 60000);
+                const meta = stage === 'waiting'
+                    ? { currentSecond: 0, isPlaying: false }
+                    : { currentSecond: video.currentTime, isPlaying: !video.paused };
+                sendPresencePing(reg.token, stage, meta);
+            }
+            // Ping initial (sans attendre 60s) pour que la présence soit visible immédiatement dans le cockpit
+            sendStagedPresencePing();
+            presenceInterval = setInterval(sendStagedPresencePing, 60000);
 
             configPollInterval = setInterval(async function () {
                 if (isSessionEnded) return;
