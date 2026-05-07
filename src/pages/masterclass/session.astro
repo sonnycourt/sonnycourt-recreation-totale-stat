@@ -2663,12 +2663,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             sendStagedPresencePing();
             presenceInterval = setInterval(sendStagedPresencePing, 60000);
 
+            const pageLoadedAtMs = Date.now();
             configPollInterval = setInterval(async function () {
                 if (isSessionEnded) return;
                 try {
                     const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
                     const d = await res.json().catch(function () { return null; });
                     if (!d) return;
+                    // 0) Force refresh viewers (admin a cliqué sur le bouton dans le cockpit Ops/Debug).
+                    // Si le timestamp est plus récent que le moment où la page a été chargée, on recharge.
+                    const refreshAt = d?.forceRefreshAt ? Date.parse(String(d.forceRefreshAt)) : NaN;
+                    if (Number.isFinite(refreshAt) && refreshAt > pageLoadedAtMs) {
+                        window.location.reload();
+                        return;
+                    }
                     // 1) Switch source if ops changed primary/backup.
                     if (d?.activeUrl && String(d.activeUrl) !== lastSeenActiveUrl) {
                         const newUrl = String(d.activeUrl);

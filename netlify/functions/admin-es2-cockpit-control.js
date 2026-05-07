@@ -3,6 +3,7 @@ import {
   resolveActiveVideoConfig,
   setActiveVideoSource,
   clearActiveVideoSourceOverride,
+  setForceRefreshNow,
 } from './lib/webinaire-video-config.mjs';
 import { setPlaybackCommand } from './lib/webinaire-live-playback-command.mjs';
 
@@ -28,6 +29,7 @@ export default async (req) => {
     const body = await req.json();
     const action = String(body?.action || '').trim();
 
+    let forceRefreshAt = null;
     if (action === 'switch_primary') {
       await setActiveVideoSource('primary');
     } else if (action === 'switch_backup') {
@@ -36,6 +38,8 @@ export default async (req) => {
       await setPlaybackCommand({ action: 'seek_live_offset' });
     } else if (action === 'clear_override') {
       await clearActiveVideoSourceOverride();
+    } else if (action === 'force_refresh_all') {
+      forceRefreshAt = await setForceRefreshNow();
     } else {
       return jsonResponse(400, { error: 'Action invalide' });
     }
@@ -46,6 +50,7 @@ export default async (req) => {
       activeSource: cfg.activeSource,
       activeUrl: cfg.activeUrl,
       hasBackup: Boolean(cfg.sources.backup),
+      forceRefreshAt,
     });
   } catch (error) {
     console.error('admin-es2-cockpit-control error:', error);

@@ -2,6 +2,7 @@ import { getStore } from '@netlify/blobs';
 
 const STORE_NAME = 'webinaire-video-config';
 const KEY = 'active-source';
+const FORCE_REFRESH_KEY = 'force-refresh-at';
 
 const PRIMARY_DEFAULT =
   'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20(compresse).mp4';
@@ -38,6 +39,35 @@ export async function setActiveVideoSource(source) {
 export async function clearActiveVideoSourceOverride() {
   const store = getStore(STORE_NAME);
   await store.delete(KEY);
+}
+
+/**
+ * Récupère le timestamp ISO du dernier "force refresh viewers" demandé par l'admin.
+ * Les pages session/replay comparent cette valeur à leur heure de chargement et
+ * rechargent automatiquement si la valeur est plus récente.
+ */
+export async function getForceRefreshAt() {
+  try {
+    const store = getStore(STORE_NAME);
+    const raw = await store.get(FORCE_REFRESH_KEY);
+    if (!raw) return null;
+    const ts = String(raw).trim();
+    if (!ts) return null;
+    return ts;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stocke maintenant comme nouveau timestamp "force refresh viewers".
+ * Tous les viewers actifs vont recharger leur page lors du prochain poll (max 7s).
+ */
+export async function setForceRefreshNow() {
+  const store = getStore(STORE_NAME);
+  const iso = new Date().toISOString();
+  await store.set(FORCE_REFRESH_KEY, iso);
+  return iso;
 }
 
 export async function resolveActiveVideoConfig() {

@@ -1,4 +1,4 @@
-import { resolveActiveVideoConfig } from './lib/webinaire-video-config.mjs';
+import { resolveActiveVideoConfig, getForceRefreshAt } from './lib/webinaire-video-config.mjs';
 import { getPlaybackCommand } from './lib/webinaire-live-playback-command.mjs';
 
 function jsonResponse(status, payload) {
@@ -21,12 +21,14 @@ export default async (req) => {
     const activeUrl =
       activeSource === 'backup' && cfg.sources.backup ? cfg.sources.backup : cfg.sources.primary;
     const playbackCommand = await getPlaybackCommand();
+    const forceRefreshAt = await getForceRefreshAt();
     return jsonResponse(200, {
       ok: true,
       activeSource,
       activeUrl,
       hasBackup: Boolean(cfg.sources.backup),
       playbackCommand,
+      forceRefreshAt,
     });
   } catch (error) {
     console.error('webinaire-video-config error:', error);
