@@ -793,7 +793,10 @@ const tabs = [
         });
       }
 
-      // Rétention format minute-par-minute (W2+) : histogramme vertical avec marqueur CTA.
+      // Rétention format minute-par-minute (W2+) : line chart à 2 courbes (riches + autres)
+      // avec toggle %/Nombre et marqueur CTA.
+      const retentionModeStore = { 'overview-retention-live': 'percent', 'overview-retention-replay': 'percent' };
+
       function renderRetentionMinute(rootId, payload) {
         const root = document.getElementById(rootId);
         if (!root) return;
@@ -810,64 +813,215 @@ const tabs = [
         }
         const richBase = Math.max(0, Number(series[0]?.richBase || 0));
         const otherBase = Math.max(0, Number(series[0]?.otherBase || 0));
-        const maxTotal = series.reduce(function (acc, it) { return Math.max(acc, Number(it?.total || 0)); }, 0) || 1;
+        const mode = retentionModeStore[rootId] || 'percent';
+        const isPct = mode === 'percent';
 
+        // Toggle bar
+        const toggleWrap = document.createElement('div');
+        toggleWrap.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px;';
+        ['percent', 'count'].forEach(function (m) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isActive = m === mode;
+          btn.textContent = m === 'percent' ? '%' : 'Nombre';
+          btn.style.cssText = 'padding:2px 10px;font-size:11px;border-radius:6px;cursor:pointer;'
+            + (isActive
+              ? 'background:#1e40af;color:#fff;border:1px solid #3b82f6;'
+              : 'background:transparent;color:#94a3b8;border:1px solid #334155;');
+          btn.addEventListener('click', function () {
+            retentionModeStore[rootId] = m;
+            renderRetentionMinute(rootId, payload);
+          });
+          toggleWrap.appendChild(btn);
+        });
+        const toggleHint = document.createElement('span');
+        toggleHint.style.cssText = 'font-size:11px;color:#64748b;margin-left:6px;';
+        toggleHint.textContent = isPct ? '% du segment ayant atteint cette minute' : 'Nombre absolu de viewers à cette minute';
+        toggleWrap.appendChild(toggleHint);
+        root.appendChild(toggleWrap);
+
+        // Chart container
+        const chartHeight = 200;
+        const padLeft = 38; // place pour les labels d'axe Y
+        const padRight = 6;
+        const padTop = 14; // place pour le label CTA
+        const padBottom = 0;
         const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:relative;height:180px;margin-top:14px;';
+        wrap.style.cssText = 'position:relative;height:' + chartHeight + 'px;';
 
-        const bars = document.createElement('div');
-        bars.style.cssText = 'position:absolute;inset:0;display:flex;align-items:flex-end;gap:1px;';
-        for (var i = 0; i < series.length; i += 1) {
-          var item = series[i];
-          var rich = Math.max(0, Number(item?.rich || 0));
-          var other = Math.max(0, Number(item?.other || 0));
-          var total = rich + other;
-          var richPct = (rich / maxTotal) * 100;
-          var otherPct = (other / maxTotal) * 100;
-          var minute = Number(item?.minute || (i + 1));
-          var richPctOfBase = richBase > 0 ? Math.round((rich / richBase) * 100) : 0;
-          var otherPctOfBase = otherBase > 0 ? Math.round((other / otherBase) * 100) : 0;
-          var bar = document.createElement('div');
-          bar.style.cssText = 'flex:1;display:flex;flex-direction:column-reverse;justify-content:flex-start;height:100%;min-width:0;';
-          bar.title = 'Min ' + minute + ' · total: ' + total + ' · riches: ' + rich + ' (' + richPctOfBase + '%) · autres: ' + other + ' (' + otherPctOfBase + '%)';
-          var richDiv = document.createElement('div');
-          richDiv.style.cssText = 'width:100%;background:#3b82f6;height:' + richPct + '%;';
-          var otherDiv = document.createElement('div');
-          otherDiv.style.cssText = 'width:100%;background:#64748b;height:' + otherPct + '%;';
-          bar.appendChild(richDiv);
-          bar.appendChild(otherDiv);
-          bars.appendChild(bar);
+        // Compute Y values
+        function valueAt(item) {
+          const rich = Math.max(0, Number(item?.rich || 0));
+          const other = Math.max(0, Number(item?.other || 0));
+          if (isPct) {
+            return {
+              richY: richBase > 0 ? (rich / richBase) * 100 : 0,
+              otherY: otherBase > 0 ? (other / otherBase) * 100 : 0,
+              richCount: rich,
+              otherCount: other,
+              richPct: richBase > 0 ? (rich / richBase) * 100 : 0,
+              otherPct: otherBase > 0 ? (other / otherBase) * 100 : 0,
+            };
+          }
+          return {
+            richY: rich,
+            otherY: other,
+            richCount: rich,
+            otherCount: other,
+            richPct: richBase > 0 ? (rich / richBase) * 100 : 0,
+            otherPct: otherBase > 0 ? (other / otherBase) * 100 : 0,
+          };
         }
-        wrap.appendChild(bars);
+        const computed = series.map(valueAt);
+        const yMax = isPct
+          ? 100
+          : Math.max(1, computed.reduce(function (acc, v) { return Math.max(acc, v.richY, v.otherY); }, 0));
 
+        // Build SVG
+        const svgWidth = 1000; // viewBox width (logique)
+        const svgHeight = chartHeight;
+        const innerW = svgWidth - padLeft - padRight;
+        const innerH = svgHeight - padTop - padBottom;
+        function xFor(minute) {
+          return padLeft + ((minute - 1) / Math.max(1, durationMin - 1)) * innerW;
+        }
+        function yFor(val) {
+          return padTop + innerH - (val / yMax) * innerH;
+        }
+
+        const svgNs = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNs, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + svgWidth + ' ' + svgHeight);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.cssText = 'width:100%;height:100%;';
+
+        // Y grid lines (4 horizontal lines)
+        const gridYs = isPct ? [0, 25, 50, 75, 100] : [0, yMax * 0.25, yMax * 0.5, yMax * 0.75, yMax];
+        gridYs.forEach(function (val) {
+          const yPx = yFor(val);
+          const gl = document.createElementNS(svgNs, 'line');
+          gl.setAttribute('x1', String(padLeft));
+          gl.setAttribute('x2', String(svgWidth - padRight));
+          gl.setAttribute('y1', String(yPx));
+          gl.setAttribute('y2', String(yPx));
+          gl.setAttribute('stroke', '#1e293b');
+          gl.setAttribute('stroke-width', '1');
+          svg.appendChild(gl);
+          const yLabel = document.createElementNS(svgNs, 'text');
+          yLabel.setAttribute('x', String(padLeft - 5));
+          yLabel.setAttribute('y', String(yPx + 3));
+          yLabel.setAttribute('text-anchor', 'end');
+          yLabel.setAttribute('fill', '#64748b');
+          yLabel.setAttribute('font-size', '10');
+          yLabel.textContent = isPct ? Math.round(val) + '%' : String(Math.round(val));
+          svg.appendChild(yLabel);
+        });
+
+        // CTA marker
         if (Number.isFinite(ctaMin) && ctaMin > 0 && ctaMin <= durationMin) {
-          var ctaPct = (ctaMin / durationMin) * 100;
-          var line = document.createElement('div');
-          line.style.cssText = 'position:absolute;top:0;bottom:0;left:' + ctaPct + '%;width:1px;background:#ef4444;pointer-events:none;';
-          wrap.appendChild(line);
-          var label = document.createElement('div');
-          label.style.cssText = 'position:absolute;top:-12px;left:' + ctaPct + '%;transform:translateX(-50%);background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;pointer-events:none;';
-          label.textContent = 'CTA ' + ctaMin + 'min';
-          wrap.appendChild(label);
+          const ctaX = xFor(ctaMin);
+          const ctaLine = document.createElementNS(svgNs, 'line');
+          ctaLine.setAttribute('x1', String(ctaX));
+          ctaLine.setAttribute('x2', String(ctaX));
+          ctaLine.setAttribute('y1', String(padTop));
+          ctaLine.setAttribute('y2', String(padTop + innerH));
+          ctaLine.setAttribute('stroke', '#ef4444');
+          ctaLine.setAttribute('stroke-width', '1');
+          ctaLine.setAttribute('stroke-dasharray', '3,3');
+          svg.appendChild(ctaLine);
+          // Label sur fond rouge
+          const ctaLabelW = 78;
+          const ctaLabelX = Math.min(svgWidth - padRight - ctaLabelW, Math.max(padLeft, ctaX - ctaLabelW / 2));
+          const ctaRect = document.createElementNS(svgNs, 'rect');
+          ctaRect.setAttribute('x', String(ctaLabelX));
+          ctaRect.setAttribute('y', '0');
+          ctaRect.setAttribute('width', String(ctaLabelW));
+          ctaRect.setAttribute('height', '12');
+          ctaRect.setAttribute('rx', '3');
+          ctaRect.setAttribute('fill', '#ef4444');
+          svg.appendChild(ctaRect);
+          const ctaText = document.createElementNS(svgNs, 'text');
+          ctaText.setAttribute('x', String(ctaLabelX + ctaLabelW / 2));
+          ctaText.setAttribute('y', '9');
+          ctaText.setAttribute('text-anchor', 'middle');
+          ctaText.setAttribute('fill', '#fff');
+          ctaText.setAttribute('font-size', '9');
+          ctaText.setAttribute('font-weight', '700');
+          ctaText.textContent = 'CTA ' + ctaMin + ' min';
+          svg.appendChild(ctaText);
         }
 
+        // Polylines
+        const richPoints = computed.map(function (v, idx) {
+          return xFor(series[idx].minute) + ',' + yFor(v.richY);
+        }).join(' ');
+        const otherPoints = computed.map(function (v, idx) {
+          return xFor(series[idx].minute) + ',' + yFor(v.otherY);
+        }).join(' ');
+
+        const otherLine = document.createElementNS(svgNs, 'polyline');
+        otherLine.setAttribute('points', otherPoints);
+        otherLine.setAttribute('stroke', '#94a3b8');
+        otherLine.setAttribute('stroke-width', '2');
+        otherLine.setAttribute('fill', 'none');
+        otherLine.setAttribute('vector-effect', 'non-scaling-stroke');
+        svg.appendChild(otherLine);
+
+        const richLine = document.createElementNS(svgNs, 'polyline');
+        richLine.setAttribute('points', richPoints);
+        richLine.setAttribute('stroke', '#3b82f6');
+        richLine.setAttribute('stroke-width', '2.5');
+        richLine.setAttribute('fill', 'none');
+        richLine.setAttribute('vector-effect', 'non-scaling-stroke');
+        svg.appendChild(richLine);
+
+        // Hover zones (one rect per minute) avec title pour tooltip natif
+        const stripWidth = innerW / Math.max(1, durationMin);
+        for (var i = 0; i < series.length; i += 1) {
+          const item = series[i];
+          const v = computed[i];
+          const minute = Number(item.minute);
+          const stripX = xFor(minute) - stripWidth / 2;
+          const strip = document.createElementNS(svgNs, 'rect');
+          strip.setAttribute('x', String(stripX));
+          strip.setAttribute('y', String(padTop));
+          strip.setAttribute('width', String(stripWidth));
+          strip.setAttribute('height', String(innerH));
+          strip.setAttribute('fill', 'transparent');
+          const title = document.createElementNS(svgNs, 'title');
+          title.textContent =
+            'Min ' + minute + ' · '
+            + 'Riches ' + v.richCount + ' (' + Math.round(v.richPct) + '%) · '
+            + 'Autres ' + v.otherCount + ' (' + Math.round(v.otherPct) + '%)';
+          strip.appendChild(title);
+          svg.appendChild(strip);
+        }
+
+        wrap.appendChild(svg);
         root.appendChild(wrap);
 
-        var axis = document.createElement('div');
-        axis.style.cssText = 'display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#64748b;';
-        var ticks = [0];
+        // Axe X (HTML, alignement avec le viewBox via padding-left)
+        const axis = document.createElement('div');
+        axis.style.cssText = 'display:flex;justify-content:space-between;margin-top:4px;padding-left:38px;padding-right:6px;font-size:10px;color:#64748b;';
+        const ticks = [1];
         for (var t = 15; t < durationMin; t += 15) ticks.push(t);
         ticks.push(durationMin);
-        ticks.forEach(function (t) {
-          var tickEl = document.createElement('span');
+        const uniqueTicks = ticks.filter(function (v, idx, arr) { return arr.indexOf(v) === idx; });
+        uniqueTicks.forEach(function (t) {
+          const tickEl = document.createElement('span');
           tickEl.textContent = t + 'min';
           axis.appendChild(tickEl);
         });
         root.appendChild(axis);
 
-        var legend = document.createElement('p');
+        // Légende
+        const legend = document.createElement('p');
         legend.className = 'mt-2 text-[11px] text-slate-500';
-        legend.textContent = 'Base : ' + richBase + ' inscrits riches · ' + otherBase + ' inscrits autres. Survol des barres pour les détails.';
+        legend.innerHTML = '<span style="color:#3b82f6;font-weight:700;">━</span> Pays riches ('
+          + richBase + ' inscrits) · '
+          + '<span style="color:#94a3b8;font-weight:700;">━</span> Autres ('
+          + otherBase + ' inscrits) · '
+          + '<span style="color:#ef4444;font-weight:700;">┊</span> Apparition CTA';
         root.appendChild(legend);
       }
 
