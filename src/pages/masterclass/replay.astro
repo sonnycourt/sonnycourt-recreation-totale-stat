@@ -1788,21 +1788,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       }, 60000);
       sendPresencePing(token, 'replay');
 
-      // Force refresh viewers : poll toutes les 30s. Si l'admin a cliqué le bouton
-      // dans le cockpit Ops/Debug, recharge la page automatiquement.
-      const replayPageLoadedAtMs = Date.now();
-      const forceRefreshPoll = setInterval(async () => {
-        try {
-          const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
-          if (!res.ok) return;
-          const data = await res.json().catch(() => null);
-          const refreshAt = data?.forceRefreshAt ? Date.parse(String(data.forceRefreshAt)) : NaN;
-          if (Number.isFinite(refreshAt) && refreshAt > replayPageLoadedAtMs) {
-            window.location.reload();
-          }
-        } catch { /* ignore */ }
-      }, 30000);
-
       return {
         async initVideo() {
           video.src = await fetchVideoSource();
@@ -1811,7 +1796,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         destroy() {
           if (countdownInterval) clearInterval(countdownInterval);
           if (presenceInterval) clearInterval(presenceInterval);
-          if (forceRefreshPoll) clearInterval(forceRefreshPoll);
           if (scarcityEngine) scarcityEngine.stop();
           if (hideToastTimer) clearTimeout(hideToastTimer);
           if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);

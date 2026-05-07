@@ -327,9 +327,9 @@ const tabs = [
                         </button>
                       </div>
                       <div class="border-t border-slate-800 pt-3">
-                        <p class="text-[11px] text-slate-500 mb-2">⚠️ Action de dernier recours : recharge la page de tous les viewers en cours (latence ~7s session, ~30s replay). Ils devront cliquer sur play pour reprendre.</p>
+                        <p class="text-[11px] text-slate-500 mb-2">⚠️ Action de dernier recours : recharge la page de tous les viewers en cours sur la session live (latence ~7s). Ils devront cliquer sur play pour reprendre. N'affecte pas les viewers replay.</p>
                         <button id="ops-force-refresh" type="button" class="rounded-md border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-200 hover:border-red-400">
-                          🔄 Forcer refresh viewers
+                          🔄 Forcer refresh viewers session
                         </button>
                         <span id="ops-force-refresh-status" class="ml-2 text-[11px] text-slate-500"></span>
                       </div>
@@ -1663,7 +1663,7 @@ const tabs = [
       const opsForceRefreshStatus = document.getElementById('ops-force-refresh-status');
       let opsForceRefreshArmedUntil = 0;
       let opsForceRefreshArmTimer = null;
-      const FORCE_REFRESH_LABEL_IDLE = '🔄 Forcer refresh viewers';
+      const FORCE_REFRESH_LABEL_IDLE = '🔄 Forcer refresh viewers session';
       const FORCE_REFRESH_LABEL_ARMED = '⚠️ Confirmer (5s)';
       if (opsForceRefreshBtn) {
         opsForceRefreshBtn.addEventListener('click', async function () {
@@ -1684,7 +1684,7 @@ const tabs = [
               const d = await r.json().catch(function () { return {}; });
               if (!r.ok) throw new Error(d.error || 'Action impossible');
               if (opsForceRefreshStatus) {
-                opsForceRefreshStatus.textContent = '✓ Envoyé à ' + new Date().toLocaleTimeString('fr-FR') + ' — viewers session ~7s, replay ~30s';
+                opsForceRefreshStatus.textContent = '✓ Envoyé à ' + new Date().toLocaleTimeString('fr-FR') + ' — viewers session reload dans ~7s';
               }
             } catch (e) {
               if (opsForceRefreshStatus) opsForceRefreshStatus.textContent = '✗ Erreur : ' + (e?.message || 'inconnue');
