@@ -1022,6 +1022,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       document.getElementById('offer-seconds').textContent = String(s).padStart(2, '0');
     }
     async function fetchVideoSource() {
+      // FIX (2026-05-07) : ne PAS interroger /webinaire-video-config qui retourne l'URL du
+      // LIVE (configurée pour session.astro). Le replay a sa propre URL distincte définie
+      // localement dans VIDEO_SOURCE_URL_PRIMARY (vidéo W2 replay sans countdown intro).
+      return VIDEO_SOURCE_URL_PRIMARY;
       try {
         const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
         if (!res.ok) return VIDEO_SOURCE_URL_PRIMARY;
