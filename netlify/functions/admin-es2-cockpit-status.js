@@ -2,7 +2,8 @@ import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
 import { resolveActiveVideoConfig } from './lib/webinaire-video-config.mjs';
 
-const PRESENCE_ACTIVE_MS = 45 * 1000;
+// 90s = couvre le ping client à 60s + 30s de buffer (sinon le compteur clignote entre 2 pings)
+const PRESENCE_ACTIVE_MS = 90 * 1000;
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
