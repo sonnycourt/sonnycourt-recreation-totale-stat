@@ -856,11 +856,11 @@ const tabs = [
         root.appendChild(toggleWrap);
 
         // Chart container
-        const chartHeight = 250;
-        const padLeft = 44;   // place pour les labels d'axe Y
-        const padRight = 12;
-        const padTop = 24;    // place pour le badge CTA en haut
-        const padBottom = 22; // place pour les labels d'axe X intégrés au SVG
+        const chartHeight = 340;
+        const padLeft = 56;   // place pour les labels d'axe Y
+        const padRight = 16;
+        const padTop = 38;    // place pour le badge CTA en haut
+        const padBottom = 32; // place pour les labels d'axe X intégrés au SVG
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:relative;height:' + chartHeight + 'px;';
 
@@ -923,12 +923,12 @@ const tabs = [
           gl.setAttribute('stroke-width', '1');
           svg.appendChild(gl);
           const yLabel = document.createElementNS(svgNs, 'text');
-          yLabel.setAttribute('x', String(padLeft - 6));
-          // Placer le label juste au-dessus de sa ligne (centré verticalement sur la ligne).
-          yLabel.setAttribute('y', String(yPx + 3.5));
+          yLabel.setAttribute('x', String(padLeft - 8));
+          yLabel.setAttribute('y', String(yPx + 5));
           yLabel.setAttribute('text-anchor', 'end');
-          yLabel.setAttribute('fill', '#94a3b8');
-          yLabel.setAttribute('font-size', '11');
+          yLabel.setAttribute('fill', '#cbd5e1');
+          yLabel.setAttribute('font-size', '15');
+          yLabel.setAttribute('font-weight', '500');
           yLabel.textContent = isPct ? Math.round(val) + '%' : String(Math.round(val));
           svg.appendChild(yLabel);
         });
@@ -942,27 +942,28 @@ const tabs = [
           ctaLine.setAttribute('y1', String(padTop));
           ctaLine.setAttribute('y2', String(padTop + innerH));
           ctaLine.setAttribute('stroke', '#ef4444');
-          ctaLine.setAttribute('stroke-width', '1');
-          ctaLine.setAttribute('stroke-dasharray', '3,3');
+          ctaLine.setAttribute('stroke-width', '1.5');
+          ctaLine.setAttribute('stroke-dasharray', '4,4');
           svg.appendChild(ctaLine);
-          // Label sur fond rouge
-          const ctaLabelW = 78;
+          // Badge sur fond rouge
+          const ctaLabelW = 110;
+          const ctaLabelH = 22;
           const ctaLabelX = Math.min(svgWidth - padRight - ctaLabelW, Math.max(padLeft, ctaX - ctaLabelW / 2));
           const ctaRect = document.createElementNS(svgNs, 'rect');
           ctaRect.setAttribute('x', String(ctaLabelX));
-          ctaRect.setAttribute('y', '0');
+          ctaRect.setAttribute('y', '4');
           ctaRect.setAttribute('width', String(ctaLabelW));
-          ctaRect.setAttribute('height', '12');
-          ctaRect.setAttribute('rx', '3');
+          ctaRect.setAttribute('height', String(ctaLabelH));
+          ctaRect.setAttribute('rx', '5');
           ctaRect.setAttribute('fill', '#ef4444');
           svg.appendChild(ctaRect);
           const ctaText = document.createElementNS(svgNs, 'text');
           ctaText.setAttribute('x', String(ctaLabelX + ctaLabelW / 2));
-          ctaText.setAttribute('y', '9');
+          ctaText.setAttribute('y', String(4 + ctaLabelH / 2 + 5));
           ctaText.setAttribute('text-anchor', 'middle');
           ctaText.setAttribute('fill', '#fff');
-          ctaText.setAttribute('font-size', '9');
-          ctaText.setAttribute('font-weight', '700');
+          ctaText.setAttribute('font-size', '13');
+          ctaText.setAttribute('font-weight', '800');
           ctaText.textContent = 'CTA ' + ctaMin + ' min';
           svg.appendChild(ctaText);
         }
@@ -991,30 +992,8 @@ const tabs = [
         richLine.setAttribute('vector-effect', 'non-scaling-stroke');
         svg.appendChild(richLine);
 
-        // Hover zones (one rect per minute) avec title pour tooltip natif
-        const stripWidth = innerW / Math.max(1, durationMin);
-        for (var i = 0; i < series.length; i += 1) {
-          const item = series[i];
-          const v = computed[i];
-          const minute = Number(item.minute);
-          const stripX = xFor(minute) - stripWidth / 2;
-          const strip = document.createElementNS(svgNs, 'rect');
-          strip.setAttribute('x', String(stripX));
-          strip.setAttribute('y', String(padTop));
-          strip.setAttribute('width', String(stripWidth));
-          strip.setAttribute('height', String(innerH));
-          strip.setAttribute('fill', 'transparent');
-          const title = document.createElementNS(svgNs, 'title');
-          title.textContent =
-            'Min ' + minute + ' · '
-            + 'Riches ' + v.richCount + ' (' + Math.round(v.richPct) + '%) · '
-            + 'Autres ' + v.otherCount + ' (' + Math.round(v.otherPct) + '%)';
-          strip.appendChild(title);
-          svg.appendChild(strip);
-        }
-
-        // Axe X intégré au SVG (positionné aux mêmes coordonnées proportionnelles que les courbes
-        // → alignement parfait avec le marqueur CTA, contrairement à un axe HTML flex).
+        // Axe X intégré au SVG aux mêmes coordonnées proportionnelles que les courbes
+        // → alignement parfait avec le marqueur CTA et les data points.
         const xTicks = [1];
         for (var t = 15; t < durationMin; t += 15) xTicks.push(t);
         if (xTicks[xTicks.length - 1] !== durationMin) xTicks.push(durationMin);
@@ -1023,15 +1002,111 @@ const tabs = [
           const tickX = xFor(tickMin);
           const tickLabel = document.createElementNS(svgNs, 'text');
           tickLabel.setAttribute('x', String(tickX));
-          tickLabel.setAttribute('y', String(svgHeight - 6));
+          tickLabel.setAttribute('y', String(svgHeight - 8));
           tickLabel.setAttribute('text-anchor', tickMin === 1 ? 'start' : (tickMin === durationMin ? 'end' : 'middle'));
-          tickLabel.setAttribute('fill', '#94a3b8');
-          tickLabel.setAttribute('font-size', '11');
+          tickLabel.setAttribute('fill', '#cbd5e1');
+          tickLabel.setAttribute('font-size', '15');
+          tickLabel.setAttribute('font-weight', '500');
           tickLabel.textContent = tickMin + 'min';
           svg.appendChild(tickLabel);
         });
 
+        // ────────────────────────────────────────────────────────────────────
+        // Hover précis : ligne verticale qui suit la souris + tooltip HTML
+        // ────────────────────────────────────────────────────────────────────
+        // Ligne verticale pour matérialiser la position du curseur
+        const hoverLine = document.createElementNS(svgNs, 'line');
+        hoverLine.setAttribute('y1', String(padTop));
+        hoverLine.setAttribute('y2', String(padTop + innerH));
+        hoverLine.setAttribute('stroke', '#cbd5e1');
+        hoverLine.setAttribute('stroke-width', '1');
+        hoverLine.setAttribute('stroke-dasharray', '2,3');
+        hoverLine.style.opacity = '0';
+        hoverLine.style.pointerEvents = 'none';
+        svg.appendChild(hoverLine);
+        // Petit cercle riches sur la ligne
+        const hoverDotRich = document.createElementNS(svgNs, 'circle');
+        hoverDotRich.setAttribute('r', '4');
+        hoverDotRich.setAttribute('fill', '#3b82f6');
+        hoverDotRich.setAttribute('stroke', '#0f172a');
+        hoverDotRich.setAttribute('stroke-width', '2');
+        hoverDotRich.style.opacity = '0';
+        hoverDotRich.style.pointerEvents = 'none';
+        svg.appendChild(hoverDotRich);
+        // Petit cercle autres sur la ligne
+        const hoverDotOther = document.createElementNS(svgNs, 'circle');
+        hoverDotOther.setAttribute('r', '4');
+        hoverDotOther.setAttribute('fill', '#94a3b8');
+        hoverDotOther.setAttribute('stroke', '#0f172a');
+        hoverDotOther.setAttribute('stroke-width', '2');
+        hoverDotOther.style.opacity = '0';
+        hoverDotOther.style.pointerEvents = 'none';
+        svg.appendChild(hoverDotOther);
+
+        // Capture mousemove sur toute la zone du graphique
+        const captureRect = document.createElementNS(svgNs, 'rect');
+        captureRect.setAttribute('x', String(padLeft));
+        captureRect.setAttribute('y', String(padTop));
+        captureRect.setAttribute('width', String(innerW));
+        captureRect.setAttribute('height', String(innerH));
+        captureRect.setAttribute('fill', 'transparent');
+        captureRect.style.cursor = 'crosshair';
+        svg.appendChild(captureRect);
+
         wrap.appendChild(svg);
+
+        // Tooltip HTML positionné absolument au-dessus de la souris
+        const tooltip = document.createElement('div');
+        tooltip.style.cssText = 'position:absolute;pointer-events:none;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;color:#e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.4);opacity:0;transform:translate(-50%,-100%);transition:opacity 0.1s;white-space:nowrap;z-index:10;';
+        wrap.appendChild(tooltip);
+
+        function handleMouseMove(evt) {
+          const svgRect = svg.getBoundingClientRect();
+          const wrapRect = wrap.getBoundingClientRect();
+          const cursorXInWrap = evt.clientX - wrapRect.left;
+          // Convertir la position pixel en coordonnée SVG (viewBox)
+          const cursorXInSvg = ((evt.clientX - svgRect.left) / svgRect.width) * svgWidth;
+          // Trouver la minute la plus proche
+          let nearestIdx = 0;
+          let nearestDist = Infinity;
+          for (let k = 0; k < series.length; k += 1) {
+            const px = xFor(series[k].minute);
+            const dist = Math.abs(px - cursorXInSvg);
+            if (dist < nearestDist) { nearestDist = dist; nearestIdx = k; }
+          }
+          const item = series[nearestIdx];
+          const v = computed[nearestIdx];
+          const tickX = xFor(item.minute);
+          // Position de la ligne et des points
+          hoverLine.setAttribute('x1', String(tickX));
+          hoverLine.setAttribute('x2', String(tickX));
+          hoverLine.style.opacity = '1';
+          hoverDotRich.setAttribute('cx', String(tickX));
+          hoverDotRich.setAttribute('cy', String(yFor(v.richY)));
+          hoverDotRich.style.opacity = '1';
+          hoverDotOther.setAttribute('cx', String(tickX));
+          hoverDotOther.setAttribute('cy', String(yFor(v.otherY)));
+          hoverDotOther.style.opacity = '1';
+          // Tooltip
+          const valueLabel = isPct ? '%' : '';
+          tooltip.innerHTML = '<div style="font-weight:700;margin-bottom:3px;">Minute ' + item.minute + '</div>'
+            + '<div><span style="color:#3b82f6;">●</span> Riches : <strong>' + v.richCount + '</strong> (' + Math.round(v.richPct) + '%)</div>'
+            + '<div><span style="color:#94a3b8;">●</span> Autres : <strong>' + v.otherCount + '</strong> (' + Math.round(v.otherPct) + '%)</div>';
+          // Position du tooltip (en pixels HTML, pas en coords SVG)
+          const tickPxInWrap = (tickX / svgWidth) * wrapRect.width;
+          tooltip.style.left = tickPxInWrap + 'px';
+          tooltip.style.top = (padTop / svgHeight * wrapRect.height - 8) + 'px';
+          tooltip.style.opacity = '1';
+        }
+        function handleMouseLeave() {
+          hoverLine.style.opacity = '0';
+          hoverDotRich.style.opacity = '0';
+          hoverDotOther.style.opacity = '0';
+          tooltip.style.opacity = '0';
+        }
+        captureRect.addEventListener('mousemove', handleMouseMove);
+        captureRect.addEventListener('mouseleave', handleMouseLeave);
+
         root.appendChild(wrap);
 
         // Légende
