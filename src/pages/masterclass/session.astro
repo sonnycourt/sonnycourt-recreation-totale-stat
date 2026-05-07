@@ -2019,6 +2019,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 try {
                     video.load();
+                    // FIX (2026-05-07) : restaurer la position avant le freeze, sinon load() remet à 0
+                    // et l'utilisateur se retrouve au début de la vidéo après chaque récupération.
+                    if (currentTimeAtFreeze > 0) {
+                        liveSeekInProgress = true;
+                        try { video.currentTime = currentTimeAtFreeze; } catch { /* ignore */ }
+                    }
                     await video.play();
                 } catch {
                     const payload = buildFreezeRecoveryPayload(
@@ -2559,6 +2565,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     const target = Math.max(minAllowed, cur - 15);
                     liveSeekInProgress = true;
                     video.currentTime = target;
+                    // FIX (2026-05-07) : recalibrer la baseline du watchdog après un seek arrière,
+                    // sinon le watchdog compare la nouvelle position à l'ancienne (plus haute) et déclenche
+                    // une fausse récupération freeze qui remettait la vidéo à 0.
+                    resetFreezeProgressBaseline();
                     video.play().catch(() => {});
                     setTimeout(function () {
                         liveSeekInProgress = false;

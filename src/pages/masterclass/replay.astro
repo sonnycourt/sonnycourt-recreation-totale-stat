@@ -1404,6 +1404,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         allowProgrammaticSeek = true;
         video.currentTime = Math.max(0, sec);
         maxWatched = Math.max(maxWatched, video.currentTime);
+        // Cohérence avec rewindBtn : recalibrer la baseline pour éviter une fausse récupération freeze.
+        resetFreezeProgressBaseline();
         setPreviewWallClockFromReplaySeconds(sec);
         updateCtaStateByVideoTime();
         updateDiagnosticGuideState();
@@ -1449,6 +1451,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       });
       rewindBtn.addEventListener('click', () => {
         video.currentTime = Math.max(0, (video.currentTime || 0) - 15);
+        // FIX (2026-05-07) : recalibrer la baseline du watchdog après un seek arrière,
+        // sinon le watchdog déclenche une fausse récupération freeze (recharge la vidéo inutilement).
+        resetFreezeProgressBaseline();
       });
       muteBtn.addEventListener('click', () => {
         video.muted = !video.muted;
