@@ -362,9 +362,9 @@ const tabs = [
                       <p class="text-xs text-slate-400">Lecteurs en play: <span id="ops-stream-playing" class="text-slate-200">0</span></p>
                       <div class="pt-2 text-xs text-slate-400">
                         <p>Inscrits: <span id="ops-pop-inscrit" class="text-slate-200">0</span></p>
-                        <p>Présents: <span id="ops-pop-present" class="text-slate-200">0</span></p>
-                        <p>Acheteurs: <span id="ops-pop-acheteur" class="text-slate-200">0</span></p>
-                        <p>Non-acheteurs: <span id="ops-pop-nonacheteur" class="text-slate-200">0</span></p>
+                        <p>Présents live: <span id="ops-pop-presents-live" class="text-slate-200">0</span></p>
+                        <p>Présents replay: <span id="ops-pop-presents-replay" class="text-slate-200">0</span></p>
+                        <p>Présents totaux: <span id="ops-pop-presents-total" class="text-slate-200">0</span></p>
                       </div>
                     </div>
                   </div>
@@ -379,10 +379,9 @@ const tabs = [
                       <p class="text-xs text-slate-400">Expire: <span id="ops-next-expire-date" class="text-slate-200">—</span></p>
                       <div class="pt-1 text-xs text-slate-400">
                         <p>Inscrits: <span id="ops-next-inscrit" class="text-slate-200">0</span></p>
-                        <p>Présents: <span id="ops-next-present" class="text-slate-200">0</span></p>
-                        <p>Acheteurs: <span id="ops-next-acheteur" class="text-slate-200">0</span></p>
-                        <p>Non-acheteurs: <span id="ops-next-nonacheteur" class="text-slate-200">0</span></p>
-                        <p>No-show: <span id="ops-next-noshow" class="text-slate-200">0</span></p>
+                        <p>Présents live: <span id="ops-next-presents-live" class="text-slate-200">0</span></p>
+                        <p>Présents replay: <span id="ops-next-presents-replay" class="text-slate-200">0</span></p>
+                        <p>Présents totaux: <span id="ops-next-presents-total" class="text-slate-200">0</span></p>
                       </div>
                     </div>
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
@@ -1397,8 +1396,10 @@ const tabs = [
           row.className = 'rounded-lg border border-slate-800 bg-slate-950/70 p-2';
           const p = item.population || {};
           const inscrits = Math.max(0, Number(p.inscrit || 0));
-          const presents = Math.max(0, Number(p.present || 0));
-          const ratio = inscrits > 0 ? Math.min(100, Math.round((presents / inscrits) * 100)) : 0;
+          const presentsLive = Math.max(0, Number(p.presents_live || 0));
+          const presentsReplay = Math.max(0, Number(p.presents_replay || 0));
+          const presentsTotal = Math.max(0, Number(p.presents_total || 0));
+          const ratio = inscrits > 0 ? Math.min(100, Math.round((presentsTotal / inscrits) * 100)) : 0;
           const stateLabel = item.state === 'live' ? 'En cours' : item.state === 'upcoming' ? 'À venir' : 'Clôturée';
           const stateClass =
             item.state === 'live'
@@ -1412,12 +1413,12 @@ const tabs = [
               <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${stateClass}">${stateLabel}</span>
             </div>
             <p class="text-[11px] text-slate-500">Expire: ${formatShortIso(item.offerExpiresIso)}</p>
-            <p class="text-[11px] text-slate-400">Inscrits ${inscrits} · Présents ${presents} · Acheteurs ${p.acheteur || 0} · Non-acheteurs ${p.non_acheteur || 0} · No-show ${p.no_show || 0}</p>
+            <p class="text-[11px] text-slate-400">Inscrits ${inscrits} · Live ${presentsLive} · Replay ${presentsReplay} · Total ${presentsTotal}</p>
             <div class="mt-1">
               <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                 <div class="h-1.5 rounded-full bg-emerald-400" style="width:${ratio}%"></div>
               </div>
-              <p class="mt-1 text-[10px] text-slate-500">Présence: ${ratio}% (${presents}/${inscrits || 0})</p>
+              <p class="mt-1 text-[10px] text-slate-500">Présence totale: ${ratio}% (${presentsTotal}/${inscrits || 0})</p>
             </div>
           `;
           root.appendChild(row);
@@ -1586,18 +1587,17 @@ const tabs = [
           document.getElementById('ops-stream-playing').textContent = String(d?.presence?.stream?.sessionPlaying || 0);
 
           document.getElementById('ops-pop-inscrit').textContent = String(d?.sessionPopulation?.inscrit || 0);
-          document.getElementById('ops-pop-present').textContent = String(d?.sessionPopulation?.present || 0);
-          document.getElementById('ops-pop-acheteur').textContent = String(d?.sessionPopulation?.acheteur || 0);
-          document.getElementById('ops-pop-nonacheteur').textContent = String(d?.sessionPopulation?.non_acheteur || 0);
+          document.getElementById('ops-pop-presents-live').textContent = String(d?.sessionPopulation?.presents_live || 0);
+          document.getElementById('ops-pop-presents-replay').textContent = String(d?.sessionPopulation?.presents_replay || 0);
+          document.getElementById('ops-pop-presents-total').textContent = String(d?.sessionPopulation?.presents_total || 0);
 
           document.getElementById('ops-next-session-date').textContent = formatShortIso(d?.nextSession?.sessionDateIso);
           document.getElementById('ops-next-expire-date').textContent = formatShortIso(d?.nextSession?.offerExpiresIso);
           setNextSessionBadge(d?.nextSession || null);
           document.getElementById('ops-next-inscrit').textContent = String(d?.nextSession?.population?.inscrit || 0);
-          document.getElementById('ops-next-present').textContent = String(d?.nextSession?.population?.present || 0);
-          document.getElementById('ops-next-acheteur').textContent = String(d?.nextSession?.population?.acheteur || 0);
-          document.getElementById('ops-next-nonacheteur').textContent = String(d?.nextSession?.population?.non_acheteur || 0);
-          document.getElementById('ops-next-noshow').textContent = String(d?.nextSession?.population?.no_show || 0);
+          document.getElementById('ops-next-presents-live').textContent = String(d?.nextSession?.population?.presents_live || 0);
+          document.getElementById('ops-next-presents-replay').textContent = String(d?.nextSession?.population?.presents_replay || 0);
+          document.getElementById('ops-next-presents-total').textContent = String(d?.nextSession?.population?.presents_total || 0);
           opsHistoryItems = buildHistoryItems(d);
           renderPastSessions(opsHistoryItems);
 

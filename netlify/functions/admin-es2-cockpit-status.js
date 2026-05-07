@@ -46,7 +46,7 @@ async function fetchAllStatusRows() {
   const out = [];
   while (true) {
     const qs = new URLSearchParams({
-      select: 'session_date,offre_expires_at,statut',
+      select: 'session_date,offre_expires_at,statut,attended_live,watched_replay',
       order: 'session_date.desc',
       limit: String(pageSize),
       offset: String(offset),
@@ -100,21 +100,19 @@ function buildSessionHistory(rows, nowMs) {
       grouped.set(key, {
         sessionMs,
         offerMs,
-        total: 0,
         inscrit: 0,
-        present: 0,
-        acheteur: 0,
-        non_acheteur: 0,
-        no_show: 0,
+        presents_live: 0,
+        presents_replay: 0,
+        presents_total: 0,
       });
     }
     const bucket = grouped.get(key);
-    bucket.total += 1;
-    if (r.statut === 'inscrit') bucket.inscrit += 1;
-    else if (r.statut === 'present') bucket.present += 1;
-    else if (r.statut === 'acheteur') bucket.acheteur += 1;
-    else if (r.statut === 'non-acheteur') bucket.non_acheteur += 1;
-    else if (r.statut === 'no-show') bucket.no_show += 1;
+    bucket.inscrit += 1;
+    const live = r.attended_live === true;
+    const replay = r.watched_replay === true;
+    if (live) bucket.presents_live += 1;
+    if (replay) bucket.presents_replay += 1;
+    if (live || replay) bucket.presents_total += 1;
   }
 
   const sessions = Array.from(grouped.values()).sort((a, b) => b.sessionMs - a.sessionMs);
@@ -251,23 +249,21 @@ export default async (req) => {
     const sessionHistory = buildSessionHistory(rows, nowMs);
 
     let sessionPopulation = {
-      total: 0,
       inscrit: 0,
-      present: 0,
-      acheteur: 0,
-      non_acheteur: 0,
-      no_show: 0,
+      presents_live: 0,
+      presents_replay: 0,
+      presents_total: 0,
     };
     if (currentSession) {
       for (const r of rows) {
         const ms = new Date(r.session_date).getTime();
         if (ms !== currentSession.sessionMs) continue;
-        sessionPopulation.total += 1;
-        if (r.statut === 'inscrit') sessionPopulation.inscrit += 1;
-        else if (r.statut === 'present') sessionPopulation.present += 1;
-        else if (r.statut === 'acheteur') sessionPopulation.acheteur += 1;
-        else if (r.statut === 'non-acheteur') sessionPopulation.non_acheteur += 1;
-        else if (r.statut === 'no-show') sessionPopulation.no_show += 1;
+        sessionPopulation.inscrit += 1;
+        const live = r.attended_live === true;
+        const replay = r.watched_replay === true;
+        if (live) sessionPopulation.presents_live += 1;
+        if (replay) sessionPopulation.presents_replay += 1;
+        if (live || replay) sessionPopulation.presents_total += 1;
       }
     }
 
@@ -313,12 +309,10 @@ export default async (req) => {
             sessionDateIso: new Date(sessionHistory.nextUpcoming.sessionMs).toISOString(),
             offerExpiresIso: new Date(sessionHistory.nextUpcoming.offerMs).toISOString(),
             population: {
-              total: sessionHistory.nextUpcoming.total,
               inscrit: sessionHistory.nextUpcoming.inscrit,
-              present: sessionHistory.nextUpcoming.present,
-              acheteur: sessionHistory.nextUpcoming.acheteur,
-              non_acheteur: sessionHistory.nextUpcoming.non_acheteur,
-              no_show: sessionHistory.nextUpcoming.no_show,
+              presents_live: sessionHistory.nextUpcoming.presents_live,
+              presents_replay: sessionHistory.nextUpcoming.presents_replay,
+              presents_total: sessionHistory.nextUpcoming.presents_total,
             },
           }
         : null,
@@ -327,12 +321,10 @@ export default async (req) => {
         offerExpiresIso: new Date(s.offerMs).toISOString(),
         isClosed: true,
         population: {
-          total: s.total,
           inscrit: s.inscrit,
-          present: s.present,
-          acheteur: s.acheteur,
-          non_acheteur: s.non_acheteur,
-          no_show: s.no_show,
+          presents_live: s.presents_live,
+          presents_replay: s.presents_replay,
+          presents_total: s.presents_total,
         },
       })),
       sessionPopulation,
