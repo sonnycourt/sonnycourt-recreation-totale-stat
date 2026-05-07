@@ -1912,6 +1912,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (didTrackSessionJoined) return;
                 // Guard: do not mark attended_live before the live access window opens.
                 if (Date.now() < sessionStartMs - LIVE_VIDEO_LEAD_MS) return;
+                // Guard retardataires : si on est passé le cutoff (= overlay 'Voir le replay'
+                // affiché), on ne marque PAS attended_live, même si la vidéo a brièvement
+                // chargé en arrière-plan. Évite le double-comptage live + replay.
+                if (Date.now() >= sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS) return;
                 // Send when the player is actually available to play.
                 const playerReady = video.readyState >= 1 || !video.paused;
                 if (!playerReady) return;
