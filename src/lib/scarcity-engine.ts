@@ -17,7 +17,9 @@ export type ScarcityWindow = {
 
 export type ScarcityPhase = 'phase1' | 'sold_out' | 'phase2';
 export type ScarcityWindowBounds = { startMs: number; endMs: number };
-export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (66 * 60 + 6) * 1000; // 21:06:06 if session starts at 20:00
+// Calé sur le CTA de la vidéo W2 : 89m26s après début vidéo (19:45) = 74m26s après l'heure de session (20:00) = 21:14:26.
+// Toutes les notifications scarcity (timeline + rotation "il y a X min") sont automatiquement alignées sur ce nouveau point d'ancrage.
+export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (74 * 60 + 26) * 1000;
 
 const TZ = 'Europe/Paris';
 const DAY_MS = 24 * 60 * 60 * 1000;

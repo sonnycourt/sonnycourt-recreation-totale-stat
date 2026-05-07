@@ -12,6 +12,13 @@ const DAY_OFFSETS: Record<string, number> = {
   Dimanche: 3,
 };
 
+// IMPORTANT — point d'ancrage INTERNE uniquement.
+// Les heures écrites dans WEEKLY_TIMELINE ci-dessous (ex: 'Jeudi 21:07:12' pour Thomas) sont
+// converties en offsets RELATIFS depuis cet ancrage. L'heure RÉELLE d'apparition est calculée
+// en runtime via SCARCITY_WINDOW_START_AFTER_SESSION_MS dans scarcity-engine.ts.
+// Pour la W2 (CTA à 21:14:26), Thomas apparaît à 21:15:32 (= 21:14:26 + 66s), pas à 21:07:12.
+// Si un jour le CTA bouge à nouveau : NE PAS toucher ces 3 constantes ni les heures du timeline.
+// Modifier UNIQUEMENT SCARCITY_WINDOW_START_AFTER_SESSION_MS dans scarcity-engine.ts.
 const WINDOW_START_H = 21;
 const WINDOW_START_M = 6;
 const WINDOW_START_S = 6;
