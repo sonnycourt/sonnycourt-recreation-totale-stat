@@ -1658,52 +1658,40 @@ const tabs = [
       const opsSeekBtn = document.getElementById('ops-seek-live-offset');
       if (opsSeekBtn) opsSeekBtn.addEventListener('click', function () { sendOpsControl('seek_live_offset'); });
 
-      // Bouton "Forcer refresh viewers" : confirmation à 2 niveaux pour éviter clic accidentel.
+      // Bouton "Forcer refresh viewers" : popup de confirmation native pour éviter clic accidentel.
       const opsForceRefreshBtn = document.getElementById('ops-force-refresh');
       const opsForceRefreshStatus = document.getElementById('ops-force-refresh-status');
-      let opsForceRefreshArmedUntil = 0;
-      let opsForceRefreshArmTimer = null;
       const FORCE_REFRESH_LABEL_IDLE = '🔄 Forcer refresh viewers session';
-      const FORCE_REFRESH_LABEL_ARMED = '⚠️ Confirmer (5s)';
       if (opsForceRefreshBtn) {
         opsForceRefreshBtn.addEventListener('click', async function () {
-          const now = Date.now();
-          if (now < opsForceRefreshArmedUntil) {
-            // 2e clic : exécuter
-            opsForceRefreshArmedUntil = 0;
-            if (opsForceRefreshArmTimer) { clearTimeout(opsForceRefreshArmTimer); opsForceRefreshArmTimer = null; }
-            opsForceRefreshBtn.disabled = true;
-            opsForceRefreshBtn.textContent = '⏳ Envoi…';
-            try {
-              const r = await fetch('/.netlify/functions/admin-es2-cockpit-control', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'force_refresh_all' }),
-              });
-              const d = await r.json().catch(function () { return {}; });
-              if (!r.ok) throw new Error(d.error || 'Action impossible');
-              if (opsForceRefreshStatus) {
-                opsForceRefreshStatus.textContent = '✓ Envoyé à ' + new Date().toLocaleTimeString('fr-FR') + ' — viewers session reload dans ~7s';
-              }
-            } catch (e) {
-              if (opsForceRefreshStatus) opsForceRefreshStatus.textContent = '✗ Erreur : ' + (e?.message || 'inconnue');
-            } finally {
-              opsForceRefreshBtn.disabled = false;
-              opsForceRefreshBtn.textContent = FORCE_REFRESH_LABEL_IDLE;
+          const ok = window.confirm(
+            'Forcer le rafraîchissement de TOUS les viewers actuellement en session live ?\n\n'
+            + 'Conséquence : leur page va se recharger dans les 7 prochaines secondes. '
+            + 'Ils devront cliquer sur play pour reprendre la vidéo (qui se calera automatiquement '
+            + 'sur le moment live).\n\n'
+            + 'À utiliser uniquement en cas de bug nécessitant un reload urgent.'
+          );
+          if (!ok) return;
+          opsForceRefreshBtn.disabled = true;
+          opsForceRefreshBtn.textContent = '⏳ Envoi…';
+          try {
+            const r = await fetch('/.netlify/functions/admin-es2-cockpit-control', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'force_refresh_all' }),
+            });
+            const d = await r.json().catch(function () { return {}; });
+            if (!r.ok) throw new Error(d.error || 'Action impossible');
+            if (opsForceRefreshStatus) {
+              opsForceRefreshStatus.textContent = '✓ Envoyé à ' + new Date().toLocaleTimeString('fr-FR') + ' — viewers session reload dans ~7s';
             }
-            return;
-          }
-          // 1er clic : armer pendant 5s
-          opsForceRefreshArmedUntil = now + 5000;
-          opsForceRefreshBtn.textContent = FORCE_REFRESH_LABEL_ARMED;
-          if (opsForceRefreshStatus) opsForceRefreshStatus.textContent = '';
-          if (opsForceRefreshArmTimer) clearTimeout(opsForceRefreshArmTimer);
-          opsForceRefreshArmTimer = setTimeout(function () {
-            opsForceRefreshArmedUntil = 0;
+          } catch (e) {
+            if (opsForceRefreshStatus) opsForceRefreshStatus.textContent = '✗ Erreur : ' + (e?.message || 'inconnue');
+          } finally {
+            opsForceRefreshBtn.disabled = false;
             opsForceRefreshBtn.textContent = FORCE_REFRESH_LABEL_IDLE;
-            opsForceRefreshArmTimer = null;
-          }, 5000);
+          }
         });
       }
       const extendOfferForm = document.getElementById('extend-offer-form');
