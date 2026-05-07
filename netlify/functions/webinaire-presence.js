@@ -68,6 +68,25 @@ export default async (req) => {
       console.error('webinaire-presence upsert failed:', res.status, errText);
       return jsonResponse(500, { error: 'Internal server error' });
     }
+
+    // Bump watch_max_seconds_{live|replay} dans webinaire_registrations (atomique via filter lt).
+    // Permet le graphique de rétention à la minute dans le cockpit.
+    if (payload.current_second > 0 && (payload.stage === 'session' || payload.stage === 'replay')) {
+      const column = payload.stage === 'session' ? 'watch_max_seconds_live' : 'watch_max_seconds_replay';
+      const encodedToken = encodeURIComponent(token);
+      // PATCH ne s'applique que si la valeur en base est strictement inférieure à la nouvelle (atomique).
+      void fetch(
+        `${url}/rest/v1/webinaire_registrations?token=eq.${encodedToken}&${column}=lt.${payload.current_second}`,
+        {
+          method: 'PATCH',
+          headers: supabaseHeaders({ Prefer: 'return=minimal' }),
+          body: JSON.stringify({ [column]: payload.current_second }),
+        },
+      ).catch((err) => {
+        console.error('webinaire-presence watch_max bump failed:', err?.message);
+      });
+    }
+
     return jsonResponse(200, { ok: true });
   } catch (error) {
     console.error('webinaire-presence error:', error);

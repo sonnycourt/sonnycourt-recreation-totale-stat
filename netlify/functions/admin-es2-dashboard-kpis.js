@@ -6,8 +6,14 @@ const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 /** Liste « pays riches » — matching insensible à la casse et aux accents (colonne pays). */
 const PAYS_RICHES = ['France', 'Belgique', 'Suisse', 'Canada', 'Luxembourg', 'Monaco', 'Allemagne'];
 
-/** Checkpoints rétention vidéo (en minutes). 75 mesure les 9 questions « Face à toi-même ». */
+/** Checkpoints rétention vidéo (en minutes) — uniquement pour les sessions au format hérité. */
 const RETENTION_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 82];
+
+/** Durée + minute d'apparition du CTA pour le format W2 (utilisé par la rétention nouvelle génération à la minute). */
+const W2_LIVE_DURATION_MIN = 101;
+const W2_LIVE_CTA_MIN = 89;
+const W2_REPLAY_DURATION_MIN = 81;
+const W2_REPLAY_CTA_MIN = 69;
 
 /** Prix ES2 en € (utilisé pour calculer les valeurs financières par lead). Ajuster ici si le prix change. */
 const ES2_OFFER_PRICE_EUR = 1997;
@@ -231,18 +237,62 @@ function computeKpis(rows, buyerEmailSet) {
 
   const funnel = buildFunnel(rows, buyerEmailSet);
 
-  const retention = RETENTION_CHECKPOINTS_MIN.map((minute) => {
-    const rich = richRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
-    const other = autresRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
-    return {
-      minute,
-      rich,
-      other,
-      total: rich + other,
-      richBase: richRows.length,
-      otherBase: autresRows.length,
+  // Détection du format de tracking pour la rétention :
+  // - 'new' (W2+) : minute par minute, séparé live/replay, basé sur watch_max_seconds_live/replay
+  // - 'legacy' (avant W2) : checkpoints sparses agrégés, basé sur watch_max_minutes
+  const hasNewFormat = rows.some(
+    (r) => toInt(r.watch_max_seconds_live) > 0 || toInt(r.watch_max_seconds_replay) > 0,
+  );
+
+  let retention;
+  if (hasNewFormat) {
+    function buildMinuteSeries(durationMin, secondsField) {
+      const series = [];
+      for (let minute = 1; minute <= durationMin; minute += 1) {
+        const threshold = minute * 60;
+        const rich = richRows.filter((r) => toInt(r[secondsField]) >= threshold).length;
+        const other = autresRows.filter((r) => toInt(r[secondsField]) >= threshold).length;
+        series.push({
+          minute,
+          rich,
+          other,
+          total: rich + other,
+          richBase: richRows.length,
+          otherBase: autresRows.length,
+        });
+      }
+      return series;
+    }
+    retention = {
+      kind: 'new',
+      live: {
+        durationMin: W2_LIVE_DURATION_MIN,
+        ctaMin: W2_LIVE_CTA_MIN,
+        series: buildMinuteSeries(W2_LIVE_DURATION_MIN, 'watch_max_seconds_live'),
+      },
+      replay: {
+        durationMin: W2_REPLAY_DURATION_MIN,
+        ctaMin: W2_REPLAY_CTA_MIN,
+        series: buildMinuteSeries(W2_REPLAY_DURATION_MIN, 'watch_max_seconds_replay'),
+      },
     };
-  });
+  } else {
+    retention = {
+      kind: 'legacy',
+      checkpoints: RETENTION_CHECKPOINTS_MIN.map((minute) => {
+        const rich = richRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
+        const other = autresRows.filter((r) => toInt(r.watch_max_minutes) >= minute).length;
+        return {
+          minute,
+          rich,
+          other,
+          total: rich + other,
+          richBase: richRows.length,
+          otherBase: autresRows.length,
+        };
+      }),
+    };
+  }
 
   const REPLAY_ACTIVE_WINDOW_MS = 15 * 60 * 1000;
   const nowMs = Date.now();
@@ -337,7 +387,7 @@ async function fetchAllRegistrations() {
 
   while (true) {
     const qs = new URLSearchParams({
-      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
+      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
       order: 'session_date.desc',
       limit: String(pageSize),
       offset: String(offset),

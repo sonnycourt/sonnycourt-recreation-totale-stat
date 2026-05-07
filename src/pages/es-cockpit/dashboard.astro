@@ -228,9 +228,21 @@ const tabs = [
                     </div>
                   </div>
 
-                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo</p>
-                    <p class="mt-1 text-xs text-slate-500">Nombre de personnes ayant atteint chaque minute (cumulatif). Bleu = pays riches · gris = autres.</p>
+                  <div id="overview-retention-live-block" class="hidden rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo — Live</p>
+                    <p class="mt-1 text-xs text-slate-500">Cumulatif minute par minute. Bleu = pays riches · gris = autres. <span class="text-red-400">●</span> Apparition CTA.</p>
+                    <div id="overview-retention-live" class="mt-3"></div>
+                  </div>
+
+                  <div id="overview-retention-replay-block" class="hidden rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo — Replay</p>
+                    <p class="mt-1 text-xs text-slate-500">Cumulatif minute par minute. Bleu = pays riches · gris = autres. <span class="text-red-400">●</span> Apparition CTA.</p>
+                    <div id="overview-retention-replay" class="mt-3"></div>
+                  </div>
+
+                  <div id="overview-retention-legacy-block" class="hidden rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Rétention vidéo — Format hérité</p>
+                    <p class="mt-1 text-xs text-slate-500">Session antérieure au tracking minute par minute (avant 7 mai 2026). Checkpoints sparses agrégés (live + replay).</p>
                     <div id="overview-retention" class="mt-3 space-y-2"></div>
                   </div>
 
@@ -741,7 +753,8 @@ const tabs = [
         });
       }
 
-      function renderRetention(items) {
+      // Rétention format hérité (sessions avant le 7 mai 2026) : barres horizontales sparses agrégées.
+      function renderRetentionLegacy(items) {
         const root = document.getElementById('overview-retention');
         if (!root) return;
         root.innerHTML = '';
@@ -774,10 +787,112 @@ const tabs = [
               <div class="h-3 bg-blue-500" style="width:${richWidth}%" title="Pays riches: ${rich} (${richPctOfBase}% de ${richBase})"></div>
               <div class="h-3 bg-slate-500" style="width:${otherWidth}%" title="Autres: ${other} (${otherPctOfBase}% de ${otherBase})"></div>
             </div>
-            <p class="text-slate-300 tabular-nums">${total} <span class="text-slate-500">(${rich}/${other})</span></p>
+            <p class="text-slate-300 tabular-nums">${total} <span class="text-slate-500">(${richPctOfBase}%/${otherPctOfBase}%)</span></p>
           `;
           root.appendChild(row);
         });
+      }
+
+      // Rétention format minute-par-minute (W2+) : histogramme vertical avec marqueur CTA.
+      function renderRetentionMinute(rootId, payload) {
+        const root = document.getElementById(rootId);
+        if (!root) return;
+        root.innerHTML = '';
+        const series = Array.isArray(payload?.series) ? payload.series : [];
+        const ctaMin = Number(payload?.ctaMin);
+        const durationMin = Number(payload?.durationMin) || (series.length || 0);
+        if (!series.length || series.every(function (it) { return Number(it?.total || 0) === 0; })) {
+          const empty = document.createElement('p');
+          empty.className = 'text-xs text-slate-500';
+          empty.textContent = 'En attente des premières données vidéo pour cette session.';
+          root.appendChild(empty);
+          return;
+        }
+        const richBase = Math.max(0, Number(series[0]?.richBase || 0));
+        const otherBase = Math.max(0, Number(series[0]?.otherBase || 0));
+        const maxTotal = series.reduce(function (acc, it) { return Math.max(acc, Number(it?.total || 0)); }, 0) || 1;
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;height:180px;margin-top:14px;';
+
+        const bars = document.createElement('div');
+        bars.style.cssText = 'position:absolute;inset:0;display:flex;align-items:flex-end;gap:1px;';
+        for (var i = 0; i < series.length; i += 1) {
+          var item = series[i];
+          var rich = Math.max(0, Number(item?.rich || 0));
+          var other = Math.max(0, Number(item?.other || 0));
+          var total = rich + other;
+          var richPct = (rich / maxTotal) * 100;
+          var otherPct = (other / maxTotal) * 100;
+          var minute = Number(item?.minute || (i + 1));
+          var richPctOfBase = richBase > 0 ? Math.round((rich / richBase) * 100) : 0;
+          var otherPctOfBase = otherBase > 0 ? Math.round((other / otherBase) * 100) : 0;
+          var bar = document.createElement('div');
+          bar.style.cssText = 'flex:1;display:flex;flex-direction:column-reverse;justify-content:flex-start;height:100%;min-width:0;';
+          bar.title = 'Min ' + minute + ' · total: ' + total + ' · riches: ' + rich + ' (' + richPctOfBase + '%) · autres: ' + other + ' (' + otherPctOfBase + '%)';
+          var richDiv = document.createElement('div');
+          richDiv.style.cssText = 'width:100%;background:#3b82f6;height:' + richPct + '%;';
+          var otherDiv = document.createElement('div');
+          otherDiv.style.cssText = 'width:100%;background:#64748b;height:' + otherPct + '%;';
+          bar.appendChild(richDiv);
+          bar.appendChild(otherDiv);
+          bars.appendChild(bar);
+        }
+        wrap.appendChild(bars);
+
+        if (Number.isFinite(ctaMin) && ctaMin > 0 && ctaMin <= durationMin) {
+          var ctaPct = (ctaMin / durationMin) * 100;
+          var line = document.createElement('div');
+          line.style.cssText = 'position:absolute;top:0;bottom:0;left:' + ctaPct + '%;width:1px;background:#ef4444;pointer-events:none;';
+          wrap.appendChild(line);
+          var label = document.createElement('div');
+          label.style.cssText = 'position:absolute;top:-12px;left:' + ctaPct + '%;transform:translateX(-50%);background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;pointer-events:none;';
+          label.textContent = 'CTA ' + ctaMin + 'min';
+          wrap.appendChild(label);
+        }
+
+        root.appendChild(wrap);
+
+        var axis = document.createElement('div');
+        axis.style.cssText = 'display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#64748b;';
+        var ticks = [0];
+        for (var t = 15; t < durationMin; t += 15) ticks.push(t);
+        ticks.push(durationMin);
+        ticks.forEach(function (t) {
+          var tickEl = document.createElement('span');
+          tickEl.textContent = t + 'min';
+          axis.appendChild(tickEl);
+        });
+        root.appendChild(axis);
+
+        var legend = document.createElement('p');
+        legend.className = 'mt-2 text-[11px] text-slate-500';
+        legend.textContent = 'Base : ' + richBase + ' inscrits riches · ' + otherBase + ' inscrits autres. Survol des barres pour les détails.';
+        root.appendChild(legend);
+      }
+
+      // Dispatch : choisit le bon rendu selon le format renvoyé par le backend
+      function renderRetentionBlocks(retention) {
+        const liveBlock = document.getElementById('overview-retention-live-block');
+        const replayBlock = document.getElementById('overview-retention-replay-block');
+        const legacyBlock = document.getElementById('overview-retention-legacy-block');
+
+        if (retention?.kind === 'new') {
+          if (liveBlock) liveBlock.classList.remove('hidden');
+          if (replayBlock) replayBlock.classList.remove('hidden');
+          if (legacyBlock) legacyBlock.classList.add('hidden');
+          renderRetentionMinute('overview-retention-live', retention.live);
+          renderRetentionMinute('overview-retention-replay', retention.replay);
+        } else if (retention?.kind === 'legacy') {
+          if (liveBlock) liveBlock.classList.add('hidden');
+          if (replayBlock) replayBlock.classList.add('hidden');
+          if (legacyBlock) legacyBlock.classList.remove('hidden');
+          renderRetentionLegacy(retention.checkpoints);
+        } else {
+          if (liveBlock) liveBlock.classList.add('hidden');
+          if (replayBlock) replayBlock.classList.add('hidden');
+          if (legacyBlock) legacyBlock.classList.add('hidden');
+        }
       }
 
       function renderLiveReplay(liveReplay) {
@@ -997,7 +1112,7 @@ const tabs = [
           if (cpEl) cpEl.textContent = formatPct(d?.cards?.conversionPresentsRate);
 
           renderOverviewFunnel(d?.funnel, d?.cards?.inscrits);
-          renderRetention(d?.retention);
+          renderRetentionBlocks(d?.retention);
           renderOverviewCountrySegments(d?.countrySegments);
           renderFinancialKpis(d);
           renderLiveReplay(d?.liveReplay);
