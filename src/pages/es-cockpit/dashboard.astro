@@ -618,11 +618,8 @@ const tabs = [
         });
       });
 
-      // Au chargement de la page, on rétablit l'onglet depuis l'URL hash si valide.
-      const initialHashTab = (window.location.hash || '').replace(/^#/, '');
-      if (initialHashTab && tabIds.includes(initialHashTab) && initialHashTab !== tabIds[0]) {
-        activateTab(initialHashTab, { updateHash: false });
-      }
+      // (La restauration de l'onglet depuis l'URL hash est faite en bas de script,
+      // après que toutes les variables/fonctions soient déclarées.)
 
       let opsPollingTimer = null;
       let opsBusy = false;
@@ -1880,6 +1877,13 @@ const tabs = [
       }
       const overviewSessionSelect = document.getElementById('overview-session-select');
       if (overviewSessionSelect) overviewSessionSelect.addEventListener('change', refreshOverviewKpis);
+
+      // Restauration de l'onglet actif depuis l'URL hash (placé ici pour être SÛR que
+      // toutes les fonctions/variables référencées par activateTab sont déclarées).
+      const initialHashTab = (window.location.hash || '').replace(/^#/, '');
+      if (initialHashTab && tabIds.includes(initialHashTab) && initialHashTab !== tabIds[0]) {
+        activateTab(initialHashTab, { updateHash: false });
+      }
 
       requireAuth();
       refreshOverviewKpis();
