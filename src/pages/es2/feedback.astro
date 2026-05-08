@@ -69,10 +69,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       line-height: 1.18;
       margin-bottom: 12px;
       font-weight: 800;
-      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #fff; /* fallback navigateurs sans support background-clip: text */
+    }
+    /* Effet dégradé sur le texte — uniquement si le navigateur supporte vraiment.
+       Évite l'affichage en barre grise sur Comet/certains Chromium variants. */
+    @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+      h1 {
+        background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+      }
     }
     .subtitle {
       color: var(--text-muted);
