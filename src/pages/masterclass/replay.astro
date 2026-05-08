@@ -139,6 +139,72 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       padding: 12px 20px;
       font-weight: 800;
     }
+    .replay-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,6,23,.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 20px;
+    }
+    .replay-confirm-overlay.hidden { display: none; }
+    .replay-confirm-panel {
+      max-width: 520px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(59,130,246,.4);
+      background: rgba(15,23,42,.95);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      padding: 32px 28px;
+      text-align: center;
+    }
+    .replay-confirm-icon {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+    .replay-confirm-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 16px;
+      line-height: 1.4;
+    }
+    .replay-confirm-text {
+      font-size: .92rem;
+      color: rgba(226,232,240,.85);
+      line-height: 1.65;
+      margin: 0 0 24px;
+    }
+    .replay-confirm-text strong {
+      color: #fff;
+    }
+    .replay-confirm-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 12px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 14px 28px;
+      cursor: pointer;
+      transition: background .15s ease;
+      width: 100%;
+      max-width: 340px;
+    }
+    .replay-confirm-btn:hover { background: #1d4ed8; }
+    .replay-confirm-sub {
+      margin-top: 12px;
+      font-size: .78rem;
+      color: rgba(226,232,240,.5);
+    }
     .replay-pill {
       position: absolute;
       right: 10px;
@@ -786,7 +852,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <div class="badge">Replay privé</div>
       <h1>Masterclass Esprit Subconscient 2.0</h1>
       <p id="late-replay-banner" class="late-replay-banner hidden" role="status">
-        Tu accèdes au replay après la fin de la fenêtre du direct - reprends la vidéo où tu veux.
+        Tu accèdes au replay après la fin de la fenêtre du direct.
       </p>
       <p>Replay disponible jusqu'à dimanche 23h (Paris).</p>
 
@@ -873,6 +939,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       </section>
     </section>
   </main>
+
+  <div id="replay-confirm-overlay" class="replay-confirm-overlay hidden" aria-modal="true" role="dialog">
+    <div class="replay-confirm-panel">
+      <div class="replay-confirm-icon">⚠️</div>
+      <h2 class="replay-confirm-title">Information importante avant de lancer le replay</h2>
+      <p class="replay-confirm-text">
+        Cette masterclass est une <strong>expérience immersive</strong>. Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>. Exactement comme lors de la diffusion en direct.<br><br>
+        Assure-toi d'avoir <strong>ton guide diagnostique</strong>, de quoi écrire, et <strong>1h20 devant toi sans interruption</strong>.<br><br>
+        Si tu quittes en cours de route, tu devras reprendre depuis le début.
+      </p>
+      <button id="replay-confirm-btn" class="replay-confirm-btn" type="button">
+        Je suis prêt(e), lancer le replay
+      </button>
+      <p class="replay-confirm-sub">Tu ne pourras pas mettre la vidéo sur pause.</p>
+    </div>
+  </div>
 
   <div id="replay-unavailable-overlay" class="mc-gate-overlay" aria-hidden="true">
     <div class="mc-gate-overlay__panel">
@@ -1439,14 +1521,44 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         window.location.href = '/invitation?t=' + encodeURIComponent(token);
       }
 
+      const replayConfirmOverlay = document.getElementById('replay-confirm-overlay');
+      const replayConfirmBtn = document.getElementById('replay-confirm-btn');
+      let replayNoPause = true;
+
+      function launchReplayAfterConfirm() {
+        replayConfirmOverlay?.classList.add('hidden');
+        overlay.classList.add('hidden');
+        video.currentTime = 0;
+        if (!didTrackReplayStarted) {
+          didTrackReplayStarted = true;
+          trackWebinaireEvent(token, 'replay_started');
+        }
+        video.play().catch(() => {});
+        playPauseBtn.style.display = 'none';
+        rewindBtn.style.display = 'none';
+      }
+
       playOverlayBtn.addEventListener('click', () => {
+        if (replayNoPause && replayConfirmOverlay) {
+          replayConfirmOverlay.classList.remove('hidden');
+          return;
+        }
         if (!didTrackReplayStarted) {
           didTrackReplayStarted = true;
           trackWebinaireEvent(token, 'replay_started');
         }
         video.play().catch(() => {});
       });
+      replayConfirmBtn?.addEventListener('click', () => {
+        launchReplayAfterConfirm();
+      });
+      video.addEventListener('pause', () => {
+        if (replayNoPause && !video.ended && didTrackReplayStarted) {
+          video.play().catch(() => {});
+        }
+      });
       playPauseBtn.addEventListener('click', () => {
+        if (replayNoPause) return;
         if (video.paused) {
           if (!didTrackReplayStarted) {
             didTrackReplayStarted = true;
@@ -1457,9 +1569,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         else video.pause();
       });
       rewindBtn.addEventListener('click', () => {
+        if (replayNoPause) return;
         video.currentTime = Math.max(0, (video.currentTime || 0) - 15);
-        // FIX (2026-05-07) : recalibrer la baseline du watchdog après un seek arrière,
-        // sinon le watchdog déclenche une fausse récupération freeze (recharge la vidéo inutilement).
         resetFreezeProgressBaseline();
       });
       muteBtn.addEventListener('click', () => {
@@ -1677,6 +1788,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       });
       video.addEventListener('keydown', (e) => {
         if (['ArrowRight', 'l', 'L', 'j', 'J'].includes(e.key)) e.preventDefault();
+        if (replayNoPause && (e.key === ' ' || e.key === 'k' || e.key === 'K')) e.preventDefault();
+      });
+      video.addEventListener('click', (e) => {
+        if (replayNoPause && didTrackReplayStarted) e.preventDefault();
       });
       [videoBox, controlsBar].forEach((target) => {
         if (!target) return;
