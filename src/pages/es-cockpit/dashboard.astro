@@ -3,11 +3,7 @@ import '../../styles/admin-es2.css';
 
 const tabs = [
   { id: 'overview', label: "Vue d'ensemble" },
-  { id: 'funnel', label: 'Funnel' },
-  { id: 'behavior', label: 'Comportement utilisateur' },
-  { id: 'content', label: 'Contenu' },
   { id: 'ops', label: 'Ops / Debug' },
-  { id: 'health', label: 'Santé client' },
 ];
 ---
 
@@ -591,24 +587,42 @@ const tabs = [
         window.location.replace('/es-cockpit/');
       });
 
+      function activateTab(id, opts) {
+        const targetId = tabIds.includes(id) ? id : tabIds[0];
+        document.querySelectorAll('.tab-btn').forEach(function (b) {
+          const isActive = b.getAttribute('data-tab') === targetId;
+          b.classList.toggle('bg-slate-800', isActive);
+          b.classList.toggle('text-white', isActive);
+          b.classList.toggle('text-slate-400', !isActive);
+        });
+        document.querySelectorAll('.tab-panel').forEach(function (p) {
+          p.classList.toggle('hidden', p.getAttribute('data-panel') !== targetId);
+        });
+        const idx = tabIds.indexOf(targetId);
+        if (idx >= 0) titleEl.textContent = tabLabels[idx];
+        if (targetId === 'overview') refreshOverviewKpis();
+        if (targetId === 'ops') startOpsPolling();
+        // Persiste l'onglet actif dans l'URL pour qu'un refresh garde l'utilisateur
+        // sur le même onglet (et que le lien soit partageable / bookmarkable).
+        if (!opts || opts.updateHash !== false) {
+          const newHash = '#' + targetId;
+          if (window.location.hash !== newHash) {
+            history.replaceState(null, '', newHash);
+          }
+        }
+      }
+
       document.querySelectorAll('.tab-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          const id = btn.getAttribute('data-tab');
-          document.querySelectorAll('.tab-btn').forEach(function (b) {
-            b.classList.remove('bg-slate-800', 'text-white');
-            b.classList.add('text-slate-400');
-          });
-          btn.classList.add('bg-slate-800', 'text-white');
-          btn.classList.remove('text-slate-400');
-          document.querySelectorAll('.tab-panel').forEach(function (p) {
-            p.classList.toggle('hidden', p.getAttribute('data-panel') !== id);
-          });
-          const idx = tabIds.indexOf(id);
-          if (idx >= 0) titleEl.textContent = tabLabels[idx];
-          if (id === 'overview') refreshOverviewKpis();
-          if (id === 'ops') startOpsPolling();
+          activateTab(btn.getAttribute('data-tab'));
         });
       });
+
+      // Au chargement de la page, on rétablit l'onglet depuis l'URL hash si valide.
+      const initialHashTab = (window.location.hash || '').replace(/^#/, '');
+      if (initialHashTab && tabIds.includes(initialHashTab) && initialHashTab !== tabIds[0]) {
+        activateTab(initialHashTab, { updateHash: false });
+      }
 
       let opsPollingTimer = null;
       let opsBusy = false;
