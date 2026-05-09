@@ -96,6 +96,7 @@ const tabs = [
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                       <p class="text-xs text-slate-500">Inscrits</p>
                       <p id="kpi-inscrits" class="mt-1 text-2xl font-semibold text-white">0</p>
+                      <p id="kpi-inscrits-segments" class="mt-1 text-xs text-slate-500"></p>
                     </div>
                     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                       <p class="text-xs text-slate-500">Présents (live)</p>
@@ -1355,6 +1356,20 @@ const tabs = [
           hydrateSessionDropdown(d?.sessions, d?.filter?.session_date || '');
 
           document.getElementById('kpi-inscrits').textContent = String(d?.cards?.inscrits || 0);
+          (function () {
+            var segs = Array.isArray(d?.countrySegments) ? d.countrySegments : [];
+            var rich = segs.find(function (s) { return s?.segment === 'Pays riches'; });
+            var other = segs.find(function (s) { return s?.segment !== 'Pays riches'; });
+            var ri = Number(rich?.inscrits || 0);
+            var oi = Number(other?.inscrits || 0);
+            var total = ri + oi;
+            var riPct = total > 0 ? Math.round(ri / total * 100) : 0;
+            var oiPct = total > 0 ? 100 - riPct : 0;
+            var el = document.getElementById('kpi-inscrits-segments');
+            if (el) el.innerHTML = total > 0
+              ? '<span class="text-emerald-400">' + ri + ' riches (' + riPct + '%)</span> · <span class="text-slate-400">' + oi + ' autres (' + oiPct + '%)</span>'
+              : '';
+          })();
           document.getElementById('kpi-presents').textContent = String(d?.cards?.presents || 0);
           const presReplayEl = document.getElementById('kpi-presents-replay');
           if (presReplayEl) presReplayEl.textContent = String(d?.cards?.presentsReplay || 0);
