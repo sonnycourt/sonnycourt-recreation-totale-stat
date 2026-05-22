@@ -1,4 +1,4 @@
-import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
+import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'session_joined',
@@ -74,6 +74,54 @@ function buildMailerLiteFields(eventName, patch) {
   return fields;
 }
 
+/**
+ * Best-effort logging des freeze events dans la table dédiée webinaire_freeze_events.
+ * Wrapped en try/catch global : aucune erreur d'INSERT ne doit bloquer la réponse
+ * au client ni interrompre le flow existant (patch + mailerlite).
+ *
+ * Payload attendu côté client (JSON encodé dans `value`) :
+ *   { trigger, currentTime_at_freeze, freeze_duration_sec,
+ *     recovery_attempt_number, recovered, context }
+ */
+async function logFreezeEvent(token, email, sessionDate, rawValue) {
+  try {
+    if (!token) return;
+    let parsed = null;
+    if (typeof rawValue === 'string') {
+      try { parsed = JSON.parse(rawValue); } catch { parsed = null; }
+    } else if (rawValue && typeof rawValue === 'object') {
+      parsed = rawValue;
+    }
+    if (!parsed || typeof parsed !== 'object') return;
+
+    const sessionDateOnly = sessionDate ? String(sessionDate).slice(0, 10) : null;
+    const insertBody = {
+      token,
+      email: email || null,
+      session_date: sessionDateOnly,
+      trigger: parsed.trigger ? String(parsed.trigger).slice(0, 64) : null,
+      current_time_at_freeze: Number.isFinite(Number(parsed.currentTime_at_freeze))
+        ? Number(parsed.currentTime_at_freeze)
+        : null,
+      freeze_duration_sec: Number.isFinite(Number(parsed.freeze_duration_sec))
+        ? Number(parsed.freeze_duration_sec)
+        : null,
+      recovery_attempt_number: Number.isFinite(Number(parsed.recovery_attempt_number))
+        ? Math.max(0, Math.floor(Number(parsed.recovery_attempt_number)))
+        : null,
+      recovered: typeof parsed.recovered === 'boolean' ? parsed.recovered : null,
+      context: parsed.context ? String(parsed.context).slice(0, 32) : null,
+    };
+
+    const res = await supabasePost('webinaire_freeze_events', insertBody, { prefer: 'return=minimal' });
+    if (!res.ok) {
+      console.error('track-webinaire-event freeze log failed:', res.status, res.error);
+    }
+  } catch (err) {
+    console.error('track-webinaire-event freeze log error:', err);
+  }
+}
+
 async function mirrorToMailerLite(email, eventName, patch) {
   const apiKey = process.env.MAILERLITE_API_KEY;
   if (!apiKey || !email) return;
@@ -114,7 +162,7 @@ export default async (req) => {
     if (!ALLOWED_EVENTS.has(eventName)) return jsonResponse(400, { error: 'Event invalide' });
 
     const regRes = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,watch_max_minutes&limit=1`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,watch_max_minutes,session_date&limit=1`,
     );
     if (!regRes.ok) return jsonResponse(500, { error: 'Erreur lecture base' });
     if (!Array.isArray(regRes.data) || regRes.data.length === 0) {
@@ -135,6 +183,12 @@ export default async (req) => {
 
     // Best-effort mirror to MailerLite. Never block client response.
     void mirrorToMailerLite(row.email || '', eventName, patch);
+
+    // Best-effort logging des freeze events (table dédiée). Toute erreur est swallowed,
+    // n'impacte pas la réponse au client ni les autres branches du tracking.
+    if (eventName === 'video_freeze_recovery') {
+      void logFreezeEvent(row.token || token, row.email || '', row.session_date || null, value);
+    }
 
     return jsonResponse(200, { ok: true });
   } catch (error) {
