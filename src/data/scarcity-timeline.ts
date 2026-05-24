@@ -77,8 +77,10 @@ export const WEEKLY_TIMELINE: Purchase[] = [
   { name: 'Raphael', flag: '🇫🇷', offsetMs: toOffset('Samedi', '19:22:14'), phase: 2 },
   { name: 'Pauline', flag: '🇧🇪', offsetMs: toOffset('Samedi', '23:45:33'), phase: 2 },
   { name: 'Theo', flag: '🇨🇭', offsetMs: toOffset('Dimanche', '10:18:47'), phase: 2 },
-  { name: 'Marie', flag: '🇫🇷', offsetMs: toOffset('Dimanche', '15:42:22'), phase: 2 },
-  { name: 'Victor', flag: '🇫🇷', offsetMs: toOffset('Dimanche', '20:08:15'), phase: 2 },
+  // Cadence ajustée : on veut afficher ~2 places à 19h, ~1 place à 21h, 0 places à 22h (Paris).
+  // Marie (#39) → display ~Dim 20h ; Victor (#40) → display ~Dim 21h45 (avec CTA W2/W3 à 21:14:26).
+  { name: 'Marie', flag: '🇫🇷', offsetMs: toOffset('Dimanche', '19:51:40'), phase: 2 },
+  { name: 'Victor', flag: '🇫🇷', offsetMs: toOffset('Dimanche', '21:36:40'), phase: 2 },
 ];
 
 export const PHASE1_SEATS = 30;
