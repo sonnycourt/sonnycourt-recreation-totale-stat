@@ -48,41 +48,43 @@ function buildEmailPayload({
   return { subject, body };
 }
 
-async function sendViaResend(payload, recipient) {
-  const apiKey = String(process.env.RESEND_API_KEY_FREE || process.env.RESEND_API_KEY || '').trim();
-  console.log('[ES2 FEEDBACK DEBUG] Resend apiKey present:', Boolean(apiKey), 'length:', apiKey.length);
-  if (!apiKey) {
-    console.warn('[ES2 FEEDBACK DEBUG] Resend SKIPPED: no API key in env (RESEND_API_KEY_FREE / RESEND_API_KEY)');
+async function sendViaTelegram(payload) {
+  const botToken = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const chatId = String(process.env.TELEGRAM_CHAT_ID || '').trim();
+  console.log('[ES2 FEEDBACK] Telegram botToken present:', Boolean(botToken), 'chatId present:', Boolean(chatId));
+  if (!botToken || !chatId) {
+    console.warn('[ES2 FEEDBACK] Telegram SKIPPED: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID');
     return false;
   }
 
-  // Sans DNS vérifié on utilise l'adresse d'envoi par défaut de Resend.
-  // Resend autorise alors uniquement les envois vers l'adresse de signup → ici info@sonnycourt.com.
-  const from = String(process.env.RESEND_FROM_EMAIL || 'ES2 Feedback <onboarding@resend.dev>').trim();
-  console.log('[ES2 FEEDBACK DEBUG] Resend FROM:', from, 'TO:', recipient);
+  // Format texte (HTML basique pour mise en gras). Telegram accepte 4096 char max.
+  const text = `📩 <b>${escapeHtml(payload.subject)}</b>\n\n${escapeHtml(payload.body)}`;
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from,
-        to: [recipient],
-        subject: payload.subject,
-        text: payload.body,
+        chat_id: chatId,
+        text: text.slice(0, 4090),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
       }),
     });
     const bodyText = await res.text().catch(() => '');
-    console.log('[ES2 FEEDBACK DEBUG] Resend response status:', res.status, 'body:', bodyText.slice(0, 500));
-    if (res.ok) return true;
-    return false;
+    console.log('[ES2 FEEDBACK] Telegram response status:', res.status, 'body:', bodyText.slice(0, 300));
+    return res.ok;
   } catch (error) {
-    console.warn('[ES2 FEEDBACK DEBUG] Resend send error:', error?.message || error);
+    console.warn('[ES2 FEEDBACK] Telegram send error:', error?.message || error);
     return false;
   }
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 async function sendViaMailerLite(payload, recipient) {
@@ -142,11 +144,11 @@ async function sendViaMailerLite(payload, recipient) {
 async function sendFeedbackEmailFireAndForget(payload) {
   const recipient = String(process.env.ES2_FEEDBACK_TO_EMAIL || 'info@sonnycourt.com').trim();
 
-  // Resend en priorité (livraison fiable). MailerLite en fallback ultime si Resend indisponible.
-  const sent = await sendViaResend(payload, recipient);
+  // Telegram en priorité (notification push immédiate, 100% fiable, pas de spam/DNS).
+  const sent = await sendViaTelegram(payload);
   if (sent) return;
 
-  console.warn('submit-es2-feedback Resend unavailable, falling back to MailerLite');
+  console.warn('[ES2 FEEDBACK] Telegram unavailable, falling back to MailerLite email');
   await sendViaMailerLite(payload, recipient);
 }
 
