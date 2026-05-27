@@ -244,7 +244,10 @@ export default async (req) => {
       helpNeeded,
       score,
     });
-    void sendFeedbackEmailFireAndForget(emailPayload);
+    // AWAIT (et non plus fire-and-forget) : sur Netlify Functions, les promesses
+    // non-awaitées sont killed quand le handler retourne → la notif Telegram ne
+    // partait jamais. On accepte +500ms de latence côté user pour garantir l'envoi.
+    await sendFeedbackEmailFireAndForget(emailPayload);
 
     return jsonResponse(200, {
       success: true,
