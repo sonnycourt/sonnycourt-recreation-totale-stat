@@ -50,11 +50,16 @@ function buildEmailPayload({
 
 async function sendViaResend(payload, recipient) {
   const apiKey = String(process.env.RESEND_API_KEY_FREE || process.env.RESEND_API_KEY || '').trim();
-  if (!apiKey) return false;
+  console.log('[ES2 FEEDBACK DEBUG] Resend apiKey present:', Boolean(apiKey), 'length:', apiKey.length);
+  if (!apiKey) {
+    console.warn('[ES2 FEEDBACK DEBUG] Resend SKIPPED: no API key in env (RESEND_API_KEY_FREE / RESEND_API_KEY)');
+    return false;
+  }
 
   // Sans DNS vérifié on utilise l'adresse d'envoi par défaut de Resend.
   // Resend autorise alors uniquement les envois vers l'adresse de signup → ici info@sonnycourt.com.
   const from = String(process.env.RESEND_FROM_EMAIL || 'ES2 Feedback <onboarding@resend.dev>').trim();
+  console.log('[ES2 FEEDBACK DEBUG] Resend FROM:', from, 'TO:', recipient);
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -70,12 +75,12 @@ async function sendViaResend(payload, recipient) {
         text: payload.body,
       }),
     });
+    const bodyText = await res.text().catch(() => '');
+    console.log('[ES2 FEEDBACK DEBUG] Resend response status:', res.status, 'body:', bodyText.slice(0, 500));
     if (res.ok) return true;
-    const err = await res.text().catch(() => '');
-    console.warn('submit-es2-feedback Resend send failed:', res.status, err);
     return false;
   } catch (error) {
-    console.warn('submit-es2-feedback Resend send error:', error?.message || error);
+    console.warn('[ES2 FEEDBACK DEBUG] Resend send error:', error?.message || error);
     return false;
   }
 }
