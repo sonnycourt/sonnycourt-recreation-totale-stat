@@ -48,20 +48,51 @@ function buildEmailPayload({
   return { subject, body };
 }
 
-async function sendFeedbackEmailFireAndForget(payload) {
+async function sendViaResend(payload, recipient) {
+  const apiKey = String(process.env.RESEND_API_KEY_FREE || process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return false;
+
+  // Sans DNS vérifié on utilise l'adresse d'envoi par défaut de Resend.
+  // Resend autorise alors uniquement les envois vers l'adresse de signup → ici info@sonnycourt.com.
+  const from = String(process.env.RESEND_FROM_EMAIL || 'ES2 Feedback <onboarding@resend.dev>').trim();
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [recipient],
+        subject: payload.subject,
+        text: payload.body,
+      }),
+    });
+    if (res.ok) return true;
+    const err = await res.text().catch(() => '');
+    console.warn('submit-es2-feedback Resend send failed:', res.status, err);
+    return false;
+  } catch (error) {
+    console.warn('submit-es2-feedback Resend send error:', error?.message || error);
+    return false;
+  }
+}
+
+async function sendViaMailerLite(payload, recipient) {
   const apiKey = String(process.env.MAILERLITE_API_KEY || '').trim();
-  if (!apiKey) return;
+  if (!apiKey) return false;
 
   const senderEmail = String(process.env.ES2_FEEDBACK_FROM_EMAIL || 'info@sonnycourt.com').trim();
   const senderName = String(process.env.ES2_FEEDBACK_FROM_NAME || 'ES2 Feedback').trim();
 
-  const recipients = [{ email: 'info@sonnycourt.com' }];
+  const recipients = [{ email: recipient }];
   const commonHeaders = {
     Authorization: `Bearer ${apiKey}`,
     Accept: 'application/json',
     'Content-Type': 'application/json',
   };
-  const bodyText = payload.body;
 
   // MailerLite endpoints vary by account/product. Try both quietly.
   const attempts = [
@@ -71,7 +102,7 @@ async function sendFeedbackEmailFireAndForget(payload) {
         from: { email: senderEmail, name: senderName },
         to: recipients,
         subject: payload.subject,
-        text: bodyText,
+        text: payload.body,
       },
     },
     {
@@ -79,9 +110,9 @@ async function sendFeedbackEmailFireAndForget(payload) {
       data: {
         from: senderEmail,
         from_name: senderName,
-        to: 'info@sonnycourt.com',
+        to: recipient,
         subject: payload.subject,
-        text: bodyText,
+        text: payload.body,
       },
     },
   ];
@@ -93,13 +124,25 @@ async function sendFeedbackEmailFireAndForget(payload) {
         headers: commonHeaders,
         body: JSON.stringify(attempt.data),
       });
-      if (res.ok) return;
+      if (res.ok) return true;
       const err = await res.text().catch(() => '');
-      console.warn('submit-es2-feedback mail send failed:', attempt.url, res.status, err);
+      console.warn('submit-es2-feedback MailerLite send failed:', attempt.url, res.status, err);
     } catch (error) {
-      console.warn('submit-es2-feedback mail send error:', attempt.url, error?.message || error);
+      console.warn('submit-es2-feedback MailerLite send error:', attempt.url, error?.message || error);
     }
   }
+  return false;
+}
+
+async function sendFeedbackEmailFireAndForget(payload) {
+  const recipient = String(process.env.ES2_FEEDBACK_TO_EMAIL || 'info@sonnycourt.com').trim();
+
+  // Resend en priorité (livraison fiable). MailerLite en fallback ultime si Resend indisponible.
+  const sent = await sendViaResend(payload, recipient);
+  if (sent) return;
+
+  console.warn('submit-es2-feedback Resend unavailable, falling back to MailerLite');
+  await sendViaMailerLite(payload, recipient);
 }
 
 async function fetchRegistrationByToken(token) {
