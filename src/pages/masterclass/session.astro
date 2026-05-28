@@ -2531,7 +2531,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (isSessionEnded) return;
                 hasJoinedSession = true;
                 setJoinedControlsVisible(true);
-                if (video.readyState >= 1) applySimulatedLiveOffset();
+                // FIX : recalculer la position live AU MOMENT DU CLIC (force), pour ne pas
+                // réutiliser une position figée calculée au démarrage du live (qui renvoyait 0
+                // pour ceux qui attendaient sur la page). Si la vidéo n'est pas prête, on
+                // applique dès loadedmetadata via pendingForceLiveSeek.
+                if (video.readyState >= 1) {
+                    applySimulatedLiveOffset({ force: true });
+                } else {
+                    pendingForceLiveSeek = true;
+                }
                 if (waiting) waiting.classList.add('is-hidden');
                 video.play().catch(() => {});
                 playOverlay.classList.add('hidden');
