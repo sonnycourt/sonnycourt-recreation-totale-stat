@@ -802,9 +802,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <p class="dev-time-title">Simulation replay (preview uniquement)</p>
       <div class="dev-time-row">
         <button class="dev-time-btn" type="button" data-jump-seconds="0">Replay 00:00</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="3802">CTA -10s</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="3812">CTA exact</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="3842">+30s après CTA</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4156">CTA -10s</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4166">CTA exact</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4196">+30s après CTA</button>
         <button class="dev-time-btn" type="button" data-jump-seconds="4800">Replay 01:20:00</button>
         <button class="dev-time-btn" type="button" data-jump-seconds="-1">Fin vidéo</button>
         <button class="dev-time-btn" type="button" data-offer-state="active">Offre active</button>
@@ -990,9 +990,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     const TOKEN_KEY = 'masterclass_es2_token';
     const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000;
     const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
-    const CTA_TRIGGER_SECONDS = 63 * 60 + 32; // 1h03m32s = CTA W4 replay
+    const CTA_TRIGGER_SECONDS = 69 * 60 + 26; // 1h09m26s = CTA W2 replay (rollback : voir commentaire URL vidéo ci-dessous)
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
-    const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W4%20-%20REPLAY%20(version%20compresse%CC%81e).mp4';
+    // ROLLBACK 2026-05-29 : la vidéo W4 (sans les 6 min de countdown) a divisé la rétention par 2
+    // (17% atteint CTA vs 37% sur W3 avec la vidéo W2). La transition douce des 6 premières minutes
+    // jouait visiblement un rôle de "rampe d'accès" qu'on n'avait pas anticipé.
+    // On revient à la vidéo W2 + CTA 4166s, en gardant les améliorations UX (pause, overlay scarcity,
+    // bouton plein écran restylé, PDF qui disparaît au CTA).
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4';
     const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
     function getMcWallClockMs() {
