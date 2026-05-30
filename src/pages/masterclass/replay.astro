@@ -884,7 +884,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             </svg>
           </button>
         </div>
-        <div class="controls">
+        <div class="controls" style="display: none;">
           <div class="ctrl-group">
             <button class="ctrl-btn" id="playpause-btn" type="button">Play</button>
             <button class="ctrl-btn" id="rewind-btn" type="button">-15s</button>
@@ -1546,8 +1546,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           trackWebinaireEvent(token, 'replay_started');
         }
         video.play().catch(() => {});
+        // Affiche la barre de contrôles uniquement après lancement.
+        // On masque le bouton Play (pause désactivée), on garde -15s + Son/volume.
+        if (controlsBar) controlsBar.style.display = '';
         playPauseBtn.style.display = 'none';
-        rewindBtn.style.display = 'none';
       }
 
       playOverlayBtn.addEventListener('click', () => {
