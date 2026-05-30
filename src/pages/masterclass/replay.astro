@@ -226,18 +226,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 18;
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      background: rgba(59, 130, 246, 0.15);
-      color: #fff;
-      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid rgba(148,163,184,.35);
+      background: rgba(2,6,23,.75);
+      color: #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(6px);
     }
     .fullscreen-floating svg { width: 18px; height: 18px; }
     @media (max-width: 1024px) { .fullscreen-floating { display: none; } }
@@ -951,8 +948,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <div class="replay-confirm-icon">⚠️</div>
       <h2 class="replay-confirm-title">Information importante avant de lancer le replay</h2>
       <p class="replay-confirm-text">
-        Cette masterclass dure <strong>1h20</strong>. Pour en tirer le maximum, assure-toi d'avoir <strong>ton guide diagnostique</strong> et de quoi écrire à portée de main.<br><br>
-        🔒 <strong>Ce replay sera supprimé définitivement ce dimanche à 23h.</strong>
+        Cette masterclass est une <strong>expérience immersive</strong>. Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>. Exactement comme lors de la diffusion en direct.<br><br>
+        Assure-toi d'avoir <strong>ton guide diagnostique</strong>, de quoi écrire, et <strong>1h20 devant toi sans interruption</strong>.<br><br>
+        Si tu quittes en cours de route, tu devras reprendre depuis le début.
       </p>
       <a class="replay-confirm-btn" href="/media/pages/Masterclass-Esprit-subconscient-202.pdf" target="_blank" rel="noopener" style="background:rgba(59,130,246,.15);border:1px solid rgba(96,165,250,.45);color:#dbeafe;margin-bottom:12px;font-size:.88rem;font-weight:700;">
         📄 Télécharge ton guide diagnostique
@@ -960,7 +958,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <button id="replay-confirm-btn" class="replay-confirm-btn" type="button">
         Je suis prêt(e), lancer le replay
       </button>
-      <p class="replay-confirm-sub">Une fois lancée, profite pleinement de la masterclass.</p>
+      <p class="replay-confirm-sub">Tu ne pourras pas mettre la vidéo sur pause.</p>
       <button id="replay-confirm-cancel" type="button" style="margin-top:16px;background:none;border:none;color:rgba(226,232,240,.45);font-size:.82rem;cursor:pointer;text-decoration:underline;">Je ne suis pas encore prêt(e)</button>
     </div>
   </div>
@@ -1522,12 +1520,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       function updateDiagnosticGuideState() {
         const zone = document.getElementById('diagnostic-guide-zone');
         if (!zone) return;
-        // Le bouton PDF disparaît dès l'apparition du CTA (on ne veut plus de distraction
-        // une fois l'offre affichée).
-        if ((video.currentTime || 0) >= CTA_TRIGGER_SECONDS) {
-          zone.classList.remove('visible');
-          return;
-        }
         const now = sessionStartMs - LIVE_VIDEO_LEAD_MS + Math.max(0, Math.floor((video.currentTime || 0) * 1000));
         const showAt = sessionStartMs - GUIDE_RELEASE_LEAD_MS;
         const hideAt = sessionStartMs + 15 * 60 * 1000;
@@ -1543,9 +1535,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
       const replayConfirmOverlay = document.getElementById('replay-confirm-overlay');
       const replayConfirmBtn = document.getElementById('replay-confirm-btn');
-      // Replay : pause/play autorisés (bouton + barre espace), -15s cliquable autant qu'on veut.
-      // Seul le seek vers l'avant reste bloqué (protège la séquence de persuasion).
-      let replayNoPause = false;
+      let replayNoPause = true;
 
       function launchReplayAfterConfirm() {
         replayConfirmOverlay?.classList.add('hidden');
@@ -1556,13 +1546,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           trackWebinaireEvent(token, 'replay_started');
         }
         video.play().catch(() => {});
-        // Boutons play/pause + -15s restent visibles (pause autorisée).
+        playPauseBtn.style.display = 'none';
+        rewindBtn.style.display = 'none';
       }
 
       playOverlayBtn.addEventListener('click', () => {
-        // Le popup d'avertissement (durée + "replay supprimé dimanche 23h") s'affiche
-        // toujours avant lancement, indépendamment du comportement pause/play.
-        if (replayConfirmOverlay) {
+        if (replayNoPause && replayConfirmOverlay) {
           replayConfirmOverlay.classList.remove('hidden');
           return;
         }
