@@ -59,6 +59,18 @@ export default async (req) => {
     const pays = String(body?.pays || '').trim();
     const hasPhonePayload = Boolean(telephone && pays);
 
+    // Tracking source pub (vide = organique → comportement inchangé).
+    const ALLOWED_TRAFFIC_SOURCES = ['tiktok_ad', 'instagram_ad'];
+    const rawSource = String(body?.traffic_source || '').trim().toLowerCase();
+    const trafficSource = ALLOWED_TRAFFIC_SOURCES.includes(rawSource) ? rawSource : null;
+    const trim255 = (v) => (v ? String(v).trim().slice(0, 255) || null : null);
+    const utmSource = trim255(body?.utm_source);
+    const utmMedium = trim255(body?.utm_medium);
+    const utmCampaign = trim255(body?.utm_campaign);
+    const utmContent = trim255(body?.utm_content);
+    const utmTerm = trim255(body?.utm_term);
+    const ttClickId = trim255(body?.tt_click_id);
+
     if (!email || !email.includes('@') || !prenom) {
       return jsonResponse(400, { error: 'Paramètres manquants' });
     }
@@ -164,6 +176,13 @@ export default async (req) => {
       session_ends_at: sessionEndsAt.toISOString(),
       offre_expires_at: offreExpiresAt.toISOString(),
       statut: 'inscrit',
+      traffic_source: trafficSource,
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_content: utmContent,
+      utm_term: utmTerm,
+      tt_click_id: ttClickId,
     };
 
     const ins = await supabasePost('webinaire_registrations', row, { prefer: 'return=minimal' });
