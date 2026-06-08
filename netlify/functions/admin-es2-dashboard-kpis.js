@@ -74,7 +74,8 @@ function computeSegmentStats(subset, buyerEmailSet) {
   const clickedCta = subset.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = subset.filter((r) => toBool(r.visited_sales)).length;
   const watchedReplay = subset.filter((r) => toBool(r.watched_replay)).length;
-  const acheteurs = subset.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+  const acheteurs = subset.filter((r) => toBool(r.purchased)).length;
+  const refunds = subset.filter((r) => toBool(r.refunded)).length;
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
   const salesConversionRate = visitedSales > 0 ? (acheteurs / visitedSales) * 100 : 0;
   return {
@@ -86,6 +87,7 @@ function computeSegmentStats(subset, buyerEmailSet) {
     visitedSales,
     watchedReplay,
     acheteurs,
+    refunds,
     salesConversionRate,
   };
 }
@@ -169,7 +171,7 @@ function buildFunnel(rows, buyerEmailSet) {
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
-  const acheteurs = rows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+  const acheteurs = rows.filter((r) => toBool(r.purchased)).length;
 
   const steps = [
     { id: 'inscrits', label: 'Inscrits', count: inscrits, benchKey: null },
@@ -218,7 +220,9 @@ function computeKpis(rows, buyerEmailSet) {
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
-  const acheteurs = rows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+  const acheteurs = rows.filter((r) => toBool(r.purchased)).length;
+  const refunds = rows.filter((r) => toBool(r.refunded)).length;
+  const netAcheteurs = acheteurs - refunds;
 
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
   const ctaConversionRate = sawOffer > 0 ? (clickedCta / sawOffer) * 100 : 0;
@@ -227,7 +231,7 @@ function computeKpis(rows, buyerEmailSet) {
 
   const richRows = rows.filter((r) => isRichCountry(r.pays));
   const autresRows = rows.filter((r) => !isRichCountry(r.pays));
-  const richBuyers = richRows.filter((r) => buyerEmailSet.has(normalizeEmail(r.email))).length;
+  const richBuyers = richRows.filter((r) => toBool(r.purchased)).length;
   const conversionRichRate = richRows.length > 0 ? (richBuyers / richRows.length) * 100 : 0;
 
   const totalRevenueEur = acheteurs * ES2_OFFER_PRICE_EUR;
@@ -366,7 +370,7 @@ function computeKpis(rows, buyerEmailSet) {
   };
 
   const buyerDetails = rows
-    .filter((r) => buyerEmailSet.has(normalizeEmail(r.email)))
+    .filter((r) => toBool(r.purchased))
     .map((r) => ({
       prenom: String(r?.prenom || '').trim(),
       pays: String(r?.pays || '').trim(),
@@ -376,6 +380,8 @@ function computeKpis(rows, buyerEmailSet) {
       watchMaxMinutes: toInt(r.watch_max_minutes),
       clickedCta: toBool(r.clicked_cta),
       visitedSales: toBool(r.visited_sales),
+      refunded: toBool(r.refunded),
+      firstPaymentAmount: r?.first_payment_amount != null ? Number(r.first_payment_amount) : null,
       lastEventAt: r?.last_event_at || null,
       sessionDate: r?.session_date || null,
     }))
@@ -396,6 +402,8 @@ function computeKpis(rows, buyerEmailSet) {
       ctaConversionRate,
       visitedSales,
       acheteurs,
+      refunds,
+      netAcheteurs,
       conversionGlobalRate,
       conversionPresentsRate,
       conversionRichRate,
@@ -429,7 +437,7 @@ async function fetchAllRegistrations() {
 
   while (true) {
     const qs = new URLSearchParams({
-      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,created_at,last_event_at',
+      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,purchased_at,first_payment_amount,refunded,refunded_at,refund_amount,created_at,last_event_at',
       order: 'session_date.desc',
       limit: String(pageSize),
       offset: String(offset),

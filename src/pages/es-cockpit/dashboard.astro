@@ -170,6 +170,7 @@ const tabs = [
                       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                         <p class="text-xs text-slate-500">Acheteurs</p>
                         <p id="kpi-acheteurs" class="mt-1 text-2xl font-semibold text-white">0</p>
+                        <p id="kpi-refunds-line" class="mt-1 text-xs text-slate-400">0 refund · net 0</p>
                       </div>
                       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                         <p class="text-xs text-slate-500">Taux conversion global</p>
@@ -1380,6 +1381,12 @@ const tabs = [
 
           const achEl = document.getElementById('kpi-acheteurs');
           if (achEl) achEl.textContent = String(d?.cards?.acheteurs ?? 0);
+          const refEl = document.getElementById('kpi-refunds-line');
+          if (refEl) {
+            const refunds = Number(d?.cards?.refunds || 0);
+            const net = Number(d?.cards?.netAcheteurs ?? (d?.cards?.acheteurs || 0));
+            refEl.textContent = `${refunds} refund${refunds > 1 ? 's' : ''} · net ${net}`;
+          }
           const cgEl = document.getElementById('kpi-conversion-global');
           if (cgEl) cgEl.textContent = formatPct(d?.cards?.conversionGlobalRate);
           const cpEl = document.getElementById('kpi-conversion-presents');
