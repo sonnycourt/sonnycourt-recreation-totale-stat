@@ -431,6 +431,56 @@ function computeKpis(rows, salesRows) {
   };
 }
 
+// Tableau comparatif par session. Skip W1 (tracking incomplet à l'époque) et les
+// vieilles sessions test (< 100 inscrits). Ventes attribuées par fenêtre d'achat
+// (champ __salesSession posé sur les rows avant l'appel).
+const COMPARISON_EXCLUDED_SESSIONS = new Set(['2026-04-30']);
+const COMPARISON_MIN_INSCRITS = 100;
+function buildSessionsComparison(allRows) {
+  const bySession = new Map();
+  for (const r of allRows) {
+    const d = String(r?.session_date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+    if (!bySession.has(d)) bySession.set(d, []);
+    bySession.get(d).push(r);
+  }
+  const pct = (n, den) => (den > 0 ? Math.round((n / den) * 1000) / 10 : 0);
+  return [...bySession.keys()]
+    .filter((d) => !COMPARISON_EXCLUDED_SESSIONS.has(d) && bySession.get(d).length >= COMPARISON_MIN_INSCRITS)
+    .sort()
+    .map((d) => {
+      const reg = bySession.get(d);
+      const sales = allRows.filter((r) => r.__salesSession === d);
+      const inscrits = reg.length;
+      const inscritsRiches = reg.filter((r) => isRichCountry(r.pays)).length;
+      const presentsLive = reg.filter((r) => toBool(r.attended_live)).length;
+      const presentsReplay = reg.filter((r) => toBool(r.watched_replay)).length;
+      const sawOffer = reg.filter((r) => toBool(r.saw_offer)).length;
+      const clickedCta = reg.filter((r) => toBool(r.clicked_cta)).length;
+      const ventes = sales.filter((r) => toBool(r.purchased)).length;
+      const ventesRiches = sales.filter((r) => toBool(r.purchased) && isRichCountry(r.pays)).length;
+      const refunds = sales.filter((r) => toBool(r.refunded)).length;
+      return {
+        date: d,
+        inscrits,
+        inscritsRiches,
+        presentsLive,
+        presenceLiveRate: pct(presentsLive, inscrits),
+        presentsReplay,
+        presenceReplayRate: pct(presentsReplay, inscrits),
+        sawOffer,
+        ctaRate: pct(sawOffer, inscrits),
+        clickedCta,
+        ventes,
+        ventesRiches,
+        refunds,
+        convGlobal: pct(ventes, inscrits),
+        convRiche: pct(ventesRiches, inscritsRiches),
+        convPresents: pct(ventes, presentsLive),
+      };
+    });
+}
+
 async function fetchAllRegistrations() {
   const { url, key } = getSupabaseConfig();
   if (!url || !key) {
@@ -527,6 +577,7 @@ export default async (req) => {
         session_date: sessionDateFilter || null,
       },
       sessions: sessionDates,
+      comparison: buildSessionsComparison(allRows),
       totalRows: filteredRows.length,
       cards: kpis.cards,
       funnel: kpis.funnel,

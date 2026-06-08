@@ -3,6 +3,7 @@ import '../../styles/admin-es2.css';
 
 const tabs = [
   { id: 'overview', label: "Vue d'ensemble" },
+  { id: 'compare', label: 'Comparatif' },
   { id: 'ops', label: 'Ops / Debug' },
 ];
 ---
@@ -271,6 +272,26 @@ const tabs = [
                   </div>
 
                   <p id="overview-error" class="hidden text-xs text-red-400"></p>
+                </div>
+              ) : t.id === 'compare' ? (
+                <div class="space-y-4" id="compare-panel">
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Comparatif</p>
+                        <h3 class="text-sm font-semibold text-white">Sessions côte à côte (W1 exclue)</h3>
+                      </div>
+                      <span id="compare-updated" class="text-xs text-slate-500">—</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">Ventes attribuées par date d'achat. Présence / CTA par session d'inscription.</p>
+                    <div class="mt-4 overflow-x-auto">
+                      <table class="w-full min-w-[640px] text-left text-sm">
+                        <thead id="compare-head" class="text-xs uppercase tracking-wider text-slate-500"></thead>
+                        <tbody id="compare-body" class="text-slate-300"></tbody>
+                      </table>
+                    </div>
+                    <p id="compare-empty" class="hidden text-xs text-slate-500">Aucune donnée.</p>
+                  </div>
                 </div>
               ) : t.id === 'ops' ? (
                 <div class="space-y-4" id="ops-cockpit">
@@ -1355,6 +1376,7 @@ const tabs = [
           if (!r.ok) throw new Error(d.error || 'Erreur KPIs');
 
           hydrateSessionDropdown(d?.sessions, d?.filter?.session_date || '');
+          renderComparison(d?.comparison);
 
           document.getElementById('kpi-inscrits').textContent = String(d?.cards?.inscrits || 0);
           (function () {
@@ -1492,6 +1514,55 @@ const tabs = [
           .toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
+      }
+
+      function renderComparison(comparison) {
+        const head = document.getElementById('compare-head');
+        const body = document.getElementById('compare-body');
+        const empty = document.getElementById('compare-empty');
+        const updated = document.getElementById('compare-updated');
+        if (!head || !body) return;
+        const cols = Array.isArray(comparison) ? comparison : [];
+        if (cols.length === 0) {
+          head.innerHTML = '';
+          body.innerHTML = '';
+          if (empty) empty.classList.remove('hidden');
+          return;
+        }
+        if (empty) empty.classList.add('hidden');
+        const months = ['', 'janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+        const fmtDate = function (d) {
+          const p = String(d || '').split('-');
+          return p.length === 3 ? Number(p[2]) + ' ' + (months[Number(p[1])] || p[1]) : String(d);
+        };
+        const rows = [
+          ['Inscrits', function (c) { return String(c.inscrits); }],
+          ['— dont riches', function (c) { return String(c.inscritsRiches); }],
+          ['Présents live', function (c) { return c.presentsLive + ' (' + c.presenceLiveRate + '%)'; }],
+          ['Présents replay', function (c) { return c.presentsReplay + ' (' + c.presenceReplayRate + '%)'; }],
+          ['Vu offre (CTA)', function (c) { return c.sawOffer + ' (' + c.ctaRate + '%)'; }],
+          ['Cliqué CTA', function (c) { return String(c.clickedCta); }],
+          ['Ventes', function (c) { return String(c.ventes); }],
+          ['— dont riches', function (c) { return String(c.ventesRiches); }],
+          ['Refunds', function (c) { return String(c.refunds); }],
+          ['Conv. globale', function (c) { return c.convGlobal + '%'; }],
+          ['Conv. riches', function (c) { return c.convRiche + '%'; }],
+          ['Conv. présents', function (c) { return c.convPresents + '%'; }],
+        ];
+        head.innerHTML = '<tr><th class="py-2 pr-4">Métrique</th>' +
+          cols.map(function (c) { return '<th class="py-2 pr-4 text-right text-slate-300">' + fmtDate(c.date) + '</th>'; }).join('') +
+          '</tr>';
+        body.innerHTML = rows.map(function (row) {
+          const label = row[0];
+          const fn = row[1];
+          return '<tr class="border-t border-slate-800"><td class="py-2 pr-4 font-medium text-slate-200">' + label + '</td>' +
+            cols.map(function (c) { return '<td class="py-2 pr-4 text-right tabular-nums">' + fn(c) + '</td>'; }).join('') +
+            '</tr>';
+        }).join('');
+        if (updated) {
+          const now = new Date();
+          updated.textContent = 'MAJ ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
       }
 
       function renderPastSessions(items) {
