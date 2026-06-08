@@ -2132,6 +2132,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             submitBtn.textContent = 'Inscription...';
             formStatus.textContent = '';
 
+            // event_id partagé navigateur <-> serveur pour la déduplication TikTok.
+            const ttEventId = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : 'tt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+
             try {
                 const response = await fetch('/.netlify/functions/register-webinaire', {
                     method: 'POST',
@@ -2143,6 +2148,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         telephone: state.phone,
                         pays: state.country,
                         ...getTrackingPayload(),
+                        tt_event_id: ttEventId,
                     }),
                 });
 
@@ -2178,7 +2184,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         window.ttq.track('CompleteRegistration', {
                             content_name: 'Masterclass ES2',
                             content_type: 'product',
-                        });
+                        }, { event_id: ttEventId });
                     }
                 } catch (e) {}
 

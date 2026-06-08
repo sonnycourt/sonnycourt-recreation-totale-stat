@@ -7,6 +7,7 @@ import {
 } from './lib/webinaire-session-paris.mjs';
 import { upsertWebinaireSubscriber, getWebinaireGroupEnv } from './lib/mailerlite-webinaire.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
+import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -70,6 +71,37 @@ export default async (req) => {
     const utmContent = trim255(body?.utm_content);
     const utmTerm = trim255(body?.utm_term);
     const ttClickId = trim255(body?.tt_click_id);
+    const ttEventId = trim255(body?.tt_event_id);
+
+    // Données pour le CAPI TikTok (matching côté serveur).
+    const clientIp =
+      req.headers.get('x-nf-client-connection-ip') ||
+      (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+      undefined;
+    const clientUa = req.headers.get('user-agent') || undefined;
+    const pageUrl = req.headers.get('referer') || 'https://sonnycourt.com/tt/masterclass';
+
+    // Envoi CompleteRegistration au CAPI : uniquement à l'inscription COMPLÈTE
+    // (téléphone fourni) et pour le trafic TikTok. À AWAIT (Netlify tue les
+    // promesses non attendues quand la fonction retourne).
+    const fireTikTokCompleteRegistration = async () => {
+      if (trafficSource !== 'tiktok_ad' || !hasPhonePayload) return;
+      try {
+        await sendTikTokEvent({
+          eventName: 'CompleteRegistration',
+          eventId: ttEventId,
+          email,
+          phone: telephone,
+          ip: clientIp,
+          userAgent: clientUa,
+          ttclid: ttClickId,
+          url: pageUrl,
+          contentName: 'Masterclass ES2',
+        });
+      } catch (e) {
+        console.error('TikTok CAPI CompleteRegistration:', e);
+      }
+    };
 
     if (!email || !email.includes('@') || !prenom) {
       return jsonResponse(400, { error: 'Paramètres manquants' });
@@ -149,6 +181,7 @@ export default async (req) => {
         }
       }
 
+      await fireTikTokCompleteRegistration();
       return jsonResponse(200, buildAlreadyRegisteredResponse(e));
     }
 
@@ -254,6 +287,7 @@ export default async (req) => {
       }
     }
 
+    await fireTikTokCompleteRegistration();
     return jsonResponse(200, {
       success: true,
       token,
