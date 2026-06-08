@@ -67,15 +67,17 @@ function isRichCountry(pays) {
   });
 }
 
-function computeSegmentStats(subset, buyerEmailSet) {
+// subset = inscrits du segment (par session d'inscription) ; salesSubset = acheteurs
+// du segment attribués par fenêtre de date d'achat.
+function computeSegmentStats(subset, salesSubset) {
   const inscrits = subset.length;
   const presents = subset.filter((r) => toBool(r.attended_live)).length;
   const sawOffer = subset.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = subset.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = subset.filter((r) => toBool(r.visited_sales)).length;
   const watchedReplay = subset.filter((r) => toBool(r.watched_replay)).length;
-  const acheteurs = subset.filter((r) => toBool(r.purchased)).length;
-  const refunds = subset.filter((r) => toBool(r.refunded)).length;
+  const acheteurs = salesSubset.filter((r) => toBool(r.purchased)).length;
+  const refunds = salesSubset.filter((r) => toBool(r.refunded)).length;
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
   const salesConversionRate = visitedSales > 0 ? (acheteurs / visitedSales) * 100 : 0;
   return {
@@ -162,7 +164,7 @@ const FUNNEL_BENCHMARKS = {
   achat: [2, 5],
 };
 
-function buildFunnel(rows, buyerEmailSet) {
+function buildFunnel(rows, salesRows) {
   const inscrits = rows.length;
   const presents = rows.filter((r) => toBool(r.attended_live)).length;
   const presentsReplay = rows.filter((r) => toBool(r.watched_replay)).length;
@@ -171,7 +173,7 @@ function buildFunnel(rows, buyerEmailSet) {
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
-  const acheteurs = rows.filter((r) => toBool(r.purchased)).length;
+  const acheteurs = salesRows.filter((r) => toBool(r.purchased)).length;
 
   const steps = [
     { id: 'inscrits', label: 'Inscrits', count: inscrits, benchKey: null },
@@ -213,15 +215,17 @@ function buildFunnel(rows, buyerEmailSet) {
   });
 }
 
-function computeKpis(rows, buyerEmailSet) {
+// rows = inscrits de la session (par session d'inscription) ; salesRows = acheteurs
+// attribués à la session par FENÊTRE DE DATE D'ACHAT (purchased_at).
+function computeKpis(rows, salesRows) {
   const inscrits = rows.length;
   const presents = rows.filter((r) => toBool(r.attended_live)).length;
   const presentsReplay = rows.filter((r) => toBool(r.watched_replay)).length;
   const sawOffer = rows.filter((r) => toBool(r.saw_offer)).length;
   const clickedCta = rows.filter((r) => toBool(r.clicked_cta)).length;
   const visitedSales = rows.filter((r) => toBool(r.visited_sales)).length;
-  const acheteurs = rows.filter((r) => toBool(r.purchased)).length;
-  const refunds = rows.filter((r) => toBool(r.refunded)).length;
+  const acheteurs = salesRows.filter((r) => toBool(r.purchased)).length;
+  const refunds = salesRows.filter((r) => toBool(r.refunded)).length;
   const netAcheteurs = acheteurs - refunds;
 
   const presenceRate = inscrits > 0 ? (presents / inscrits) * 100 : 0;
@@ -231,7 +235,9 @@ function computeKpis(rows, buyerEmailSet) {
 
   const richRows = rows.filter((r) => isRichCountry(r.pays));
   const autresRows = rows.filter((r) => !isRichCountry(r.pays));
-  const richBuyers = richRows.filter((r) => toBool(r.purchased)).length;
+  const salesRichRows = salesRows.filter((r) => isRichCountry(r.pays));
+  const salesAutresRows = salesRows.filter((r) => !isRichCountry(r.pays));
+  const richBuyers = salesRichRows.filter((r) => toBool(r.purchased)).length;
   const conversionRichRate = richRows.length > 0 ? (richBuyers / richRows.length) * 100 : 0;
 
   const totalRevenueEur = acheteurs * ES2_OFFER_PRICE_EUR;
@@ -239,7 +245,7 @@ function computeKpis(rows, buyerEmailSet) {
   const valuePerLeadGlobal = inscrits > 0 ? totalRevenueEur / inscrits : 0;
   const valuePerLeadRich = richRows.length > 0 ? richRevenueEur / richRows.length : 0;
 
-  const funnel = buildFunnel(rows, buyerEmailSet);
+  const funnel = buildFunnel(rows, salesRows);
 
   // Détection du format de tracking pour la rétention :
   // - 'new' (W2+) : minute par minute, séparé live/replay, basé sur watch_max_seconds_live/replay
@@ -369,7 +375,7 @@ function computeKpis(rows, buyerEmailSet) {
     total: liveReplayBreakdown(rows),
   };
 
-  const buyerDetails = rows
+  const buyerDetails = salesRows
     .filter((r) => toBool(r.purchased))
     .map((r) => ({
       prenom: String(r?.prenom || '').trim(),
@@ -419,8 +425,8 @@ function computeKpis(rows, buyerEmailSet) {
     liveReplay,
     buyerDetails,
     countrySegments: [
-      { segment: 'Pays riches', ...computeSegmentStats(richRows, buyerEmailSet) },
-      { segment: 'Autres', ...computeSegmentStats(autresRows, buyerEmailSet) },
+      { segment: 'Pays riches', ...computeSegmentStats(richRows, salesRichRows) },
+      { segment: 'Autres', ...computeSegmentStats(autresRows, salesAutresRows) },
     ],
   };
 }
@@ -487,17 +493,33 @@ export default async (req) => {
       ? allRows.filter((r) => String(r?.session_date || '').slice(0, 10) === sessionDateFilter)
       : allRows;
 
-    const apiKey = process.env.MAILERLITE_API_KEY;
-    const acheteursGroupId = String(process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS || '').trim();
-
-    const mlBuyers = await fetchMailerLiteBuyerEmails(apiKey, acheteursGroupId);
-    const buyerEmailSet = mlBuyers.error ? new Set() : mlBuyers.emails;
-
-    if (!mlBuyers.error) {
-      fireForgetSyncPurchasedToSupabase(filteredRows, buyerEmailSet);
+    // Attribution des VENTES par fenêtre de date d'achat : une vente appartient à
+    // la dernière session dont la date <= date d'achat (purchased_at), indépendamment
+    // de la session d'inscription du lead.
+    const sessionDatesAsc = [...sessionDates].sort();
+    const salesSessionFor = (purchasedAt) => {
+      const d = String(purchasedAt || '').slice(0, 10);
+      if (!d) return null;
+      let best = null;
+      for (const s of sessionDatesAsc) {
+        if (s <= d) best = s;
+        else break;
+      }
+      return best;
+    };
+    for (const r of allRows) {
+      r.__salesSession = toBool(r.purchased) ? salesSessionFor(r.purchased_at) : null;
     }
+    const salesRows = sessionDateFilter
+      ? allRows.filter((r) => r.__salesSession === sessionDateFilter)
+      : allRows;
 
-    const kpis = computeKpis(filteredRows, buyerEmailSet);
+    // Source de vérité des ventes = colonne purchased (webhook Spiffy + backfill).
+    // La sync MailerLite est désactivée (re-marquait des comptes test comme achats).
+    const acheteursGroupId = String(process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS || '').trim();
+    const mlBuyers = { emails: new Set(), error: null, pages: 0 };
+
+    const kpis = computeKpis(filteredRows, salesRows);
 
     return jsonResponse(200, {
       ok: true,
@@ -516,7 +538,8 @@ export default async (req) => {
       buyerDetails: kpis.buyerDetails,
       countrySegments: kpis.countrySegments,
       buyers: {
-        source: 'mailerlite_group',
+        source: 'supabase_purchased_spiffy',
+        attribution: 'date_achat',
         groupEnv: 'MAILERLITE_GROUP_WEBINAIRE_ACHETEURS',
         groupIdConfigured: Boolean(acheteursGroupId),
         mailerLiteEmailsLoaded: mlBuyers.emails.size,
