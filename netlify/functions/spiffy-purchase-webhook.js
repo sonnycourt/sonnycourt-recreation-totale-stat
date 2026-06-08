@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { supabaseGet } from './lib/supabase-rest.mjs';
+import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 
 function jsonResponse(status, payload) {
@@ -92,36 +92,57 @@ export default async (req) => {
     let body = {};
     try { body = JSON.parse(rawBody); } catch { body = {}; }
     const data = body?.data || body;
+    const eventType = String(body?.event || body?.type || data?.event || '').toLowerCase();
     const email = (findEmail(body) || '').trim().toLowerCase();
+    const amount = findAmountEur(data);
 
-    // Log brut (1res ventes) pour affiner si besoin la structure réelle Spiffy.
-    console.log('spiffy-webhook event=%s email=%s', body?.event || body?.type || '?', email || 'none');
+    // Log brut (1res ventes) pour affiner la structure réelle Spiffy si besoin.
+    console.log('spiffy-webhook event=%s email=%s amount=%s', eventType || '?', email || 'none', amount ?? '?');
 
     if (!email) return jsonResponse(200, { ok: true, skipped: 'no_email' });
+
+    const isRefund = eventType.includes('refund');
+    const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
 
     const reg = await supabaseGet(
       `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id&limit=1`,
     );
     const row = reg.ok && Array.isArray(reg.data) ? reg.data[0] : null;
+    if (!row) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
-    if (!row || row.traffic_source !== 'tiktok_ad' || !row.tt_click_id) {
-      return jsonResponse(200, { ok: true, skipped: 'not_tiktok_lead' });
+    const nowIso = new Date().toISOString();
+
+    // --- Écriture cockpit (TOUS les leads, organique + pub) ---
+    if (isRefund) {
+      // Le refund n'annule PAS la vente : purchased reste true.
+      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
+        refunded: true,
+        refunded_at: nowIso,
+        ...(amount != null ? { refund_amount: amount } : {}),
+      });
+    } else if (isSale) {
+      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
+        purchased: true,
+        purchased_at: nowIso,
+        ...(amount != null ? { first_payment_amount: amount } : {}),
+      });
     }
 
-    const value = findAmountEur(data) || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388;
+    // --- CAPI TikTok : seulement la VENTE d'un lead TikTok ---
+    if (isSale && row.traffic_source === 'tiktok_ad' && row.tt_click_id) {
+      await sendTikTokEvent({
+        eventName: 'CompletePayment',
+        eventId: 'purchase-' + row.token, // même id que la détection MailerLite => dédup
+        email: row.email,
+        phone: row.telephone,
+        ttclid: row.tt_click_id,
+        value: amount || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388,
+        currency: 'EUR',
+        contentName: 'Esprit Subconscient 2.0',
+      });
+    }
 
-    await sendTikTokEvent({
-      eventName: 'CompletePayment',
-      eventId: 'purchase-' + row.token, // même id que la détection MailerLite => dédup
-      email: row.email,
-      phone: row.telephone,
-      ttclid: row.tt_click_id,
-      value,
-      currency: 'EUR',
-      contentName: 'Esprit Subconscient 2.0',
-    });
-
-    return jsonResponse(200, { ok: true, sent: true });
+    return jsonResponse(200, { ok: true, type: isRefund ? 'refund' : isSale ? 'sale' : 'ignored' });
   } catch (error) {
     console.error('spiffy-purchase-webhook error:', error);
     // 200 quand même : on ne veut pas que Spiffy retente en boucle.
