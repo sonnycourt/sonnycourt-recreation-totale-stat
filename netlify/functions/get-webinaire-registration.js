@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
+import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 const MAILERLITE_TIMEOUT_MS = 3000;
@@ -48,6 +49,38 @@ function syncPurchasedFlag(token) {
     `token=eq.${encodeURIComponent(token)}`,
     { purchased: true },
   ).catch(() => {});
+}
+
+/**
+ * Envoie la vente (CompletePayment) au CAPI TikTok, uniquement pour le trafic
+ * TikTok. event_id déterministe (purchase-<token>) => dédoublonné si plusieurs
+ * triggers (cette détection + un éventuel webhook Spiffy futur).
+ * Valeur paramétrable via TIKTOK_PURCHASE_VALUE_EUR (défaut 388 = 1er paiement).
+ */
+async function fireTikTokPurchase(req, token, row) {
+  if (!row || row.traffic_source !== 'tiktok_ad' || !row.tt_click_id) return;
+  const ip =
+    req.headers.get('x-nf-client-connection-ip') ||
+    (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+    undefined;
+  const ua = req.headers.get('user-agent') || undefined;
+  const value = Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388;
+  try {
+    await sendTikTokEvent({
+      eventName: 'CompletePayment',
+      eventId: 'purchase-' + token,
+      email: row.email,
+      phone: row.telephone,
+      ip,
+      userAgent: ua,
+      ttclid: row.tt_click_id,
+      value,
+      currency: 'EUR',
+      contentName: 'Esprit Subconscient 2.0',
+    });
+  } catch (e) {
+    console.error('TikTok CAPI CompletePayment:', e);
+  }
 }
 
 function toFiniteNumber(value, fallback = 0) {
@@ -193,7 +226,7 @@ export default async (req) => {
     }
 
     const res = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,purchased,attended_live,whatsapp_group_number,whatsapp_link`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,telephone,purchased,attended_live,traffic_source,tt_click_id,whatsapp_group_number,whatsapp_link`,
     );
 
     if (!res.ok) {
@@ -208,7 +241,11 @@ export default async (req) => {
     let purchased = row.purchased === true;
     if (!purchased) {
       purchased = await isInMailerLiteAcheteursGroup(String(row.email || '').trim().toLowerCase());
-      if (purchased) syncPurchasedFlag(token);
+      if (purchased) {
+        syncPurchasedFlag(token);
+        // 1re détection de la vente => event TikTok (trafic TikTok uniquement).
+        await fireTikTokPurchase(req, token, row);
+      }
     }
     const whatsapp = await resolveAndAssignWhatsappGroup(token, row);
 
