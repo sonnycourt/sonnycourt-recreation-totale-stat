@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { supabaseGet } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 
@@ -6,6 +7,40 @@ function jsonResponse(status, payload) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * Vérifie la signature webhook (standard Svix / Standard Webhooks, préfixe whsec_).
+ * Retourne 'ok' | 'invalid' | 'no_headers' (fail-open si en-têtes absents :
+ * on ne veut pas perdre une vraie vente sur une hypothèse d'en-tête erronée).
+ */
+function verifySignature(rawBody, headers) {
+  const secretRaw = process.env.SPIFFY_SIGNING_SECRET;
+  if (!secretRaw) return 'no_secret';
+
+  const id = headers.get('webhook-id') || headers.get('svix-id');
+  const timestamp = headers.get('webhook-timestamp') || headers.get('svix-timestamp');
+  const signature = headers.get('webhook-signature') || headers.get('svix-signature');
+  if (!id || !timestamp || !signature) return 'no_headers';
+
+  const key = Buffer.from(secretRaw.replace(/^whsec_/, ''), 'base64');
+  const signedContent = `${id}.${timestamp}.${rawBody}`;
+  const expected = crypto.createHmac('sha256', key).update(signedContent).digest('base64');
+
+  // L'en-tête peut contenir plusieurs signatures: "v1,xxx v1,yyy".
+  const provided = signature.split(' ').map((p) => p.split(',').pop());
+  const match = provided.some((sig) => {
+    try {
+      return (
+        sig &&
+        sig.length === expected.length &&
+        crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
+      );
+    } catch {
+      return false;
+    }
+  });
+  return match ? 'ok' : 'invalid';
 }
 
 /** Cherche récursivement le 1er email dans l'objet (insensible à la structure). */
@@ -41,17 +76,21 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
 
-  // Sécurité optionnelle : ?key=<SPIFFY_WEBHOOK_SECRET>
-  const secret = process.env.SPIFFY_WEBHOOK_SECRET;
-  if (secret) {
-    const url = new URL(req.url);
-    if (url.searchParams.get('key') !== secret) {
-      return jsonResponse(401, { error: 'unauthorized' });
-    }
-  }
-
   try {
-    const body = await req.json().catch(() => ({}));
+    const rawBody = await req.text();
+
+    // Vérification de signature Spiffy/Svix.
+    const verdict = verifySignature(rawBody, req.headers);
+    if (verdict === 'invalid') {
+      console.warn('spiffy-webhook: signature invalide, rejet');
+      return jsonResponse(401, { error: 'invalid_signature' });
+    }
+    if (verdict === 'no_headers') {
+      console.warn('spiffy-webhook: en-têtes signature absents, fail-open');
+    }
+
+    let body = {};
+    try { body = JSON.parse(rawBody); } catch { body = {}; }
     const data = body?.data || body;
     const email = (findEmail(body) || '').trim().toLowerCase();
 
