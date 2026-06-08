@@ -494,7 +494,9 @@ async function fetchAllRegistrations() {
   while (true) {
     const qs = new URLSearchParams({
       select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,purchased_at,first_payment_amount,refunded,refunded_at,refund_amount,created_at,last_event_at',
-      order: 'session_date.desc',
+      // Ordre déterministe (token unique en tiebreaker) : sinon la pagination
+      // OFFSET sur session_date non-unique renvoie des lignes en double entre pages.
+      order: 'session_date.desc,token.asc',
       limit: String(pageSize),
       offset: String(offset),
     });
@@ -511,7 +513,18 @@ async function fetchAllRegistrations() {
     offset += pageSize;
   }
 
-  return { ok: true, error: null, data: out };
+  // Filet anti-doublon : dédup par token (au cas où une ligne aurait été insérée
+  // pendant la pagination).
+  const seen = new Set();
+  const deduped = [];
+  for (const r of out) {
+    const t = r?.token;
+    if (t && seen.has(t)) continue;
+    if (t) seen.add(t);
+    deduped.push(r);
+  }
+
+  return { ok: true, error: null, data: deduped };
 }
 
 export default async (req) => {
