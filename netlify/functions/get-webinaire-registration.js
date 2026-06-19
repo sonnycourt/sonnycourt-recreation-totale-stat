@@ -1,5 +1,6 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
+import { sendMetaEvent } from './lib/meta-capi.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 const MAILERLITE_TIMEOUT_MS = 3000;
@@ -80,6 +81,38 @@ async function fireTikTokPurchase(req, token, row) {
     });
   } catch (e) {
     console.error('TikTok CAPI CompletePayment:', e);
+  }
+}
+
+/**
+ * Idem côté Meta : envoie la vente (Purchase) au CAPI Meta, uniquement pour le
+ * trafic Meta. event_id déterministe (purchase-<token>) => dédoublonné.
+ * Valeur paramétrable via META_PURCHASE_VALUE_EUR (défaut 388 = 1er paiement).
+ */
+async function fireMetaPurchase(req, token, row) {
+  if (!row || row.traffic_source !== 'meta_ad') return;
+  const ip =
+    req.headers.get('x-nf-client-connection-ip') ||
+    (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+    undefined;
+  const ua = req.headers.get('user-agent') || undefined;
+  const value = Number(process.env.META_PURCHASE_VALUE_EUR) || 388;
+  try {
+    await sendMetaEvent({
+      eventName: 'Purchase',
+      eventId: 'purchase-' + token,
+      email: row.email,
+      phone: row.telephone,
+      ip,
+      userAgent: ua,
+      fbc: row.meta_fbc,
+      fbp: row.meta_fbp,
+      value,
+      currency: 'EUR',
+      contentName: 'Esprit Subconscient 2.0',
+    });
+  } catch (e) {
+    console.error('Meta CAPI Purchase:', e);
   }
 }
 
@@ -226,7 +259,7 @@ export default async (req) => {
     }
 
     const res = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,telephone,purchased,attended_live,traffic_source,tt_click_id,whatsapp_group_number,whatsapp_link`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,creneau,session_date,session_ends_at,offre_expires_at,statut,email,telephone,purchased,attended_live,traffic_source,tt_click_id,meta_fbc,meta_fbp,whatsapp_group_number,whatsapp_link`,
     );
 
     if (!res.ok) {
@@ -245,6 +278,8 @@ export default async (req) => {
         syncPurchasedFlag(token);
         // 1re détection de la vente => event TikTok (trafic TikTok uniquement).
         await fireTikTokPurchase(req, token, row);
+        // Idem côté Meta (trafic Meta uniquement).
+        await fireMetaPurchase(req, token, row);
       }
     }
     const whatsapp = await resolveAndAssignWhatsappGroup(token, row);

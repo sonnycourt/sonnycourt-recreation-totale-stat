@@ -1,5 +1,6 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
+import { sendMetaEvent } from './lib/meta-capi.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'session_joined',
@@ -197,6 +198,52 @@ async function maybeFireTikTokFunnelEvent(req, eventName, row, patch) {
   }
 }
 
+/**
+ * Idem mid-funnel côté Meta (CAPI), uniquement pour le trafic Meta.
+ * Events custom AttendedLive / QualifiedView. event_id déterministe par token.
+ */
+async function maybeFireMetaFunnelEvent(req, eventName, row, patch) {
+  if (!row || row.traffic_source !== 'meta_ad') return;
+
+  let metaEvent = null;
+  let eventId = null;
+  if (eventName === 'session_joined' && !row.attended_live) {
+    metaEvent = 'AttendedLive';
+    eventId = 'attendedlive-' + row.token;
+  } else if (eventName === 'video_checkpoint') {
+    const prev = toPositiveInt(row.watch_max_minutes);
+    const next = toPositiveInt(patch.watch_max_minutes);
+    if (prev < 81 && next >= 81) {
+      metaEvent = 'QualifiedView';
+      eventId = 'qualview-' + row.token;
+    }
+  }
+  if (!metaEvent) return;
+
+  const ip =
+    req.headers.get('x-nf-client-connection-ip') ||
+    (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+    undefined;
+  const ua = req.headers.get('user-agent') || undefined;
+
+  try {
+    await sendMetaEvent({
+      eventName: metaEvent,
+      eventId,
+      email: row.email,
+      phone: row.telephone,
+      ip,
+      userAgent: ua,
+      fbc: row.meta_fbc,
+      fbp: row.meta_fbp,
+      url: 'https://sonnycourt.com/meta/masterclass',
+      contentName: 'Masterclass ES2',
+    });
+  } catch (e) {
+    console.error('Meta funnel event:', e);
+  }
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -211,7 +258,7 @@ export default async (req) => {
     if (!ALLOWED_EVENTS.has(eventName)) return jsonResponse(400, { error: 'Event invalide' });
 
     const regRes = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,telephone,watch_max_minutes,session_date,traffic_source,tt_click_id,attended_live&limit=1`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,telephone,watch_max_minutes,session_date,traffic_source,tt_click_id,meta_fbc,meta_fbp,attended_live&limit=1`,
     );
     if (!regRes.ok) return jsonResponse(500, { error: 'Erreur lecture base' });
     if (!Array.isArray(regRes.data) || regRes.data.length === 0) {
@@ -232,6 +279,8 @@ export default async (req) => {
 
     // Event mid-funnel TikTok (présence live / visionnage 81+ min). Awaité.
     await maybeFireTikTokFunnelEvent(req, eventName, row, patch);
+    // Idem côté Meta.
+    await maybeFireMetaFunnelEvent(req, eventName, row, patch);
 
     // Best-effort mirror to MailerLite. Never block client response.
     void mirrorToMailerLite(row.email || '', eventName, patch);

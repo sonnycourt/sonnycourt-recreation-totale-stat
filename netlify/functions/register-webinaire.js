@@ -8,6 +8,7 @@ import {
 import { upsertWebinaireSubscriber, getWebinaireGroupEnv } from './lib/mailerlite-webinaire.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
+import { sendMetaEvent } from './lib/meta-capi.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -61,7 +62,7 @@ export default async (req) => {
     const hasPhonePayload = Boolean(telephone && pays);
 
     // Tracking source pub (vide = organique → comportement inchangé).
-    const ALLOWED_TRAFFIC_SOURCES = ['tiktok_ad', 'instagram_ad'];
+    const ALLOWED_TRAFFIC_SOURCES = ['tiktok_ad', 'instagram_ad', 'meta_ad'];
     const rawSource = String(body?.traffic_source || '').trim().toLowerCase();
     const trafficSource = ALLOWED_TRAFFIC_SOURCES.includes(rawSource) ? rawSource : null;
     const trim255 = (v) => (v ? String(v).trim().slice(0, 255) || null : null);
@@ -72,6 +73,9 @@ export default async (req) => {
     const utmTerm = trim255(body?.utm_term);
     const ttClickId = trim255(body?.tt_click_id);
     const ttEventId = trim255(body?.tt_event_id);
+    const metaFbc = trim255(body?.meta_fbc);
+    const metaFbp = trim255(body?.meta_fbp);
+    const metaEventId = trim255(body?.meta_event_id);
 
     // Données pour le CAPI TikTok (matching côté serveur).
     const clientIp =
@@ -100,6 +104,27 @@ export default async (req) => {
         });
       } catch (e) {
         console.error('TikTok CAPI CompleteRegistration:', e);
+      }
+    };
+
+    // Idem côté Meta : event Lead à l'inscription complète, pour le trafic Meta.
+    const fireMetaLead = async () => {
+      if (trafficSource !== 'meta_ad' || !hasPhonePayload) return;
+      try {
+        await sendMetaEvent({
+          eventName: 'Lead',
+          eventId: metaEventId,
+          email,
+          phone: telephone,
+          ip: clientIp,
+          userAgent: clientUa,
+          fbc: metaFbc,
+          fbp: metaFbp,
+          url: pageUrl,
+          contentName: 'Masterclass ES2',
+        });
+      } catch (e) {
+        console.error('Meta CAPI Lead:', e);
       }
     };
 
@@ -182,6 +207,7 @@ export default async (req) => {
       }
 
       await fireTikTokCompleteRegistration();
+      await fireMetaLead();
       return jsonResponse(200, buildAlreadyRegisteredResponse(e));
     }
 
@@ -216,6 +242,8 @@ export default async (req) => {
       utm_content: utmContent,
       utm_term: utmTerm,
       tt_click_id: ttClickId,
+      meta_fbc: metaFbc,
+      meta_fbp: metaFbp,
     };
 
     const ins = await supabasePost('webinaire_registrations', row, { prefer: 'return=minimal' });
@@ -288,6 +316,7 @@ export default async (req) => {
     }
 
     await fireTikTokCompleteRegistration();
+    await fireMetaLead();
     return jsonResponse(200, {
       success: true,
       token,

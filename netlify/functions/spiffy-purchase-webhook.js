@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
+import { sendMetaEvent } from './lib/meta-capi.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -105,7 +106,7 @@ export default async (req) => {
     const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
 
     const reg = await supabaseGet(
-      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id&limit=1`,
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp&limit=1`,
     );
     const row = reg.ok && Array.isArray(reg.data) ? reg.data[0] : null;
     if (!row) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
@@ -137,6 +138,21 @@ export default async (req) => {
         phone: row.telephone,
         ttclid: row.tt_click_id,
         value: amount || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388,
+        currency: 'EUR',
+        contentName: 'Esprit Subconscient 2.0',
+      });
+    }
+
+    // --- CAPI Meta : seulement la VENTE d'un lead Meta ---
+    if (isSale && row.traffic_source === 'meta_ad') {
+      await sendMetaEvent({
+        eventName: 'Purchase',
+        eventId: 'purchase-' + row.token, // même id que la détection MailerLite => dédup
+        email: row.email,
+        phone: row.telephone,
+        fbc: row.meta_fbc,
+        fbp: row.meta_fbp,
+        value: amount || Number(process.env.META_PURCHASE_VALUE_EUR) || 388,
         currency: 'EUR',
         contentName: 'Esprit Subconscient 2.0',
       });
