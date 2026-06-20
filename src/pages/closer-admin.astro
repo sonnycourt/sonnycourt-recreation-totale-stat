@@ -272,6 +272,100 @@
         .meta-item b { color: var(--ink); font-weight: 700; }
         .meta-k { color: var(--muted); }
 
+        /* === Onglets === */
+        .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+
+        .tab {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            border-radius: 11px;
+            padding: 9px 16px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab.is-active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+        .tab-count {
+            background: var(--primary);
+            color: #fff;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 1px 7px;
+        }
+
+        /* === Cartes candidature === */
+        .cand-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+
+        .cand-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: baseline;
+            margin-bottom: 12px;
+        }
+
+        .cand-name { font-size: 1.1rem; font-weight: 800; }
+        .cand-via { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-left: 8px; }
+        .cand-when { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+
+        .cand-contact {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            font-size: 0.88rem;
+            margin-bottom: 14px;
+        }
+        .cand-contact a { color: var(--primary-dark); text-decoration: none; font-weight: 600; }
+        .cand-contact span { color: var(--ink-soft); }
+
+        .cand-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+
+        .cand-tag {
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 11px;
+            background: #f8fafc;
+            color: var(--ink-soft);
+        }
+        .cand-tag b { color: var(--ink); font-weight: 700; }
+        .cand-tag.is-yes { background: var(--green-soft); border-color: #bbf7d0; }
+        .cand-tag.is-no { background: #fef2f2; border-color: #fecaca; }
+        .cand-tag.is-maybe { background: var(--accent-soft); border-color: #bfdbfe; }
+
+        .cand-block { margin-top: 12px; }
+        .cand-block .q {
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .cand-block .a {
+            font-size: 0.92rem;
+            color: var(--ink-soft);
+            white-space: pre-wrap;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+        .cand-block .a a { color: var(--primary-dark); font-weight: 600; }
+
         @media (max-width: 520px) {
             .summary { grid-template-columns: 1fr 1fr 1fr; }
             .create-form .btn { width: 100%; }
@@ -307,32 +401,46 @@
                 <button id="logout-btn" class="btn btn-ghost btn-sm" type="button">Déconnexion</button>
             </div>
 
-            <div class="card create-card">
-                <h2>Créer un code</h2>
-                <form id="create-form" class="create-form">
-                    <input type="text" id="create-label" placeholder="Nom du closer (ex. Brice Malt)" autocomplete="off" required />
-                    <button type="submit" id="create-btn" class="btn">Générer le code</button>
-                </form>
-                <p id="create-error" class="err" role="alert"></p>
-                <div id="new-code" class="new-code">
-                    <span class="new-code-label">Nouveau code pour <b id="new-code-name"></b> :</span>
-                    <span style="display:inline-flex;align-items:center;gap:10px;">
-                        <span class="new-code-val" id="new-code-val"></span>
-                        <button class="copy-btn" id="new-code-copy" type="button" title="Copier" aria-label="Copier le code">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        </button>
-                    </span>
+            <div class="tabs">
+                <button class="tab is-active" id="tab-codes" type="button">Codes</button>
+                <button class="tab" id="tab-candidatures" type="button">Candidatures <span class="tab-count" id="tab-cand-count" hidden>0</span></button>
+            </div>
+
+            <!-- Panneau Codes -->
+            <div id="panel-codes" class="panel">
+                <div class="card create-card">
+                    <h2>Créer un code</h2>
+                    <form id="create-form" class="create-form">
+                        <input type="text" id="create-label" placeholder="Nom du closer (ex. Brice Malt)" autocomplete="off" required />
+                        <button type="submit" id="create-btn" class="btn">Générer le code</button>
+                    </form>
+                    <p id="create-error" class="err" role="alert"></p>
+                    <div id="new-code" class="new-code">
+                        <span class="new-code-label">Nouveau code pour <b id="new-code-name"></b> :</span>
+                        <span style="display:inline-flex;align-items:center;gap:10px;">
+                            <span class="new-code-val" id="new-code-val"></span>
+                            <button class="copy-btn" id="new-code-copy" type="button" title="Copier" aria-label="Copier le code">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </span>
+                    </div>
                 </div>
+
+                <div class="summary">
+                    <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
+                    <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>
+                    <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Pas venus</div></div>
+                </div>
+
+                <div id="codes" class="codes"></div>
+                <p id="codes-empty" class="boot" hidden>Aucun code pour l'instant. Créez-en un ci-dessus.</p>
             </div>
 
-            <div class="summary">
-                <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
-                <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>
-                <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Pas venus</div></div>
+            <!-- Panneau Candidatures -->
+            <div id="panel-candidatures" class="panel" hidden>
+                <div id="candidatures" class="codes"></div>
+                <p id="cand-empty" class="boot" hidden>Aucune candidature pour l'instant.</p>
             </div>
-
-            <div id="codes" class="codes"></div>
-            <p id="codes-empty" class="boot" hidden>Aucun code pour l'instant. Créez-en un ci-dessus.</p>
         </div>
     </div>
 
@@ -464,12 +572,89 @@
                 } catch (e) { /* noop */ }
             }
 
+            // --- Candidatures ---
+            function candTag(label, value) {
+                var v = (value || '').toLowerCase();
+                var cls = v === 'oui' ? 'is-yes' : (v === 'non' ? 'is-no' : (value ? 'is-maybe' : ''));
+                return '<span class="cand-tag ' + cls + '">' + label + ' : <b>' + esc(value || '—') + '</b></span>';
+            }
+            function linkify(url) {
+                if (/^https?:\/\//i.test(url)) {
+                    return '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + esc(url) + '</a>';
+                }
+                return esc(url || '—');
+            }
+            function renderCandidatures(list) {
+                var host = document.getElementById('candidatures');
+                var empty = document.getElementById('cand-empty');
+                var countEl = document.getElementById('tab-cand-count');
+                countEl.textContent = list.length;
+                countEl.hidden = list.length === 0;
+
+                if (!list.length) { host.innerHTML = ''; empty.hidden = false; return; }
+                empty.hidden = true;
+
+                host.innerHTML = list.map(function (c) {
+                    return '' +
+                        '<div class="cand-card">' +
+                            '<div class="cand-top">' +
+                                '<div class="cand-name">' + esc(c.full_name) +
+                                    (c.code_label ? '<span class="cand-via">via ' + esc(c.code_label) + '</span>' : '') +
+                                '</div>' +
+                                '<div class="cand-when">' + fmtDate(c.created_at) + '</div>' +
+                            '</div>' +
+                            '<div class="cand-contact">' +
+                                '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' +
+                                '<span>' + esc(c.phone) + '</span>' +
+                            '</div>' +
+                            '<div class="cand-tags">' +
+                                candTag('High-ticket 1500€+', c.closed_highticket) +
+                                candTag('100% résultat', c.ok_commission) +
+                                candTag('Enregistrement', c.ok_recording) +
+                                candTag('Dispo 3 juil', c.available_jul3) +
+                            '</div>' +
+                            '<div class="cand-block"><div class="q">Résultats concrets</div><div class="a">' + esc(c.results) + '</div></div>' +
+                            '<div class="cand-block"><div class="q">Échantillon audio</div><div class="a">' + linkify(c.audio_url) + '</div></div>' +
+                            '<div class="cand-block"><div class="q">Pourquoi cette opportunité</div><div class="a">' + esc(c.motivation) + '</div></div>' +
+                        '</div>';
+                }).join('');
+            }
+            window.__renderCloserCandidatures = renderCandidatures; // exposé pour aperçu/démo
+
+            async function loadCandidatures() {
+                try {
+                    var r = await fetch(API + '?resource=candidatures', { credentials: 'same-origin' });
+                    if (r.status === 401) { showView('login'); return; }
+                    var d = await r.json();
+                    if (!r.ok) return;
+                    renderCandidatures(d.candidatures || []);
+                } catch (e) { /* noop */ }
+            }
+
+            function enterAdmin() {
+                showView('admin');
+                loadCodes();
+                loadCandidatures();
+            }
+
+            // Onglets
+            function switchTab(which) {
+                var isCodes = which === 'codes';
+                document.getElementById('tab-codes').classList.toggle('is-active', isCodes);
+                document.getElementById('tab-candidatures').classList.toggle('is-active', !isCodes);
+                document.getElementById('panel-codes').hidden = !isCodes;
+                document.getElementById('panel-candidatures').hidden = isCodes;
+                if (!isCodes) loadCandidatures();
+            }
+            document.getElementById('tab-codes').addEventListener('click', function () { switchTab('codes'); });
+            document.getElementById('tab-candidatures').addEventListener('click', function () { switchTab('candidatures'); });
+
             // --- Boot : vérifie la session admin ---
             async function init() {
                 try {
                     var r = await fetch(SESSION, { credentials: 'same-origin' });
                     var d = r.ok ? await r.json() : {};
-                    if (d && d.authenticated) { showView('admin'); loadCodes(); return; }
+                    if (d && d.authenticated) { enterAdmin(); return; }
                 } catch (e) { /* noop */ }
                 showView('login');
             }
@@ -490,7 +675,7 @@
                     });
                     var d = {};
                     try { d = await r.json(); } catch (e2) { /* noop */ }
-                    if (r.ok) { showView('admin'); loadCodes(); return; }
+                    if (r.ok) { enterAdmin(); return; }
                     if (d.code === 'SETUP_REQUIRED') {
                         errEl.textContent = 'Aucun mot de passe admin défini. Configure-le d\'abord sur /es-cockpit.';
                     } else {

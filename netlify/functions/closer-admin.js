@@ -28,6 +28,16 @@ export default async (req) => {
   if (!session) return json(401, { error: 'Non autorisé' });
 
   if (req.method === 'GET') {
+    const resource = new URL(req.url).searchParams.get('resource');
+
+    if (resource === 'candidatures') {
+      const r = await supabaseGet('closer_candidatures?select=*&order=created_at.desc');
+      if (!r.ok) {
+        return json(500, { error: 'Table absente ? Exécute sql/closer_candidatures.sql une fois.' });
+      }
+      return json(200, { candidatures: Array.isArray(r.data) ? r.data : [] });
+    }
+
     const r = await supabaseGet(
       'closer_access_codes?select=id,label,code,active,visit_count,first_visit_at,last_visit_at,created_at&order=created_at.desc'
     );

@@ -1,0 +1,655 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidater — Closer ES2</title>
+    <meta name="description" content="Candidature closer high-ticket — ES2.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --accent-soft: #eff6ff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: clamp(40px, 7vw, 72px) 22px clamp(48px, 8vw, 80px);
+        }
+
+        .form-head { margin-bottom: clamp(28px, 5vw, 40px); }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.18;
+            margin-bottom: 14px;
+        }
+
+        .form-sub {
+            font-size: clamp(1rem, 2.2vw, 1.1rem);
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+
+        .group-label {
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: clamp(26px, 4vw, 36px) 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .field { margin-bottom: 20px; border: none; }
+
+        .field label,
+        .field legend {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .req { color: var(--primary); }
+
+        .field input[type="text"],
+        .field input[type="email"],
+        .field input[type="url"],
+        .field input[type="tel"],
+        .field textarea {
+            width: 100%;
+            padding: 13px 15px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+            resize: vertical;
+        }
+
+        .field input:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+
+        .field.has-error input,
+        .field.has-error textarea,
+        .field.has-error .opts {
+            border-color: #dc2626;
+        }
+
+        .help {
+            margin-top: 7px;
+            font-size: 0.82rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        /* Boutons radio segmentés */
+        .opts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .opt {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .opt input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .opt span {
+            display: inline-flex;
+            align-items: center;
+            padding: 11px 18px;
+            border: 2px solid var(--line);
+            border-radius: 11px;
+            background: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+            transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
+
+        .opt input:checked + span {
+            border-color: var(--primary);
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .opt input:focus-visible + span {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .form-error {
+            min-height: 1.2em;
+            margin: 6px 0 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 22px;
+            padding: 16px 30px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .cta-button:hover { transform: translateY(-2px); }
+        .cta-button:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+        /* Confirmation */
+        .confirm {
+            text-align: center;
+            padding: clamp(36px, 6vw, 56px) clamp(20px, 4vw, 36px);
+            border: 1px solid #bbf7d0;
+            border-radius: 18px;
+            background: #f0fdf4;
+        }
+
+        .confirm-ic {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #16a34a;
+            color: #fff;
+        }
+
+        .confirm-ic svg { width: 28px; height: 28px; }
+
+        .confirm h2 {
+            font-size: clamp(1.3rem, 3vw, 1.6rem);
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 10px;
+        }
+
+        .confirm p {
+            font-size: 1rem;
+            color: var(--ink-soft);
+            line-height: 1.6;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        [hidden] { display: none !important; }
+
+        /* === Gate d'accès (identique à /closer) === */
+        .closer-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .closer-gate.is-hidden { display: none; }
+
+        .closer-gate-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+
+        .closer-gate-logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+        }
+
+        .closer-gate-logo svg { width: 24px; height: 24px; }
+
+        .closer-gate-card h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .closer-gate-hint {
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .closer-gate-form { display: none; }
+        .closer-gate-form.is-ready { display: block; }
+
+        .closer-gate-input {
+            width: 100%;
+            padding: 14px 16px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .closer-gate-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
+        .closer-gate-input::placeholder {
+            letter-spacing: normal;
+            text-transform: none;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .closer-gate-error {
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .closer-gate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .closer-gate-btn:hover { transform: translateY(-1px); }
+        .closer-gate-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+        .closer-gate-spinner {
+            width: 38px;
+            height: 38px;
+            margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: closerSpin 0.8s linear infinite;
+        }
+
+        .closer-gate-spinner.is-hidden { display: none; }
+
+        @keyframes closerSpin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Gate d'accès (même protection que /closer) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Accès sur invitation</h1>
+            <p class="closer-gate-hint">Entrez votre code d'accès personnel pour candidater.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-input" class="closer-gate-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Votre code" aria-label="Code d'accès" />
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit">Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-access';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var input = document.getElementById('closer-gate-input');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+
+            document.body.style.overflow = 'hidden';
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                try { input.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* fonction indisponible -> demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var code = (input.value || '').trim();
+                if (!code) { err.textContent = 'Entrez votre code.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(ENDPOINT, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Code invalide.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                btn.disabled = false;
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
+    <div class="wrap">
+        <div id="cand-confirm" class="confirm" hidden>
+            <div class="confirm-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2>Merci.</h2>
+            <p>Si votre profil correspond, vous aurez un retour rapide pour un premier échange. On lit tout, on répond aux profils qui matchent.</p>
+        </div>
+
+        <div id="cand-wrap">
+            <div class="form-head">
+                <span class="eyebrow">Candidature closer · high-ticket</span>
+                <h1>Candidater — Closer ES2</h1>
+                <p class="form-sub">Quelques questions pour voir si on est faits pour travailler ensemble. Réponses honnêtes, pas de blabla : on filtre sur les résultats réels, pas sur les beaux profils.</p>
+            </div>
+
+            <form id="cand-form" novalidate>
+                <p class="group-label">Contact</p>
+
+                <div class="field" data-field="full_name">
+                    <label for="f-name">Prénom et nom <span class="req">*</span></label>
+                    <input id="f-name" name="full_name" type="text" autocomplete="name" required />
+                </div>
+
+                <div class="field" data-field="email">
+                    <label for="f-email">Email <span class="req">*</span></label>
+                    <input id="f-email" name="email" type="email" autocomplete="email" required />
+                </div>
+
+                <div class="field" data-field="phone">
+                    <label for="f-phone">Téléphone / WhatsApp <span class="req">*</span></label>
+                    <input id="f-phone" name="phone" type="text" inputmode="tel" autocomplete="tel" required />
+                </div>
+
+                <p class="group-label">Tri rapide</p>
+
+                <fieldset class="field" data-field="closed_highticket">
+                    <legend>Avez-vous déjà closé du high-ticket (1500€+) au téléphone ? <span class="req">*</span></legend>
+                    <div class="opts">
+                        <label class="opt"><input type="radio" name="closed_highticket" value="Oui"><span>Oui</span></label>
+                        <label class="opt"><input type="radio" name="closed_highticket" value="Non"><span>Non</span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="field" data-field="ok_commission">
+                    <legend>À l'aise avec une rémunération 100% au résultat (variable pur, paiement sur l'encaissé) ? <span class="req">*</span></legend>
+                    <div class="opts">
+                        <label class="opt"><input type="radio" name="ok_commission" value="Oui"><span>Oui</span></label>
+                        <label class="opt"><input type="radio" name="ok_commission" value="Non"><span>Non</span></label>
+                        <label class="opt"><input type="radio" name="ok_commission" value="J'ai des questions"><span>J'ai des questions</span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="field" data-field="ok_recording">
+                    <legend>OK pour enregistrer vos appels et les partager pour analyse ? <span class="req">*</span></legend>
+                    <div class="opts">
+                        <label class="opt"><input type="radio" name="ok_recording" value="Oui"><span>Oui</span></label>
+                        <label class="opt"><input type="radio" name="ok_recording" value="Non"><span>Non</span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="field" data-field="available_jul3">
+                    <legend>Disponible pour une première mission le vendredi 3 juillet ? <span class="req">*</span></legend>
+                    <div class="opts">
+                        <label class="opt"><input type="radio" name="available_jul3" value="Oui"><span>Oui</span></label>
+                        <label class="opt"><input type="radio" name="available_jul3" value="Non"><span>Non</span></label>
+                        <label class="opt"><input type="radio" name="available_jul3" value="Après le 3"><span>Après le 3</span></label>
+                    </div>
+                </fieldset>
+
+                <p class="group-label">Preuve &amp; voix</p>
+
+                <div class="field" data-field="results">
+                    <label for="f-results">Vos résultats concrets en closing <span class="req">*</span></label>
+                    <textarea id="f-results" name="results" rows="4" required></textarea>
+                    <p class="help">Chiffres réels : nombre de ventes, CA généré, taux de close et type de lead. On préfère « j'ai closé X ventes à 3000€ sur du lead chaud » à « je maîtrise les techniques de closing ».</p>
+                </div>
+
+                <div class="field" data-field="audio_url">
+                    <label for="f-audio">Votre échantillon audio <span class="req">*</span></label>
+                    <input id="f-audio" name="audio_url" type="url" inputmode="url" placeholder="https://..." required />
+                    <p class="help">Un extrait d'un de vos appels de closing (1-2 min, anonymisé si besoin), OU un audio de 60 secondes où vous vous présentez et pitchez pourquoi vous closez bien. Déposez-le sur un lien partageable (Google Drive, Loom, fichier…). C'est ce qu'on écoute en premier.</p>
+                </div>
+
+                <p class="group-label">L'humain</p>
+
+                <div class="field" data-field="motivation">
+                    <label for="f-motiv">Pourquoi cette opportunité vous parle ? <span class="req">*</span></label>
+                    <textarea id="f-motiv" name="motivation" rows="3" required></textarea>
+                </div>
+
+                <p id="cand-error" class="form-error" role="alert"></p>
+                <button id="cand-submit" type="submit" class="cta-button">Envoyer ma candidature</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function () {
+            var API = '/.netlify/functions/closer-candidature';
+            var form = document.getElementById('cand-form');
+            var wrap = document.getElementById('cand-wrap');
+            var confirmBox = document.getElementById('cand-confirm');
+            var errEl = document.getElementById('cand-error');
+            var btn = document.getElementById('cand-submit');
+
+            var RADIOS = ['closed_highticket', 'ok_commission', 'ok_recording', 'available_jul3'];
+            var TEXTS = ['full_name', 'email', 'phone', 'results', 'audio_url', 'motivation'];
+
+            function fieldEl(name) {
+                return form.querySelector('[data-field="' + name + '"]');
+            }
+            function clearErrors() {
+                form.querySelectorAll('.has-error').forEach(function (el) { el.classList.remove('has-error'); });
+                errEl.textContent = '';
+            }
+            function markError(name) {
+                var el = fieldEl(name);
+                if (el) el.classList.add('has-error');
+            }
+            function radioValue(name) {
+                var r = form.querySelector('input[name="' + name + '"]:checked');
+                return r ? r.value : '';
+            }
+            function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+            function isUrl(s) { try { var u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; } catch (e) { return false; } }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                clearErrors();
+
+                var data = {};
+                TEXTS.forEach(function (n) {
+                    var inp = form.querySelector('[name="' + n + '"]');
+                    data[n] = (inp.value || '').trim();
+                });
+                RADIOS.forEach(function (n) { data[n] = radioValue(n); });
+
+                var bad = [];
+                if (!data.full_name) bad.push('full_name');
+                if (!isEmail(data.email)) bad.push('email');
+                if (!data.phone) bad.push('phone');
+                RADIOS.forEach(function (n) { if (!data[n]) bad.push(n); });
+                if (!data.results) bad.push('results');
+                if (!isUrl(data.audio_url)) bad.push('audio_url');
+                if (!data.motivation) bad.push('motivation');
+
+                if (bad.length) {
+                    bad.forEach(markError);
+                    errEl.textContent = bad.indexOf('email') > -1 || bad.indexOf('audio_url') > -1
+                        ? 'Vérifiez les champs surlignés (email / lien audio valides requis).'
+                        : 'Merci de remplir tous les champs obligatoires.';
+                    var first = fieldEl(bad[0]);
+                    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Envoi…';
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    if (r.ok && d.ok) {
+                        wrap.hidden = true;
+                        confirmBox.hidden = false;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        return;
+                    }
+                    if (r.status === 401) {
+                        errEl.textContent = (d && d.error) || 'Accès expiré. Rechargez la page et réentrez votre code.';
+                    } else if (d && d.fields) {
+                        d.fields.forEach(markError);
+                        errEl.textContent = (d && d.error) || 'Champs invalides.';
+                    } else {
+                        errEl.textContent = (d && d.error) || 'Envoi impossible. Réessayez.';
+                    }
+                } catch (e3) {
+                    errEl.textContent = 'Erreur réseau. Réessayez.';
+                }
+                btn.disabled = false;
+                btn.textContent = prev;
+            });
+        })();
+    </script>
+</body>
+</html>
