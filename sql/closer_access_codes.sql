@@ -9,8 +9,12 @@ create table if not exists public.closer_access_codes (
   visit_count integer not null default 0,
   first_visit_at timestamptz,
   last_visit_at timestamptz,
+  consent_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- Si la table existe déjà : ajoute la colonne de consentement confidentialité.
+alter table public.closer_access_codes add column if not exists consent_at timestamptz;
 
 comment on table public.closer_access_codes is 'Codes d''accès uniques à /closer + tracking visites. Accès uniquement via Netlify Functions + service role.';
 

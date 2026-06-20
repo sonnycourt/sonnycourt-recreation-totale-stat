@@ -39,7 +39,7 @@ export default async (req) => {
     }
 
     const r = await supabaseGet(
-      'closer_access_codes?select=id,label,code,active,visit_count,first_visit_at,last_visit_at,created_at&order=created_at.desc'
+      'closer_access_codes?select=id,label,code,active,visit_count,first_visit_at,last_visit_at,consent_at,created_at&order=created_at.desc'
     );
     if (!r.ok) {
       return json(500, { error: 'Table absente ? Exécute sql/closer_access_codes.sql une fois.' });

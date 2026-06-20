@@ -79,13 +79,15 @@ async function clearRl(req) {
 }
 
 /** Incrémente le compteur (throttle) + maj des dates de visite. */
-async function recordVisit(row, fresh) {
+async function recordVisit(row, fresh, consent) {
   const nowIso = new Date().toISOString();
   const patch = { last_visit_at: nowIso };
   if (!row.first_visit_at) patch.first_visit_at = nowIso;
   const last = row.last_visit_at ? Date.parse(row.last_visit_at) : 0;
   const shouldCount = fresh || !last || Date.now() - last > VISIT_THROTTLE_MS;
   if (shouldCount) patch.visit_count = (Number(row.visit_count) || 0) + 1;
+  // Trace de l'acceptation de confidentialité (première fois)
+  if (consent && !row.consent_at) patch.consent_at = nowIso;
   await supabasePatch('closer_access_codes', `id=eq.${Number(row.id)}`, patch);
 }
 
@@ -101,12 +103,12 @@ export default async (req) => {
     if (!data || !Number.isInteger(data.cid)) return json(200, { authenticated: false });
 
     const r = await supabaseGet(
-      `closer_access_codes?id=eq.${Number(data.cid)}&active=eq.true&select=id,label,active,visit_count,first_visit_at,last_visit_at`
+      `closer_access_codes?id=eq.${Number(data.cid)}&active=eq.true&select=id,label,active,visit_count,first_visit_at,last_visit_at,consent_at`
     );
     const rows = Array.isArray(r.data) ? r.data : [];
     if (!r.ok || rows.length === 0) return json(200, { authenticated: false });
 
-    await recordVisit(rows[0], false);
+    await recordVisit(rows[0], false, false);
     return json(200, { authenticated: true });
   }
 
@@ -127,6 +129,11 @@ export default async (req) => {
       return json(400, { error: 'Requête invalide' });
     }
 
+    // Consentement confidentialité obligatoire (case cochée côté client, vérifiée ici)
+    if (body.consent !== true) {
+      return json(400, { error: 'Vous devez accepter la confidentialité.' });
+    }
+
     const code = (typeof body.code === 'string' ? body.code : '').trim().toUpperCase();
     if (!code || !CODE_RE.test(code)) {
       await recordRlFailure(req);
@@ -134,7 +141,7 @@ export default async (req) => {
     }
 
     const r = await supabaseGet(
-      `closer_access_codes?code=eq.${encodeURIComponent(code)}&active=eq.true&select=id,label,active,visit_count,first_visit_at,last_visit_at`
+      `closer_access_codes?code=eq.${encodeURIComponent(code)}&active=eq.true&select=id,label,active,visit_count,first_visit_at,last_visit_at,consent_at`
     );
     const rows = Array.isArray(r.data) ? r.data : [];
     if (!r.ok || rows.length === 0) {
@@ -143,7 +150,7 @@ export default async (req) => {
     }
 
     const row = rows[0];
-    await recordVisit(row, true);
+    await recordVisit(row, true, true);
     await clearRl(req);
 
     const token = signCloserToken(secret, TTL_MS, Number(row.id));
