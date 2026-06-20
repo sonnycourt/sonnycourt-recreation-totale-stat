@@ -16,8 +16,12 @@ create table if not exists public.closer_candidatures (
   results text not null,
   audio_url text not null,
   motivation text not null,
+  status text not null default 'nouveau',   -- nouveau | top | plus_tard | poubelle
   created_at timestamptz not null default now()
 );
+
+-- Si la table existe déjà : ajoute la colonne de tri.
+alter table public.closer_candidatures add column if not exists status text not null default 'nouveau';
 
 comment on table public.closer_candidatures is 'Candidatures /closer-formulaire. Accès uniquement via Netlify Functions + service role.';
 

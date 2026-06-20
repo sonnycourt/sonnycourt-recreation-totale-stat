@@ -85,6 +85,18 @@ export default async (req) => {
       return json(200, { ok: true });
     }
 
+    if (action === 'cand-status') {
+      const id = Number(body.id);
+      const status = typeof body.status === 'string' ? body.status : '';
+      const allowed = ['nouveau', 'top', 'plus_tard', 'poubelle'];
+      if (!Number.isInteger(id) || !allowed.includes(status)) {
+        return json(400, { error: 'Paramètres invalides' });
+      }
+      const patch = await supabasePatch('closer_candidatures', `id=eq.${id}`, { status });
+      if (!patch.ok) return json(500, { error: 'Mise à jour impossible' });
+      return json(200, { ok: true });
+    }
+
     if (action === 'delete') {
       const id = Number(body.id);
       if (!Number.isInteger(id)) return json(400, { error: 'id invalide' });
