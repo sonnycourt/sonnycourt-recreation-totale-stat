@@ -1812,7 +1812,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         /** @returns {Promise<boolean>} true si la page opt-in doit s’initialiser */
         async function runEntryGate() {
             const url = new URL(window.location.href);
-            if (url.searchParams.get('preview') === 'dev') {
+            const previewMode = url.searchParams.get('preview');
+            // Aperçu sans contrainte de token (dev interne + accès closers).
+            // Force l'affichage de la page même sans token ou avec un ancien token.
+            if (previewMode === 'dev' || previewMode === 'closer') {
                 showMain();
                 return true;
             }
