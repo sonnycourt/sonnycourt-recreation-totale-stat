@@ -814,64 +814,69 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             background: var(--surface);
             padding: clamp(24px, 3.5vw, 38px);
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: clamp(18px, 3vw, 32px);
-            align-items: center;
         }
 
-        @media (min-width: 640px) {
-            .audience {
-                grid-template-columns: auto 1fr;
-            }
-        }
-
-        .audience-photo {
+        .audience-head {
             display: flex;
-            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: clamp(20px, 3vw, 26px);
         }
 
-        .audience-photo img {
-            width: clamp(112px, 22vw, 158px);
-            aspect-ratio: 1 / 1;
-            height: auto;
-            object-fit: cover;
+        .audience-head img {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
             border: 3px solid #fff;
             box-shadow:
                 0 0 0 2px rgba(59, 130, 246, 0.35),
-                0 12px 28px rgba(37, 99, 235, 0.22);
+                0 6px 16px rgba(37, 99, 235, 0.20);
         }
 
+        .audience-name {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+        }
+
+        .audience-role {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* Barre de stats : 3 colonnes égales, pleine largeur, séparateurs */
         .audience-stats {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        @media (min-width: 640px) {
-            .audience-stats {
-                grid-template-columns: repeat(3, 1fr);
-            }
+            grid-template-columns: repeat(3, 1fr);
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            margin-bottom: clamp(20px, 3vw, 26px);
         }
 
         .audience-stat {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
+            padding: clamp(16px, 2.5vw, 20px) clamp(10px, 1.6vw, 16px);
+            text-align: center;
         }
 
-        .audience-stat.is-key {
-            position: relative;
+        .audience-stat + .audience-stat {
+            border-left: 1px solid var(--line);
         }
 
         .audience-num {
-            font-size: clamp(1.5rem, 5vw, 2.1rem);
+            display: block;
+            font-size: clamp(1.4rem, 4.2vw, 2rem);
             font-weight: 900;
             letter-spacing: -0.02em;
             line-height: 1;
             color: var(--ink);
+            margin-bottom: 7px;
+            white-space: nowrap;
         }
 
         .audience-stat.is-key .audience-num {
@@ -879,10 +884,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         .audience-cap {
-            font-size: 0.82rem;
+            display: block;
+            font-size: 0.78rem;
             font-weight: 600;
             color: var(--muted);
-            line-height: 1.35;
+            line-height: 1.4;
         }
 
         .audience p {
@@ -894,6 +900,30 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         .audience p + p {
             margin-top: 12px;
+        }
+
+        @media (max-width: 560px) {
+            .audience-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .audience-stat {
+                text-align: left;
+                padding: 15px 0;
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+            }
+
+            .audience-stat + .audience-stat {
+                border-left: none;
+                border-top: 1px solid var(--line);
+            }
+
+            .audience-num {
+                margin-bottom: 0;
+                min-width: 84px;
+            }
         }
 
         /* === Gate d'accès (mot de passe closer) === */
@@ -1261,27 +1291,29 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
             <!-- Bloc audience / sérieux (MODIF 5) -->
             <div class="audience">
-                <div class="audience-photo">
+                <div class="audience-head">
                     <img src="/media/pages/sonny-pp-blue.webp" alt="Sonny Court" width="1254" height="1254" loading="lazy" decoding="async" />
-                </div>
-                <div class="audience-body">
-                    <div class="audience-stats">
-                        <div class="audience-stat is-key">
-                            <span class="audience-num">~23 M</span>
-                            <span class="audience-cap">de vues chaque mois — du flux frais</span>
-                        </div>
-                        <div class="audience-stat">
-                            <span class="audience-num">~4,3 M</span>
-                            <span class="audience-cap">d'abonnés cumulés (YouTube, Meta, TikTok, Instagram)</span>
-                        </div>
-                        <div class="audience-stat">
-                            <span class="audience-num">8 ans</span>
-                            <span class="audience-cap">de création de contenu dans la niche</span>
-                        </div>
+                    <div>
+                        <span class="audience-name">Sonny Court</span>
+                        <span class="audience-role">Créateur de contenu — développement personnel</span>
                     </div>
-                    <p>8 ans de création. Plusieurs millions d'abonnés à travers les réseaux. Et surtout : près de <strong>23 millions de vues chaque mois</strong>. Autrement dit, un flux de prospects frais qui ne se tarit jamais — et qui ne fait que grandir.</p>
-                    <p>Vous rejoignez un acteur établi de la niche, pas un projet qui démarre. <strong>Vous ne manquerez jamais de leads.</strong></p>
                 </div>
+                <div class="audience-stats">
+                    <div class="audience-stat is-key">
+                        <span class="audience-num">~23 M</span>
+                        <span class="audience-cap">de vues / mois — du flux frais</span>
+                    </div>
+                    <div class="audience-stat">
+                        <span class="audience-num">~4,3 M</span>
+                        <span class="audience-cap">d'abonnés cumulés (4 réseaux)</span>
+                    </div>
+                    <div class="audience-stat">
+                        <span class="audience-num">8 ans</span>
+                        <span class="audience-cap">de création dans la niche</span>
+                    </div>
+                </div>
+                <p>8 ans de création. Plusieurs millions d'abonnés à travers les réseaux (YouTube, Meta, TikTok, Instagram). Et surtout : près de <strong>23 millions de vues chaque mois</strong>. Autrement dit, un flux de prospects frais qui ne se tarit jamais — et qui ne fait que grandir.</p>
+                <p>Vous rejoignez un acteur établi de la niche, pas un projet qui démarre. <strong>Vous ne manquerez jamais de leads.</strong></p>
             </div>
 
             <!-- Bloc projection croissance (MODIF 3) -->
