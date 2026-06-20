@@ -1,0 +1,417 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Le webinaire — Closer ES2</title>
+    <meta name="description" content="Le webinaire que vous vendrez, en entier.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            color-scheme: light only;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --accent-soft: #eff6ff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 880px;
+            margin: 0 auto;
+            padding: clamp(36px, 6vw, 64px) 22px clamp(48px, 8vw, 72px);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.18;
+            margin-bottom: 14px;
+        }
+
+        .lead {
+            font-size: clamp(1rem, 2.2vw, 1.12rem);
+            color: var(--ink-soft);
+            line-height: 1.6;
+            margin-bottom: clamp(24px, 4vw, 34px);
+        }
+
+        .video-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #0f172a;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16);
+        }
+
+        .video-box video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+            object-fit: contain;
+        }
+
+        .video-note {
+            margin-top: 16px;
+            font-size: 0.92rem;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .video-note strong { color: var(--ink-soft); font-weight: 700; }
+
+        .actions {
+            margin-top: clamp(26px, 4vw, 36px);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 34px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cta-button:hover { transform: translateY(-2px); }
+
+        .back-link {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .back-link:hover { color: var(--primary-dark); }
+
+        /* === Gate d'accès (identique à /closer) === */
+        .closer-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .closer-gate.is-hidden { display: none; }
+
+        .closer-gate-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+
+        .closer-gate-logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+        }
+
+        .closer-gate-logo svg { width: 24px; height: 24px; }
+
+        .closer-gate-card h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .closer-gate-hint {
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .closer-gate-form { display: none; }
+        .closer-gate-form.is-ready { display: block; }
+
+        .closer-gate-input {
+            width: 100%;
+            padding: 14px 16px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .closer-gate-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
+        .closer-gate-input::placeholder {
+            letter-spacing: normal;
+            text-transform: none;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .closer-gate-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 16px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .closer-gate-consent input {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .closer-gate-consent span {
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: var(--ink-soft);
+        }
+
+        .closer-gate-error {
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .closer-gate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .closer-gate-btn:hover { transform: translateY(-1px); }
+        .closer-gate-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+        .closer-gate-spinner {
+            width: 38px;
+            height: 38px;
+            margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: closerSpin 0.8s linear infinite;
+        }
+
+        .closer-gate-spinner.is-hidden { display: none; }
+
+        @keyframes closerSpin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Gate d'accès (même protection que /closer) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Recrutement closer freelance · high-ticket</h1>
+            <p class="closer-gate-hint">Entrez le code reçu pour accéder à l'offre.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-input" class="closer-gate-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Votre code" aria-label="Code d'accès" />
+                <label class="closer-gate-consent" for="closer-gate-consent">
+                    <input type="checkbox" id="closer-gate-consent" />
+                    <span>Je comprends que les informations de cette page sont confidentielles et je m'engage à ne pas les partager ni les diffuser.</span>
+                </label>
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit" disabled>Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-access';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var input = document.getElementById('closer-gate-input');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+            var consent = document.getElementById('closer-gate-consent');
+
+            document.body.style.overflow = 'hidden';
+
+            function syncBtn() { btn.disabled = !consent.checked; }
+            consent.addEventListener('change', syncBtn);
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                syncBtn();
+                try { input.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* fonction indisponible -> demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!consent.checked) { err.textContent = 'Cochez la case de confidentialité.'; return; }
+                var code = (input.value || '').trim();
+                if (!code) { err.textContent = 'Entrez votre code.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(ENDPOINT, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code, consent: true }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Code invalide.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                syncBtn();
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
+    <div class="wrap">
+        <span class="eyebrow">Le produit que vous vendrez</span>
+        <h1>Le webinaire, en entier.</h1>
+        <p class="lead">C'est exactement ce que vos prospects regardent avant de voir l'offre. Jugez la qualité, le pitch, les arguments — c'est ça que vous closerez.</p>
+
+        <div class="video-box">
+            <video
+                id="webi-video"
+                controls
+                controlslist="nodownload"
+                preload="metadata"
+                playsinline
+                poster="/media/pages/masterclass-gratuite-banner.webp"
+                oncontextmenu="return false;"
+            >
+                <source src="https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4" type="video/mp4" />
+                Votre navigateur ne peut pas lire cette vidéo.
+            </video>
+        </div>
+
+        <p class="video-note">~80 minutes. <strong>Prenez le temps de le regarder en entier</strong> : c'est votre matière de closing, et ce que le prospect a déjà vu quand vous l'appelez.</p>
+
+        <div class="actions">
+            <a href="/closer-formulaire" class="cta-button">Candidater</a>
+            <a href="/closer" class="back-link">← Retour à l'offre</a>
+        </div>
+    </div>
+</body>
+</html>
