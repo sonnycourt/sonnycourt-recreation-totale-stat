@@ -152,12 +152,16 @@
         .create-card h2 { font-size: 0.95rem; font-weight: 800; margin-bottom: 12px; }
 
         .create-form {
-            display: flex;
+            display: grid;
             gap: 10px;
-            flex-wrap: wrap;
+            grid-template-columns: 1fr;
         }
 
-        .create-form input { flex: 1; min-width: 200px; }
+        @media (min-width: 600px) {
+            .create-form { grid-template-columns: 1fr 1fr auto; align-items: center; }
+        }
+
+        .create-form input { width: 100%; }
 
         .new-code {
             display: none;
@@ -273,6 +277,72 @@
         .meta-item { font-size: 0.84rem; color: var(--ink-soft); }
         .meta-item b { color: var(--ink); font-weight: 700; }
         .meta-k { color: var(--muted); }
+
+        /* === Note / infos sur la carte code === */
+        .code-notes {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--line);
+        }
+
+        .code-notes-view {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .code-notes-text {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.86rem;
+            color: var(--ink-soft);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .code-notes-text a { color: var(--primary-dark); font-weight: 600; word-break: break-all; }
+        .code-notes-empty { color: var(--muted); font-style: italic; }
+
+        .code-notes-btn {
+            border: none;
+            background: transparent;
+            color: var(--primary-dark);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .code-notes-btn:hover { text-decoration: underline; }
+
+        .code-notes-edit textarea {
+            width: 100%;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            background: #fff;
+            resize: vertical;
+        }
+
+        .code-notes-edit textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+
+        .code-notes-edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
 
         /* === Onglets === */
         .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
@@ -486,6 +556,7 @@
                     <h2>Créer un code</h2>
                     <form id="create-form" class="create-form">
                         <input type="text" id="create-label" placeholder="Nom du closer (ex. Brice Malt)" autocomplete="off" required />
+                        <input type="text" id="create-notes" placeholder="Lien profil / infos (optionnel)" autocomplete="off" />
                         <button type="submit" id="create-btn" class="btn">Générer le code</button>
                     </form>
                     <p id="create-error" class="err" role="alert"></p>
@@ -572,7 +643,10 @@
             }
 
             // --- Rendu de la liste ---
+            var codesAll = [];
+
             function renderCodes(codes) {
+                codesAll = Array.isArray(codes) ? codes : [];
                 var host = document.getElementById('codes');
                 var empty = document.getElementById('codes-empty');
                 var came = 0, not = 0;
@@ -618,6 +692,19 @@
                                 '<span class="meta-item"><span class="meta-k">Visites :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
                                 '<span class="meta-item"><span class="meta-k">Confidentialité :</span> <b>' + (c.consent_at ? 'acceptée ' + fmtDate(c.consent_at) : '—') + '</b></span>' +
                             '</div>' +
+                            '<div class="code-notes" data-id="' + c.id + '">' +
+                                '<div class="code-notes-view">' +
+                                    '<span class="code-notes-text">' + (c.notes ? linkifyText(c.notes) : '<span class="code-notes-empty">Aucune info</span>') + '</span>' +
+                                    '<button class="code-notes-btn js-note-edit" data-id="' + c.id + '" type="button">' + (c.notes ? 'Modifier' : '+ Ajouter une info') + '</button>' +
+                                '</div>' +
+                                '<div class="code-notes-edit" hidden>' +
+                                    '<textarea class="js-note-input" rows="2" placeholder="Lien profil, source, remarque…">' + esc(c.notes || '') + '</textarea>' +
+                                    '<div class="code-notes-edit-actions">' +
+                                        '<button class="btn btn-sm js-note-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
+                                        '<button class="btn btn-ghost btn-sm js-note-cancel" type="button">Annuler</button>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
                         '</div>';
                 }).join('');
 
@@ -627,6 +714,48 @@
                 host.querySelectorAll('.js-toggle').forEach(function (b) {
                     b.addEventListener('click', function () { toggleCode(+b.getAttribute('data-id'), b.getAttribute('data-active') === 'true'); });
                 });
+                host.querySelectorAll('.js-note-edit').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-notes');
+                        box.querySelector('.code-notes-view').hidden = true;
+                        box.querySelector('.code-notes-edit').hidden = false;
+                        var ta = box.querySelector('.js-note-input');
+                        ta.focus();
+                    });
+                });
+                host.querySelectorAll('.js-note-cancel').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-notes');
+                        box.querySelector('.code-notes-edit').hidden = true;
+                        box.querySelector('.code-notes-view').hidden = false;
+                    });
+                });
+                host.querySelectorAll('.js-note-save').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-notes');
+                        var val = box.querySelector('.js-note-input').value.trim();
+                        saveNotes(+b.getAttribute('data-id'), val);
+                    });
+                });
+            }
+
+            function linkifyText(t) {
+                return esc(t).replace(/(https?:\/\/[^\s]+)/g, function (u) {
+                    return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + '</a>';
+                });
+            }
+
+            async function saveNotes(id, notes) {
+                var c = codesAll.find(function (x) { return x.id === id; });
+                if (c) c.notes = notes;          // MAJ optimiste
+                renderCodes(codesAll);
+                try {
+                    await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'code-notes', id: id, notes: notes }),
+                    });
+                } catch (e) { /* noop */ }
             }
             window.__renderCloserCodes = renderCodes; // exposé pour aperçu/démo
 
@@ -855,6 +984,7 @@
             document.getElementById('create-form').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 var label = document.getElementById('create-label').value.trim();
+                var notes = document.getElementById('create-notes').value.trim();
                 var btn = document.getElementById('create-btn');
                 var errEl = document.getElementById('create-error');
                 var box = document.getElementById('new-code');
@@ -865,7 +995,7 @@
                     var r = await fetch(API, {
                         method: 'POST', credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create', label: label }),
+                        body: JSON.stringify({ action: 'create', label: label, notes: notes }),
                     });
                     var d = {};
                     try { d = await r.json(); } catch (e2) { /* noop */ }
@@ -874,6 +1004,7 @@
                         document.getElementById('new-code-val').textContent = d.row.code;
                         box.classList.add('is-shown');
                         document.getElementById('create-label').value = '';
+                        document.getElementById('create-notes').value = '';
                         loadCodes();
                     } else {
                         errEl.textContent = d.error || 'Création impossible.';

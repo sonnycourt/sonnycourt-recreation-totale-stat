@@ -39,7 +39,7 @@ export default async (req) => {
     }
 
     const r = await supabaseGet(
-      'closer_access_codes?select=id,label,code,active,visit_count,first_visit_at,last_visit_at,consent_at,created_at&order=created_at.desc'
+      'closer_access_codes?select=id,label,code,active,visit_count,first_visit_at,last_visit_at,consent_at,notes,created_at&order=created_at.desc'
     );
     if (!r.ok) {
       return json(500, { error: 'Table absente ? Exécute sql/closer_access_codes.sql une fois.' });
@@ -58,12 +58,13 @@ export default async (req) => {
 
     if (action === 'create') {
       const label = (typeof body.label === 'string' ? body.label : '').trim().slice(0, 120);
+      const notes = (typeof body.notes === 'string' ? body.notes : '').trim().slice(0, 2000);
       if (!label) return json(400, { error: 'Nom (label) requis' });
 
       // Génère un code unique (retry en cas de collision sur la contrainte unique)
       for (let attempt = 0; attempt < 6; attempt++) {
         const code = genCode();
-        const post = await supabasePost('closer_access_codes', { label, code });
+        const post = await supabasePost('closer_access_codes', { label, code, notes: notes || null });
         if (post.ok) {
           const row = Array.isArray(post.data) ? post.data[0] : post.data;
           return json(200, { ok: true, row });
@@ -74,6 +75,15 @@ export default async (req) => {
         }
       }
       return json(500, { error: 'Impossible de générer un code unique, réessaie.' });
+    }
+
+    if (action === 'code-notes') {
+      const id = Number(body.id);
+      const notes = (typeof body.notes === 'string' ? body.notes : '').trim().slice(0, 2000);
+      if (!Number.isInteger(id)) return json(400, { error: 'id invalide' });
+      const patch = await supabasePatch('closer_access_codes', `id=eq.${id}`, { notes: notes || null });
+      if (!patch.ok) return json(500, { error: 'Mise à jour impossible' });
+      return json(200, { ok: true });
     }
 
     if (action === 'revoke') {
