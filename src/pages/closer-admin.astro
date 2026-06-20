@@ -1,0 +1,552 @@
+---
+// Admin des codes d'accès /closer — protégé par la session admin ES2 existante.
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Admin — Codes d'accès closer</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- is:global : la liste de codes est rendue en JS (innerHTML), donc non concernée par le scoping Astro -->
+    <style is:global>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        [hidden] { display: none !important; }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f1f5f9;
+            --accent-soft: #eff6ff;
+            --green: #16a34a;
+            --green-soft: #f0fdf4;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .wrap {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: clamp(20px, 4vw, 40px) clamp(16px, 3vw, 24px);
+        }
+
+        .view[hidden] { display: none; }
+
+        .boot {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        /* === Login === */
+        .login-wrap {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            padding: clamp(26px, 5vw, 36px);
+            text-align: center;
+        }
+
+        .login-card h1 { font-size: 1.25rem; font-weight: 800; margin-bottom: 6px; }
+        .login-card p { font-size: 0.9rem; color: var(--muted); margin-bottom: 22px; }
+
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 13px 15px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 11px;
+            background: #fff;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+
+        .btn {
+            border: none;
+            border-radius: 11px;
+            padding: 13px 20px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+        .btn-ghost {
+            background: var(--surface);
+            color: var(--ink-soft);
+            border: 1px solid var(--line);
+            box-shadow: none;
+            font-weight: 600;
+        }
+
+        .btn-sm { padding: 8px 13px; font-size: 0.82rem; }
+
+        .login-card .btn { width: 100%; margin-top: 14px; }
+        .err { min-height: 1.1em; margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: #dc2626; }
+
+        /* === Header === */
+        .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .head h1 { font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 900; letter-spacing: -0.02em; }
+        .head p { font-size: 0.88rem; color: var(--muted); margin-top: 2px; }
+
+        /* === Create === */
+        .create-card { padding: 20px; margin-bottom: 18px; }
+        .create-card h2 { font-size: 0.95rem; font-weight: 800; margin-bottom: 12px; }
+
+        .create-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .create-form input { flex: 1; min-width: 200px; }
+
+        .new-code {
+            display: none;
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: var(--green-soft);
+            border: 1px solid #bbf7d0;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .new-code.is-shown { display: flex; }
+        .new-code-label { font-size: 0.85rem; color: #15803d; font-weight: 600; }
+        .new-code-val { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.06em; color: var(--ink); }
+
+        /* === Summary === */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .sum {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+
+        .sum-val { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; }
+        .sum-val.is-green { color: var(--green); }
+        .sum-val.is-muted { color: var(--muted); }
+        .sum-label { font-size: 0.74rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+        /* === Code cards === */
+        .codes { display: grid; gap: 12px; }
+
+        .code-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px 18px;
+        }
+
+        .code-card.is-revoked { opacity: 0.62; }
+
+        .code-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .code-name { font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 3px 9px;
+            border-radius: 999px;
+        }
+
+        .badge-came { background: var(--green-soft); color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-not { background: #f8fafc; color: var(--muted); border: 1px solid var(--line); }
+        .badge-revoked { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .code-actions { display: flex; gap: 8px; align-items: center; }
+
+        .code-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: var(--primary-dark);
+            background: var(--accent-soft);
+            border: 1px solid #bfdbfe;
+            border-radius: 9px;
+            padding: 6px 11px;
+        }
+
+        .copy-btn {
+            border: none;
+            background: transparent;
+            color: var(--primary-dark);
+            cursor: pointer;
+            padding: 2px;
+            display: inline-flex;
+            border-radius: 6px;
+        }
+
+        .copy-btn svg { width: 15px; height: 15px; }
+        .copy-btn.copied { color: var(--green); }
+
+        .code-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 22px;
+            margin-top: 12px;
+            align-items: center;
+        }
+
+        .meta-item { font-size: 0.84rem; color: var(--ink-soft); }
+        .meta-item b { color: var(--ink); font-weight: 700; }
+        .meta-k { color: var(--muted); }
+
+        @media (max-width: 520px) {
+            .summary { grid-template-columns: 1fr 1fr 1fr; }
+            .create-form .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div id="boot" class="view boot">Chargement…</div>
+
+        <!-- Connexion admin -->
+        <div id="login-view" class="view" hidden>
+            <div class="login-wrap">
+                <div class="card login-card">
+                    <h1>Admin closer</h1>
+                    <p>Accès réservé. Entrez le mot de passe admin.</p>
+                    <form id="login-form">
+                        <input type="password" id="admin-password" autocomplete="current-password" placeholder="Mot de passe admin" required />
+                        <p id="login-error" class="err" role="alert"></p>
+                        <button type="submit" id="login-btn" class="btn">Accéder</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau de bord -->
+        <div id="admin-view" class="view" hidden>
+            <div class="head">
+                <div>
+                    <h1>Codes d'accès closer</h1>
+                    <p>Un code par closer + suivi des visites de la page /closer.</p>
+                </div>
+                <button id="logout-btn" class="btn btn-ghost btn-sm" type="button">Déconnexion</button>
+            </div>
+
+            <div class="card create-card">
+                <h2>Créer un code</h2>
+                <form id="create-form" class="create-form">
+                    <input type="text" id="create-label" placeholder="Nom du closer (ex. Brice Malt)" autocomplete="off" required />
+                    <button type="submit" id="create-btn" class="btn">Générer le code</button>
+                </form>
+                <p id="create-error" class="err" role="alert"></p>
+                <div id="new-code" class="new-code">
+                    <span class="new-code-label">Nouveau code pour <b id="new-code-name"></b> :</span>
+                    <span style="display:inline-flex;align-items:center;gap:10px;">
+                        <span class="new-code-val" id="new-code-val"></span>
+                        <button class="copy-btn" id="new-code-copy" type="button" title="Copier" aria-label="Copier le code">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        </button>
+                    </span>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
+                <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>
+                <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Pas venus</div></div>
+            </div>
+
+            <div id="codes" class="codes"></div>
+            <p id="codes-empty" class="boot" hidden>Aucun code pour l'instant. Créez-en un ci-dessus.</p>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function () {
+            var SESSION = '/.netlify/functions/admin-es2-session';
+            var LOGIN = '/.netlify/functions/admin-es2-login';
+            var LOGOUT = '/.netlify/functions/admin-es2-logout';
+            var API = '/.netlify/functions/closer-admin';
+
+            var boot = document.getElementById('boot');
+            var loginView = document.getElementById('login-view');
+            var adminView = document.getElementById('admin-view');
+
+            var dtf = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            function fmtDate(iso) {
+                if (!iso) return '—';
+                try { return dtf.format(new Date(iso)); } catch (e) { return '—'; }
+            }
+            function esc(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function showView(which) {
+                boot.hidden = which !== 'boot';
+                loginView.hidden = which !== 'login';
+                adminView.hidden = which !== 'admin';
+            }
+
+            // --- Copie presse-papier ---
+            function copyText(text, btnEl) {
+                function ok() {
+                    if (!btnEl) return;
+                    btnEl.classList.add('copied');
+                    setTimeout(function () { btnEl.classList.remove('copied'); }, 1400);
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(ok).catch(function () { fallback(text); ok(); });
+                } else { fallback(text); ok(); }
+            }
+            function fallback(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch (e) { /* noop */ }
+                document.body.removeChild(ta);
+            }
+
+            // --- Rendu de la liste ---
+            function renderCodes(codes) {
+                var host = document.getElementById('codes');
+                var empty = document.getElementById('codes-empty');
+                var came = 0, not = 0;
+
+                codes.forEach(function (c) {
+                    var visited = (c.visit_count > 0) || !!c.first_visit_at;
+                    if (c.active === false) { /* révoqué : compté ni venu ni pas-venu actif */ }
+                    if (visited) came++; else not++;
+                });
+
+                document.getElementById('sum-total').textContent = codes.length;
+                document.getElementById('sum-came').textContent = came;
+                document.getElementById('sum-not').textContent = not;
+
+                if (!codes.length) { host.innerHTML = ''; empty.hidden = false; return; }
+                empty.hidden = true;
+
+                host.innerHTML = codes.map(function (c) {
+                    var visited = (c.visit_count > 0) || !!c.first_visit_at;
+                    var revoked = c.active === false;
+                    var badge = revoked
+                        ? '<span class="badge badge-revoked">Révoqué</span>'
+                        : (visited ? '<span class="badge badge-came">Venu</span>' : '<span class="badge badge-not">Pas venu</span>');
+                    var action = revoked
+                        ? '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="true">Réactiver</button>'
+                        : '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="false">Révoquer</button>';
+                    return '' +
+                        '<div class="code-card' + (revoked ? ' is-revoked' : '') + '">' +
+                            '<div class="code-top">' +
+                                '<div class="code-name">' + esc(c.label) + ' ' + badge + '</div>' +
+                                '<div class="code-actions">' +
+                                    '<span class="code-chip">' + esc(c.code) +
+                                        '<button class="copy-btn js-copy" data-code="' + esc(c.code) + '" title="Copier" aria-label="Copier">' +
+                                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                                        '</button>' +
+                                    '</span>' +
+                                    action +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="code-meta">' +
+                                '<span class="meta-item"><span class="meta-k">1ʳᵉ visite :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
+                                '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
+                                '<span class="meta-item"><span class="meta-k">Visites :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
+                            '</div>' +
+                        '</div>';
+                }).join('');
+
+                host.querySelectorAll('.js-copy').forEach(function (b) {
+                    b.addEventListener('click', function () { copyText(b.getAttribute('data-code'), b); });
+                });
+                host.querySelectorAll('.js-toggle').forEach(function (b) {
+                    b.addEventListener('click', function () { toggleCode(+b.getAttribute('data-id'), b.getAttribute('data-active') === 'true'); });
+                });
+            }
+            window.__renderCloserCodes = renderCodes; // exposé pour aperçu/démo
+
+            async function loadCodes() {
+                try {
+                    var r = await fetch(API, { credentials: 'same-origin' });
+                    if (r.status === 401) { showView('login'); return; }
+                    var d = await r.json();
+                    if (!r.ok) { document.getElementById('create-error').textContent = d.error || 'Erreur de chargement.'; return; }
+                    renderCodes(d.codes || []);
+                } catch (e) {
+                    document.getElementById('create-error').textContent = 'Erreur réseau.';
+                }
+            }
+
+            async function toggleCode(id, active) {
+                try {
+                    await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'revoke', id: id, active: active }),
+                    });
+                    loadCodes();
+                } catch (e) { /* noop */ }
+            }
+
+            // --- Boot : vérifie la session admin ---
+            async function init() {
+                try {
+                    var r = await fetch(SESSION, { credentials: 'same-origin' });
+                    var d = r.ok ? await r.json() : {};
+                    if (d && d.authenticated) { showView('admin'); loadCodes(); return; }
+                } catch (e) { /* noop */ }
+                showView('login');
+            }
+
+            // --- Login ---
+            document.getElementById('login-form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var pwd = document.getElementById('admin-password').value;
+                var btn = document.getElementById('login-btn');
+                var errEl = document.getElementById('login-error');
+                errEl.textContent = '';
+                btn.disabled = true;
+                try {
+                    var r = await fetch(LOGIN, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: pwd }),
+                    });
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    if (r.ok) { showView('admin'); loadCodes(); return; }
+                    if (d.code === 'SETUP_REQUIRED') {
+                        errEl.textContent = 'Aucun mot de passe admin défini. Configure-le d\'abord sur /es-cockpit.';
+                    } else {
+                        errEl.textContent = d.error || 'Mot de passe incorrect.';
+                    }
+                } catch (e3) {
+                    errEl.textContent = 'Erreur réseau.';
+                }
+                btn.disabled = false;
+            });
+
+            // --- Logout ---
+            document.getElementById('logout-btn').addEventListener('click', async function () {
+                try { await fetch(LOGOUT, { method: 'POST', credentials: 'same-origin' }); } catch (e) { /* noop */ }
+                showView('login');
+            });
+
+            // --- Création ---
+            document.getElementById('create-form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var label = document.getElementById('create-label').value.trim();
+                var btn = document.getElementById('create-btn');
+                var errEl = document.getElementById('create-error');
+                var box = document.getElementById('new-code');
+                errEl.textContent = '';
+                if (!label) { errEl.textContent = 'Entrez un nom.'; return; }
+                btn.disabled = true;
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'create', label: label }),
+                    });
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    if (r.ok && d.row) {
+                        document.getElementById('new-code-name').textContent = d.row.label;
+                        document.getElementById('new-code-val').textContent = d.row.code;
+                        box.classList.add('is-shown');
+                        document.getElementById('create-label').value = '';
+                        loadCodes();
+                    } else {
+                        errEl.textContent = d.error || 'Création impossible.';
+                    }
+                } catch (e3) {
+                    errEl.textContent = 'Erreur réseau.';
+                }
+                btn.disabled = false;
+            });
+
+            document.getElementById('new-code-copy').addEventListener('click', function () {
+                copyText(document.getElementById('new-code-val').textContent, this);
+            });
+
+            init();
+        })();
+    </script>
+</body>
+</html>

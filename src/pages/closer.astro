@@ -868,6 +868,157 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .audience p + p {
             margin-top: 12px;
         }
+
+        /* === Gate d'accès (mot de passe closer) === */
+        .closer-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .closer-gate.is-hidden {
+            display: none;
+        }
+
+        .closer-gate-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+
+        .closer-gate-logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+        }
+
+        .closer-gate-logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .closer-gate-card h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .closer-gate-hint {
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .closer-gate-form {
+            display: none;
+        }
+
+        .closer-gate-form.is-ready {
+            display: block;
+        }
+
+        .closer-gate-input {
+            width: 100%;
+            padding: 14px 16px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .closer-gate-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
+        .closer-gate-input::placeholder {
+            letter-spacing: normal;
+            text-transform: none;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .closer-gate-error {
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .closer-gate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .closer-gate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(37, 99, 235, 0.4);
+        }
+
+        .closer-gate-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+
+        .closer-gate-spinner {
+            width: 38px;
+            height: 38px;
+            margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: closerSpin 0.8s linear infinite;
+        }
+
+        .closer-gate-spinner.is-hidden {
+            display: none;
+        }
+
+        @keyframes closerSpin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 
     <!-- Styles des éléments du graphe générés en JS (non scopés) -->
@@ -928,6 +1079,87 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </style>
 </head>
 <body>
+    <!-- Gate d'accès (protection mot de passe) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Accès sur invitation</h1>
+            <p class="closer-gate-hint">Entrez votre code d'accès personnel pour découvrir l'offre.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-input" class="closer-gate-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Votre code" aria-label="Code d'accès" />
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit">Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-access';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var input = document.getElementById('closer-gate-input');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+
+            document.body.style.overflow = 'hidden';
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                try { input.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* hors ligne / fonction indisponible -> on demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var code = (input.value || '').trim();
+                if (!code) { err.textContent = 'Entrez votre code.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(ENDPOINT, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Code invalide.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                btn.disabled = false;
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
     <!-- Bannière première mission -->
     <div class="topbar" role="note">
         <span class="live-dot" aria-hidden="true"></span>
