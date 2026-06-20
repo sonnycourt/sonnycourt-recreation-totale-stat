@@ -229,7 +229,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
 
         /* Tiers table highlight */
-        .tiers tbody tr:last-child td {
+        .tiers tbody tr.tier-top td {
             background: var(--accent-soft);
             color: var(--primary-dark);
             font-weight: 800;
@@ -238,6 +238,28 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .tiers tbody td:last-child {
             font-weight: 700;
             color: var(--primary-dark);
+        }
+
+        /* Ligne aspirationnelle "closer d'exception" */
+        .tiers tbody tr.tier-elite td {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(37, 99, 235, 0.05));
+            border-top: 2px solid rgba(37, 99, 235, 0.4);
+            color: var(--primary-dark);
+            font-style: italic;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .tiers tbody tr.tier-elite td:first-child {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .tiers tbody tr.tier-elite td:first-child::before {
+            content: '★';
+            font-style: normal;
+            color: var(--primary);
         }
 
         /* === Deal callout === */
@@ -568,9 +590,218 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             font-size: 0.9rem;
             color: var(--muted);
         }
+
+        .cta-date {
+            margin: 0 auto 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .cta-date .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* === Top banner (première mission) === */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 11px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-size: clamp(0.82rem, 2.4vw, 0.95rem);
+            font-weight: 600;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 2px 14px rgba(37, 99, 235, 0.28);
+        }
+
+        .topbar strong {
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .topbar .live-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            animation: topbarPulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes topbarPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+            50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); }
+        }
+
+        /* === Projection block (trajectoire de croissance) === */
+        .projection {
+            margin-top: 26px;
+            border: 1px dashed var(--primary-light);
+            border-radius: 18px;
+            background: linear-gradient(165deg, #eff6ff, #ffffff);
+            padding: clamp(22px, 3.5vw, 34px);
+        }
+
+        .projection-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 14px;
+            padding: 5px 13px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            color: var(--primary-dark);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .projection-arc {
+            display: flex;
+            align-items: center;
+            gap: clamp(10px, 3vw, 22px);
+            margin: 4px 0 18px;
+            flex-wrap: wrap;
+        }
+
+        .projection-now,
+        .projection-goal {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .projection-num {
+            font-size: clamp(1.6rem, 6vw, 2.6rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .projection-now .projection-num { color: var(--ink-soft); }
+        .projection-goal .projection-num { color: var(--primary-dark); }
+
+        .projection-sub {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .projection-arrow {
+            flex: 1;
+            min-width: 40px;
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.25), var(--primary));
+            position: relative;
+        }
+
+        .projection-arrow::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-left: 9px solid var(--primary);
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+        }
+
+        .projection p {
+            margin: 0;
+            font-size: clamp(0.95rem, 2vw, 1.05rem);
+            color: var(--ink-soft);
+            line-height: 1.65;
+        }
+
+        /* === Audience / sérieux block === */
+        .audience {
+            margin-top: 22px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--surface);
+            padding: clamp(24px, 3.5vw, 38px);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .audience-stats {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 640px) {
+            .audience-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .audience-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .audience-stat.is-key {
+            position: relative;
+        }
+
+        .audience-num {
+            font-size: clamp(1.5rem, 5vw, 2.1rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            color: var(--ink);
+        }
+
+        .audience-stat.is-key .audience-num {
+            color: var(--primary-dark);
+        }
+
+        .audience-cap {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        .audience p {
+            margin: 0;
+            font-size: clamp(0.95rem, 2vw, 1.05rem);
+            line-height: 1.7;
+            color: var(--ink-soft);
+        }
+
+        .audience p + p {
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
+    <!-- Bannière première mission -->
+    <div class="topbar" role="note">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Première mission <strong>vendredi 3 juillet, dès midi</strong> — on cherche un closer prêt à démarrer maintenant.</span>
+    </div>
+
     <!-- SECTION 1 — Hook -->
     <section class="hero">
         <div class="wrap">
@@ -636,6 +867,43 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 </table>
             </div>
             <p class="table-note">Médiane : ~110-125 prospects riches ultra-chauds par session. Deux sessions par mois, soit 220 à 250 leads chauds mensuels. Taux de remboursement : 5,6% (le produit tient, vos commissions aussi).</p>
+
+            <!-- Bloc audience / sérieux (MODIF 5) -->
+            <div class="audience">
+                <div class="audience-stats">
+                    <div class="audience-stat is-key">
+                        <span class="audience-num">~23 M</span>
+                        <span class="audience-cap">de vues chaque mois — du flux frais</span>
+                    </div>
+                    <div class="audience-stat">
+                        <span class="audience-num">~4,3 M</span>
+                        <span class="audience-cap">d'abonnés cumulés (YouTube, Meta, TikTok, Instagram)</span>
+                    </div>
+                    <div class="audience-stat">
+                        <span class="audience-num">8 ans</span>
+                        <span class="audience-cap">de création de contenu dans la niche</span>
+                    </div>
+                </div>
+                <p>8 ans de création. Plusieurs millions d'abonnés à travers les réseaux. Et surtout : près de <strong>23 millions de vues chaque mois</strong>. Autrement dit, un flux de prospects frais qui ne se tarit jamais — et qui ne fait que grandir.</p>
+                <p>Vous rejoignez un acteur établi de la niche, pas un projet qui démarre. <strong>Vous ne manquerez jamais de leads.</strong></p>
+            </div>
+
+            <!-- Bloc projection croissance (MODIF 3) -->
+            <div class="projection">
+                <span class="projection-tag">Projection — pas une promesse</span>
+                <div class="projection-arc">
+                    <div class="projection-now">
+                        <span class="projection-num">~110</span>
+                        <span class="projection-sub">leads / session aujourd'hui</span>
+                    </div>
+                    <span class="projection-arrow" aria-hidden="true"></span>
+                    <div class="projection-goal">
+                        <span class="projection-num">400+</span>
+                        <span class="projection-sub">visé dans les prochains mois</span>
+                    </div>
+                </div>
+                <p>Aujourd'hui : environ 110 leads chauds par session, en pur organique. Les publicités arrivent. Le contenu s'intensifie. Viser <strong>400+ leads par session</strong> dans les prochains mois est réaliste. Et chaque lead supplémentaire, c'est votre commission qui monte et vos paliers franchis plus vite.</p>
+            </div>
         </div>
     </section>
 
@@ -662,7 +930,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         <tr><td>100 à 149</td><td>17%</td></tr>
                         <tr><td>150 à 199</td><td>18%</td></tr>
                         <tr><td>200 à 249</td><td>19%</td></tr>
-                        <tr><td>250+</td><td>20%</td></tr>
+                        <tr class="tier-top"><td>250+</td><td>20%</td></tr>
+                        <tr class="tier-elite"><td>Closer d'exception</td><td>On invente la suite ensemble</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -681,7 +950,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             <label for="cf-leads">Leads chauds par session</label>
                             <span class="calc-field-val" id="val-leads">110</span>
                         </div>
-                        <input type="range" id="cf-leads" min="80" max="250" step="5" value="110" aria-label="Leads chauds par session">
+                        <input type="range" id="cf-leads" min="80" max="400" step="5" value="110" aria-label="Leads chauds par session">
                     </div>
 
                     <div class="calc-field">
@@ -781,7 +1050,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <section class="closing">
         <div class="wrap">
             <h2>Vous arrivez au bon moment.</h2>
-            <p>La machine est prouvée. Mais elle n'a pas encore accéléré. Publicité, organique : le volume de leads va grimper dans les mois qui viennent. Les premiers à bord grandissent avec elle, pendant qu'elle passe de 110 à 250+ leads par session. Pas un job. <strong>Une position qui se construit.</strong></p>
+            <p>La machine est prouvée. Mais elle n'a pas encore accéléré. Publicité, organique : le volume de leads va grimper dans les mois qui viennent. Les premiers à bord grandissent avec elle, pendant qu'elle passe de 110 à 400+ leads par session. Pas un job. <strong>Une position qui se construit.</strong></p>
+            <p>Et si vous visez plus loin : à mesure que la machine grandit, il y aura une équipe de closers à structurer. Le premier qui prouve sa valeur aura la main pour la construire. Mais si vous voulez juste closer et encaisser, c'est parfait aussi.</p>
+            <p class="cta-date"><span class="dot" aria-hidden="true"></span>Première mission le vendredi 3 juillet, dès midi.</p>
             <a href="#" class="cta-button">Candidater</a>
             <p class="micro">Réponse rapide. Aucun engagement avant le premier échange.</p>
         </div>
