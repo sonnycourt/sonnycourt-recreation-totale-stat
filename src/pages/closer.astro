@@ -438,6 +438,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             margin: 0 0 6px 10px;
         }
 
+        .chart-host {
+            position: relative;
+        }
+
         .chart-host svg {
             width: 100%;
             height: auto;
@@ -865,6 +869,63 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             margin-top: 12px;
         }
     </style>
+
+    <!-- Styles des éléments du graphe générés en JS (non scopés) -->
+    <style is:global>
+        .chart-host .calc-hit.is-active {
+            fill: rgba(37, 99, 235, 0.12);
+        }
+
+        .chart-host .calc-tip {
+            position: absolute;
+            transform: translate(-50%, calc(-100% - 12px));
+            background: #0f172a;
+            color: #fff;
+            padding: 7px 11px;
+            border-radius: 9px;
+            font-size: 0.84rem;
+            font-weight: 800;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+            z-index: 5;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chart-host .calc-tip[hidden] {
+            display: none;
+        }
+
+        .chart-host .calc-tip::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0f172a;
+        }
+
+        .chart-host .calc-tip.below {
+            transform: translate(-50%, 12px);
+        }
+
+        .chart-host .calc-tip.below::after {
+            top: auto;
+            bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: #0f172a;
+        }
+
+        .chart-host .calc-tip-m {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #93c5fd;
+            margin-bottom: 1px;
+        }
+    </style>
 </head>
 <body>
     <!-- Bannière première mission -->
@@ -1059,7 +1120,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 </div>
 
                 <div class="calc-chart">
-                    <p class="calc-chart-head">Votre commission encaissée par mois — sur 24 mois</p>
+                    <p class="calc-chart-head">Votre commission encaissée par mois — sur 12 mois</p>
                     <div id="chart-host" class="chart-host" aria-hidden="true"></div>
                 </div>
 
@@ -1069,12 +1130,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         <span class="marker-v" id="mk-m1">—</span>
                     </div>
                     <div class="marker">
-                        <span class="marker-k">Mois 12</span>
-                        <span class="marker-v" id="mk-m12">—</span>
+                        <span class="marker-k">Mois 6</span>
+                        <span class="marker-v" id="mk-m6">—</span>
                     </div>
                     <div class="marker marker--accent">
-                        <span class="marker-k">Revenu mensuel stabilisé (plateau)</span>
-                        <span class="marker-v" id="mk-plateau">—</span>
+                        <span class="marker-k">Revenu mensuel au mois 12</span>
+                        <span class="marker-v" id="mk-m12">—</span>
                     </div>
                 </div>
 
@@ -1089,7 +1150,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <span class="eyebrow">Le cadre</span>
             <h2>Comment ça se passe, concrètement.</h2>
             <p>Webinaire le jeudi soir, un jeudi sur deux. Du jeudi soir au vendredi matin, la machine vend seule. À partir du vendredi, vous prenez le relais : vous appelez les leads chauds qui n'ont pas encore acheté. <strong>Le week-end est votre terrain de jeu.</strong> Le reste du temps vous appartient.</p>
-            <p class="op-availability"><strong>Le créneau clé : du vendredi au dimanche, un week-end sur deux.</strong> C'est là que les leads sont les plus chauds. Vous devez être présent et réactif sur cette fenêtre — c'est elle qui fait vos commissions.</p>
+            <p class="op-availability"><strong>Le cœur de l'action : du vendredi au dimanche, quand les leads sont les plus chauds.</strong> C'est là que tout se joue, vous devez être pleinement disponible. Les jours suivants, vous relancez et finalisez les indécis jusqu'au prochain cycle. Le pic, c'est le week-end. Le suivi vit toute la semaine.</p>
         </div>
     </section>
 
@@ -1158,9 +1219,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var REFUND = 0.056;      // abattement remboursement
             var REMAIN = CONTRACT - FIRST; // 1862 € de traîne
             var P12 = 0.75, P3 = 0.17;     // mix plans (comptant 0.08 -> pas de traîne)
-            var MONTHS = 24;
+            var MONTHS = 12;
 
-            // --- Traîne moyenne pondérée par vente, par âge (0..23 mois) ---
+            // --- Traîne moyenne pondérée par vente, par âge (0..11 mois) ---
             // mois 0 : 426 € pour toute vente.
             // reste 1862 € : 12x étale sur 11 mois, 3x sur 2 mois, comptant 0.
             var trail = new Array(MONTHS).fill(0);
@@ -1222,7 +1283,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     grid += '<text x="' + (ml - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="12" fill="#94a3b8" font-family="Inter, sans-serif">' + kFmt(gv) + '</text>';
                 }
 
-                var xticks = [1, 6, 12, 18, 24], xl = '';
+                var xticks = [1, 3, 6, 9, 12], xl = '';
                 xticks.forEach(function (tk) {
                     xl += '<text x="' + X(tk) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Inter, sans-serif">' + tk + '</text>';
                 });
@@ -1234,9 +1295,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 }
                 var area = line + 'L ' + X(MONTHS) + ' ' + Y(0) + ' L ' + X(1) + ' ' + Y(0) + ' Z';
 
-                function dot(t, accent) {
-                    return '<circle cx="' + X(t) + '" cy="' + Y(comm[t]) + '" r="' + (accent ? 5.5 : 4) +
-                        '" fill="' + (accent ? '#2563eb' : '#ffffff') + '" stroke="#2563eb" stroke-width="2.5"/>';
+                // Un point visible par mois + une zone de survol/tap plus large
+                var dots = '';
+                for (var m = 1; m <= MONTHS; m++) {
+                    var accent = (m === MONTHS);
+                    dots += '<circle cx="' + X(m) + '" cy="' + Y(comm[m]) + '" r="' + (accent ? 5 : 3.5) +
+                        '" fill="' + (accent ? '#2563eb' : '#ffffff') + '" stroke="#2563eb" stroke-width="2" pointer-events="none"/>';
+                    dots += '<circle class="calc-hit" cx="' + X(m) + '" cy="' + Y(comm[m]) + '" r="15" fill="transparent" ' +
+                        'data-month="' + m + '" data-val="' + Math.round(comm[m]) + '" style="cursor:pointer"/>';
                 }
 
                 host.innerHTML =
@@ -1247,8 +1313,58 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     grid +
                     '<path d="' + area + '" fill="url(#calcArea)"/>' +
                     '<polyline points="' + poly + '" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>' +
-                    dot(1) + dot(12) + dot(24, true) +
-                    xl + '</svg>';
+                    dots +
+                    xl + '</svg>' +
+                    '<div class="calc-tip" id="calc-tip" hidden></div>';
+
+                bindTooltips();
+            }
+
+            function bindTooltips() {
+                var tip = document.getElementById('calc-tip');
+                if (!tip) return;
+                var hits = host.querySelectorAll('.calc-hit');
+
+                function show(circle) {
+                    var month = circle.getAttribute('data-month');
+                    var val = +circle.getAttribute('data-val');
+                    tip.innerHTML = '<span class="calc-tip-m">Mois ' + month + '</span>' + eur(val);
+                    tip.hidden = false;
+                    tip.classList.remove('below');
+
+                    var hb = host.getBoundingClientRect();
+                    var cb = circle.getBoundingClientRect();
+                    var cx = cb.left + cb.width / 2 - hb.left;
+                    var cy = cb.top + cb.height / 2 - hb.top;
+                    var half = tip.offsetWidth / 2;
+                    tip.style.left = Math.max(half + 2, Math.min(cx, hb.width - half - 2)) + 'px';
+                    tip.style.top = cy + 'px';
+                    if (cy < 52) tip.classList.add('below'); // bascule sous le point si trop haut
+
+                    hits.forEach(function (h) { h.classList.remove('is-active'); });
+                    circle.classList.add('is-active');
+                }
+
+                function hide() {
+                    tip.hidden = true;
+                    hits.forEach(function (h) { h.classList.remove('is-active'); });
+                }
+
+                hits.forEach(function (c) {
+                    c.addEventListener('mouseenter', function () { show(c); });
+                    c.addEventListener('mouseleave', hide);
+                    c.addEventListener('click', function (e) { e.stopPropagation(); show(c); });
+                });
+
+                if (!host._tipDismiss) {
+                    host._tipDismiss = true;
+                    document.addEventListener('click', function (e) {
+                        if (!(e.target.closest && e.target.closest('.calc-hit'))) {
+                            var t = document.getElementById('calc-tip');
+                            if (t) { t.hidden = true; }
+                        }
+                    });
+                }
             }
 
             function compute() {
@@ -1281,8 +1397,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
                 // Repères
                 document.getElementById('mk-m1').textContent = eur(comm[1]);
+                document.getElementById('mk-m6').textContent = eur(comm[6]);
                 document.getElementById('mk-m12').textContent = eur(comm[12]);
-                document.getElementById('mk-plateau').textContent = eur(comm[MONTHS]);
 
                 renderChart(comm);
             }
