@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
-import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
+import { supabaseGet, supabasePost, supabasePatch, supabaseDelete } from './lib/supabase-rest.mjs';
 
 // Alphabet sans ambiguïté (pas de I, L, O, 0, 1)
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -110,8 +110,10 @@ export default async (req) => {
     if (action === 'delete') {
       const id = Number(body.id);
       if (!Number.isInteger(id)) return json(400, { error: 'id invalide' });
-      const patch = await supabasePatch('closer_access_codes', `id=eq.${id}`, { active: false });
-      if (!patch.ok) return json(500, { error: 'Suppression impossible' });
+      // Détache les candidatures liées (elles conservent code_label/code en texte) pour ne pas les perdre
+      await supabasePatch('closer_candidatures', `code_id=eq.${id}`, { code_id: null });
+      const del = await supabaseDelete('closer_access_codes', `id=eq.${id}`);
+      if (!del.ok) return json(500, { error: 'Suppression impossible', detail: del.error });
       return json(200, { ok: true });
     }
 
