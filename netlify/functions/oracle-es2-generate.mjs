@@ -9,6 +9,30 @@ import { clientIpFromEvent, checkRateLimit, recordFailure, clearRateLimit } from
 
 const MATCH_COUNT = 5;
 
+// --- Seuils d'assise (ajustables) ---
+// Basés sur la similarité cosinus (0..1) des exemples récupérés. text-embedding-3-small :
+// en français, des cas vraiment proches montent ~0.5+, des cas approchants ~0.4, le hors-sujet < 0.35.
+const ASSISE_FORTE_MIN = 0.55;   // top similarité >= ce seuil => forte
+const ASSISE_MOYENNE_MIN = 0.42; // top similarité >= ce seuil => moyenne (sinon faible)
+const PROCHE_MIN = 0.45;         // un exemple compte comme "proche" au-dessus de ce seuil
+
+function computeAssise(examples) {
+  const sims = examples
+    .map((e) => (typeof e.similarity === 'number' ? e.similarity : 0))
+    .sort((a, b) => b - a);
+  const top = sims.length ? sims[0] : 0;
+  const procheCount = sims.filter((s) => s >= PROCHE_MIN).length;
+  let level = 'faible';
+  if (top >= ASSISE_FORTE_MIN) level = 'forte';
+  else if (top >= ASSISE_MOYENNE_MIN) level = 'moyenne';
+  return {
+    level,
+    topSimilarity: Math.round(top * 1000) / 1000,
+    procheCount,
+    totalRetrieved: sims.length,
+  };
+}
+
 const json = (statusCode, body, extraHeaders = {}) => ({
   statusCode,
   headers: { 'Content-Type': 'application/json', ...extraHeaders },
@@ -67,11 +91,14 @@ export const handler = async (event) => {
 
     const examples = Array.isArray(match.data) ? match.data : [];
 
-    const draft = await generateDraft({ question, examples });
+    const { draft, note } = await generateDraft({ question, examples });
+    const assise = computeAssise(examples);
 
     return json(200, {
       ok: true,
       draft,
+      note,
+      assise,
       used: examples.map((e) => ({
         question: e.question,
         similarity: typeof e.similarity === 'number' ? Math.round(e.similarity * 1000) / 1000 : null,
