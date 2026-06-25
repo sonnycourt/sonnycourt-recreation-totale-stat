@@ -42,6 +42,8 @@ export async function embedQuestion(text) {
   return data?.data?.[0]?.embedding;
 }
 
+const NOTE_MARKER = '===RELECTURE===';
+
 const SYSTEM_PROMPT = `Tu écris des réponses aux bilans des membres premium d'une formation, à la place de leur mentor. Tu imites fidèlement SA voix à partir des exemples fournis.
 
 Style à respecter absolument :
@@ -53,7 +55,11 @@ Style à respecter absolument :
 
 Quand un exemple contient un raisonnement, sers-t'en pour comprendre la logique de l'angle choisi, pas seulement les mots.
 
-Tu produis uniquement le brouillon de la réponse, prêt à être copié. Pas de préambule, pas de méta-commentaire, pas d'options, pas de tiret cadratin.`;
+FORMAT DE SORTIE (deux parties, dans cet ordre) :
+1. Le brouillon de la réponse, prêt à être copié tel quel. Pas de préambule, pas de méta-commentaire, pas d'options, pas de tiret cadratin.
+2. Sur une nouvelle ligne, exactement le marqueur ${NOTE_MARKER}, puis UNE seule phrase courte indiquant quelle partie de ta réponse est la moins ancrée dans les exemples fournis (la partie que tu as le plus inventée de toi-même), pour orienter la relecture. Drapeau qualitatif, pas de pourcentage. Si tout est bien couvert par les exemples, dis-le en une phrase.
+
+Ne mets RIEN après cette phrase. Le brouillon (partie 1) ne doit jamais contenir le marqueur ni la note.`;
 
 /** Construit le bloc d'exemples (réponse + raisonnement quand dispo). */
 function formatExamples(examples) {
@@ -104,5 +110,13 @@ export async function generateDraft({ question, examples }) {
     .map((b) => b.text)
     .join('')
     .trim();
-  return text;
+
+  // Sépare le brouillon (copiable) de la note de relecture.
+  const idx = text.indexOf(NOTE_MARKER);
+  if (idx === -1) {
+    return { draft: text, note: null };
+  }
+  const draft = text.slice(0, idx).trim();
+  const note = text.slice(idx + NOTE_MARKER.length).trim() || null;
+  return { draft, note };
 }
