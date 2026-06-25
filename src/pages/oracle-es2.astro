@@ -185,16 +185,31 @@
   <style is:global>
     #base-count span { color: #64748b; font-weight: 600; font-size: 0.9rem; }
     #base-list .entry {
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
-      padding: 14px 16px; margin-bottom: 12px;
+      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 11px 14px; margin-bottom: 8px;
     }
-    #base-list .entry-q { font-weight: 700; font-size: 0.96rem; margin-bottom: 6px; color: #0f172a; }
-    #base-list .entry-r { color: #334155; font-size: 0.9rem; white-space: pre-wrap; }
-    #base-list .entry-r.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    #base-list .entry-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 0.78rem; color: #64748b; flex-wrap: wrap; }
-    #base-list .entry-meta .has-r { color: #5b21b6; font-weight: 700; }
-    #base-list .entry-toggle { background: none; border: none; color: #5b21b6; font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; }
+    #base-list .entry-row { display: flex; align-items: center; gap: 12px; }
+    #base-list .entry-title {
+      flex: 1 1 auto; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 600; font-size: 0.92rem; color: #0f172a;
+    }
+    #base-list .entry-date { flex: 0 0 auto; font-size: 0.76rem; color: #94a3b8; white-space: nowrap; }
+    #base-list .entry-toggle {
+      flex: 0 0 auto; background: none; border: none; color: #5b21b6;
+      font-size: 0.8rem; font-weight: 700; cursor: pointer; padding: 0; white-space: nowrap;
+    }
     #base-list .entry-toggle:hover { text-decoration: underline; }
+    #base-list .entry-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eef1f5; }
+    #base-list .entry.open .entry-body { display: block; }
+    #base-list .entry.open .entry-title { white-space: normal; overflow: visible; }
+    #base-list .entry-block { margin-bottom: 12px; }
+    #base-list .entry-block:last-child { margin-bottom: 0; }
+    #base-list .entry-label {
+      display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #94a3b8; margin-bottom: 3px;
+    }
+    #base-list .entry-text { color: #334155; font-size: 0.92rem; white-space: pre-wrap; line-height: 1.6; }
     #base-list .empty { color: #64748b; font-size: 0.92rem; padding: 8px 2px; }
   </style>
 </head>
@@ -355,20 +370,23 @@
           list.innerHTML = entries.map(function (e) {
             var hasR = e.raisonnement && String(e.raisonnement).trim();
             return '<div class="entry">' +
-              '<div class="entry-q">' + esc(e.question) + '</div>' +
-              '<div class="entry-r clamp">' + esc(e.reponse) + '</div>' +
-              '<div class="entry-meta">' +
-                '<span>' + esc(fmtDate(e.created_at)) + '</span>' +
-                (hasR ? '<span class="has-r">+ raisonnement</span>' : '') +
+              '<div class="entry-row">' +
+                '<span class="entry-title">' + esc(e.question) + '</span>' +
+                '<span class="entry-date">' + esc(fmtDate(e.created_at)) + '</span>' +
                 '<button type="button" class="entry-toggle">Voir tout</button>' +
+              '</div>' +
+              '<div class="entry-body">' +
+                '<div class="entry-block"><span class="entry-label">Question</span><div class="entry-text">' + esc(e.question) + '</div></div>' +
+                '<div class="entry-block"><span class="entry-label">Réponse</span><div class="entry-text">' + esc(e.reponse) + '</div></div>' +
+                (hasR ? '<div class="entry-block"><span class="entry-label">Raisonnement</span><div class="entry-text">' + esc(e.raisonnement) + '</div></div>' : '') +
               '</div>' +
             '</div>';
           }).join('');
           list.querySelectorAll('.entry-toggle').forEach(function (btn) {
             btn.addEventListener('click', function () {
-              var r = btn.closest('.entry').querySelector('.entry-r');
-              var clamped = r.classList.toggle('clamp');
-              btn.textContent = clamped ? 'Voir tout' : 'Réduire';
+              var entry = btn.closest('.entry');
+              var open = entry.classList.toggle('open');
+              btn.textContent = open ? 'Réduire' : 'Voir tout';
             });
           });
         } catch (err) {
