@@ -1,0 +1,365 @@
+---
+// Oracle ES2 — outil interne de rédaction (assistant style perso).
+// Statique + Netlify Functions. Protégé par mot de passe (ORACLE_ES2_PASSWORD côté serveur).
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light only" />
+  <title>Oracle ES2</title>
+  <meta name="description" content="Assistant de rédaction interne." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" /></noscript>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      color-scheme: light only;
+      --primary: #6d28d9;
+      --primary-dark: #5b21b6;
+      --ink: #0f172a;
+      --ink-soft: #334155;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --surface: #ffffff;
+      --bg: #f8fafc;
+      --accent-soft: #f5f3ff;
+      --ok: #059669;
+      --err: #dc2626;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 56px) 20px 64px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
+
+    label { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 6px; }
+    .hint { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+
+    textarea, input[type="password"] {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.98rem;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      resize: vertical;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    textarea { min-height: 90px; }
+    .field { margin-bottom: 18px; }
+
+    button {
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 12px;
+      padding: 13px 22px;
+      cursor: pointer;
+      transition: background .15s, transform .05s;
+    }
+    button:hover { background: var(--primary-dark); }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .tab {
+      background: none; color: var(--muted); border: none; border-radius: 0;
+      padding: 12px 6px; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tab:hover { background: none; color: var(--ink); }
+    .tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: clamp(18px, 3vw, 26px);
+      box-shadow: 0 6px 24px rgba(15,23,42,.05);
+    }
+
+    .msg { font-size: 0.9rem; margin-top: 14px; min-height: 1.2em; }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--err); }
+
+    .draft-box {
+      margin-top: 22px;
+      background: var(--accent-soft);
+      border: 1px solid #ddd6fe;
+      border-radius: 14px;
+      padding: 18px;
+      display: none;
+    }
+    .draft-box.show { display: block; }
+    .draft-text {
+      white-space: pre-wrap;
+      font-size: 0.98rem;
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    .draft-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+    .copy-btn { background: #fff; color: var(--primary-dark); border: 1px solid #ddd6fe; padding: 9px 16px; font-size: 0.88rem; }
+    .copy-btn:hover { background: #fff; border-color: var(--primary); }
+
+    .used { margin-top: 16px; font-size: 0.82rem; color: var(--muted); }
+    .used ul { margin: 6px 0 0; padding-left: 18px; }
+    .used li { margin-bottom: 3px; }
+
+    /* Gate */
+    .gate {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+    }
+    .gate-card { width: 100%; max-width: 360px; text-align: center; }
+    .gate-card .card { padding: 28px 24px; }
+    .gate h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 16px; }
+    .gate input { margin-bottom: 14px; text-align: center; }
+    .gate button { width: 100%; }
+    .app { display: none; }
+    .app.show { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Écran mot de passe -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="card">
+        <h2>🔒 Oracle ES2</h2>
+        <form id="gate-form">
+          <input type="password" id="gate-pw" placeholder="Mot de passe" autocomplete="current-password" autofocus />
+          <button type="submit">Entrer</button>
+        </form>
+        <div class="msg err" id="gate-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application -->
+  <div class="app" id="app">
+    <div class="wrap">
+      <span class="eyebrow">Outil interne</span>
+      <h1>Oracle ES2</h1>
+      <p class="sub">Ton assistant de rédaction. Plus la base grossit, plus les brouillons te ressemblent.</p>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="feed">Alimenter la base</button>
+        <button class="tab" data-tab="gen">Générer</button>
+      </div>
+
+      <!-- Onglet Alimenter -->
+      <div class="panel active" id="panel-feed">
+        <div class="card">
+          <form id="feed-form">
+            <div class="field">
+              <label for="f-question">Question reçue</label>
+              <textarea id="f-question" placeholder="Le bilan / message du membre…" required></textarea>
+            </div>
+            <div class="field">
+              <label for="f-reponse">Ta réponse</label>
+              <textarea id="f-reponse" placeholder="Ce que tu as répondu, dans ton style…" required style="min-height:140px;"></textarea>
+            </div>
+            <div class="field">
+              <label for="f-raisonnement">Raisonnement <span class="hint">(optionnel : le pourquoi de l'angle, quand t'as un déclic)</span></label>
+              <textarea id="f-raisonnement" placeholder="Pourquoi cet angle plutôt qu'un autre…"></textarea>
+            </div>
+            <button type="submit" id="feed-btn">Enregistrer</button>
+            <div class="msg" id="feed-msg"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Onglet Générer -->
+      <div class="panel" id="panel-gen">
+        <div class="card">
+          <form id="gen-form">
+            <div class="field">
+              <label for="g-question">Nouvelle question</label>
+              <textarea id="g-question" placeholder="Le bilan / message auquel répondre…" required style="min-height:120px;"></textarea>
+            </div>
+            <button type="submit" id="gen-btn">Générer le brouillon</button>
+            <div class="msg" id="gen-msg"></div>
+
+            <div class="draft-box" id="draft-box">
+              <div class="draft-text" id="draft-text"></div>
+              <div class="draft-actions">
+                <button type="button" class="copy-btn" id="copy-btn">Copier</button>
+                <span class="msg" id="copy-msg" style="margin-top:0;"></span>
+              </div>
+              <div class="used" id="used-box"></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var KEY = 'oracle_es2_pw';
+      var gate = document.getElementById('gate');
+      var app = document.getElementById('app');
+
+      function unlock() { gate.style.display = 'none'; app.classList.add('show'); }
+      function lock(msg) {
+        sessionStorage.removeItem(KEY);
+        app.classList.remove('show');
+        gate.style.display = 'flex';
+        if (msg) document.getElementById('gate-msg').textContent = msg;
+      }
+      function pw() { return sessionStorage.getItem(KEY) || ''; }
+
+      if (pw()) unlock();
+
+      // Le mot de passe n'est validé qu'au premier appel serveur réel.
+      document.getElementById('gate-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var val = document.getElementById('gate-pw').value;
+        if (!val) return;
+        sessionStorage.setItem(KEY, val);
+        document.getElementById('gate-msg').textContent = '';
+        unlock();
+      });
+
+      // Onglets
+      document.querySelectorAll('.tab').forEach(function (t) {
+        t.addEventListener('click', function () {
+          document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+          document.querySelectorAll('.panel').forEach(function (x) { x.classList.remove('active'); });
+          t.classList.add('active');
+          document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+        });
+      });
+
+      function setMsg(el, text, cls) {
+        el.textContent = text;
+        el.className = 'msg' + (cls ? ' ' + cls : '');
+      }
+
+      async function callApi(path, body) {
+        var res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({ password: pw() }, body)),
+        });
+        var data = null;
+        try { data = await res.json(); } catch (e) {}
+        if (res.status === 401) { lock('Mot de passe invalide.'); throw new Error('unauthorized'); }
+        if (!res.ok) throw new Error((data && data.error) || ('Erreur ' + res.status));
+        return data;
+      }
+
+      // Alimenter
+      document.getElementById('feed-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('feed-btn');
+        var msg = document.getElementById('feed-msg');
+        var q = document.getElementById('f-question').value.trim();
+        var r = document.getElementById('f-reponse').value.trim();
+        var rz = document.getElementById('f-raisonnement').value.trim();
+        if (!q || !r) { setMsg(msg, 'Question et réponse obligatoires.', 'err'); return; }
+        btn.disabled = true; setMsg(msg, 'Enregistrement…', '');
+        try {
+          var data = await callApi('/api/oracle-es2-add', { question: q, reponse: r, raisonnement: rz });
+          setMsg(msg, '✅ Enregistré' + (data.total ? ' (' + data.total + ' en base).' : '.'), 'ok');
+          document.getElementById('f-question').value = '';
+          document.getElementById('f-reponse').value = '';
+          document.getElementById('f-raisonnement').value = '';
+        } catch (err) {
+          if (err.message !== 'unauthorized') setMsg(msg, '❌ ' + err.message, 'err');
+        } finally { btn.disabled = false; }
+      });
+
+      // Générer
+      document.getElementById('gen-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('gen-btn');
+        var msg = document.getElementById('gen-msg');
+        var box = document.getElementById('draft-box');
+        var q = document.getElementById('g-question').value.trim();
+        if (!q) { setMsg(msg, 'Question obligatoire.', 'err'); return; }
+        btn.disabled = true; box.classList.remove('show'); setMsg(msg, 'Génération en cours…', '');
+        try {
+          var data = await callApi('/api/oracle-es2-generate', { question: q });
+          document.getElementById('draft-text').textContent = data.draft || '(vide)';
+          var used = document.getElementById('used-box');
+          if (data.used && data.used.length) {
+            var items = data.used.map(function (u) {
+              var sim = (u.similarity != null) ? ' (' + Math.round(u.similarity * 100) + '%)' : '';
+              var qx = u.question.length > 70 ? u.question.slice(0, 70) + '…' : u.question;
+              return '<li>' + qx.replace(/</g, '&lt;') + sim + '</li>';
+            }).join('');
+            used.innerHTML = 'Appuyé sur ' + data.used.length + ' réponse(s) proche(s) :<ul>' + items + '</ul>';
+          } else {
+            used.innerHTML = 'Aucune réponse proche en base (style générique appliqué).';
+          }
+          box.classList.add('show');
+          setMsg(msg, '', '');
+        } catch (err) {
+          if (err.message !== 'unauthorized') setMsg(msg, '❌ ' + err.message, 'err');
+        } finally { btn.disabled = false; }
+      });
+
+      // Copier
+      document.getElementById('copy-btn').addEventListener('click', function () {
+        var text = document.getElementById('draft-text').textContent;
+        var cm = document.getElementById('copy-msg');
+        navigator.clipboard.writeText(text).then(function () {
+          setMsg(cm, 'Copié ✅', 'ok');
+          setTimeout(function () { setMsg(cm, '', ''); }, 1800);
+        }).catch(function () { setMsg(cm, 'Échec copie', 'err'); });
+      });
+    })();
+  </script>
+</body>
+</html>
