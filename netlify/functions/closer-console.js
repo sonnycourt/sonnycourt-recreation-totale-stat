@@ -73,6 +73,23 @@ export default async (req) => {
       return json(200, { ok: true, call_log: log });
     }
 
+    // --- Supprimer une tentative d'appel (par index) ---
+    if (body.action === 'log-delete') {
+      const idx = Number(body.index);
+      const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
+      if (!cur.ok || !Array.isArray(cur.data) || !cur.data.length) {
+        return json(404, { error: 'Lead introuvable' });
+      }
+      const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
+      if (Number.isInteger(idx) && idx >= 0 && idx < log.length) log.splice(idx, 1);
+      const upd = await supabasePatch('webinaire_registrations', where, {
+        call_log: log,
+        call_count: log.length,
+      });
+      if (!upd.ok) return json(500, { error: 'Erreur suppression' });
+      return json(200, { ok: true, call_log: log });
+    }
+
     // --- Maj des champs (auto-save) ---
     const patch = {};
     if (body.call_status !== undefined) {

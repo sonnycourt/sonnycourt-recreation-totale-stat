@@ -1433,27 +1433,33 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-r.open .cc-chev{transform:rotate(90deg);color:#2563eb;}
     .cc-det td{padding:0;background:#fff !important;border-bottom:1px solid #e2e8f0;}
     .cc-det-in{padding:18px 20px;background:#f8fafc;}
-    .cc-callbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+    .cc-callbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
     .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;}
     .cc-callbtn:hover{background:#3b82f6;}
-    .cc-outcome,.cc-at{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:600;background:#fff;cursor:pointer;color:#0f172a;}
-    .cc-logbtn{background:#0f172a;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;}
-    .cc-logbtn:hover{background:#334155;}
+    .cc-lognew{background:#0f172a;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;}
+    .cc-lognew:hover{background:#334155;}
+    .cc-logform{display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:12px;margin-bottom:14px;}
+    .cc-at,.cc-outcome{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:600;background:#fff;color:#0f172a;cursor:pointer;}
+    .cc-logvalid{background:#16a34a;color:#fff;border:0;border-radius:9px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;}
+    .cc-logvalid:hover{background:#15803d;}
+    .cc-logcancel{background:transparent;color:#64748b;border:0;font-size:13px;cursor:pointer;font-weight:600;}
     .cc-hist{margin-bottom:16px;}
     .cc-hist-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin-bottom:6px;}
-    .cc-h{display:flex;align-items:center;gap:9px;font-size:13px;padding:5px 0;border-bottom:1px dashed #e2e8f0;}
+    .cc-h{display:flex;align-items:center;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px dashed #e2e8f0;}
     .cc-h:last-child{border-bottom:0;}
     .cc-h time{font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;}
-    .cc-h em{color:#64748b;font-style:normal;}
+    .cc-h em{color:#64748b;font-style:normal;flex:1;}
+    .cc-hdel{background:transparent;border:0;color:#cbd5e1;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;font-weight:700;}
+    .cc-hdel:hover{color:#dc2626;}
     .cc-hist-empty{font-size:12px;color:#94a3b8;font-style:italic;}
     .cc-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
     @media(max-width:680px){.cc-fields{grid-template-columns:1fr;}}
     .cc-f{display:flex;flex-direction:column;gap:6px;}
     .cc-f.full{grid-column:1/-1;}
     .cc-f label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;}
-    .cc-in,.cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
+    .cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
     .cc-ta{min-height:70px;resize:vertical;}
-    .cc-in:focus,.cc-sel:focus,.cc-ta:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+    .cc-sel:focus,.cc-ta:focus,.cc-at:focus,.cc-outcome:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
     .cc-reclink{font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;}
     .cc-reclink:hover{text-decoration:underline;}
     .cc-saved{font-size:12px;font-weight:700;color:#16a34a;height:16px;margin-top:10px;}
@@ -1487,28 +1493,30 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';
         }
         function histHtml(log){
-            if(!log||!log.length)return '<div class="cc-hist-empty">Aucun appel note pour le moment.</div>';
-            return log.slice().reverse().map(function(e){
-                return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+'</em></div>';
-            }).join('');
+            if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee pour le moment.</div>';
+            return log.map(function(e,i){
+                return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer cette ligne">&times;</button></div>';
+            }).reverse().join('');
         }
-        function optsFor(val){
-            return '<option value="">&mdash;</option>'+STATUSES.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');
-        }
+        function optsFor(val){return '<option value="">&mdash;</option>'+STATUSES.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
 
         function detailHtml(l){
             var recLink = isUrl(l.call_transcript) ? '<a class="cc-reclink" href="'+esc(l.call_transcript)+'" target="_blank" rel="noopener">Ouvrir l\'enregistrement &#8599;</a>' : '';
             return '<div class="cc-det-in">'+
               '<div class="cc-callbar">'+
                 '<a class="cc-callbtn" href="tel:'+esc(l.telephone||'')+'">&#128222; Appeler '+esc(l.telephone||'')+'</a>'+
-                '<input type="datetime-local" class="cc-at" value="'+nowLocal()+'">'+
+                '<button type="button" class="cc-lognew">+ Noter la tentative d\'appel</button>'+
+              '</div>'+
+              '<div class="cc-logform" hidden>'+
+                '<input type="datetime-local" class="cc-at">'+
                 '<select class="cc-outcome">'+optsFor('')+'</select>'+
-                '<button type="button" class="cc-logbtn">+ Noter l\'appel</button>'+
+                '<button type="button" class="cc-logvalid">Valider</button>'+
+                '<button type="button" class="cc-logcancel">Annuler</button>'+
               '</div>'+
               '<div class="cc-hist"><div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log)+'</div>'+
               '<div class="cc-fields">'+
                 '<div class="cc-f"><label>Statut du lead</label><select class="cc-sel cc-status">'+optsFor(l.call_status)+'</select></div>'+
-                '<div class="cc-f"><label>&nbsp;</label><div></div></div>'+
+                '<div class="cc-f"></div>'+
                 '<div class="cc-f full"><label>Notes</label><textarea class="cc-ta cc-notes" placeholder="Notes libres sur le lead...">'+esc(l.call_notes||'')+'</textarea></div>'+
                 '<div class="cc-f full"><label>Transcript ou lien enregistrement (audio/video) '+recLink+'</label><textarea class="cc-ta cc-trans" placeholder="Colle le transcript OU un lien https:// vers l\'audio/video...">'+esc(l.call_transcript||'')+'</textarea></div>'+
               '</div>'+
@@ -1540,35 +1548,51 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();render(d.leads||[]);}
             catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}
         }
+        function saved(detTd,msg){var s=detTd.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}
+        async function postJSON(p){return fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}
+        function refreshHist(det,token,log){
+            DATA[token].call_log=log;
+            det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(log);
+            var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');
+            if(row){var c=row.querySelector('.cc-calls');if(c)c.outerHTML=callsCell(log);}
+        }
 
-        function saved(detTd,msg){var s=detTd.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1500);}}
-
-        async function postJSON(payload){return fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});}
-
-        // expand / collapse + log
         listEl.addEventListener('click', async function(e){
-            var logBtn=e.target.closest('.cc-logbtn');
-            if(logBtn){
-                var det=logBtn.closest('.cc-det');var token=det.getAttribute('data-detail');
+            // ouvrir le formulaire de tentative (capture le moment exact)
+            var newBtn=e.target.closest('.cc-lognew');
+            if(newBtn){var det=newBtn.closest('.cc-det');det.querySelector('.cc-logform').hidden=false;det.querySelector('.cc-at').value=nowLocal();return;}
+            if(e.target.closest('.cc-logcancel')){e.target.closest('.cc-logform').hidden=true;return;}
+            // valider la tentative
+            var valid=e.target.closest('.cc-logvalid');
+            if(valid){
+                var det=valid.closest('.cc-det');var token=det.getAttribute('data-detail');
+                var atVal=det.querySelector('.cc-at').value;var atISO=atVal?new Date(atVal).toISOString():undefined;
                 var outcome=det.querySelector('.cc-outcome').value;
-                var atVal=det.querySelector('.cc-at').value;
-                var atISO=atVal?new Date(atVal).toISOString():undefined;
-                logBtn.disabled=true;var t=logBtn.textContent;logBtn.textContent='...';
+                valid.disabled=true;valid.textContent='...';
                 try{var r=await postJSON({token:token,action:'log',outcome:outcome,at:atISO});var d=await r.json();
-                    if(r.ok){DATA[token].call_log=d.call_log;det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(d.call_log);
-                        var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(row)row.querySelector('.cc-calls').outerHTML=callsCell(d.call_log);saved(det.querySelector('td'),'Appel note');}
+                    if(r.ok){refreshHist(det,token,d.call_log);det.querySelector('.cc-logform').hidden=true;saved(det.querySelector('td'),'Tentative notee');}
                 }catch(err){}
-                logBtn.textContent=t;logBtn.disabled=false;return;
+                valid.disabled=false;valid.textContent='Valider';return;
             }
-            if(e.target.closest('.cc-outcome')||e.target.closest('a'))return;
+            // supprimer une ligne d'historique
+            var del=e.target.closest('.cc-hdel');
+            if(del){
+                var det2=del.closest('.cc-det');var tok2=det2.getAttribute('data-detail');var idx=parseInt(del.getAttribute('data-idx'),10);
+                try{var r2=await postJSON({token:tok2,action:'log-delete',index:idx});var d2=await r2.json();
+                    if(r2.ok){refreshHist(det2,tok2,d2.call_log);saved(det2.querySelector('td'),'Ligne supprimee');}
+                }catch(err){}
+                return;
+            }
+            // clic dans la fiche dépliée = on ne toggle pas
+            if(e.target.closest('.cc-det'))return;
+            // toggle la fiche
             var row=e.target.closest('.cc-r');if(!row)return;
             var token=row.getAttribute('data-token');
-            var det=listEl.querySelector('.cc-det[data-detail="'+CSS.escape(token)+'"]');
-            if(row.classList.contains('open')){row.classList.remove('open');det.hidden=true;det.querySelector('td').innerHTML='';}
-            else{row.classList.add('open');det.hidden=false;det.querySelector('td').innerHTML=detailHtml(DATA[token]);}
+            var detRow=listEl.querySelector('.cc-det[data-detail="'+CSS.escape(token)+'"]');
+            if(row.classList.contains('open')){row.classList.remove('open');detRow.hidden=true;detRow.querySelector('td').innerHTML='';}
+            else{row.classList.add('open');detRow.hidden=false;detRow.querySelector('td').innerHTML=detailHtml(DATA[token]);}
         });
 
-        // auto-save : statut (change) + notes/transcript (focusout)
         async function autosave(el){
             var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var payload={token:token};
             if(el.classList.contains('cc-status')){payload.call_status=el.value;DATA[token].call_status=el.value;var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(row)row.querySelector('.cc-stbadge').textContent=el.value||'—';}
