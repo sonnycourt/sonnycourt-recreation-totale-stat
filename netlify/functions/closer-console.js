@@ -7,11 +7,35 @@ import {
 
 /**
  * Console closer — chaque closer ne voit/édite QUE ses leads assignés.
+ * Le STATUT du lead est DÉRIVÉ de la dernière tentative d'appel (jamais saisi
+ * à la main) -> toujours cohérent avec l'historique. Vidé -> "À appeler".
+ *
  * GET  : liste mes leads.
- * POST { token, action:'log', outcome, at?, call_status?, next_callback_at? } : ajoute un appel horodaté + maj statut/rappel.
+ * POST { token, action:'log', outcome, at?, callback? } : ajoute une tentative (callback si "Rappel demandé").
  * POST { token, action:'log-delete', index } : supprime une tentative.
- * POST { token, call_status?, next_callback_at?, call_notes?, call_transcript? } : maj des champs (auto-save).
+ * POST { token, call_notes?, call_transcript? } : notes/transcript (auto-save).
  */
+
+const OUTCOME_STATUS = {
+  'Pas de reponse': null,
+  Messagerie: null,
+  Joint: 'En reflexion',
+  'Rappel demande': 'A rappeler',
+  'A dit OUI': 'Dit oui (verbal)',
+  Refus: 'Refuse',
+  'Faux numero': 'Injoignable',
+};
+
+/** Statut + rappel dérivés de la dernière tentative. Historique vide -> à appeler. */
+function derive(log) {
+  if (!Array.isArray(log) || !log.length) return { call_status: null, next_callback_at: null };
+  const last = log[log.length - 1];
+  const status = Object.prototype.hasOwnProperty.call(OUTCOME_STATUS, last.outcome)
+    ? OUTCOME_STATUS[last.outcome]
+    : null;
+  const cb = last.outcome === 'Rappel demande' && last.callback ? last.callback : null;
+  return { call_status: status, next_callback_at: cb };
+}
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -27,12 +51,10 @@ function authCloserId(req) {
   return data && Number.isInteger(data.cid) ? data.cid : null;
 }
 
-/** null -> null (effacer) · vide/invalide -> undefined (ne pas toucher) · valide -> ISO. */
-function dateOrNull(v) {
-  if (v === null) return null;
-  if (typeof v !== 'string' || !v) return undefined;
+function dateISO(v) {
+  if (typeof v !== 'string' || !v) return null;
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export default async (req) => {
@@ -58,7 +80,7 @@ export default async (req) => {
     if (!token) return json(400, { error: 'token manquant' });
     const where = `token=eq.${encodeURIComponent(token)}&assigned_closer_id=eq.${cid}`;
 
-    // --- Noter une tentative d'appel (+ maj statut/rappel) ---
+    // --- Noter une tentative -> statut dérivé ---
     if (body.action === 'log') {
       const outcome = typeof body.outcome === 'string' ? body.outcome.slice(0, 40) : '';
       const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
@@ -66,24 +88,23 @@ export default async (req) => {
         return json(404, { error: 'Lead introuvable' });
       }
       const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
-      let atISO = new Date().toISOString();
-      const at = dateOrNull(body.at);
-      if (at) atISO = at;
-      log.push({ at: atISO, outcome });
+      const entry = { at: dateISO(body.at) || new Date().toISOString(), outcome };
+      const cb = dateISO(body.callback);
+      if (outcome === 'Rappel demande' && cb) entry.callback = cb;
+      log.push(entry);
 
-      const patch = { call_log: log, call_count: log.length };
-      if (typeof body.call_status === 'string') {
-        patch.call_status = body.call_status ? body.call_status.slice(0, 40) : null;
-      }
-      const cb = dateOrNull(body.next_callback_at);
-      if (cb !== undefined) patch.next_callback_at = cb;
-
-      const upd = await supabasePatch('webinaire_registrations', where, patch);
+      const d = derive(log);
+      const upd = await supabasePatch('webinaire_registrations', where, {
+        call_log: log,
+        call_count: log.length,
+        call_status: d.call_status,
+        next_callback_at: d.next_callback_at,
+      });
       if (!upd.ok) return json(500, { error: 'Erreur log' });
-      return json(200, { ok: true, call_log: log });
+      return json(200, { ok: true, call_log: log, ...d });
     }
 
-    // --- Supprimer une tentative ---
+    // --- Supprimer une tentative -> statut recalculé ---
     if (body.action === 'log-delete') {
       const idx = Number(body.index);
       const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
@@ -92,23 +113,20 @@ export default async (req) => {
       }
       const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
       if (Number.isInteger(idx) && idx >= 0 && idx < log.length) log.splice(idx, 1);
+
+      const d = derive(log);
       const upd = await supabasePatch('webinaire_registrations', where, {
         call_log: log,
         call_count: log.length,
+        call_status: d.call_status,
+        next_callback_at: d.next_callback_at,
       });
       if (!upd.ok) return json(500, { error: 'Erreur suppression' });
-      return json(200, { ok: true, call_log: log });
+      return json(200, { ok: true, call_log: log, ...d });
     }
 
-    // --- Maj des champs (auto-save) ---
+    // --- Notes / transcript (auto-save) ---
     const patch = {};
-    if (typeof body.call_status === 'string') {
-      patch.call_status = body.call_status ? body.call_status.slice(0, 40) : null;
-    }
-    if (body.next_callback_at !== undefined) {
-      const cb = dateOrNull(body.next_callback_at);
-      if (cb !== undefined) patch.next_callback_at = cb;
-    }
     if (body.call_notes !== undefined) {
       patch.call_notes = body.call_notes ? String(body.call_notes).slice(0, 8000) : null;
     }
