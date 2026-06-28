@@ -8,8 +8,9 @@ import {
 /**
  * Console closer — chaque closer ne voit/édite QUE ses leads assignés.
  * GET  : liste mes leads.
- * POST { token, action:'log', outcome } : ajoute un appel horodaté (timestamp serveur).
- * POST { token, call_status?, call_notes?, call_transcript? } : maj des champs.
+ * POST { token, action:'log', outcome, at?, call_status?, next_callback_at? } : ajoute un appel horodaté + maj statut/rappel.
+ * POST { token, action:'log-delete', index } : supprime une tentative.
+ * POST { token, call_status?, next_callback_at?, call_notes?, call_transcript? } : maj des champs (auto-save).
  */
 
 function json(status, body) {
@@ -23,8 +24,15 @@ function authCloserId(req) {
   const secret = getCloserCookieSecret();
   if (!secret) return null;
   const data = verifyCloserToken(getCloserCookieValue(req.headers.get('cookie') || ''), secret);
-  if (!data || !Number.isInteger(data.cid)) return null;
-  return data.cid;
+  return data && Number.isInteger(data.cid) ? data.cid : null;
+}
+
+/** null -> null (effacer) · vide/invalide -> undefined (ne pas toucher) · valide -> ISO. */
+function dateOrNull(v) {
+  if (v === null) return null;
+  if (typeof v !== 'string' || !v) return undefined;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
 export default async (req) => {
@@ -37,8 +45,8 @@ export default async (req) => {
     const r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
         '&select=token,prenom,telephone,email,pays,watch_max_minutes,purchased,purchased_at,' +
-        'call_status,call_notes,call_transcript,call_log' +
-        '&order=purchased.asc,watch_max_minutes.desc',
+        'call_status,next_callback_at,call_notes,call_transcript,call_log' +
+        '&order=watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
     return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
@@ -50,7 +58,7 @@ export default async (req) => {
     if (!token) return json(400, { error: 'token manquant' });
     const where = `token=eq.${encodeURIComponent(token)}&assigned_closer_id=eq.${cid}`;
 
-    // --- Noter un appel (horodaté côté serveur) ---
+    // --- Noter une tentative d'appel (+ maj statut/rappel) ---
     if (body.action === 'log') {
       const outcome = typeof body.outcome === 'string' ? body.outcome.slice(0, 40) : '';
       const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
@@ -58,22 +66,24 @@ export default async (req) => {
         return json(404, { error: 'Lead introuvable' });
       }
       const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
-      // Date/heure choisie par le closer (sinon maintenant).
       let atISO = new Date().toISOString();
-      if (typeof body.at === 'string' && body.at) {
-        const d = new Date(body.at);
-        if (!Number.isNaN(d.getTime())) atISO = d.toISOString();
-      }
+      const at = dateOrNull(body.at);
+      if (at) atISO = at;
       log.push({ at: atISO, outcome });
-      const upd = await supabasePatch('webinaire_registrations', where, {
-        call_log: log,
-        call_count: log.length,
-      });
+
+      const patch = { call_log: log, call_count: log.length };
+      if (typeof body.call_status === 'string') {
+        patch.call_status = body.call_status ? body.call_status.slice(0, 40) : null;
+      }
+      const cb = dateOrNull(body.next_callback_at);
+      if (cb !== undefined) patch.next_callback_at = cb;
+
+      const upd = await supabasePatch('webinaire_registrations', where, patch);
       if (!upd.ok) return json(500, { error: 'Erreur log' });
       return json(200, { ok: true, call_log: log });
     }
 
-    // --- Supprimer une tentative d'appel (par index) ---
+    // --- Supprimer une tentative ---
     if (body.action === 'log-delete') {
       const idx = Number(body.index);
       const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
@@ -92,8 +102,12 @@ export default async (req) => {
 
     // --- Maj des champs (auto-save) ---
     const patch = {};
-    if (body.call_status !== undefined) {
-      patch.call_status = body.call_status ? String(body.call_status).slice(0, 40) : null;
+    if (typeof body.call_status === 'string') {
+      patch.call_status = body.call_status ? body.call_status.slice(0, 40) : null;
+    }
+    if (body.next_callback_at !== undefined) {
+      const cb = dateOrNull(body.next_callback_at);
+      if (cb !== undefined) patch.next_callback_at = cb;
     }
     if (body.call_notes !== undefined) {
       patch.call_notes = body.call_notes ? String(body.call_notes).slice(0, 8000) : null;

@@ -1407,14 +1407,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
     <style is:global>
     #cc{max-width:1080px;margin:0 auto;padding:24px 16px 110px;color:#0f172a;font-family:Inter,system-ui,sans-serif;}
-    .cc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+    .cc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
     .cc-top h1{font-size:22px;margin:0;font-weight:800;}
     .cc-refresh{background:#2563eb;color:#fff;border:0;border-radius:10px;padding:10px 17px;cursor:pointer;font-weight:600;font-size:14px;}
     .cc-refresh:hover{background:#3b82f6;}
-    .cc-stats{display:flex;gap:26px;margin-bottom:16px;font-size:13px;color:#64748b;}
-    .cc-stats b{font-size:22px;color:#2563eb;font-weight:800;margin-right:6px;}
+    .cc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+    .cc-chip{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;}
+    .cc-chip:hover{border-color:#cbd5e1;}
+    .cc-chip.on{background:#2563eb;color:#fff;border-color:#2563eb;}
+    .cc-chip small{opacity:.7;margin-left:5px;font-weight:700;}
     .cc-scroll{overflow-x:auto;border:1px solid #e2e8f0;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.05);}
-    .cc-tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:720px;}
+    .cc-tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:680px;}
     .cc-tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:700;padding:13px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap;}
     .cc-tbl td{padding:11px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
     .cc-r{cursor:pointer;}
@@ -1424,185 +1427,171 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-nm{font-weight:700;font-size:14px;}
     .cc-sub{font-size:11px;color:#94a3b8;margin-top:2px;}
     .cc-tel{color:#2563eb;font-weight:700;text-decoration:none;white-space:nowrap;font-size:14px;}
-    .cc-pill{font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.03em;white-space:nowrap;}
-    .b-yes{background:#16a34a;color:#fff;} .b-no{background:#f1f5f9;color:#94a3b8;}
-    .cc-stbadge{font-size:11px;font-weight:700;color:#475569;}
-    .cc-calls{font-size:12px;color:#475569;white-space:nowrap;}
-    .cc-calls small{color:#94a3b8;}
-    .cc-chev{color:#94a3b8;transition:transform .15s;display:inline-block;}
-    .cc-r.open .cc-chev{transform:rotate(90deg);color:#2563eb;}
+    .st{font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.02em;white-space:nowrap;}
+    .st-app{background:#eff6ff;color:#2563eb;} .st-rap{background:#fef3c7;color:#b45309;} .st-ref{background:#dbeafe;color:#1d4ed8;}
+    .st-oui{background:#ede9fe;color:#6d28d9;} .st-inj{background:#f1f5f9;color:#94a3b8;} .st-ref2{background:#fee2e2;color:#dc2626;} .st-ach{background:#16a34a;color:#fff;}
+    .cc-cbtag{display:block;font-size:11px;color:#b45309;font-weight:700;margin-top:4px;}
+    .cc-calls{font-size:12px;color:#475569;white-space:nowrap;} .cc-calls small{color:#94a3b8;}
+    .cc-chev{color:#94a3b8;transition:transform .15s;display:inline-block;} .cc-r.open .cc-chev{transform:rotate(90deg);color:#2563eb;}
     .cc-det td{padding:0;background:#fff !important;border-bottom:1px solid #e2e8f0;}
     .cc-det-in{padding:18px 20px;background:#f8fafc;}
     .cc-callbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
-    .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;}
-    .cc-callbtn:hover{background:#3b82f6;}
-    .cc-lognew{background:#0f172a;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;}
-    .cc-lognew:hover{background:#334155;}
-    .cc-logform{display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:12px;margin-bottom:14px;}
-    .cc-at,.cc-outcome{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:600;background:#fff;color:#0f172a;cursor:pointer;}
-    .cc-logvalid{background:#16a34a;color:#fff;border:0;border-radius:9px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;}
-    .cc-logvalid:hover{background:#15803d;}
+    .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;} .cc-callbtn:hover{background:#3b82f6;}
+    .cc-lognew{background:#0f172a;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;} .cc-lognew:hover{background:#334155;}
+    .cc-logform{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:14px;}
+    .cc-logrow{display:flex;gap:14px;flex-wrap:wrap;}
+    .cc-cbwrap{margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0;}
+    .cc-logbtns{margin-top:14px;display:flex;gap:10px;align-items:center;}
+    .cc-logvalid{background:#16a34a;color:#fff;border:0;border-radius:9px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer;} .cc-logvalid:hover{background:#15803d;}
     .cc-logcancel{background:transparent;color:#64748b;border:0;font-size:13px;cursor:pointer;font-weight:600;}
     .cc-hist{margin-bottom:16px;}
     .cc-hist-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin-bottom:6px;}
-    .cc-h{display:flex;align-items:center;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px dashed #e2e8f0;}
-    .cc-h:last-child{border-bottom:0;}
-    .cc-h time{font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;}
-    .cc-h em{color:#64748b;font-style:normal;flex:1;}
-    .cc-hdel{background:transparent;border:0;color:#cbd5e1;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;font-weight:700;}
-    .cc-hdel:hover{color:#dc2626;}
+    .cc-h{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px dashed #e2e8f0;} .cc-h:last-child{border-bottom:0;}
+    .cc-h time{font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;white-space:nowrap;} .cc-h em{color:#475569;font-style:normal;flex:1;}
+    .cc-hdel{background:transparent;border:0;color:#cbd5e1;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;font-weight:700;} .cc-hdel:hover{color:#dc2626;}
     .cc-hist-empty{font-size:12px;color:#94a3b8;font-style:italic;}
     .cc-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-    @media(max-width:680px){.cc-fields{grid-template-columns:1fr;}}
-    .cc-f{display:flex;flex-direction:column;gap:6px;}
-    .cc-f.full{grid-column:1/-1;}
+    @media(max-width:680px){.cc-fields{grid-template-columns:1fr;} .cc-tbl{min-width:560px;}}
+    .cc-f{display:flex;flex-direction:column;gap:6px;} .cc-f.full{grid-column:1/-1;}
     .cc-f label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;}
-    .cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
-    .cc-ta{min-height:70px;resize:vertical;}
-    .cc-sel:focus,.cc-ta:focus,.cc-at:focus,.cc-outcome:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
-    .cc-reclink{font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;}
-    .cc-reclink:hover{text-decoration:underline;}
+    .cc-in,.cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
+    .cc-ta{min-height:64px;resize:vertical;}
+    .cc-in:focus,.cc-sel:focus,.cc-ta:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+    .cc-reclink{font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;} .cc-reclink:hover{text-decoration:underline;}
     .cc-saved{font-size:12px;font-weight:700;color:#16a34a;height:16px;margin-top:10px;}
     .cc-empty{text-align:center;color:#64748b;padding:60px 20px;font-size:15px;}
     </style>
 
     <main id="cc" hidden>
         <div class="cc-top"><h1>Console closer</h1><button class="cc-refresh" id="cc-refresh">&#8635; Rafraichir</button></div>
-        <div class="cc-stats" id="cc-stats"></div>
+        <div class="cc-chips" id="cc-chips"></div>
         <div id="cc-list"></div>
     </main>
 
     <script is:inline>
     (function () {
-        var EP = '/.netlify/functions/closer-console';
-        var STATUSES = ['A appeler', 'Joint', 'Pas de reponse', 'Rappel prevu', 'Close', 'Refus'];
-        var cc = document.getElementById('cc');
-        var listEl = document.getElementById('cc-list');
-        var statsEl = document.getElementById('cc-stats');
-        var DATA = {};
+        var EP='/.netlify/functions/closer-console';
+        var STATUSES=['A appeler','A rappeler','En reflexion','Dit oui (verbal)','Injoignable','Refuse'];
+        var OUTCOMES=['Pas de reponse','Messagerie','Joint','Rappel demande','A dit OUI','Refus','Faux numero'];
+        var AUTO={'Joint':'En reflexion','Rappel demande':'A rappeler','A dit OUI':'Dit oui (verbal)','Refus':'Refuse','Faux numero':'Injoignable'};
+        var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'}];
+        var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
+        var DATA={}, LEADS=[], FILTER='all';
 
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
         function p2(n){return (n<10?'0':'')+n;}
         function fmt(iso){var d=new Date(iso);if(isNaN(d.getTime()))return '';return p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
         function nowLocal(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
+        function isoLocal(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d.getTime()))return '';return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
         function isUrl(s){return /^https?:\/\//i.test((s||'').trim());}
+        function statusOf(l){return l.purchased?'Achete':(l.call_status||'A appeler');}
+        function stCls(s){return {'A appeler':'st-app','A rappeler':'st-rap','En reflexion':'st-ref','Dit oui (verbal)':'st-oui','Injoignable':'st-inj','Refuse':'st-ref2','Achete':'st-ach'}[s]||'st-app';}
+        function prio(l){if(l.purchased)return 100;var s=l.call_status||'A appeler';return {'A rappeler':1,'A appeler':2,'En reflexion':3,'Dit oui (verbal)':4,'Injoignable':8,'Refuse':9}[s]||2;}
 
-        function callsCell(log){
-            if(!log||!log.length)return '<span class="cc-calls"><small>aucun appel</small></span>';
-            var last=log[log.length-1];
-            return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';
+        function statusBadge(l){
+            var s=statusOf(l);
+            var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';
+            return '<span class="st '+stCls(s)+'">'+esc(s)+'</span>'+cb;
         }
-        function histHtml(log){
-            if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee pour le moment.</div>';
-            return log.map(function(e,i){
-                return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer cette ligne">&times;</button></div>';
-            }).reverse().join('');
-        }
-        function optsFor(val){return '<option value="">&mdash;</option>'+STATUSES.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
+        function callsCell(log){if(!log||!log.length)return '<span class="cc-calls"><small>aucun appel</small></span>';var last=log[log.length-1];return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';}
+        function histHtml(log){if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee.</div>';return log.map(function(e,i){return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer">&times;</button></div>';}).reverse().join('');}
+        function opts(arr,val){return '<option value="">&mdash;</option>'+arr.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
 
         function detailHtml(l){
-            var recLink = isUrl(l.call_transcript) ? '<a class="cc-reclink" href="'+esc(l.call_transcript)+'" target="_blank" rel="noopener">Ouvrir l\'enregistrement &#8599;</a>' : '';
+            var rec=isUrl(l.call_transcript)?'<a class="cc-reclink" href="'+esc(l.call_transcript)+'" target="_blank" rel="noopener">Ouvrir &#8599;</a>':'';
             return '<div class="cc-det-in">'+
-              '<div class="cc-callbar">'+
-                '<a class="cc-callbtn" href="tel:'+esc(l.telephone||'')+'">&#128222; Appeler '+esc(l.telephone||'')+'</a>'+
-                '<button type="button" class="cc-lognew">+ Noter la tentative d\'appel</button>'+
-              '</div>'+
+              '<div class="cc-callbar"><a class="cc-callbtn" href="tel:'+esc(l.telephone||'')+'">&#128222; Appeler '+esc(l.telephone||'')+'</a>'+
+              '<button type="button" class="cc-lognew">+ Noter la tentative d\'appel</button></div>'+
               '<div class="cc-logform" hidden>'+
-                '<input type="datetime-local" class="cc-at">'+
-                '<select class="cc-outcome">'+optsFor('')+'</select>'+
-                '<button type="button" class="cc-logvalid">Valider</button>'+
-                '<button type="button" class="cc-logcancel">Annuler</button>'+
+                '<div class="cc-logrow">'+
+                  '<div class="cc-f"><label>Date / heure de l\'appel</label><input type="datetime-local" class="cc-in cc-at"></div>'+
+                  '<div class="cc-f"><label>Resultat de l\'appel</label><select class="cc-sel cc-outcome">'+opts(OUTCOMES,'')+'</select></div>'+
+                '</div>'+
+                '<div class="cc-cbwrap" hidden><div class="cc-f"><label>&#128197; Rappeler le</label><input type="datetime-local" class="cc-in cc-cb"></div></div>'+
+                '<div class="cc-logbtns"><button type="button" class="cc-logvalid">Valider la tentative</button><button type="button" class="cc-logcancel">Annuler</button></div>'+
               '</div>'+
               '<div class="cc-hist"><div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log)+'</div>'+
               '<div class="cc-fields">'+
-                '<div class="cc-f"><label>Statut du lead</label><select class="cc-sel cc-status">'+optsFor(l.call_status)+'</select></div>'+
-                '<div class="cc-f"></div>'+
-                '<div class="cc-f full"><label>Notes</label><textarea class="cc-ta cc-notes" placeholder="Notes libres sur le lead...">'+esc(l.call_notes||'')+'</textarea></div>'+
-                '<div class="cc-f full"><label>Transcript ou lien enregistrement (audio/video) '+recLink+'</label><textarea class="cc-ta cc-trans" placeholder="Colle le transcript OU un lien https:// vers l\'audio/video...">'+esc(l.call_transcript||'')+'</textarea></div>'+
+                '<div class="cc-f"><label>Statut du lead</label><select class="cc-sel cc-status">'+opts(STATUSES,l.call_status||'A appeler')+'</select></div>'+
+                '<div class="cc-f"><label>Prochain rappel</label><input type="datetime-local" class="cc-in cc-nextcb" value="'+isoLocal(l.next_callback_at)+'"></div>'+
+                '<div class="cc-f full"><label>Notes</label><textarea class="cc-ta cc-notes" placeholder="Notes libres...">'+esc(l.call_notes||'')+'</textarea></div>'+
+                '<div class="cc-f full"><label>Transcript ou lien enregistrement '+rec+'</label><textarea class="cc-ta cc-trans" placeholder="Transcript OU lien https:// audio/video...">'+esc(l.call_transcript||'')+'</textarea></div>'+
               '</div>'+
-              '<div class="cc-saved"></div>'+
-            '</div>';
+              '<div class="cc-saved"></div></div>';
         }
 
-        function render(leads){
-            DATA={}; leads.forEach(function(l){DATA[l.token]=l;});
-            var bought=leads.filter(function(l){return l.purchased;}).length;
-            var totalCalls=leads.reduce(function(a,l){return a+((l.call_log&&l.call_log.length)||0);},0);
-            statsEl.innerHTML='<div><b>'+leads.length+'</b>leads</div><div><b>'+bought+'</b>achats</div><div><b>'+totalCalls+'</b>appels notes</div>';
-            if(!leads.length){listEl.innerHTML='<div class="cc-empty">Aucun lead assigne pour le moment.</div>';return;}
-            var rows=leads.map(function(l){
-                return '<tr class="cc-r'+(l.purchased?' bought':'')+'" data-token="'+esc(l.token)+'">'+
-                  '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+'</div><div class="cc-sub">'+esc(l.pays||'')+' &middot; '+(l.watch_max_minutes||0)+' min vus</div></td>'+
-                  '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
-                  '<td><span class="cc-stbadge">'+esc(l.call_status||'—')+'</span></td>'+
-                  '<td>'+callsCell(l.call_log)+'</td>'+
-                  '<td><span class="cc-pill '+(l.purchased?'b-yes':'b-no')+'">'+(l.purchased?'ACHETE':'NON')+'</span></td>'+
-                  '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td>'+
-                '</tr>'+
-                '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="6"></td></tr>';
+        function rowHtml(l){
+            return '<tr class="cc-r'+(l.purchased?' bought':'')+'" data-token="'+esc(l.token)+'">'+
+              '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+'</div><div class="cc-sub">'+esc(l.pays||'')+' &middot; '+(l.watch_max_minutes||0)+' min vus</div></td>'+
+              '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
+              '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
+              '<td class="cc-callscell">'+callsCell(l.call_log)+'</td>'+
+              '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td></tr>'+
+              '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="5"></td></tr>';
+        }
+
+        function renderChips(){
+            chipsEl.innerHTML=CHIPS.map(function(c){
+                var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);
+                return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';
             }).join('');
-            listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Statut</th><th>Appels</th><th>Achat</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
         }
+        function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return FILTER==='achete';return (l.call_status||'A appeler')===FILTER;}
+        function renderList(){
+            var arr=LEADS.filter(passF).slice().sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;if(pa===1)return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});
+            if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}
+            listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Statut</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';
+        }
+        function render(leads){DATA={};LEADS=leads;leads.forEach(function(l){DATA[l.token]=l;});renderChips();renderList();}
 
-        async function load(){
-            try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();render(d.leads||[]);}
-            catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}
-        }
-        function saved(detTd,msg){var s=detTd.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}
+        async function load(){try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();render(d.leads||[]);}catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}}
+        function saved(det,msg){var s=det.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}
         async function postJSON(p){return fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}
-        function refreshHist(det,token,log){
-            DATA[token].call_log=log;
-            det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(log);
-            var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');
-            if(row){var c=row.querySelector('.cc-calls');if(c)c.outerHTML=callsCell(log);}
-        }
+        function updateRow(token){var l=DATA[token];var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(!row)return;row.querySelector('.cc-stcell').innerHTML=statusBadge(l);row.querySelector('.cc-callscell').innerHTML=callsCell(l.call_log);row.classList.toggle('bought',!!l.purchased);}
+
+        chipsEl.addEventListener('click',function(e){var b=e.target.closest('.cc-chip');if(!b)return;FILTER=b.getAttribute('data-f');renderChips();renderList();});
 
         listEl.addEventListener('click', async function(e){
-            // ouvrir le formulaire de tentative (capture le moment exact)
-            var newBtn=e.target.closest('.cc-lognew');
-            if(newBtn){var det=newBtn.closest('.cc-det');det.querySelector('.cc-logform').hidden=false;det.querySelector('.cc-at').value=nowLocal();return;}
-            if(e.target.closest('.cc-logcancel')){e.target.closest('.cc-logform').hidden=true;return;}
-            // valider la tentative
-            var valid=e.target.closest('.cc-logvalid');
-            if(valid){
-                var det=valid.closest('.cc-det');var token=det.getAttribute('data-detail');
-                var atVal=det.querySelector('.cc-at').value;var atISO=atVal?new Date(atVal).toISOString():undefined;
-                var outcome=det.querySelector('.cc-outcome').value;
-                valid.disabled=true;valid.textContent='...';
-                try{var r=await postJSON({token:token,action:'log',outcome:outcome,at:atISO});var d=await r.json();
-                    if(r.ok){refreshHist(det,token,d.call_log);det.querySelector('.cc-logform').hidden=true;saved(det.querySelector('td'),'Tentative notee');}
-                }catch(err){}
-                valid.disabled=false;valid.textContent='Valider';return;
+            var det=e.target.closest('.cc-det');
+            if(e.target.closest('.cc-lognew')){var d2=e.target.closest('.cc-det');d2.querySelector('.cc-logform').hidden=false;d2.querySelector('.cc-at').value=nowLocal();return;}
+            if(e.target.closest('.cc-logcancel')){det.querySelector('.cc-logform').hidden=true;return;}
+            if(e.target.closest('.cc-logvalid')){
+                var token=det.getAttribute('data-detail');var btn=e.target.closest('.cc-logvalid');
+                var at=det.querySelector('.cc-at').value, outcome=det.querySelector('.cc-outcome').value;
+                var payload={token:token,action:'log',outcome:outcome,at:at?new Date(at).toISOString():undefined};
+                if(AUTO[outcome])payload.call_status=AUTO[outcome];
+                if(outcome==='Rappel demande'){var cbv=det.querySelector('.cc-cb').value;payload.next_callback_at=cbv?new Date(cbv).toISOString():null;}
+                else if(outcome==='A dit OUI'||outcome==='Refus'||outcome==='Faux numero'){payload.next_callback_at=null;}
+                btn.disabled=true;btn.textContent='...';
+                try{var r=await postJSON(payload);var d=await r.json();if(r.ok){var l=DATA[token];l.call_log=d.call_log;if(payload.call_status!==undefined)l.call_status=payload.call_status;if(payload.next_callback_at!==undefined)l.next_callback_at=payload.next_callback_at;
+                    det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log);
+                    det.querySelector('.cc-status').value=l.call_status||'A appeler';
+                    det.querySelector('.cc-nextcb').value=isoLocal(l.next_callback_at);
+                    det.querySelector('.cc-logform').hidden=true;updateRow(token);renderChips();saved(det,'Tentative notee');}}catch(err){}
+                btn.disabled=false;btn.textContent='Valider la tentative';return;
             }
-            // supprimer une ligne d'historique
             var del=e.target.closest('.cc-hdel');
-            if(del){
-                var det2=del.closest('.cc-det');var tok2=det2.getAttribute('data-detail');var idx=parseInt(del.getAttribute('data-idx'),10);
-                try{var r2=await postJSON({token:tok2,action:'log-delete',index:idx});var d2=await r2.json();
-                    if(r2.ok){refreshHist(det2,tok2,d2.call_log);saved(det2.querySelector('td'),'Ligne supprimee');}
-                }catch(err){}
-                return;
-            }
-            // clic dans la fiche dépliée = on ne toggle pas
-            if(e.target.closest('.cc-det'))return;
-            // toggle la fiche
+            if(del){var token=det.getAttribute('data-detail');var idx=parseInt(del.getAttribute('data-idx'),10);try{var r=await postJSON({token:token,action:'log-delete',index:idx});var d=await r.json();if(r.ok){DATA[token].call_log=d.call_log;det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(d.call_log);updateRow(token);saved(det,'Supprime');}}catch(e2){}return;}
+            if(det)return;
             var row=e.target.closest('.cc-r');if(!row)return;
-            var token=row.getAttribute('data-token');
-            var detRow=listEl.querySelector('.cc-det[data-detail="'+CSS.escape(token)+'"]');
-            if(row.classList.contains('open')){row.classList.remove('open');detRow.hidden=true;detRow.querySelector('td').innerHTML='';}
-            else{row.classList.add('open');detRow.hidden=false;detRow.querySelector('td').innerHTML=detailHtml(DATA[token]);}
+            var token=row.getAttribute('data-token');var dr=listEl.querySelector('.cc-det[data-detail="'+CSS.escape(token)+'"]');
+            if(row.classList.contains('open')){row.classList.remove('open');dr.hidden=true;dr.querySelector('td').innerHTML='';}
+            else{row.classList.add('open');dr.hidden=false;dr.querySelector('td').innerHTML=detailHtml(DATA[token]);}
         });
 
-        async function autosave(el){
-            var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var payload={token:token};
-            if(el.classList.contains('cc-status')){payload.call_status=el.value;DATA[token].call_status=el.value;var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(row)row.querySelector('.cc-stbadge').textContent=el.value||'—';}
-            else if(el.classList.contains('cc-notes')){payload.call_notes=el.value;DATA[token].call_notes=el.value;}
-            else if(el.classList.contains('cc-trans')){payload.call_transcript=el.value;DATA[token].call_transcript=el.value;}
-            else return;
-            try{var r=await postJSON(payload);if(r.ok)saved(det.querySelector('td'));}catch(e){}
-        }
-        listEl.addEventListener('change',function(e){if(e.target.classList.contains('cc-status'))autosave(e.target);});
-        listEl.addEventListener('focusout',function(e){if(e.target.classList.contains('cc-notes')||e.target.classList.contains('cc-trans'))autosave(e.target);});
+        // outcome change -> montrer le champ rappel
+        listEl.addEventListener('change',function(e){
+            if(e.target.classList.contains('cc-outcome')){var det=e.target.closest('.cc-det');var w=det.querySelector('.cc-cbwrap');var show=e.target.value==='Rappel demande';w.hidden=!show;if(show&&!det.querySelector('.cc-cb').value){var d=new Date(Date.now()+2*3600*1000);det.querySelector('.cc-cb').value=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}return;}
+            if(e.target.classList.contains('cc-status')){autosave(e.target,{call_status:e.target.value});}
+            if(e.target.classList.contains('cc-nextcb')){autosave(e.target,{next_callback_at:e.target.value?new Date(e.target.value).toISOString():null});}
+        });
+        listEl.addEventListener('focusout',function(e){
+            if(e.target.classList.contains('cc-notes'))autosave(e.target,{call_notes:e.target.value});
+            if(e.target.classList.contains('cc-trans'))autosave(e.target,{call_transcript:e.target.value});
+        });
+        async function autosave(el,fields){var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];
+            if(fields.call_status!==undefined)l.call_status=fields.call_status;if(fields.next_callback_at!==undefined)l.next_callback_at=fields.next_callback_at;if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;if(fields.call_transcript!==undefined)l.call_transcript=fields.call_transcript;
+            fields.token=token;try{var r=await postJSON(fields);if(r.ok){updateRow(token);renderChips();saved(det);}}catch(e){}}
 
         document.getElementById('cc-refresh').addEventListener('click', load);
         window.initCloserConsole=function(){cc.hidden=false;load();};
