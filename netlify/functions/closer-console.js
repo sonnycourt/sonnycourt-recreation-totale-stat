@@ -6,10 +6,10 @@ import {
 } from './lib/closer-access-crypto.mjs';
 
 /**
- * Console closer — chaque closer ne voit/édite QUE les leads qui lui sont
- * assignés (assigned_closer_id = son cid, déduit du cookie signé closer_access).
+ * Console closer — chaque closer ne voit/édite QUE ses leads assignés.
  * GET  : liste mes leads.
- * POST : met à jour { token, call_status?, call_count?, call_transcript? }.
+ * POST { token, action:'log', outcome } : ajoute un appel horodaté (timestamp serveur).
+ * POST { token, call_status?, call_notes?, call_transcript? } : maj des champs.
  */
 
 function json(status, body) {
@@ -19,7 +19,6 @@ function json(status, body) {
   });
 }
 
-/** @returns {number|null} cid du closer authentifié, ou null. */
 function authCloserId(req) {
   const secret = getCloserCookieSecret();
   if (!secret) return null;
@@ -34,44 +33,54 @@ export default async (req) => {
   const cid = authCloserId(req);
   if (cid === null) return json(401, { error: 'Non authentifié' });
 
-  // --- Mes leads assignés ---
   if (req.method === 'GET') {
     const r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
         '&select=token,prenom,telephone,email,pays,watch_max_minutes,purchased,purchased_at,' +
-        'call_count,call_status,call_transcript,session_date' +
+        'call_status,call_notes,call_transcript,call_log' +
         '&order=purchased.asc,watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
     return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
   }
 
-  // --- Mise à jour d'un lead (uniquement s'il m'est assigné) ---
   if (req.method === 'POST') {
     const body = await req.json().catch(() => ({}));
     const token = typeof body.token === 'string' ? body.token.trim() : '';
     if (!token) return json(400, { error: 'token manquant' });
+    const where = `token=eq.${encodeURIComponent(token)}&assigned_closer_id=eq.${cid}`;
 
+    // --- Noter un appel (horodaté côté serveur) ---
+    if (body.action === 'log') {
+      const outcome = typeof body.outcome === 'string' ? body.outcome.slice(0, 40) : '';
+      const cur = await supabaseGet(`webinaire_registrations?${where}&select=call_log`);
+      if (!cur.ok || !Array.isArray(cur.data) || !cur.data.length) {
+        return json(404, { error: 'Lead introuvable' });
+      }
+      const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
+      log.push({ at: new Date().toISOString(), outcome });
+      const upd = await supabasePatch('webinaire_registrations', where, {
+        call_log: log,
+        call_count: log.length,
+      });
+      if (!upd.ok) return json(500, { error: 'Erreur log' });
+      return json(200, { ok: true, call_log: log });
+    }
+
+    // --- Maj des champs (auto-save) ---
     const patch = {};
     if (body.call_status !== undefined) {
       patch.call_status = body.call_status ? String(body.call_status).slice(0, 40) : null;
     }
-    if (body.call_transcript !== undefined) {
-      patch.call_transcript = body.call_transcript ? String(body.call_transcript).slice(0, 5000) : null;
+    if (body.call_notes !== undefined) {
+      patch.call_notes = body.call_notes ? String(body.call_notes).slice(0, 8000) : null;
     }
-    if (body.call_count !== undefined) {
-      const n = Number(body.call_count);
-      if (Number.isFinite(n) && n >= 0) patch.call_count = Math.floor(n);
+    if (body.call_transcript !== undefined) {
+      patch.call_transcript = body.call_transcript ? String(body.call_transcript).slice(0, 8000) : null;
     }
     if (Object.keys(patch).length === 0) return json(400, { error: 'Rien à mettre à jour' });
 
-    // Sécurité : le filtre double (token + assigned_closer_id=cid) garantit
-    // qu'un closer ne peut éditer que SES leads.
-    const upd = await supabasePatch(
-      'webinaire_registrations',
-      `token=eq.${encodeURIComponent(token)}&assigned_closer_id=eq.${cid}`,
-      patch,
-    );
+    const upd = await supabasePatch('webinaire_registrations', where, patch);
     if (!upd.ok) return json(500, { error: 'Erreur écriture' });
     return json(200, { ok: true });
   }
