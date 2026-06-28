@@ -557,91 +557,74 @@
         <div id="admin-view" class="view" hidden>
             <div class="head">
                 <div>
-                    <h1>Codes d'accès closer</h1>
-                    <p>Un code par closer + suivi des visites de la page /closer.</p>
+                    <h1>Espace closers</h1>
+                    <p>Gère tes closers, leurs identifiants, leurs perfs et l'assignation des leads.</p>
                 </div>
                 <button id="logout-btn" class="btn btn-ghost btn-sm" type="button">Déconnexion</button>
             </div>
 
             <div class="tabs">
-                <button class="tab is-active" id="tab-codes" type="button">Codes</button>
+                <button class="tab is-active" id="tab-closers" type="button">Closers</button>
+                <button class="tab" id="tab-assign" type="button">Assignation</button>
                 <button class="tab" id="tab-candidatures" type="button">Candidatures <span class="tab-count" id="tab-cand-count" hidden>0</span></button>
             </div>
 
-            <!-- Panneau Codes -->
-            <div id="panel-codes" class="panel">
+            <!-- Panneau Closers -->
+            <div id="panel-closers" class="panel">
                 <div class="card create-card">
-                    <h2>Créer un code</h2>
+                    <h2>Ajouter un closer</h2>
                     <form id="create-form" class="create-form">
-                        <input type="text" id="create-label" placeholder="Nom du closer (ex. Brice Malt)" autocomplete="off" required />
+                        <input type="text" id="create-label" placeholder="Nom (ex. Brice Malt)" autocomplete="off" required />
+                        <input type="email" id="create-email" placeholder="Email de connexion" autocomplete="off" required />
+                        <input type="text" id="create-password" placeholder="Mot de passe (min. 6)" autocomplete="off" required />
                         <input type="text" id="create-notes" placeholder="Lien profil / infos (optionnel)" autocomplete="off" />
-                        <button type="submit" id="create-btn" class="btn">Générer le code</button>
+                        <button type="submit" id="create-btn" class="btn">Créer le closer</button>
                     </form>
                     <p id="create-error" class="err" role="alert"></p>
                     <div id="new-code" class="new-code">
-                        <span class="new-code-label">Nouveau code pour <b id="new-code-name"></b> :</span>
-                        <span style="display:inline-flex;align-items:center;gap:10px;">
-                            <span class="new-code-val" id="new-code-val"></span>
-                            <button class="copy-btn" id="new-code-copy" type="button" title="Copier" aria-label="Copier le code">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                            </button>
-                        </span>
+                        <span class="new-code-label">Closer créé : <b id="new-code-name"></b>. Donne-lui l'email + le mot de passe que tu viens de saisir pour se connecter à la console et à la documentation.</span>
                     </div>
                 </div>
-
-                <div class="card">
-                    <h2>Assignation des leads</h2>
-                    <p style="margin:0 0 12px;color:#64748b;font-size:13px;">Répartit équitablement les leads qualifiés (non assignés, non acheteurs, avec téléphone) entre les closers <strong>actifs</strong>. Pour tester : mets min. minutes à <strong>0</strong> et laisse la date vide.</p>
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                        <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;">Min. minutes vues<input type="number" id="assign-min" value="81" min="0" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px;width:120px;"></label>
-                        <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;">Date session (vide = toutes)<input type="text" id="assign-date" placeholder="2026-07-02" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px;width:150px;"></label>
-                        <button type="button" id="assign-btn" class="btn">Répartir entre les closers</button>
-                        <button type="button" id="unassign-btn" class="btn btn-ghost">Tout désassigner</button>
-                    </div>
-                    <p id="assign-result" style="margin:12px 0 0;font-size:13px;font-weight:600;"></p>
-                </div>
-                <script is:inline>
-                (function () {
-                    var EP = '/.netlify/functions/closer-admin';
-                    var btn = document.getElementById('assign-btn');
-                    var ubtn = document.getElementById('unassign-btn');
-                    var out = document.getElementById('assign-result');
-                    if (!btn) return;
-                    btn.addEventListener('click', async function () {
-                        var min = document.getElementById('assign-min').value;
-                        var date = (document.getElementById('assign-date').value || '').trim();
-                        btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Répartition…';
-                        try {
-                            var r = await fetch(EP, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'assign-split', min_minutes: min, session_date: date || null }) });
-                            var d = await r.json();
-                            if (r.ok) {
-                                var detail = (d.perCloser || []).map(function (c) { return c.label + ' : ' + c.count; }).join(' · ');
-                                out.textContent = d.total + ' leads répartis. ' + detail;
-                                out.style.color = '#16a34a';
-                            } else { out.textContent = d.error || 'Erreur'; out.style.color = '#dc2626'; }
-                        } catch (e) { out.textContent = 'Erreur réseau'; out.style.color = '#dc2626'; }
-                        btn.disabled = false;
-                    });
-                    ubtn.addEventListener('click', async function () {
-                        if (!confirm('Désassigner TOUS les leads ?')) return;
-                        ubtn.disabled = true; out.style.color = '#475569'; out.textContent = 'Réinitialisation…';
-                        try {
-                            var r = await fetch(EP, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'unassign-all' }) });
-                            out.textContent = r.ok ? 'Tout désassigné.' : 'Erreur'; out.style.color = r.ok ? '#16a34a' : '#dc2626';
-                        } catch (e) { out.textContent = 'Erreur réseau'; out.style.color = '#dc2626'; }
-                        ubtn.disabled = false;
-                    });
-                })();
-                </script>
 
                 <div class="summary">
-                    <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
-                    <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>
-                    <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Pas venus</div></div>
+                    <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Closers</div></div>
+                    <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Déjà connectés</div></div>
+                    <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Jamais connectés</div></div>
                 </div>
 
                 <div id="codes" class="codes"></div>
-                <p id="codes-empty" class="boot" hidden>Aucun code pour l'instant. Créez-en un ci-dessus.</p>
+                <p id="codes-empty" class="boot" hidden>Aucun closer pour l'instant. Ajoutez-en un ci-dessus.</p>
+            </div>
+
+            <!-- Panneau Assignation -->
+            <div id="panel-assign" class="panel" hidden>
+                <div class="card">
+                    <h2>Assigner des leads à un closer</h2>
+                    <p class="assign-help">Choisis la session, coche les leads que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement.</p>
+                    <div class="assign-controls">
+                        <label>Session (date)<input type="text" id="pool-date" value="2026-07-02" placeholder="2026-07-02 (vide = toutes)"></label>
+                        <button type="button" id="pool-load" class="btn">Charger les leads</button>
+                    </div>
+                    <div class="assign-bar" id="assign-bar" hidden>
+                        <span id="assign-count" class="assign-count">0 sélectionné(s)</span>
+                        <select id="assign-closer"></select>
+                        <button type="button" id="assign-do" class="btn">Assigner</button>
+                        <button type="button" id="assign-clear" class="btn btn-ghost">Vider</button>
+                    </div>
+                    <p id="pool-result" class="assign-result"></p>
+                    <div class="pool-grid">
+                        <div class="pool-col">
+                            <h3>Inscrits pays riches <span id="pool-all-count" class="pool-badge">0</span></h3>
+                            <div class="pool-list-head"><label><input type="checkbox" id="pool-all-check"> Tout cocher</label><span class="pool-col-note">hors ultra-qualifiés →</span></div>
+                            <div id="pool-all" class="pool-list"></div>
+                        </div>
+                        <div class="pool-col">
+                            <h3>Ultra-qualifiés · 1h20+ <span id="pool-ultra-count" class="pool-badge">0</span></h3>
+                            <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">ont suivi jusqu'au CTA</span></div>
+                            <div id="pool-ultra" class="pool-list"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Panneau Candidatures -->
@@ -658,6 +641,45 @@
         </div>
     </div>
 
+    <style is:global>
+      /* Stats perf par closer */
+      .code-stats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px;}
+      .code-stats .cs{background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569;}
+      .code-stats .cs b{color:#0f172a;font-size:14px;margin-right:3px;}
+      .code-stats .cs-green{background:#dcfce7;color:#166534;} .code-stats .cs-green b{color:#15803d;}
+      /* Éditeur identifiants */
+      .code-creds{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
+      .code-creds-edit{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
+      .code-creds-edit input{padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;}
+      .js-cred-msg{margin:0;font-size:12px;min-height:14px;}
+      /* Assignation */
+      .assign-help{margin:0 0 14px;color:#64748b;font-size:13px;}
+      .assign-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+      .assign-controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;}
+      .assign-controls input{padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:230px;}
+      .assign-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;margin-bottom:12px;position:sticky;top:8px;z-index:5;}
+      .assign-bar .assign-count{font-weight:700;color:#1d4ed8;font-size:13px;}
+      .assign-bar select{padding:8px 10px;border:1px solid #93c5fd;border-radius:8px;font-size:13px;min-width:180px;background:#fff;}
+      .assign-result{margin:0 0 12px;font-size:13px;font-weight:600;min-height:16px;}
+      .pool-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+      @media(max-width:760px){.pool-grid{grid-template-columns:1fr;}.assign-controls input{width:100%;}}
+      .pool-col h3{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:8px;color:#0f172a;}
+      .pool-badge{background:#0f172a;color:#fff;border-radius:999px;font-size:11px;padding:2px 9px;font-weight:700;}
+      .pool-list-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;margin-bottom:6px;}
+      .pool-list-head label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;}
+      .pool-col-note{color:#94a3b8;font-style:italic;}
+      .pool-list{border:1px solid #e2e8f0;border-radius:10px;background:#fff;max-height:520px;overflow-y:auto;}
+      .pool-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;}
+      .pool-row:last-child{border-bottom:0;}
+      .pool-row input[type=checkbox]{width:17px;height:17px;flex:0 0 auto;cursor:pointer;}
+      .pool-row .pr-main{flex:1;min-width:0;}
+      .pool-row .pr-name{font-weight:600;color:#0f172a;}
+      .pool-row .pr-sub{color:#64748b;font-size:11.5px;margin-top:1px;}
+      .pool-row .pr-mins{color:#1d4ed8;font-weight:700;font-size:12px;white-space:nowrap;}
+      .pr-assigned{font-size:11px;background:#fef3c7;color:#92400e;border-radius:6px;padding:2px 7px;white-space:nowrap;}
+      .pr-bought{font-size:11px;background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;white-space:nowrap;}
+      .pool-empty{padding:18px;text-align:center;color:#94a3b8;font-size:13px;}
+    </style>
     <script is:inline>
         (function () {
             var SESSION = '/.netlify/functions/admin-es2-session';
@@ -707,6 +729,21 @@
 
             // --- Rendu de la liste ---
             var codesAll = [];
+            var STATS = {};
+
+            async function loadStats() {
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'stats' }),
+                    });
+                    if (!r.ok) return;
+                    var d = await r.json();
+                    STATS = d.stats || {};
+                    if (codesAll.length) renderCodes(codesAll);
+                } catch (e) { /* noop */ }
+            }
 
             function renderCodes(codes) {
                 codesAll = Array.isArray(codes) ? codes : [];
@@ -730,9 +767,10 @@
                 host.innerHTML = codes.map(function (c) {
                     var visited = (c.visit_count > 0) || !!c.first_visit_at;
                     var revoked = c.active === false;
+                    var st = STATS[c.id] || {};
                     var badge = revoked
                         ? '<span class="badge badge-revoked">Révoqué</span>'
-                        : (visited ? '<span class="badge badge-came">Venu</span>' : '<span class="badge badge-not">Pas venu</span>');
+                        : (visited ? '<span class="badge badge-came">Connecté</span>' : '<span class="badge badge-not">Jamais connecté</span>');
                     var action = revoked
                         ? '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="true">Réactiver</button>'
                         : '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="false">Révoquer</button>';
@@ -753,10 +791,17 @@
                                 '</div>' +
                             '</div>' +
                             '<div class="code-meta">' +
-                                '<span class="meta-item"><span class="meta-k">1ʳᵉ visite :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
+                                '<span class="meta-item"><span class="meta-k">Email :</span> <b>' + esc(c.email || '—') + '</b></span>' +
+                                '<span class="meta-item"><span class="meta-k">1ʳᵉ connexion :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
                                 '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
-                                '<span class="meta-item"><span class="meta-k">Visites :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
-                                '<span class="meta-item"><span class="meta-k">Confidentialité :</span> <b>' + (c.consent_at ? 'acceptée ' + fmtDate(c.consent_at) : '—') + '</b></span>' +
+                                '<span class="meta-item"><span class="meta-k">Connexions :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
+                            '</div>' +
+                            '<div class="code-stats">' +
+                                '<span class="cs"><b>' + (st.leads || 0) + '</b>leads</span>' +
+                                '<span class="cs"><b>' + (st.calls || 0) + '</b>appels</span>' +
+                                '<span class="cs"><b>' + (st.rappels || 0) + '</b>à rappeler</span>' +
+                                '<span class="cs"><b>' + (st.oui || 0) + '</b>dits oui</span>' +
+                                '<span class="cs cs-green"><b>' + (st.ventes || 0) + '</b>ventes</span>' +
                             '</div>' +
                             '<div class="code-notes" data-id="' + c.id + '">' +
                                 '<div class="code-notes-view">' +
@@ -769,6 +814,18 @@
                                         '<button class="btn btn-sm js-note-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
                                         '<button class="btn btn-ghost btn-sm js-note-cancel" type="button">Annuler</button>' +
                                     '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="code-creds" data-id="' + c.id + '">' +
+                                '<button class="code-notes-btn js-cred-edit" data-id="' + c.id + '" type="button">&#128273; Modifier l\'email / le mot de passe</button>' +
+                                '<div class="code-creds-edit" hidden>' +
+                                    '<input class="js-cred-email" type="email" placeholder="Email de connexion" value="' + esc(c.email || '') + '">' +
+                                    '<input class="js-cred-pass" type="text" placeholder="Nouveau mot de passe (vide = inchangé)">' +
+                                    '<div class="code-notes-edit-actions">' +
+                                        '<button class="btn btn-sm js-cred-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
+                                        '<button class="btn btn-ghost btn-sm js-cred-cancel" type="button">Annuler</button>' +
+                                    '</div>' +
+                                    '<p class="js-cred-msg err"></p>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
@@ -813,6 +870,51 @@
                         saveNotes(+b.getAttribute('data-id'), val);
                     });
                 });
+                host.querySelectorAll('.js-cred-edit').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-creds');
+                        b.hidden = true;
+                        box.querySelector('.code-creds-edit').hidden = false;
+                        box.querySelector('.js-cred-email').focus();
+                    });
+                });
+                host.querySelectorAll('.js-cred-cancel').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-creds');
+                        box.querySelector('.code-creds-edit').hidden = true;
+                        box.querySelector('.js-cred-msg').textContent = '';
+                        box.querySelector('.js-cred-edit').hidden = false;
+                    });
+                });
+                host.querySelectorAll('.js-cred-save').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-creds');
+                        saveCreds(+b.getAttribute('data-id'),
+                            box.querySelector('.js-cred-email').value.trim(),
+                            box.querySelector('.js-cred-pass').value,
+                            box.querySelector('.js-cred-msg'), b);
+                    });
+                });
+            }
+
+            async function saveCreds(id, email, password, msgEl, btn) {
+                var payload = { action: 'set-credentials', id: id };
+                if (email) payload.email = email;
+                if (password) payload.password = password;
+                if (!email && !password) { msgEl.style.color = '#dc2626'; msgEl.textContent = 'Rien à modifier.'; return; }
+                btn.disabled = true; msgEl.style.color = '#475569'; msgEl.textContent = 'Enregistrement…';
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    var d = {};
+                    try { d = await r.json(); } catch (e) { /* noop */ }
+                    if (r.ok) { msgEl.style.color = '#16a34a'; msgEl.textContent = 'Identifiants mis à jour.'; loadCodes(); }
+                    else { msgEl.style.color = '#dc2626'; msgEl.textContent = d.error || 'Erreur.'; }
+                } catch (e) { msgEl.style.color = '#dc2626'; msgEl.textContent = 'Erreur réseau.'; }
+                btn.disabled = false;
             }
 
             function linkifyText(t) {
@@ -1000,20 +1102,28 @@
             function enterAdmin() {
                 showView('admin');
                 loadCodes();
+                loadStats();
                 loadCandidatures();
             }
 
             // Onglets
+            var TABS = [
+                { tab: 'tab-closers', panel: 'panel-closers' },
+                { tab: 'tab-assign', panel: 'panel-assign' },
+                { tab: 'tab-candidatures', panel: 'panel-candidatures' },
+            ];
             function switchTab(which) {
-                var isCodes = which === 'codes';
-                document.getElementById('tab-codes').classList.toggle('is-active', isCodes);
-                document.getElementById('tab-candidatures').classList.toggle('is-active', !isCodes);
-                document.getElementById('panel-codes').hidden = !isCodes;
-                document.getElementById('panel-candidatures').hidden = isCodes;
-                if (!isCodes) loadCandidatures();
+                TABS.forEach(function (t) {
+                    var on = t.tab === which;
+                    document.getElementById(t.tab).classList.toggle('is-active', on);
+                    document.getElementById(t.panel).hidden = !on;
+                });
+                if (which === 'tab-candidatures') loadCandidatures();
+                if (which === 'tab-assign') initAssignTab();
             }
-            document.getElementById('tab-codes').addEventListener('click', function () { switchTab('codes'); });
-            document.getElementById('tab-candidatures').addEventListener('click', function () { switchTab('candidatures'); });
+            TABS.forEach(function (t) {
+                document.getElementById(t.tab).addEventListener('click', function () { switchTab(t.tab); });
+            });
 
             // Filtres candidatures
             document.querySelectorAll('.cand-filter').forEach(function (f) {
@@ -1070,32 +1180,38 @@
                 showView('login');
             });
 
-            // --- Création ---
+            // --- Création d'un closer ---
             document.getElementById('create-form').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 var label = document.getElementById('create-label').value.trim();
+                var email = document.getElementById('create-email').value.trim();
+                var password = document.getElementById('create-password').value;
                 var notes = document.getElementById('create-notes').value.trim();
                 var btn = document.getElementById('create-btn');
                 var errEl = document.getElementById('create-error');
                 var box = document.getElementById('new-code');
                 errEl.textContent = '';
                 if (!label) { errEl.textContent = 'Entrez un nom.'; return; }
+                if (!email) { errEl.textContent = 'Entrez un email.'; return; }
+                if (!password || password.length < 6) { errEl.textContent = 'Mot de passe : 6 caractères minimum.'; return; }
                 btn.disabled = true;
                 try {
                     var r = await fetch(API, {
                         method: 'POST', credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create', label: label, notes: notes }),
+                        body: JSON.stringify({ action: 'create-closer', label: label, email: email, password: password, notes: notes }),
                     });
                     var d = {};
                     try { d = await r.json(); } catch (e2) { /* noop */ }
                     if (r.ok && d.row) {
-                        document.getElementById('new-code-name').textContent = d.row.label;
-                        document.getElementById('new-code-val').textContent = d.row.code;
+                        document.getElementById('new-code-name').textContent = d.row.label + ' — ' + (d.row.email || email);
                         box.classList.add('is-shown');
                         document.getElementById('create-label').value = '';
+                        document.getElementById('create-email').value = '';
+                        document.getElementById('create-password').value = '';
                         document.getElementById('create-notes').value = '';
                         loadCodes();
+                        loadStats();
                     } else {
                         errEl.textContent = d.error || 'Création impossible.';
                     }
@@ -1105,9 +1221,147 @@
                 btn.disabled = false;
             });
 
-            document.getElementById('new-code-copy').addEventListener('click', function () {
-                copyText(document.getElementById('new-code-val').textContent, this);
-            });
+            // ===== Onglet Assignation =====
+            var POOL = [];
+            var SEL = {};            // token -> true
+            var assignLoaded = false;
+
+            function activeClosers() {
+                return codesAll.filter(function (c) { return c.active !== false; });
+            }
+            function closerName(id) {
+                var c = codesAll.find(function (x) { return x.id === id; });
+                return c ? c.label : ('#' + id);
+            }
+
+            function fillCloserSelect() {
+                var sel = document.getElementById('assign-closer');
+                if (!sel) return;
+                var opts = ['<option value="">— Choisir un closer —</option>'];
+                activeClosers().forEach(function (c) {
+                    opts.push('<option value="' + c.id + '">' + esc(c.label) + '</option>');
+                });
+                opts.push('<option value="__none__">↩︎ Désassigner (retirer)</option>');
+                sel.innerHTML = opts.join('');
+            }
+
+            function poolRow(l) {
+                var checked = SEL[l.token] ? ' checked' : '';
+                var sub = [esc(l.pays || '—'), esc(l.telephone || 'sans tel.')].join(' · ');
+                var tag = l.purchased
+                    ? '<span class="pr-bought">acheté</span>'
+                    : (l.assigned_closer_id != null ? '<span class="pr-assigned">→ ' + esc(closerName(l.assigned_closer_id)) + '</span>' : '');
+                var mins = (l.watch_max_minutes != null) ? (l.watch_max_minutes + ' min') : '';
+                return '<div class="pool-row">' +
+                    '<input type="checkbox" class="js-pool-cb" data-token="' + esc(l.token) + '"' + checked + '>' +
+                    '<div class="pr-main"><div class="pr-name">' + esc(l.prenom || 'Lead') + '</div><div class="pr-sub">' + sub + '</div></div>' +
+                    (mins ? '<span class="pr-mins">' + mins + '</span>' : '') + tag +
+                    '</div>';
+            }
+
+            function renderPool() {
+                var ultra = POOL.filter(function (l) { return (l.watch_max_minutes || 0) >= 81; });
+                var rest = POOL.filter(function (l) { return (l.watch_max_minutes || 0) < 81; });
+                var allHost = document.getElementById('pool-all');
+                var ultraHost = document.getElementById('pool-ultra');
+                document.getElementById('pool-all-count').textContent = rest.length;
+                document.getElementById('pool-ultra-count').textContent = ultra.length;
+                allHost.innerHTML = rest.length ? rest.map(poolRow).join('') : '<div class="pool-empty">Aucun inscrit.</div>';
+                ultraHost.innerHTML = ultra.length ? ultra.map(poolRow).join('') : '<div class="pool-empty">Aucun ultra-qualifié.</div>';
+                document.querySelectorAll('.js-pool-cb').forEach(function (cb) {
+                    cb.addEventListener('change', function () {
+                        var t = cb.getAttribute('data-token');
+                        if (cb.checked) SEL[t] = true; else delete SEL[t];
+                        updateAssignBar();
+                    });
+                });
+                document.getElementById('pool-all-check').checked = false;
+                document.getElementById('pool-ultra-check').checked = false;
+                updateAssignBar();
+            }
+
+            function updateAssignBar() {
+                var n = Object.keys(SEL).length;
+                document.getElementById('assign-bar').hidden = n === 0;
+                document.getElementById('assign-count').textContent = n + ' sélectionné(s)';
+            }
+
+            async function loadPool() {
+                var date = (document.getElementById('pool-date').value || '').trim();
+                var out = document.getElementById('pool-result');
+                var btn = document.getElementById('pool-load');
+                btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Chargement…';
+                SEL = {};
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'leads-pool', session_date: date || null }),
+                    });
+                    var d = await r.json();
+                    if (!r.ok) { out.style.color = '#dc2626'; out.textContent = d.error || 'Erreur.'; btn.disabled = false; return; }
+                    POOL = d.leads || [];
+                    fillCloserSelect();
+                    renderPool();
+                    out.style.color = '#16a34a'; out.textContent = POOL.length + ' lead(s) chargé(s).';
+                } catch (e) { out.style.color = '#dc2626'; out.textContent = 'Erreur réseau.'; }
+                btn.disabled = false;
+            }
+
+            function bindAssignControls() {
+                document.getElementById('pool-load').addEventListener('click', loadPool);
+                document.getElementById('assign-clear').addEventListener('click', function () {
+                    SEL = {};
+                    document.querySelectorAll('.js-pool-cb').forEach(function (cb) { cb.checked = false; });
+                    document.getElementById('pool-all-check').checked = false;
+                    document.getElementById('pool-ultra-check').checked = false;
+                    updateAssignBar();
+                });
+                function selectAll(listId, masterId) {
+                    document.getElementById(masterId).addEventListener('change', function () {
+                        var on = this.checked;
+                        document.querySelectorAll('#' + listId + ' .js-pool-cb').forEach(function (cb) {
+                            cb.checked = on;
+                            var t = cb.getAttribute('data-token');
+                            if (on) SEL[t] = true; else delete SEL[t];
+                        });
+                        updateAssignBar();
+                    });
+                }
+                selectAll('pool-all', 'pool-all-check');
+                selectAll('pool-ultra', 'pool-ultra-check');
+
+                document.getElementById('assign-do').addEventListener('click', async function () {
+                    var tokens = Object.keys(SEL);
+                    var out = document.getElementById('pool-result');
+                    if (!tokens.length) { out.style.color = '#dc2626'; out.textContent = 'Coche au moins un lead.'; return; }
+                    var val = document.getElementById('assign-closer').value;
+                    if (!val) { out.style.color = '#dc2626'; out.textContent = 'Choisis un closer.'; return; }
+                    var closer_id = val === '__none__' ? null : Number(val);
+                    var label = closer_id === null ? 'désassignés' : ('assignés à ' + closerName(closer_id));
+                    var btn = this; btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Assignation…';
+                    try {
+                        var r = await fetch(API, {
+                            method: 'POST', credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'assign', closer_id: closer_id, tokens: tokens }),
+                        });
+                        var d = await r.json();
+                        if (r.ok) {
+                            out.style.color = '#16a34a'; out.textContent = (d.count || tokens.length) + ' lead(s) ' + label + '.';
+                            SEL = {};
+                            await loadPool();
+                            loadStats();
+                        } else { out.style.color = '#dc2626'; out.textContent = d.error || 'Erreur.'; }
+                    } catch (e) { out.style.color = '#dc2626'; out.textContent = 'Erreur réseau.'; }
+                    btn.disabled = false;
+                });
+            }
+
+            function initAssignTab() {
+                if (!assignLoaded) { bindAssignControls(); assignLoaded = true; loadPool(); }
+                else { fillCloserSelect(); }
+            }
 
             init();
         })();
