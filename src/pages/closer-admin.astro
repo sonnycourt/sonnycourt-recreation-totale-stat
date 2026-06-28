@@ -643,6 +643,7 @@
                 <!-- Panneau Closers -->
                 <div id="panel-closers" class="panel">
                     <div id="kpi-global" class="kpi-grid"></div>
+                    <div id="recredit-box" class="recredit-box" hidden></div>
 
                     <div class="card create-card">
                         <h2>Ajouter un closer</h2>
@@ -734,6 +735,15 @@
       .code-stats .cs{background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569;}
       .code-stats .cs b{color:#0f172a;font-size:14px;margin-right:3px;}
       .code-stats .cs-green{background:#dcfce7;color:#166534;} .code-stats .cs-green b{color:#15803d;}
+      .code-stats .cs-grey{background:#fffbeb;color:#b45309;} .code-stats .cs-grey b{color:#b45309;}
+      /* À recréditer */
+      .recredit-box{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;margin-bottom:18px;}
+      .recredit-h{font-weight:800;font-size:14px;color:#92400e;}
+      .recredit-h .rc-seuls{font-weight:600;color:#b45309;font-size:12.5px;}
+      .recredit-sub{font-size:12.5px;color:#a16207;margin:4px 0 10px;}
+      .recredit-list{display:flex;flex-direction:column;gap:6px;}
+      .recredit-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#fff;border:1px solid #fde68a;border-radius:9px;padding:8px 12px;font-size:12.5px;color:#475569;}
+      .recredit-row b{color:#0f172a;} .recredit-row .rc-closer{font-weight:700;color:#b45309;}
       /* Éditeur identifiants */
       .code-creds{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
       .code-creds-edit{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
@@ -818,6 +828,7 @@
             var codesAll = [];
             var STATS = {};
             var GLOBAL = null;
+            var RECREDIT = [];
             var SESSION_DATE = '2026-07-02';
             var SESSIONS = [];
 
@@ -866,8 +877,28 @@
                     kpi(g.contacted + ' / ' + g.a_traiter, 'Contactés / à traiter', 'kpi-blue') +
                     kpi(g.rappels, 'À rappeler', 'kpi-amber') +
                     kpi(g.oui, 'Dits oui', '') +
-                    kpi(g.ventes, 'Ventes', 'kpi-green') +
+                    kpi(g.ventes, 'Ventes créditées', 'kpi-green') +
                     kpi(pct(g.ventes, g.leads), 'Taux de transfo', 'kpi-green');
+            }
+
+            function renderRecredit() {
+                var box = document.getElementById('recredit-box');
+                if (!box) return;
+                var list = RECREDIT || [];
+                var seuls = GLOBAL ? (GLOBAL.achats_seuls || 0) : 0;
+                if (!list.length && !seuls) { box.hidden = true; box.innerHTML = ''; return; }
+                box.hidden = false;
+                var rows = list.map(function (x) {
+                    return '<div class="recredit-row"><b>' + esc(x.prenom) + '</b>' +
+                        '<span class="rc-closer">' + esc(closerName(x.closer_id)) + '</span>' +
+                        '<span>acheté ' + fmtDate(x.purchased_at) + '</span>' +
+                        '<span>appel ' + fmtDate(x.last_contact_at) + '</span></div>';
+                }).join('');
+                box.innerHTML =
+                    '<div class="recredit-h">&#128176; ' + list.length + ' vente(s) à vérifier / recréditer dans Spiffy' +
+                        (seuls ? ' <span class="rc-seuls">· ' + seuls + ' achat(s) spontané(s) non crédité(s)</span>' : '') + '</div>' +
+                    '<div class="recredit-sub">Le closer a parlé au prospect AVANT l\'achat (achat via la page invitation). Vérifie et recrédite dans Spiffy si ce n\'est pas déjà passé par son lien perso.</div>' +
+                    (list.length ? '<div class="recredit-list">' + rows + '</div>' : '');
             }
 
             async function loadStats() {
@@ -881,7 +912,9 @@
                     var d = await r.json();
                     STATS = d.stats || {};
                     GLOBAL = d.global || null;
+                    RECREDIT = d.recredit || [];
                     renderGlobalKpis();
+                    renderRecredit();
                     splitRender();
                 } catch (e) { /* noop */ }
             }
@@ -938,6 +971,7 @@
                         '<span class="cs"><b>' + (st.rappels || 0) + '</b>à rappeler</span>' +
                         '<span class="cs"><b>' + (st.oui || 0) + '</b>dits oui</span>' +
                         '<span class="cs cs-green"><b>' + (st.ventes || 0) + '</b>ventes</span>' +
+                        ((st.achats_seuls || 0) > 0 ? '<span class="cs cs-grey"><b>' + st.achats_seuls + '</b>achetés seuls</span>' : '') +
                         '<span class="cs"><b>' + pct(st.ventes || 0, st.leads || 0) + '</b>transfo</span>' +
                       '</div>'
                     : '';
