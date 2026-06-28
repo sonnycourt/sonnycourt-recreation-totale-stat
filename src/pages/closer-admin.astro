@@ -589,6 +589,51 @@
                     </div>
                 </div>
 
+                <div class="card">
+                    <h2>Assignation des leads</h2>
+                    <p style="margin:0 0 12px;color:#64748b;font-size:13px;">Répartit équitablement les leads qualifiés (non assignés, non acheteurs, avec téléphone) entre les closers <strong>actifs</strong>. Pour tester : mets min. minutes à <strong>0</strong> et laisse la date vide.</p>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                        <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;">Min. minutes vues<input type="number" id="assign-min" value="81" min="0" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px;width:120px;"></label>
+                        <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;">Date session (vide = toutes)<input type="text" id="assign-date" placeholder="2026-07-02" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px;width:150px;"></label>
+                        <button type="button" id="assign-btn" class="btn">Répartir entre les closers</button>
+                        <button type="button" id="unassign-btn" class="btn btn-ghost">Tout désassigner</button>
+                    </div>
+                    <p id="assign-result" style="margin:12px 0 0;font-size:13px;font-weight:600;"></p>
+                </div>
+                <script is:inline>
+                (function () {
+                    var EP = '/.netlify/functions/closer-admin';
+                    var btn = document.getElementById('assign-btn');
+                    var ubtn = document.getElementById('unassign-btn');
+                    var out = document.getElementById('assign-result');
+                    if (!btn) return;
+                    btn.addEventListener('click', async function () {
+                        var min = document.getElementById('assign-min').value;
+                        var date = (document.getElementById('assign-date').value || '').trim();
+                        btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Répartition…';
+                        try {
+                            var r = await fetch(EP, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'assign-split', min_minutes: min, session_date: date || null }) });
+                            var d = await r.json();
+                            if (r.ok) {
+                                var detail = (d.perCloser || []).map(function (c) { return c.label + ' : ' + c.count; }).join(' · ');
+                                out.textContent = d.total + ' leads répartis. ' + detail;
+                                out.style.color = '#16a34a';
+                            } else { out.textContent = d.error || 'Erreur'; out.style.color = '#dc2626'; }
+                        } catch (e) { out.textContent = 'Erreur réseau'; out.style.color = '#dc2626'; }
+                        btn.disabled = false;
+                    });
+                    ubtn.addEventListener('click', async function () {
+                        if (!confirm('Désassigner TOUS les leads ?')) return;
+                        ubtn.disabled = true; out.style.color = '#475569'; out.textContent = 'Réinitialisation…';
+                        try {
+                            var r = await fetch(EP, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'unassign-all' }) });
+                            out.textContent = r.ok ? 'Tout désassigné.' : 'Erreur'; out.style.color = r.ok ? '#16a34a' : '#dc2626';
+                        } catch (e) { out.textContent = 'Erreur réseau'; out.style.color = '#dc2626'; }
+                        ubtn.disabled = false;
+                    });
+                })();
+                </script>
+
                 <div class="summary">
                     <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
                     <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>

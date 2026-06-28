@@ -117,6 +117,59 @@ export default async (req) => {
       return json(200, { ok: true });
     }
 
+    // Répartit équitablement (round-robin) les leads qualifiés non assignés
+    // entre les closers actifs.
+    if (action === 'assign-split') {
+      const minMin = Number.isFinite(Number(body.min_minutes))
+        ? Math.max(0, Math.floor(Number(body.min_minutes)))
+        : 81;
+      const sd =
+        typeof body.session_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.session_date)
+          ? body.session_date
+          : null;
+
+      let q =
+        'webinaire_registrations?assigned_closer_id=is.null' +
+        '&telephone=not.is.null' +
+        '&or=(purchased.is.null,purchased.is.false)' +
+        '&select=token';
+      if (minMin > 0) q += `&watch_max_minutes=gte.${minMin}`;
+      if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;
+
+      const leadsRes = await supabaseGet(q);
+      if (!leadsRes.ok) return json(500, { error: 'Lecture leads impossible', detail: leadsRes.error });
+      const tokens = (Array.isArray(leadsRes.data) ? leadsRes.data : []).map((r) => r.token).filter(Boolean);
+
+      const codesRes = await supabaseGet('closer_access_codes?active=eq.true&select=id,label&order=id.asc');
+      const codes = codesRes.ok && Array.isArray(codesRes.data) ? codesRes.data : [];
+      if (!codes.length) return json(400, { error: 'Aucun closer actif.' });
+
+      const buckets = codes.map(() => []);
+      tokens.forEach((t, i) => buckets[i % codes.length].push(t));
+
+      const perCloser = [];
+      for (let i = 0; i < codes.length; i++) {
+        const bucket = buckets[i];
+        for (let j = 0; j < bucket.length; j += 50) {
+          const slice = bucket.slice(j, j + 50);
+          const filter = `token=in.(${slice.map((t) => encodeURIComponent(t)).join(',')})`;
+          const upd = await supabasePatch('webinaire_registrations', filter, { assigned_closer_id: codes[i].id });
+          if (!upd.ok) return json(500, { error: 'Assignation impossible', detail: upd.error });
+        }
+        perCloser.push({ id: codes[i].id, label: codes[i].label, count: bucket.length });
+      }
+      return json(200, { ok: true, total: tokens.length, perCloser });
+    }
+
+    // Réinitialise toutes les assignations.
+    if (action === 'unassign-all') {
+      const upd = await supabasePatch('webinaire_registrations', 'assigned_closer_id=not.is.null', {
+        assigned_closer_id: null,
+      });
+      if (!upd.ok) return json(500, { error: 'Réinitialisation impossible' });
+      return json(200, { ok: true });
+    }
+
     return json(400, { error: 'Action inconnue' });
   }
 
