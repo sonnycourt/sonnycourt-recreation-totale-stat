@@ -563,85 +563,150 @@
                 <button id="logout-btn" class="btn btn-ghost btn-sm" type="button">Déconnexion</button>
             </div>
 
-            <div class="tabs">
-                <button class="tab is-active" id="tab-closers" type="button">Closers</button>
-                <button class="tab" id="tab-assign" type="button">Assignation</button>
-                <button class="tab" id="tab-candidatures" type="button">Candidatures <span class="tab-count" id="tab-cand-count" hidden>0</span></button>
+            <!-- Sélecteur d'univers -->
+            <div class="universe-tabs">
+                <button class="utab is-active" id="u-recrut" type="button">
+                    <span class="utab-t">Recrutement</span>
+                    <span class="utab-s">Codes d'accès + candidatures</span>
+                </button>
+                <button class="utab" id="u-closers" type="button">
+                    <span class="utab-t">Mes closers</span>
+                    <span class="utab-s">Closers choisis + assignation</span>
+                </button>
             </div>
 
-            <!-- Panneau Closers -->
-            <div id="panel-closers" class="panel">
-                <div class="card create-card">
-                    <h2>Ajouter un closer</h2>
-                    <form id="create-form" class="create-form">
-                        <input type="text" id="create-label" placeholder="Nom (ex. Brice Malt)" autocomplete="off" required />
-                        <input type="email" id="create-email" placeholder="Email de connexion" autocomplete="off" required />
-                        <input type="text" id="create-password" placeholder="Mot de passe (min. 6)" autocomplete="off" required />
-                        <input type="text" id="create-notes" placeholder="Lien profil / infos (optionnel)" autocomplete="off" />
-                        <button type="submit" id="create-btn" class="btn">Créer le closer</button>
-                    </form>
-                    <p id="create-error" class="err" role="alert"></p>
-                    <div id="new-code" class="new-code">
-                        <span class="new-code-label">Closer créé : <b id="new-code-name"></b>. Donne-lui l'email + le mot de passe que tu viens de saisir pour se connecter à la console et à la documentation.</span>
-                    </div>
+            <!-- ===================== UNIVERS 1 : Recrutement ===================== -->
+            <div id="universe-recrut">
+                <div class="tabs subtabs">
+                    <button class="tab is-active" id="tab-codes" type="button">Codes d'accès</button>
+                    <button class="tab" id="tab-candidatures" type="button">Candidatures <span class="tab-count" id="tab-cand-count" hidden>0</span></button>
                 </div>
 
-                <div class="summary">
-                    <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Closers</div></div>
-                    <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Déjà connectés</div></div>
-                    <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Jamais connectés</div></div>
-                </div>
-
-                <div id="codes" class="codes"></div>
-                <p id="codes-empty" class="boot" hidden>Aucun closer pour l'instant. Ajoutez-en un ci-dessus.</p>
-            </div>
-
-            <!-- Panneau Assignation -->
-            <div id="panel-assign" class="panel" hidden>
-                <div class="card">
-                    <h2>Assigner des leads à un closer</h2>
-                    <p class="assign-help">Choisis la session, coche les leads que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement.</p>
-                    <div class="assign-controls">
-                        <label>Session (date)<input type="text" id="pool-date" value="2026-07-02" placeholder="2026-07-02 (vide = toutes)"></label>
-                        <button type="button" id="pool-load" class="btn">Charger les leads</button>
-                    </div>
-                    <div class="assign-bar" id="assign-bar" hidden>
-                        <span id="assign-count" class="assign-count">0 sélectionné(s)</span>
-                        <select id="assign-closer"></select>
-                        <button type="button" id="assign-do" class="btn">Assigner</button>
-                        <button type="button" id="assign-clear" class="btn btn-ghost">Vider</button>
-                    </div>
-                    <p id="pool-result" class="assign-result"></p>
-                    <div class="pool-grid">
-                        <div class="pool-col">
-                            <h3>Inscrits pays riches <span id="pool-all-count" class="pool-badge">0</span></h3>
-                            <div class="pool-list-head"><label><input type="checkbox" id="pool-all-check"> Tout cocher</label><span class="pool-col-note">hors ultra-qualifiés →</span></div>
-                            <div id="pool-all" class="pool-list"></div>
-                        </div>
-                        <div class="pool-col">
-                            <h3>Ultra-qualifiés · 1h20+ <span id="pool-ultra-count" class="pool-badge">0</span></h3>
-                            <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">ont suivi jusqu'au CTA</span></div>
-                            <div id="pool-ultra" class="pool-list"></div>
+                <!-- Panneau Codes d'accès -->
+                <div id="panel-codes" class="panel">
+                    <div class="card create-card">
+                        <h2>Créer un code d'accès</h2>
+                        <p class="assign-help">Un code rapide pour qu'une personne regarde la page de présentation <strong>/closer</strong> et poste sa candidature.</p>
+                        <form id="code-form" class="create-form">
+                            <input type="text" id="code-label" placeholder="Nom (ex. Brice Malt)" autocomplete="off" required />
+                            <input type="text" id="code-notes" placeholder="Lien profil / infos (optionnel)" autocomplete="off" />
+                            <button type="submit" id="code-btn" class="btn">Générer le code</button>
+                        </form>
+                        <p id="code-error" class="err" role="alert"></p>
+                        <div id="new-code" class="new-code">
+                            <span class="new-code-label">Nouveau code pour <b id="new-code-name"></b> :</span>
+                            <span style="display:inline-flex;align-items:center;gap:10px;">
+                                <span class="new-code-val" id="new-code-val"></span>
+                                <button class="copy-btn" id="new-code-copy" type="button" title="Copier" aria-label="Copier le code">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                            </span>
                         </div>
                     </div>
+
+                    <div class="summary">
+                        <div class="sum"><div class="sum-val" id="sum-total">0</div><div class="sum-label">Codes</div></div>
+                        <div class="sum"><div class="sum-val is-green" id="sum-came">0</div><div class="sum-label">Venus</div></div>
+                        <div class="sum"><div class="sum-val is-muted" id="sum-not">0</div><div class="sum-label">Pas venus</div></div>
+                    </div>
+
+                    <div id="codes" class="codes"></div>
+                    <p id="codes-empty" class="boot" hidden>Aucun code pour l'instant. Créez-en un ci-dessus.</p>
+                </div>
+
+                <!-- Panneau Candidatures -->
+                <div id="panel-candidatures" class="panel" hidden>
+                    <div class="cand-filters" id="cand-filters">
+                        <button class="cand-filter is-active" data-filter="all" type="button">Tous <span class="cf-count" id="cf-count-all">0</span></button>
+                        <button class="cand-filter" data-filter="top" type="button">⭐ Top <span class="cf-count" id="cf-count-top">0</span></button>
+                        <button class="cand-filter" data-filter="plus_tard" type="button">🕓 Plus tard <span class="cf-count" id="cf-count-plus_tard">0</span></button>
+                        <button class="cand-filter" data-filter="poubelle" type="button">🗑 Poubelle <span class="cf-count" id="cf-count-poubelle">0</span></button>
+                    </div>
+                    <div id="candidatures" class="codes"></div>
+                    <p id="cand-empty" class="boot" hidden>Aucune candidature pour l'instant.</p>
                 </div>
             </div>
 
-            <!-- Panneau Candidatures -->
-            <div id="panel-candidatures" class="panel" hidden>
-                <div class="cand-filters" id="cand-filters">
-                    <button class="cand-filter is-active" data-filter="all" type="button">Tous <span class="cf-count" id="cf-count-all">0</span></button>
-                    <button class="cand-filter" data-filter="top" type="button">⭐ Top <span class="cf-count" id="cf-count-top">0</span></button>
-                    <button class="cand-filter" data-filter="plus_tard" type="button">🕓 Plus tard <span class="cf-count" id="cf-count-plus_tard">0</span></button>
-                    <button class="cand-filter" data-filter="poubelle" type="button">🗑 Poubelle <span class="cf-count" id="cf-count-poubelle">0</span></button>
+            <!-- ===================== UNIVERS 2 : Mes closers ===================== -->
+            <div id="universe-closers" hidden>
+                <div class="tabs subtabs">
+                    <button class="tab is-active" id="tab-closers" type="button">Closers</button>
+                    <button class="tab" id="tab-assign" type="button">Assignation</button>
                 </div>
-                <div id="candidatures" class="codes"></div>
-                <p id="cand-empty" class="boot" hidden>Aucune candidature pour l'instant.</p>
+
+                <!-- Panneau Closers -->
+                <div id="panel-closers" class="panel">
+                    <div class="card create-card">
+                        <h2>Ajouter un closer</h2>
+                        <p class="assign-help">Les closers avec qui tu décides vraiment de travailler. Ils se connectent avec email + mot de passe à la console et à la documentation.</p>
+                        <form id="create-form" class="create-form">
+                            <input type="text" id="create-label" placeholder="Nom (ex. Brice Malt)" autocomplete="off" required />
+                            <input type="email" id="create-email" placeholder="Email de connexion" autocomplete="off" required />
+                            <input type="text" id="create-password" placeholder="Mot de passe (min. 6)" autocomplete="off" required />
+                            <input type="text" id="create-notes" placeholder="Lien profil / infos (optionnel)" autocomplete="off" />
+                            <button type="submit" id="create-btn" class="btn">Créer le closer</button>
+                        </form>
+                        <p id="create-error" class="err" role="alert"></p>
+                        <div id="new-closer" class="new-code">
+                            <span class="new-code-label">Closer créé : <b id="new-closer-name"></b>. Donne-lui l'email + le mot de passe que tu viens de saisir.</span>
+                        </div>
+                    </div>
+
+                    <div class="summary">
+                        <div class="sum"><div class="sum-val" id="sum-cl-total">0</div><div class="sum-label">Closers</div></div>
+                        <div class="sum"><div class="sum-val is-green" id="sum-cl-conn">0</div><div class="sum-label">Déjà connectés</div></div>
+                        <div class="sum"><div class="sum-val is-muted" id="sum-cl-not">0</div><div class="sum-label">Jamais connectés</div></div>
+                    </div>
+
+                    <div id="closers" class="codes"></div>
+                    <p id="closers-empty" class="boot" hidden>Aucun closer pour l'instant. Ajoutez-en un ci-dessus (ex. Sonny Admin).</p>
+                </div>
+
+                <!-- Panneau Assignation -->
+                <div id="panel-assign" class="panel" hidden>
+                    <div class="card">
+                        <h2>Assigner des leads à un closer</h2>
+                        <p class="assign-help">Choisis la session, coche les leads que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement.</p>
+                        <div class="assign-controls">
+                            <label>Session (date)<input type="text" id="pool-date" value="2026-07-02" placeholder="2026-07-02 (vide = toutes)"></label>
+                            <button type="button" id="pool-load" class="btn">Charger les leads</button>
+                        </div>
+                        <div class="assign-bar" id="assign-bar" hidden>
+                            <span id="assign-count" class="assign-count">0 sélectionné(s)</span>
+                            <select id="assign-closer"></select>
+                            <button type="button" id="assign-do" class="btn">Assigner</button>
+                            <button type="button" id="assign-clear" class="btn btn-ghost">Vider</button>
+                        </div>
+                        <p id="pool-result" class="assign-result"></p>
+                        <div class="pool-grid">
+                            <div class="pool-col">
+                                <h3>Inscrits pays riches <span id="pool-all-count" class="pool-badge">0</span></h3>
+                                <div class="pool-list-head"><label><input type="checkbox" id="pool-all-check"> Tout cocher</label><span class="pool-col-note">hors ultra-qualifiés →</span></div>
+                                <div id="pool-all" class="pool-list"></div>
+                            </div>
+                            <div class="pool-col">
+                                <h3>Ultra-qualifiés · 1h20+ <span id="pool-ultra-count" class="pool-badge">0</span></h3>
+                                <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">ont suivi jusqu'au CTA</span></div>
+                                <div id="pool-ultra" class="pool-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <style is:global>
+      /* Sélecteur d'univers */
+      .universe-tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+      .utab{flex:1;min-width:200px;text-align:left;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 16px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:all .12s;}
+      .utab:hover{border-color:#cbd5e1;}
+      .utab.is-active{border-color:#0f172a;background:#0f172a;}
+      .utab .utab-t{font-weight:800;font-size:15px;color:#0f172a;}
+      .utab .utab-s{font-size:12px;color:#64748b;}
+      .utab.is-active .utab-t,.utab.is-active .utab-s{color:#fff;}
+      .utab.is-active .utab-s{opacity:.75;}
+      .subtabs{margin-bottom:18px;}
       /* Stats perf par closer */
       .code-stats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px;}
       .code-stats .cs{background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569;}
@@ -741,96 +806,126 @@
                     if (!r.ok) return;
                     var d = await r.json();
                     STATS = d.stats || {};
-                    if (codesAll.length) renderCodes(codesAll);
+                    splitRender();
                 } catch (e) { /* noop */ }
             }
 
-            function renderCodes(codes) {
-                codesAll = Array.isArray(codes) ? codes : [];
-                var host = document.getElementById('codes');
-                var empty = document.getElementById('codes-empty');
-                var came = 0, not = 0;
+            // Un closer = ligne AVEC email ; un code de recrutement = ligne SANS email.
+            function splitRender() {
+                renderList(
+                    codesAll.filter(function (c) { return !c.email; }),
+                    { host: 'codes', empty: 'codes-empty', mode: 'recruit',
+                      sumTotal: 'sum-total', sumCame: 'sum-came', sumNot: 'sum-not' }
+                );
+                renderList(
+                    codesAll.filter(function (c) { return c.email; }),
+                    { host: 'closers', empty: 'closers-empty', mode: 'closer',
+                      sumTotal: 'sum-cl-total', sumCame: 'sum-cl-conn', sumNot: 'sum-cl-not' }
+                );
+            }
 
-                codes.forEach(function (c) {
+            function cardHtml(c, mode) {
+                var visited = (c.visit_count > 0) || !!c.first_visit_at;
+                var revoked = c.active === false;
+                var st = STATS[c.id] || {};
+                var badge = revoked
+                    ? '<span class="badge badge-revoked">Révoqué</span>'
+                    : (mode === 'closer'
+                        ? (visited ? '<span class="badge badge-came">Connecté</span>' : '<span class="badge badge-not">Jamais connecté</span>')
+                        : (visited ? '<span class="badge badge-came">Venu</span>' : '<span class="badge badge-not">Pas venu</span>'));
+                var action = revoked
+                    ? '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="true">Réactiver</button>'
+                    : '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="false">Révoquer</button>';
+                // Pastille code : seulement pour les codes de recrutement
+                var chip = mode === 'closer' ? '' :
+                    '<span class="code-chip">' + esc(c.code) +
+                        '<button class="copy-btn js-copy" data-code="' + esc(c.code) + '" title="Copier" aria-label="Copier">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                        '</button>' +
+                    '</span>';
+                // Métadonnées : closer (email/connexions) vs recrutement (visites)
+                var meta = mode === 'closer'
+                    ? '<span class="meta-item"><span class="meta-k">Email :</span> <b>' + esc(c.email || '—') + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">1ʳᵉ connexion :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">Connexions :</span> <b>' + (c.visit_count || 0) + '</b></span>'
+                    : '<span class="meta-item"><span class="meta-k">1ʳᵉ visite :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">Visites :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
+                      '<span class="meta-item"><span class="meta-k">Confidentialité :</span> <b>' + (c.consent_at ? 'acceptée ' + fmtDate(c.consent_at) : '—') + '</b></span>';
+                // Stats de perf : closer uniquement
+                var stats = mode === 'closer'
+                    ? '<div class="code-stats">' +
+                        '<span class="cs"><b>' + (st.leads || 0) + '</b>leads</span>' +
+                        '<span class="cs"><b>' + (st.calls || 0) + '</b>appels</span>' +
+                        '<span class="cs"><b>' + (st.rappels || 0) + '</b>à rappeler</span>' +
+                        '<span class="cs"><b>' + (st.oui || 0) + '</b>dits oui</span>' +
+                        '<span class="cs cs-green"><b>' + (st.ventes || 0) + '</b>ventes</span>' +
+                      '</div>'
+                    : '';
+                // Éditeur d'identifiants : closer uniquement
+                var creds = mode === 'closer'
+                    ? '<div class="code-creds" data-id="' + c.id + '">' +
+                        '<button class="code-notes-btn js-cred-edit" data-id="' + c.id + '" type="button">&#128273; Modifier l\'email / le mot de passe</button>' +
+                        '<div class="code-creds-edit" hidden>' +
+                            '<input class="js-cred-email" type="email" placeholder="Email de connexion" value="' + esc(c.email || '') + '">' +
+                            '<input class="js-cred-pass" type="text" placeholder="Nouveau mot de passe (vide = inchangé)">' +
+                            '<div class="code-notes-edit-actions">' +
+                                '<button class="btn btn-sm js-cred-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
+                                '<button class="btn btn-ghost btn-sm js-cred-cancel" type="button">Annuler</button>' +
+                            '</div>' +
+                            '<p class="js-cred-msg err"></p>' +
+                        '</div>' +
+                      '</div>'
+                    : '';
+                return '' +
+                    '<div class="code-card' + (revoked ? ' is-revoked' : '') + '">' +
+                        '<div class="code-top">' +
+                            '<div class="code-name">' + esc(c.label) + ' ' + badge + '</div>' +
+                            '<div class="code-actions">' + chip + action +
+                                '<button class="code-del js-delete" data-id="' + c.id + '" title="Supprimer" aria-label="Supprimer">' +
+                                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="code-meta">' + meta + '</div>' +
+                        stats +
+                        '<div class="code-notes" data-id="' + c.id + '">' +
+                            '<div class="code-notes-view">' +
+                                '<span class="code-notes-text">' + (c.notes ? linkifyText(c.notes) : '<span class="code-notes-empty">Aucune info</span>') + '</span>' +
+                                '<button class="code-notes-btn js-note-edit" data-id="' + c.id + '" type="button">' + (c.notes ? 'Modifier' : '+ Ajouter une info') + '</button>' +
+                            '</div>' +
+                            '<div class="code-notes-edit" hidden>' +
+                                '<textarea class="js-note-input" rows="2" placeholder="Lien profil, source, remarque…">' + esc(c.notes || '') + '</textarea>' +
+                                '<div class="code-notes-edit-actions">' +
+                                    '<button class="btn btn-sm js-note-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
+                                    '<button class="btn btn-ghost btn-sm js-note-cancel" type="button">Annuler</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        creds +
+                    '</div>';
+            }
+
+            function renderList(list, opts) {
+                var host = document.getElementById(opts.host);
+                var empty = document.getElementById(opts.empty);
+                var came = 0, not = 0;
+                list.forEach(function (c) {
                     var visited = (c.visit_count > 0) || !!c.first_visit_at;
-                    if (c.active === false) { /* révoqué : compté ni venu ni pas-venu actif */ }
                     if (visited) came++; else not++;
                 });
+                document.getElementById(opts.sumTotal).textContent = list.length;
+                document.getElementById(opts.sumCame).textContent = came;
+                document.getElementById(opts.sumNot).textContent = not;
 
-                document.getElementById('sum-total').textContent = codes.length;
-                document.getElementById('sum-came').textContent = came;
-                document.getElementById('sum-not').textContent = not;
-
-                if (!codes.length) { host.innerHTML = ''; empty.hidden = false; return; }
+                if (!list.length) { host.innerHTML = ''; empty.hidden = false; return; }
                 empty.hidden = true;
+                host.innerHTML = list.map(function (c) { return cardHtml(c, opts.mode); }).join('');
+                attachCardHandlers(host);
+            }
 
-                host.innerHTML = codes.map(function (c) {
-                    var visited = (c.visit_count > 0) || !!c.first_visit_at;
-                    var revoked = c.active === false;
-                    var st = STATS[c.id] || {};
-                    var badge = revoked
-                        ? '<span class="badge badge-revoked">Révoqué</span>'
-                        : (visited ? '<span class="badge badge-came">Connecté</span>' : '<span class="badge badge-not">Jamais connecté</span>');
-                    var action = revoked
-                        ? '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="true">Réactiver</button>'
-                        : '<button class="btn btn-ghost btn-sm js-toggle" data-id="' + c.id + '" data-active="false">Révoquer</button>';
-                    return '' +
-                        '<div class="code-card' + (revoked ? ' is-revoked' : '') + '">' +
-                            '<div class="code-top">' +
-                                '<div class="code-name">' + esc(c.label) + ' ' + badge + '</div>' +
-                                '<div class="code-actions">' +
-                                    '<span class="code-chip">' + esc(c.code) +
-                                        '<button class="copy-btn js-copy" data-code="' + esc(c.code) + '" title="Copier" aria-label="Copier">' +
-                                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
-                                        '</button>' +
-                                    '</span>' +
-                                    action +
-                                    '<button class="code-del js-delete" data-id="' + c.id + '" title="Supprimer" aria-label="Supprimer">' +
-                                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
-                                    '</button>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div class="code-meta">' +
-                                '<span class="meta-item"><span class="meta-k">Email :</span> <b>' + esc(c.email || '—') + '</b></span>' +
-                                '<span class="meta-item"><span class="meta-k">1ʳᵉ connexion :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
-                                '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
-                                '<span class="meta-item"><span class="meta-k">Connexions :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
-                            '</div>' +
-                            '<div class="code-stats">' +
-                                '<span class="cs"><b>' + (st.leads || 0) + '</b>leads</span>' +
-                                '<span class="cs"><b>' + (st.calls || 0) + '</b>appels</span>' +
-                                '<span class="cs"><b>' + (st.rappels || 0) + '</b>à rappeler</span>' +
-                                '<span class="cs"><b>' + (st.oui || 0) + '</b>dits oui</span>' +
-                                '<span class="cs cs-green"><b>' + (st.ventes || 0) + '</b>ventes</span>' +
-                            '</div>' +
-                            '<div class="code-notes" data-id="' + c.id + '">' +
-                                '<div class="code-notes-view">' +
-                                    '<span class="code-notes-text">' + (c.notes ? linkifyText(c.notes) : '<span class="code-notes-empty">Aucune info</span>') + '</span>' +
-                                    '<button class="code-notes-btn js-note-edit" data-id="' + c.id + '" type="button">' + (c.notes ? 'Modifier' : '+ Ajouter une info') + '</button>' +
-                                '</div>' +
-                                '<div class="code-notes-edit" hidden>' +
-                                    '<textarea class="js-note-input" rows="2" placeholder="Lien profil, source, remarque…">' + esc(c.notes || '') + '</textarea>' +
-                                    '<div class="code-notes-edit-actions">' +
-                                        '<button class="btn btn-sm js-note-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
-                                        '<button class="btn btn-ghost btn-sm js-note-cancel" type="button">Annuler</button>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div class="code-creds" data-id="' + c.id + '">' +
-                                '<button class="code-notes-btn js-cred-edit" data-id="' + c.id + '" type="button">&#128273; Modifier l\'email / le mot de passe</button>' +
-                                '<div class="code-creds-edit" hidden>' +
-                                    '<input class="js-cred-email" type="email" placeholder="Email de connexion" value="' + esc(c.email || '') + '">' +
-                                    '<input class="js-cred-pass" type="text" placeholder="Nouveau mot de passe (vide = inchangé)">' +
-                                    '<div class="code-notes-edit-actions">' +
-                                        '<button class="btn btn-sm js-cred-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
-                                        '<button class="btn btn-ghost btn-sm js-cred-cancel" type="button">Annuler</button>' +
-                                    '</div>' +
-                                    '<p class="js-cred-msg err"></p>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>';
-                }).join('');
-
+            function attachCardHandlers(host) {
                 host.querySelectorAll('.js-copy').forEach(function (b) {
                     b.addEventListener('click', function () { copyText(b.getAttribute('data-code'), b); });
                 });
@@ -842,7 +937,7 @@
                         var id = +b.getAttribute('data-id');
                         var c = codesAll.find(function (x) { return x.id === id; });
                         var name = c ? c.label : '';
-                        if (window.confirm('Supprimer définitivement le code « ' + name + ' » ?\n\nLes candidatures déjà reçues sont conservées.')) {
+                        if (window.confirm('Supprimer définitivement « ' + name + ' » ?\n\nLes candidatures déjà reçues sont conservées.')) {
                             deleteCode(id);
                         }
                     });
@@ -852,8 +947,7 @@
                         var box = b.closest('.code-notes');
                         box.querySelector('.code-notes-view').hidden = true;
                         box.querySelector('.code-notes-edit').hidden = false;
-                        var ta = box.querySelector('.js-note-input');
-                        ta.focus();
+                        box.querySelector('.js-note-input').focus();
                     });
                 });
                 host.querySelectorAll('.js-note-cancel').forEach(function (b) {
@@ -866,8 +960,7 @@
                 host.querySelectorAll('.js-note-save').forEach(function (b) {
                     b.addEventListener('click', function () {
                         var box = b.closest('.code-notes');
-                        var val = box.querySelector('.js-note-input').value.trim();
-                        saveNotes(+b.getAttribute('data-id'), val);
+                        saveNotes(+b.getAttribute('data-id'), box.querySelector('.js-note-input').value.trim());
                     });
                 });
                 host.querySelectorAll('.js-cred-edit').forEach(function (b) {
@@ -926,7 +1019,7 @@
             async function saveNotes(id, notes) {
                 var c = codesAll.find(function (x) { return x.id === id; });
                 if (c) c.notes = notes;          // MAJ optimiste
-                renderCodes(codesAll);
+                splitRender();
                 try {
                     await fetch(API, {
                         method: 'POST', credentials: 'same-origin',
@@ -935,7 +1028,7 @@
                     });
                 } catch (e) { /* noop */ }
             }
-            window.__renderCloserCodes = renderCodes; // exposé pour aperçu/démo
+            window.__renderCloserCodes = function (codes) { codesAll = Array.isArray(codes) ? codes : []; splitRender(); }; // démo
 
             async function loadCodes() {
                 try {
@@ -943,7 +1036,8 @@
                     if (r.status === 401) { showView('login'); return; }
                     var d = await r.json();
                     if (!r.ok) { document.getElementById('create-error').textContent = d.error || 'Erreur de chargement.'; return; }
-                    renderCodes(d.codes || []);
+                    codesAll = d.codes || [];
+                    splitRender();
                 } catch (e) {
                     document.getElementById('create-error').textContent = 'Erreur réseau.';
                 }
@@ -963,7 +1057,7 @@
             async function deleteCode(id) {
                 // suppression optimiste
                 codesAll = codesAll.filter(function (x) { return x.id !== id; });
-                renderCodes(codesAll);
+                splitRender();
                 try {
                     await fetch(API, {
                         method: 'POST', credentials: 'same-origin',
@@ -1106,14 +1200,29 @@
                 loadCandidatures();
             }
 
-            // Onglets
+            // --- Univers (1 = recrutement, 2 = mes closers) ---
+            function switchUniverse(which) {
+                var recrut = which === 'recrut';
+                document.getElementById('u-recrut').classList.toggle('is-active', recrut);
+                document.getElementById('u-closers').classList.toggle('is-active', !recrut);
+                document.getElementById('universe-recrut').hidden = !recrut;
+                document.getElementById('universe-closers').hidden = recrut;
+            }
+            document.getElementById('u-recrut').addEventListener('click', function () { switchUniverse('recrut'); });
+            document.getElementById('u-closers').addEventListener('click', function () { switchUniverse('closers'); });
+
+            // --- Sous-onglets, groupés par univers ---
             var TABS = [
-                { tab: 'tab-closers', panel: 'panel-closers' },
-                { tab: 'tab-assign', panel: 'panel-assign' },
-                { tab: 'tab-candidatures', panel: 'panel-candidatures' },
+                { tab: 'tab-codes', panel: 'panel-codes', group: ['tab-codes', 'tab-candidatures'] },
+                { tab: 'tab-candidatures', panel: 'panel-candidatures', group: ['tab-codes', 'tab-candidatures'] },
+                { tab: 'tab-closers', panel: 'panel-closers', group: ['tab-closers', 'tab-assign'] },
+                { tab: 'tab-assign', panel: 'panel-assign', group: ['tab-closers', 'tab-assign'] },
             ];
             function switchTab(which) {
+                var def = TABS.find(function (t) { return t.tab === which; });
+                if (!def) return;
                 TABS.forEach(function (t) {
+                    if (def.group.indexOf(t.tab) === -1) return;
                     var on = t.tab === which;
                     document.getElementById(t.tab).classList.toggle('is-active', on);
                     document.getElementById(t.panel).hidden = !on;
@@ -1180,7 +1289,46 @@
                 showView('login');
             });
 
-            // --- Création d'un closer ---
+            // --- Création d'un code de recrutement (Univers 1) ---
+            document.getElementById('code-form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var label = document.getElementById('code-label').value.trim();
+                var notes = document.getElementById('code-notes').value.trim();
+                var btn = document.getElementById('code-btn');
+                var errEl = document.getElementById('code-error');
+                var box = document.getElementById('new-code');
+                errEl.textContent = '';
+                if (!label) { errEl.textContent = 'Entrez un nom.'; return; }
+                btn.disabled = true;
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'create', label: label, notes: notes }),
+                    });
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    if (r.ok && d.row) {
+                        document.getElementById('new-code-name').textContent = d.row.label;
+                        document.getElementById('new-code-val').textContent = d.row.code;
+                        box.classList.add('is-shown');
+                        document.getElementById('code-label').value = '';
+                        document.getElementById('code-notes').value = '';
+                        loadCodes();
+                    } else {
+                        errEl.textContent = d.error || 'Création impossible.';
+                    }
+                } catch (e3) {
+                    errEl.textContent = 'Erreur réseau.';
+                }
+                btn.disabled = false;
+            });
+
+            document.getElementById('new-code-copy').addEventListener('click', function () {
+                copyText(document.getElementById('new-code-val').textContent, this);
+            });
+
+            // --- Création d'un closer (Univers 2) ---
             document.getElementById('create-form').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 var label = document.getElementById('create-label').value.trim();
@@ -1189,7 +1337,7 @@
                 var notes = document.getElementById('create-notes').value.trim();
                 var btn = document.getElementById('create-btn');
                 var errEl = document.getElementById('create-error');
-                var box = document.getElementById('new-code');
+                var box = document.getElementById('new-closer');
                 errEl.textContent = '';
                 if (!label) { errEl.textContent = 'Entrez un nom.'; return; }
                 if (!email) { errEl.textContent = 'Entrez un email.'; return; }
@@ -1204,7 +1352,7 @@
                     var d = {};
                     try { d = await r.json(); } catch (e2) { /* noop */ }
                     if (r.ok && d.row) {
-                        document.getElementById('new-code-name').textContent = d.row.label + ' — ' + (d.row.email || email);
+                        document.getElementById('new-closer-name').textContent = d.row.label + ' — ' + (d.row.email || email);
                         box.classList.add('is-shown');
                         document.getElementById('create-label').value = '';
                         document.getElementById('create-email').value = '';
@@ -1227,7 +1375,7 @@
             var assignLoaded = false;
 
             function activeClosers() {
-                return codesAll.filter(function (c) { return c.active !== false; });
+                return codesAll.filter(function (c) { return c.active !== false && c.email; });
             }
             function closerName(id) {
                 var c = codesAll.find(function (x) { return x.id === id; });
