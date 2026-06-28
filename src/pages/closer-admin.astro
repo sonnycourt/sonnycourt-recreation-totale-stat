@@ -634,8 +634,16 @@
                     <button class="tab" id="tab-assign" type="button">Assignation</button>
                 </div>
 
+                <div class="session-bar">
+                    <span class="session-bar-label">📅 Session</span>
+                    <select id="session-select"></select>
+                    <span id="session-meta" class="session-bar-meta"></span>
+                </div>
+
                 <!-- Panneau Closers -->
                 <div id="panel-closers" class="panel">
+                    <div id="kpi-global" class="kpi-grid"></div>
+
                     <div class="card create-card">
                         <h2>Ajouter un closer</h2>
                         <p class="assign-help">Les closers avec qui tu décides vraiment de travailler. Ils se connectent avec email + mot de passe à la console et à la documentation.</p>
@@ -666,10 +674,9 @@
                 <div id="panel-assign" class="panel" hidden>
                     <div class="card">
                         <h2>Assigner des leads à un closer</h2>
-                        <p class="assign-help">Choisis la session, coche les leads que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement.</p>
+                        <p class="assign-help">Coche les leads de la session <strong id="assign-session-label">sélectionnée</strong> que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement. (Change la session en haut.)</p>
                         <div class="assign-controls">
-                            <label>Session (date)<input type="text" id="pool-date" value="2026-07-02" placeholder="2026-07-02 (vide = toutes)"></label>
-                            <button type="button" id="pool-load" class="btn">Charger les leads</button>
+                            <button type="button" id="pool-load" class="btn">Recharger les leads</button>
                         </div>
                         <div class="assign-bar" id="assign-bar" hidden>
                             <span id="assign-count" class="assign-count">0 sélectionné(s)</span>
@@ -706,7 +713,22 @@
       .utab .utab-s{font-size:12px;color:#64748b;}
       .utab.is-active .utab-t,.utab.is-active .utab-s{color:#fff;}
       .utab.is-active .utab-s{opacity:.75;}
-      .subtabs{margin-bottom:18px;}
+      .subtabs{margin-bottom:14px;}
+      /* Barre de session */
+      .session-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:16px;}
+      .session-bar-label{font-weight:700;font-size:13px;color:#0f172a;}
+      .session-bar select{padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:9px;font-size:14px;font-weight:600;background:#f8fafc;cursor:pointer;min-width:200px;}
+      .session-bar-meta{font-size:12px;color:#64748b;}
+      /* Grille KPI globale */
+      .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+      @media(max-width:860px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+      @media(max-width:480px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+      .kpi{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:13px 14px;}
+      .kpi .kpi-v{font-size:24px;font-weight:800;color:#0f172a;line-height:1.1;}
+      .kpi .kpi-l{font-size:11px;color:#64748b;margin-top:3px;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
+      .kpi.kpi-green .kpi-v{color:#15803d;} .kpi.kpi-green{background:#f0fdf4;border-color:#bbf7d0;}
+      .kpi.kpi-blue .kpi-v{color:#1d4ed8;} .kpi.kpi-blue{background:#eff6ff;border-color:#bfdbfe;}
+      .kpi.kpi-amber .kpi-v{color:#b45309;} .kpi.kpi-amber{background:#fffbeb;border-color:#fde68a;}
       /* Stats perf par closer */
       .code-stats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px;}
       .code-stats .cs{background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:12px;color:#475569;}
@@ -795,17 +817,71 @@
             // --- Rendu de la liste ---
             var codesAll = [];
             var STATS = {};
+            var GLOBAL = null;
+            var SESSION_DATE = '2026-07-02';
+            var SESSIONS = [];
+
+            var dfDay = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+            function frDate(d) { try { return dfDay.format(new Date(d + 'T12:00:00')); } catch (e) { return d; } }
+            function pct(n, d) { return d > 0 ? Math.round((n / d) * 100) + '%' : '—'; }
+
+            async function loadSessions() {
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'sessions' }),
+                    });
+                    var d = r.ok ? await r.json() : {};
+                    SESSIONS = (d.sessions && d.sessions.length) ? d.sessions : [{ date: SESSION_DATE, count: 0 }];
+                } catch (e) { SESSIONS = [{ date: SESSION_DATE, count: 0 }]; }
+                if (!SESSION_DATE || !SESSIONS.some(function (s) { return s.date === SESSION_DATE; })) {
+                    SESSION_DATE = SESSIONS[0].date;
+                }
+                var sel = document.getElementById('session-select');
+                sel.innerHTML = SESSIONS.map(function (s) {
+                    return '<option value="' + s.date + '"' + (s.date === SESSION_DATE ? ' selected' : '') +
+                        '>' + frDate(s.date) + ' · ' + s.count + ' inscrits</option>';
+                }).join('');
+                updateSessionMeta();
+                loadStats();
+            }
+
+            function updateSessionMeta() {
+                var s = SESSIONS.find(function (x) { return x.date === SESSION_DATE; });
+                document.getElementById('session-meta').textContent = s ? (s.count + ' inscrits pays riches') : '';
+                var lab = document.getElementById('assign-session-label');
+                if (lab) lab.textContent = frDate(SESSION_DATE);
+            }
+
+            function renderGlobalKpis() {
+                var host = document.getElementById('kpi-global');
+                if (!host) return;
+                var g = GLOBAL || { leads: 0, calls: 0, contacted: 0, a_traiter: 0, rappels: 0, oui: 0, ventes: 0 };
+                function kpi(v, l, cls) {
+                    return '<div class="kpi ' + (cls || '') + '"><div class="kpi-v">' + v + '</div><div class="kpi-l">' + l + '</div></div>';
+                }
+                host.innerHTML =
+                    kpi(g.leads, 'Leads assignés', '') +
+                    kpi(g.contacted + ' / ' + g.a_traiter, 'Contactés / à traiter', 'kpi-blue') +
+                    kpi(g.rappels, 'À rappeler', 'kpi-amber') +
+                    kpi(g.oui, 'Dits oui', '') +
+                    kpi(g.ventes, 'Ventes', 'kpi-green') +
+                    kpi(pct(g.ventes, g.leads), 'Taux de transfo', 'kpi-green');
+            }
 
             async function loadStats() {
                 try {
                     var r = await fetch(API, {
                         method: 'POST', credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'stats' }),
+                        body: JSON.stringify({ action: 'stats', session_date: SESSION_DATE }),
                     });
                     if (!r.ok) return;
                     var d = await r.json();
                     STATS = d.stats || {};
+                    GLOBAL = d.global || null;
+                    renderGlobalKpis();
                     splitRender();
                 } catch (e) { /* noop */ }
             }
@@ -858,9 +934,11 @@
                     ? '<div class="code-stats">' +
                         '<span class="cs"><b>' + (st.leads || 0) + '</b>leads</span>' +
                         '<span class="cs"><b>' + (st.calls || 0) + '</b>appels</span>' +
+                        '<span class="cs"><b>' + (st.contacted || 0) + '</b>contactés</span>' +
                         '<span class="cs"><b>' + (st.rappels || 0) + '</b>à rappeler</span>' +
                         '<span class="cs"><b>' + (st.oui || 0) + '</b>dits oui</span>' +
                         '<span class="cs cs-green"><b>' + (st.ventes || 0) + '</b>ventes</span>' +
+                        '<span class="cs"><b>' + pct(st.ventes || 0, st.leads || 0) + '</b>transfo</span>' +
                       '</div>'
                     : '';
                 // Éditeur d'identifiants : closer uniquement
@@ -1196,9 +1274,18 @@
             function enterAdmin() {
                 showView('admin');
                 loadCodes();
-                loadStats();
+                loadSessions();
                 loadCandidatures();
             }
+
+            // Changement de session -> KPI + pool d'assignation suivent
+            document.getElementById('session-select').addEventListener('change', function () {
+                SESSION_DATE = this.value;
+                updateSessionMeta();
+                loadStats();
+                POOL = []; SEL = {};
+                if (!document.getElementById('panel-assign').hidden) { loadPool(); }
+            });
 
             // --- Univers (1 = recrutement, 2 = mes closers) ---
             function switchUniverse(which) {
@@ -1435,7 +1522,7 @@
             }
 
             async function loadPool() {
-                var date = (document.getElementById('pool-date').value || '').trim();
+                var date = SESSION_DATE;
                 var out = document.getElementById('pool-result');
                 var btn = document.getElementById('pool-load');
                 btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Chargement…';
@@ -1451,7 +1538,7 @@
                     POOL = d.leads || [];
                     fillCloserSelect();
                     renderPool();
-                    out.style.color = '#16a34a'; out.textContent = POOL.length + ' lead(s) chargé(s).';
+                    out.style.color = '#16a34a'; out.textContent = POOL.length + ' lead(s) chargé(s) pour le ' + frDate(date) + '.';
                 } catch (e) { out.style.color = '#dc2626'; out.textContent = 'Erreur réseau.'; }
                 btn.disabled = false;
             }
@@ -1507,8 +1594,8 @@
             }
 
             function initAssignTab() {
-                if (!assignLoaded) { bindAssignControls(); assignLoaded = true; loadPool(); }
-                else { fillCloserSelect(); }
+                if (!assignLoaded) { bindAssignControls(); assignLoaded = true; }
+                loadPool(); // recharge toujours selon la session courante
             }
 
             init();

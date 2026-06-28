@@ -1413,6 +1413,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     #cc{max-width:1080px;margin:0 auto;padding:24px 16px 110px;color:#0f172a;font-family:Inter,system-ui,sans-serif;}
     .cc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
     .cc-top h1{font-size:22px;margin:0;font-weight:800;}
+    .cc-top-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .cc-session{padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;font-weight:600;background:#f8fafc;color:#0f172a;cursor:pointer;}
     .cc-refresh{background:#2563eb;color:#fff;border:0;border-radius:10px;padding:10px 17px;cursor:pointer;font-weight:600;font-size:14px;} .cc-refresh:hover{background:#3b82f6;}
     .cc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
     .cc-chip{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;} .cc-chip:hover{border-color:#cbd5e1;}
@@ -1461,7 +1463,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     </style>
 
     <main id="cc" hidden>
-        <div class="cc-top"><h1>Console closer</h1><button class="cc-refresh" id="cc-refresh">&#8635; Rafraichir</button></div>
+        <div class="cc-top"><h1>Console closer</h1><div class="cc-top-r"><select id="cc-session" class="cc-session" aria-label="Session"></select><button class="cc-refresh" id="cc-refresh">&#8635; Rafraichir</button></div></div>
         <div class="cc-chips" id="cc-chips"></div>
         <div id="cc-list"></div>
     </main>
@@ -1472,7 +1474,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         var OUTCOMES=['Pas de reponse','Messagerie','Joint','Rappel demande','A dit OUI','Refus','Faux numero'];
         var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'}];
         var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
+        var sessionEl=document.getElementById('cc-session');
         var DATA={}, LEADS=[], FILTER='all';
+        var ALL_LEADS=[], SESSION_SEL='', SESSIONS=[];
+        var dfDay=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+        function sDate(d){return d?String(d).slice(0,10):'';}
+        function frDay(d){try{return dfDay.format(new Date(d+'T12:00:00'));}catch(e){return d;}}
 
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
         function p2(n){return (n<10?'0':'')+n;}
@@ -1521,7 +1528,23 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
         function renderList(){var arr=LEADS.filter(passF).slice().sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;if(pa===1)return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Statut</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
-        function render(leads){DATA={};LEADS=leads;leads.forEach(function(l){DATA[l.token]=l;});renderChips();renderList();}
+        function render(leads){ALL_LEADS=leads||[];buildSessions();applySession();}
+        function buildSessions(){
+            var counts={};
+            ALL_LEADS.forEach(function(l){var d=sDate(l.session_date);if(d)counts[d]=(counts[d]||0)+1;});
+            SESSIONS=Object.keys(counts).sort(function(a,b){return a<b?1:-1;});
+            if(!SESSIONS.length){sessionEl.hidden=true;SESSION_SEL='';return;}
+            sessionEl.hidden=false;
+            if(!SESSION_SEL||SESSIONS.indexOf(SESSION_SEL)===-1)SESSION_SEL=SESSIONS[0];
+            sessionEl.innerHTML=SESSIONS.map(function(d){return '<option value="'+d+'"'+(d===SESSION_SEL?' selected':'')+'>'+frDay(d)+' · '+counts[d]+' leads</option>';}).join('');
+        }
+        function applySession(){
+            DATA={};
+            LEADS=SESSION_SEL?ALL_LEADS.filter(function(l){return sDate(l.session_date)===SESSION_SEL;}):ALL_LEADS.slice();
+            LEADS.forEach(function(l){DATA[l.token]=l;});
+            renderChips();renderList();
+        }
+        sessionEl.addEventListener('change',function(){SESSION_SEL=this.value;applySession();});
 
         async function load(){try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();render(d.leads||[]);}catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}}
         function saved(det,msg){var s=det.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}

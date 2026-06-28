@@ -218,24 +218,60 @@ export default async (req) => {
       return json(200, { ok: true });
     }
 
-    // --- Stats de perf par closer ---
-    if (action === 'stats') {
+    // --- Liste des sessions (dates) ayant des inscrits pays riches ---
+    if (action === 'sessions') {
       const r = await supabaseGet(
-        'webinaire_registrations?assigned_closer_id=not.is.null&select=assigned_closer_id,call_status,purchased,call_log',
+        'webinaire_registrations' +
+          `?pays=in.(${RICH_PAYS.map(encodeURIComponent).join(',')})` +
+          '&select=session_date&order=session_date.desc',
       );
       const rows = r.ok && Array.isArray(r.data) ? r.data : [];
+      const counts = {};
+      for (const row of rows) {
+        if (!row.session_date) continue;
+        const d = String(row.session_date).slice(0, 10); // YYYY-MM-DD
+        counts[d] = (counts[d] || 0) + 1;
+      }
+      const sessions = Object.keys(counts)
+        .sort((a, b) => (a < b ? 1 : -1)) // plus récent d'abord
+        .map((d) => ({ date: d, count: counts[d] }));
+      return json(200, { sessions });
+    }
+
+    // --- Stats de perf par closer (option : filtrées sur une session) ---
+    if (action === 'stats') {
+      const sd =
+        typeof body.session_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.session_date)
+          ? body.session_date
+          : null;
+      let q =
+        'webinaire_registrations?assigned_closer_id=not.is.null' +
+        '&select=assigned_closer_id,call_status,purchased,call_log';
+      if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;
+      const r = await supabaseGet(q);
+      const rows = r.ok && Array.isArray(r.data) ? r.data : [];
       const map = {};
+      const blank = () => ({ leads: 0, calls: 0, contacted: 0, a_traiter: 0, rappels: 0, reflexion: 0, oui: 0, refus: 0, ventes: 0 });
+      const global = blank();
+      const bump = (m, row) => {
+        const nCalls = Array.isArray(row.call_log) ? row.call_log.length : 0;
+        m.leads += 1;
+        m.calls += nCalls;
+        if (nCalls > 0) m.contacted += 1; else m.a_traiter += 1;
+        if (row.call_status === 'A rappeler') m.rappels += 1;
+        if (row.call_status === 'En reflexion') m.reflexion += 1;
+        if (row.call_status === 'Dit oui (verbal)') m.oui += 1;
+        if (row.call_status === 'Refuse') m.refus += 1;
+        if (row.purchased) m.ventes += 1;
+      };
       for (const row of rows) {
         const c = row.assigned_closer_id;
         if (c == null) continue;
-        if (!map[c]) map[c] = { leads: 0, calls: 0, rappels: 0, oui: 0, ventes: 0 };
-        map[c].leads += 1;
-        map[c].calls += Array.isArray(row.call_log) ? row.call_log.length : 0;
-        if (row.call_status === 'A rappeler') map[c].rappels += 1;
-        if (row.call_status === 'Dit oui (verbal)') map[c].oui += 1;
-        if (row.purchased) map[c].ventes += 1;
+        if (!map[c]) map[c] = blank();
+        bump(map[c], row);
+        bump(global, row);
       }
-      return json(200, { stats: map });
+      return json(200, { stats: map, global });
     }
 
     // --- Pool de leads pour l'assignation (pays riches) ---
