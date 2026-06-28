@@ -1436,7 +1436,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-callbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
     .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;}
     .cc-callbtn:hover{background:#3b82f6;}
-    .cc-outcome{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:600;background:#fff;cursor:pointer;}
+    .cc-outcome,.cc-at{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:600;background:#fff;cursor:pointer;color:#0f172a;}
     .cc-logbtn{background:#0f172a;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;}
     .cc-logbtn:hover{background:#334155;}
     .cc-hist{margin-bottom:16px;}
@@ -1478,6 +1478,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
         function p2(n){return (n<10?'0':'')+n;}
         function fmt(iso){var d=new Date(iso);if(isNaN(d.getTime()))return '';return p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
+        function nowLocal(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
         function isUrl(s){return /^https?:\/\//i.test((s||'').trim());}
 
         function callsCell(log){
@@ -1500,6 +1501,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return '<div class="cc-det-in">'+
               '<div class="cc-callbar">'+
                 '<a class="cc-callbtn" href="tel:'+esc(l.telephone||'')+'">&#128222; Appeler '+esc(l.telephone||'')+'</a>'+
+                '<input type="datetime-local" class="cc-at" value="'+nowLocal()+'">'+
                 '<select class="cc-outcome">'+optsFor('')+'</select>'+
                 '<button type="button" class="cc-logbtn">+ Noter l\'appel</button>'+
               '</div>'+
@@ -1549,8 +1551,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if(logBtn){
                 var det=logBtn.closest('.cc-det');var token=det.getAttribute('data-detail');
                 var outcome=det.querySelector('.cc-outcome').value;
+                var atVal=det.querySelector('.cc-at').value;
+                var atISO=atVal?new Date(atVal).toISOString():undefined;
                 logBtn.disabled=true;var t=logBtn.textContent;logBtn.textContent='...';
-                try{var r=await postJSON({token:token,action:'log',outcome:outcome});var d=await r.json();
+                try{var r=await postJSON({token:token,action:'log',outcome:outcome,at:atISO});var d=await r.json();
                     if(r.ok){DATA[token].call_log=d.call_log;det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(d.call_log);
                         var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(row)row.querySelector('.cc-calls').outerHTML=callsCell(d.call_log);saved(det.querySelector('td'),'Appel note');}
                 }catch(err){}

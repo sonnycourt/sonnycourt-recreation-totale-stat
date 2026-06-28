@@ -58,7 +58,13 @@ export default async (req) => {
         return json(404, { error: 'Lead introuvable' });
       }
       const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
-      log.push({ at: new Date().toISOString(), outcome });
+      // Date/heure choisie par le closer (sinon maintenant).
+      let atISO = new Date().toISOString();
+      if (typeof body.at === 'string' && body.at) {
+        const d = new Date(body.at);
+        if (!Number.isNaN(d.getTime())) atISO = d.toISOString();
+      }
+      log.push({ at: atISO, outcome });
       const upd = await supabasePatch('webinaire_registrations', where, {
         call_log: log,
         call_count: log.length,
