@@ -1256,14 +1256,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         (async function init() {
             const url = new URL(window.location.href);
             let token = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
-            const preview = url.searchParams.get('preview') === 'dev';
+            const previewParam = url.searchParams.get('preview');
+            const isPreviewDev = previewParam === 'dev';
+            // Aperçu sans token (dev interne + closers). La bannière "préproduction"
+            // reste réservée à preview=dev.
+            const preview = isPreviewDev || previewParam === 'closer';
 
             if (preview) {
                 document.getElementById('badge-label').textContent = '✓ INSCRIPTION CONFIRMÉE';
-                const previewBanner = document.getElementById('dev-preview-banner');
-                if (previewBanner) {
-                    previewBanner.classList.add('visible');
-                    document.body.style.paddingTop = `${previewBanner.offsetHeight}px`;
+                if (isPreviewDev) {
+                    const previewBanner = document.getElementById('dev-preview-banner');
+                    if (previewBanner) {
+                        previewBanner.classList.add('visible');
+                        document.body.style.paddingTop = `${previewBanner.offsetHeight}px`;
+                    }
                 }
                 const sessionTokenPreview =
                     token && String(token).trim() ? String(token).trim() : PREVIEW_SESSION_ACCESS_TOKEN;
