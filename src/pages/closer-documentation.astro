@@ -1,5 +1,7 @@
 ---
 import GAConsentMode from '../components/GAConsentMode.astro';
+// true uniquement avec `astro dev` (localhost), false dans le build de prod.
+const IS_DEV = import.meta.env.DEV;
 ---
 
 <!DOCTYPE html>
@@ -95,6 +97,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             font-size: clamp(1.5rem, 4vw, 2.1rem);
             font-weight: 800;
             margin-bottom: 22px;
+        }
+
+        h3 {
+            font-size: clamp(1.1rem, 2.6vw, 1.3rem);
+            font-weight: 800;
+            margin: 26px 0 12px;
         }
 
         p {
@@ -1335,6 +1343,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         </div>
     </div>
 
+    <script is:inline define:vars={{ IS_DEV }}>
+        window.__CLOSER_DOC_DEV__ = IS_DEV;
+    </script>
     <script is:inline>
         (function () {
             var ENDPOINT = '/.netlify/functions/closer-access';
@@ -1366,6 +1377,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
 
             async function boot() {
+                if (window.__CLOSER_DOC_DEV__) { reveal(); return; } // bypass localhost uniquement
                 try {
                     var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
                     if (r.ok) {
@@ -1419,7 +1431,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         <div class="wrap">
             <span class="eyebrow">Documentation closer · ES2</span>
             <h1>Tout ce qu'il te faut pour closer. <span class="turn">Lis ça avant ton premier appel.</span></h1>
-            <p class="lead">Tu rappelles des gens qui ont déjà regardé <strong>1h20+</strong> du webinaire et vu l'offre à 1997€. Ce n'est pas du froid — c'est de la confirmation. Ton job : lever le dernier frein et collecter.</p>
+            <p class="lead">Tu appelles des gens qui ont déjà regardé <strong>1h20+</strong> du webinaire et vu l'offre à 1997€. Ils n'attendent pas ton appel, mais ils connaissent le produit et le prix. Ton job : lever le dernier frein et accompagner à la décision.</p>
         </div>
     </section>
 
@@ -1428,9 +1440,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         <div class="wrap">
             <h2>1 · Mission &amp; timing</h2>
             <ul class="check-list">
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Fenêtre :</strong> vendredi 12h → dimanche 23h. L'offre ferme dimanche 23h — c'est ton levier d'urgence réel.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Fenêtre 1, chaud (prioritaire) :</strong> vendredi 12h → dimanche 23h. L'offre ferme dimanche 23h : c'est ton levier d'urgence réel. Tu attaques cette liste en premier.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Fenêtre 2, rattrapage :</strong> la semaine qui suit, tu appelles les numéros non contactés pendant le week-end. L'offre publique est expirée, mais tu peux <strong>réactiver un accès individuel pour 24h</strong> (ou moins) pour le prospect que tu appelles. C'est une vraie dernière fenêtre : une personne qui ne s'inscrit pas après cet échange n'aura plus jamais accès à Esprit Subconscient 2.0. L'urgence est donc réelle, à toi de la présenter avec ta méthode.</span></li>
                 <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Qui tu appelles :</strong> les leads pays riches ayant regardé 1h20+ du webinaire.</span></li>
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Objectif :</strong> closer la formation Esprit Subconscient 2.0.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Objectif :</strong> closer la formation Esprit Subconscient 2.0, en orientant le prospect vers le <strong>plan de paiement adapté à ses moyens</strong>, idéalement le <strong>paiement en 3 fois</strong>.</span></li>
             </ul>
         </div>
     </section>
@@ -1439,13 +1452,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <section>
         <div class="wrap">
             <h2>2 · Le lead que tu as au téléphone</h2>
-            <p>Ce <strong>n'est pas du froid.</strong> Quand tu décroches, il a déjà :</p>
+            <p>Quand le prospect décroche, il <strong>ne s'attend pas à ton appel</strong>, mais il connaît déjà tout :</p>
             <ul class="check-list">
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>regardé <strong>1h20+</strong> du webinaire ;</span></li>
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>vu l'offre complète à 1997€ (elle apparaît à ~1h29 en live / ~1h09 en replay) ;</span></li>
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>entendu tout le mécanisme et le prix.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>regardé <strong>1h20+</strong> du webinaire</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>vu l'offre complète à 1997€ (elle apparaît à ~1h29 en live / ~1h09 en replay)</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>entendu tout le mécanisme et le prix</span></li>
             </ul>
-            <p>→ Posture : <strong>conseiller qui aide à décider</strong>, pas vendeur qui pousse. Tu confirmes, tu rassures, tu collectes.</p>
+            <p>→ Posture : <strong>conseiller qui aide à décider</strong>, pas vendeur qui pousse. Tu confirmes, tu rassures, tu accompagnes la décision.</p>
         </div>
     </section>
 
@@ -1453,16 +1466,46 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <section>
         <div class="wrap">
             <h2>3 · L'offre</h2>
-            <p><strong>Esprit Subconscient 2.0</strong> — formation sur Circle.</p>
+            <p><strong>Esprit Subconscient 2.0</strong> : une formation de reprogrammation du subconscient sur <strong>6 mois</strong>, hébergée sur Circle. 36h+ de contenu, basée sur les neurosciences (pas de spiritualité floue).</p>
+
+            <h3>Ce qui est inclus</h3>
             <ul class="check-list">
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Comptant :</strong> 1997€</span></li>
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>3× :</strong> 697€/mois (2091€)</span></li>
-                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>12× :</strong> 197€/mois (2364€)</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Un <strong>parcours structuré sur 6 mois</strong>, semaine par semaine, module par module : il sait toujours où il en est.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Les <strong>30 premiers jours cadrés</strong> : une leçon par jour (pour intégrer vraiment au lieu de se noyer). Après 30 jours, accès libre à tout, à son rythme.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Vidéos démonstratives, <strong>audios guidés, exercices mentaux accompagnés, fiches d'implémentation</strong>.</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Accès <strong>multi-support</strong> (téléphone, tablette, ordinateur) et <strong>mises à jour à vie</strong> (mensuelles).</span></li>
             </ul>
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 18px;margin:14px 0;color:#9a3412;font-weight:600;">⚠️ À COMPLÉTER — ce qui est inclus dans ES2 (modules, accès, communauté, durée)</div>
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 18px;margin:14px 0;color:#9a3412;font-weight:600;">⚠️ À COMPLÉTER — bonus éventuels</div>
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 18px;margin:14px 0;color:#9a3412;font-weight:600;">⚠️ À COMPLÉTER — garantie / remboursement exacte — c'est le handler d'objection n°1</div>
-            <p><strong>Urgence :</strong> offre fermée dimanche 23h, pas de rattrapage.</p>
+
+            <h3>Les 3 bonus inclus aujourd'hui</h3>
+            <ul class="check-list">
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Morpho</strong> — compagnon IA de transformation (12 mois d'accès) : journal quotidien, coach IA disponible 24/7 qui le connaît, tableau de progression. <em>Valeur 597€.</em></span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>La communauté Volt</strong> — accès <strong>à vie</strong> à des centaines de personnes qui font le même travail. <em>Valeur 997€.</em></span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Consultation privée avec Sonny au jour 30</strong> : un feedback personnel écrit sur son avancée (pas un email automatisé). <em>Valeur 497€.</em></span></li>
+            </ul>
+            <p>Valeur totale annoncée : <strong>3 988€</strong>. Prix de l'offre : à partir de <strong>197€/mois</strong>.</p>
+
+            <h3>Les plans de paiement</h3>
+            <ul class="check-list">
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>Paiement unique :</strong> 1 997€ (le meilleur tarif).</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>3× : 697€/mois</strong> (soit 2 091€) : l'alternative avantageuse (moins chère au total, plus engageante).</span></li>
+                <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><strong>12× : 197€/mois</strong> (soit 2 364€) : l'option par défaut, la plus accessible et la plus choisie (« le prix d'un café par jour »).</span></li>
+            </ul>
+            <p>→ Le <strong>12× à 197€/mois</strong> est l'option par défaut, la plus accessible et la plus choisie, cohérent avec ce que le prospect a vu sur la page. Si le prospect en a les moyens, présente le <strong>3× (697€/mois)</strong> comme une alternative avantageuse : moins cher au total (2091€ contre 2364€) et plus engageante. Présente-le comme un bénéfice pour lui, jamais comme une pression à payer plus. Si le frein est purement budgétaire, reste sur le 12× pour ne jamais perdre la vente.</p>
+
+            <h3>La garantie (ton handler d'objection n°1)</h3>
+            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px 18px;margin:14px 0;color:#065f46;">
+                <p style="margin:0 0 8px;"><strong>Garantie satisfaction 30 jours, remboursement intégral sous 48h ouvrables</strong>, sur le moyen de paiement d'origine, sans qu'on pose la moindre question.</p>
+                <p style="margin:0 0 8px;">La seule condition (preuve d'engagement, pas un piège) : avoir vraiment essayé la formation —</p>
+                <ul style="margin:0 0 8px 18px;padding:0;">
+                    <li>Module 1 suivi en entier,</li>
+                    <li>Module 2 suivi en entier,</li>
+                    <li>Module 3 : la leçon 1.</li>
+                </ul>
+                <p style="margin:0;">Ensuite, un simple email à <strong>support@sonnycourt.com</strong> avant la fin des 30 jours. L'équipe vérifie la progression sur la plateforme et rembourse.</p>
+            </div>
+            <p>→ Ton angle : <strong>« le risque est nul pour vous »</strong>. Il teste réellement la méthode pendant 30 jours ; s'il n'est pas convaincu après l'avoir faite, il récupère 100% de son argent. La seule façon de perdre, c'est de ne rien tenter.</p>
+
+            <p><strong>Urgence :</strong> en Fenêtre 1, l'offre ferme dimanche 23h. En Fenêtre 2 (rattrapage), tu réactives un accès individuel 24h : c'est sa vraie dernière chance avant fermeture définitive.</p>
         </div>
     </section>
 
