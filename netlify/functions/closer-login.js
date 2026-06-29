@@ -4,13 +4,18 @@ import {
   getCloserCookieSecret,
   signCloserToken,
   buildCloserSetCookie,
+  getCloserCookieValue,
+  verifyCloserToken,
 } from './lib/closer-access-crypto.mjs';
 
 /**
  * Login closer par email + mot de passe (créés par l'admin).
- * Pose le même cookie signé `closer_access` (cid) que closer-access -> la
- * console et la documentation reconnaissent le closer sans changement.
- * La vérification de session (au chargement) reste sur closer-access (GET).
+ * Pose le même cookie signé `closer_access` (cid) que closer-access.
+ *
+ * GET  : vérification de session STRICTE -> authentifié uniquement si le cid du
+ *        cookie correspond à un closer Univers 2 (email + mot de passe actif).
+ *        Un simple code de recrutement (sans email) n'est donc PAS reconnu ici.
+ * POST : login email + mot de passe.
  */
 
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
@@ -26,6 +31,22 @@ function json(status, body, setCookie) {
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { ok: true });
+
+  // --- Vérification de session stricte (Univers 2 : email + mot de passe) ---
+  if (req.method === 'GET') {
+    const secret = getCloserCookieSecret();
+    if (!secret) return json(200, { authenticated: false });
+    const data = verifyCloserToken(getCloserCookieValue(req.headers.get('cookie') || ''), secret);
+    const cid = data && Number.isInteger(data.cid) ? data.cid : null;
+    if (cid === null) return json(200, { authenticated: false });
+    const r = await supabaseGet(
+      `closer_access_codes?id=eq.${cid}&active=eq.true&select=id,email,password_hash`,
+    );
+    const row = r.ok && Array.isArray(r.data) && r.data.length ? r.data[0] : null;
+    const authenticated = !!(row && row.email && row.password_hash);
+    return json(200, { authenticated });
+  }
+
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
   let body;
