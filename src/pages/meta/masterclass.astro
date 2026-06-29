@@ -948,6 +948,96 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             color: rgba(96, 165, 250, 0.92);
         }
 
+        /* Case consentement appel (RGPD) - optionnelle, sous le téléphone */
+        .consent-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin: 14px 0 2px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .consent-row input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            margin-top: 1px;
+            flex-shrink: 0;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .consent-row input[type="checkbox"]:checked {
+            border-color: rgba(147, 197, 253, 0.85);
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background-size: 13px 13px, 100% 100%;
+            background-repeat: no-repeat, no-repeat;
+            background-position: center, center;
+        }
+
+        .consent-row input[type="checkbox"]:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+        }
+
+        .consent-row.is-error input[type="checkbox"] {
+            border-color: rgba(248, 113, 113, 0.75);
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18);
+        }
+
+        .consent-error {
+            color: #f87171;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            margin: 4px 0 0;
+            min-height: 1em;
+            text-align: left;
+        }
+
+        .consent-more {
+            margin: 4px 0 0 34px;
+            font-size: 0.74rem;
+            text-align: left;
+        }
+
+        .consent-more summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--primary);
+            cursor: pointer;
+            list-style: none;
+            font-weight: 600;
+        }
+
+        .consent-more summary::-webkit-details-marker { display: none; }
+
+        .consent-more summary::after {
+            content: '⌄';
+            line-height: 1;
+            transition: transform 0.2s ease;
+        }
+
+        .consent-more[open] summary::after { transform: rotate(180deg); }
+
+        .consent-more__text {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
         /* Case engagement - même ADN que session-bubble / champs (bleu profond) */
         .commit-row {
             display: flex;
@@ -1379,6 +1469,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <div id="step2-form" style="display:none;">
                 <div id="step2-phone-container" class="phone-field-wrap" aria-live="polite"></div>
                 <p class="form-note">Ton numéro sera utilisé pour t'envoyer un rappel avant la diffusion.</p>
+                <label class="consent-row" id="consent-row-label" for="call-consent">
+                    <input id="call-consent" type="checkbox" name="call_consent" autocomplete="off" required aria-required="true" />
+                    <span class="consent-row__text">J'accepte d'être recontacté par l'équipe de Sonny Court au sujet de la masterclass.</span>
+                </label>
+                <details class="consent-more">
+                    <summary>Détails</summary>
+                    <span class="consent-more__text">Y compris par téléphone, en soirée et le week-end. Révocable à tout moment.</span>
+                </details>
+                <p id="consent-error" class="consent-error" role="alert"></p>
                 <button id="step2-next" class="submit-btn" type="button">Continuer</button>
             </div>
 
@@ -1406,6 +1505,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         // @ts-nocheck
         /** Aligné sur netlify/functions/lib/webinaire-session-paris.mjs (cutoff jeudi 19h Paris). Route : /meta/masterclass (trafic Meta ads, sans mot de passe). */
         const TOKEN_KEY = 'masterclass_es2_token';
+        // Consentement d'appel (RGPD) : on transmet l'état de la case + le texte exact affiché.
+        const CALL_CONSENT_TEXT = "J'accepte d'être recontacté par l'équipe de Sonny Court au sujet de la masterclass. Y compris par téléphone, en soirée et le week-end. Révocable à tout moment.";
+        function getCallConsent() { var c = document.getElementById('call-consent'); return !!(c && c.checked); }
+        function getCallConsentText() { var m = document.querySelector('.consent-row__text'); var d = document.querySelector('.consent-more__text'); var t = ((m ? m.textContent.trim() : '') + ' ' + (d ? d.textContent.trim() : '')).trim(); return t || CALL_CONSENT_TEXT; }
         const SKIP_SESSION_DATES = ['2026-05-07', '2026-06-11'];
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
@@ -2125,6 +2228,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
             }
 
+            const consentEl = document.getElementById('call-consent');
+            const consentErr = document.getElementById('consent-error');
+            const consentRow = document.getElementById('consent-row-label');
+            if (consentEl && !consentEl.checked) {
+                if (consentErr) consentErr.textContent = 'Merci de cocher cette case pour valider ton inscription.';
+                if (consentRow) consentRow.classList.add('is-error');
+                return false;
+            }
+            if (consentErr) consentErr.textContent = '';
+            if (consentRow) consentRow.classList.remove('is-error');
+
             state.phone = phone;
             state.country = pays;
             return true;
@@ -2166,6 +2280,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         creneau: '20h',
                         telephone: state.phone,
                         pays: state.country,
+                        call_consent: getCallConsent(),
+                        call_consent_text: getCallConsentText(),
                         ...getTrackingPayload(),
                         meta_event_id: metaEventId,
                     }),

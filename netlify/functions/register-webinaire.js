@@ -77,6 +77,14 @@ export default async (req) => {
     const metaFbp = trim255(body?.meta_fbp);
     const metaEventId = trim255(body?.meta_event_id);
 
+    // Consentement d'appel (RGPD) : état de la case + texte exact affiché. Horodaté serveur.
+    const callConsentProvided = body && Object.prototype.hasOwnProperty.call(body, 'call_consent');
+    const callConsent = callConsentProvided ? Boolean(body.call_consent) : null;
+    const callConsentText = body?.call_consent_text
+      ? String(body.call_consent_text).trim().slice(0, 800)
+      : null;
+    const callConsentAtIso = callConsentProvided ? new Date().toISOString() : null;
+
     // Données pour le CAPI TikTok (matching côté serveur).
     const clientIp =
       req.headers.get('x-nf-client-connection-ip') ||
@@ -151,6 +159,11 @@ export default async (req) => {
       if (hasPhonePayload) {
         patchBody.telephone = telephone;
         patchBody.pays = pays;
+      }
+      if (callConsentProvided) {
+        patchBody.call_consent = callConsent;
+        patchBody.call_consent_at = callConsentAtIso;
+        patchBody.call_consent_text = callConsentText;
       }
       if (Object.keys(patchBody).length > 0) {
         const upd = await supabasePatch(
@@ -244,6 +257,9 @@ export default async (req) => {
       tt_click_id: ttClickId,
       meta_fbc: metaFbc,
       meta_fbp: metaFbp,
+      call_consent: callConsentProvided ? callConsent : null,
+      call_consent_at: callConsentAtIso,
+      call_consent_text: callConsentProvided ? callConsentText : null,
     };
 
     const ins = await supabasePost('webinaire_registrations', row, { prefer: 'return=minimal' });
