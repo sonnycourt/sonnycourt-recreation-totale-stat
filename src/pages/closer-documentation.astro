@@ -105,29 +105,38 @@ const IS_DEV = import.meta.env.DEV;
             margin: 26px 0 12px;
         }
 
-        /* Liens funnel (vois la machine par toi-même) */
-        .funnel-links { display: grid; gap: 12px; margin-top: 20px; }
-        .funnel-link {
-            display: flex; align-items: center; gap: 14px; padding: 16px 18px;
-            border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
-            text-decoration: none; color: var(--ink); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        /* Parcours du prospect (mini-frise) */
+        .journey {
+            display: flex; gap: 4px; margin-top: 22px; overflow-x: auto;
+            padding: 6px 2px 10px; -webkit-overflow-scrolling: touch;
         }
-        .funnel-link:hover {
-            border-color: var(--primary-light);
-            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.10);
-            transform: translateY(-1px);
+        .journey-step {
+            flex: 1 0 116px; display: flex; flex-direction: column; align-items: center;
+            text-align: center; position: relative; padding-top: 4px;
         }
-        .funnel-link .fl-ic {
-            width: 42px; height: 42px; border-radius: 11px; background: var(--accent-soft);
-            color: var(--primary-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        .journey-step::before {
+            content: ''; position: absolute; top: 28px; right: 50%; width: 100%; height: 2px;
+            background: var(--line); z-index: 0;
         }
-        .funnel-link .fl-ic svg { width: 20px; height: 20px; }
-        .funnel-link .fl-text { flex: 1; min-width: 0; }
-        .funnel-link .fl-title { display: block; font-weight: 700; font-size: 0.98rem; color: var(--ink); }
-        .funnel-link .fl-sub { display: block; margin-top: 2px; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
-        .funnel-link .fl-arrow { color: var(--muted); flex-shrink: 0; display: flex; }
-        .funnel-link .fl-arrow svg { width: 18px; height: 18px; }
+        .journey-step:first-child::before { display: none; }
+        .journey-step .js-dot {
+            width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft);
+            color: var(--primary-dark); display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--line); position: relative; z-index: 1;
+        }
+        .journey-step .js-dot svg { width: 22px; height: 22px; }
+        .journey-step .js-label { margin-top: 9px; font-size: 0.8rem; font-weight: 700; color: var(--ink); line-height: 1.25; }
+        .journey-step .js-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+        .journey-step.is-closer .js-dot {
+            background: var(--primary-dark); color: #fff; border-color: var(--primary-dark);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35); transform: scale(1.12);
+        }
+        .journey-step.is-closer .js-label { color: var(--primary-dark); }
+        .journey-step .js-badge {
+            display: inline-block; margin-top: 5px; font-size: 0.62rem; font-weight: 800;
+            letter-spacing: 0.04em; text-transform: uppercase; color: #fff;
+            background: var(--primary-dark); border-radius: 999px; padding: 2px 8px;
+        }
 
         p {
             font-size: clamp(1rem, 2.2vw, 1.12rem);
@@ -1530,6 +1539,47 @@ const IS_DEV = import.meta.env.DEV;
             <p>→ Ton angle : <strong>« le risque est nul pour vous »</strong>. Il teste réellement la méthode pendant 30 jours ; s'il n'est pas convaincu après l'avoir faite, il récupère 100% de son argent. La seule façon de perdre, c'est de ne rien tenter.</p>
 
             <p><strong>Urgence :</strong> en Fenêtre 1, l'offre ferme dimanche 23h. En Fenêtre 2 (rattrapage), tu réactives un accès individuel 24h : c'est sa vraie dernière chance avant fermeture définitive.</p>
+        </div>
+    </section>
+
+    <!-- 3 bis-0 PARCOURS DU PROSPECT -->
+    <section>
+        <div class="wrap">
+            <h2>Le parcours du prospect</h2>
+            <p>Avant ton appel, il a déjà traversé tout le funnel. Tu interviens à la toute fin, au moment décisif.</p>
+            <div class="journey">
+                <div class="journey-step">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+                    <span class="js-label">Découvre</span>
+                    <span class="js-sub">pub Meta / organique</span>
+                </div>
+                <div class="journey-step">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
+                    <span class="js-label">S'inscrit</span>
+                    <span class="js-sub">page optin</span>
+                </div>
+                <div class="journey-step">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+                    <span class="js-label">Confirme</span>
+                    <span class="js-sub">réserve + calendrier</span>
+                </div>
+                <div class="journey-step">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 8 6 4-6 4Z"/><rect x="2" y="4" width="20" height="16" rx="3"/></svg></span>
+                    <span class="js-label">Regarde</span>
+                    <span class="js-sub">webinaire 1h20+</span>
+                </div>
+                <div class="journey-step">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.27 9 5.15"/><path d="M2 22 11 13"/><path d="m3 9 1.5-1.5L21 16.5a2.12 2.12 0 0 1-3 3z"/><path d="M12.5 6.5 16 3l5 5-3.5 3.5"/></svg></span>
+                    <span class="js-label">Voit l'offre</span>
+                    <span class="js-sub">ES2 à ~2000€</span>
+                </div>
+                <div class="journey-step is-closer">
+                    <span class="js-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+                    <span class="js-label">Ton appel</span>
+                    <span class="js-sub">il décide</span>
+                    <span class="js-badge">Toi</span>
+                </div>
+            </div>
         </div>
     </section>
 
