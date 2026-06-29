@@ -218,8 +218,8 @@ const IS_DEV = import.meta.env.DEV;
         .vstep { display: flex; gap: 16px; position: relative; padding-bottom: 22px; }
         .vstep:last-child { padding-bottom: 0; }
         .vstep::before {
-            content: ''; position: absolute; left: 19px; top: 42px; bottom: -2px; width: 2px;
-            background: var(--line);
+            content: ''; position: absolute; left: 18px; top: 40px; bottom: -2px; width: 3px;
+            border-radius: 999px; background: var(--line);
         }
         .vstep:last-child::before { display: none; }
         .vstep .vs-dot {
@@ -230,16 +230,21 @@ const IS_DEV = import.meta.env.DEV;
         .vstep .vs-body { padding-top: 7px; }
         .vstep .vs-label { font-weight: 800; color: var(--ink); font-size: 0.98rem; }
         .vstep .vs-text { color: var(--ink-soft); font-size: 0.92rem; margin-top: 3px; line-height: 1.5; }
-        /* Le lead qui se chauffe : froid (bleu) -> chaud (rouge) */
-        .vtimeline .vstep .vs-dot { color: #fff; }
-        .vtimeline .vstep:nth-child(1) .vs-dot { background: #60a5fa; border-color: #60a5fa; }
-        .vtimeline .vstep:nth-child(2) .vs-dot { background: #a78bfa; border-color: #a78bfa; }
-        .vtimeline .vstep:nth-child(3) .vs-dot { background: #f472b6; border-color: #f472b6; }
-        .vtimeline .vstep:nth-child(4) .vs-dot { background: #fb923c; border-color: #fb923c; }
+        /* Le lead qui se chauffe : dégradé continu froid (bleu) -> chaud (rouge).
+           Chaque bulle se fond dans la suivante, et le fil de liaison aussi. */
+        .vtimeline .vstep .vs-dot { color: #fff; border: none; }
+        .vtimeline .vstep:nth-child(1) .vs-dot { background: linear-gradient(180deg, #93c5fd, #60a5fa); }
+        .vtimeline .vstep:nth-child(2) .vs-dot { background: linear-gradient(180deg, #60a5fa, #a78bfa); }
+        .vtimeline .vstep:nth-child(3) .vs-dot { background: linear-gradient(180deg, #a78bfa, #f472b6); }
+        .vtimeline .vstep:nth-child(4) .vs-dot { background: linear-gradient(180deg, #f472b6, #fb923c); }
         .vtimeline .vstep:nth-child(5) .vs-dot {
-            background: #ef4444; border-color: #ef4444;
+            background: linear-gradient(180deg, #fb923c, #ef4444);
             box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
         }
+        .vtimeline .vstep:nth-child(1)::before { background: linear-gradient(180deg, #60a5fa, #a78bfa); }
+        .vtimeline .vstep:nth-child(2)::before { background: linear-gradient(180deg, #a78bfa, #f472b6); }
+        .vtimeline .vstep:nth-child(3)::before { background: linear-gradient(180deg, #f472b6, #fb923c); }
+        .vtimeline .vstep:nth-child(4)::before { background: linear-gradient(180deg, #fb923c, #ef4444); }
         .vstep.is-peak .vs-label { color: #dc2626; }
         .vtimeline-cap {
             display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
