@@ -6677,6 +6677,10 @@ const currentYear = new Date().getFullYear();
         document.addEventListener('DOMContentLoaded', async function () {
             const params = new URLSearchParams(window.location.search);
             const isPreviewDev = params.get('preview') === 'dev';
+            const isPreviewCloser = params.get('preview') === 'closer';
+            // Aperçu sans token ni gate (dev interne + closers). Le panneau de debug
+            // reste réservé à isPreviewDev ; isPreview ne lève que les blocages d'accès.
+            const isPreview = isPreviewDev || isPreviewCloser;
             const TOKEN_KEY = 'masterclass_es2_token';
             const INVITATION_SCARCITY_DELAY_MS = 60 * 1000;
             const INVITATION_GATE_DELAY_MS = 60 * 60 * 1000;
@@ -7154,11 +7158,11 @@ const currentYear = new Date().getFullYear();
             let sessionStartsAtMsForAudit = null;
             let sessionStartsAtMsForGate = null;
             try {
-                if (!token && !isPreviewDev) {
+                if (!token && !isPreview) {
                     token = await requestTokenFromEmail();
                 }
 
-                if (!isPreviewDev) {
+                if (!isPreview) {
                     const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
                     if (!res.ok) throw new Error('registration lookup failed');
                     const data = await res.json();
@@ -7224,11 +7228,19 @@ const currentYear = new Date().getFullYear();
                     }
                 }
 
+                // Aperçu closer : page toujours consultable, quelle que soit la date.
+                // On force une fenêtre future (jamais de lock "offre expirée") et on
+                // neutralise le gate "offre pas encore ouverte".
+                if (isPreviewCloser) {
+                    offerExpiryMs = invitationNowMs() + 48 * 60 * 60 * 1000;
+                    sessionStartsAtMsForGate = null;
+                }
+
                 if (Number.isFinite(sessionStartsAtMsForGate)) {
                     const gateOpensAtMs = sessionStartsAtMsForGate + INVITATION_GATE_DELAY_MS;
                     const isGateClosed = Date.now() < gateOpensAtMs;
                     if (isGateClosed) {
-                        if (!token && isPreviewDev) token = 'preview-invitation';
+                        if (!token && isPreview) token = 'preview-invitation';
                         setTokenEverywhere(token);
                         propagateTokenToCheckoutLinks(token);
                         lockInvitationGateUntil(gateOpensAtMs);
@@ -7244,7 +7256,7 @@ const currentYear = new Date().getFullYear();
                 }
 
                 // Persist token and propagate it to CTA links.
-                if (!token && isPreviewDev) token = 'preview-invitation';
+                if (!token && isPreview) token = 'preview-invitation';
                 setTokenEverywhere(token);
                 propagateTokenToCheckoutLinks(token);
                 bindCheckoutClickTracking(token);
