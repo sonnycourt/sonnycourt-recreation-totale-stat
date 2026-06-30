@@ -1412,20 +1412,37 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <style is:global>
     #cc{max-width:1260px;margin:0 auto;padding:24px 16px 110px;color:#0f172a;font-family:Inter,system-ui,sans-serif;}
     .cc-shell{display:flex;gap:24px;align-items:flex-start;}
-    .cc-side{width:210px;flex:0 0 210px;position:sticky;top:24px;}
-    .cc-side-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin:0 0 10px;padding-left:12px;}
+    .cc-side{width:224px;flex:0 0 224px;position:sticky;top:24px;background:#fff;border:1px solid #e8edf3;border-radius:16px;padding:14px 12px;box-shadow:0 2px 12px rgba(15,23,42,.05);transition:width .18s ease,flex-basis .18s ease,padding .18s ease;}
+    .cc-side-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 6px 12px;margin-bottom:8px;border-bottom:1px solid #f1f5f9;}
+    .cc-side-brand{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;white-space:nowrap;overflow:hidden;}
+    .cc-side-toggle{flex:0 0 auto;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;background:#fff;border-radius:8px;color:#64748b;cursor:pointer;transition:background .12s ease,color .12s ease,transform .18s ease;}
+    .cc-side-toggle:hover{background:#f1f5f9;color:#0f172a;}
+    .cc-side-toggle svg{width:16px;height:16px;}
     .cc-nav{display:flex;flex-direction:column;gap:4px;}
-    .cc-nav-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:#475569;text-decoration:none;transition:background .12s ease,color .12s ease;}
+    .cc-nav-link{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:11px;font-size:14px;font-weight:600;color:#475569;text-decoration:none;white-space:nowrap;transition:background .12s ease,color .12s ease;}
     .cc-nav-link:hover{background:#f1f5f9;color:#0f172a;}
-    .cc-nav-link.is-active{background:#2563eb;color:#fff;}
-    .cc-nav-link svg{width:18px;height:18px;flex:0 0 auto;}
+    .cc-nav-link.is-active{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28);}
+    .cc-nav-ic{flex:0 0 auto;display:flex;}
+    .cc-nav-ic svg{width:18px;height:18px;}
+    .cc-nav-label{flex:1;overflow:hidden;}
+    .cc-nav-ext{flex:0 0 auto;display:flex;color:#94a3b8;}
+    .cc-nav-ext svg{width:13px;height:13px;}
+    .cc-nav-link:hover .cc-nav-ext{color:#64748b;}
+    .cc-side.is-collapsed{width:60px;flex-basis:60px;padding:14px 8px;}
+    .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext{display:none;}
+    .cc-side.is-collapsed .cc-side-head{justify-content:center;padding:2px 0 12px;}
+    .cc-side.is-collapsed .cc-nav-link{justify-content:center;padding:10px 0;gap:0;}
+    .cc-side.is-collapsed .cc-side-toggle{transform:rotate(180deg);}
     .cc-content{flex:1;min-width:0;}
     @media(max-width:720px){
       .cc-shell{flex-direction:column;gap:14px;}
       .cc-side{width:auto;flex:none;position:static;}
-      .cc-side-title{display:none;}
+      .cc-side-toggle{display:none;}
+      .cc-side-head{border-bottom:0;padding-bottom:0;margin-bottom:6px;}
       .cc-nav{flex-direction:row;flex-wrap:wrap;}
-      .cc-nav-link{padding:8px 12px;font-size:13px;}
+      .cc-side.is-collapsed{width:auto;flex-basis:auto;padding:14px 12px;}
+      .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext{display:initial;}
+      .cc-side.is-collapsed .cc-nav-link{justify-content:flex-start;padding:8px 12px;gap:11px;}
     }
     .cc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
     .cc-top h1{font-size:22px;margin:0;font-weight:800;}
@@ -1492,20 +1509,27 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
     <main id="cc" hidden>
         <div class="cc-shell">
-            <aside class="cc-side">
-                <div class="cc-side-title">Espace closer</div>
+            <aside class="cc-side" id="cc-side">
+                <div class="cc-side-head">
+                    <span class="cc-side-brand">Espace closer</span>
+                    <button class="cc-side-toggle" id="cc-side-toggle" type="button" aria-label="Réduire ou agrandir le menu" title="Réduire / agrandir">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                </div>
                 <nav class="cc-nav">
-                    <a class="cc-nav-link is-active" href="/closer-console">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        <span>Console</span>
+                    <a class="cc-nav-link is-active" href="/closer-console" title="Console">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+                        <span class="cc-nav-label">Console</span>
                     </a>
-                    <a class="cc-nav-link" href="/closer-documentation">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                        <span>Documentation</span>
+                    <a class="cc-nav-link" href="/closer-documentation" target="_blank" rel="noopener noreferrer" title="Documentation (nouvel onglet)">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                        <span class="cc-nav-label">Documentation</span>
+                        <span class="cc-nav-ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
                     </a>
-                    <a class="cc-nav-link" href="/closer">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                        <span>Présentation</span>
+                    <a class="cc-nav-link" href="/closer" target="_blank" rel="noopener noreferrer" title="Présentation (nouvel onglet)">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+                        <span class="cc-nav-label">Présentation</span>
+                        <span class="cc-nav-ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
                     </a>
                 </nav>
             </aside>
@@ -1516,6 +1540,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             </div>
         </div>
     </main>
+
+    <script is:inline>
+    (function () {
+        var side = document.getElementById('cc-side');
+        var btn = document.getElementById('cc-side-toggle');
+        if (side && btn) {
+            try { if (localStorage.getItem('cc_side_collapsed') === '1') side.classList.add('is-collapsed'); } catch (e) {}
+            btn.addEventListener('click', function () {
+                var collapsed = side.classList.toggle('is-collapsed');
+                try { localStorage.setItem('cc_side_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+            });
+        }
+    })();
+    </script>
 
     <script is:inline>
     (function () {
