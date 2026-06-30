@@ -318,7 +318,7 @@ export default async (req) => {
           ? body.session_date
           : null;
       let q =
-        'webinaire_registrations?select=token,prenom,telephone,email,pays,watch_max_minutes,purchased,assigned_closer_id,call_status' +
+        'webinaire_registrations?select=token,prenom,telephone,email,pays,watch_max_minutes,purchased,assigned_closer_id,call_status,traffic_source' +
         `&pays=in.(${RICH_PAYS.map(encodeURIComponent).join(',')})` +
         '&order=watch_max_minutes.desc.nullslast';
       if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;

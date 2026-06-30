@@ -74,6 +74,7 @@
             border: 1px solid var(--line);
             border-radius: 18px;
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+            padding: clamp(16px, 3vw, 22px);
         }
 
         .login-card {
@@ -683,7 +684,18 @@
                             <span id="assign-count" class="assign-count">0 sélectionné(s)</span>
                             <select id="assign-closer"></select>
                             <button type="button" id="assign-do" class="btn">Assigner</button>
+                            <button type="button" id="assign-split-open" class="btn btn-ghost">⚖︎ Répartir entre closers…</button>
                             <button type="button" id="assign-clear" class="btn btn-ghost">Vider</button>
+                        </div>
+                        <div id="split-box" class="split-box" hidden>
+                            <div class="split-h">Répartition équitable des <b id="split-total">0</b> lead(s) sélectionné(s)</div>
+                            <div class="split-sub">Coche les closers concernés. Le partage équilibre les <b>Meta</b> et les <b>Orga</b> séparément (triés par temps de visionnage), pour que chacun reçoive autant de bons leads.</div>
+                            <div class="split-closers" id="split-closers"></div>
+                            <div class="split-preview" id="split-preview"></div>
+                            <div class="split-actions">
+                                <button type="button" id="split-confirm" class="btn">Valider la répartition</button>
+                                <button type="button" id="split-cancel" class="btn btn-ghost">Annuler</button>
+                            </div>
                         </div>
                         <p id="pool-result" class="assign-result"></p>
                         <div class="pool-grid">
@@ -694,6 +706,11 @@
                             </div>
                             <div class="pool-col">
                                 <h3>Ultra-qualifiés · 1h20+ <span id="pool-ultra-count" class="pool-badge">0</span></h3>
+                                <div class="pool-filter" id="ultra-filter">
+                                    <button type="button" data-src="all" class="is-active">Tous <span id="uf-all">0</span></button>
+                                    <button type="button" data-src="meta">Meta <span id="uf-meta">0</span></button>
+                                    <button type="button" data-src="orga">Orga <span id="uf-orga">0</span></button>
+                                </div>
                                 <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">ont suivi jusqu'au CTA</span></div>
                                 <div id="pool-ultra" class="pool-list"></div>
                             </div>
@@ -762,9 +779,9 @@
       @media(max-width:760px){.pool-grid{grid-template-columns:1fr;}.assign-controls input{width:100%;}}
       .pool-col h3{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:8px;color:#0f172a;}
       .pool-badge{background:#0f172a;color:#fff;border-radius:999px;font-size:11px;padding:2px 9px;font-weight:700;}
-      .pool-list-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;margin-bottom:6px;}
-      .pool-list-head label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;}
-      .pool-col-note{color:#94a3b8;font-style:italic;}
+      .pool-list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#475569;margin-bottom:6px;}
+      .pool-list-head label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;flex:0 0 auto;}
+      .pool-col-note{color:#94a3b8;font-style:italic;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
       .pool-list{border:1px solid #e2e8f0;border-radius:10px;background:#fff;max-height:520px;overflow-y:auto;}
       .pool-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;}
       .pool-row:last-child{border-bottom:0;}
@@ -776,6 +793,32 @@
       .pr-assigned{font-size:11px;background:#fef3c7;color:#92400e;border-radius:6px;padding:2px 7px;white-space:nowrap;}
       .pr-bought{font-size:11px;background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;white-space:nowrap;}
       .pool-empty{padding:18px;text-align:center;color:#94a3b8;font-size:13px;}
+      /* Pastille source */
+      .pr-src{font-size:10.5px;border-radius:6px;padding:2px 7px;white-space:nowrap;font-weight:700;flex:0 0 auto;}
+      .pr-src-meta{background:#eff6ff;color:#1d4ed8;}
+      .pr-src-orga{background:#f1f5f9;color:#64748b;}
+      /* Filtre source (chips) */
+      .pool-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+      .pool-filter button{font-size:12px;padding:4px 11px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all .12s;}
+      .pool-filter button:hover{border-color:#cbd5e1;}
+      .pool-filter button span{background:#f1f5f9;border-radius:999px;padding:0 6px;font-size:11px;font-weight:700;}
+      .pool-filter button.is-active{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+      .pool-filter button.is-active span{background:#dbeafe;color:#1d4ed8;}
+      /* Répartition équitable */
+      .split-box{background:#fff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin:0 0 14px;}
+      .split-h{font-size:14px;font-weight:800;color:#0f172a;}
+      .split-h b{color:#1d4ed8;}
+      .split-sub{font-size:12.5px;color:#64748b;margin:4px 0 12px;}
+      .split-sub b{color:#475569;}
+      .split-closers{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+      .split-closers label{display:flex;align-items:center;gap:6px;font-size:13px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:600;color:#334155;}
+      .split-closers input{width:15px;height:15px;cursor:pointer;}
+      .split-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
+      .split-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 13px;}
+      .split-card .sc-name{font-size:12.5px;color:#64748b;}
+      .split-card .sc-total{font-size:22px;font-weight:800;color:#0f172a;line-height:1.15;margin-top:2px;}
+      .split-card .sc-break{font-size:12px;color:#475569;margin-top:3px;}
+      .split-actions{display:flex;gap:10px;flex-wrap:wrap;}
     </style>
     <script is:inline>
         (function () {
@@ -1493,7 +1536,15 @@
             // ===== Onglet Assignation =====
             var POOL = [];
             var SEL = {};            // token -> true
+            var ULTRA_FILTER = 'all'; // 'all' | 'meta' | 'orga'
             var assignLoaded = false;
+
+            function isMeta(l) { return l.traffic_source === 'meta_ad'; }
+            function srcTag(l) {
+                return isMeta(l)
+                    ? '<span class="pr-src pr-src-meta">Meta</span>'
+                    : '<span class="pr-src pr-src-orga">Orga</span>';
+            }
 
             function activeClosers() {
                 return codesAll.filter(function (c) { return c.active !== false && c.email; });
@@ -1524,6 +1575,7 @@
                 return '<div class="pool-row">' +
                     '<input type="checkbox" class="js-pool-cb" data-token="' + esc(l.token) + '"' + checked + '>' +
                     '<div class="pr-main"><div class="pr-name">' + esc(l.prenom || 'Lead') + '</div><div class="pr-sub">' + sub + '</div></div>' +
+                    srcTag(l) +
                     (mins ? '<span class="pr-mins">' + mins + '</span>' : '') + tag +
                     '</div>';
             }
@@ -1531,12 +1583,22 @@
             function renderPool() {
                 var ultra = POOL.filter(function (l) { return (l.watch_max_minutes || 0) >= 81; });
                 var rest = POOL.filter(function (l) { return (l.watch_max_minutes || 0) < 81; });
+                // Compteurs des chips de filtre (sur les ultra)
+                var uMeta = ultra.filter(isMeta).length;
+                document.getElementById('uf-all').textContent = ultra.length;
+                document.getElementById('uf-meta').textContent = uMeta;
+                document.getElementById('uf-orga').textContent = ultra.length - uMeta;
+                var ultraShown = ultra.filter(function (l) {
+                    if (ULTRA_FILTER === 'meta') return isMeta(l);
+                    if (ULTRA_FILTER === 'orga') return !isMeta(l);
+                    return true;
+                });
                 var allHost = document.getElementById('pool-all');
                 var ultraHost = document.getElementById('pool-ultra');
                 document.getElementById('pool-all-count').textContent = rest.length;
                 document.getElementById('pool-ultra-count').textContent = ultra.length;
                 allHost.innerHTML = rest.length ? rest.map(poolRow).join('') : '<div class="pool-empty">Aucun inscrit.</div>';
-                ultraHost.innerHTML = ultra.length ? ultra.map(poolRow).join('') : '<div class="pool-empty">Aucun ultra-qualifié.</div>';
+                ultraHost.innerHTML = ultraShown.length ? ultraShown.map(poolRow).join('') : '<div class="pool-empty">Aucun lead pour ce filtre.</div>';
                 document.querySelectorAll('.js-pool-cb').forEach(function (cb) {
                     cb.addEventListener('change', function () {
                         var t = cb.getAttribute('data-token');
@@ -1553,6 +1615,96 @@
                 var n = Object.keys(SEL).length;
                 document.getElementById('assign-bar').hidden = n === 0;
                 document.getElementById('assign-count').textContent = n + ' sélectionné(s)';
+                if (n === 0) {
+                    var sb = document.getElementById('split-box');
+                    if (sb) sb.hidden = true;
+                }
+            }
+
+            // ---- Répartition équitable entre plusieurs closers ----
+            function chosenCloserIds() {
+                return Array.prototype.slice.call(document.querySelectorAll('#split-closers input:checked'))
+                    .map(function (cb) { return Number(cb.value); });
+            }
+            function computeSplit(ids) {
+                var selected = POOL.filter(function (l) { return SEL[l.token]; });
+                var groups = { meta: [], orga: [] };
+                selected.forEach(function (l) { (isMeta(l) ? groups.meta : groups.orga).push(l); });
+                var res = {};
+                ids.forEach(function (id) { res[id] = { meta: 0, orga: 0, tokens: [] }; });
+                if (!ids.length) return res;
+                ['meta', 'orga'].forEach(function (s, si) {
+                    var arr = groups[s].slice().sort(function (a, b) {
+                        return (b.watch_max_minutes || 0) - (a.watch_max_minutes || 0);
+                    });
+                    arr.forEach(function (l, i) {
+                        var id = ids[(i + si) % ids.length]; // décalage par source = rotation du 1er choix
+                        res[id][s]++; res[id].tokens.push(l.token);
+                    });
+                });
+                return res;
+            }
+            function renderSplit() {
+                var ids = chosenCloserIds();
+                var host = document.getElementById('split-preview');
+                if (ids.length < 2) {
+                    host.innerHTML = '<div class="pool-empty">Coche au moins 2 closers.</div>';
+                    return;
+                }
+                var res = computeSplit(ids);
+                host.innerHTML = ids.map(function (id) {
+                    var r = res[id]; var total = r.meta + r.orga;
+                    return '<div class="split-card"><div class="sc-name">' + esc(closerName(id)) + ' reçoit</div>' +
+                        '<div class="sc-total">' + total + ' lead' + (total > 1 ? 's' : '') + '</div>' +
+                        '<div class="sc-break">' + r.meta + ' Meta · ' + r.orga + ' Orga</div></div>';
+                }).join('');
+            }
+            function openSplit() {
+                var out = document.getElementById('pool-result');
+                var n = Object.keys(SEL).length;
+                if (!n) { out.style.color = '#dc2626'; out.textContent = 'Coche au moins un lead.'; return; }
+                var closers = activeClosers();
+                if (closers.length < 2) { out.style.color = '#dc2626'; out.textContent = 'Il faut au moins 2 closers actifs pour répartir.'; return; }
+                document.getElementById('split-total').textContent = n;
+                document.getElementById('split-closers').innerHTML = closers.map(function (c) {
+                    return '<label><input type="checkbox" value="' + c.id + '" checked> ' + esc(c.label) + '</label>';
+                }).join('');
+                document.querySelectorAll('#split-closers input').forEach(function (cb) {
+                    cb.addEventListener('change', renderSplit);
+                });
+                renderSplit();
+                var box = document.getElementById('split-box');
+                box.hidden = false;
+                box.scrollIntoView({ block: 'nearest' });
+            }
+            async function confirmSplit() {
+                var ids = chosenCloserIds();
+                var out = document.getElementById('pool-result');
+                if (ids.length < 2) { out.style.color = '#dc2626'; out.textContent = 'Choisis au moins 2 closers.'; return; }
+                var res = computeSplit(ids);
+                var btn = document.getElementById('split-confirm');
+                btn.disabled = true; out.style.color = '#475569'; out.textContent = 'Répartition…';
+                try {
+                    var done = 0;
+                    for (var k = 0; k < ids.length; k++) {
+                        var id = ids[k]; var tokens = res[id].tokens;
+                        if (!tokens.length) continue;
+                        var r = await fetch(API, {
+                            method: 'POST', credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'assign', closer_id: id, tokens: tokens }),
+                        });
+                        var d = await r.json();
+                        if (!r.ok) { out.style.color = '#dc2626'; out.textContent = (d.error || 'Erreur') + ' (' + closerName(id) + ').'; btn.disabled = false; return; }
+                        done += (d.count || tokens.length);
+                    }
+                    out.style.color = '#16a34a'; out.textContent = done + ' lead(s) répartis sur ' + ids.length + ' closers.';
+                    SEL = {};
+                    document.getElementById('split-box').hidden = true;
+                    await loadPool();
+                    loadStats();
+                } catch (e) { out.style.color = '#dc2626'; out.textContent = 'Erreur réseau.'; }
+                btn.disabled = false;
             }
 
             async function loadPool() {
@@ -1625,6 +1777,23 @@
                     } catch (e) { out.style.color = '#dc2626'; out.textContent = 'Erreur réseau.'; }
                     btn.disabled = false;
                 });
+
+                // Filtre source sur la colonne ultra-qualifiés
+                document.querySelectorAll('#ultra-filter button').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        ULTRA_FILTER = b.getAttribute('data-src');
+                        document.querySelectorAll('#ultra-filter button').forEach(function (x) { x.classList.remove('is-active'); });
+                        b.classList.add('is-active');
+                        renderPool();
+                    });
+                });
+
+                // Répartition équitable
+                document.getElementById('assign-split-open').addEventListener('click', openSplit);
+                document.getElementById('split-cancel').addEventListener('click', function () {
+                    document.getElementById('split-box').hidden = true;
+                });
+                document.getElementById('split-confirm').addEventListener('click', confirmSplit);
             }
 
             function initAssignTab() {
