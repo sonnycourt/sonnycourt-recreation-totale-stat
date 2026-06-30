@@ -1502,7 +1502,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-in,.cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
     .cc-ta{min-height:64px;resize:vertical;}
     .cc-in:focus,.cc-sel:focus,.cc-ta:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
-    .cc-reclink{font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;} .cc-reclink:hover{text-decoration:underline;}
     .cc-saved{font-size:12px;font-weight:700;color:#16a34a;height:16px;margin-top:10px;}
     .cc-empty{text-align:center;color:#64748b;padding:60px 20px;font-size:15px;}
     </style>
@@ -1573,7 +1572,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function fmt(iso){var d=new Date(iso);if(isNaN(d.getTime()))return '';return p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
         function nowLocal(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
         function plusH(h){var d=new Date(Date.now()+h*3600*1000);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
-        function isUrl(s){return /^https?:\/\//i.test((s||'').trim());}
         function statusOf(l){return l.purchased?'Achete':(l.call_status||'A appeler');}
         function stCls(s){return {'A appeler':'st-app','A rappeler':'st-rap','En reflexion':'st-ref','Dit oui (verbal)':'st-oui','Injoignable':'st-inj','Refuse':'st-ref2','Achete':'st-ach'}[s]||'st-app';}
         function prio(l){if(l.purchased)return 100;var s=l.call_status||'A appeler';return {'A rappeler':1,'A appeler':2,'En reflexion':3,'Dit oui (verbal)':4,'Injoignable':8,'Refuse':9}[s]||2;}
@@ -1584,7 +1582,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function opts(arr,val){return '<option value="">&mdash;</option>'+arr.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
 
         function detailHtml(l){
-            var rec=isUrl(l.call_transcript)?'<a class="cc-reclink" href="'+esc(l.call_transcript)+'" target="_blank" rel="noopener">Ouvrir &#8599;</a>':'';
             var m=l.watch_max_minutes||0;
             var ctaTxt=l.clicked_cta?' &middot; <b>a cliqué le CTA</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':'');
             return '<div class="cc-det-in">'+
@@ -1608,7 +1605,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
               '<div class="cc-hist"><div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log)+'</div>'+
               '<div class="cc-fields">'+
                 '<div class="cc-f"><label>Notes</label><textarea class="cc-ta cc-notes" placeholder="Notes libres...">'+esc(l.call_notes||'')+'</textarea></div>'+
-                '<div class="cc-f"><label>Transcript ou lien enregistrement '+rec+'</label><textarea class="cc-ta cc-trans" placeholder="Transcript OU lien https:// audio/video...">'+esc(l.call_transcript||'')+'</textarea></div>'+
               '</div>'+
               '<div class="cc-saved"></div></div>';
         }
@@ -1683,7 +1679,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         });
 
         listEl.addEventListener('change',function(e){if(e.target.classList.contains('cc-outcome')){var det=e.target.closest('.cc-det');var w=det.querySelector('.cc-cbwrap');var show=e.target.value==='Rappel demande';w.hidden=!show;if(show&&!det.querySelector('.cc-cb').value)det.querySelector('.cc-cb').value=plusH(2);}});
-        listEl.addEventListener('focusout',function(e){if(e.target.classList.contains('cc-notes'))autosave(e.target,{call_notes:e.target.value});if(e.target.classList.contains('cc-trans'))autosave(e.target,{call_transcript:e.target.value});});
+        listEl.addEventListener('focusout',function(e){if(e.target.classList.contains('cc-notes'))autosave(e.target,{call_notes:e.target.value});});
         async function autosave(el,fields){var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;if(fields.call_transcript!==undefined)l.call_transcript=fields.call_transcript;fields.token=token;try{var r=await postJSON(fields);if(r.ok)saved(det);}catch(e){}}
 
         document.getElementById('cc-refresh').addEventListener('click', load);
