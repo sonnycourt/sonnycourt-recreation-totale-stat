@@ -42,7 +42,7 @@ export default async (req) => {
     }
 
     const r = await supabaseGet(
-      'closer_access_codes?select=id,label,email,code,active,visit_count,first_visit_at,last_visit_at,consent_at,notes,created_at&order=created_at.desc'
+      'closer_access_codes?select=id,label,email,code,active,visit_count,first_visit_at,last_visit_at,consent_at,notes,created_at,phone_1,phone_2,checkout_full_url,checkout_discount_url&order=created_at.desc'
     );
     if (!r.ok) {
       return json(500, { error: 'Table absente ? Exécute sql/closer_access_codes.sql une fois.' });
@@ -211,6 +211,20 @@ export default async (req) => {
       if (typeof body.password === 'string' && body.password) {
         if (body.password.length < 6) return json(400, { error: 'Mot de passe trop court (6 min)' });
         patch.password_hash = await bcrypt.hash(body.password, 12);
+      }
+      // Coordonnées affichées au closer (vide = on efface). Présence de la clé = on enregistre.
+      const isUrl = (s) => /^https?:\/\/.+/i.test(s);
+      if (typeof body.phone_1 === 'string') patch.phone_1 = body.phone_1.trim() || null;
+      if (typeof body.phone_2 === 'string') patch.phone_2 = body.phone_2.trim() || null;
+      if (typeof body.checkout_full_url === 'string') {
+        const v = body.checkout_full_url.trim();
+        if (v && !isUrl(v)) return json(400, { error: 'Lien tarif complet invalide (doit commencer par http)' });
+        patch.checkout_full_url = v || null;
+      }
+      if (typeof body.checkout_discount_url === 'string') {
+        const v = body.checkout_discount_url.trim();
+        if (v && !isUrl(v)) return json(400, { error: 'Lien -5% invalide (doit commencer par http)' });
+        patch.checkout_discount_url = v || null;
       }
       if (Object.keys(patch).length === 0) return json(400, { error: 'Rien à modifier' });
       const upd = await supabasePatch('closer_access_codes', `id=eq.${id}`, patch);

@@ -1444,6 +1444,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-top-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
     .cc-session{padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;font-weight:600;background:#f8fafc;color:#0f172a;cursor:pointer;}
     .cc-refresh{background:#2563eb;color:#fff;border:0;border-radius:10px;padding:10px 17px;cursor:pointer;font-weight:600;font-size:14px;} .cc-refresh:hover{background:#3b82f6;}
+    /* Bloc coordonnées du closer (tél + liens) mis en avant */
+    .cc-me{background:#0f172a;border-radius:16px;padding:16px 18px;margin-bottom:18px;}
+    .cc-me-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+    .cc-me-block{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;}
+    .cc-me-k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;margin-bottom:9px;}
+    .cc-me-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .cc-me-row:last-child{margin-bottom:0;}
+    .cc-me-val{flex:1;min-width:0;color:#fff;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .cc-me-val small{display:block;font-size:11px;font-weight:600;color:#cbd5e1;text-transform:none;letter-spacing:0;margin-bottom:1px;}
+    .cc-me-cp{flex:0 0 auto;background:#2563eb;color:#fff;border:0;cursor:pointer;font-family:inherit;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;} .cc-me-cp:hover{background:#3b82f6;}
+    .cc-me-cp.copied{background:#16a34a;} .cc-me-cp.copied:hover{background:#16a34a;}
+    .cc-me-empty{color:#64748b;font-size:12.5px;font-style:italic;}
     .cc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
     .cc-chip{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;} .cc-chip:hover{border-color:#cbd5e1;}
     .cc-chip.on{background:#2563eb;color:#fff;border-color:#2563eb;} .cc-chip small{opacity:.7;margin-left:5px;font-weight:700;}
@@ -1530,6 +1542,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             </aside>
             <div class="cc-content">
                 <div class="cc-top"><h1>Console closer</h1><div class="cc-top-r"><select id="cc-session" class="cc-session" aria-label="Session"></select><button class="cc-refresh" id="cc-refresh">&#8635; Rafraichir</button></div></div>
+                <div class="cc-me" id="cc-me" hidden></div>
                 <div class="cc-chips" id="cc-chips"></div>
                 <div id="cc-list"></div>
             </div>
@@ -1558,6 +1571,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'},{k:'Injoignable',t:'Injoignables'}];
         var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
         var sessionEl=document.getElementById('cc-session');
+        var meEl=document.getElementById('cc-me');
         var DATA={}, LEADS=[], FILTER='all';
         var ALL_LEADS=[], SESSION_SEL='', SESSIONS=[];
         var dfDay=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'});
@@ -1647,7 +1661,25 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         sessionEl.addEventListener('change',function(){SESSION_SEL=this.value;applySession();});
 
-        async function load(){try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();render(d.leads||[]);}catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}}
+        async function load(){try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();renderMe(d.me||null);render(d.leads||[]);}catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}}
+        function meRow(label,val,isLink){
+            if(!val)return'';
+            var sub=label?'<small>'+esc(label)+'</small>':'';
+            var shown=isLink?'<a href="'+esc(val)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;">'+esc(val)+'</a>':esc(val);
+            return'<div class="cc-me-row"><span class="cc-me-val">'+sub+shown+'</span>'+
+                '<button type="button" class="cc-me-cp" data-copy="'+esc(val)+'">&#128203; Copier</button></div>';
+        }
+        function renderMe(me){
+            if(!me){meEl.hidden=true;meEl.innerHTML='';return;}
+            var tels=meRow('',me.phone_1,false)+meRow('',me.phone_2,false);
+            var liens=meRow('Tarif complet (prospect)',me.checkout_full_url,true)+meRow('Lien -5% (closing)',me.checkout_discount_url,true);
+            if(!tels&&!liens){meEl.hidden=true;meEl.innerHTML='';return;}
+            meEl.innerHTML='<div class="cc-me-grid">'+
+                '<div class="cc-me-block"><div class="cc-me-k">&#128222; Mes numéros</div>'+(tels||'<div class="cc-me-empty">Aucun numéro configuré.</div>')+'</div>'+
+                '<div class="cc-me-block"><div class="cc-me-k">&#128279; Mes liens checkout</div>'+(liens||'<div class="cc-me-empty">Aucun lien configuré.</div>')+'</div>'+
+            '</div>';
+            meEl.hidden=false;
+        }
         function saved(det,msg){var s=det.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}
         async function postJSON(p){return fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}
         function updateRow(token){var l=DATA[token];var row=listEl.querySelector('.cc-r[data-token="'+CSS.escape(token)+'"]');if(!row)return;row.querySelector('.cc-stcell').innerHTML=statusBadge(l);row.querySelector('.cc-callscell').innerHTML=callsCell(l.call_log);row.classList.toggle('bought',!!l.purchased);}
@@ -1656,6 +1688,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         chipsEl.addEventListener('click',function(e){var b=e.target.closest('.cc-chip');if(!b)return;FILTER=b.getAttribute('data-f');renderChips();renderList();});
 
         function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
+        function ccCopy(text,btn,doneLabel){var orig=btn.innerHTML;var ok=function(){btn.classList.add('copied');btn.innerHTML=doneLabel||'&#10003; Copié';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=orig;},1500);};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,function(){ccFallbackCopy(text);ok();});}else{ccFallbackCopy(text);ok();}}catch(_){ccFallbackCopy(text);ok();}}
+        meEl.addEventListener('click',function(e){var b=e.target.closest('.cc-me-cp');if(!b)return;ccCopy(b.getAttribute('data-copy')||'',b);});
         listEl.addEventListener('click', async function(e){
             var det=e.target.closest('.cc-det');
             var copyBtn=e.target.closest('.cc-copytel');

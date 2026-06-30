@@ -83,7 +83,13 @@ export default async (req) => {
         '&order=watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
-    return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
+    // Coordonnées du closer (téléphones + liens checkout) affichées en tête de console.
+    let me = null;
+    const meRes = await supabaseGet(
+      `closer_access_codes?id=eq.${cid}&select=label,phone_1,phone_2,checkout_full_url,checkout_discount_url`,
+    );
+    if (meRes.ok && Array.isArray(meRes.data) && meRes.data[0]) me = meRes.data[0];
+    return json(200, { leads: Array.isArray(r.data) ? r.data : [], me });
   }
 
   if (req.method === 'POST') {

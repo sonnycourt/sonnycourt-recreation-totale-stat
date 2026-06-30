@@ -765,6 +765,7 @@
       .code-creds{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
       .code-creds-edit{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
       .code-creds-edit input{padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;}
+      .cred-grp-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#94a3b8;margin-top:4px;}
       .js-cred-msg{margin:0;font-size:12px;min-height:14px;}
       /* Assignation */
       .assign-help{margin:0 0 14px;color:#64748b;font-size:13px;}
@@ -1000,7 +1001,9 @@
                     ? '<span class="meta-item"><span class="meta-k">Email :</span> <b>' + esc(c.email || '—') + '</b></span>' +
                       '<span class="meta-item"><span class="meta-k">1ʳᵉ connexion :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
                       '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
-                      '<span class="meta-item"><span class="meta-k">Connexions :</span> <b>' + (c.visit_count || 0) + '</b></span>'
+                      '<span class="meta-item"><span class="meta-k">Connexions :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
+                      ((c.phone_1 || c.phone_2) ? '<span class="meta-item"><span class="meta-k">Tél :</span> <b>' + esc([c.phone_1, c.phone_2].filter(Boolean).join(' · ')) + '</b></span>' : '') +
+                      '<span class="meta-item"><span class="meta-k">Liens :</span> <b>' + ((c.checkout_full_url ? 1 : 0) + (c.checkout_discount_url ? 1 : 0)) + '/2</b></span>'
                     : '<span class="meta-item"><span class="meta-k">1ʳᵉ visite :</span> <b>' + fmtDate(c.first_visit_at) + '</b></span>' +
                       '<span class="meta-item"><span class="meta-k">Dernière :</span> <b>' + fmtDate(c.last_visit_at) + '</b></span>' +
                       '<span class="meta-item"><span class="meta-k">Visites :</span> <b>' + (c.visit_count || 0) + '</b></span>' +
@@ -1021,10 +1024,17 @@
                 // Éditeur d'identifiants : closer uniquement
                 var creds = mode === 'closer'
                     ? '<div class="code-creds" data-id="' + c.id + '">' +
-                        '<button class="code-notes-btn js-cred-edit" data-id="' + c.id + '" type="button">&#128273; Modifier l\'email / le mot de passe</button>' +
+                        '<button class="code-notes-btn js-cred-edit" data-id="' + c.id + '" type="button">&#128273; Modifier identifiants &amp; coordonnées</button>' +
                         '<div class="code-creds-edit" hidden>' +
+                            '<div class="cred-grp-t">Connexion</div>' +
                             '<input class="js-cred-email" type="email" placeholder="Email de connexion" value="' + esc(c.email || '') + '">' +
                             '<input class="js-cred-pass" type="text" placeholder="Nouveau mot de passe (vide = inchangé)">' +
+                            '<div class="cred-grp-t">Affiché au closer · téléphones</div>' +
+                            '<input class="js-cred-p1" type="text" placeholder="Téléphone 1" value="' + esc(c.phone_1 || '') + '">' +
+                            '<input class="js-cred-p2" type="text" placeholder="Téléphone 2" value="' + esc(c.phone_2 || '') + '">' +
+                            '<div class="cred-grp-t">Affiché au closer · liens checkout</div>' +
+                            '<input class="js-cred-cf" type="text" placeholder="Lien tarif complet (prospect)" value="' + esc(c.checkout_full_url || '') + '">' +
+                            '<input class="js-cred-cd" type="text" placeholder="Lien checkout -5%" value="' + esc(c.checkout_discount_url || '') + '">' +
                             '<div class="code-notes-edit-actions">' +
                                 '<button class="btn btn-sm js-cred-save" data-id="' + c.id + '" type="button">Enregistrer</button>' +
                                 '<button class="btn btn-ghost btn-sm js-cred-cancel" type="button">Annuler</button>' +
@@ -1137,19 +1147,27 @@
                 host.querySelectorAll('.js-cred-save').forEach(function (b) {
                     b.addEventListener('click', function () {
                         var box = b.closest('.code-creds');
-                        saveCreds(+b.getAttribute('data-id'),
-                            box.querySelector('.js-cred-email').value.trim(),
-                            box.querySelector('.js-cred-pass').value,
-                            box.querySelector('.js-cred-msg'), b);
+                        saveCreds(+b.getAttribute('data-id'), {
+                            email: box.querySelector('.js-cred-email').value.trim(),
+                            password: box.querySelector('.js-cred-pass').value,
+                            phone_1: box.querySelector('.js-cred-p1').value.trim(),
+                            phone_2: box.querySelector('.js-cred-p2').value.trim(),
+                            checkout_full_url: box.querySelector('.js-cred-cf').value.trim(),
+                            checkout_discount_url: box.querySelector('.js-cred-cd').value.trim(),
+                        }, box.querySelector('.js-cred-msg'), b);
                     });
                 });
             }
 
-            async function saveCreds(id, email, password, msgEl, btn) {
+            async function saveCreds(id, fields, msgEl, btn) {
                 var payload = { action: 'set-credentials', id: id };
-                if (email) payload.email = email;
-                if (password) payload.password = password;
-                if (!email && !password) { msgEl.style.color = '#dc2626'; msgEl.textContent = 'Rien à modifier.'; return; }
+                if (fields.email) payload.email = fields.email;
+                if (fields.password) payload.password = fields.password;
+                // Toujours envoyés (vide = on efface côté serveur)
+                payload.phone_1 = fields.phone_1;
+                payload.phone_2 = fields.phone_2;
+                payload.checkout_full_url = fields.checkout_full_url;
+                payload.checkout_discount_url = fields.checkout_discount_url;
                 btn.disabled = true; msgEl.style.color = '#475569'; msgEl.textContent = 'Enregistrement…';
                 try {
                     var r = await fetch(API, {
@@ -1159,7 +1177,7 @@
                     });
                     var d = {};
                     try { d = await r.json(); } catch (e) { /* noop */ }
-                    if (r.ok) { msgEl.style.color = '#16a34a'; msgEl.textContent = 'Identifiants mis à jour.'; loadCodes(); }
+                    if (r.ok) { msgEl.style.color = '#16a34a'; msgEl.textContent = 'Enregistré.'; loadCodes(); }
                     else { msgEl.style.color = '#dc2626'; msgEl.textContent = d.error || 'Erreur.'; }
                 } catch (e) { msgEl.style.color = '#dc2626'; msgEl.textContent = 'Erreur réseau.'; }
                 btn.disabled = false;
