@@ -1565,6 +1565,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function frDay(d){try{return dfDay.format(new Date(d+'T12:00:00'));}catch(e){return d;}}
 
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+        var PAYS_FLAGS={'France':'🇫🇷','Belgique':'🇧🇪','Suisse':'🇨🇭','Luxembourg':'🇱🇺','Monaco':'🇲🇨','Canada':'🇨🇦'};
+        function paysFlag(p){return PAYS_FLAGS[(p||'').trim()]||'🌍';}
         function p2(n){return (n<10?'0':'')+n;}
         function fmt(iso){var d=new Date(iso);if(isNaN(d.getTime()))return '';return p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
         function nowLocal(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
@@ -1584,7 +1586,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return '<div class="cc-det-in">'+
               '<div class="cc-recap">'+
                 '<span>&#9993; '+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'&mdash;')+'</span>'+
-                '<span>&#127758; <b>'+esc(l.pays||'—')+'</b></span>'+
+                '<span>'+paysFlag(l.pays)+' <b>'+esc(l.pays||'—')+'</b></span>'+
                 '<span>&#9202; <b>'+m+' min</b>'+ctaTxt+'</span>'+
                 '<span>'+(function(){var a=attribution(l);if(a==='valide')return '<b style="color:#15803d">Vente closer (à recréditer)</b>';if(a==='seul')return '<b style="color:#b45309">Acheté seul — non crédité</b>';return 'Pas encore acheteur';})()+'</span>'+
               '</div>'+
@@ -1615,7 +1617,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function rowHtml(l){return '<tr class="cc-r'+(attribution(l)==='valide'?' bought':'')+'" data-token="'+esc(l.token)+'">'+
               '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+'</div>'+
                  '<div class="cc-sub">'+(l.email?'<a class="cc-mail" href="mailto:'+esc(l.email)+'" onclick="event.stopPropagation()">'+esc(l.email)+'</a>':'<span class="cc-noinfo">sans email</span>')+'</div>'+
-                 '<div class="cc-sub2">&#127758; '+esc(l.pays||'—')+'</div></td>'+
+                 '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
               '<td>'+minutesCell(l)+'</td>'+
               '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
