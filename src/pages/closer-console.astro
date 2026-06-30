@@ -1481,7 +1481,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-det-in{padding:18px 20px;background:#f8fafc;}
     .cc-curst{font-size:12px;color:#64748b;margin-bottom:12px;} .cc-curst .st{margin-left:6px;}
     .cc-callbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
-    .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;} .cc-callbtn:hover{background:#3b82f6;}
+    .cc-callbtn{background:#2563eb;color:#fff;text-decoration:none;border:0;cursor:pointer;font-family:inherit;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;} .cc-callbtn:hover{background:#3b82f6;}
+    .cc-callbtn.copied{background:#16a34a;} .cc-callbtn.copied:hover{background:#16a34a;}
     .cc-lognew{background:#0f172a;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;} .cc-lognew:hover{background:#334155;}
     .cc-logform{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:14px;}
     .cc-logrow{display:flex;gap:14px;flex-wrap:wrap;}
@@ -1592,7 +1593,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 '<span>'+(function(){var a=attribution(l);if(a==='valide')return '<b style="color:#15803d">Vente closer (à recréditer)</b>';if(a==='seul')return '<b style="color:#b45309">Acheté seul — non crédité</b>';return 'Pas encore acheteur';})()+'</span>'+
               '</div>'+
               '<div class="cc-curst">Statut actuel '+stPill(statusOf(l))+' <span style="color:#94a3b8">(determine par le dernier appel)</span></div>'+
-              '<div class="cc-callbar"><a class="cc-callbtn" href="tel:'+esc(l.telephone||'')+'">&#128222; Appeler '+esc(l.telephone||'')+'</a>'+
+              '<div class="cc-callbar"><button type="button" class="cc-callbtn cc-copytel" data-tel="'+esc(l.telephone||'')+'">&#128203; Copier le numéro '+esc(l.telephone||'')+'</button>'+
               '<button type="button" class="cc-lognew">+ Noter la tentative d\'appel</button></div>'+
               '<div class="cc-logform" hidden>'+
                 '<div class="cc-logrow">'+
@@ -1656,8 +1657,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         chipsEl.addEventListener('click',function(e){var b=e.target.closest('.cc-chip');if(!b)return;FILTER=b.getAttribute('data-f');renderChips();renderList();});
 
+        function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
         listEl.addEventListener('click', async function(e){
             var det=e.target.closest('.cc-det');
+            var copyBtn=e.target.closest('.cc-copytel');
+            if(copyBtn){
+                var tel=copyBtn.getAttribute('data-tel')||'';
+                var orig=copyBtn.innerHTML;
+                var ok=function(){copyBtn.classList.add('copied');copyBtn.innerHTML='&#10003; Numéro copié';setTimeout(function(){copyBtn.classList.remove('copied');copyBtn.innerHTML=orig;},1500);};
+                try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tel).then(ok,function(){ccFallbackCopy(tel);ok();});}else{ccFallbackCopy(tel);ok();} }catch(_){ccFallbackCopy(tel);ok();}
+                return;
+            }
             if(e.target.closest('.cc-lognew')){det.querySelector('.cc-logform').hidden=false;det.querySelector('.cc-at').value=nowLocal();return;}
             if(e.target.closest('.cc-logcancel')){det.querySelector('.cc-logform').hidden=true;return;}
             if(e.target.closest('.cc-logvalid')){
