@@ -252,7 +252,10 @@ export default async (req) => {
       const rows = r.ok && Array.isArray(r.data) ? r.data : [];
 
       // Un appel "réel" (le closer a vraiment parlé au prospect).
-      const REAL = new Set(['Joint', 'Rappel demande', 'A dit OUI', 'Refus']);
+      const REAL = new Set([
+        'À rappeler', 'En réflexion', 'Dit oui (verbal)', 'Pas intéressé', // nouveaux
+        'Joint', 'Rappel demande', 'A dit OUI', 'Refus', // anciens (compat)
+      ]);
       // Renvoie l'instant (ms) du dernier appel réel ANTÉRIEUR à l'achat, sinon null.
       const lastContactBefore = (log, purchasedAt) => {
         if (!Array.isArray(log)) return null;

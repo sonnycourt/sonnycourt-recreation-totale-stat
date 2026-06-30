@@ -17,6 +17,15 @@ import {
  */
 
 const OUTCOME_STATUS = {
+  // Résultats actuels
+  'Pas de réponse': null,
+  'Répondeur': null,
+  'Numéro invalide': 'Injoignable',
+  'À rappeler': 'A rappeler',
+  'En réflexion': 'En reflexion',
+  'Dit oui (verbal)': 'Dit oui (verbal)',
+  'Pas intéressé': 'Refuse',
+  // Anciens libellés (compatibilité des appels déjà loggés)
   'Pas de reponse': null,
   Messagerie: null,
   Joint: 'En reflexion',
@@ -26,6 +35,9 @@ const OUTCOME_STATUS = {
   'Faux numero': 'Injoignable',
 };
 
+// Résultat signifiant "rappel à programmer" (nouveau libellé + ancien).
+const CALLBACK_OUTCOMES = ['À rappeler', 'Rappel demande'];
+
 /** Statut + rappel dérivés de la dernière tentative. Historique vide -> à appeler. */
 function derive(log) {
   if (!Array.isArray(log) || !log.length) return { call_status: null, next_callback_at: null };
@@ -33,7 +45,7 @@ function derive(log) {
   const status = Object.prototype.hasOwnProperty.call(OUTCOME_STATUS, last.outcome)
     ? OUTCOME_STATUS[last.outcome]
     : null;
-  const cb = last.outcome === 'Rappel demande' && last.callback ? last.callback : null;
+  const cb = CALLBACK_OUTCOMES.includes(last.outcome) && last.callback ? last.callback : null;
   return { call_status: status, next_callback_at: cb };
 }
 
@@ -90,7 +102,7 @@ export default async (req) => {
       const log = Array.isArray(cur.data[0].call_log) ? cur.data[0].call_log : [];
       const entry = { at: dateISO(body.at) || new Date().toISOString(), outcome };
       const cb = dateISO(body.callback);
-      if (outcome === 'Rappel demande' && cb) entry.callback = cb;
+      if (CALLBACK_OUTCOMES.includes(outcome) && cb) entry.callback = cb;
       log.push(entry);
 
       const d = derive(log);

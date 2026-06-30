@@ -1553,8 +1553,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <script is:inline>
     (function () {
         var EP='/.netlify/functions/closer-console';
-        var OUTCOMES=['Pas de reponse','Messagerie','Joint','Rappel demande','A dit OUI','Refus','Faux numero'];
-        var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'}];
+        var OUTCOMES=['Pas de réponse','Répondeur','Numéro invalide','À rappeler','En réflexion','Dit oui (verbal)','Pas intéressé'];
+        var CALLBACK_OUTCOMES=['À rappeler','Rappel demande'];
+        var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'},{k:'Injoignable',t:'Injoignables'}];
         var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
         var sessionEl=document.getElementById('cc-session');
         var DATA={}, LEADS=[], FILTER='all';
@@ -1574,7 +1575,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function stPill(s){return '<span class="st '+stCls(s)+'">'+esc(s)+'</span>';}
         function statusBadge(l){var s=statusOf(l);var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';return stPill(s)+cb;}
         function callsCell(log){if(!log||!log.length)return '<span class="cc-calls"><small>aucun appel</small></span>';var last=log[log.length-1];return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';}
-        function histHtml(log){if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee.</div>';return log.map(function(e,i){var rap=(e.outcome==='Rappel demande'&&e.callback)?' <span class="rap">&rarr; rappel '+fmt(e.callback)+'</span>':'';return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+rap+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer">&times;</button></div>';}).reverse().join('');}
+        function histHtml(log){if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee.</div>';return log.map(function(e,i){var rap=(CALLBACK_OUTCOMES.indexOf(e.outcome)!==-1&&e.callback)?' <span class="rap">&rarr; rappel '+fmt(e.callback)+'</span>':'';return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+rap+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer">&times;</button></div>';}).reverse().join('');}
         function opts(arr,val){return '<option value="">&mdash;</option>'+arr.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
 
         function detailHtml(l){
@@ -1607,7 +1608,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function minutesCell(l){var m=l.watch_max_minutes||0;
             var cta=l.clicked_cta?'<span class="cc-cta cc-cta-hot">CTA cliqué</span>':((l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'');
             return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+cta+'</div>';}
-        var REAL_CONTACT={'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
+        var REAL_CONTACT={'À rappeler':1,'En réflexion':1,'Dit oui (verbal)':1,'Pas intéressé':1,'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
         function contactBeforeBuy(l){var log=l.call_log;if(!Array.isArray(log))return false;var pa=l.purchased_at?new Date(l.purchased_at).getTime():null;for(var i=0;i<log.length;i++){var e=log[i];if(!e||!REAL_CONTACT[e.outcome]||!e.at)continue;var t=new Date(e.at).getTime();if(isNaN(t))continue;if(pa==null||t<pa)return true;}return false;}
         function attribution(l){if(!l.purchased)return null;return contactBeforeBuy(l)?'valide':'seul';}
         function boughtCell(l){var a=attribution(l);if(a==='valide')return '<span class="cc-buy yes">&#10003; Vente closer</span>';if(a==='seul')return '<span class="cc-buy seul">Acheté seul</span>';return '<span class="cc-buy no">Non</span>';}
@@ -1670,7 +1671,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 var at=det.querySelector('.cc-at').value, outcome=det.querySelector('.cc-outcome').value;
                 if(!outcome){alert('Choisis le resultat de l\'appel.');return;}
                 var payload={token:token,action:'log',outcome:outcome,at:at?new Date(at).toISOString():undefined};
-                if(outcome==='Rappel demande'){var cbv=det.querySelector('.cc-cb').value;payload.callback=cbv?new Date(cbv).toISOString():undefined;}
+                if(CALLBACK_OUTCOMES.indexOf(outcome)!==-1){var cbv=det.querySelector('.cc-cb').value;payload.callback=cbv?new Date(cbv).toISOString():undefined;}
                 btn.disabled=true;btn.textContent='...';
                 try{var r=await postJSON(payload);var d=await r.json();if(r.ok){var l=DATA[token];l.call_log=d.call_log;l.call_status=d.call_status;l.next_callback_at=d.next_callback_at;syncDetail(det,token);det.querySelector('.cc-logform').hidden=true;updateRow(token);renderChips();saved(det,'Tentative notee');}}catch(err){}
                 btn.disabled=false;btn.textContent='Valider la tentative';return;
@@ -1683,7 +1684,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             else{row.classList.add('open');dr.hidden=false;dr.querySelector('td').innerHTML=detailHtml(DATA[token]);}
         });
 
-        listEl.addEventListener('change',function(e){if(e.target.classList.contains('cc-outcome')){var det=e.target.closest('.cc-det');var w=det.querySelector('.cc-cbwrap');var show=e.target.value==='Rappel demande';w.hidden=!show;if(show&&!det.querySelector('.cc-cb').value)det.querySelector('.cc-cb').value=plusH(2);}});
+        listEl.addEventListener('change',function(e){if(e.target.classList.contains('cc-outcome')){var det=e.target.closest('.cc-det');var w=det.querySelector('.cc-cbwrap');var show=CALLBACK_OUTCOMES.indexOf(e.target.value)!==-1;w.hidden=!show;if(show&&!det.querySelector('.cc-cb').value)det.querySelector('.cc-cb').value=plusH(2);}});
         listEl.addEventListener('focusout',function(e){if(e.target.classList.contains('cc-notes'))autosave(e.target,{call_notes:e.target.value});});
         async function autosave(el,fields){var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;if(fields.call_transcript!==undefined)l.call_transcript=fields.call_transcript;fields.token=token;try{var r=await postJSON(fields);if(r.ok)saved(det);}catch(e){}}
 
