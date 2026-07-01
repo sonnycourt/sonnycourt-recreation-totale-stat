@@ -1418,6 +1418,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-logout{display:flex;align-items:center;gap:11px;width:100%;margin-top:12px;padding:9px 11px;border:0;border-radius:11px;background:transparent;color:#64748b;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;text-align:left;transition:background .12s ease,color .12s ease;}
     .cc-logout:hover{background:#fef2f2;color:#dc2626;}
     .cc-side.is-collapsed .cc-logout{justify-content:center;padding:10px 0;gap:0;}
+    button.cc-nav-link{background:none;border:0;width:100%;font-family:inherit;cursor:pointer;text-align:left;}
+    /* Modal vidéo de bienvenue */
+    .cc-vmodal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .cc-vmodal-bg{position:absolute;inset:0;background:rgba(15,23,42,.72);}
+    .cc-vmodal-box{position:relative;z-index:1;background:#0f172a;border-radius:18px;padding:16px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+    .cc-vmodal-head{color:#e2e8f0;font-size:14px;font-weight:700;margin:2px 4px 12px;padding-right:42px;line-height:1.4;}
+    .cc-vmodal-video{width:100%;border-radius:12px;display:block;background:#000;max-height:74vh;}
+    .cc-vmodal-close{position:absolute;top:12px;right:12px;z-index:2;width:36px;height:36px;border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:16px;font-weight:700;cursor:pointer;line-height:1;} .cc-vmodal-close:hover{background:rgba(255,255,255,.22);}
     .cc-nav-link{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:11px;font-size:14px;font-weight:600;color:#475569;text-decoration:none;white-space:nowrap;transition:background .12s ease,color .12s ease;}
     .cc-nav-link:hover{background:#f1f5f9;color:#0f172a;}
     .cc-nav-link.is-active{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28);}
@@ -1543,6 +1551,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
                         <span class="cc-nav-label">Console</span>
                     </a>
+                    <button type="button" class="cc-nav-link" id="cc-welcome-btn" title="Vidéo de bienvenue">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></span>
+                        <span class="cc-nav-label">Vidéo bienvenue</span>
+                    </button>
                     <a class="cc-nav-link" href="/closer-documentation" target="_blank" rel="noopener noreferrer" title="Documentation (nouvel onglet)">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
                         <span class="cc-nav-label">Documentation</span>
@@ -1586,6 +1598,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <div class="cc-me" id="cc-me" hidden></div>
                 <div class="cc-chips" id="cc-chips"></div>
                 <div id="cc-list"></div>
+            </div>
+        </div>
+        <div class="cc-vmodal" id="cc-vmodal" hidden>
+            <div class="cc-vmodal-bg" id="cc-vmodal-bg"></div>
+            <div class="cc-vmodal-box" role="dialog" aria-modal="true" aria-label="Vidéo de bienvenue">
+                <button type="button" class="cc-vmodal-close" id="cc-vmodal-close" aria-label="Fermer">&#10005;</button>
+                <div class="cc-vmodal-head">&#127909; Bienvenue — regarde cette vidéo pour prendre l'espace en main</div>
+                <video id="cc-welcome-video" class="cc-vmodal-video" controls playsinline preload="metadata">
+                    <source src="https://sonnycourt-videos-public.b-cdn.net/CLOSER%20-%20Explication%20vide%CC%81o%20(compressed).mp4" type="video/mp4" />
+                </video>
             </div>
         </div>
     </main>
@@ -1851,7 +1873,22 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             try{await fetch('/.netlify/functions/closer-logout',{method:'POST',credentials:'same-origin'});}catch(e){}
             window.location.href='/closer-console';
         });
-        window.initCloserConsole=function(){cc.hidden=false;load();};
+
+        // ---- Vidéo de bienvenue (modal) ----
+        var vmodal=document.getElementById('cc-vmodal');
+        var vvideo=document.getElementById('cc-welcome-video');
+        function openWelcome(){vmodal.hidden=false;try{var p=vvideo.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
+        function closeWelcome(){vmodal.hidden=true;try{vvideo.pause();}catch(e){}}
+        document.getElementById('cc-welcome-btn').addEventListener('click',openWelcome);
+        document.getElementById('cc-vmodal-close').addEventListener('click',closeWelcome);
+        document.getElementById('cc-vmodal-bg').addEventListener('click',closeWelcome);
+        document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!vmodal.hidden)closeWelcome();});
+
+        window.initCloserConsole=function(){
+            cc.hidden=false;load();
+            // 1ère visite sur cet appareil -> ouvre la vidéo automatiquement
+            try{if(!localStorage.getItem('cc_welcome_seen')){localStorage.setItem('cc_welcome_seen','1');openWelcome();}}catch(e){}
+        };
     })();
     </script>
 
