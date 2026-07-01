@@ -10,7 +10,7 @@
 // ============================================
 
 export type PromoTheme = "red" | "purple" | "gold" | "green" | "summer";
-export type PromoMode = "all" | "single";
+export type PromoMode = "all" | "single" | "list";
 export type PromoFormationKey =
   | "manifest"
   | "espritSubconscient"
@@ -30,27 +30,38 @@ export const promo = {
   // Active/désactive toute la mécanique promo
   active: true,
 
-  // Portée de la promo : "all" (toutes) ou "single" (une seule)
-  mode: "all" as PromoMode,
+  // Portée de la promo : "all" (toutes) | "single" (une seule) | "list" (sous-ensemble)
+  mode: "list" as PromoMode,
   targetFormation: "manifest" as PromoFormationKey,
+  // Utilisé uniquement quand mode === "list" : promo sur ces formations UNIQUEMENT.
+  // NB : espritSubconscient = la FORMATION Esprit Subconscient (page /esprit-subconscient/).
+  // Le FUNNEL "Esprit Subconscient 2.0" (es-video / es-direct-checkout) est indépendant
+  // de ce fichier et n'est donc PAS touché par la promo.
+  targetFormations: [
+    "manifest",
+    "neuroIa",
+    "ssrLancement",
+    "espritSubconscient",
+    "systemeViral",
+  ] as PromoFormationKey[],
 
   // Nom affiché
-  name: "Offre Printemps",
-  emoji: "🌱",
+  name: "Demi-Million Instagram",
+  emoji: "🎉",
   discount: 60,
 
-  // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS)
-  deadline: "2026-03-19T23:59:00",
+  // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS, heure locale du visiteur)
+  deadline: "2026-07-05T23:00:00",
   // Date/heure de début de la promo (utilisée pour la descente globale des places sur Manifest)
-  start: "2026-03-17T09:00:00",
+  start: "2026-07-01T17:33:00",
 
   // Textes affichés
-  badgeText: "OFFRE PRINTEMPS -60%",
+  badgeText: "DEMI-MILLION INSTAGRAM -60%",
   bannerMessage: "sur toutes les formations",
   singleBannerMessage: "sur Manifest",
 
-  // Thème couleur du banner
-  theme: "green" as PromoTheme,
+  // Thème couleur du banner (violet = rappel des couleurs Instagram)
+  theme: "purple" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
   formations: {
@@ -101,6 +112,7 @@ export const promo = {
 export function isPromoActiveFor(formation: PromoFormationKey): boolean {
   if (!promo.active) return false;
   if (promo.mode === "all") return true;
+  if (promo.mode === "list") return promo.targetFormations.includes(formation);
   return promo.targetFormation === formation;
 }
 
