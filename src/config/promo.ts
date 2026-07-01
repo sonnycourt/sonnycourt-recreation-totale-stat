@@ -99,9 +99,9 @@ export const promo = {
       installmentCount: 6,
       installmentPrice: 293,
       checkoutCode: "FB1MILLION",
-      badgeText: "PROMO FB 1 MILLION -60%",
+      badgeText: "DEMI-MILLION INSTAGRAM -60%",
       banner: {
-        label: "🏆 1 MILLION FACEBOOK",
+        label: "🎉 DEMI-MILLION INSTAGRAM",
         highlight: "-60% sur la formation complète",
         btnText: "Rejoindre Système Viral →",
       },
