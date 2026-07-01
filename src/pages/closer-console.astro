@@ -1667,17 +1667,19 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         sessionEl.addEventListener('change',function(){SESSION_SEL=this.value;applySession();});
 
         async function load(){try{var r=await fetch(EP,{credentials:'same-origin'});if(!r.ok){listEl.innerHTML='<div class="cc-empty">Connecte-toi pour voir tes leads.</div>';return;}var d=await r.json();renderMe(d.me||null);render(d.leads||[]);}catch(e){listEl.innerHTML='<div class="cc-empty">Erreur reseau.</div>';}}
-        function meRow(label,val,isLink){
+        function meRow(label,val,kind){
             if(!val)return'';
+            if(kind==='tel'){
+                return'<div class="cc-me-row"><span class="cc-me-val">'+esc(val)+'</span></div>';
+            }
             var sub=label?'<small>'+esc(label)+'</small>':'';
-            var shown=isLink?'<a href="'+esc(val)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;">'+esc(val)+'</a>':esc(val);
-            return'<div class="cc-me-row"><span class="cc-me-val">'+sub+shown+'</span>'+
+            return'<div class="cc-me-row"><span class="cc-me-val">'+sub+'<a href="'+esc(val)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;">'+esc(val)+'</a></span>'+
                 '<button type="button" class="cc-me-cp" data-copy="'+esc(val)+'">&#128203; Copier</button></div>';
         }
         function renderMe(me){
             if(!me){meEl.hidden=true;meEl.innerHTML='';return;}
-            var tels=meRow('',me.phone_1,false)+meRow('',me.phone_2,false);
-            var liens=meRow('Tarif complet (prospect)',me.checkout_full_url,true)+meRow('Lien -5% (closing)',me.checkout_discount_url,true);
+            var tels=meRow('',me.phone_1,'tel')+meRow('',me.phone_2,'tel');
+            var liens=meRow('Tarif complet (prospect)',me.checkout_full_url,'link')+meRow('Lien -5% (closing)',me.checkout_discount_url,'link');
             if(!tels&&!liens){meEl.hidden=true;meEl.innerHTML='';return;}
             meEl.innerHTML='<div class="cc-me-grid">'+
                 '<div class="cc-me-block"><div class="cc-me-k">&#128222; Mes numéros</div>'+(tels||'<div class="cc-me-empty">Aucun numéro configuré.</div>')+'</div>'+
