@@ -7,6 +7,7 @@ const ALLOWED_EVENTS = new Set([
   'video_checkpoint',
   'cta_reached',
   'cta_clicked',
+  'checkout_clicked',
   'auto_redirect_to_offer',
   'invitation_visited',
   'replay_started',
@@ -51,6 +52,10 @@ function buildPatch(eventName, currentRow, rawValue) {
   }
   if (eventName === 'cta_clicked') {
     patch.clicked_cta = true;
+    return patch;
+  }
+  if (eventName === 'checkout_clicked') {
+    patch.checkout_clicked = true;
     return patch;
   }
   if (eventName === 'invitation_visited') {
