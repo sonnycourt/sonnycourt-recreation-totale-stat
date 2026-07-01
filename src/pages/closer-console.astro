@@ -1452,6 +1452,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-testadd input{padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;flex:1;min-width:160px;}
     .cc-tl-add{flex:0 0 auto;background:#7c3aed;color:#fff;border:0;border-radius:8px;padding:9px 15px;cursor:pointer;font-weight:700;font-size:14px;} .cc-tl-add:hover{background:#6d28d9;}
     .cc-testadd-note{flex-basis:100%;font-size:12px;color:#7c3aed;}
+    .cc-testbadge{display:inline-block;vertical-align:middle;background:#7c3aed;color:#fff;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:6px;padding:2px 7px;margin-left:6px;}
+    .cc-testnote{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#6d28d9;font-weight:600;}
+    .cc-testdel{flex:0 0 auto;background:#7c3aed;color:#fff;border:0;border-radius:8px;padding:8px 13px;cursor:pointer;font-weight:700;font-size:13px;} .cc-testdel:hover{background:#6d28d9;}
     /* Bloc coordonnées du closer (tél + liens) mis en avant */
     .cc-me{background:#0f172a;border-radius:16px;padding:16px 18px;margin-bottom:18px;}
     .cc-me-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
@@ -1518,7 +1521,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-in,.cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
     .cc-ta{min-height:64px;resize:vertical;}
     .cc-in:focus,.cc-sel:focus,.cc-ta:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
-    .cc-saved{font-size:12px;font-weight:700;color:#16a34a;height:16px;margin-top:10px;}
+    .cc-saved{font-size:12px;font-weight:700;color:#16a34a;min-height:16px;margin-top:10px;}
+    .cc-saved.is-saving{color:#94a3b8;} .cc-saved.is-ok{color:#16a34a;} .cc-saved.is-err{color:#dc2626;}
     .cc-empty{text-align:center;color:#64748b;padding:60px 20px;font-size:15px;}
     </style>
 
@@ -1611,11 +1615,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         var TEST_SEQ=0;
         function addTestLead(name,tel){
             TEST_SEQ++;
-            var iso=new Date().toISOString();
+            // Ancre le lead test sur la SESSION ACTUELLEMENT AFFICHÉE (sinon aujourd'hui),
+            // pour qu'il apparaisse EN PLUS des vraies leads sans jamais les masquer.
+            var day = SESSION_SEL || sDate(new Date().toISOString());
+            var iso = day + 'T12:00:00.000Z';
             var lead={token:'test-'+Date.now()+'-'+TEST_SEQ,prenom:(name&&name.trim())||('Lead test '+TEST_SEQ),email:'test-local@exemple.com',telephone:(tel&&tel.trim())||'',pays:'France',watch_max_minutes:90,saw_offer:true,clicked_cta:true,purchased:false,purchased_at:null,session_date:iso,call_status:null,next_callback_at:null,call_notes:'',call_transcript:'',call_log:[],_test:true};
             ALL_LEADS.push(lead);
-            SESSION_SEL=sDate(iso);   // bascule sur la session du lead de test pour qu'il soit visible
-            FILTER='all';
+            FILTER='all';            // ne touche PAS SESSION_SEL : la vue courante est conservée
+            buildSessions();applySession();
+        }
+        function removeTestLead(token){
+            ALL_LEADS=ALL_LEADS.filter(function(l){return l.token!==token;});
             buildSessions();applySession();
         }
         var ALL_LEADS=[], SESSION_SEL='', SESSIONS=[];
@@ -1643,6 +1653,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var m=l.watch_max_minutes||0;
             var ctaTxt=l.clicked_cta?' &middot; <b>a cliqué le CTA</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':'');
             return '<div class="cc-det-in">'+
+              (l._test?'<div class="cc-testnote"><span>&#129514; Lead de test — local, rien n\'est enregistré.</span><button type="button" class="cc-testdel" data-token="'+esc(l.token)+'">&#128465; Supprimer ce lead test</button></div>':'')+
               '<div class="cc-recap">'+
                 '<span>&#9993; '+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'&mdash;')+'</span>'+
                 '<span>'+paysFlag(l.pays)+' <b>'+esc(l.pays||'—')+'</b></span>'+
@@ -1674,7 +1685,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function attribution(l){if(!l.purchased)return null;return contactBeforeBuy(l)?'valide':'seul';}
         function boughtCell(l){var a=attribution(l);if(a==='valide')return '<span class="cc-buy yes">&#10003; Vente closer</span>';if(a==='seul')return '<span class="cc-buy seul">Acheté seul</span>';return '<span class="cc-buy no">Non</span>';}
         function rowHtml(l){return '<tr class="cc-r'+(attribution(l)==='valide'?' bought':'')+'" data-token="'+esc(l.token)+'">'+
-              '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+'</div>'+
+              '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+(l._test?' <span class="cc-testbadge">test</span>':'')+'</div>'+
                  '<div class="cc-sub">'+(l.email?'<a class="cc-mail" href="mailto:'+esc(l.email)+'" onclick="event.stopPropagation()">'+esc(l.email)+'</a>':'<span class="cc-noinfo">sans email</span>')+'</div>'+
                  '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
@@ -1758,6 +1769,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tel).then(ok,function(){ccFallbackCopy(tel);ok();});}else{ccFallbackCopy(tel);ok();} }catch(_){ccFallbackCopy(tel);ok();}
                 return;
             }
+            var tdel=e.target.closest('.cc-testdel');
+            if(tdel){removeTestLead(tdel.getAttribute('data-token'));return;}
             if(e.target.closest('.cc-lognew')){det.querySelector('.cc-logform').hidden=false;det.querySelector('.cc-at').value=nowLocal();return;}
             if(e.target.closest('.cc-logcancel')){det.querySelector('.cc-logform').hidden=true;return;}
             if(e.target.closest('.cc-logvalid')){
@@ -1779,8 +1792,41 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         });
 
         listEl.addEventListener('change',function(e){if(e.target.classList.contains('cc-outcome')){var det=e.target.closest('.cc-det');var w=det.querySelector('.cc-cbwrap');var show=CALLBACK_OUTCOMES.indexOf(e.target.value)!==-1;w.hidden=!show;if(show&&!det.querySelector('.cc-cb').value)det.querySelector('.cc-cb').value=plusH(2);}});
-        listEl.addEventListener('focusout',function(e){if(e.target.classList.contains('cc-notes'))autosave(e.target,{call_notes:e.target.value});});
-        async function autosave(el,fields){var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;if(fields.call_transcript!==undefined)l.call_transcript=fields.call_transcript;fields.token=token;try{var r=await postJSON(fields);if(r.ok)saved(det);}catch(e){}}
+        // ---- Sauvegarde fiable des notes : pendant la frappe + au blur + à la fermeture ----
+        var saveTimers={}, dirty={};
+        function setSaveState(det,state){var s=det&&det.querySelector('.cc-saved');if(!s)return;s.classList.remove('is-ok','is-saving','is-err');if(state==='saving'){s.classList.add('is-saving');s.textContent='Enregistrement…';}else if(state==='saved'){s.classList.add('is-ok');s.textContent='✓ Enregistré';setTimeout(function(){if(s.classList.contains('is-ok'))s.textContent='';},1800);}else if(state==='error'){s.classList.add('is-err');s.textContent='⚠ Non enregistré — vérifie ta connexion, ta note est encore là, retape ou reste sur la page.';}}
+        listEl.addEventListener('input',function(e){
+            if(!e.target.classList.contains('cc-notes'))return;
+            var det=e.target.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');
+            dirty[token]=true;setSaveState(det,'saving');
+            var el=e.target;clearTimeout(saveTimers[token]);
+            saveTimers[token]=setTimeout(function(){autosave(el,{call_notes:el.value});},900);
+        });
+        listEl.addEventListener('focusout',function(e){if(!e.target.classList.contains('cc-notes'))return;var det=e.target.closest('.cc-det');if(det)clearTimeout(saveTimers[det.getAttribute('data-detail')]);autosave(e.target,{call_notes:e.target.value});});
+        async function autosave(el,fields){
+            var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];
+            if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;
+            if(fields.call_transcript!==undefined)l.call_transcript=fields.call_transcript;
+            fields.token=token;setSaveState(det,'saving');
+            var ok=false;
+            for(var attempt=0;attempt<2&&!ok;attempt++){
+                try{var r=await postJSON(fields);if(r&&r.ok)ok=true;}catch(e){}
+                if(!ok&&attempt===0)await new Promise(function(res){setTimeout(res,1200);});
+            }
+            if(ok)dirty[token]=false;
+            setSaveState(det,ok?'saved':'error');
+        }
+        // Filet de sécurité : à la fermeture/mise en arrière-plan, on envoie les notes non sauvées.
+        function flushPending(){
+            Object.keys(dirty).forEach(function(token){
+                if(!dirty[token]||isTestLead(token))return;
+                var det=listEl.querySelector('.cc-det[data-detail="'+CSS.escape(token)+'"]');
+                var ta=det&&det.querySelector('.cc-notes');if(!ta)return;
+                try{navigator.sendBeacon(EP,new Blob([JSON.stringify({token:token,call_notes:ta.value})],{type:'application/json'}));dirty[token]=false;}catch(e){}
+            });
+        }
+        window.addEventListener('pagehide',flushPending);
+        document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')flushPending();});
 
         document.getElementById('cc-refresh').addEventListener('click', load);
         var testAddBtn=document.getElementById('cc-testadd-btn');
