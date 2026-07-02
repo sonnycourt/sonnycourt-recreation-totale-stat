@@ -1493,6 +1493,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-cta{font-size:10px;font-weight:700;background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;white-space:nowrap;}
     .cc-cta-hot{background:#16a34a;color:#fff;}
     .cc-cta-cart{background:#7c3aed;color:#fff;}
+    .cc-yn{font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+    .cc-yn.yes{background:#16a34a;color:#fff;}
+    .cc-yn.yes.cart{background:#7c3aed;}
+    .cc-yn.no{background:#f1f5f9;color:#94a3b8;}
     .cc-buy{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 11px;white-space:nowrap;}
     .cc-buy.yes{background:#dcfce7;color:#15803d;} .cc-buy.no{background:#f1f5f9;color:#94a3b8;}
     .cc-buy.seul{background:#fffbeb;color:#b45309;border:1px solid #fde68a;}
@@ -1708,9 +1712,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
               '<div class="cc-saved"></div></div>';
         }
         function minutesCell(l){var m=l.watch_max_minutes||0;
-            var cta=l.clicked_cta?'<span class="cc-cta cc-cta-hot">CTA cliqué</span>':((l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'');
-            var cart=(l.checkout_clicked&&!l.purchased)?'<span class="cc-cta cc-cta-cart">&#128722; Panier abandonné</span>':'';
-            return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+cta+cart+'</div>';}
+            var offer=(l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'';
+            return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+offer+'</div>';}
+        function ynPill(on,hot){return on?'<span class="cc-yn yes'+(hot?' cart':'')+'">Oui</span>':'<span class="cc-yn no">Non</span>';}
         var REAL_CONTACT={'À rappeler':1,'En réflexion':1,'Dit oui (verbal)':1,'Pas intéressé':1,'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
         function contactBeforeBuy(l){var log=l.call_log;if(!Array.isArray(log))return false;var pa=l.purchased_at?new Date(l.purchased_at).getTime():null;for(var i=0;i<log.length;i++){var e=log[i];if(!e||!REAL_CONTACT[e.outcome]||!e.at)continue;var t=new Date(e.at).getTime();if(isNaN(t))continue;if(pa==null||t<pa)return true;}return false;}
         function attribution(l){if(!l.purchased)return null;return contactBeforeBuy(l)?'valide':'seul';}
@@ -1721,15 +1725,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                  '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
               '<td>'+minutesCell(l)+'</td>'+
+              '<td class="cc-yncell">'+ynPill(!!l.clicked_cta)+'</td>'+
+              '<td class="cc-yncell">'+ynPill(!!(l.checkout_clicked&&!l.purchased),true)+'</td>'+
               '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
               '<td class="cc-callscell">'+callsCell(l.call_log)+'</td>'+
               '<td class="cc-buycell">'+boughtCell(l)+'</td>'+
               '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td></tr>'+
-              '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="7"></td></tr>';}
+              '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="9"></td></tr>';}
 
         function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
-        function renderList(){var arr=LEADS.filter(passF).slice().sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;if(pa===1)return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>Statut</th><th>Appels</th><th>Acheteur</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
+        function renderList(){var arr=LEADS.filter(passF).slice().sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;if(pa===1)return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>CTA cliqué</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Appels</th><th>Acheteur</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
         function render(leads){ALL_LEADS=leads||[];buildSessions();applySession();}
         function buildSessions(){
             var counts={};
