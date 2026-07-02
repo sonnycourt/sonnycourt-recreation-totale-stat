@@ -674,6 +674,21 @@
 
                 <!-- Panneau Assignation -->
                 <div id="panel-assign" class="panel" hidden>
+                    <div class="card create-card">
+                        <h2>Assigner par liste d'emails</h2>
+                        <p class="assign-help">Colle la liste d'emails préparée en amont (un par ligne ou séparés par des virgules), choisis le closer, puis <strong>Vérifier</strong> : rien n'est assigné avant l'aperçu.</p>
+                        <textarea id="el-emails" class="el-emails" rows="5" placeholder="prenom1@email.com&#10;prenom2@email.com&#10;prenom3@email.com"></textarea>
+                        <div class="el-controls">
+                            <select id="el-closer"></select>
+                            <button type="button" id="el-check" class="btn">Vérifier la liste</button>
+                        </div>
+                        <div id="el-report" class="el-report" hidden></div>
+                        <div class="el-actions" id="el-actions" hidden>
+                            <button type="button" id="el-assign" class="btn">Assigner</button>
+                            <button type="button" id="el-cancel" class="btn btn-ghost">Annuler</button>
+                        </div>
+                        <p id="el-msg" class="assign-result"></p>
+                    </div>
                     <div class="card">
                         <h2>Assigner des leads à un closer</h2>
                         <p class="assign-help">Coche les leads de la session <strong id="assign-session-label">sélectionnée</strong> que tu veux confier, puis assigne-les au closer choisi. Sélection <strong>manuelle</strong> : rien n'est réparti automatiquement. (Change la session en haut.)</p>
@@ -769,6 +784,20 @@
       .js-cred-msg{margin:0;font-size:12px;min-height:14px;}
       /* Assignation */
       .assign-help{margin:0 0 14px;color:#64748b;font-size:13px;}
+      /* Assignation par liste d'emails */
+      .el-emails{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;min-height:96px;}
+      .el-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+      .el-controls select{padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;min-width:200px;background:#fff;}
+      .el-report{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+      .el-line{font-size:13px;padding:9px 12px;border-radius:9px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;}
+      .el-line b{color:#0f172a;}
+      .el-line.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534;} .el-line.ok b{color:#15803d;}
+      .el-line.warn{background:#fffbeb;border-color:#fde68a;color:#92400e;} .el-line.warn b{color:#b45309;}
+      .el-line.err{background:#fef2f2;border-color:#fecaca;color:#991b1b;}
+      .el-line .el-detail{display:block;margin-top:6px;font-size:12px;word-break:break-all;}
+      .el-conflict{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:6px;}
+      .el-conflict input{width:15px;height:15px;cursor:pointer;flex:0 0 auto;}
+      .el-actions{display:flex;gap:10px;margin-top:12px;}
       .assign-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
       .assign-controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#475569;}
       .assign-controls input{padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:230px;}
@@ -1581,6 +1610,14 @@
                 });
                 opts.push('<option value="__none__">↩︎ Désassigner (retirer)</option>');
                 sel.innerHTML = opts.join('');
+                var el = document.getElementById('el-closer');
+                if (el) {
+                    var eopts = ['<option value="">— Choisir un closer —</option>'];
+                    activeClosers().forEach(function (c) {
+                        eopts.push('<option value="' + c.id + '">' + esc(c.label) + '</option>');
+                    });
+                    el.innerHTML = eopts.join('');
+                }
             }
 
             function poolRow(l) {
@@ -1812,6 +1849,111 @@
                     document.getElementById('split-box').hidden = true;
                 });
                 document.getElementById('split-confirm').addEventListener('click', confirmSplit);
+
+                // Assignation par liste d'emails
+                document.getElementById('el-check').addEventListener('click', checkEmailList);
+                document.getElementById('el-assign').addEventListener('click', assignEmailList);
+                document.getElementById('el-cancel').addEventListener('click', resetEmailList);
+                document.getElementById('el-emails').addEventListener('input', invalidateEmailCheck);
+                document.getElementById('el-closer').addEventListener('change', invalidateEmailCheck);
+            }
+
+            // ===== Assignation par liste d'emails =====
+            var EL_STATE = null; // { closer_id, assignable:[tokens], conflicts:[{token,email,closer_id}] }
+            function invalidateEmailCheck() {
+                EL_STATE = null;
+                document.getElementById('el-report').hidden = true;
+                document.getElementById('el-actions').hidden = true;
+                document.getElementById('el-msg').textContent = '';
+            }
+            function resetEmailList() {
+                document.getElementById('el-emails').value = '';
+                invalidateEmailCheck();
+            }
+            async function checkEmailList() {
+                var msg = document.getElementById('el-msg');
+                var emails = document.getElementById('el-emails').value
+                    .split(/[\s,;]+/).map(function (e) { return e.trim().toLowerCase(); })
+                    .filter(function (e) { return e && e.indexOf('@') !== -1; });
+                emails = Array.from(new Set(emails));
+                var closerId = Number(document.getElementById('el-closer').value);
+                if (!emails.length) { msg.style.color = '#dc2626'; msg.textContent = 'Colle au moins un email.'; return; }
+                if (!closerId) { msg.style.color = '#dc2626'; msg.textContent = 'Choisis un closer.'; return; }
+                var btn = document.getElementById('el-check');
+                btn.disabled = true; msg.style.color = '#475569'; msg.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'leads-by-emails', emails: emails }),
+                    });
+                    var d = await r.json();
+                    if (!r.ok) { msg.style.color = '#dc2626'; msg.textContent = d.error || 'Erreur.'; btn.disabled = false; return; }
+                    var leads = d.leads || [];
+                    var assignable = [], same = [], conflicts = [], bought = [];
+                    leads.forEach(function (l) {
+                        if (l.purchased) { bought.push(l); return; }
+                        if (l.assigned_closer_id == null) { assignable.push(l); return; }
+                        if (Number(l.assigned_closer_id) === closerId) { same.push(l); return; }
+                        conflicts.push(l);
+                    });
+                    EL_STATE = { closer_id: closerId, assignable: assignable.map(function (l) { return l.token; }), conflicts: conflicts };
+                    var html = [];
+                    html.push('<div class="el-line ok"><b>' + assignable.length + '</b> lead(s) assignables à <b>' + esc(closerName(closerId)) + '</b>.</div>');
+                    if (same.length) html.push('<div class="el-line"><b>' + same.length + '</b> déjà assigné(s) à ce closer — rien à faire.</div>');
+                    if (bought.length) html.push('<div class="el-line"><b>' + bought.length + '</b> déjà acheteur(s) — jamais réassignés : <span class="el-detail">' + bought.map(function (l) { return esc(l.email); }).join(' · ') + '</span></div>');
+                    if (d.not_found && d.not_found.length) html.push('<div class="el-line err"><b>' + d.not_found.length + '</b> introuvable(s) en base : <span class="el-detail">' + d.not_found.map(esc).join(' · ') + '</span></div>');
+                    if (conflicts.length) {
+                        html.push('<div class="el-line warn"><b>' + conflicts.length + '</b> déjà assigné(s) à un AUTRE closer — coche pour réassigner de force (sinon ils sont sautés) :' +
+                            conflicts.map(function (l, i) {
+                                return '<label class="el-conflict"><input type="checkbox" class="js-el-force" data-token="' + esc(l.token) + '"> ' + esc(l.email) + ' <b>→ actuellement ' + esc(closerName(Number(l.assigned_closer_id))) + '</b></label>';
+                            }).join('') + '</div>');
+                    }
+                    var rep = document.getElementById('el-report');
+                    rep.innerHTML = html.join(''); rep.hidden = false;
+                    document.getElementById('el-actions').hidden = false;
+                    updateElAssignLabel();
+                    rep.querySelectorAll('.js-el-force').forEach(function (cb) { cb.addEventListener('change', updateElAssignLabel); });
+                    msg.textContent = '';
+                } catch (e) { msg.style.color = '#dc2626'; msg.textContent = 'Erreur réseau.'; }
+                btn.disabled = false;
+            }
+            function elSelectedTokens() {
+                if (!EL_STATE) return [];
+                var t = EL_STATE.assignable.slice();
+                document.querySelectorAll('#el-report .js-el-force:checked').forEach(function (cb) { t.push(cb.getAttribute('data-token')); });
+                return t;
+            }
+            function updateElAssignLabel() {
+                var n = elSelectedTokens().length;
+                var b = document.getElementById('el-assign');
+                b.textContent = 'Assigner ' + n + ' lead(s)';
+                b.disabled = n === 0;
+            }
+            async function assignEmailList() {
+                var msg = document.getElementById('el-msg');
+                var tokens = elSelectedTokens();
+                if (!EL_STATE || !tokens.length) { msg.style.color = '#dc2626'; msg.textContent = 'Rien à assigner.'; return; }
+                var btn = document.getElementById('el-assign');
+                btn.disabled = true; msg.style.color = '#475569'; msg.textContent = 'Assignation…';
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'assign', closer_id: EL_STATE.closer_id, tokens: tokens }),
+                    });
+                    var d = await r.json();
+                    if (r.ok) {
+                        msg.style.color = '#16a34a';
+                        msg.textContent = (d.count || tokens.length) + ' lead(s) assignés à ' + closerName(EL_STATE.closer_id) + '.';
+                        document.getElementById('el-report').hidden = true;
+                        document.getElementById('el-actions').hidden = true;
+                        document.getElementById('el-emails').value = '';
+                        EL_STATE = null;
+                        await loadPool();
+                        loadStats();
+                    } else { msg.style.color = '#dc2626'; msg.textContent = d.error || 'Erreur.'; btn.disabled = false; }
+                } catch (e) { msg.style.color = '#dc2626'; msg.textContent = 'Erreur réseau.'; btn.disabled = false; }
             }
 
             function initAssignTab() {

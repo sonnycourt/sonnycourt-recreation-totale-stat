@@ -356,6 +356,30 @@ export default async (req) => {
       return json(200, { ok: true, count: tokens.length });
     }
 
+    // --- Résoudre une liste d'emails collée -> leads (pour l'assignation par liste) ---
+    if (action === 'leads-by-emails') {
+      const raw = Array.isArray(body.emails) ? body.emails : [];
+      const emails = [...new Set(
+        raw
+          .map((e) => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+          .filter((e) => e && e.includes('@')),
+      )].slice(0, 500);
+      if (!emails.length) return json(400, { error: 'Aucun email valide' });
+      const found = [];
+      for (let i = 0; i < emails.length; i += 50) {
+        const slice = emails.slice(i, i + 50);
+        const q =
+          `webinaire_registrations?email=in.(${slice.map(encodeURIComponent).join(',')})` +
+          '&select=token,email,prenom,assigned_closer_id,purchased,watch_max_minutes';
+        const r = await supabaseGet(q);
+        if (!r.ok) return json(500, { error: 'Lecture impossible', detail: r.error });
+        if (Array.isArray(r.data)) found.push(...r.data);
+      }
+      const foundSet = new Set(found.map((l) => (l.email || '').toLowerCase()));
+      const not_found = emails.filter((e) => !foundSet.has(e));
+      return json(200, { leads: found, not_found });
+    }
+
     return json(400, { error: 'Action inconnue' });
   }
 
