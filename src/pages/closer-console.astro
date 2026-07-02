@@ -1497,6 +1497,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-yn.yes{background:#16a34a;color:#fff;}
     .cc-yn.yes.cart{background:#7c3aed;}
     .cc-yn.no{background:#f1f5f9;color:#94a3b8;}
+    .cc-src{font-size:10px;font-weight:800;border-radius:6px;padding:1px 6px;white-space:nowrap;vertical-align:1px;margin-left:4px;}
+    .cc-src-meta{background:#eff6ff;color:#1d4ed8;}
+    .cc-src-tt{background:#f1f5f9;color:#0f172a;}
+    .cc-src-orga{background:#f1f5f9;color:#64748b;}
     .cc-buy{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 11px;white-space:nowrap;}
     .cc-buy.yes{background:#dcfce7;color:#15803d;} .cc-buy.no{background:#f1f5f9;color:#94a3b8;}
     .cc-buy.seul{background:#fffbeb;color:#b45309;border:1px solid #fde68a;}
@@ -1676,7 +1680,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function plusH(h){var d=new Date(Date.now()+h*3600*1000);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes());}
         function statusOf(l){return l.purchased?'Achete':(l.call_status||'A appeler');}
         function stCls(s){return {'A appeler':'st-app','A rappeler':'st-rap','En reflexion':'st-ref','Dit oui (verbal)':'st-oui','Injoignable':'st-inj','Refuse':'st-ref2','Achete':'st-ach'}[s]||'st-app';}
-        function prio(l){if(l.purchased)return 100;var s=l.call_status||'A appeler';return {'A rappeler':1,'A appeler':2,'En reflexion':3,'Dit oui (verbal)':4,'Injoignable':8,'Refuse':9}[s]||2;}
+        function prio(l){if(l.purchased)return 100;var s=l.call_status||'A appeler';return {'A rappeler':2,'A appeler':2,'En reflexion':3,'Dit oui (verbal)':4,'Injoignable':8,'Refuse':9}[s]||2;}
         function stPill(s){return '<span class="st '+stCls(s)+'">'+esc(s)+'</span>';}
         function statusBadge(l){var s=statusOf(l);var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';return stPill(s)+cb;}
         function callsCell(log){if(!log||!log.length)return '<span class="cc-calls"><small>aucun appel</small></span>';var last=log[log.length-1];return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';}
@@ -1715,6 +1719,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var offer=(l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'';
             return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+offer+'</div>';}
         function ynPill(on,hot){return on?'<span class="cc-yn yes'+(hot?' cart':'')+'">Oui</span>':'<span class="cc-yn no">Non</span>';}
+        function srcBadge(l){if(l.traffic_source==='meta_ad')return '<span class="cc-src cc-src-meta">Meta</span>';if(l.traffic_source==='tiktok_ad')return '<span class="cc-src cc-src-tt">TikTok</span>';return '<span class="cc-src cc-src-orga">Orga</span>';}
         var REAL_CONTACT={'À rappeler':1,'En réflexion':1,'Dit oui (verbal)':1,'Pas intéressé':1,'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
         function contactBeforeBuy(l){var log=l.call_log;if(!Array.isArray(log))return false;var pa=l.purchased_at?new Date(l.purchased_at).getTime():null;for(var i=0;i<log.length;i++){var e=log[i];if(!e||!REAL_CONTACT[e.outcome]||!e.at)continue;var t=new Date(e.at).getTime();if(isNaN(t))continue;if(pa==null||t<pa)return true;}return false;}
         function attribution(l){if(!l.purchased)return null;return contactBeforeBuy(l)?'valide':'seul';}
@@ -1722,20 +1727,48 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function rowHtml(l){return '<tr class="cc-r'+(attribution(l)==='valide'?' bought':'')+'" data-token="'+esc(l.token)+'">'+
               '<td><div class="cc-nm">'+esc(l.prenom||'Sans nom')+(l._test?' <span class="cc-testbadge">test</span>':'')+'</div>'+
                  '<div class="cc-sub">'+(l.email?'<a class="cc-mail" href="mailto:'+esc(l.email)+'" onclick="event.stopPropagation()">'+esc(l.email)+'</a>':'<span class="cc-noinfo">sans email</span>')+'</div>'+
-                 '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+'</div></td>'+
+                 '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+' '+srcBadge(l)+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
               '<td>'+minutesCell(l)+'</td>'+
               '<td class="cc-yncell">'+ynPill(!!l.clicked_cta)+'</td>'+
               '<td class="cc-yncell">'+ynPill(!!(l.checkout_clicked&&!l.purchased),true)+'</td>'+
               '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
-              '<td class="cc-callscell">'+callsCell(l.call_log)+'</td>'+
               '<td class="cc-buycell">'+boughtCell(l)+'</td>'+
+              '<td class="cc-callscell">'+callsCell(l.call_log)+'</td>'+
               '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td></tr>'+
               '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="9"></td></tr>';}
 
         function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
-        function renderList(){var arr=LEADS.filter(passF).slice().sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;if(pa===1)return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>CTA cliqué</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Appels</th><th>Acheteur</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
+        function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.clicked_cta)return 1;return 0;}
+        function srcKey(l){return l.traffic_source==='meta_ad'?'meta':(l.traffic_source==='tiktok_ad'?'tiktok':'orga');}
+        // Alterne les sources (Meta/Orga/TikTok) au sein d'un groupe de même chaleur,
+        // chaque source gardant ses meilleures minutes d'abord.
+        function interleaveSources(group){
+            var by={};
+            group.forEach(function(l){var k=srcKey(l);(by[k]=by[k]||[]).push(l);});
+            var keys=Object.keys(by);
+            keys.forEach(function(k){by[k].sort(function(a,b){return (b.watch_max_minutes||0)-(a.watch_max_minutes||0);});});
+            keys.sort(function(a,b){return (by[b][0].watch_max_minutes||0)-(by[a][0].watch_max_minutes||0);});
+            var out=[],i=0;
+            while(keys.length){
+                if(i>=keys.length)i=0;
+                out.push(by[keys[i]].shift());
+                if(!by[keys[i]].length)keys.splice(i,1);else i++;
+            }
+            return out;
+        }
+        function renderList(){
+            var arr=LEADS.filter(passF).slice();
+            if(FILTER==='A rappeler'){
+                arr.sort(function(a,b){return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);});
+            }else{
+                var groups={},order=[];
+                arr.sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;return heat(b)-heat(a);});
+                arr.forEach(function(l){var k=prio(l)+'_'+heat(l);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(l);});
+                arr=[];
+                order.forEach(function(k){arr=arr.concat(interleaveSources(groups[k]));});
+            }if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>CTA cliqué</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Acheteur</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
         function render(leads){ALL_LEADS=leads||[];buildSessions();applySession();}
         function buildSessions(){
             var counts={};
