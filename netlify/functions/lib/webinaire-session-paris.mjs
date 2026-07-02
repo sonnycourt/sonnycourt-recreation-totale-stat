@@ -43,7 +43,7 @@ function getParisWeekdayNumber(parts) {
  * Format: YYYY-MM-DD (date Paris du jeudi de session).
  * Pour ajouter/supprimer un skip, modifier simplement ce tableau.
  */
-const SKIP_SESSION_DATES = ['2026-05-07', '2026-06-11', '2026-06-25'];
+const SKIP_SESSION_DATES = ['2026-05-07', '2026-06-11', '2026-06-25', '2026-07-09', '2026-07-23'];
 
 /** Ajoute des jours au calendrier en passant par une date UTC midi (évite dérives). */
 export function addDaysParisCalendar(year, month, day, deltaDays) {
