@@ -78,7 +78,7 @@ export default async (req) => {
   if (req.method === 'GET') {
     const r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
-        '&select=token,prenom,telephone,email,pays,watch_max_minutes,saw_offer,clicked_cta,purchased,purchased_at,' +
+        '&select=token,prenom,telephone,email,pays,watch_max_minutes,saw_offer,clicked_cta,checkout_clicked,purchased,purchased_at,' +
         'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log' +
         '&order=watch_max_minutes.desc',
     );

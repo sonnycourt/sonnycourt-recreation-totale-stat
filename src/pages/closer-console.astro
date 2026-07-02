@@ -1492,6 +1492,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-min{font-weight:700;font-size:13px;color:#0f172a;white-space:nowrap;} .cc-min.hot{color:#15803d;}
     .cc-cta{font-size:10px;font-weight:700;background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;white-space:nowrap;}
     .cc-cta-hot{background:#16a34a;color:#fff;}
+    .cc-cta-cart{background:#7c3aed;color:#fff;}
     .cc-buy{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 11px;white-space:nowrap;}
     .cc-buy.yes{background:#dcfce7;color:#15803d;} .cc-buy.no{background:#f1f5f9;color:#94a3b8;}
     .cc-buy.seul{background:#fffbeb;color:#b45309;border:1px solid #fde68a;}
@@ -1680,7 +1681,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         function detailHtml(l){
             var m=l.watch_max_minutes||0;
-            var ctaTxt=l.clicked_cta?' &middot; <b>a cliqué le CTA</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':'');
+            var ctaTxt=(l.clicked_cta?' &middot; <b>a cliqué le CTA</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':''))+(l.checkout_clicked?' &middot; <b style="color:#7c3aed">a cliqué s\'inscrire (page de vente)'+(l.purchased?'':' &#128722; panier abandonné')+'</b>':'');
             return '<div class="cc-det-in">'+
               (l._test?'<div class="cc-testnote"><span>&#129514; Lead de test — local, rien n\'est enregistré.</span><button type="button" class="cc-testdel" data-token="'+esc(l.token)+'">&#128465; Supprimer ce lead test</button></div>':'')+
               '<div class="cc-recap">'+
@@ -1708,7 +1709,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         function minutesCell(l){var m=l.watch_max_minutes||0;
             var cta=l.clicked_cta?'<span class="cc-cta cc-cta-hot">CTA cliqué</span>':((l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'');
-            return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+cta+'</div>';}
+            var cart=(l.checkout_clicked&&!l.purchased)?'<span class="cc-cta cc-cta-cart">&#128722; Panier abandonné</span>':'';
+            return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+cta+cart+'</div>';}
         var REAL_CONTACT={'À rappeler':1,'En réflexion':1,'Dit oui (verbal)':1,'Pas intéressé':1,'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
         function contactBeforeBuy(l){var log=l.call_log;if(!Array.isArray(log))return false;var pa=l.purchased_at?new Date(l.purchased_at).getTime():null;for(var i=0;i<log.length;i++){var e=log[i];if(!e||!REAL_CONTACT[e.outcome]||!e.at)continue;var t=new Date(e.at).getTime();if(isNaN(t))continue;if(pa==null||t<pa)return true;}return false;}
         function attribution(l){if(!l.purchased)return null;return contactBeforeBuy(l)?'valide':'seul';}
