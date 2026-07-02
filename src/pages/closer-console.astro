@@ -1657,7 +1657,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             // pour qu'il apparaisse EN PLUS des vraies leads sans jamais les masquer.
             var day = SESSION_SEL || sDate(new Date().toISOString());
             var iso = day + 'T12:00:00.000Z';
-            var lead={token:'test-'+Date.now()+'-'+TEST_SEQ,prenom:(name&&name.trim())||('Lead test '+TEST_SEQ),email:'test-local@exemple.com',telephone:(tel&&tel.trim())||'',pays:'France',watch_max_minutes:90,saw_offer:true,clicked_cta:true,purchased:false,purchased_at:null,session_date:iso,call_status:null,next_callback_at:null,call_notes:'',call_transcript:'',call_log:[],_test:true};
+            var lead={token:'test-'+Date.now()+'-'+TEST_SEQ,prenom:(name&&name.trim())||('Lead test '+TEST_SEQ),email:'test-local@exemple.com',telephone:(tel&&tel.trim())||'',pays:'France',watch_max_minutes:90,saw_offer:true,visited_sales:true,purchased:false,purchased_at:null,session_date:iso,call_status:null,next_callback_at:null,call_notes:'',call_transcript:'',call_log:[],_test:true};
             ALL_LEADS.push(lead);
             FILTER='all';            // ne touche PAS SESSION_SEL : la vue courante est conservée
             buildSessions();applySession();
@@ -1689,7 +1689,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         function detailHtml(l){
             var m=l.watch_max_minutes||0;
-            var ctaTxt=(l.clicked_cta?' &middot; <b>a cliqué le CTA</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':''))+(l.checkout_clicked?' &middot; <b style="color:#7c3aed">a cliqué s\'inscrire (page de vente)'+(l.purchased?'':' &#128722; panier abandonné')+'</b>':'');
+            var ctaTxt=(l.visited_sales?' &middot; <b>a vu la page de vente</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':''))+(l.checkout_clicked?' &middot; <b style="color:#7c3aed">a cliqué s\'inscrire (page de vente)'+(l.purchased?'':' &#128722; panier abandonné')+'</b>':'');
             return '<div class="cc-det-in">'+
               (l._test?'<div class="cc-testnote"><span>&#129514; Lead de test — local, rien n\'est enregistré.</span><button type="button" class="cc-testdel" data-token="'+esc(l.token)+'">&#128465; Supprimer ce lead test</button></div>':'')+
               '<div class="cc-recap">'+
@@ -1730,7 +1730,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                  '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+' '+srcBadge(l)+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
               '<td>'+minutesCell(l)+'</td>'+
-              '<td class="cc-yncell">'+ynPill(!!l.clicked_cta)+'</td>'+
+              '<td class="cc-yncell">'+ynPill(!!l.visited_sales)+'</td>'+
               '<td class="cc-yncell">'+ynPill(!!(l.checkout_clicked&&!l.purchased),true)+'</td>'+
               '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
               '<td class="cc-buycell">'+boughtCell(l)+'</td>'+
@@ -1740,7 +1740,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
-        function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.clicked_cta)return 1;return 0;}
+        function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.visited_sales)return 1;return 0;}
         function srcKey(l){return l.traffic_source==='meta_ad'?'meta':(l.traffic_source==='tiktok_ad'?'tiktok':'orga');}
         // Alterne les sources (Meta/Orga/TikTok) au sein d'un groupe de même chaleur,
         // chaque source gardant ses meilleures minutes d'abord.
@@ -1768,7 +1768,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 arr.forEach(function(l){var k=prio(l)+'_'+heat(l);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(l);});
                 arr=[];
                 order.forEach(function(k){arr=arr.concat(interleaveSources(groups[k]));});
-            }if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>CTA cliqué</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Acheteur</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
+            }if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>Vue page de vente</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Acheteur</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
         function render(leads){ALL_LEADS=leads||[];buildSessions();applySession();}
         function buildSessions(){
             var counts={};
