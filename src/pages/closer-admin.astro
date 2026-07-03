@@ -643,6 +643,7 @@
 
                 <!-- Panneau Closers -->
                 <div id="panel-closers" class="panel">
+                    <div class="panel-toolbar"><button type="button" id="closers-refresh" class="btn btn-sm">&#8635; Rafraîchir</button></div>
                     <div id="kpi-global" class="kpi-grid"></div>
                     <div id="recredit-box" class="recredit-box" hidden></div>
 
@@ -752,6 +753,12 @@
       .session-bar-label{font-weight:700;font-size:13px;color:#0f172a;}
       .session-bar select{padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:9px;font-size:14px;font-weight:600;background:#f8fafc;cursor:pointer;min-width:200px;}
       .session-bar-meta{font-size:12px;color:#64748b;}
+      /* Barre d'outils du panneau closers */
+      .panel-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:10px;}
+      .drag-grip{cursor:grab;color:#cbd5e1;font-size:15px;padding-right:8px;user-select:none;flex:0 0 auto;line-height:1;}
+      .drag-grip:hover{color:#64748b;}
+      .drag-grip:active{cursor:grabbing;}
+      .code-card.is-dragging{opacity:.45;border-style:dashed;}
       /* Grille KPI globale */
       .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
       @media(max-width:860px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
@@ -1000,10 +1007,62 @@
                       sumTotal: 'sum-total', sumCame: 'sum-came', sumNot: 'sum-not' }
                 );
                 renderList(
-                    codesAll.filter(function (c) { return c.email; }),
+                    orderClosers(codesAll.filter(function (c) { return c.email; })),
                     { host: 'closers', empty: 'closers-empty', mode: 'closer',
                       sumTotal: 'sum-cl-total', sumCame: 'sum-cl-conn', sumNot: 'sum-cl-not' }
                 );
+            }
+
+            // --- Ordre personnalisé des cartes closers (localStorage, jamais en base) ---
+            function orderClosers(list) {
+                var saved = [];
+                try { saved = JSON.parse(localStorage.getItem('closer_card_order') || '[]'); } catch (e) {}
+                if (!saved.length) return list;
+                var pos = {};
+                saved.forEach(function (id, i) { pos[String(id)] = i; });
+                return list.slice().sort(function (a, b) {
+                    var pa = pos[String(a.id)], pb = pos[String(b.id)];
+                    if (pa == null && pb == null) return 0;
+                    if (pa == null) return 1;   // nouveaux closers : à la fin
+                    if (pb == null) return -1;
+                    return pa - pb;
+                });
+            }
+            function saveCardOrder(host) {
+                var ids = Array.prototype.map.call(host.querySelectorAll('.code-card'), function (el) {
+                    return el.getAttribute('data-id');
+                });
+                try { localStorage.setItem('closer_card_order', JSON.stringify(ids)); } catch (e) {}
+            }
+            function bindCardDrag(host) {
+                host.querySelectorAll('.js-drag').forEach(function (g) {
+                    g.addEventListener('dragstart', function (e) {
+                        var card = g.closest('.code-card');
+                        host.__dragged = card;
+                        card.classList.add('is-dragging');
+                        try { e.dataTransfer.setData('text/plain', ''); e.dataTransfer.effectAllowed = 'move'; } catch (_) {}
+                    });
+                    g.addEventListener('dragend', function () {
+                        if (host.__dragged) {
+                            host.__dragged.classList.remove('is-dragging');
+                            host.__dragged = null;
+                            saveCardOrder(host);
+                        }
+                    });
+                });
+                if (host.__dndBound) return; // listeners du conteneur : une seule fois
+                host.__dndBound = true;
+                host.addEventListener('dragover', function (e) {
+                    var dragged = host.__dragged;
+                    if (!dragged) return;
+                    e.preventDefault();
+                    var over = e.target.closest('.code-card');
+                    if (!over || over === dragged) return;
+                    var r = over.getBoundingClientRect();
+                    var before = e.clientY < r.top + r.height / 2;
+                    host.insertBefore(dragged, before ? over : over.nextSibling);
+                });
+                host.addEventListener('drop', function (e) { e.preventDefault(); });
             }
 
             function cardHtml(c, mode) {
@@ -1073,8 +1132,9 @@
                       '</div>'
                     : '';
                 return '' +
-                    '<div class="code-card' + (revoked ? ' is-revoked' : '') + '">' +
+                    '<div class="code-card' + (revoked ? ' is-revoked' : '') + '" data-id="' + c.id + '">' +
                         '<div class="code-top">' +
+                            (mode === 'closer' ? '<span class="drag-grip js-drag" draggable="true" title="Glisser pour réordonner">&#x283F;</span>' : '') +
                             '<div class="code-name">' + esc(c.label) + ' ' + badge + '</div>' +
                             '<div class="code-actions">' + chip + action +
                                 '<button class="code-del js-delete" data-id="' + c.id + '" title="Supprimer" aria-label="Supprimer">' +
@@ -1117,6 +1177,7 @@
                 empty.hidden = true;
                 host.innerHTML = list.map(function (c) { return cardHtml(c, opts.mode); }).join('');
                 attachCardHandlers(host);
+                if (opts.mode === 'closer') bindCardDrag(host);
             }
 
             function attachCardHandlers(host) {
@@ -1400,7 +1461,19 @@
                 loadCodes();
                 loadSessions();
                 loadCandidatures();
+                // Restaure la vue (univers + onglets) après un rechargement de page
+                try {
+                    if (localStorage.getItem('adm_universe') === 'closers') switchUniverse('closers');
+                    var tr = localStorage.getItem('adm_tab_recrut');
+                    if (tr && tr !== 'tab-codes') switchTab(tr);
+                    var tc = localStorage.getItem('adm_tab_closers');
+                    if (tc && tc !== 'tab-closers') switchTab(tc);
+                } catch (e) {}
             }
+            document.getElementById('closers-refresh').addEventListener('click', function () {
+                loadCodes();
+                loadStats();
+            });
 
             // Changement de session -> KPI + pool d'assignation suivent
             document.getElementById('session-select').addEventListener('change', function () {
@@ -1418,6 +1491,7 @@
                 document.getElementById('u-closers').classList.toggle('is-active', !recrut);
                 document.getElementById('universe-recrut').hidden = !recrut;
                 document.getElementById('universe-closers').hidden = recrut;
+                try { localStorage.setItem('adm_universe', which); } catch (e) {}
             }
             document.getElementById('u-recrut').addEventListener('click', function () { switchUniverse('recrut'); });
             document.getElementById('u-closers').addEventListener('click', function () { switchUniverse('closers'); });
@@ -1440,6 +1514,10 @@
                 });
                 if (which === 'tab-candidatures') loadCandidatures();
                 if (which === 'tab-assign') initAssignTab();
+                try {
+                    var key = def.group.indexOf('tab-closers') !== -1 ? 'adm_tab_closers' : 'adm_tab_recrut';
+                    localStorage.setItem(key, which);
+                } catch (e) {}
             }
             TABS.forEach(function (t) {
                 document.getElementById(t.tab).addEventListener('click', function () { switchTab(t.tab); });
