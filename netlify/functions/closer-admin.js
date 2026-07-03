@@ -356,6 +356,19 @@ export default async (req) => {
       return json(200, { ok: true, count: tokens.length });
     }
 
+    // --- Activité d'un closer : ses leads travaillés (LECTURE SEULE) ---
+    if (action === 'closer-activity') {
+      const id = Number(body.closer_id);
+      if (!Number.isInteger(id)) return json(400, { error: 'closer_id invalide' });
+      const q =
+        `webinaire_registrations?assigned_closer_id=eq.${id}` +
+        '&or=(call_count.gt.0,call_notes.not.is.null)' +
+        '&select=prenom,telephone,email,call_status,call_log,call_notes,next_callback_at,purchased';
+      const r = await supabaseGet(q);
+      if (!r.ok) return json(500, { error: 'Lecture impossible', detail: r.error });
+      return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
+    }
+
     // --- Résoudre une liste d'emails collée -> leads (pour l'assignation par liste) ---
     if (action === 'leads-by-emails') {
       const raw = Array.isArray(body.emails) ? body.emails : [];

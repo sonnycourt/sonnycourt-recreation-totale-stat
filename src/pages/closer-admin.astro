@@ -783,6 +783,22 @@
       .recredit-list{display:flex;flex-direction:column;gap:6px;}
       .recredit-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#fff;border:1px solid #fde68a;border-radius:9px;padding:8px 12px;font-size:12.5px;color:#475569;}
       .recredit-row b{color:#0f172a;} .recredit-row .rc-closer{font-weight:700;color:#b45309;}
+      /* Activité closer (lecture seule) */
+      .code-activity{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
+      .act-box{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
+      .act-loading{font-size:12.5px;color:#94a3b8;padding:6px 0;}
+      .act-title{font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.03em;}
+      .act-row{background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;padding:9px 12px;}
+      .act-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#0f172a;}
+      .act-tel{color:#2563eb;font-weight:600;font-size:12.5px;}
+      .act-st{font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap;}
+      .act-app{background:#eff6ff;color:#2563eb;} .act-rap{background:#fef3c7;color:#b45309;}
+      .act-ref{background:#dbeafe;color:#1d4ed8;} .act-oui{background:#ede9fe;color:#6d28d9;}
+      .act-non{background:#fee2e2;color:#dc2626;} .act-inj{background:#f1f5f9;color:#94a3b8;}
+      .act-ach{background:#16a34a;color:#fff;}
+      .act-cb{font-size:11.5px;color:#b45309;font-weight:700;}
+      .act-calls{font-size:12px;color:#64748b;margin-top:4px;}
+      .act-note{font-size:12.5px;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;margin-top:6px;white-space:pre-wrap;}
       /* Éditeur identifiants */
       .code-creds{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
       .code-creds-edit{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
@@ -1158,6 +1174,12 @@
                             '</div>' +
                         '</div>' +
                         creds +
+                        (mode === 'closer'
+                            ? '<div class="code-activity">' +
+                                '<button class="code-notes-btn js-act-toggle" data-id="' + c.id + '" type="button">&#128203; Voir l\'activité</button>' +
+                                '<div class="js-act-box act-box" hidden></div>' +
+                              '</div>'
+                            : '') +
                     '</div>';
             }
 
@@ -1180,9 +1202,57 @@
                 if (opts.mode === 'closer') bindCardDrag(host);
             }
 
+            // --- Activité d'un closer (lecture seule, chargée au clic) ---
+            var ACT_ST = { 'A rappeler': 'act-rap', 'A appeler': 'act-app', 'En reflexion': 'act-ref', 'Dit oui (verbal)': 'act-oui', 'Refuse': 'act-non', 'Injoignable': 'act-inj', 'Achete': 'act-ach' };
+            function actStatus(l) { return l.purchased ? 'Achete' : (l.call_status || 'A appeler'); }
+            function lastCall(l) { var g = l.call_log; return (Array.isArray(g) && g.length) ? g[g.length - 1] : null; }
+            async function loadActivity(id, box) {
+                box.innerHTML = '<div class="act-loading">Chargement…</div>';
+                try {
+                    var r = await fetch(API, {
+                        method: 'POST', credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'closer-activity', closer_id: id }),
+                    });
+                    var d = await r.json();
+                    if (!r.ok) { box.innerHTML = '<div class="act-loading">' + esc(d.error || 'Erreur.') + '</div>'; return; }
+                    var leads = (d.leads || []).slice().sort(function (a, b) {
+                        var la = lastCall(a), lb = lastCall(b);
+                        return new Date(lb ? lb.at : 0) - new Date(la ? la.at : 0);
+                    });
+                    var total = (STATS[id] || {}).leads || 0;
+                    if (!leads.length) { box.innerHTML = '<div class="act-loading">Aucun lead travaillé pour l\'instant' + (total ? ' (sur ' + total + ' assignés)' : '') + '.</div>'; return; }
+                    var rows = leads.map(function (l) {
+                        var st = actStatus(l);
+                        var lc = lastCall(l);
+                        var g = Array.isArray(l.call_log) ? l.call_log : [];
+                        return '<div class="act-row">' +
+                            '<div class="act-head">' +
+                                '<b>' + esc(l.prenom || 'Sans nom') + '</b>' +
+                                '<span class="act-tel">' + esc(l.telephone || '—') + '</span>' +
+                                '<span class="act-st ' + (ACT_ST[st] || '') + '">' + esc(st) + '</span>' +
+                                (l.next_callback_at ? '<span class="act-cb">&#128197; rappel ' + fmtDate(l.next_callback_at) + '</span>' : '') +
+                            '</div>' +
+                            (g.length ? '<div class="act-calls">' + g.length + ' appel' + (g.length > 1 ? 's' : '') + ' · dernier : ' + fmtDate(lc.at) + ' &rarr; ' + esc(lc.outcome || '—') + '</div>' : '') +
+                            (l.call_notes ? '<div class="act-note">&#128221; ' + esc(l.call_notes) + '</div>' : '') +
+                        '</div>';
+                    }).join('');
+                    box.innerHTML = '<div class="act-title">' + leads.length + ' lead(s) travaillé(s)' + (total ? ' / ' + total + ' assignés' : '') + '</div>' + rows;
+                } catch (e) { box.innerHTML = '<div class="act-loading">Erreur réseau.</div>'; }
+            }
+
             function attachCardHandlers(host) {
                 host.querySelectorAll('.js-copy').forEach(function (b) {
                     b.addEventListener('click', function () { copyText(b.getAttribute('data-code'), b); });
+                });
+                host.querySelectorAll('.js-act-toggle').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var box = b.closest('.code-activity').querySelector('.js-act-box');
+                        if (!box.hidden) { box.hidden = true; b.innerHTML = '&#128203; Voir l\'activité'; return; }
+                        box.hidden = false;
+                        b.innerHTML = '&#128203; Masquer l\'activité';
+                        loadActivity(+b.getAttribute('data-id'), box);
+                    });
                 });
                 host.querySelectorAll('.js-toggle').forEach(function (b) {
                     b.addEventListener('click', function () { toggleCode(+b.getAttribute('data-id'), b.getAttribute('data-active') === 'true'); });
