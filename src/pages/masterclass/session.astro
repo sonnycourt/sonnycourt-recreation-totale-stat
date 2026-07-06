@@ -1321,6 +1321,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     <script>
         // @ts-nocheck
+        import Hls from 'hls.js';
         import { startScarcityEngine, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
         const TOKEN_KEY = 'masterclass_es2_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
@@ -1333,7 +1334,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const FREEZE_RECOVERY_ENABLED = true;
         const VIDEO_DURATION_FALLBACK_SECONDS = 6085; // fallback si metadata indisponible (W2 live = 1h41m25s)
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
-        const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20(compresse).mp4';
+        // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
+        // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
+        // le backup instantané via le cockpit (switch_backup).
+        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/6c30a235-f92c-4802-b1e9-968fd0cc201a/playlist.m3u8';
         let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
@@ -1794,6 +1798,50 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             video.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
             });
+            /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
+            let hlsInstance = null;
+            let attachedSourceUrl = '';
+            function isHlsUrl(url) {
+                return /\.m3u8(\?|#|$)/i.test(String(url || ''));
+            }
+            function detachVideoSource() {
+                if (hlsInstance) {
+                    try { hlsInstance.destroy(); } catch { /* ignore */ }
+                    hlsInstance = null;
+                }
+            }
+            function attachVideoSource(url) {
+                detachVideoSource();
+                attachedSourceUrl = String(url || '');
+                if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
+                    hlsInstance = new Hls({
+                        // Ne pas télécharger de la 1080p sur un petit écran mobile :
+                        // économise la bande passante des connexions fragiles.
+                        capLevelToPlayerSize: true,
+                        maxBufferLength: 60,
+                    });
+                    hlsInstance.on(Hls.Events.ERROR, function (_evt, data) {
+                        // Erreur fatale HLS (réseau/media) : même chemin de récupération que le watchdog.
+                        if (data && data.fatal && FREEZE_RECOVERY_ENABLED) {
+                            void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+                        }
+                    });
+                    hlsInstance.loadSource(attachedSourceUrl);
+                    hlsInstance.attachMedia(video);
+                } else {
+                    // MP4 direct, ou HLS natif (Safari/iOS), ou dernier recours.
+                    video.src = attachedSourceUrl;
+                }
+            }
+            function reloadVideoSource() {
+                // Équivalent de video.load() qui fonctionne aussi en mode hls.js
+                // (video.load() casserait l'attachement MediaSource).
+                if (hlsInstance) {
+                    attachVideoSource(attachedSourceUrl);
+                } else {
+                    video.load();
+                }
+            }
             const videoContainer = document.getElementById('video-container');
             const videoControls = document.getElementById('videoControls');
             const waiting = document.getElementById('video-waiting');
@@ -2044,7 +2092,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const recoveryAttemptNumber = freezeRecoveryCount;
 
                 try {
-                    video.load();
+                    reloadVideoSource();
                     // FIX (2026-05-07) : restaurer la position avant le freeze, sinon load() remet à 0
                     // et l'utilisateur se retrouve au début de la vidéo après chaque récupération.
                     if (currentTimeAtFreeze > 0) {
@@ -2634,7 +2682,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             updateDiagnosticGuideState();
             tick();
             disableNativeSeekAndFastForward();
-            video.src = ACTIVE_VIDEO_SOURCE_URL;
+            attachVideoSource(ACTIVE_VIDEO_SOURCE_URL);
             video.volume = 0.8;
             video.muted = false;
             if (volRange) volRange.value = '80';
@@ -2724,8 +2772,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         pendingSourceSwitchRestoreTimeSec = Math.floor(cur);
 
                         video.pause();
-                        video.src = ACTIVE_VIDEO_SOURCE_URL;
-                        video.load();
+                        attachVideoSource(ACTIVE_VIDEO_SOURCE_URL);
                         video.play().catch(() => {});
                     }
 
@@ -2786,6 +2833,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (presenceInterval) clearInterval(presenceInterval);
                     if (configPollInterval) clearInterval(configPollInterval);
                     if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
+                    detachVideoSource();
                     hearts.destroy();
                     purchaseToasts.destroy();
                     document.documentElement.classList.remove('mc-page-lock');

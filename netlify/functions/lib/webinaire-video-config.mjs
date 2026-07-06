@@ -4,7 +4,11 @@ const STORE_NAME = 'webinaire-video-config';
 const KEY = 'active-source';
 const FORCE_REFRESH_KEY = 'force-refresh-at';
 
+// MIGRATION 2026-07-06 : primaire = Bunny Stream (HLS adaptatif), backup = ancien MP4 progressif
+// (bascule instantanée via le cockpit si Stream a un problème un soir de live).
 const PRIMARY_DEFAULT =
+  'https://vz-601d6eb4-a9a.b-cdn.net/6c30a235-f92c-4802-b1e9-968fd0cc201a/playlist.m3u8';
+const BACKUP_DEFAULT =
   'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20(compresse).mp4';
 
 function normalizeSource(raw) {
@@ -15,7 +19,7 @@ function normalizeSource(raw) {
 export function getVideoSources() {
   return {
     primary: process.env.WEBINAIRE_VIDEO_URL_PRIMARY || PRIMARY_DEFAULT,
-    backup: process.env.WEBINAIRE_VIDEO_URL_BACKUP || '',
+    backup: process.env.WEBINAIRE_VIDEO_URL_BACKUP || BACKUP_DEFAULT,
   };
 }
 
