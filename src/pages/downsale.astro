@@ -1,0 +1,407 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Downsell — Arbre de décision en appel</title>
+    <meta name="description" content="Flow de downsell pour les appels de vente Esprit Subconscient 2.0.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            color-scheme: light only;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --surface-tint: #f1f5f9;
+            --bg: #f8fafc;
+            --accent-soft: #eff6ff;
+            --green: #16a34a;
+            --green-soft: #f0fdf4;
+            --amber: #d97706;
+            --amber-soft: #fffbeb;
+            --purple: #7c3aed;
+            --purple-soft: #f5f3ff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 48px 20px 80px;
+        }
+
+        .kicker {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: clamp(26px, 5vw, 34px);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+
+        .intro {
+            color: var(--ink-soft);
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .rules {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin: 20px 0 40px;
+            font-size: 14px;
+            color: var(--ink-soft);
+        }
+        .rules strong { color: var(--ink); }
+        .rules li { margin-left: 18px; margin-top: 6px; }
+
+        /* ============ FLOW ============ */
+        .phase {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        }
+
+        .phase-tag {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+        }
+        .phase-1 .phase-tag { background: var(--accent-soft); color: var(--primary-dark); }
+        .phase-2 .phase-tag { background: var(--amber-soft); color: var(--amber); }
+        .phase-3 .phase-tag { background: var(--purple-soft); color: var(--purple); }
+
+        .phase h2 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin-bottom: 6px;
+        }
+
+        .phase p { font-size: 14px; color: var(--ink-soft); }
+
+        .price-line {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+            background: var(--surface-tint);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: inline-block;
+        }
+
+        /* connecteurs if/then */
+        .branches {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 14px 0;
+        }
+
+        .branch {
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            font-weight: 600;
+            border: 1.5px dashed;
+        }
+        .branch .if {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .branch.yes { border-color: var(--green); background: var(--green-soft); color: #14532d; }
+        .branch.yes .if { color: var(--green); }
+        .branch.no { border-color: var(--amber); background: var(--amber-soft); color: #78350f; }
+        .branch.no .if { color: var(--amber); }
+
+        .arrow-down {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            margin: 6px 0;
+            color: var(--muted);
+        }
+        .arrow-down .stem {
+            width: 2px;
+            height: 22px;
+            background: var(--line);
+        }
+        .arrow-down .head {
+            width: 0; height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 9px solid var(--line);
+        }
+        .arrow-down .label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--amber);
+            background: var(--amber-soft);
+            border-radius: 999px;
+            padding: 3px 12px;
+            margin: 4px 0;
+        }
+
+        /* phase 3 : cartes par profil */
+        .profiles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .profile-card {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .profile-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .phase-banner {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin: 4px 0 12px;
+            display: block;
+        }
+
+        .profile-price {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink);
+            background: var(--surface-tint);
+            border-radius: 6px;
+            padding: 5px 10px;
+        }
+
+        .warning-box {
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin: 14px 0;
+            font-size: 14px;
+            color: #7f1d1d;
+        }
+        .warning-box strong { color: #dc2626; }
+
+        .profile-card .if {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--purple);
+        }
+
+        .profile-card h3 {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+
+        .profile-card p {
+            font-size: 13px;
+            color: var(--ink-soft);
+            flex-grow: 1;
+        }
+
+        .profile-card a {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            text-decoration: none;
+        }
+        .profile-card a:hover { text-decoration: underline; }
+
+        .final-note {
+            margin-top: 40px;
+            background: var(--accent-soft);
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 16px 18px;
+            font-size: 14px;
+            color: var(--ink-soft);
+        }
+
+        @media (max-width: 560px) {
+            .branches, .profiles { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="kicker">Équipe vente · Interne</div>
+        <h1>Downsell — l'arbre de décision en appel</h1>
+        <p class="intro">Le chemin à suivre quand un prospect n'achète pas l'offre principale. Une phase à la fois : on ne descend une marche que sur refus clair de la marche précédente.</p>
+
+        <div class="rules">
+            <strong>Les 3 règles du downsell :</strong>
+            <ul>
+                <li>Ne jamais annoncer qu'un plan B existe tant que la phase en cours n'est pas jouée à fond.</li>
+                <li>La réduction se présente comme un geste unique et personnel, pas comme un tarif caché.</li>
+                <li>Un downsell n'est pas un échec : un client à l'étage 3 aujourd'hui est un client ES2 demain.</li>
+            </ul>
+        </div>
+
+        <!-- PHASE 1 -->
+        <div class="phase phase-1">
+            <span class="phase-tag">Phase 1 — l'offre principale</span>
+            <img class="phase-banner" src="/media/pages/ES20-banner.webp" alt="Esprit Subconscient 2.0" loading="lazy" decoding="async" />
+            <h2>Vendre Esprit Subconscient 2.0</h2>
+            <p>L'accompagnement complet : parcours 6 mois, accès à vie, suivi Sonny + compagnon IA Morpho, garantie 30 jours. C'est l'objectif de chaque appel.</p>
+            <div class="price-line">1 997 € en 1× &nbsp;·&nbsp; 3 × 697 € &nbsp;·&nbsp; 12 × 197 €</div>
+        </div>
+
+        <div class="branches">
+            <div class="branch yes"><span class="if">Si le prospect dit oui</span>Lien checkout classique (console closer) → vente conclue ✅</div>
+            <div class="branch no"><span class="if">Si blocage prix après traitement des objections</span>On passe en phase 2 ↓</div>
+        </div>
+
+        <div class="arrow-down" aria-hidden="true">
+            <div class="stem"></div>
+            <div class="label">refus ferme</div>
+            <div class="stem"></div>
+            <div class="head"></div>
+        </div>
+
+        <!-- PHASE 2 -->
+        <div class="phase phase-2">
+            <span class="phase-tag">Phase 2 — le geste commercial</span>
+            <h2>Offrir la réduction de −5 %</h2>
+            <p>Le lien de checkout −5 % disponible dans ta console closer. À présenter comme un geste exceptionnel décidé pendant l'appel (« je peux faire ça pour toi si tu te décides maintenant »), valable sur toutes les modalités de paiement.</p>
+        </div>
+
+        <div class="branches">
+            <div class="branch yes"><span class="if">Si le prospect dit oui</span>Lien checkout −5 % (console closer) → vente conclue ✅</div>
+            <div class="branch no"><span class="if">Si le budget reste le vrai blocage</span>On passe en phase 3 ↓</div>
+        </div>
+
+        <div class="arrow-down" aria-hidden="true">
+            <div class="stem"></div>
+            <div class="label">refus ferme</div>
+            <div class="stem"></div>
+            <div class="head"></div>
+        </div>
+
+        <!-- PHASE 3 -->
+        <div class="phase phase-3">
+            <span class="phase-tag">Phase 3 — la formation unique adaptée</span>
+            <h2>Orienter vers UNE formation selon le profil</h2>
+            <p>Le prospect veut avancer mais ES2 dépasse son budget : on le garde dans l'écosystème avec la formation qui correspond à SA situation. Choisis selon ce que tu as entendu pendant la découverte :</p>
+
+            <div class="warning-box">
+                <strong>⚠️ Règle d'or — le downsell est DÉFINITIF.</strong> Esprit Subconscient 2.0 est la reconstitution de ces formations en un seul programme. Conséquence dans les deux sens : <strong>un acheteur de formation unique ne peut plus devenir acheteur d'ES2</strong>, et un acheteur d'ES2 ne peut plus acheter de formation unique. On ne descend donc en phase 3 que si la vente ES2 est réellement et définitivement morte — vendre une formation à 147 € à quelqu'un qui aurait pu acheter ES2 plus tard, c'est brûler une vente à 2 000 €.
+            </div>
+
+            <div class="profiles">
+                <div class="profile-card">
+                    <img src="/media/pages/Sonny-Court-Manifest-Formation-2.webp" alt="Esprit Subconscient" loading="lazy" decoding="async" />
+                    <span class="if">S'il débute avec le subconscient</span>
+                    <h3>Esprit Subconscient</h3>
+                    <p>21 jours pour reprogrammer son subconscient : anxiété, confiance, objectifs. La porte d'entrée idéale.</p>
+                    <div class="profile-price">147 € en 1× (au lieu de 297 €)</div>
+                    <a href="/esprit-subconscient?preview=true" target="_blank" rel="noopener">→ Page de vente (accès direct)</a>
+                </div>
+                <div class="profile-card">
+                    <img src="https://i1.wp.com/sonnycourt.com/wp-content/uploads/2025/07/Sonny-Court-Manifest-Formation.webp" alt="Formation MANIFEST" loading="lazy" decoding="async" />
+                    <span class="if">S'il est déjà avancé dans le sujet</span>
+                    <h3>MANIFEST</h3>
+                    <p>Les techniques de manifestation : 12 exercices mentaux guidés, premiers résultats en 30 jours.</p>
+                    <div class="profile-price">247 € en 1× ou 3 × 87 € (au lieu de 497 €)</div>
+                    <a href="/manifest?preview=true" target="_blank" rel="noopener">→ Page de vente (accès direct)</a>
+                </div>
+                <div class="profile-card">
+                    <img src="https://sonnycourt-videos-public.b-cdn.net/Sonny-pack-Neville-cover-vf.webp" alt="Système Souhaits Réalisés" loading="lazy" decoding="async" />
+                    <span class="if">S'il a déjà essayé mais abandonné en route</span>
+                    <h3>Système Souhaits Réalisés</h3>
+                    <p>Le format immersion « lavage de cerveau » : structure quotidienne forte pour ceux qui décrochent seuls.</p>
+                    <div class="profile-price">197 € en 1× (au lieu de 397 €)</div>
+                    <a href="/ssr-lancement?preview=1" target="_blank" rel="noopener">→ Page de vente (accès direct)</a>
+                </div>
+                <div class="profile-card">
+                    <img src="/media/sonny_systeme-viral.webp" alt="Formation Système Viral" loading="lazy" decoding="async" />
+                    <span class="if">S'il veut créer son business en ligne</span>
+                    <h3>Système Viral</h3>
+                    <p>Transformer des vidéos courtes en machine à revenus : viralité, capture d'emails, monétisation.</p>
+                    <div class="profile-price">1 197 € en 1× ou 6 × 227 € (au lieu de 3 997 €)</div>
+                    <a href="https://systemeviral.com/offre-speciale?preview=1" target="_blank" rel="noopener">→ Page de vente (accès direct)</a>
+                </div>
+                <div class="profile-card">
+                    <img src="/media/pages/pack-challenge-transformation.webp" alt="Challenge Transformation" loading="lazy" decoding="async" />
+                    <span class="if">Pour conclure avec quelque chose, en dernier recours</span>
+                    <h3>Challenge Transformation</h3>
+                    <p>Le petit prix qui permet de terminer l'appel sur un engagement concret quand tout le reste dépasse le budget.</p>
+                    <div class="profile-price">47 € en 1×</div>
+                    <a href="/challenge-transfo" target="_blank" rel="noopener">→ Page de vente (accès direct)</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="final-note">
+            <strong>Et si rien ne matche ?</strong> On termine proprement : on note le blocage réel dans la console, et le prospect reste dans la communauté (contenus gratuits, prochaines sessions). Pas de forcing — la relation vaut plus qu'un downsell raté.
+        </div>
+    </div>
+</body>
+</html>
