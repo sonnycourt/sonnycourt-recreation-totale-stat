@@ -420,12 +420,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 poster="/media/pages/masterclass-gratuite-banner.webp"
                 oncontextmenu="return false;"
             >
-                <source src="https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4" type="video/mp4" />
                 Votre navigateur ne peut pas lire cette vidéo.
             </video>
         </div>
 
-        <p class="video-note">~80 minutes. <strong>Prenez le temps de le regarder en entier</strong> : c'est votre matière de closing, et ce que le prospect a déjà vu quand vous l'appelez.</p>
+        <p class="video-note">~1h40 (version diffusée en live, countdown d'ouverture compris). <strong>Prenez le temps de le regarder en entier</strong> : c'est votre matière de closing, et ce que le prospect a déjà vu quand vous l'appelez.</p>
+        <p class="video-note">Vous avez accès aux contrôles de lecture sur cette page. <strong>Le prospect, lui, n'en a pas</strong> : pendant un live, il suit la diffusion en direct et ne peut pas avancer librement dans le contenu.</p>
 
         <a class="guide-dl" href="/media/pages/Masterclass-Esprit-subconscient-202.pdf" target="_blank" rel="noopener noreferrer">
             <span class="gd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span>
@@ -438,5 +438,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <a href="/closer" class="back-link">← Retour à l'offre</a>
         </div>
     </div>
+    <script>
+        // @ts-nocheck
+        import Hls from 'hls.js';
+        // Version LIVE en HLS adaptatif (même source que la page session).
+        const HLS_URL = 'https://vz-601d6eb4-a9a.b-cdn.net/6c30a235-f92c-4802-b1e9-968fd0cc201a/playlist.m3u8';
+        const MP4_FALLBACK_URL = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20(compresse).mp4';
+        const video = document.getElementById('webi-video');
+        if (video) {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = HLS_URL;
+            } else if (Hls.isSupported()) {
+                const hls = new Hls({ capLevelToPlayerSize: true });
+                hls.loadSource(HLS_URL);
+                hls.attachMedia(video);
+            } else {
+                video.src = MP4_FALLBACK_URL;
+            }
+        }
+    </script>
 </body>
 </html>
