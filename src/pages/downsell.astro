@@ -1,5 +1,7 @@
 ---
 import GAConsentMode from '../components/GAConsentMode.astro';
+// true uniquement avec `astro dev` (localhost), false dans le build de prod.
+const IS_DEV = import.meta.env.DEV;
 ---
 
 <!DOCTYPE html>
@@ -288,9 +290,283 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         @media (max-width: 560px) {
             .branches, .profiles { grid-template-columns: 1fr; }
         }
+
+        /* === Gate d'accès (même protection que closer-documentation) === */
+        .closer-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .closer-gate.is-hidden {
+            display: none;
+        }
+
+        .closer-gate-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+
+        .closer-gate-logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+        }
+
+        .closer-gate-logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .closer-gate-card h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .closer-gate-hint {
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .closer-gate-form {
+            display: none;
+        }
+
+        .closer-gate-form.is-ready {
+            display: block;
+        }
+
+        .closer-gate-input {
+            width: 100%;
+            padding: 14px 16px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .closer-gate-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
+        .closer-gate-input::placeholder {
+            letter-spacing: normal;
+            text-transform: none;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .closer-gate-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 16px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .closer-gate-consent input {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .closer-gate-consent span {
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: var(--ink-soft);
+        }
+
+        .closer-gate-error {
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .closer-gate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .closer-gate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(37, 99, 235, 0.4);
+        }
+
+        .closer-gate-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+
+        .closer-gate-spinner {
+            width: 38px;
+            height: 38px;
+            margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: closerSpin 0.8s linear infinite;
+        }
+
+        .closer-gate-spinner.is-hidden {
+            display: none;
+        }
+
+        @keyframes closerSpin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <!-- Gate d'accès (protection email + mot de passe closer) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Downsell · accès réservé</h1>
+            <p class="closer-gate-hint">Connectez-vous avec votre email et votre mot de passe.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-email" class="closer-gate-input" type="email" inputmode="email" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="Votre email" aria-label="Email" />
+                <input id="closer-gate-pass" class="closer-gate-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" aria-label="Mot de passe" style="margin-top:10px;" />
+                <label class="closer-gate-consent" for="closer-gate-consent">
+                    <input type="checkbox" id="closer-gate-consent" />
+                    <span>Je comprends que les informations de cette page sont confidentielles et je m'engage à ne pas les partager ni les diffuser.</span>
+                </label>
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit" disabled>Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline define:vars={{ IS_DEV }}>
+        window.__CLOSER_DOC_DEV__ = IS_DEV;
+    </script>
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-login';
+            var LOGIN = '/.netlify/functions/closer-login';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var emailEl = document.getElementById('closer-gate-email');
+            var passEl = document.getElementById('closer-gate-pass');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+            var consent = document.getElementById('closer-gate-consent');
+
+            document.body.style.overflow = 'hidden';
+
+            function syncBtn() { btn.disabled = !consent.checked; }
+            consent.addEventListener('change', syncBtn);
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                syncBtn();
+                try { emailEl.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                if (window.__CLOSER_DOC_DEV__) { reveal(); return; } // bypass localhost uniquement
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* hors ligne / fonction indisponible -> on demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!consent.checked) { err.textContent = 'Cochez la case de confidentialité.'; return; }
+                var email = (emailEl.value || '').trim();
+                var pass = passEl.value || '';
+                if (!email || !pass) { err.textContent = 'Entrez votre email et votre mot de passe.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(LOGIN, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, password: pass }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Identifiants invalides.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                syncBtn();
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
     <div class="wrap">
         <div class="kicker">Équipe vente · Interne</div>
         <h1>Downsell — l'arbre de décision en appel</h1>

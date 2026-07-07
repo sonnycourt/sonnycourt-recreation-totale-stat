@@ -546,7 +546,8 @@
                     <h1>Admin closer</h1>
                     <p>Accès réservé. Entrez le mot de passe admin.</p>
                     <form id="login-form">
-                        <input type="password" id="admin-password" autocomplete="current-password" placeholder="Mot de passe admin" required />
+                        <input type="text" inputmode="email" autocapitalize="none" spellcheck="false" id="admin-email" autocomplete="username" placeholder="Email (managers uniquement — laisser vide si admin)" />
+                        <input type="password" id="admin-password" autocomplete="current-password" placeholder="Mot de passe" required style="margin-top:10px;" />
                         <p id="login-error" class="err" role="alert"></p>
                         <button type="submit" id="login-btn" class="btn">Accéder</button>
                     </form>
@@ -1604,12 +1605,17 @@
                 });
             });
 
-            // --- Boot : vérifie la session admin ---
+            // --- Boot : vérifie la session admin, sinon closer-manager (is_admin) ---
             async function init() {
                 try {
                     var r = await fetch(SESSION, { credentials: 'same-origin' });
                     var d = r.ok ? await r.json() : {};
                     if (d && d.authenticated) { enterAdmin(); return; }
+                } catch (e) { /* noop */ }
+                // Un closer connecté avec is_admin=true (ex. VP Sales) passe aussi.
+                try {
+                    var r2 = await fetch('/.netlify/functions/closer-admin', { credentials: 'same-origin' });
+                    if (r2.ok) { enterAdmin(); return; }
                 } catch (e) { /* noop */ }
                 showView('login');
             }
@@ -1618,10 +1624,34 @@
             document.getElementById('login-form').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 var pwd = document.getElementById('admin-password').value;
+                var email = (document.getElementById('admin-email').value || '').trim();
                 var btn = document.getElementById('login-btn');
                 var errEl = document.getElementById('login-error');
                 errEl.textContent = '';
                 btn.disabled = true;
+                // Manager (ex. VP Sales) : email + mot de passe closer, compte is_admin requis.
+                if (email) {
+                    try {
+                        var rm = await fetch('/.netlify/functions/closer-login', {
+                            method: 'POST', credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: email, password: pwd }),
+                        });
+                        if (rm.ok) {
+                            var rchk = await fetch('/.netlify/functions/closer-admin', { credentials: 'same-origin' });
+                            if (rchk.ok) { enterAdmin(); return; }
+                            errEl.textContent = 'Ce compte n\'a pas les droits manager sur cette page.';
+                        } else {
+                            var dm = {};
+                            try { dm = await rm.json(); } catch (e4) { /* noop */ }
+                            errEl.textContent = dm.error || 'Identifiants invalides.';
+                        }
+                    } catch (e5) {
+                        errEl.textContent = 'Erreur réseau.';
+                    }
+                    btn.disabled = false;
+                    return;
+                }
                 try {
                     var r = await fetch(LOGIN, {
                         method: 'POST', credentials: 'same-origin',

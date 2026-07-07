@@ -1,6 +1,11 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
+import {
+  getCloserCookieSecret,
+  getCloserCookieValue,
+  verifyCloserToken,
+} from './lib/closer-access-crypto.mjs';
 import { supabaseGet, supabasePost, supabasePatch, supabaseDelete } from './lib/supabase-rest.mjs';
 
 const RICH_PAYS = ['France', 'Belgique', 'Suisse', 'Luxembourg', 'Monaco', 'Canada'];
@@ -23,12 +28,30 @@ function genCode() {
   return `CLZ-${s.slice(0, 4)}-${s.slice(4, 8)}`;
 }
 
+/**
+ * Accès manager : un closer connecté (cookie closer_access) dont le compte
+ * porte is_admin=true (ex. Sofiane, VP Sales) est autorisé comme l'admin.
+ */
+async function isManagerViaCloserCookie(req) {
+  try {
+    const secret = getCloserCookieSecret();
+    if (!secret) return false;
+    const data = verifyCloserToken(getCloserCookieValue(req.headers.get('cookie') || ''), secret);
+    const cid = data && Number.isInteger(data.cid) ? data.cid : null;
+    if (cid === null) return false;
+    const r = await supabaseGet(`closer_access_codes?id=eq.${cid}&active=eq.true&is_admin=eq.true&select=id`);
+    return !!(r.ok && Array.isArray(r.data) && r.data.length);
+  } catch {
+    return false;
+  }
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
 
-  // Réservé à l'admin (même session que le cockpit ES2)
+  // Réservé à l'admin (session cockpit ES2) OU à un closer-manager (is_admin)
   const session = getSessionFromRequest(req);
-  if (!session) return json(401, { error: 'Non autorisé' });
+  if (!session && !(await isManagerViaCloserCookie(req))) return json(401, { error: 'Non autorisé' });
 
   if (req.method === 'GET') {
     const resource = new URL(req.url).searchParams.get('resource');
