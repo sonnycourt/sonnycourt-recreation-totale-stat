@@ -63,6 +63,35 @@ function findEmail(obj, depth = 0) {
   return null;
 }
 
+/**
+ * Cherche récursivement l'affilié Spiffy dans le payload (id + nom).
+ * Clés probables : affiliate_id / affiliateId / affiliate { id, name, ... }.
+ */
+function findAffiliate(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 6) return null;
+  const idKeys = ['affiliate_id', 'affiliateId', 'aff_id'];
+  for (const k of idKeys) {
+    if (obj[k] != null && String(obj[k]).trim() !== '') {
+      const name = [obj.affiliate_name_first, obj.affiliate_name_last].filter(Boolean).join(' ')
+        || obj.affiliate_name || null;
+      return { id: String(obj[k]), name };
+    }
+  }
+  if (obj.affiliate && typeof obj.affiliate === 'object') {
+    const a = obj.affiliate;
+    const id = a.id ?? a.affiliate_id;
+    if (id != null) {
+      const name = [a.name_first, a.name_last].filter(Boolean).join(' ') || a.name || null;
+      return { id: String(id), name };
+    }
+  }
+  for (const v of Object.values(obj)) {
+    const found = findAffiliate(v, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** Montant en euros depuis champs probables (gère cents si > 10000). */
 function findAmountEur(data) {
   const candidates = [data?.total, data?.amount, data?.amount_total, data?.grand_total, data?.subtotal];
@@ -122,10 +151,13 @@ export default async (req) => {
         ...(amount != null ? { refund_amount: amount } : {}),
       });
     } else if (isSale) {
+      // Affilié Spiffy = source de vérité pour l'attribution des ventes closers.
+      const affiliate = findAffiliate(body);
       await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
         purchased: true,
         purchased_at: nowIso,
         ...(amount != null ? { first_payment_amount: amount } : {}),
+        ...(affiliate ? { purchase_affiliate_id: affiliate.id, purchase_affiliate_name: affiliate.name } : {}),
       });
     }
 

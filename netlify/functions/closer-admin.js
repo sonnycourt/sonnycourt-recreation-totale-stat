@@ -260,10 +260,18 @@ export default async (req) => {
           : null;
       let q =
         'webinaire_registrations?assigned_closer_id=not.is.null' +
-        '&select=assigned_closer_id,prenom,call_status,purchased,purchased_at,call_log';
+        '&select=assigned_closer_id,prenom,call_status,purchased,purchased_at,call_log,purchase_affiliate_id';
       if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;
       const r = await supabaseGet(q);
       const rows = r.ok && Array.isArray(r.data) ? r.data : [];
+
+      // Attribution des ventes : source de vérité = le lien checkout Spiffy.
+      // Map id affilié Spiffy -> closer_id (colonne spiffy_affiliate_id sur closer_access_codes).
+      const rAff = await supabaseGet('closer_access_codes?select=id,spiffy_affiliate_id&spiffy_affiliate_id=not.is.null');
+      const affToCloser = {};
+      if (rAff.ok && Array.isArray(rAff.data)) {
+        for (const cc of rAff.data) affToCloser[String(cc.spiffy_affiliate_id)] = cc.id;
+      }
 
       // Un appel "réel" (le closer a vraiment parlé au prospect).
       const REAL = new Set([
@@ -287,8 +295,8 @@ export default async (req) => {
       const map = {};
       const blank = () => ({ leads: 0, calls: 0, contacted: 0, a_traiter: 0, rappels: 0, reflexion: 0, oui: 0, refus: 0, ventes: 0, achats_seuls: 0 });
       const global = blank();
-      const recredit = []; // ventes valides (appel réel avant l'achat) à recréditer dans Spiffy
-      const bump = (m, row, valide, seul) => {
+      const recredit = []; // appel réel avant l'achat SANS passage par un lien checkout closer -> à vérifier/recréditer
+      const bump = (m, row, seul) => {
         const nCalls = Array.isArray(row.call_log) ? row.call_log.length : 0;
         m.leads += 1;
         m.calls += nCalls;
@@ -297,30 +305,41 @@ export default async (req) => {
         if (row.call_status === 'En reflexion') m.reflexion += 1;
         if (row.call_status === 'Dit oui (verbal)') m.oui += 1;
         if (row.call_status === 'Refuse') m.refus += 1;
-        if (valide) m.ventes += 1;
         if (seul) m.achats_seuls += 1;
+      };
+      const addVente = (closerId) => {
+        if (!map[closerId]) map[closerId] = blank();
+        map[closerId].ventes += 1;
+        global.ventes += 1;
       };
       for (const row of rows) {
         const c = row.assigned_closer_id;
         if (c == null) continue;
-        let valide = false, seul = false;
+        let seul = false;
         if (row.purchased) {
-          const lc = lastContactBefore(row.call_log, row.purchased_at);
-          if (lc != null) {
-            valide = true;
-            recredit.push({
-              closer_id: c,
-              prenom: row.prenom || 'Lead',
-              purchased_at: row.purchased_at || null,
-              last_contact_at: new Date(lc).toISOString(),
-            });
+          // 1) Priorité : la vente est-elle passée par le lien checkout Spiffy d'un closer ?
+          const affCloser = affToCloser[String(row.purchase_affiliate_id ?? '')];
+          if (affCloser != null) {
+            addVente(affCloser); // déjà créditée côté Spiffy, rien à recréditer
           } else {
-            seul = true;
+            // 2) Sinon : appel réel avant l'achat = vente closer à recréditer manuellement dans Spiffy
+            const lc = lastContactBefore(row.call_log, row.purchased_at);
+            if (lc != null) {
+              addVente(c);
+              recredit.push({
+                closer_id: c,
+                prenom: row.prenom || 'Lead',
+                purchased_at: row.purchased_at || null,
+                last_contact_at: new Date(lc).toISOString(),
+              });
+            } else {
+              seul = true;
+            }
           }
         }
         if (!map[c]) map[c] = blank();
-        bump(map[c], row, valide, seul);
-        bump(global, row, valide, seul);
+        bump(map[c], row, seul);
+        bump(global, row, seul);
       }
       return json(200, { stats: map, global, recredit });
     }
