@@ -1550,6 +1550,27 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-saved{font-size:12px;font-weight:700;color:#16a34a;min-height:16px;margin-top:10px;}
     .cc-saved.is-saving{color:#94a3b8;} .cc-saved.is-ok{color:#16a34a;} .cc-saved.is-err{color:#dc2626;}
     .cc-empty{text-align:center;color:#64748b;padding:60px 20px;font-size:15px;}
+    /* Onglet Mes disponibilités */
+    #cc-dispo{display:none;}
+    #cc.view-dispo #cc-dispo{display:block;}
+    #cc.view-dispo .cc-top,#cc.view-dispo .cc-testadd,#cc.view-dispo .cc-me,#cc.view-dispo .cc-chips,#cc.view-dispo #cc-list{display:none;}
+    .cc-dispo-head{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,.05);}
+    .cc-dispo-head-r{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+    .cc-dispo-head h2{font-size:19px;font-weight:800;margin:0;}
+    .cc-dispo-head p{font-size:13.5px;color:#475569;margin:0;}
+    .cc-dispo-head p b{color:#b45309;}
+    .cc-dispo-count{font-size:13px;font-weight:700;color:#2563eb;margin-top:8px;min-height:16px;}
+    .cc-dispo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+    .cc-dday{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(15,23,42,.05);}
+    .cc-dday-t{font-weight:800;font-size:14px;margin-bottom:10px;}
+    .cc-dday-t::first-letter{text-transform:uppercase;}
+    .cc-dslot{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:1.5px solid #e2e8f0;background:#fff;border-radius:9px;padding:8px 12px;margin-bottom:6px;font-family:inherit;font-size:13px;font-weight:700;color:#475569;cursor:pointer;text-align:left;transition:border-color .1s ease,background .1s ease;}
+    .cc-dslot:hover{border-color:#93c5fd;}
+    .cc-dslot.open{background:#eff6ff;border-color:#60a5fa;color:#1d4ed8;}
+    .cc-dslot.booked{background:#f0fdf4;border-color:#86efac;color:#15803d;cursor:default;flex-direction:column;align-items:flex-start;gap:2px;}
+    .cc-dslot-lead{font-size:12px;font-weight:700;}
+    .cc-dslot-ok{font-weight:800;}
+    .cc-rdvtag{color:#6d28d9 !important;}
     </style>
 
     <main id="cc" hidden>
@@ -1562,13 +1583,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     </button>
                 </div>
                 <nav class="cc-nav">
-                    <a class="cc-nav-link is-active" href="/closer-console" title="Console">
+                    <a class="cc-nav-link is-active" href="/closer-console" id="cc-nav-console" title="Console">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
                         <span class="cc-nav-label">Console</span>
                     </a>
                     <button type="button" class="cc-nav-link" id="cc-welcome-btn" title="Vidéo de bienvenue">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></span>
                         <span class="cc-nav-label">Vidéo bienvenue</span>
+                    </button>
+                    <button type="button" class="cc-nav-link" id="cc-nav-dispo" title="Mes disponibilités — créneaux d'appel du week-end">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                        <span class="cc-nav-label">Mes disponibilités</span>
                     </button>
                     <a class="cc-nav-link" href="/closer-documentation" target="_blank" rel="noopener noreferrer" title="Documentation (nouvel onglet)">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
@@ -1623,6 +1648,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <div class="cc-me" id="cc-me" hidden></div>
                 <div class="cc-chips" id="cc-chips"></div>
                 <div id="cc-list"></div>
+                <div id="cc-dispo">
+                    <div class="cc-dispo-head">
+                        <div class="cc-dispo-head-r">
+                            <h2>&#128197; Mes disponibilités</h2>
+                            <button class="cc-refresh" id="cc-dispo-refresh" type="button">&#8635; Rafraichir</button>
+                        </div>
+                        <p id="cc-dispo-deadline">Coche les créneaux où tu peux appeler. Les leads les plus chauds réservent directement un RDV dedans : il apparaît ensuite dans ta liste de leads.</p>
+                        <div class="cc-dispo-count" id="cc-dispo-count"></div>
+                    </div>
+                    <div id="cc-dispo-grid" class="cc-dispo-grid"><div class="cc-empty">Chargement…</div></div>
+                </div>
             </div>
         </div>
         <div class="cc-vmodal" id="cc-vmodal" hidden>
@@ -1665,7 +1701,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             {k:'challenge',t:'Challenge Transformation'}
         ];
         var CALLBACK_OUTCOMES=['À rappeler','Rappel demande'];
-        var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'},{k:'Injoignable',t:'Injoignables'}];
+        var CHIPS=[{k:'all',t:'Tous'},{k:'rdv',t:'RDV'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'},{k:'Injoignable',t:'Injoignables'}];
         var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
         var sessionEl=document.getElementById('cc-session');
         var meEl=document.getElementById('cc-me');
@@ -1707,7 +1743,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function stCls(s){return {'A appeler':'st-app','A rappeler':'st-rap','En reflexion':'st-ref','Dit oui (verbal)':'st-oui','Injoignable':'st-inj','Refuse':'st-ref2','Achete':'st-ach'}[s]||'st-app';}
         function prio(l){if(l.purchased)return 100;var s=l.call_status||'A appeler';return {'A rappeler':2,'A appeler':2,'En reflexion':3,'Dit oui (verbal)':4,'Injoignable':8,'Refuse':9}[s]||2;}
         function stPill(s){return '<span class="st '+stCls(s)+'">'+esc(s)+'</span>';}
-        function statusBadge(l){var s=statusOf(l);var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';return stPill(s)+cb;}
+        function hasRdv(l){return !!l.rdv_at&&(new Date(l.rdv_at).getTime()>Date.now()-2*3600*1000);}
+        function statusBadge(l){var s=statusOf(l);if(hasRdv(l))return stPill(s)+'<span class="cc-cbtag cc-rdvtag">&#128197; RDV '+fmt(l.rdv_at)+'</span>';var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';return stPill(s)+cb;}
         function callsCell(log){if(!log||!log.length)return '<span class="cc-calls"><small>aucun appel</small></span>';var last=log[log.length-1];return '<span class="cc-calls">'+log.length+' appel'+(log.length>1?'s':'')+'<br><small>dernier '+fmt(last.at)+'</small></span>';}
         function histHtml(log){if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee.</div>';return log.map(function(e,i){var rap=(CALLBACK_OUTCOMES.indexOf(e.outcome)!==-1&&e.callback)?' <span class="rap">&rarr; rappel '+fmt(e.callback)+'</span>':'';return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+rap+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer">&times;</button></div>';}).reverse().join('');}
         function opts(arr,val){return '<option value="">&mdash;</option>'+arr.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
@@ -1721,6 +1758,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 '<span>&#9993; '+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'&mdash;')+'</span>'+
                 '<span>'+paysFlag(l.pays)+' <b>'+esc(l.pays||'—')+'</b></span>'+
                 '<span>&#9202; <b>'+m+' min</b>'+ctaTxt+'</span>'+
+                (hasRdv(l)?'<span>&#128197; <b style="color:#6d28d9">RDV réservé par le lead : '+fmt(l.rdv_at)+'</b></span>':'')+
                 '<span>'+(function(){var a=attribution(l);if(a==='valide')return '<b style="color:#15803d">Vente closer (à recréditer)</b>';if(a==='seul')return '<b style="color:#b45309">Acheté seul — non crédité</b>';return 'Pas encore acheteur';})()+'</span>'+
               '</div>'+
               '<div class="cc-curst">Statut actuel '+stPill(statusOf(l))+' <span style="color:#94a3b8">(determine par le dernier appel)</span></div>'+
@@ -1766,8 +1804,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
               '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td></tr>'+
               '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="9"></td></tr>';}
 
-        function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
-        function passF(l){if(FILTER==='all')return true;if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
+        function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='rdv')?LEADS.filter(hasRdv).length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
+        function passF(l){if(FILTER==='all')return true;if(FILTER==='rdv')return hasRdv(l);if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
         function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.visited_sales)return 1;return 0;}
         function srcKey(l){return l.traffic_source==='meta_ad'?'meta':(l.traffic_source==='tiktok_ad'?'tiktok':'orga');}
         // Alterne les sources (Meta/Orga/TikTok) au sein d'un groupe de même chaleur,
@@ -1788,14 +1826,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         function renderList(){
             var arr=LEADS.filter(passF).slice();
-            if(FILTER==='A rappeler'){
-                arr.sort(function(a,b){return new Date(a.next_callback_at||0)-new Date(b.next_callback_at||0);});
+            if(FILTER==='A rappeler'||FILTER==='rdv'){
+                arr.sort(function(a,b){return new Date(a.rdv_at||a.next_callback_at||0)-new Date(b.rdv_at||b.next_callback_at||0);});
             }else{
+                // Les RDV réservés en ligne passent tout en haut, triés par heure de RDV.
+                var rdvArr=arr.filter(function(l){return hasRdv(l)&&!l.purchased;}).sort(function(a,b){return new Date(a.rdv_at)-new Date(b.rdv_at);});
+                arr=arr.filter(function(l){return !(hasRdv(l)&&!l.purchased);});
                 var groups={},order=[];
                 arr.sort(function(a,b){var pa=prio(a),pb=prio(b);if(pa!==pb)return pa-pb;return heat(b)-heat(a);});
                 arr.forEach(function(l){var k=prio(l)+'_'+heat(l);if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(l);});
                 arr=[];
                 order.forEach(function(k){arr=arr.concat(interleaveSources(groups[k]));});
+                arr=rdvArr.concat(arr);
             }if(!arr.length){listEl.innerHTML='<div class="cc-empty">Aucun lead dans ce filtre.</div>';return;}listEl.innerHTML='<div class="cc-scroll"><table class="cc-tbl"><thead><tr><th>Lead</th><th>Telephone</th><th>Minutes vues</th><th>Vue page de vente</th><th>&#128722; Panier abandonné</th><th>Statut</th><th>Acheteur</th><th>Appels</th><th></th></tr></thead><tbody>'+arr.map(rowHtml).join('')+'</tbody></table></div>';}
         function render(leads){ALL_LEADS=leads||[];buildSessions();applySession();}
         function buildSessions(){
@@ -1964,6 +2006,53 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         document.getElementById('cc-vmodal-close').addEventListener('click',closeWelcome);
         document.getElementById('cc-vmodal-bg').addEventListener('click',closeWelcome);
         document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!vmodal.hidden)closeWelcome();});
+
+        // ---- Onglet "Mes disponibilités" (créneaux RDV du week-end d'appels) ----
+        var DISPO_EP='/.netlify/functions/closer-availability';
+        var navConsole=document.getElementById('cc-nav-console');
+        var navDispo=document.getElementById('cc-nav-dispo');
+        var dispoGrid=document.getElementById('cc-dispo-grid');
+        var dispoLoaded=false, DISPO_DAYS=[];
+        function dispoCount(){var open=0,booked=0;DISPO_DAYS.forEach(function(d){(d.slots||[]).forEach(function(s){if(s.state==='open')open++;if(s.state==='booked')booked++;});});document.getElementById('cc-dispo-count').innerHTML='<b>'+open+'</b> créneau'+(open>1?'x':'')+' ouvert'+(open>1?'s':'')+' &middot; <b>'+booked+'</b> RDV réservé'+(booked>1?'s':'');}
+        function dispoRender(){
+            if(!DISPO_DAYS.length){dispoGrid.innerHTML='<div class="cc-empty">Aucun créneau disponible.</div>';return;}
+            dispoGrid.innerHTML=DISPO_DAYS.map(function(d){
+                return '<div class="cc-dday"><div class="cc-dday-t">'+esc(d.title)+'</div>'+(d.slots||[]).map(function(s){
+                    if(s.state==='booked'){return '<div class="cc-dslot booked"><span>'+esc(s.label)+' &middot; RDV</span><span class="cc-dslot-lead">'+esc((s.lead&&s.lead.prenom)||'Lead')+((s.lead&&s.lead.telephone)?' &middot; '+esc(s.lead.telephone):'')+'</span></div>';}
+                    return '<button type="button" class="cc-dslot'+(s.state==='open'?' open':'')+'" data-start="'+esc(s.start)+'"><span>'+esc(s.label)+'</span>'+(s.state==='open'?'<span class="cc-dslot-ok">&#10003; ouvert</span>':'')+'</button>';
+                }).join('')+'</div>';
+            }).join('');
+            dispoCount();
+        }
+        async function dispoLoad(){
+            dispoGrid.innerHTML='<div class="cc-empty">Chargement…</div>';
+            try{
+                var r=await fetch(DISPO_EP,{credentials:'same-origin'});
+                if(!r.ok)throw 0;
+                var d=await r.json();
+                DISPO_DAYS=d.days||[];
+                if(d.deadline){document.getElementById('cc-dispo-deadline').innerHTML='Coche les créneaux où tu peux appeler, <b>avant vendredi '+fmt(d.deadline).replace(' ',' à ')+'</b>. Les leads les plus chauds réservent directement un RDV dedans : il apparaît ensuite dans ta liste de leads.';}
+                dispoRender();
+            }catch(e){dispoGrid.innerHTML='<div class="cc-empty">Erreur de chargement. Clique sur Rafraichir pour réessayer.</div>';}
+        }
+        window.__ccDispoPreview=function(days){DISPO_DAYS=days||[];dispoRender();};
+        function dispoFind(start){for(var i=0;i<DISPO_DAYS.length;i++){var ss=DISPO_DAYS[i].slots||[];for(var j=0;j<ss.length;j++){if(ss[j].start===start)return ss[j];}}return null;}
+        dispoGrid.addEventListener('click',async function(e){
+            var b=e.target.closest('.cc-dslot');
+            if(!b||b.classList.contains('booked'))return;
+            var start=b.getAttribute('data-start');var s=dispoFind(start);if(!s)return;
+            var wantOn=s.state!=='open';
+            s.state=wantOn?'open':'off';dispoRender();
+            try{
+                var r=await fetch(DISPO_EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({start:start,on:wantOn})});
+                if(!r.ok){var d=await r.json().catch(function(){return{};});if(d&&d.state==='booked'){dispoLoad();return;}throw 0;}
+            }catch(err){s.state=wantOn?'off':'open';dispoRender();}
+        });
+        function showDispo(){cc.classList.add('view-dispo');navDispo.classList.add('is-active');navConsole.classList.remove('is-active');if(!dispoLoaded){dispoLoaded=true;dispoLoad();}}
+        function showLeads(){cc.classList.remove('view-dispo');navDispo.classList.remove('is-active');navConsole.classList.add('is-active');}
+        navDispo.addEventListener('click',showDispo);
+        navConsole.addEventListener('click',function(e){e.preventDefault();showLeads();});
+        document.getElementById('cc-dispo-refresh').addEventListener('click',dispoLoad);
 
         window.initCloserConsole=function(){
             cc.hidden=false;load();

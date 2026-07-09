@@ -85,7 +85,7 @@ export default async (req) => {
     const r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
         '&select=token,prenom,telephone,email,pays,traffic_source,watch_max_minutes,saw_offer,visited_sales,checkout_clicked,purchased,purchased_at,' +
-        'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log,proposed_offers' +
+        'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log,proposed_offers,rdv_at,rdv_booked_at' +
         '&order=watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
