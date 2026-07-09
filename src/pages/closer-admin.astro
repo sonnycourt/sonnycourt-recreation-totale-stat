@@ -799,6 +799,7 @@
       .act-ach{background:#16a34a;color:#fff;}
       .act-cb{font-size:11.5px;color:#b45309;font-weight:700;}
       .act-calls{font-size:12px;color:#64748b;margin-top:4px;}
+      .act-offers{font-size:12px;color:#1d4ed8;font-weight:600;margin-top:4px;}
       .act-note{font-size:12.5px;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;margin-top:6px;white-space:pre-wrap;}
       /* Éditeur identifiants */
       .code-creds{margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:8px;}
@@ -1205,6 +1206,7 @@
 
             // --- Activité d'un closer (lecture seule, chargée au clic) ---
             var ACT_ST = { 'A rappeler': 'act-rap', 'A appeler': 'act-app', 'En reflexion': 'act-ref', 'Dit oui (verbal)': 'act-oui', 'Refuse': 'act-non', 'Injoignable': 'act-inj', 'Achete': 'act-ach' };
+            var ACT_OFFERS = { es2: 'ES 2.0', es2_5: 'ES 2.0 -5%', manifest: 'Manifest', ssr: 'Souhaits Réalisés', es1: 'Esprit Subconscient', viral: 'Système Viral', challenge: 'Challenge Transfo' };
             function actStatus(l) { return l.purchased ? 'Achete' : (l.call_status || 'A appeler'); }
             function lastCall(l) { var g = l.call_log; return (Array.isArray(g) && g.length) ? g[g.length - 1] : null; }
             async function loadActivity(id, box) {
@@ -1235,6 +1237,7 @@
                                 (l.next_callback_at ? '<span class="act-cb">&#128197; rappel ' + fmtDate(l.next_callback_at) + '</span>' : '') +
                             '</div>' +
                             (g.length ? '<div class="act-calls">' + g.length + ' appel' + (g.length > 1 ? 's' : '') + ' · dernier : ' + fmtDate(lc.at) + ' &rarr; ' + esc(lc.outcome || '—') + '</div>' : '') +
+                            (Array.isArray(l.proposed_offers) && l.proposed_offers.length ? '<div class="act-offers">&#127891; Proposé : ' + l.proposed_offers.map(function (k) { return esc(ACT_OFFERS[k] || k); }).join(' · ') + '</div>' : '') +
                             (l.call_notes ? '<div class="act-note">&#128221; ' + esc(l.call_notes) + '</div>' : '') +
                         '</div>';
                     }).join('');

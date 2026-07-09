@@ -85,7 +85,7 @@ export default async (req) => {
     const r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
         '&select=token,prenom,telephone,email,pays,traffic_source,watch_max_minutes,saw_offer,visited_sales,checkout_clicked,purchased,purchased_at,' +
-        'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log' +
+        'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log,proposed_offers' +
         '&order=watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
@@ -149,13 +149,20 @@ export default async (req) => {
       return json(200, { ok: true, call_log: log, ...d });
     }
 
-    // --- Notes / transcript (auto-save) ---
+    // --- Notes / transcript / formations proposées (auto-save) ---
     const patch = {};
     if (body.call_notes !== undefined) {
       patch.call_notes = body.call_notes ? String(body.call_notes).slice(0, 8000) : null;
     }
     if (body.call_transcript !== undefined) {
       patch.call_transcript = body.call_transcript ? String(body.call_transcript).slice(0, 8000) : null;
+    }
+    if (body.proposed_offers !== undefined) {
+      const ALLOWED_OFFERS = ['es2', 'es2_5', 'manifest', 'ssr', 'es1', 'viral', 'challenge'];
+      const offers = Array.isArray(body.proposed_offers)
+        ? body.proposed_offers.filter((o) => ALLOWED_OFFERS.includes(o))
+        : [];
+      patch.proposed_offers = offers;
     }
     if (Object.keys(patch).length === 0) return json(400, { error: 'Rien à mettre à jour' });
 

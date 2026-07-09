@@ -1536,6 +1536,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-hdel{background:transparent;border:0;color:#cbd5e1;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;font-weight:700;} .cc-hdel:hover{color:#dc2626;}
     .cc-hist-empty{font-size:12px;color:#94a3b8;font-style:italic;}
     .cc-fields{display:grid;grid-template-columns:1fr;gap:16px;}
+    .cc-offers{margin:14px 0;background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;}
+    .cc-offers-t{flex-basis:100%;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin-bottom:2px;}
+    .cc-offer{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 11px;}
+    .cc-offer:hover{border-color:#cbd5e1;}
+    .cc-offer input{width:15px;height:15px;cursor:pointer;accent-color:#2563eb;}
+    .cc-offer:has(input:checked){background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;}
     .cc-f{display:flex;flex-direction:column;gap:6px;}
     .cc-f label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;}
     .cc-in,.cc-sel,.cc-ta{border:1px solid #cbd5e1;border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:#0f172a;background:#fff;}
@@ -1649,6 +1655,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     (function () {
         var EP='/.netlify/functions/closer-console';
         var OUTCOMES=['Pas de réponse','Répondeur','Numéro invalide','À rappeler','En réflexion','Dit oui (verbal)','Pas intéressé'];
+        var OFFERS=[
+            {k:'es2',t:'Esprit Subconscient 2.0'},
+            {k:'es2_5',t:'Esprit Subconscient 2.0 (-5%)'},
+            {k:'manifest',t:'Manifest'},
+            {k:'ssr',t:'Système Souhaits Réalisés'},
+            {k:'es1',t:'Esprit Subconscient'},
+            {k:'viral',t:'Système Viral'},
+            {k:'challenge',t:'Challenge Transformation'}
+        ];
         var CALLBACK_OUTCOMES=['À rappeler','Rappel demande'];
         var CHIPS=[{k:'all',t:'Tous'},{k:'A appeler',t:'A appeler'},{k:'A rappeler',t:'Rappels'},{k:'En reflexion',t:'En reflexion'},{k:'Dit oui (verbal)',t:'Dits oui'},{k:'achete',t:'Achats'},{k:'Refuse',t:'Refuses'},{k:'Injoignable',t:'Injoignables'}];
         var cc=document.getElementById('cc'), listEl=document.getElementById('cc-list'), chipsEl=document.getElementById('cc-chips');
@@ -1667,7 +1682,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             // pour qu'il apparaisse EN PLUS des vraies leads sans jamais les masquer.
             var day = SESSION_SEL || sDate(new Date().toISOString());
             var iso = day + 'T12:00:00.000Z';
-            var lead={token:'test-'+Date.now()+'-'+TEST_SEQ,prenom:(name&&name.trim())||('Lead test '+TEST_SEQ),email:'test-local@exemple.com',telephone:(tel&&tel.trim())||'',pays:'France',watch_max_minutes:90,saw_offer:true,visited_sales:true,purchased:false,purchased_at:null,session_date:iso,call_status:null,next_callback_at:null,call_notes:'',call_transcript:'',call_log:[],_test:true};
+            var lead={token:'test-'+Date.now()+'-'+TEST_SEQ,prenom:(name&&name.trim())||('Lead test '+TEST_SEQ),email:'test-local@exemple.com',telephone:(tel&&tel.trim())||'',pays:'France',watch_max_minutes:90,saw_offer:true,visited_sales:true,purchased:false,purchased_at:null,session_date:iso,call_status:null,next_callback_at:null,call_notes:'',call_transcript:'',call_log:[],proposed_offers:[],_test:true};
             ALL_LEADS.push(lead);
             FILTER='all';            // ne touche PAS SESSION_SEL : la vue courante est conservée
             buildSessions();applySession();
@@ -1720,6 +1735,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 '<div class="cc-logbtns"><button type="button" class="cc-logvalid">Valider la tentative</button><button type="button" class="cc-logcancel">Annuler</button></div>'+
               '</div>'+
               '<div class="cc-hist"><div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log)+'</div>'+
+              '<div class="cc-offers"><div class="cc-offers-t">Formations proposées pendant l\'appel</div>'+
+                OFFERS.map(function(o){var on=(l.proposed_offers||[]).indexOf(o.k)!==-1;return '<label class="cc-offer"><input type="checkbox" class="cc-offer-cb" data-offer="'+o.k+'"'+(on?' checked':'')+'> '+esc(o.t)+'</label>';}).join('')+
+              '</div>'+
               '<div class="cc-fields">'+
                 '<div class="cc-f"><label>Remarque</label><textarea class="cc-ta cc-notes" placeholder="Notes libres...">'+esc(l.call_notes||'')+'</textarea></div>'+
               '</div>'+
@@ -1825,7 +1843,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if(l){
                 if(p.action==='log'){if(!Array.isArray(l.call_log))l.call_log=[];var e={at:p.at||new Date().toISOString(),outcome:p.outcome};if(p.callback)e.callback=p.callback;l.call_log.push(e);}
                 else if(p.action==='log-delete'){if(Array.isArray(l.call_log))l.call_log.splice(p.index,1);}
-                else{if(typeof p.call_notes==='string')l.call_notes=p.call_notes;if(typeof p.call_transcript==='string')l.call_transcript=p.call_transcript;}
+                else{if(typeof p.call_notes==='string')l.call_notes=p.call_notes;if(typeof p.call_transcript==='string')l.call_transcript=p.call_transcript;if(Array.isArray(p.proposed_offers))l.proposed_offers=p.proposed_offers;}
                 var d=testDerive(l.call_log);l.call_status=d.call_status;l.next_callback_at=d.next_callback_at;
             }
             var body={ok:true,call_log:l?l.call_log:[],call_status:l?l.call_status:null,next_callback_at:l?l.next_callback_at:null};
@@ -1883,6 +1901,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             saveTimers[token]=setTimeout(function(){autosave(el,{call_notes:el.value});},900);
         });
         listEl.addEventListener('focusout',function(e){if(!e.target.classList.contains('cc-notes'))return;var det=e.target.closest('.cc-det');if(det)clearTimeout(saveTimers[det.getAttribute('data-detail')]);autosave(e.target,{call_notes:e.target.value});});
+        // Formations proposées : sauvegarde immédiate au clic
+        listEl.addEventListener('change',async function(e){
+            if(!e.target.classList.contains('cc-offer-cb'))return;
+            var det=e.target.closest('.cc-det');if(!det)return;
+            var token=det.getAttribute('data-detail');
+            var offers=Array.prototype.map.call(det.querySelectorAll('.cc-offer-cb:checked'),function(cb){return cb.getAttribute('data-offer');});
+            var l=DATA[token];if(l)l.proposed_offers=offers;
+            setSaveState(det,'saving');
+            var ok=false;
+            try{var r=await postJSON({token:token,proposed_offers:offers});if(r&&r.ok)ok=true;}catch(err){}
+            setSaveState(det,ok?'saved':'error');
+        });
         async function autosave(el,fields){
             var det=el.closest('.cc-det');if(!det)return;var token=det.getAttribute('data-detail');var l=DATA[token];
             if(fields.call_notes!==undefined)l.call_notes=fields.call_notes;

@@ -405,7 +405,7 @@ export default async (req) => {
       const q =
         `webinaire_registrations?assigned_closer_id=eq.${id}` +
         '&or=(call_count.gt.0,call_notes.not.is.null)' +
-        '&select=prenom,telephone,email,call_status,call_log,call_notes,next_callback_at,purchased';
+        '&select=prenom,telephone,email,call_status,call_log,call_notes,next_callback_at,purchased,proposed_offers';
       const r = await supabaseGet(q);
       if (!r.ok) return json(500, { error: 'Lecture impossible', detail: r.error });
       return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
