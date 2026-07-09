@@ -56,11 +56,17 @@ function json(status, body) {
   });
 }
 
-function authCloserId(req) {
+async function authCloserId(req) {
   const secret = getCloserCookieSecret();
   if (!secret) return null;
   const data = verifyCloserToken(getCloserCookieValue(req.headers.get('cookie') || ''), secret);
-  return data && Number.isInteger(data.cid) ? data.cid : null;
+  const cid = data && Number.isInteger(data.cid) ? data.cid : null;
+  if (cid === null) return null;
+  // Revérifie que le compte est toujours actif en base : un closer révoqué
+  // (active=false) ne doit plus rien voir, même avec un cookie encore valide.
+  const chk = await supabaseGet(`closer_access_codes?id=eq.${cid}&active=eq.true&select=id`);
+  if (!chk.ok || !Array.isArray(chk.data) || !chk.data[0]) return null;
+  return cid;
 }
 
 function dateISO(v) {
@@ -72,7 +78,7 @@ function dateISO(v) {
 export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { ok: true });
 
-  const cid = authCloserId(req);
+  const cid = await authCloserId(req);
   if (cid === null) return json(401, { error: 'Non authentifié' });
 
   if (req.method === 'GET') {

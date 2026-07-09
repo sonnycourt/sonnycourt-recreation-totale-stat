@@ -111,12 +111,20 @@ export default async (req) => {
 
     // Vérification de signature Spiffy/Svix.
     const verdict = verifySignature(rawBody, req.headers);
-    if (verdict === 'invalid') {
-      console.warn('spiffy-webhook: signature invalide, rejet');
+    // Sécurité : on rejette tout ce qui n'est pas une vraie signature Spiffy.
+    // - 'invalid'    : signature présente mais fausse -> falsification -> rejet.
+    // - 'no_headers' : un secret est configuré mais l'appel n'apporte aucune
+    //   signature. Spiffy (Svix / Standard Webhooks) envoie TOUJOURS ses en-têtes
+    //   sur une vraie vente, donc une absence = appel forgé -> rejet.
+    if (verdict === 'invalid' || verdict === 'no_headers') {
+      console.warn('spiffy-webhook: signature %s, rejet', verdict);
       return jsonResponse(401, { error: 'invalid_signature' });
     }
-    if (verdict === 'no_headers') {
-      console.warn('spiffy-webhook: en-têtes signature absents, fail-open');
+    // 'no_secret' : SPIFFY_SIGNING_SECRET n'est pas réglé en prod -> impossible de
+    // vérifier. On accepte quand même pour ne perdre AUCUNE vraie vente, mais on
+    // alerte : tant que ce secret n'est pas configuré, le webhook reste ouvert.
+    if (verdict === 'no_secret') {
+      console.error('spiffy-webhook: SPIFFY_SIGNING_SECRET absent — webhook NON verifie, a configurer');
     }
 
     let body = {};
