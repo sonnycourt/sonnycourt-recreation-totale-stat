@@ -9,7 +9,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light only">
     <title>Réserve ton appel — Sonny Court</title>
-    <meta name="description" content="Choisis le créneau qui t'arrange pour ton appel personnel suite au webinaire.">
+    <meta name="description" content="Choisis le créneau qui t'arrange pour ton appel personnel suite à la masterclass.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <GAConsentMode />
@@ -42,6 +42,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         .rv-current { display: flex; gap: 10px; align-items: flex-start; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 14px; margin: 16px 0 4px; font-size: 14px; color: #1e40af; }
         .rv-current b { color: #1d4ed8; }
+        .rv-notice { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 14px; margin: 16px 0 4px; font-size: 14px; color: #92400e; }
 
         .rv-tz { font-size: 12.5px; color: #94a3b8; margin-top: 12px; }
 
@@ -62,12 +63,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         .rv-msg { font-size: 14px; font-weight: 700; color: #dc2626; margin-top: 12px; min-height: 18px; }
 
-        .rv-ident-form { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
-        .rv-input { border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 13px 14px; font: inherit; font-size: 16px; color: #0f172a; background: #fff; }
+        /* Popup de réservation (identification après le choix du créneau) */
+        .rv-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 18px; }
+        .rv-modal-bg { position: absolute; inset: 0; background: rgba(15,23,42,.55); }
+        .rv-modal-card { position: relative; z-index: 1; background: #fff; border-radius: 18px; padding: 24px 22px; width: 100%; max-width: 420px; box-shadow: 0 24px 60px rgba(15,23,42,.35); }
+        .rv-modal-card h2 { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.01em; margin-bottom: 4px; padding-right: 34px; }
+        .rv-modal-when { font-size: 14.5px; font-weight: 800; color: #2563eb; margin-bottom: 14px; }
+        .rv-modal-when::first-letter { text-transform: uppercase; }
+        .rv-modal-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 14px; font-weight: 700; cursor: pointer; line-height: 1; }
+        .rv-modal-close:hover { background: #e2e8f0; color: #0f172a; }
+        .rv-form { display: flex; flex-direction: column; gap: 10px; }
+        .rv-input { border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 13px 14px; font: inherit; font-size: 16px; color: #0f172a; background: #fff; width: 100%; }
         .rv-input:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
-        .rv-ident-btn { border: 0; border-radius: 12px; background: #2563eb; color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 13px 18px; cursor: pointer; }
-        .rv-ident-btn:hover { background: #3b82f6; }
-        .rv-ident-btn:disabled { opacity: .6; cursor: default; }
+        .rv-modal-err { display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: #dc2626; }
+        .rv-modal-err.on { display: block; }
+        .rv-book-btn { border: 0; border-radius: 12px; background: #16a34a; color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 14px 18px; cursor: pointer; }
+        .rv-book-btn:hover { background: #15803d; }
+        .rv-book-btn:disabled { opacity: .6; cursor: default; }
+        .rv-modal-note { font-size: 12px; color: #94a3b8; text-align: center; }
 
         .rv-done-ic { width: 58px; height: 58px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px; }
         .rv-done-when { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin: 16px 0; font-size: 16px; font-weight: 800; color: #15803d; }
@@ -90,17 +103,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <p class="rv-sub">Ouvre cette page depuis le lien reçu par SMS. Si le problème persiste, réponds simplement au SMS.</p>
         </div>
 
-        <div id="rv-ident" class="rv-card" hidden>
-            <div class="rv-info-ic">📞</div>
-            <h1>Réserve ton appel</h1>
-            <p class="rv-sub">Entre l'email que tu as utilisé pour t'inscrire au webinaire.</p>
-            <form id="rv-ident-form" class="rv-ident-form">
-                <input id="rv-email" class="rv-input" type="email" inputmode="email" autocapitalize="none" autocomplete="email" spellcheck="false" placeholder="Ton email d'inscription" aria-label="Email d'inscription" required>
-                <button type="submit" class="rv-ident-btn" id="rv-ident-btn">Voir les créneaux</button>
-            </form>
-            <p class="rv-msg" id="rv-ident-msg"></p>
-        </div>
-
         <div id="rv-info" class="rv-card" hidden>
             <div class="rv-info-ic" id="rv-info-ic">📞</div>
             <h1 id="rv-info-title"></h1>
@@ -112,6 +114,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <h1 id="rv-title"></h1>
                 <p class="rv-sub" id="rv-intro"></p>
                 <div class="rv-current" id="rv-current" hidden></div>
+                <div class="rv-notice" id="rv-notice" hidden></div>
                 <div id="rv-days"></div>
                 <p class="rv-tz" id="rv-tz" hidden></p>
                 <p class="rv-msg" id="rv-msg"></p>
@@ -133,27 +136,42 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         </div>
     </div>
 
+    <div class="rv-modal" id="rv-modal" hidden>
+        <div class="rv-modal-bg" id="rv-modal-bg"></div>
+        <div class="rv-modal-card" role="dialog" aria-modal="true" aria-labelledby="rv-modal-title">
+            <button type="button" class="rv-modal-close" id="rv-modal-close" aria-label="Fermer">&#10005;</button>
+            <h2 id="rv-modal-title">Réserver ce créneau</h2>
+            <p class="rv-modal-when" id="rv-modal-when"></p>
+            <form class="rv-form" id="rv-book-form">
+                <input class="rv-input" id="rv-f-prenom" type="text" placeholder="Ton prénom" autocomplete="given-name" maxlength="60" required>
+                <input class="rv-input" id="rv-f-email" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Ton email (celui de la masterclass)" autocomplete="email" required>
+                <input class="rv-input" id="rv-f-tel" type="tel" inputmode="tel" placeholder="Ton numéro de téléphone" autocomplete="tel" maxlength="30" required>
+                <p class="rv-modal-err" id="rv-modal-err" role="alert"></p>
+                <button type="submit" class="rv-book-btn" id="rv-book-btn">Réserver ce créneau</button>
+                <p class="rv-modal-note">C'est le numéro sur lequel on t'appellera.</p>
+            </form>
+        </div>
+    </div>
+
     <script is:inline>
     (function () {
         var EP = '/.netlify/functions/rdv-slots';
         var qs = new URLSearchParams(location.search);
         var TOKEN = (qs.get('t') || qs.get('token') || '').trim();
-        var EMAIL = '';
-        function identQuery() { return TOKEN ? 't=' + encodeURIComponent(TOKEN) : 'email=' + encodeURIComponent(EMAIL); }
-        function identBody() { return TOKEN ? { t: TOKEN } : { email: EMAIL }; }
 
         var fmtDay = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
         var fmtTime = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
         var fmtFull = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
-        var SLOTS = {};       // id -> {id, start}
-        var SELECTED = null;  // id du créneau choisi
-        var LAST = null;      // dernière réponse GET
+        var SLOTS = {};        // clé (id ou start) -> {id?, start}
+        var SELECTED = null;   // clé du créneau choisi
+        var LAST = null;       // dernière réponse GET / contexte courant
+        var IDENT = null;      // {prenom,email,telephone} après une 1re identification
 
         function el(id) { return document.getElementById(id); }
         function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
         function show(id) {
-            ['rv-loading', 'rv-error', 'rv-ident', 'rv-info', 'rv-book', 'rv-done'].forEach(function (v) { el(v).hidden = v !== id; });
+            ['rv-loading', 'rv-error', 'rv-info', 'rv-book', 'rv-done'].forEach(function (v) { el(v).hidden = v !== id; });
             if (id !== 'rv-book') setConfirm(false);
         }
         function setConfirm(on, label) {
@@ -167,40 +185,33 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             el('rv-info-sub').innerHTML = sub;
             show('rv-info');
         }
+        function modalErr(msg) {
+            var e = el('rv-modal-err');
+            if (msg) { e.textContent = msg; e.classList.add('on'); }
+            else { e.textContent = ''; e.classList.remove('on'); }
+        }
+        function openModal(slot) {
+            modalErr('');
+            el('rv-modal-when').textContent = fmtFull.format(new Date(slot.start));
+            el('rv-modal').hidden = false;
+            el('rv-f-prenom').focus();
+        }
+        function closeModal() { el('rv-modal').hidden = true; }
 
-        function render(d) {
-            LAST = d; SLOTS = {}; SELECTED = null;
-            var prenom = d.prenom || '';
-            if (d.mode === 'purchased') {
-                info('🎉', 'Tu fais déjà partie du programme' + (prenom ? ', ' + esc(prenom) : '') + ' !', 'Pas besoin de rendez-vous : ton accès t\'attend dans tes emails. À tout de suite à l\'intérieur.');
-                return;
-            }
-            if (d.mode !== 'ok' || !Array.isArray(d.slots) || !d.slots.length) {
-                info('📞', 'Merci' + (prenom ? ' ' + esc(prenom) : '') + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ' On te contactera directement par téléphone.'));
-                return;
-            }
-
-            el('rv-title').textContent = 'Réserve ton appel avec ' + d.closer;
-            el('rv-intro').innerHTML = 'Choisis le créneau qui t\'arrange : <b>' + esc(d.closer) + '</b> t\'appellera sur ' + (d.phone_hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(d.phone_hint) + '</b>' : 'le numéro donné à l\'inscription') + '. L\'appel dure environ 20 minutes.';
-
-            var cur = el('rv-current');
-            if (d.current) {
-                cur.innerHTML = '<span>📅</span><span>Ton RDV actuel : <b>' + esc(fmtFull.format(new Date(d.current))) + '</b>.<br>Choisis un autre créneau ci-dessous pour le déplacer.</span>';
-                cur.hidden = false;
-            } else cur.hidden = true;
-
-            // Groupe les créneaux par jour (fuseau du visiteur).
+        function renderSlots(slots) {
+            SLOTS = {}; SELECTED = null;
             var groups = [], byKey = {};
-            d.slots.forEach(function (s) {
-                SLOTS[s.id] = s;
+            slots.forEach(function (s) {
+                var key = s.id != null ? String(s.id) : s.start;
+                SLOTS[key] = s;
                 var day = fmtDay.format(new Date(s.start));
                 if (!byKey[day]) { byKey[day] = []; groups.push(day); }
-                byKey[day].push(s);
+                byKey[day].push({ key: key, start: s.start });
             });
             el('rv-days').innerHTML = groups.map(function (day) {
                 return '<div class="rv-day"><div class="rv-day-t">' + esc(day) + '</div><div class="rv-slots">' +
                     byKey[day].map(function (s) {
-                        return '<button type="button" class="rv-slot" data-id="' + s.id + '">' + esc(fmtTime.format(new Date(s.start))) + '</button>';
+                        return '<button type="button" class="rv-slot" data-key="' + esc(s.key) + '">' + esc(fmtTime.format(new Date(s.start))) + '</button>';
                     }).join('') + '</div></div>';
             }).join('');
 
@@ -209,45 +220,141 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var tzEl = el('rv-tz');
             if (tz && tz !== 'Europe/Paris') { tzEl.textContent = 'Heures affichées dans ton fuseau horaire (' + tz + ').'; tzEl.hidden = false; }
             else tzEl.hidden = true;
+        }
 
+        function render(d) {
+            LAST = d;
+            var prenom = d.prenom || '';
+            if (d.mode === 'purchased') {
+                info('🎉', 'Tu fais déjà partie du programme' + (prenom ? ', ' + esc(prenom) : '') + ' !', 'Pas besoin de rendez-vous : ton accès t\'attend dans tes emails. À tout de suite à l\'intérieur.');
+                return;
+            }
+            if (d.mode === 'no_closer' || !Array.isArray(d.slots) || !d.slots.length) {
+                info('📞', 'Merci' + (prenom ? ' ' + esc(prenom) : '') + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ' On te contactera directement par téléphone.'));
+                return;
+            }
+
+            if (d.mode === 'open') {
+                el('rv-title').textContent = 'Réserve ton appel personnel';
+                el('rv-intro').innerHTML = 'Suite à la masterclass, un conseiller t\'appelle en tête-à-tête pour répondre à tes questions. <b>Choisis le créneau qui t\'arrange</b>, l\'appel dure environ 20 minutes.';
+                el('rv-current').hidden = true;
+            } else {
+                el('rv-title').textContent = 'Réserve ton appel avec ' + d.closer;
+                el('rv-intro').innerHTML = 'Choisis le créneau qui t\'arrange : <b>' + esc(d.closer) + '</b> t\'appellera sur ' + (d.phone_hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(d.phone_hint) + '</b>' : 'le numéro donné à l\'inscription') + '. L\'appel dure environ 20 minutes.';
+                var cur = el('rv-current');
+                if (d.current) {
+                    cur.innerHTML = '<span>📅</span><span>Ton RDV actuel : <b>' + esc(fmtFull.format(new Date(d.current))) + '</b>.<br>Choisis un autre créneau ci-dessous pour le déplacer.</span>';
+                    cur.hidden = false;
+                } else cur.hidden = true;
+            }
+
+            el('rv-notice').hidden = true;
+            renderSlots(d.slots);
             el('rv-msg').textContent = '';
             show('rv-book');
         }
         // Hook de debug/preview : permet de rendre la page avec des données injectées.
         window.__rdvRender = render;
 
+        function showDone(d) {
+            el('rv-done-when').textContent = fmtFull.format(new Date(d.at));
+            el('rv-done-title').textContent = 'C\'est noté' + (d.prenom || (LAST && LAST.prenom) ? ' ' + esc(d.prenom || LAST.prenom) : '') + ' !';
+            var closer = d.closer || (LAST && LAST.closer) || '';
+            var hint = d.phone_hint || (LAST && LAST.phone_hint) || '';
+            el('rv-done-sub').innerHTML = (closer ? '<b>' + esc(closer) + '</b>' : 'Ton conseiller') + ' t\'appellera sur ' + (hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(hint) + '</b>' : 'le numéro que tu as donné') + '. Garde ton téléphone à portée de main.';
+            show('rv-done');
+        }
+
+        // Réponse commune aux deux flux de réservation.
+        async function handleBookResponse(r, d) {
+            if (r.ok && d.ok) { showDone(d); closeModal(); return true; }
+            if (d && (d.mode === 'purchased' || d.mode === 'no_closer')) { closeModal(); render(d); return true; }
+            return false;
+        }
+
         el('rv-days').addEventListener('click', function (e) {
             var b = e.target.closest('.rv-slot');
             if (!b) return;
-            var id = Number(b.getAttribute('data-id'));
-            SELECTED = id;
+            var key = b.getAttribute('data-key');
+            SELECTED = key;
             document.querySelectorAll('.rv-slot.sel').forEach(function (x) { x.classList.remove('sel'); });
             b.classList.add('sel');
-            var s = SLOTS[id];
-            setConfirm(true, 'Confirmer · ' + fmtFull.format(new Date(s.start)));
+            var s = SLOTS[key];
+            if (TOKEN || IDENT) {
+                // Déjà identifié -> barre de confirmation directe.
+                setConfirm(true, 'Confirmer · ' + fmtFull.format(new Date(s.start)));
+            } else {
+                // Flux calendrier-d'abord : on s'identifie au moment de réserver.
+                openModal(s);
+            }
         });
 
+        // --- Popup : réservation avec identification ---
+        el('rv-modal-close').addEventListener('click', closeModal);
+        el('rv-modal-bg').addEventListener('click', closeModal);
+        el('rv-book-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var s = SLOTS[SELECTED];
+            if (!s) return;
+            var prenom = el('rv-f-prenom').value.trim();
+            var email = el('rv-f-email').value.trim().toLowerCase();
+            var tel = el('rv-f-tel').value.trim();
+            if (!prenom || !email || !tel) { modalErr('Remplis les trois champs.'); return; }
+            var btn = el('rv-book-btn');
+            btn.disabled = true; btn.textContent = 'Réservation…';
+            modalErr('');
+            try {
+                var r = await fetch(EP, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prenom: prenom, email: email, telephone: tel, start: s.start }),
+                });
+                var d = await r.json().catch(function () { return {}; });
+                if (await handleBookResponse(r, d)) { IDENT = { prenom: prenom, email: email, telephone: tel }; }
+                else if (r.status === 404) {
+                    modalErr((d && d.error) || "On ne trouve pas ton inscription. Utilise l'email avec lequel tu t'es inscrit(e) à la masterclass.");
+                } else if (r.status === 409) {
+                    // Créneau plus dispo pour SON conseiller -> on affiche ses vrais créneaux.
+                    IDENT = { prenom: prenom, email: email, telephone: tel };
+                    closeModal();
+                    LAST = { mode: 'ok', prenom: prenom, closer: d.closer || '', phone_hint: '' };
+                    var n = el('rv-notice');
+                    n.innerHTML = esc((d && d.error) || 'Ce créneau n\'est plus disponible. Choisis-en un autre ci-dessous.');
+                    n.hidden = false;
+                    renderSlots(Array.isArray(d.slots) ? d.slots : []);
+                    if (!(d.slots || []).length) info('📞', 'Merci ' + esc(prenom) + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ''));
+                } else {
+                    modalErr((d && d.error) || 'Erreur, réessaie.');
+                }
+            } catch (err) {
+                modalErr('Erreur réseau. Vérifie ta connexion et réessaie.');
+            }
+            btn.disabled = false; btn.textContent = 'Réserver ce créneau';
+        });
+
+        // --- Barre de confirmation (token SMS, ou déjà identifié après un conflit) ---
         el('rv-confirm-btn').addEventListener('click', async function () {
-            if (!SELECTED || !SLOTS[SELECTED]) return;
-            var btn = this, s = SLOTS[SELECTED];
+            var s = SLOTS[SELECTED];
+            if (!s) return;
+            var btn = this;
             btn.disabled = true; btn.textContent = 'Réservation…';
             try {
-                var payload = identBody(); payload.slot_id = SELECTED;
+                var payload;
+                if (TOKEN) { payload = { t: TOKEN, slot_id: s.id }; }
+                else { payload = { prenom: IDENT.prenom, email: IDENT.email, telephone: IDENT.telephone, start: s.start }; }
                 var r = await fetch(EP, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
                 var d = await r.json().catch(function () { return {}; });
-                if (r.ok && d.ok) {
-                    el('rv-done-when').textContent = fmtFull.format(new Date(d.at));
-                    el('rv-done-title').textContent = 'C\'est noté' + (LAST.prenom ? ' ' + LAST.prenom : '') + ' !';
-                    el('rv-done-sub').innerHTML = '<b>' + esc(LAST.closer) + '</b> t\'appellera sur ' + (LAST.phone_hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(LAST.phone_hint) + '</b>' : 'le numéro donné à l\'inscription') + '. Garde ton téléphone à portée de main.';
-                    show('rv-done');
-                    return;
+                if (!(await handleBookResponse(r, d))) {
+                    el('rv-msg').textContent = (d && d.error) ? d.error : 'Erreur, réessaie.';
+                    if (r.status === 409) {
+                        if (Array.isArray(d.slots)) { renderSlots(d.slots); setConfirm(false); }
+                        else boot();
+                    }
                 }
-                el('rv-msg').textContent = (d && d.error) ? d.error : 'Erreur, réessaie.';
-                if (r.status === 409) boot(); // créneau pris entre-temps -> on recharge la liste
             } catch (err) {
                 el('rv-msg').textContent = 'Erreur réseau. Vérifie ta connexion et réessaie.';
             }
@@ -255,31 +362,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         });
 
         async function boot() {
-            if (!TOKEN && !EMAIL) { show('rv-ident'); return; }
             show('rv-loading');
             try {
-                var r = await fetch(EP + '?' + identQuery());
-                if (r.status === 404 || r.status === 400) {
-                    if (TOKEN) { show('rv-error'); return; }
-                    var d404 = await r.json().catch(function () { return {}; });
-                    el('rv-ident-msg').textContent = (d404 && d404.error) || 'On ne trouve pas cet email. Utilise celui de ton inscription au webinaire.';
-                    show('rv-ident');
-                    return;
-                }
+                var url = EP + (TOKEN ? '?t=' + encodeURIComponent(TOKEN) : '');
+                var r = await fetch(url);
+                if (TOKEN && (r.status === 404 || r.status === 400)) { show('rv-error'); return; }
                 if (!r.ok) throw 0;
                 render(await r.json());
             } catch (e) {
                 info('📶', 'Petit souci de connexion', 'Impossible de charger les créneaux. Vérifie ta connexion puis recharge la page.');
             }
         }
-        el('rv-ident-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-            var v = (el('rv-email').value || '').trim().toLowerCase();
-            if (!v) return;
-            EMAIL = v;
-            el('rv-ident-msg').textContent = '';
-            boot();
-        });
         boot();
     })();
     </script>

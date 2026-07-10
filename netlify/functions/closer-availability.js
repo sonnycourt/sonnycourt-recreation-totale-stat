@@ -70,7 +70,7 @@ export default async (req) => {
     const leads = {};
     if (regIds.length) {
       const lr = await supabaseGet(
-        `webinaire_registrations?id=in.(${regIds.join(',')})&select=id,prenom,telephone`,
+        `webinaire_registrations?id=in.(${regIds.join(',')})&select=id,prenom,telephone,rdv_phone`,
       );
       if (lr.ok && Array.isArray(lr.data)) lr.data.forEach((l) => { leads[l.id] = l; });
     }
@@ -87,7 +87,8 @@ export default async (req) => {
             start: s.start,
             label: s.label,
             state: 'booked',
-            lead: { prenom: l.prenom || 'Lead', telephone: l.telephone || '' },
+            // Numéro donné à la réservation du RDV en priorité : c'est celui à appeler.
+            lead: { prenom: l.prenom || 'Lead', telephone: l.rdv_phone || l.telephone || '' },
           };
         }
         return { start: s.start, label: s.label, state: 'open' };

@@ -1571,6 +1571,29 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-dslot-lead{font-size:12px;font-weight:700;}
     .cc-dslot-ok{font-weight:800;}
     .cc-rdvtag{color:#6d28d9 !important;}
+    /* Assistant IA (bulle en bas à droite) */
+    .cc-ai-fab{position:fixed;bottom:22px;right:22px;z-index:950;width:56px;height:56px;border:0;border-radius:50%;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(37,99,235,.4);display:flex;align-items:center;justify-content:center;transition:transform .12s ease;}
+    .cc-ai-fab:hover{transform:scale(1.06);}
+    .cc-ai-fab svg{width:26px;height:26px;}
+    .cc-ai{position:fixed;bottom:90px;right:22px;z-index:950;width:370px;max-width:calc(100vw - 24px);height:min(560px,calc(100vh - 130px));background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 20px 50px rgba(15,23,42,.25);display:flex;flex-direction:column;overflow:hidden;}
+    .cc-ai-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;background:#0f172a;color:#fff;}
+    .cc-ai-title b{font-size:14.5px;display:block;}
+    .cc-ai-title small{font-size:11.5px;color:#94a3b8;}
+    .cc-ai-close{flex:0 0 auto;background:rgba(255,255,255,.12);border:0;border-radius:8px;width:30px;height:30px;color:#fff;font-size:13px;cursor:pointer;line-height:1;}
+    .cc-ai-close:hover{background:rgba(255,255,255,.22);}
+    .cc-ai-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f8fafc;}
+    .cc-ai-m{max-width:86%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;white-space:normal;word-wrap:break-word;}
+    .cc-ai-m.bot{align-self:flex-start;background:#fff;border:1px solid #e2e8f0;color:#0f172a;border-bottom-left-radius:5px;}
+    .cc-ai-m.me{align-self:flex-end;background:#2563eb;color:#fff;border-bottom-right-radius:5px;}
+    .cc-ai-m.typing{color:#94a3b8;font-weight:700;letter-spacing:2px;}
+    .cc-ai-m.err{background:#fef2f2;border-color:#fecaca;color:#b91c1c;}
+    .cc-ai-bar{display:flex;gap:8px;padding:12px;border-top:1px solid #e2e8f0;background:#fff;}
+    .cc-ai-bar input{flex:1;border:1.5px solid #cbd5e1;border-radius:11px;padding:10px 13px;font-size:14px;font-family:inherit;color:#0f172a;}
+    .cc-ai-bar input:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+    .cc-ai-bar button{flex:0 0 auto;width:42px;border:0;border-radius:11px;background:#2563eb;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .cc-ai-bar button:hover{background:#3b82f6;} .cc-ai-bar button:disabled{opacity:.5;cursor:default;}
+    .cc-ai-bar button svg{width:18px;height:18px;}
+    @media(max-width:480px){.cc-ai{right:12px;bottom:84px;}.cc-ai-fab{right:14px;bottom:16px;}}
     </style>
 
     <main id="cc" hidden>
@@ -1600,7 +1623,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                         <span class="cc-nav-label">Documentation</span>
                         <span class="cc-nav-ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
                     </a>
-                    <a class="cc-nav-link" href="/downsell" target="_blank" rel="noopener noreferrer" title="Downsell — arbre de décision en appel (nouvel onglet)">
+                    <a class="cc-nav-link" href="/closer-downsell" target="_blank" rel="noopener noreferrer" title="Downsell — arbre de décision en appel (nouvel onglet)">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>
                         <span class="cc-nav-label">Downsell</span>
                         <span class="cc-nav-ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
@@ -1660,6 +1683,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     <div id="cc-dispo-grid" class="cc-dispo-grid"><div class="cc-empty">Chargement…</div></div>
                 </div>
             </div>
+        </div>
+        <button type="button" class="cc-ai-fab" id="cc-ai-fab" aria-label="Assistant IA" title="Assistant IA — pose ta question (doc + downsell)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <div class="cc-ai" id="cc-ai" hidden>
+            <div class="cc-ai-head">
+                <div class="cc-ai-title"><b>Assistant closer</b><small>Connaît la documentation + le downsell, toujours à jour</small></div>
+                <button type="button" class="cc-ai-close" id="cc-ai-close" aria-label="Fermer">&#10005;</button>
+            </div>
+            <div class="cc-ai-msgs" id="cc-ai-msgs">
+                <div class="cc-ai-m bot">Salut ! Pose-moi ta question : offres, prix, échéanciers, objections, downsell, process&hellip; Je réponds d'après la doc officielle.</div>
+            </div>
+            <form class="cc-ai-bar" id="cc-ai-form">
+                <input type="text" id="cc-ai-in" placeholder="Ta question&hellip;" autocomplete="off" maxlength="2000" />
+                <button type="submit" id="cc-ai-send" aria-label="Envoyer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </form>
         </div>
         <div class="cc-vmodal" id="cc-vmodal" hidden>
             <div class="cc-vmodal-bg" id="cc-vmodal-bg"></div>
@@ -1758,7 +1799,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 '<span>&#9993; '+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'&mdash;')+'</span>'+
                 '<span>'+paysFlag(l.pays)+' <b>'+esc(l.pays||'—')+'</b></span>'+
                 '<span>&#9202; <b>'+m+' min</b>'+ctaTxt+'</span>'+
-                (hasRdv(l)?'<span>&#128197; <b style="color:#6d28d9">RDV réservé par le lead : '+fmt(l.rdv_at)+'</b></span>':'')+
+                (hasRdv(l)?'<span>&#128197; <b style="color:#6d28d9">RDV réservé par le lead : '+fmt(l.rdv_at)+'</b>'+((l.rdv_phone&&l.rdv_phone!==l.telephone)?' &middot; <b style="color:#6d28d9">appeler le '+esc(l.rdv_phone)+'</b>':'')+'</span>':'')+
                 '<span>'+(function(){var a=attribution(l);if(a==='valide')return '<b style="color:#15803d">Vente closer (à recréditer)</b>';if(a==='seul')return '<b style="color:#b45309">Acheté seul — non crédité</b>';return 'Pas encore acheteur';})()+'</span>'+
               '</div>'+
               '<div class="cc-curst">Statut actuel '+stPill(statusOf(l))+' <span style="color:#94a3b8">(determine par le dernier appel)</span></div>'+
@@ -2053,6 +2094,44 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         navDispo.addEventListener('click',showDispo);
         navConsole.addEventListener('click',function(e){e.preventDefault();showLeads();});
         document.getElementById('cc-dispo-refresh').addEventListener('click',dispoLoad);
+
+        // ---- Assistant IA (doc + downsell, contenu live côté serveur) ----
+        var AI_EP='/.netlify/functions/closer-assistant';
+        var aiPanel=document.getElementById('cc-ai');
+        var aiMsgs=document.getElementById('cc-ai-msgs');
+        var aiIn=document.getElementById('cc-ai-in');
+        var aiSend=document.getElementById('cc-ai-send');
+        var AI_HIST=[], aiBusy=false;
+        function aiRender(role,text,extraCls){
+            var d=document.createElement('div');
+            d.className='cc-ai-m '+(role==='user'?'me':'bot')+(extraCls?' '+extraCls:'');
+            d.innerHTML=esc(text).replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+            aiMsgs.appendChild(d);aiMsgs.scrollTop=aiMsgs.scrollHeight;return d;
+        }
+        window.__ccAiPreview=aiRender;
+        document.getElementById('cc-ai-fab').addEventListener('click',function(){
+            var opening=aiPanel.hidden;aiPanel.hidden=!opening;if(opening)aiIn.focus();
+        });
+        document.getElementById('cc-ai-close').addEventListener('click',function(){aiPanel.hidden=true;});
+        document.getElementById('cc-ai-form').addEventListener('submit',async function(e){
+            e.preventDefault();
+            if(aiBusy)return;
+            var q=(aiIn.value||'').trim();
+            if(!q)return;
+            aiIn.value='';
+            AI_HIST.push({role:'user',content:q});
+            aiRender('user',q);
+            var typing=aiRender('bot','•••','typing');
+            aiBusy=true;aiSend.disabled=true;
+            try{
+                var r=await fetch(AI_EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:AI_HIST})});
+                var d=await r.json().catch(function(){return{};});
+                typing.remove();
+                if(r.ok&&d.reply){AI_HIST.push({role:'assistant',content:d.reply});aiRender('bot',d.reply);}
+                else{aiRender('bot','⚠ '+((d&&d.error)||'Erreur, réessaie.'),'err');}
+            }catch(err){typing.remove();aiRender('bot','⚠ Erreur réseau, réessaie.','err');}
+            aiBusy=false;aiSend.disabled=false;aiIn.focus();
+        });
 
         window.initCloserConsole=function(){
             cc.hidden=false;load();
