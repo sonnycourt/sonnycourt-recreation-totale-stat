@@ -1601,6 +1601,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-ai-title small{font-size:11.5px;color:#94a3b8;}
     .cc-ai-close{flex:0 0 auto;background:rgba(255,255,255,.12);border:0;border-radius:8px;width:30px;height:30px;color:#fff;font-size:13px;cursor:pointer;line-height:1;}
     .cc-ai-close:hover{background:rgba(255,255,255,.22);}
+    .cc-ai{transition:width .15s ease,height .15s ease;}
+    .cc-ai.is-big{width:min(860px,calc(100vw - 24px));height:calc(100vh - 40px);bottom:20px;}
     .cc-ai-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f8fafc;}
     .cc-ai-m{max-width:86%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;white-space:normal;word-wrap:break-word;}
     .cc-ai-m.bot{align-self:flex-start;background:#fff;border:1px solid #e2e8f0;color:#0f172a;border-bottom-left-radius:5px;}
@@ -1710,7 +1712,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         <div class="cc-ai" id="cc-ai" hidden>
             <div class="cc-ai-head">
                 <div class="cc-ai-title"><b>Assistant closer</b><small>Doc · prise de contact · trame · downsell — toujours à jour</small></div>
-                <button type="button" class="cc-ai-close" id="cc-ai-close" aria-label="Fermer">&#10005;</button>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button type="button" class="cc-ai-close" id="cc-ai-expand" aria-label="Agrandir ou réduire" title="Agrandir / réduire">&#x2922;</button>
+                    <button type="button" class="cc-ai-close" id="cc-ai-close" aria-label="Fermer">&#10005;</button>
+                </div>
             </div>
             <div class="cc-ai-msgs" id="cc-ai-msgs">
                 <div class="cc-ai-m bot">Salut ! Pose-moi ta question : offres, prix, échéanciers, objections, downsell, process&hellip; Je réponds d'après la doc officielle.</div>
@@ -1850,7 +1855,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
               '</div>'+
               '<div class="cc-curst">Statut actuel '+stPill(statusOf(l))+' '+nextHtml(l)+' <span style="color:#94a3b8">(déterminé par la dernière tentative significative)</span></div>'+
               '<div class="cc-callbar"><button type="button" class="cc-callbtn cc-copytel" data-tel="'+esc(l.telephone||'')+'">&#128203; Copier le numéro '+esc(l.telephone||'')+'</button>'+
-              '<button type="button" class="cc-callbtn cc-copysms">&#128172; Copier SMS « rappelle-moi »</button>'+
               '<button type="button" class="cc-lognew">+ Noter une tentative (appel · SMS · vocal)</button></div>'+
               '<div class="cc-logform" hidden>'+
                 '<div class="cc-logrow">'+
@@ -2004,13 +2008,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         chipsEl.addEventListener('click',function(e){var b=e.target.closest('.cc-chip');if(!b)return;FILTER=b.getAttribute('data-f');renderChips();renderList();});
 
         function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
-        // SMS « rappelle-moi » : 3 variantes (trame de vente), rotation stable par lead = jamais deux envois identiques d'affilée.
-        var SMS_TPL=[
-            'Salut {p}, c\'est {c}, coach dans l\'équipe de Sonny 😊 Chaque participant de la masterclass de jeudi bénéficie d\'un suivi perso — et c\'est moi qui m\'occupe du tien. Rappelle-moi sur ce numéro quand t\'as 5 min ce week-end, c\'est offert avec la masterclass.',
-            'Hello {p}, {c} de l\'équipe Sonny Court. Ton débrief perso du guide de diagnostic est prévu ce week-end avec moi 😊 Rappelle-moi sur ce numéro quand tu veux, je te réserve le temps qu\'il faut.',
-            '{p}, c\'est {c}, ton coach de suivi pour la masterclass de jeudi. Sonny offre un débrief personnel à chaque participant — j\'ai essayé de te joindre pour le tien. Rappelle-moi quand t\'es dispo 🙏'
-        ];
-        function smsFor(l){var h=0,t=String(l.token||'');for(var k=0;k<t.length;k++)h=(h+t.charCodeAt(k))%3;var c=(typeof ME!=='undefined'&&ME&&ME.label)?String(ME.label).trim().split(/\s+/)[0]:'[ton prénom]';return SMS_TPL[h].replace(/\{p\}/g,l.prenom||'').replace(/\{c\}/g,c);}
         function ccCopy(text,btn,doneLabel){var orig=btn.innerHTML;var ok=function(){btn.classList.add('copied');btn.innerHTML=doneLabel||'&#10003; Copié';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=orig;},1500);};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,function(){ccFallbackCopy(text);ok();});}else{ccFallbackCopy(text);ok();}}catch(_){ccFallbackCopy(text);ok();}}
         meEl.addEventListener('click',async function(e){
             var b=e.target.closest('.cc-me-cp');if(!b)return;
@@ -2032,8 +2029,6 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         });
         listEl.addEventListener('click', async function(e){
             var det=e.target.closest('.cc-det');
-            var smsBtn=e.target.closest('.cc-copysms');
-            if(smsBtn&&det){var stok=det.getAttribute('data-detail');var sl=DATA[stok];if(sl)ccCopy(smsFor(sl),smsBtn,'&#10003; SMS copié — colle-le dans Messages');return;}
             var copyBtn=e.target.closest('.cc-copytel');
             if(copyBtn){
                 var tel=copyBtn.getAttribute('data-tel')||'';
@@ -2212,6 +2207,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var opening=aiPanel.hidden;aiPanel.hidden=!opening;if(opening)aiIn.focus();
         });
         document.getElementById('cc-ai-close').addEventListener('click',function(){aiPanel.hidden=true;});
+        var aiBigBtn=document.getElementById('cc-ai-expand');
+        function aiApplyBig(on){aiPanel.classList.toggle('is-big',on);aiBigBtn.innerHTML=on?'&#x2923;':'&#x2922;';aiMsgs.scrollTop=aiMsgs.scrollHeight;try{localStorage.setItem('cc-ai-big',on?'1':'');}catch(_){}}
+        aiBigBtn.addEventListener('click',function(){aiApplyBig(!aiPanel.classList.contains('is-big'));aiIn.focus();});
+        try{if(localStorage.getItem('cc-ai-big'))aiApplyBig(true);}catch(_){}
         document.getElementById('cc-ai-form').addEventListener('submit',async function(e){
             e.preventDefault();
             if(aiBusy)return;
