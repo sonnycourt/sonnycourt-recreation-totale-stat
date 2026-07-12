@@ -1709,7 +1709,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         </button>
         <div class="cc-ai" id="cc-ai" hidden>
             <div class="cc-ai-head">
-                <div class="cc-ai-title"><b>Assistant closer</b><small>Connaît la documentation + le downsell, toujours à jour</small></div>
+                <div class="cc-ai-title"><b>Assistant closer</b><small>Doc · prise de contact · trame · downsell — toujours à jour</small></div>
                 <button type="button" class="cc-ai-close" id="cc-ai-close" aria-label="Fermer">&#10005;</button>
             </div>
             <div class="cc-ai-msgs" id="cc-ai-msgs">
@@ -2197,6 +2197,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         var aiIn=document.getElementById('cc-ai-in');
         var aiSend=document.getElementById('cc-ai-send');
         var AI_HIST=[], aiBusy=false;
+        // Historique stocké UNIQUEMENT dans le navigateur du closer (localStorage),
+        // purgé automatiquement après 7 jours. Rien n'est conservé côté serveur.
+        var AI_LS_KEY='cc-ai-hist-v1', AI_TTL_MS=7*24*3600*1000, AI_MAX_STORED=80;
+        function aiLoadHist(){try{var raw=localStorage.getItem(AI_LS_KEY);if(!raw)return [];var arr=JSON.parse(raw);if(!Array.isArray(arr))return [];var lim=Date.now()-AI_TTL_MS;return arr.filter(function(m){return m&&m.role&&m.content&&(!m.at||new Date(m.at).getTime()>=lim);});}catch(_){return [];}}
+        function aiSaveHist(){try{localStorage.setItem(AI_LS_KEY,JSON.stringify(AI_HIST.slice(-AI_MAX_STORED)));}catch(_){}}
         function aiRender(role,text,extraCls){
             var d=document.createElement('div');
             d.className='cc-ai-m '+(role==='user'?'me':'bot')+(extraCls?' '+extraCls:'');
@@ -2204,6 +2209,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             aiMsgs.appendChild(d);aiMsgs.scrollTop=aiMsgs.scrollHeight;return d;
         }
         window.__ccAiPreview=aiRender;
+        AI_HIST=aiLoadHist();aiSaveHist();
+        AI_HIST.forEach(function(m){aiRender(m.role==='user'?'user':'bot',m.content);});
         document.getElementById('cc-ai-fab').addEventListener('click',function(){
             var opening=aiPanel.hidden;aiPanel.hidden=!opening;if(opening)aiIn.focus();
         });
@@ -2214,15 +2221,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var q=(aiIn.value||'').trim();
             if(!q)return;
             aiIn.value='';
-            AI_HIST.push({role:'user',content:q});
+            AI_HIST.push({role:'user',content:q,at:new Date().toISOString()});
+            aiSaveHist();
             aiRender('user',q);
             var typing=aiRender('bot','•••','typing');
             aiBusy=true;aiSend.disabled=true;
             try{
-                var r=await fetch(AI_EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:AI_HIST})});
+                var r=await fetch(AI_EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:AI_HIST.slice(-20)})});
                 var d=await r.json().catch(function(){return{};});
                 typing.remove();
-                if(r.ok&&d.reply){AI_HIST.push({role:'assistant',content:d.reply});aiRender('bot',d.reply);}
+                if(r.ok&&d.reply){AI_HIST.push({role:'assistant',content:d.reply,at:new Date().toISOString()});aiSaveHist();aiRender('bot',d.reply);}
                 else{aiRender('bot','⚠ '+((d&&d.error)||'Erreur, réessaie.'),'err');}
             }catch(err){typing.remove();aiRender('bot','⚠ Erreur réseau, réessaie.','err');}
             aiBusy=false;aiSend.disabled=false;aiIn.focus();
