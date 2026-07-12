@@ -136,12 +136,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <div class="rv-card">
                 <h1 id="rv-title"></h1>
                 <p class="rv-sub" id="rv-intro"></p>
-                <!-- Coachs : les photos remplacent automatiquement les initiales
-                     dès que les fichiers existent dans /public/images/coachs/ -->
+                <!-- Coachs : photos dans /public/media/coachs/ (webp), initiale en
+                     secours si un fichier manque (onerror). -->
                 <div class="rv-coachs" id="rv-coachs">
                     <div class="rv-coachs-avs">
-                        <span class="rv-av" data-init="R"><img src="/images/coachs/romain.jpg" alt="Romain" onerror="this.remove()"></span>
-                        <span class="rv-av" data-init="V"><img src="/images/coachs/valentin.jpg" alt="Valentin" onerror="this.remove()"></span>
+                        <span class="rv-av" data-init="R"><img src="/media/coachs/romain.webp" alt="Romain" onerror="this.remove()"></span>
+                        <span class="rv-av" data-init="V"><img src="/media/coachs/valentin.webp" alt="Valentin" onerror="this.remove()"></span>
                     </div>
                     <div class="rv-coachs-t">
                         <b>Romain &amp; Valentin, tes coachs</b>
@@ -232,12 +232,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function coachSlug(name) {
             return (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
         }
-        // Avatar d'un coach : photo /images/coachs/{prenom}.jpg si elle existe,
+        // Avatar d'un coach : photo /media/coachs/{prenom}.webp si elle existe,
         // sinon initiale stylée (le onerror retire l'image manquante).
         function coachAv(name) {
             var init = esc((name || '?').charAt(0).toUpperCase());
             var slug = coachSlug(name);
-            return '<span class="rv-av" data-init="' + init + '">' + (slug ? '<img src="/images/coachs/' + slug + '.jpg" alt="' + esc(name) + '" onerror="this.remove()">' : '') + '</span>';
+            return '<span class="rv-av" data-init="' + init + '">' + (slug ? '<img src="/media/coachs/' + slug + '.webp" alt="' + esc(name) + '" onerror="this.remove()">' : '') + '</span>';
         }
         function modalErr(msg) {
             var e = el('rv-modal-err');
