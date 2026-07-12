@@ -33,15 +33,28 @@ const OUTCOME_STATUS = {
   'A dit OUI': 'Dit oui (verbal)',
   Refus: 'Refuse',
   'Faux numero': 'Injoignable',
+  // Touches de la séquence multi-canal (W8+)
+  'SMS rappelle-moi envoyé': null,
+  'Vocal WhatsApp envoyé': null,
+  'SMS deadline envoyé': null,
+  'A répondu par écrit': 'En reflexion',
 };
 
 // Résultat signifiant "rappel à programmer" (nouveau libellé + ancien).
 const CALLBACK_OUTCOMES = ['À rappeler', 'Rappel demande'];
 
-/** Statut + rappel dérivés de la dernière tentative. Historique vide -> à appeler. */
+// Touches passives (envois sans réponse) : elles s'enregistrent dans l'historique
+// mais n'écrasent ni le statut ni le rappel planifié dérivés du dernier vrai échange.
+const PASSIVE_OUTCOMES = ['SMS rappelle-moi envoyé', 'Vocal WhatsApp envoyé', 'SMS deadline envoyé'];
+
+/** Statut + rappel dérivés de la dernière tentative significative. Historique vide -> à appeler. */
 function derive(log) {
   if (!Array.isArray(log) || !log.length) return { call_status: null, next_callback_at: null };
-  const last = log[log.length - 1];
+  let last = null;
+  for (let i = log.length - 1; i >= 0; i--) {
+    if (log[i] && !PASSIVE_OUTCOMES.includes(log[i].outcome)) { last = log[i]; break; }
+  }
+  if (!last) return { call_status: null, next_callback_at: null };
   const status = Object.prototype.hasOwnProperty.call(OUTCOME_STATUS, last.outcome)
     ? OUTCOME_STATUS[last.outcome]
     : null;
