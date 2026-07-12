@@ -2006,9 +2006,9 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
         // SMS « rappelle-moi » : 3 variantes (trame de vente), rotation stable par lead = jamais deux envois identiques d'affilée.
         var SMS_TPL=[
-            'Salut {p}, c\'est {c}, coach dans l\'équipe de Sonny 😊 Je m\'occupe du suivi des participants de la masterclass de jeudi et t\'es sur ma liste. Rappelle-moi sur ce numéro quand t\'as 5 min ce week-end.',
-            'Hello {p}, c\'est {c} de l\'équipe Sonny Court. Je fais le point ce week-end avec chaque participant sur son guide de diagnostic. Rappelle-moi quand tu veux, je te réserve le temps qu\'il faut 😊',
-            '{p}, c\'est {c}, ton coach de suivi pour la masterclass de jeudi. J\'ai essayé de te joindre pour ton débrief perso. Rappelle-moi quand t\'es dispo 🙏'
+            'Salut {p}, c\'est {c}, coach dans l\'équipe de Sonny 😊 Chaque participant de la masterclass de jeudi bénéficie d\'un suivi perso — et c\'est moi qui m\'occupe du tien. Rappelle-moi sur ce numéro quand t\'as 5 min ce week-end, c\'est offert avec la masterclass.',
+            'Hello {p}, {c} de l\'équipe Sonny Court. Ton débrief perso du guide de diagnostic est prévu ce week-end avec moi 😊 Rappelle-moi sur ce numéro quand tu veux, je te réserve le temps qu\'il faut.',
+            '{p}, c\'est {c}, ton coach de suivi pour la masterclass de jeudi. Sonny offre un débrief personnel à chaque participant — j\'ai essayé de te joindre pour le tien. Rappelle-moi quand t\'es dispo 🙏'
         ];
         function smsFor(l){var h=0,t=String(l.token||'');for(var k=0;k<t.length;k++)h=(h+t.charCodeAt(k))%3;var c=(typeof ME!=='undefined'&&ME&&ME.label)?String(ME.label).trim().split(/\s+/)[0]:'[ton prénom]';return SMS_TPL[h].replace(/\{p\}/g,l.prenom||'').replace(/\{c\}/g,c);}
         function ccCopy(text,btn,doneLabel){var orig=btn.innerHTML;var ok=function(){btn.classList.add('copied');btn.innerHTML=doneLabel||'&#10003; Copié';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=orig;},1500);};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,function(){ccFallbackCopy(text);ok();});}else{ccFallbackCopy(text);ok();}}catch(_){ccFallbackCopy(text);ok();}}
