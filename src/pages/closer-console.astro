@@ -1478,6 +1478,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-me-cp{flex:0 0 auto;background:#2563eb;color:#fff;border:0;cursor:pointer;font-family:inherit;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;} .cc-me-cp:hover{background:#3b82f6;}
     .cc-me-cp.copied{background:#16a34a;} .cc-me-cp.copied:hover{background:#16a34a;}
     .cc-me-empty{color:#64748b;font-size:12.5px;font-style:italic;}
+    /* Liens d'affiliation par formation (dépliable) */
+    .cc-me-wide{grid-column:1/-1;}
+    .cc-me-afftoggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;}
+    .cc-me-afftoggle:hover{color:#cbd5e1;}
+    .cc-me-affchev{font-size:13px;transition:transform .15s ease;}
+    .cc-me-afftoggle.is-open .cc-me-affchev{transform:rotate(180deg);}
+    .cc-me-afflist{margin-top:10px;}
     .cc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
     .cc-chip{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;} .cc-chip:hover{border-color:#cbd5e1;}
     .cc-chip.on{background:#2563eb;color:#fff;border-color:#2563eb;} .cc-chip small{opacity:.7;margin-left:5px;font-weight:700;}
@@ -1912,13 +1919,21 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             if(!me){meEl.hidden=true;meEl.innerHTML='';return;}
             var tels=meRow('',me.phone_1,'tel')+meRow('',me.phone_2,'tel');
             var liens=meRow('Tarif complet (prospect)',me.checkout_full_url,'link')+meRow('Lien -5% (closing)',me.checkout_discount_url,'link');
-            if(!tels&&!liens){meEl.hidden=true;meEl.innerHTML='';return;}
+            var aff=Array.isArray(me.affiliate_links)?me.affiliate_links:[];
+            if(!tels&&!liens&&!aff.length){meEl.hidden=true;meEl.innerHTML='';return;}
             meEl.innerHTML='<div class="cc-me-grid">'+
                 '<div class="cc-me-block"><div class="cc-me-k">&#128222; Mes numéros</div>'+(tels||'<div class="cc-me-empty">Aucun numéro configuré.</div>')+'</div>'+
                 '<div class="cc-me-block"><div class="cc-me-k">&#128279; Mes liens checkout</div>'+(liens||'<div class="cc-me-empty">Aucun lien configuré.</div>')+'</div>'+
+                (aff.length?'<div class="cc-me-block cc-me-wide">'+
+                    '<button type="button" class="cc-me-afftoggle" id="cc-me-afftoggle"><span>&#129513; Mes liens formations &middot; '+aff.length+'</span><span class="cc-me-affchev">&#9662;</span></button>'+
+                    '<div class="cc-me-afflist" id="cc-me-afflist" hidden>'+aff.map(function(l){return meRow(l.title,l.url,'link');}).join('')+'</div>'+
+                '</div>':'')+
             '</div>';
+            var tgl=document.getElementById('cc-me-afftoggle');
+            if(tgl)tgl.addEventListener('click',function(){var lst=document.getElementById('cc-me-afflist');lst.hidden=!lst.hidden;this.classList.toggle('is-open',!lst.hidden);});
             meEl.hidden=false;
         }
+        window.__ccMePreview=renderMe;
         function saved(det,msg){var s=det.querySelector('.cc-saved');if(s){s.textContent=msg||'Enregistre';setTimeout(function(){s.textContent='';},1600);}}
         async function postJSON(p){if(isTestLead(p.token))return testRespond(p);return fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}
         function testRespond(p){

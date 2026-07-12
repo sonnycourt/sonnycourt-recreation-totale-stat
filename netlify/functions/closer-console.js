@@ -75,6 +75,28 @@ function dateISO(v) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// Liens d'affiliation Spiffy par formation : le checkout est le même pour tous
+// les closers, seul l'identifiant affilié (fin d'URL) change (spiffy_affiliate_id).
+const SPIFFY_CHECKOUTS = [
+  ['ES2.0 (standard)', 'Q0vnCdQy0VN'],
+  ['ES2.0 (-5 %)', 'j2oBiPY6Rq2'],
+  ['Challenge Transformation', '5apqt2laXL6'],
+  ['Esprit Subconscient (⚠️ pas ES2.0)', 'vpE4s0bJBlR'],
+  ['Manifest', '2bnEhP4ZYkB'],
+  ['Système Souhaits-Réalisés', '0DkQtNVKJvL'],
+  ['Neuro IA', '2bnBTP4ZY6y'],
+  ['Système Viral', 'G5wKUd4XR6y'],
+];
+
+function affiliateLinks(affiliateId) {
+  const aff = String(affiliateId || '').trim();
+  if (!aff) return [];
+  return SPIFFY_CHECKOUTS.map(([title, slug]) => ({
+    title,
+    url: `https://sonnycourt.spiffy.co/a/${slug}/${aff}`,
+  }));
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { ok: true });
 
@@ -92,9 +114,13 @@ export default async (req) => {
     // Coordonnées du closer (téléphones + liens checkout) affichées en tête de console.
     let me = null;
     const meRes = await supabaseGet(
-      `closer_access_codes?id=eq.${cid}&select=label,phone_1,phone_2,checkout_full_url,checkout_discount_url`,
+      `closer_access_codes?id=eq.${cid}&select=label,phone_1,phone_2,checkout_full_url,checkout_discount_url,spiffy_affiliate_id`,
     );
-    if (meRes.ok && Array.isArray(meRes.data) && meRes.data[0]) me = meRes.data[0];
+    if (meRes.ok && Array.isArray(meRes.data) && meRes.data[0]) {
+      me = meRes.data[0];
+      me.affiliate_links = affiliateLinks(me.spiffy_affiliate_id);
+      delete me.spiffy_affiliate_id;
+    }
     return json(200, { leads: Array.isArray(r.data) ? r.data : [], me });
   }
 
