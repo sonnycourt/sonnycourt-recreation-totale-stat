@@ -1,0 +1,650 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+// true uniquement avec `astro dev` (localhost), false dans le build de prod.
+const IS_DEV = import.meta.env.DEV;
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Trame de vente — Closers</title>
+    <meta name="description" content="Trame de vente closers — suivi post-masterclass.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            color-scheme: light only;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --accent-soft: #eff6ff;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap { max-width: 760px; margin: 0 auto; padding: 0 22px; }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: clamp(1.9rem, 5.2vw, 2.8rem);
+            font-weight: 900;
+            line-height: 1.18;
+            letter-spacing: -0.02em;
+        }
+
+        .hero { padding: clamp(40px, 7vw, 70px) 0 clamp(18px, 3vw, 28px); }
+
+        .hero .lead {
+            margin-top: 14px;
+            font-size: clamp(1rem, 2.6vw, 1.1rem);
+            color: var(--ink-soft);
+            max-width: 640px;
+        }
+
+        section.sec { padding: clamp(22px, 4vw, 38px) 0; border-bottom: 1px solid var(--line); }
+        section.sec:last-of-type { border-bottom: none; padding-bottom: 80px; }
+
+        h2 {
+            font-size: clamp(1.25rem, 3.2vw, 1.55rem);
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        h3 { font-size: 1.05rem; font-weight: 800; margin: 22px 0 8px; }
+
+        .sec-sub { font-size: 0.92rem; color: var(--muted); margin-bottom: 16px; }
+
+        p { margin: 10px 0; }
+
+        ul, ol { margin: 10px 0 10px 22px; }
+        li { margin: 7px 0; }
+
+        .disclaimer {
+            border: 1.5px solid #ba7517;
+            background: #faeeda;
+            color: #412402;
+            border-radius: 14px;
+            padding: 16px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .disclaimer strong { font-weight: 800; }
+
+        .cheat {
+            border: 2px solid var(--primary-dark);
+            background: var(--accent-soft);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+
+        .cheat h2 { color: var(--primary-dark); }
+
+        .cheat ol { margin-left: 20px; }
+        .cheat li { margin: 9px 0; font-size: 0.95rem; }
+        .cheat .cheat-note { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-top: 12px; }
+
+        .script {
+            border-left: 4px solid var(--primary);
+            background: var(--surface);
+            border-radius: 0 12px 12px 0;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 0.98rem;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+
+        .warn {
+            border: 1.5px solid #b85450;
+            background: #fdf0ef;
+            color: #4f100e;
+            border-radius: 12px;
+            padding: 13px 16px;
+            font-size: 0.92rem;
+            margin: 12px 0;
+        }
+
+        .tip {
+            border: 1.5px solid #0f6e56;
+            background: #e1f5ee;
+            color: #04342c;
+            border-radius: 12px;
+            padding: 13px 16px;
+            font-size: 0.92rem;
+            margin: 12px 0;
+        }
+
+        .obj { margin: 16px 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+        .obj .q { font-weight: 800; }
+        .obj .a { margin-top: 6px; color: var(--ink-soft); }
+
+        /* === Topbar === */
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 11px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-size: clamp(0.82rem, 2.4vw, 0.95rem);
+            font-weight: 600; line-height: 1.35; text-align: center;
+            box-shadow: 0 2px 14px rgba(37, 99, 235, 0.28);
+        }
+        .topbar strong { color: #fff; font-weight: 800; }
+        .topbar .live-dot {
+            width: 9px; height: 9px; border-radius: 999px; background: #fff; flex-shrink: 0;
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            animation: topbarPulse 1.6s ease-in-out infinite;
+        }
+        @keyframes topbarPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+            50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); }
+        }
+
+        /* === Gate d'accès === */
+        .closer-gate {
+            position: fixed; inset: 0; z-index: 1000;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+        .closer-gate.is-hidden { display: none; }
+        .closer-gate-card {
+            width: 100%; max-width: 400px; background: var(--surface);
+            border: 1px solid var(--line); border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+        .closer-gate-logo {
+            width: 48px; height: 48px; margin: 0 auto 18px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; background: var(--accent-soft); color: var(--primary-dark);
+        }
+        .closer-gate-logo svg { width: 24px; height: 24px; }
+        .closer-gate-card h1 { font-size: 1.4rem; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 8px; }
+        .closer-gate-hint { font-size: 0.95rem; color: var(--muted); line-height: 1.5; margin-bottom: 22px; }
+        .closer-gate-form { display: none; }
+        .closer-gate-form.is-ready { display: block; }
+        .closer-gate-input {
+            width: 100%; padding: 14px 16px; text-align: center; font-family: inherit;
+            font-size: 1.05rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--ink); border: 2px solid var(--line); border-radius: 12px; background: #fff;
+        }
+        .closer-gate-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18); }
+        .closer-gate-input::placeholder { letter-spacing: normal; text-transform: none; font-weight: 500; color: #94a3b8; }
+        .closer-gate-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; text-align: left; cursor: pointer; }
+        .closer-gate-consent input { margin-top: 2px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
+        .closer-gate-consent span { font-size: 0.82rem; line-height: 1.45; color: var(--ink-soft); }
+        .closer-gate-error { min-height: 1.2em; margin: 10px 0 0; font-size: 0.88rem; font-weight: 600; color: #dc2626; }
+        .closer-gate-btn {
+            width: 100%; margin-top: 16px; padding: 15px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff; font-family: inherit; font-size: 1rem; font-weight: 800; letter-spacing: 0.02em;
+            cursor: pointer; box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .closer-gate-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(37, 99, 235, 0.4); }
+        .closer-gate-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+        .closer-gate-spinner {
+            width: 38px; height: 38px; margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25); border-top-color: var(--primary);
+            border-radius: 50%; animation: closerSpin 0.8s linear infinite;
+        }
+        .closer-gate-spinner.is-hidden { display: none; }
+        @keyframes closerSpin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Gate d'accès (protection mot de passe) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Trame de vente · accès réservé</h1>
+            <p class="closer-gate-hint">Connectez-vous avec votre email et votre mot de passe.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-email" class="closer-gate-input" type="email" inputmode="email" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="Votre email" aria-label="Email" />
+                <input id="closer-gate-pass" class="closer-gate-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" aria-label="Mot de passe" style="margin-top:10px;" />
+                <label class="closer-gate-consent" for="closer-gate-consent">
+                    <input type="checkbox" id="closer-gate-consent" />
+                    <span>Je comprends que les informations de cette page sont confidentielles et je m'engage à ne pas les partager ni les diffuser.</span>
+                </label>
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit" disabled>Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline define:vars={{ IS_DEV }}>
+        window.__CLOSER_TDV_DEV__ = IS_DEV;
+    </script>
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-login';
+            var LOGIN = '/.netlify/functions/closer-login';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var emailEl = document.getElementById('closer-gate-email');
+            var passEl = document.getElementById('closer-gate-pass');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+            var consent = document.getElementById('closer-gate-consent');
+
+            document.body.style.overflow = 'hidden';
+
+            function syncBtn() { btn.disabled = !consent.checked; }
+            consent.addEventListener('change', syncBtn);
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                syncBtn();
+                try { emailEl.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                if (window.__CLOSER_TDV_DEV__) { reveal(); return; } // bypass localhost uniquement
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* hors ligne / fonction indisponible -> on demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!consent.checked) { err.textContent = 'Cochez la case de confidentialité.'; return; }
+                var email = (emailEl.value || '').trim();
+                var pass = passEl.value || '';
+                if (!email || !pass) { err.textContent = 'Entrez votre email et votre mot de passe.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(LOGIN, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, password: pass }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Identifiants invalides.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                syncBtn();
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
+    <!-- Bannière -->
+    <div class="topbar" role="note">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Trame de vente · <strong>Suivi post-masterclass</strong> · Mission du vendredi 16h au dimanche 23h.</span>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="wrap">
+            <span class="eyebrow">Trame de vente · TDV</span>
+            <h1>Trame de vente</h1>
+            <p class="lead">Le guide complet de l'appel d'aide et de suivi — de l'antisèche aux objections. À lire en entier avant vendredi, puis à consulter entre les appels.</p>
+        </div>
+    </section>
+
+    <!-- DISCLAIMER -->
+    <section class="sec">
+        <div class="wrap">
+            <div class="disclaimer">
+                <strong>⚠️ Ceci est un guide, pas un script à réciter.</strong> Cette trame existe pour te
+                faciliter les appels et augmenter ton taux de close — pas pour te limiter. La fluidité d'une
+                conversation naturelle passe TOUJOURS avant la trame. Si ton instinct te dit qu'une autre
+                formulation, un autre ordre ou une autre approche marchera mieux avec la personne que tu as
+                en ligne : suis ton instinct. Les scripts ci-dessous sont des points de départ éprouvés, pas des cages.
+            </div>
+        </div>
+    </section>
+
+    <!-- ANTISÈCHE -->
+    <section class="sec">
+        <div class="wrap">
+            <div class="cheat">
+                <h2>⚡ L'antisèche — l'appel entier en 6 lignes</h2>
+                <p class="sec-sub" style="margin-top:4px;">La seule chose à avoir sous les yeux en appel.</p>
+                <ol>
+                    <li><strong>CARE</strong> — « Coach de l'équipe Sonny. Comment tu te sens depuis jeudi ? » → écoute.</li>
+                    <li><strong>PERMISSION</strong> — « On parcourt ton guide ensemble pour que je t'aiguille ? »</li>
+                    <li><strong>WORKBOOK</strong> — objectif · depuis quand · déjà mis en place (💰 jauge) · conviction /10 · « je suis quelqu'un qui… » · 2027.</li>
+                    <li><strong>BASCULE</strong> — « Vu ton profil, ES2 a été construit pour toi. Qu'est-ce qui t'a retenu jusqu'ici ? »</li>
+                    <li><strong>ISSUE</strong> — Accepte : budget OK → ancre 1× (−367 €) ou 3× (−273 €), puis lien par SMS, reste en ligne · Hésite : « oui ou non d'ici dimanche, qu'est-ce qui décide ? » → RDV · Budget : 2 questions downsell (montant max ? besoin ?) → « ça tombe bien ».</li>
+                    <li><strong>TOUJOURS</strong> — cocher la console · deadline dimanche 23h · un non se respecte.</li>
+                </ol>
+                <p class="cheat-note">Tout le détail est en dessous — à lire entre les appels, jamais pendant.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 0 QUI TU ES -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>0 · Qui tu es et pourquoi tu appelles</h2>
+            <p class="sec-sub">À lire avant ton premier appel.</p>
+
+            <h3>Tu appelles en tant que : coach de l'équipe de Sonny Court</h3>
+            <p>Pas « closer ». Pas « conseiller commercial ». <strong>Coach.</strong> C'est ton rôle réel dans
+            cet appel : tu prends des nouvelles, tu écoutes, tu aides la personne à y voir clair dans ce
+            qu'elle a découvert sur elle-même jeudi soir.</p>
+
+            <h3>La raison de ton appel</h3>
+            <p>La masterclass fait faire un vrai travail d'introspection (le guide de diagnostic remue des
+            choses profondes : blocages, croyances, souvenirs). Sonny tient à ce que chaque participant
+            ressorte de cette expérience avec du positif — pas avec des prises de conscience laissées en
+            suspens. Ton appel, c'est ce suivi : <strong>un appel d'aide, pas un appel de vente, pas un appel
+            de conseil.</strong></p>
+
+            <h3>Ta posture pendant l'appel</h3>
+            <ul>
+                <li>Tu n'es pas là pour vendre ES2. Tu es là pour <strong>évaluer</strong>, au fil de la
+                conversation, si le profil de la personne correspond à ce qu'ES2 peut lui apporter.</li>
+                <li>C'est TOI qui évalues si ça matche — pas elle qui doit te convaincre, ni toi qui dois la
+                convaincre. Cette posture inverse tout : les protections du prospect (« j'ai pas d'argent »,
+                « on va me vendre un truc ») tombent d'elles-mêmes.</li>
+                <li>ES2 n'arrive JAMAIS en début d'appel. Il arrive quand la personne a re-verbalisé
+                elle-même son objectif, ses blocages et qui elle veut devenir. Pas avant.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 1 SMS -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>1 · SMS « rappelle-moi »</h2>
+            <p class="sec-sub">J0, après le 1er appel manqué — alterne les variantes, ne copie jamais deux fois pareil.</p>
+
+            <div class="tip">L'esprit : ce SMS n'est pas une demande, c'est un <strong>cadeau</strong>. Chaque
+            participant de la masterclass bénéficie d'un suivi personnel avec un coach — il est prévu, il est
+            offert, il n'a qu'à le récupérer.</div>
+
+            <div class="script">V1 — « Salut [prénom], c'est [coach], coach dans l'équipe de Sonny 😊 Chaque
+            participant de la masterclass de jeudi bénéficie d'un suivi perso — et c'est moi qui m'occupe du
+            tien. Rappelle-moi quand t'as 5 min ce week-end, c'est offert avec la masterclass. »</div>
+            <div class="script">V2 — « Hello [prénom], [coach] de l'équipe Sonny Court. Ton débrief perso du
+            guide de diagnostic est prévu ce week-end avec moi 😊 Rappelle-moi quand tu veux, je te réserve
+            le temps qu'il faut. »</div>
+            <div class="script">V3 — « [Prénom], c'est [coach], ton coach de suivi pour la masterclass de
+            jeudi. Sonny offre un débrief personnel à chaque participant — j'ai essayé de te joindre pour le
+            tien. Rappelle-moi quand t'es dispo 🙏 »</div>
+        </div>
+    </section>
+
+    <!-- 2 VOCAL -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>2 · Note vocale WhatsApp</h2>
+            <p class="sec-sub">J+1, dans la foulée de l'appel manqué — ~30 secondes, JAMAIS lue mot à mot.</p>
+            <p>Les 4 points à toucher, avec tes mots à toi, naturellement :</p>
+            <ol>
+                <li><strong>Qui tu es</strong> : « c'est [coach], de l'équipe de Sonny Court »</li>
+                <li><strong>Pourquoi</strong> : « je voulais prendre de tes nouvelles après la masterclass —
+                ça remue pas mal de choses chez les gens et Sonny tient à ce qu'on fasse le suivi »</li>
+                <li><strong>Le but</strong> : « et surtout, on veut pas que ce que t'as découvert jeudi reste
+                des notes dans un guide. T'as mis le doigt sur des trucs importants — mon rôle c'est de
+                t'aider à ce que ça devienne un vrai changement dans ta vie, pas juste une soirée
+                intéressante de plus. »</li>
+                <li><strong>Porte ouverte</strong> : « rappelle-moi, ou réponds-moi ici par écrit si tu
+                préfères 😊 »</li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- 3 APPEL -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>3 · L'appel d'aide et de suivi</h2>
+            <p class="sec-sub"><strong>Durée : aussi court que possible, aussi long que nécessaire — ~30 minutes
+            max.</strong> Tu ne prolonges au-delà que si tu sens quelqu'un de réellement prêt à investir dans
+            sa transformation.</p>
+
+            <h3>Ouverture (care, chaleureux, zéro pression)</h3>
+            <div class="script">« Salut [prénom], c'est [coach], je fais partie des coachs de l'équipe de
+            Sonny Court. La masterclass de jeudi fait faire un vrai travail sur soi, et Sonny tient à ce
+            qu'on prenne des nouvelles de chaque participant — pour être sûr que ça t'apporte du positif.
+            <strong>Alors dis-moi : comment tu te sens depuis jeudi ?</strong> »</div>
+            <p>→ Écoute. Vraiment. Ce qu'il dit ici te donne le fil de tout l'appel.</p>
+
+            <h3>Débrief du guide de diagnostic (il se re-vend tout seul)</h3>
+            <p><strong>D'abord, demande la permission</strong> (ça transforme l'interrogatoire en collaboration) :</p>
+            <div class="script">« Si t'es d'accord, j'aimerais qu'on parcoure ensemble ton guide de
+            diagnostic — tu me partages ce que t'y as noté, et comme ça je comprends vraiment ta situation
+            et je peux t'aiguiller au mieux. Ça te va ? »</div>
+            <p>Puis les questions, dans l'ordre — adapte :</p>
+            <ul>
+                <li>« T'as rempli ton guide pendant la masterclass ? »</li>
+                <li>« Sur la première page, t'avais noté quoi comme objectif ? Ça fait combien de temps que
+                tu le portes ? » <em>(page L'Ancre Invisible)</em></li>
+                <li>« Et qu'est-ce que t'as déjà mis en place concrètement pour y arriver ? »
+                <em>(⚠️ ta jauge budget discrète : formations achetées, coachings, thérapies = acheteur
+                solvable · que du gratuit = signal faible, appel court)</em></li>
+                <li>« Et ta conviction de l'atteindre, t'avais coché combien sur 10 ? » → si ≤ 6 :
+                « qu'est-ce qui te fait douter à ce point ? »</li>
+                <li>« La table d'identité — t'avais écrit quoi à "je suis quelqu'un qui…" ? »
+                <em>(moment de vérité : silence, laisse venir, ne remplis pas les blancs)</em></li>
+                <li>« Et l'exercice 2027, à la fin — t'as écrit quoi ? T'es qui dans un an ? »</li>
+            </ul>
+
+            <h3>La bascule vers ES2 (UNE phrase, seulement quand il a tout re-verbalisé)</h3>
+            <div class="script">« Ok. Donc t'as [son objectif] depuis [X années], tu sais exactement ce qui
+            te bloque — tu l'as écrit toi-même jeudi — et tu sais qui tu veux devenir. Vu ton profil, je
+            pense que t'es exactement le genre de personne pour qui Esprit Subconscient a été construit.
+            Qu'est-ce qui t'a retenu jusqu'ici de prendre la salle d'entraînement qui va avec ton
+            diagnostic ? »</div>
+            <p>→ Sa réponse t'amène sur l'une des 4 issues (voir la Procédure de prise de contact) :
+            <strong>Accepte / Objection concrète → RDV / Refus poli ou budget → downsell / Refuse</strong></p>
+
+            <h3>Le close (s'il accepte) — et l'ancrage de la formule de paiement</h3>
+            <p><strong>Juste après son oui, AVANT d'envoyer le lien</strong>, ancre la bonne formule selon
+            son profil budget (que tu connais déjà grâce au débrief) :</p>
+            <div class="script">« Dernier truc : t'as trois formules sur la page. La plus souple, c'est
+            12 fois 197. Mais si la trésorerie n'est pas un souci pour toi, autant prendre la plus
+            économique : <strong>1 997 en une fois, tu économises 367 €</strong> — c'est presque deux
+            mensualités offertes. Et entre les deux, le 3 fois 697 t'économise déjà 273 €. Tu pars sur
+            laquelle ? »</div>
+            <p><strong>La règle d'ancrage :</strong></p>
+            <ul>
+                <li>Signaux budget OK (a déjà investi, métier stable, aucun frein argent) → pousse le
+                <strong>1× ou le 3×</strong> par l'économie. C'est du cash immédiat et moins d'impayés.</li>
+                <li>Signal budget serré → ne mentionne même pas l'économie : « le 12× à 197 existe
+                exactement pour ça, 6,56 € par jour ». Personne ne doit se sentir lésé — la formule souple
+                est un avantage légitime, pas un piège.</li>
+                <li>Jamais de débat entre les formules : une reco claire selon son profil, et on avance.</li>
+            </ul>
+            <p><strong>Puis l'envoi :</strong></p>
+            <div class="script">« Je t'envoie le lien par SMS, là tout de suite. Ouvre-le pendant qu'on est
+            au téléphone — je reste avec toi le temps que ce soit fait, comme ça si t'as la moindre question
+            on la règle en direct. »</div>
+        </div>
+    </section>
+
+    <!-- 4 OBJECTIONS -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>4 · Objections</h2>
+            <p class="sec-sub">Réponse courte + retour à SON workbook.</p>
+
+            <div class="obj"><p class="q">« C'est cher / j'ai pas les moyens »</p>
+            <p class="a">« C'est 197 par mois, 6 € par jour. Toi-même t'as écrit que ton blocage te prive de
+            [son objectif] depuis [X ans]. Entre les deux, lequel te coûte le plus cher ? » — Si c'est un
+            VRAI blocage budget (pas une esquive) : downsell (section 5).</p></div>
+
+            <div class="obj"><p class="q">« Je dois en parler à mon/ma conjoint(e) »</p>
+            <p class="a">« Bien sûr. Montre-lui ta page 2027 ce soir — c'est le meilleur résumé de pourquoi
+            tu veux le faire. On se rappelle demain, plutôt matin ou soir ? » <em>(RDV fixé, heure précise)</em></p></div>
+
+            <div class="obj"><p class="q">« J'ai besoin de réfléchir »</p>
+            <p class="a">Question filtre : « Qu'est-ce qui te ferait dire oui ou non d'ici dimanche ? » —
+            Réponse concrète = RDV fixé. Réponse vague = refus poli → section 5.</p></div>
+
+            <div class="obj"><p class="q">« J'ai déjà acheté des formations, rien n'a changé »</p>
+            <p class="a">« Sonny en parle dans la masterclass : jusqu'ici t'as payé pour SAVOIR, jamais pour
+            t'entraîner. C'est la différence entre lire des livres de muscu et aller à la salle. Et t'as la
+            garantie 30 jours : si les premiers modules ne te convainquent pas, tu récupères tout. Tu ne
+            prends littéralement aucun risque. »</p></div>
+
+            <div class="obj"><p class="q">« Ça marche vraiment ? »</p>
+            <p class="a">« T'as coché quoi à la question 8 du guide ? [laisse répondre] Voilà. Et t'as
+            30 jours pour le vérifier sans risque. »</p></div>
+
+            <div class="obj"><p class="q">« Pourquoi ça ferme dimanche ? »</p>
+            <p class="a">« Parce que Sonny fait lui-même le suivi personnalisé à J+30 — 30 places, pas une
+            de plus, et il ne travaille qu'avec les gens qui décident. C'est pas du marketing, c'est sa
+            façon de filtrer. »</p></div>
+        </div>
+    </section>
+
+    <!-- 5 DOWNSELL -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>5 · Downsell</h2>
+            <p class="sec-sub">Refus poli OU vrai blocage budget — voir la page Downsell pour le détail des offres.</p>
+
+            <div class="warn"><strong>⚠️ Règle d'or : le downsell est DÉFINITIF.</strong> ES2 regroupe toutes
+            ces formations — un acheteur de formation unique ne pourra plus jamais acheter ES2. Tu ne
+            descends ici que si la vente ES2 est réellement et définitivement morte. Vendre du 247 € à
+            quelqu'un qui aurait pu prendre ES2 d'ici dimanche soir = brûler une vente à 2 000 €.</div>
+
+            <h3>L'ouverture</h3>
+            <div class="script">« Je comprends, et honnêtement ES2 n'est pas fait pour tout le monde. Par
+            contre, te laisser repartir avec ton diagnostic sous le bras et rien pour avancer, ça me
+            dérange — tu risques de tourner en rond encore des années, seul. Laisse-moi te poser deux
+            dernières questions pour voir ce qui te correspondrait vraiment. »</div>
+
+            <h3>Question 1 — le budget (il s'engage sur SON chiffre)</h3>
+            <div class="script">« Concrètement, pour atteindre [son objectif], c'était quoi le montant
+            maximum que t'étais prêt à investir dans ta transformation cette année ? »</div>
+            <ul>
+                <li>Laisse-le donner son chiffre. Ne le souffle jamais, ne le négocie pas.</li>
+                <li>Chiffre ≥ 147 € : continue avec la question 2.</li>
+                <li>Chiffre en dessous de 147 € : sortie chaleureuse, les emails prennent le relais.</li>
+            </ul>
+
+            <h3>Question 2 — le besoin (tu choisis le bon produit sous son chiffre)</h3>
+            <div class="script">« Toi, tu dirais que ton besoin aujourd'hui c'est plutôt quoi :
+            <strong>mettre en place une vraie routine solide</strong>, en partant des bases — ou t'es
+            <strong>déjà avancé</strong>, t'as déjà ta routine, et ce qu'il te faut c'est recâbler tes
+            neurocircuits pour manifester plus vite — ou ce qui te manque c'est la
+            <strong>régularité</strong> : tu pars motivé mais tu te perds en cours de route, et t'aurais
+            besoin d'une immersion guidée quotidienne qui te maintient sur les rails ? »</div>
+
+            <h3>Le match budget × besoin — avec la phrase magique « ça tombe bien »</h3>
+            <ul>
+                <li>Routine / bases → <strong>Esprit Subconscient</strong> — 21 jours pour reprogrammer son
+                subconscient. « Ça tombe bien : 147 € au lieu de 297, en une fois. »</li>
+                <li>Déjà avancé → <strong>Manifest</strong> — 12 exercices mentaux guidés, premiers
+                résultats en 30 jours. « Ça tombe bien : 247 € au lieu de 497, ou 3 fois 87. »</li>
+                <li>Manque de régularité → <strong>Système Souhaits Réalisés</strong> — l'immersion audio
+                guidée, 10h+ de reprogrammation, le « lavage de cerveau » positif avec une structure
+                quotidienne forte. « Ça tombe bien : 197 € au lieu de 397, en une fois. »</li>
+            </ul>
+            <p>→ Si son besoin pointe un produit AU-DESSUS de son chiffre : propose le paiement en 3×
+            (Manifest) ou le produit juste sous son budget. Jamais de forcing au-delà du chiffre qu'il a
+            donné — c'est lui qui l'a fixé, c'est ce qui rend le close naturel.</p>
+
+            <p><strong>Dans tous les cas :</strong></p>
+            <ul>
+                <li>Le lien part par SMS, pendant l'appel, comme toujours.</li>
+                <li>Coche l'offre proposée dans la console (quelle qu'elle soit).</li>
+                <li>S'il refuse tout : sortie chaleureuse, les emails automatiques prennent le relais.</li>
+                <li>Système Viral ne se propose plus jamais en downsell.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 6 SMS DEADLINE -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>6 · SMS deadline du dimanche</h2>
+            <p class="sec-sub">Toi → uniquement ceux qui t'ont répondu au moins une fois. Les silencieux
+            complets reçoivent le broadcast de Sonny — pas toi.</p>
+
+            <div class="script">V1 (a échangé, pas closé) — « [Prénom], c'est [coach]. Je voulais pas que tu
+            passes à côté : les inscriptions ES2 ferment ce soir à 23h, après c'est définitif. Si t'as la
+            moindre question je suis dispo jusqu'à ce soir. Le lien : [lien] »</div>
+            <div class="script">V2 (RDV manqué) — « [Prénom], on n'a pas réussi à se reparler et ça ferme à
+            23h ce soir. Appelle-moi si tu veux en parler 5 min, sinon voici le lien direct : [lien] »</div>
+        </div>
+    </section>
+
+    <!-- 7 RÈGLES D'OR -->
+    <section class="sec">
+        <div class="wrap">
+            <h2>7 · Règles d'or</h2>
+            <p class="sec-sub">À connaître par cœur.</p>
+            <ol>
+                <li>Le lien de paiement part TOUJOURS par SMS, pendant l'appel. Éviter l'envoi de liens
+                sur WhatsApp.</li>
+                <li>Tu restes en ligne jusqu'au paiement confirmé — avec pour motif d'être sûr que tout se
+                passe bien techniquement. Pas de « je te laisse finir tranquille ».</li>
+                <li>Tout cocher dans la console (statut d'appel, offres proposées) — c'est ce qui pilote les
+                emails automatiques derrière toi.</li>
+                <li>WhatsApp : max 15 premiers messages par heure, jamais deux messages identiques,
+                « stop » = suppression immédiate de la liste.</li>
+                <li>La deadline, c'est <strong>dimanche 23h</strong>.</li>
+                <li>Un « non » se respecte avec la même chaleur qu'un « oui ». C'est un appel d'aide avant
+                tout — et c'est exactement pour ça que ça close.</li>
+            </ol>
+        </div>
+    </section>
+</body>
+</html>

@@ -15,7 +15,7 @@ import {
  * POST { messages: [{role:'user'|'assistant', content:string}, ...] } -> { reply }
  */
 
-const DOC_PATHS = ['/closer-documentation/', '/closer-downsell/', '/closer-ppc/'];
+const DOC_PATHS = ['/closer-documentation/', '/closer-downsell/', '/closer-ppc/', '/closer-tdv/'];
 const DOCS_TTL_MS = 10 * 60 * 1000;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 4000;
