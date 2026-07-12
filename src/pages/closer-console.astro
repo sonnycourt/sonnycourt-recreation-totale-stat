@@ -1478,6 +1478,14 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-me-cp{flex:0 0 auto;background:#2563eb;color:#fff;border:0;cursor:pointer;font-family:inherit;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;} .cc-me-cp:hover{background:#3b82f6;}
     .cc-me-cp.copied{background:#16a34a;} .cc-me-cp.copied:hover{background:#16a34a;}
     .cc-me-empty{color:#64748b;font-size:12.5px;font-style:italic;}
+    .cc-me-telnote{font-size:11px;color:#94a3b8;margin-top:6px;}
+    .cc-me-telinput{width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:14px;font-family:inherit;}
+    .cc-me-telinput::placeholder{color:#64748b;}
+    .cc-me-telactions{display:flex;gap:8px;margin-top:8px;}
+    .cc-me-ghost{background:rgba(255,255,255,.12) !important;}
+    .cc-me-telmsg{font-size:12px;min-height:14px;margin-top:6px;}
+    .cc-me-featured{background:rgba(37,99,235,.18);border:1px solid rgba(147,197,253,.35);border-radius:10px;padding:9px 12px;margin-bottom:8px;}
+    .cc-me-mainbadge{display:inline-block;background:#2563eb;color:#fff;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:5px;padding:1px 6px;margin-left:5px;vertical-align:1px;}
     /* Liens d'affiliation par formation (dépliable) */
     .cc-me-wide{grid-column:1/-1;}
     .cc-me-afftoggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;}
@@ -1915,18 +1923,29 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             return'<div class="cc-me-row"><span class="cc-me-val">'+sub+'<a href="'+esc(val)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;">'+esc(val)+'</a></span>'+
                 '<button type="button" class="cc-me-cp" data-copy="'+esc(val)+'">&#128203; Copier</button></div>';
         }
+        var ME=null;
         function renderMe(me){
             if(!me){meEl.hidden=true;meEl.innerHTML='';return;}
-            var tels=meRow('',me.phone_1,'tel')+meRow('',me.phone_2,'tel');
-            var liens=meRow('Tarif complet (prospect)',me.checkout_full_url,'link')+meRow('Lien -5% (closing)',me.checkout_discount_url,'link');
+            ME=me;
             var aff=Array.isArray(me.affiliate_links)?me.affiliate_links:[];
-            if(!tels&&!liens&&!aff.length){meEl.hidden=true;meEl.innerHTML='';return;}
+            var featured=aff.filter(function(l){return l.featured;});
+            var others=aff.filter(function(l){return !l.featured;});
+            var telHtml=me.phone_1
+                ? '<div class="cc-me-row"><span class="cc-me-val">'+esc(me.phone_1)+'</span><button type="button" class="cc-me-cp" id="cc-me-teledit">&#9998; Modifier</button></div>'
+                : '<div class="cc-me-row"><span class="cc-me-empty">Aucun numéro configuré.</span><button type="button" class="cc-me-cp" id="cc-me-teledit">&#43; Ajouter</button></div>';
             meEl.innerHTML='<div class="cc-me-grid">'+
-                '<div class="cc-me-block"><div class="cc-me-k">&#128222; Mes numéros</div>'+(tels||'<div class="cc-me-empty">Aucun numéro configuré.</div>')+'</div>'+
-                '<div class="cc-me-block"><div class="cc-me-k">&#128279; Mes liens checkout</div>'+(liens||'<div class="cc-me-empty">Aucun lien configuré.</div>')+'</div>'+
-                (aff.length?'<div class="cc-me-block cc-me-wide">'+
-                    '<button type="button" class="cc-me-afftoggle" id="cc-me-afftoggle"><span>&#129513; Mes liens formations &middot; '+aff.length+'</span><span class="cc-me-affchev">&#9662;</span></button>'+
-                    '<div class="cc-me-afflist" id="cc-me-afflist" hidden>'+aff.map(function(l){return meRow(l.title,l.url,'link');}).join('')+'</div>'+
+                '<div class="cc-me-block"><div class="cc-me-k">&#128222; Mon numéro</div>'+
+                    '<div id="cc-me-telview">'+telHtml+'<div class="cc-me-telnote">Affiché aux prospects sur la page RDV (WhatsApp).</div></div>'+
+                    '<div id="cc-me-teleditbox" hidden>'+
+                        '<input type="text" id="cc-me-telinput" class="cc-me-telinput" placeholder="+33 6 12 34 56 78" value="'+esc(me.phone_1||'')+'">'+
+                        '<div class="cc-me-telactions"><button type="button" class="cc-me-cp" id="cc-me-telsave">Enregistrer</button><button type="button" class="cc-me-cp cc-me-ghost" id="cc-me-telcancel">Annuler</button></div>'+
+                        '<div class="cc-me-telmsg" id="cc-me-telmsg"></div>'+
+                    '</div>'+
+                '</div>'+
+                (aff.length?'<div class="cc-me-block cc-me-wide"><div class="cc-me-k">&#128279; Mes liens checkout</div>'+
+                    featured.map(function(l){return '<div class="cc-me-row cc-me-featured"><span class="cc-me-val"><small>'+esc(l.title)+' <span class="cc-me-mainbadge">Principale</span></small><a href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;">'+esc(l.url)+'</a></span><button type="button" class="cc-me-cp" data-copy="'+esc(l.url)+'">&#128203; Copier</button></div>';}).join('')+
+                    (others.length?'<button type="button" class="cc-me-afftoggle" id="cc-me-afftoggle"><span>Autres formations &middot; '+others.length+'</span><span class="cc-me-affchev">&#9662;</span></button>'+
+                    '<div class="cc-me-afflist" id="cc-me-afflist" hidden>'+others.map(function(l){return meRow(l.title,l.url,'link');}).join('')+'</div>':'')+
                 '</div>':'')+
             '</div>';
             var tgl=document.getElementById('cc-me-afftoggle');
@@ -1954,7 +1973,24 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
         function ccCopy(text,btn,doneLabel){var orig=btn.innerHTML;var ok=function(){btn.classList.add('copied');btn.innerHTML=doneLabel||'&#10003; Copié';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=orig;},1500);};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,function(){ccFallbackCopy(text);ok();});}else{ccFallbackCopy(text);ok();}}catch(_){ccFallbackCopy(text);ok();}}
-        meEl.addEventListener('click',function(e){var b=e.target.closest('.cc-me-cp');if(!b)return;ccCopy(b.getAttribute('data-copy')||'',b);});
+        meEl.addEventListener('click',async function(e){
+            var b=e.target.closest('.cc-me-cp');if(!b)return;
+            if(b.id==='cc-me-teledit'){document.getElementById('cc-me-telview').hidden=true;document.getElementById('cc-me-teleditbox').hidden=false;document.getElementById('cc-me-telinput').focus();return;}
+            if(b.id==='cc-me-telcancel'){document.getElementById('cc-me-teleditbox').hidden=true;document.getElementById('cc-me-telview').hidden=false;return;}
+            if(b.id==='cc-me-telsave'){
+                var val=document.getElementById('cc-me-telinput').value.trim();
+                var msg=document.getElementById('cc-me-telmsg');
+                b.disabled=true;msg.textContent='Enregistrement…';msg.style.color='#94a3b8';
+                try{
+                    var r=await fetch(EP,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set-phone',phone:val})});
+                    var d=await r.json();
+                    if(r.ok&&d.ok){if(ME)ME.phone_1=d.phone_1;renderMe(ME);}
+                    else{msg.textContent=(d&&d.error)||'Erreur.';msg.style.color='#fca5a5';b.disabled=false;}
+                }catch(err){msg.textContent='Erreur réseau.';msg.style.color='#fca5a5';b.disabled=false;}
+                return;
+            }
+            if(b.hasAttribute('data-copy'))ccCopy(b.getAttribute('data-copy')||'',b);
+        });
         listEl.addEventListener('click', async function(e){
             var det=e.target.closest('.cc-det');
             var copyBtn=e.target.closest('.cc-copytel');

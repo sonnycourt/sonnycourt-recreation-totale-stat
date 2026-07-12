@@ -344,7 +344,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var av = el('rv-done-av');
             if (closer) { av.innerHTML = coachAv(closer); av.hidden = false; } else { av.hidden = true; }
             el('rv-done-sub').innerHTML = (closer ? 'Ton coach <b>' + esc(closer) + '</b>' : 'Ton coach') + ' t\'appellera sur ' + (hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(hint) + '</b>' : 'le numéro que tu as donné') + '. Garde ton téléphone à portée de main.';
-            var wa = COACH_WHATSAPP[coachSlug(closer)];
+            // Numéro géré par le closer dans sa console (API) ; à défaut, numéro par défaut.
+            var wa = d.closer_phone || (LAST && LAST.closer_phone) || COACH_WHATSAPP[coachSlug(closer)];
             el('rv-done-note').innerHTML = wa
                 ? 'Un empêchement ou une question ? Écris directement à ' + esc(closer) + ' :<br><a class="rv-wa" href="https://wa.me/' + wa.replace(/\D/g, '') + '" target="_blank" rel="noopener noreferrer">&#128172; WhatsApp ' + esc(closer) + ' &middot; ' + esc(wa) + '</a>'
                 : 'Un empêchement ? Reviens sur cette page pour déplacer ton rendez-vous.';
@@ -408,7 +409,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     // Créneau plus dispo pour SON conseiller -> on affiche ses vrais créneaux.
                     IDENT = { prenom: prenom, email: email, telephone: tel };
                     closeModal();
-                    LAST = { mode: 'ok', prenom: prenom, closer: d.closer || '', phone_hint: '' };
+                    LAST = { mode: 'ok', prenom: prenom, closer: d.closer || '', closer_phone: d.closer_phone || null, phone_hint: '' };
                     var n = el('rv-notice');
                     n.innerHTML = esc((d && d.error) || 'Ce créneau n\'est plus disponible. Choisis-en un autre ci-dessous.');
                     n.hidden = false;

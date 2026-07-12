@@ -78,22 +78,19 @@ function dateISO(v) {
 // Liens d'affiliation Spiffy par formation : le checkout est le même pour tous
 // les closers, seul l'identifiant affilié (fin d'URL) change (spiffy_affiliate_id).
 const SPIFFY_CHECKOUTS = [
-  ['ES2.0 (standard)', 'Q0vnCdQy0VN'],
-  ['ES2.0 (-5 %)', 'j2oBiPY6Rq2'],
-  ['Challenge Transformation', '5apqt2laXL6'],
-  ['Esprit Subconscient (⚠️ pas ES2.0)', 'vpE4s0bJBlR'],
+  ['Esprit Subconscient 2.0', 'Q0vnCdQy0VN', true], // formation principale, mise en avant
   ['Manifest', '2bnEhP4ZYkB'],
   ['Système Souhaits-Réalisés', '0DkQtNVKJvL'],
-  ['Neuro IA', '2bnBTP4ZY6y'],
-  ['Système Viral', 'G5wKUd4XR6y'],
+  ['Esprit Subconscient (1.0, pas ES2.0)', 'vpE4s0bJBlR'],
 ];
 
 function affiliateLinks(affiliateId) {
   const aff = String(affiliateId || '').trim();
   if (!aff) return [];
-  return SPIFFY_CHECKOUTS.map(([title, slug]) => ({
+  return SPIFFY_CHECKOUTS.map(([title, slug, featured]) => ({
     title,
     url: `https://sonnycourt.spiffy.co/a/${slug}/${aff}`,
+    featured: !!featured,
   }));
 }
 
@@ -114,7 +111,7 @@ export default async (req) => {
     // Coordonnées du closer (téléphones + liens checkout) affichées en tête de console.
     let me = null;
     const meRes = await supabaseGet(
-      `closer_access_codes?id=eq.${cid}&select=label,phone_1,phone_2,checkout_full_url,checkout_discount_url,spiffy_affiliate_id`,
+      `closer_access_codes?id=eq.${cid}&select=label,phone_1,phone_2,spiffy_affiliate_id`,
     );
     if (meRes.ok && Array.isArray(meRes.data) && meRes.data[0]) {
       me = meRes.data[0];
@@ -126,6 +123,20 @@ export default async (req) => {
 
   if (req.method === 'POST') {
     const body = await req.json().catch(() => ({}));
+
+    // --- Le closer met à jour SON numéro (affiché aux prospects sur /rdv) ---
+    if (body.action === 'set-phone') {
+      const raw = typeof body.phone === 'string' ? body.phone.trim().slice(0, 30) : '';
+      if (raw && !/^[+0-9 ().-]{6,30}$/.test(raw)) {
+        return json(400, { error: 'Numéro invalide' });
+      }
+      const upd = await supabasePatch('closer_access_codes', `id=eq.${cid}`, {
+        phone_1: raw || null,
+      });
+      if (!upd.ok) return json(500, { error: 'Erreur écriture' });
+      return json(200, { ok: true, phone_1: raw || null });
+    }
+
     const token = typeof body.token === 'string' ? body.token.trim() : '';
     if (!token) return json(400, { error: 'token manquant' });
     const where = `token=eq.${encodeURIComponent(token)}&assigned_closer_id=eq.${cid}`;

@@ -82,12 +82,14 @@ function firstName(label) {
   return String(label || '').trim().split(/\s+/)[0] || '';
 }
 
-async function getActiveCloserFirstName(closerId) {
+/** Prénom + numéro (géré par le closer dans sa console) du closer actif. */
+async function getActiveCloserInfo(closerId) {
   const cr = await supabaseGet(
-    `closer_access_codes?id=eq.${closerId}&active=eq.true&select=label`,
+    `closer_access_codes?id=eq.${closerId}&active=eq.true&select=label,phone_1`,
   );
   const row = cr.ok && Array.isArray(cr.data) && cr.data[0] ? cr.data[0] : null;
-  return row ? firstName(row.label) : null;
+  if (!row) return null;
+  return { name: firstName(row.label), phone: row.phone_1 || null };
 }
 
 async function getFreeSlots(closerId) {
@@ -195,13 +197,13 @@ export default async (req) => {
     if (reg.purchased) return json(200, { mode: 'purchased', ...base });
     if (!reg.assigned_closer_id) return json(200, { mode: 'no_closer', ...base });
 
-    const closer = await getActiveCloserFirstName(reg.assigned_closer_id);
-    if (!closer) return json(200, { mode: 'no_closer', ...base });
+    const closerInfo = await getActiveCloserInfo(reg.assigned_closer_id);
+    if (!closerInfo) return json(200, { mode: 'no_closer', ...base });
 
     const slots = await getFreeSlots(reg.assigned_closer_id);
     if (!slots) return json(500, { error: 'Erreur lecture' });
     const current = reg.rdv_at && new Date(reg.rdv_at).getTime() > Date.now() ? reg.rdv_at : null;
-    return json(200, { mode: 'ok', ...base, closer, slots, current });
+    return json(200, { mode: 'ok', ...base, closer: closerInfo.name, closer_phone: closerInfo.phone, slots, current });
   }
 
   if (req.method === 'POST') {
@@ -221,8 +223,9 @@ export default async (req) => {
       if (!reg) return json(404, { error: NOT_FOUND_MSG, code: 'not_found' });
       if (reg.purchased) return json(200, { mode: 'purchased', prenom: reg.prenom || prenom });
       if (!reg.assigned_closer_id) return json(200, { mode: 'no_closer', prenom: reg.prenom || prenom });
-      const closer = await getActiveCloserFirstName(reg.assigned_closer_id);
-      if (!closer) return json(200, { mode: 'no_closer', prenom: reg.prenom || prenom });
+      const closerInfo = await getActiveCloserInfo(reg.assigned_closer_id);
+      if (!closerInfo) return json(200, { mode: 'no_closer', prenom: reg.prenom || prenom });
+      const closer = closerInfo.name;
 
       // Le numéro saisi = numéro à appeler pour le RDV ; prénom complété s'il manquait.
       const extra = {};
@@ -240,6 +243,7 @@ export default async (req) => {
         return json(200, {
           ...booked.body,
           closer,
+          closer_phone: closerInfo.phone,
           prenom: reg.prenom || prenom,
           phone_hint: phoneHint(telephone || reg.telephone),
         });
@@ -250,6 +254,7 @@ export default async (req) => {
         error: `Ce créneau n'est plus disponible pour ton coach ${closer}. Choisis parmi ses créneaux ci-dessous.`,
         code: 'slot_taken',
         closer,
+        closer_phone: closerInfo.phone,
         slots: slots || [],
       });
     }
