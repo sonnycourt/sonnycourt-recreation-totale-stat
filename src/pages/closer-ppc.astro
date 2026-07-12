@@ -1,0 +1,845 @@
+---
+import GAConsentMode from '../components/GAConsentMode.astro';
+// true uniquement avec `astro dev` (localhost), false dans le build de prod.
+const IS_DEV = import.meta.env.DEV;
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Procédure prise de contact — Closers</title>
+    <meta name="description" content="Procédure de prise de contact closers — séquence J0, J+1, dimanche.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <GAConsentMode />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            color-scheme: light only;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --ink: #0f172a;
+            --ink-soft: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --accent-soft: #eff6ff;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 0 22px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: clamp(1.9rem, 5.2vw, 2.8rem);
+            font-weight: 900;
+            line-height: 1.18;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: clamp(1.35rem, 3.6vw, 1.8rem);
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .hero {
+            padding: clamp(40px, 7vw, 70px) 0 clamp(22px, 4vw, 36px);
+        }
+
+        .hero .lead {
+            margin-top: 14px;
+            font-size: clamp(1rem, 2.6vw, 1.12rem);
+            color: var(--ink-soft);
+            max-width: 620px;
+        }
+
+        .hero .lead strong { color: var(--primary-dark); }
+
+        section.part {
+            padding: clamp(26px, 5vw, 46px) 0;
+        }
+
+        .part-sub {
+            font-size: 0.95rem;
+            color: var(--muted);
+            margin-bottom: 22px;
+        }
+
+        .wrap-wide {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 22px;
+        }
+
+        .cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 920px) {
+            .cols { grid-template-columns: 1fr; }
+        }
+
+        /* === Cartes du flow === */
+        .flow { display: flex; flex-direction: column; }
+
+        .band {
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 6px 0;
+        }
+
+        .band-label {
+            font-size: 0.74rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .band-label.is-sunday { color: #b45309; }
+
+        .step-row {
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .step {
+            flex: 1;
+            border-radius: 14px;
+            padding: 14px 16px;
+            border: 1.5px solid;
+        }
+
+        .step .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.10);
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .step-sub {
+            margin-top: 4px;
+            font-size: 0.87rem;
+            font-weight: 500;
+            opacity: 0.85;
+            line-height: 1.45;
+        }
+
+        /* Code couleur (identique au fichier draw.io) */
+        .c-auto   { background: #fdf3b4; border-color: #b09500; color: #4a3f00; }
+        .c-call1  { background: #cce5ff; border-color: #36393d; color: #0b2e55; }
+        .c-call   { background: #dae8fc; border-color: #6c8ebf; color: #123a6b; }
+        .c-sms    { background: #e1d5e7; border-color: #9673a6; color: #3d2450; }
+        .c-wa     { background: #d5e8d4; border-color: #82b366; color: #1e3d16; }
+        .c-note   { background: #faeeda; border-color: #ba7517; color: #412402; }
+        .c-fin    { background: #f8cecc; border-color: #b85450; color: #4f100e; }
+        .c-care   { background: #e1f5ee; border-color: #0f6e56; color: #04342c; }
+        .c-ok     { background: #eaf3de; border-color: #3b6d11; color: #173404; }
+        .c-hes    { background: #eeedfe; border-color: #534ab7; color: #26215c; }
+        .c-gris   { background: #f1efe8; border-color: #5f5e5a; color: #2c2c2a; }
+
+        /* Pastille verte "→ appel care" */
+        .pill {
+            align-self: center;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eaf3de;
+            border: 1.5px solid #3b6d11;
+            color: #173404;
+            font-size: 0.78rem;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 7px 13px;
+            white-space: nowrap;
+        }
+
+        .pill::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #3b6d11;
+        }
+
+        /* Flèche entre étapes */
+        .arrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0 6px 26px;
+            color: var(--muted);
+        }
+
+        .arrow svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+        .arrow span {
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Partie 2 */
+        .care-zone {
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .issues {
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 14px;
+            padding: 14px;
+            margin-top: 14px;
+        }
+
+        .issues .band-label { margin-bottom: 10px; }
+
+        .issue + .issue { margin-top: 10px; }
+
+        .issue {
+            border-radius: 12px;
+            border: 1.5px solid;
+            padding: 12px 14px;
+        }
+
+        .issue .issue-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+
+        .issue .issue-sub {
+            margin-top: 3px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.9;
+            line-height: 1.45;
+        }
+
+        .sub-issues {
+            margin-top: 10px;
+            padding-left: 14px;
+            border-left: 3px solid rgba(83, 74, 183, 0.30);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Note + légende */
+        .note {
+            border-radius: 14px;
+            border: 1.5px solid #ba7517;
+            background: #faeeda;
+            color: #412402;
+            padding: 16px 18px;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            margin-top: 26px;
+        }
+
+        .note strong { font-weight: 800; }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            margin-top: 22px;
+            padding-bottom: 60px;
+        }
+
+        .legend .lg {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+
+        .legend .sw {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1.5px solid;
+        }
+
+        @media (max-width: 560px) {
+            .step-row { flex-direction: column; gap: 8px; }
+            .pill { align-self: flex-start; }
+        }
+
+        /* === Topbar === */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 11px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-size: clamp(0.82rem, 2.4vw, 0.95rem);
+            font-weight: 600;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 2px 14px rgba(37, 99, 235, 0.28);
+        }
+
+        .topbar strong { color: #fff; font-weight: 800; }
+
+        .topbar .live-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            animation: topbarPulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes topbarPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
+            50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); }
+        }
+
+        /* === Gate d'accès === */
+        .closer-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 70% 60% at 80% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .closer-gate.is-hidden { display: none; }
+
+        .closer-gate-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: clamp(28px, 5vw, 40px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            text-align: center;
+        }
+
+        .closer-gate-logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--primary-dark);
+        }
+
+        .closer-gate-logo svg { width: 24px; height: 24px; }
+
+        .closer-gate-card h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 8px;
+        }
+
+        .closer-gate-hint {
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .closer-gate-form { display: none; }
+        .closer-gate-form.is-ready { display: block; }
+
+        .closer-gate-input {
+            width: 100%;
+            padding: 14px 16px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink);
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .closer-gate-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        }
+
+        .closer-gate-input::placeholder {
+            letter-spacing: normal;
+            text-transform: none;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .closer-gate-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 16px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .closer-gate-consent input {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .closer-gate-consent span {
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: var(--ink-soft);
+        }
+
+        .closer-gate-error {
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .closer-gate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.30);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .closer-gate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(37, 99, 235, 0.4);
+        }
+
+        .closer-gate-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+        }
+
+        .closer-gate-spinner {
+            width: 38px;
+            height: 38px;
+            margin: 8px auto 0;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: closerSpin 0.8s linear infinite;
+        }
+
+        .closer-gate-spinner.is-hidden { display: none; }
+
+        @keyframes closerSpin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Gate d'accès (protection mot de passe) -->
+    <div id="closer-gate" class="closer-gate" role="dialog" aria-modal="true" aria-labelledby="closer-gate-title">
+        <div class="closer-gate-card">
+            <div class="closer-gate-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h1 id="closer-gate-title">Procédure prise de contact · accès réservé</h1>
+            <p class="closer-gate-hint">Connectez-vous avec votre email et votre mot de passe.</p>
+            <div id="closer-gate-spinner" class="closer-gate-spinner" aria-hidden="true"></div>
+            <form id="closer-gate-form" class="closer-gate-form">
+                <input id="closer-gate-email" class="closer-gate-input" type="email" inputmode="email" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="Votre email" aria-label="Email" />
+                <input id="closer-gate-pass" class="closer-gate-input" type="password" autocomplete="current-password" placeholder="Votre mot de passe" aria-label="Mot de passe" style="margin-top:10px;" />
+                <label class="closer-gate-consent" for="closer-gate-consent">
+                    <input type="checkbox" id="closer-gate-consent" />
+                    <span>Je comprends que les informations de cette page sont confidentielles et je m'engage à ne pas les partager ni les diffuser.</span>
+                </label>
+                <p id="closer-gate-error" class="closer-gate-error" role="alert"></p>
+                <button id="closer-gate-btn" class="closer-gate-btn" type="submit" disabled>Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <script is:inline define:vars={{ IS_DEV }}>
+        window.__CLOSER_PPC_DEV__ = IS_DEV;
+    </script>
+    <script is:inline>
+        (function () {
+            var ENDPOINT = '/.netlify/functions/closer-login';
+            var LOGIN = '/.netlify/functions/closer-login';
+            var gate = document.getElementById('closer-gate');
+            var form = document.getElementById('closer-gate-form');
+            var emailEl = document.getElementById('closer-gate-email');
+            var passEl = document.getElementById('closer-gate-pass');
+            var err = document.getElementById('closer-gate-error');
+            var btn = document.getElementById('closer-gate-btn');
+            var spinner = document.getElementById('closer-gate-spinner');
+            var consent = document.getElementById('closer-gate-consent');
+
+            document.body.style.overflow = 'hidden';
+
+            function syncBtn() { btn.disabled = !consent.checked; }
+            consent.addEventListener('change', syncBtn);
+
+            function reveal() {
+                gate.classList.add('is-hidden');
+                document.body.style.overflow = '';
+            }
+
+            function showForm() {
+                spinner.classList.add('is-hidden');
+                form.classList.add('is-ready');
+                syncBtn();
+                try { emailEl.focus(); } catch (e) { /* noop */ }
+            }
+
+            async function boot() {
+                if (window.__CLOSER_PPC_DEV__) { reveal(); return; } // bypass localhost uniquement
+                try {
+                    var r = await fetch(ENDPOINT, { credentials: 'same-origin' });
+                    if (r.ok) {
+                        var d = await r.json();
+                        if (d && d.authenticated) { reveal(); return; }
+                    }
+                } catch (e) { /* hors ligne / fonction indisponible -> on demande le code */ }
+                showForm();
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!consent.checked) { err.textContent = 'Cochez la case de confidentialité.'; return; }
+                var email = (emailEl.value || '').trim();
+                var pass = passEl.value || '';
+                if (!email || !pass) { err.textContent = 'Entrez votre email et votre mot de passe.'; return; }
+                err.textContent = '';
+                btn.disabled = true;
+                var prev = btn.textContent;
+                btn.textContent = 'Vérification…';
+                try {
+                    var r = await fetch(LOGIN, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, password: pass }),
+                    });
+                    if (r.ok) { reveal(); return; }
+                    var d = {};
+                    try { d = await r.json(); } catch (e2) { /* noop */ }
+                    err.textContent = (d && d.error) ? d.error : 'Identifiants invalides.';
+                } catch (e3) {
+                    err.textContent = 'Erreur réseau. Réessayez.';
+                }
+                syncBtn();
+                btn.textContent = prev;
+            });
+
+            boot();
+        })();
+    </script>
+
+    <!-- Bannière -->
+    <div class="topbar" role="note">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Procédure closer · <strong>Prise de contact</strong> · Mission du vendredi 16h au dimanche 23h59.</span>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="wrap">
+            <span class="eyebrow">Procédure closer · PPC</span>
+            <h1>Procédure prise de contact</h1>
+            <p class="lead">Règle de lecture : tu descends la <strong>Partie 1</strong> jusqu'à obtenir un contact. Dès qu'une <strong>pastille verte</strong> s'allume (il décroche, il rappelle, il répond), tu déroules la <strong>Partie 2 — l'appel care</strong>.</p>
+        </div>
+    </section>
+
+    <!-- PARTIE 1 + PARTIE 2 côte à côte -->
+    <section class="part">
+        <div class="wrap-wide">
+            <div class="cols">
+            <div>
+            <h2>Partie 1 — Obtenir le contact</h2>
+            <p class="part-sub">Le CRM te donne les leads du plus chaud au moins chaud. Tu avances à ton rythme, dans l'ordre.</p>
+
+            <div class="flow">
+                <div class="step-row">
+                    <div class="step c-auto">
+                        <div class="step-title">SMS auto de Sonny · vendredi 12h</div>
+                        <div class="step-sub">Annonce l'appel + le prospect peut réserver lui-même son créneau de RDV. Tu n'as rien à faire.</div>
+                    </div>
+                </div>
+
+                <div class="arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                </div>
+
+                <div class="band">
+                    <div class="band-label">J0 — le jour où tu attaques ce lead (pas forcément vendredi)</div>
+
+                    <div class="step-row">
+                        <div class="step c-call1">
+                            <div class="step-title"><span class="step-num">1</span>Appel mobile classique</div>
+                            <div class="step-sub">Première tentative, depuis ton numéro mobile.</div>
+                        </div>
+                        <span class="pill">décroche → appel care</span>
+                    </div>
+
+                    <div class="arrow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                        <span>décroche pas</span>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step c-sms">
+                            <div class="step-title"><span class="step-num">2</span>SMS « rappelle-moi »</div>
+                            <div class="step-sub">Raison care + curiosité. Tu demandes à être rappelé — jamais « je te rappelle demain ».</div>
+                        </div>
+                        <span class="pill">il rappelle → appel care</span>
+                    </div>
+                </div>
+
+                <div class="arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                    <span>pas rappelé</span>
+                </div>
+
+                <div class="band">
+                    <div class="band-label">J+1 — le lendemain de J0</div>
+
+                    <div class="step-row">
+                        <div class="step c-call">
+                            <div class="step-title"><span class="step-num">3</span>Appel mobile n°2</div>
+                            <div class="step-sub">Autre créneau horaire que la veille.</div>
+                        </div>
+                        <span class="pill">décroche → appel care</span>
+                    </div>
+
+                    <div class="arrow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                        <span>décroche pas</span>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step c-wa">
+                            <div class="step-title"><span class="step-num">4</span>Note vocale WhatsApp</div>
+                            <div class="step-sub">Dans la foulée de l'appel manqué. Naturelle, 20 secondes, jamais un script récité.</div>
+                        </div>
+                        <span class="pill">il répond → appel care</span>
+                    </div>
+                </div>
+
+                <div class="arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                    <span>toujours silencieux</span>
+                </div>
+
+                <div class="band">
+                    <div class="band-label is-sunday">Dimanche — dernier jour, pour TOUS les leads encore ouverts</div>
+
+                    <div class="step-row">
+                        <div class="step c-note">
+                            <div class="step-title"><span class="step-num">5</span>Appeler les leads jamais appelés</div>
+                            <div class="step-sub">S'il en reste dans ta liste.</div>
+                        </div>
+                        <span class="pill">décroche → appel care</span>
+                    </div>
+
+                    <div class="arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step c-sms">
+                            <div class="step-title"><span class="step-num">6</span>SMS deadline avec lien checkout</div>
+                            <div class="step-sub">Toi → ceux qui t'ont répondu au moins une fois (« toujours dispo pour en parler »). Broadcast Sonny → les silencieux complets.</div>
+                        </div>
+                        <span class="pill">il répond → appel care</span>
+                    </div>
+                </div>
+
+                <div class="arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                    <span>aucune réponse</span>
+                </div>
+
+                <div class="step-row">
+                    <div class="step c-fin">
+                        <div class="step-title">Fin — on lâche</div>
+                        <div class="step-sub">3 appels, 3 canaux tentés. On respecte le silence.</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div>
+            <h2>Partie 2 — L'appel care</h2>
+            <p class="part-sub">Dès qu'un lead est en ligne, peu importe l'étape. Tu prends des nouvelles, tu ne vends pas — c'est lui qui se vend.</p>
+
+            <div class="care-zone">
+                <div class="step-row">
+                    <div class="step c-care">
+                        <div class="step-title"><span class="step-num">A</span>Prise de nouvelles</div>
+                        <div class="step-sub">« Comment tu te sens depuis jeudi ? » — l'équipe de Sonny prend des nouvelles après une masterclass qui a remué du monde.</div>
+                    </div>
+                </div>
+
+                <div class="arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                </div>
+
+                <div class="step-row">
+                    <div class="step c-care">
+                        <div class="step-title"><span class="step-num">B</span>Débrief workbook</div>
+                        <div class="step-sub">Son objectif, son blocage — il les a écrits lui-même. Fais-le re-verbaliser : c'est LE moment de vente.</div>
+                    </div>
+                </div>
+
+                <div class="arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                </div>
+
+                <div class="step-row">
+                    <div class="step c-care">
+                        <div class="step-title"><span class="step-num">C</span>ES2 en solution</div>
+                        <div class="step-sub">Au blocage qu'IL a identifié. Jamais un pitch générique.</div>
+                    </div>
+                </div>
+
+                <div class="issues">
+                    <div class="band-label">D — Trois issues possibles</div>
+
+                    <div class="issue c-ok">
+                        <div class="issue-name">✅ Il accepte</div>
+                        <div class="issue-sub">Lien envoyé par <strong>SMS pendant l'appel, dans tous les cas</strong> (jamais de lien WhatsApp). Tu restes en ligne jusqu'au paiement confirmé.</div>
+                    </div>
+
+                    <div class="issue c-hes">
+                        <div class="issue-name">🤔 Il hésite → question filtre</div>
+                        <div class="issue-sub">« Qu'est-ce qui te ferait dire oui ou non d'ici dimanche ? »</div>
+                        <div class="sub-issues">
+                            <div class="issue c-ok">
+                                <div class="issue-name">Objection concrète (budget, conjoint…)</div>
+                                <div class="issue-sub">RDV de rappel fixé, heure précise.</div>
+                            </div>
+                            <div class="issue c-gris">
+                                <div class="issue-name">Refus poli ou vraie limite budget</div>
+                                <div class="issue-sub">Offre downsell en direct. S'il refuse aussi → les emails auto prennent le relais. Coche « proposé » dans la console.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="issue c-fin">
+                        <div class="issue-name">❌ Il refuse</div>
+                        <div class="issue-sub">Sortie care, zéro relance. On le remercie et on passe au suivant.</div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+            </div>
+
+            <div class="note">
+                <strong>⚠ Personne n'appelle 100 leads le vendredi.</strong> Tu descends ta liste CRM à ton rythme — chaque lead démarre SA séquence à son premier appel (J0). Lead attaqué samedi → J+1 = dimanche. Lead attaqué dimanche → séquence compressée dans la journée : appel → vocal WhatsApp → SMS deadline.
+            </div>
+
+            <div class="legend" aria-label="Légende des couleurs">
+                <span class="lg"><span class="sw" style="background:#fdf3b4;border-color:#b09500;"></span>Automatique (Sonny)</span>
+                <span class="lg"><span class="sw" style="background:#dae8fc;border-color:#6c8ebf;"></span>Appel mobile</span>
+                <span class="lg"><span class="sw" style="background:#e1d5e7;border-color:#9673a6;"></span>SMS</span>
+                <span class="lg"><span class="sw" style="background:#d5e8d4;border-color:#82b366;"></span>WhatsApp</span>
+                <span class="lg"><span class="sw" style="background:#eaf3de;border-color:#3b6d11;"></span>Contact établi / vente</span>
+                <span class="lg"><span class="sw" style="background:#f8cecc;border-color:#b85450;"></span>Fin</span>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

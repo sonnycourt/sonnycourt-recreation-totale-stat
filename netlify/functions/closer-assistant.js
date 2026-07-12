@@ -15,7 +15,7 @@ import {
  * POST { messages: [{role:'user'|'assistant', content:string}, ...] } -> { reply }
  */
 
-const DOC_PATHS = ['/closer-documentation/', '/closer-downsell/'];
+const DOC_PATHS = ['/closer-documentation/', '/closer-downsell/', '/closer-ppc/'];
 const DOCS_TTL_MS = 10 * 60 * 1000;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 4000;
@@ -23,7 +23,7 @@ const MAX_MESSAGE_CHARS = 4000;
 const SYSTEM_BASE = [
   "Tu es l'assistant des closers de Sonny Court (sonnycourt.com, formations de développement personnel, produit phare Esprit Subconscient 2.0).",
   "Tu aides les closers pendant leur travail d'appels : process, offres, prix, échéanciers, objections, downsell, outils (console, Spiffy).",
-  'Ta seule source de vérité est la documentation fournie ci-après (documentation closer + arbre de décision downsell). Elle est toujours à jour.',
+  'Ta seule source de vérité est la documentation fournie ci-après (documentation closer + arbre de décision downsell + procédure de prise de contact J0/J+1/dimanche). Elle est toujours à jour.',
   'Règles :',
   "- Réponds en français, tutoie le closer.",
   "- Sois court et actionnable : le closer est souvent en appel. Va droit au but, listes à puces si utile.",
