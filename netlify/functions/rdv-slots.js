@@ -247,7 +247,7 @@ export default async (req) => {
       // Créneau plus dispo pour SON closer -> on renvoie ses vrais créneaux.
       const slots = await getFreeSlots(reg.assigned_closer_id);
       return json(409, {
-        error: `Ce créneau n'est plus disponible pour ton conseiller ${closer}. Choisis parmi ses créneaux ci-dessous.`,
+        error: `Ce créneau n'est plus disponible pour ton coach ${closer}. Choisis parmi ses créneaux ci-dessous.`,
         code: 'slot_taken',
         closer,
         slots: slots || [],
@@ -264,7 +264,7 @@ export default async (req) => {
     const reg = await getRegByTokenOrEmail({ token, email });
     if (!reg) return json(404, { error: 'Lien invalide' });
     if (reg.purchased) return json(400, { error: 'Tu fais déjà partie du programme' });
-    if (!reg.assigned_closer_id) return json(400, { error: 'Aucun conseiller assigné' });
+    if (!reg.assigned_closer_id) return json(400, { error: 'Aucun coach assigné' });
 
     const booked = await bookSlot(reg, `id=eq.${slotId}`);
     if (!booked) return json(409, { error: "Ce créneau vient d'être pris. Choisis-en un autre." });

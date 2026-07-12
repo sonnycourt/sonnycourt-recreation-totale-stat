@@ -15,7 +15,7 @@ import {
 
 const SLOT_MINUTES = 30;
 // [heure début, heure fin] Paris par jour du week-end.
-const DAY_HOURS = { fri: [16, 21], sat: [10, 21], sun: [10, 21] };
+const DAY_HOURS = { fri: [13, 21], sat: [10, 21], sun: [10, 21] };
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -90,6 +90,7 @@ export function getWeekendSlotGrid(now = new Date()) {
     days.push({ key: keyOf(d), title: FR_DAY.format(start), slots });
   }
   if (!days.length) return null;
-  const deadline = findParisInstantUtc(wk.fri.year, wk.fri.month, wk.fri.day, 16);
+  // Deadline pour remplir ses dispos = premier créneau du vendredi (13h Paris).
+  const deadline = findParisInstantUtc(wk.fri.year, wk.fri.month, wk.fri.day, 13);
   return { days, deadline: deadline ? deadline.toISOString() : null };
 }

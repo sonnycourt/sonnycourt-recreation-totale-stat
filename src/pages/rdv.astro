@@ -19,6 +19,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
 
+    <!-- Sélecteur d'indicatif téléphonique : même modèle que l'opt-in /masterclass -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js" defer></script>
+
     <style is:global>
         :root { color-scheme: light only; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,6 +43,16 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 
         .rv-spinner { width: 34px; height: 34px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; margin: 60px auto; animation: rvspin .8s linear infinite; }
         @keyframes rvspin { to { transform: rotate(360deg); } }
+
+        /* Bandeau coachs (photos ou initiales en attendant) */
+        .rv-coachs { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #eff6ff, #f5f3ff); border: 1px solid #dbeafe; border-radius: 14px; padding: 14px 16px; margin-top: 16px; }
+        .rv-coachs-avs { display: flex; flex: 0 0 auto; }
+        .rv-av { position: relative; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 21px; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(15,23,42,.18); overflow: hidden; }
+        .rv-av::before { content: attr(data-init); }
+        .rv-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .rv-av + .rv-av { margin-left: -14px; }
+        .rv-coachs-t b { display: block; font-size: 14.5px; color: #0f172a; }
+        .rv-coachs-t small { font-size: 12.5px; color: #64748b; }
 
         .rv-current { display: flex; gap: 10px; align-items: flex-start; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 14px; margin: 16px 0 4px; font-size: 14px; color: #1e40af; }
         .rv-current b { color: #1d4ed8; }
@@ -81,11 +95,20 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .rv-book-btn:hover { background: #15803d; }
         .rv-book-btn:disabled { opacity: .6; cursor: default; }
         .rv-modal-note { font-size: 12px; color: #94a3b8; text-align: center; }
+        /* intl-tel-input adapté au thème clair de la popup */
+        .rv-form .iti { width: 100%; }
+        .rv-form .iti__selected-flag { background: #f1f5f9; border-right: 1.5px solid #cbd5e1; border-radius: 11px 0 0 11px; padding: 0 10px; }
+        .rv-form .iti--separate-dial-code .iti__selected-dial-code { font-weight: 700; color: #0f172a; margin-left: 6px; }
+        .iti--container, .iti__country-list { z-index: 10000001 !important; }
 
         .rv-done-ic { width: 58px; height: 58px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 14px; }
         .rv-done-when { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin: 16px 0; font-size: 16px; font-weight: 800; color: #15803d; }
         .rv-done-when::first-letter { text-transform: uppercase; }
         .rv-done-note { font-size: 13.5px; color: #64748b; margin-top: 14px; }
+        .rv-done-row { display: flex; align-items: center; gap: 13px; }
+        .rv-done-row .rv-av { width: 58px; height: 58px; flex: 0 0 auto; }
+        .rv-wa { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; background: #25d366; color: #fff; text-decoration: none; font-weight: 800; font-size: 14px; border-radius: 11px; padding: 10px 15px; }
+        .rv-wa:hover { background: #1fb958; }
 
         .rv-info-ic { font-size: 34px; margin-bottom: 10px; }
         [hidden] { display: none !important; }
@@ -113,6 +136,18 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <div class="rv-card">
                 <h1 id="rv-title"></h1>
                 <p class="rv-sub" id="rv-intro"></p>
+                <!-- Coachs : les photos remplacent automatiquement les initiales
+                     dès que les fichiers existent dans /public/images/coachs/ -->
+                <div class="rv-coachs" id="rv-coachs">
+                    <div class="rv-coachs-avs">
+                        <span class="rv-av" data-init="R"><img src="/images/coachs/romain.jpg" alt="Romain" onerror="this.remove()"></span>
+                        <span class="rv-av" data-init="V"><img src="/images/coachs/valentin.jpg" alt="Valentin" onerror="this.remove()"></span>
+                    </div>
+                    <div class="rv-coachs-t">
+                        <b>Romain &amp; Valentin, tes coachs</b>
+                        <small>Ils se réjouissent d'échanger avec toi en tête-à-tête.</small>
+                    </div>
+                </div>
                 <div class="rv-current" id="rv-current" hidden></div>
                 <div class="rv-notice" id="rv-notice" hidden></div>
                 <div id="rv-days"></div>
@@ -125,8 +160,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <div class="rv-done-ic">✓</div>
             <h1 id="rv-done-title">C'est noté !</h1>
             <div class="rv-done-when" id="rv-done-when"></div>
-            <p class="rv-sub" id="rv-done-sub"></p>
-            <p class="rv-done-note">Un empêchement ? Reviens sur cette page pour déplacer ton rendez-vous.</p>
+            <div class="rv-done-row">
+                <span id="rv-done-av" hidden></span>
+                <p class="rv-sub" id="rv-done-sub"></p>
+            </div>
+            <p class="rv-done-note" id="rv-done-note">Un empêchement ? Reviens sur cette page pour déplacer ton rendez-vous.</p>
         </div>
     </div>
 
@@ -185,13 +223,49 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             el('rv-info-sub').innerHTML = sub;
             show('rv-info');
         }
+        // WhatsApp des coachs (clé = prénom en minuscules).
+        // ⚠️ NUMÉROS FACTICES pour l'instant, à remplacer par les vrais.
+        var COACH_WHATSAPP = {
+            romain: '+33 6 00 00 00 00',
+            valentin: '+33 6 00 00 00 00'
+        };
+        function coachSlug(name) {
+            return (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+        }
+        // Avatar d'un coach : photo /images/coachs/{prenom}.jpg si elle existe,
+        // sinon initiale stylée (le onerror retire l'image manquante).
+        function coachAv(name) {
+            var init = esc((name || '?').charAt(0).toUpperCase());
+            var slug = coachSlug(name);
+            return '<span class="rv-av" data-init="' + init + '">' + (slug ? '<img src="/images/coachs/' + slug + '.jpg" alt="' + esc(name) + '" onerror="this.remove()">' : '') + '</span>';
+        }
         function modalErr(msg) {
             var e = el('rv-modal-err');
             if (msg) { e.textContent = msg; e.classList.add('on'); }
             else { e.textContent = ''; e.classList.remove('on'); }
         }
+        // Champ téléphone avec indicatifs : même modèle que l'opt-in /masterclass
+        // (intl-tel-input : drapeau + indicatif détecté par IP, numéro validé par pays).
+        var itiRdv = null;
+        function initTelInput() {
+            if (itiRdv || typeof intlTelInput === 'undefined') return;
+            itiRdv = intlTelInput(el('rv-f-tel'), {
+                initialCountry: 'auto',
+                geoIpLookup: function (callback) {
+                    fetch('https://ipapi.co/json/')
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) { callback((data.country_code || 'fr').toLowerCase()); })
+                        .catch(function () { callback('fr'); });
+                },
+                preferredCountries: ['fr', 'be', 'ch', 'ca', 'ma', 'sn'],
+                separateDialCode: true,
+                dropdownContainer: document.body,
+                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/utils.js',
+            });
+        }
         function openModal(slot) {
             modalErr('');
+            initTelInput();
             el('rv-modal-when').textContent = fmtFull.format(new Date(slot.start));
             el('rv-modal').hidden = false;
             el('rv-f-prenom').focus();
@@ -230,13 +304,19 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 return;
             }
             if (d.mode === 'no_closer' || !Array.isArray(d.slots) || !d.slots.length) {
-                info('📞', 'Merci' + (prenom ? ' ' + esc(prenom) : '') + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ' On te contactera directement par téléphone.'));
+                info('📞', 'Merci' + (prenom ? ' ' + esc(prenom) : '') + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' Ton coach <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ' On te contactera directement par téléphone.'));
                 return;
             }
 
+            el('rv-coachs').hidden = false;
+            if (d.mode !== 'open' && d.closer) {
+                // Coach déjà connu (assigné dans l'admin) -> son avatar seul.
+                el('rv-coachs').innerHTML = '<div class="rv-coachs-avs">' + coachAv(d.closer) + '</div>' +
+                    '<div class="rv-coachs-t"><b>' + esc(d.closer) + ', ton coach</b><small>Il se réjouit d\'échanger avec toi en tête-à-tête.</small></div>';
+            }
             if (d.mode === 'open') {
                 el('rv-title').textContent = 'Réserve ton appel personnel';
-                el('rv-intro').innerHTML = 'Suite à la masterclass, un conseiller t\'appelle en tête-à-tête pour répondre à tes questions. <b>Choisis le créneau qui t\'arrange</b>, l\'appel dure environ 20 minutes.';
+                el('rv-intro').innerHTML = 'Suite à la masterclass, un de nos coachs t\'appelle en tête-à-tête pour répondre à tes questions. <b>Choisis le créneau qui t\'arrange</b>, l\'appel dure environ 20 minutes.';
                 el('rv-current').hidden = true;
             } else {
                 el('rv-title').textContent = 'Réserve ton appel avec ' + d.closer;
@@ -261,7 +341,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             el('rv-done-title').textContent = 'C\'est noté' + (d.prenom || (LAST && LAST.prenom) ? ' ' + esc(d.prenom || LAST.prenom) : '') + ' !';
             var closer = d.closer || (LAST && LAST.closer) || '';
             var hint = d.phone_hint || (LAST && LAST.phone_hint) || '';
-            el('rv-done-sub').innerHTML = (closer ? '<b>' + esc(closer) + '</b>' : 'Ton conseiller') + ' t\'appellera sur ' + (hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(hint) + '</b>' : 'le numéro que tu as donné') + '. Garde ton téléphone à portée de main.';
+            var av = el('rv-done-av');
+            if (closer) { av.innerHTML = coachAv(closer); av.hidden = false; } else { av.hidden = true; }
+            el('rv-done-sub').innerHTML = (closer ? 'Ton coach <b>' + esc(closer) + '</b>' : 'Ton coach') + ' t\'appellera sur ' + (hint ? 'ton numéro finissant par <b>&bull;&bull;' + esc(hint) + '</b>' : 'le numéro que tu as donné') + '. Garde ton téléphone à portée de main.';
+            var wa = COACH_WHATSAPP[coachSlug(closer)];
+            el('rv-done-note').innerHTML = wa
+                ? 'Un empêchement ou une question ? Écris directement à ' + esc(closer) + ' :<br><a class="rv-wa" href="https://wa.me/' + wa.replace(/\D/g, '') + '" target="_blank" rel="noopener noreferrer">&#128172; WhatsApp ' + esc(closer) + ' &middot; ' + esc(wa) + '</a>'
+                : 'Un empêchement ? Reviens sur cette page pour déplacer ton rendez-vous.';
             show('rv-done');
         }
 
@@ -299,7 +385,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var prenom = el('rv-f-prenom').value.trim();
             var email = el('rv-f-email').value.trim().toLowerCase();
             var tel = el('rv-f-tel').value.trim();
+            if (itiRdv) { try { tel = itiRdv.getNumber() || tel; } catch (e2) {} }
             if (!prenom || !email || !tel) { modalErr('Remplis les trois champs.'); return; }
+            if (itiRdv && typeof itiRdv.isValidNumber === 'function' && !itiRdv.isValidNumber()) {
+                modalErr('Ce numéro de téléphone ne semble pas valide. Vérifie le format et réessaie.');
+                return;
+            }
             var btn = el('rv-book-btn');
             btn.disabled = true; btn.textContent = 'Réservation…';
             modalErr('');
