@@ -999,6 +999,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
   <script>
     // @ts-nocheck
+    import Hls from 'hls.js';
     import { startScarcityEngine, getCurrentWindow, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
 
     const TOKEN_KEY = 'masterclass_es2_token';
@@ -1011,7 +1012,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     // jouait visiblement un rôle de "rampe d'accès" qu'on n'avait pas anticipé.
     // On revient à la vidéo W2 + CTA 4166s, en gardant les améliorations UX (pause, overlay scarcity,
     // bouton plein écran restylé, PDF qui disparaît au CTA).
-    const VIDEO_SOURCE_URL_PRIMARY = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4';
+    // MIGRATION 2026-07-06 : replay en HLS adaptatif via Bunny Stream (fin des freezes sur
+    // connexions faibles). L'ancien MP4 progressif reste le fallback ultime si HLS injouable.
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/d23f310f-0ee9-441f-b381-c33323d85d22/playlist.m3u8';
+    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4';
     const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
     function getMcWallClockMs() {
@@ -1128,19 +1132,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       document.getElementById('offer-minutes').textContent = String(m).padStart(2, '0');
       document.getElementById('offer-seconds').textContent = String(s).padStart(2, '0');
     }
-    async function fetchVideoSource() {
-      // FIX (2026-05-07) : ne PAS interroger /webinaire-video-config qui retourne l'URL du
-      // LIVE (configurée pour session.astro). Le replay a sa propre URL distincte définie
-      // localement dans VIDEO_SOURCE_URL_PRIMARY (vidéo W2 replay sans countdown intro).
+    function fetchVideoSource() {
+      // Le replay a sa propre URL (playlist HLS Bunny Stream, vidéo W2 replay). On n'interroge
+      // PAS /webinaire-video-config qui pilote le LIVE (session.astro).
       return VIDEO_SOURCE_URL_PRIMARY;
-      try {
-        const res = await fetch('/.netlify/functions/webinaire-video-config', { cache: 'no-store' });
-        if (!res.ok) return VIDEO_SOURCE_URL_PRIMARY;
-        const data = await res.json();
-        return data?.activeUrl ? String(data.activeUrl) : VIDEO_SOURCE_URL_PRIMARY;
-      } catch {
-        return VIDEO_SOURCE_URL_PRIMARY;
-      }
     }
     async function sendPresencePing(token, stage, currentSecond) {
       if (!token) return;
@@ -1170,6 +1165,45 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     function mountReplay(reg, token) {
       const video = document.getElementById('replay-video');
+      /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
+      let hlsInstance = null;
+      let attachedSourceUrl = '';
+      function isHlsUrl(url) {
+        return /\.m3u8(\?|#|$)/i.test(String(url || ''));
+      }
+      function detachVideoSource() {
+        if (hlsInstance) {
+          try { hlsInstance.destroy(); } catch { /* ignore */ }
+          hlsInstance = null;
+        }
+      }
+      function attachVideoSource(url) {
+        detachVideoSource();
+        attachedSourceUrl = String(url || '');
+        if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
+          hlsInstance = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 60 });
+          hlsInstance.on(Hls.Events.ERROR, function (_evt, data) {
+            // Erreur fatale HLS : même chemin de récupération que le watchdog.
+            if (data && data.fatal && typeof triggerFreezeRecovery === 'function') {
+              void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+            }
+          });
+          hlsInstance.loadSource(attachedSourceUrl);
+          hlsInstance.attachMedia(video);
+        } else {
+          // MP4 direct, HLS natif (Safari/iOS), ou dernier recours.
+          video.src = attachedSourceUrl;
+        }
+      }
+      function reloadVideoSource() {
+        // Équivalent de video.load() compatible mode hls.js (video.load() casserait
+        // l'attachement MediaSource).
+        if (hlsInstance) {
+          attachVideoSource(attachedSourceUrl);
+        } else {
+          video.load();
+        }
+      }
       const overlay = document.getElementById('video-overlay');
       const playOverlayBtn = document.getElementById('play-overlay-btn');
       const playPauseBtn = document.getElementById('playpause-btn');
@@ -1728,7 +1762,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const recoveryAttemptNumber = freezeRecoveryCount;
         try {
           allowProgrammaticSeek = true;
-          video.load();
+          reloadVideoSource();
           if (currentTimeAtFreeze > 0) {
             try { video.currentTime = currentTimeAtFreeze; } catch {}
           }
@@ -1939,9 +1973,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       sendPresencePing(token, 'replay', video.currentTime);
 
       return {
-        async initVideo() {
-          video.src = await fetchVideoSource();
-          video.load();
+        initVideo() {
+          attachVideoSource(fetchVideoSource());
         },
         destroy() {
           if (countdownInterval) clearInterval(countdownInterval);
@@ -1949,6 +1982,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           if (scarcityEngine) scarcityEngine.stop();
           if (hideToastTimer) clearTimeout(hideToastTimer);
           if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+          detachVideoSource();
           document.documentElement.classList.remove('mc-page-lock');
         },
       };
