@@ -2211,12 +2211,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const shouldShowLive = diff > 4;
                 liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
 
-                // FIX (2026-07-13) : bouton -15s toujours actif dès 15s de lecture. On NE conditionne
-                // plus sur `diff > 0`/`diff < 60` : au bord du live, `diff` oscille autour de 0 chaque
-                // seconde (liveOffset est un palier Math.floor pendant que cur avance en continu), ce qui
-                // faisait clignoter le bouton (~1×/s via timeupdate). Le recul reste borné à 60s DANS le
-                // clic (voir handler : target = max(liveOffset - 60, cur - 15)), donc aucune régression.
-                const canRewind = cur >= 15;
+                // FIX (2026-07-13) : bouton -15s.
+                // 1) Actif au bord du live. Avant, `diff > 0` le grisait ET le faisait clignoter : au
+                //    bord du live `diff` oscille autour de 0 (liveOffset = palier Math.floor pendant que
+                //    cur avance en continu), réévalué ~4×/s par timeupdate.
+                // 2) Grisé UNIQUEMENT au plancher (60s derrière le live), avec une zone morte de 3s
+                //    (hystérésis) pour ne pas clignoter à cette frontière : une fois grisé, il ne se
+                //    réactive qu'en repassant sous 57s. La bande (3s) >> oscillation (~1s).
+                // Le recul reste borné à 60s DANS le clic (target = max(liveOffset - 60, cur - 15)).
+                const atFloor = rewind15Btn.disabled
+                    ? diff > MAX_BEHIND_LIVE_SECONDS - 3
+                    : diff >= MAX_BEHIND_LIVE_SECONDS;
+                const canRewind = cur >= 15 && !atFloor;
                 rewind15Btn.classList.remove('hidden');
                 rewind15Btn.disabled = !canRewind;
                 rewind15Btn.classList.toggle('is-disabled', !canRewind);
