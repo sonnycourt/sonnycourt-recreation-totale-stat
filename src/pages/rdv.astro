@@ -89,6 +89,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .rv-form { display: flex; flex-direction: column; gap: 10px; }
         .rv-input { border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 13px 14px; font: inherit; font-size: 16px; color: #0f172a; background: #fff; width: 100%; }
         .rv-input:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+        .rv-ident-ok { display: flex; align-items: center; gap: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: #166534; }
+        .rv-ident-ok b { color: #14532d; }
+        .rv-ident-ok a { color: #2563eb; font-weight: 700; }
+        .rv-tel-why { font-size: 12.5px; font-weight: 700; color: #475569; margin-bottom: 6px; }
         .rv-modal-err { display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: #dc2626; }
         .rv-modal-err.on { display: block; }
         .rv-book-btn { border: 0; border-radius: 12px; background: #16a34a; color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 14px 18px; cursor: pointer; }
@@ -181,12 +185,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             <h2 id="rv-modal-title">Réserver ce créneau</h2>
             <p class="rv-modal-when" id="rv-modal-when"></p>
             <form class="rv-form" id="rv-book-form">
-                <input class="rv-input" id="rv-f-prenom" type="text" placeholder="Ton prénom" autocomplete="given-name" maxlength="60" required>
                 <input class="rv-input" id="rv-f-email" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Ton email (celui de la masterclass)" autocomplete="email" required>
-                <input class="rv-input" id="rv-f-tel" type="tel" inputmode="tel" placeholder="Ton numéro de téléphone" autocomplete="tel" maxlength="30" required>
+                <div class="rv-ident-ok" id="rv-ident-ok" hidden></div>
+                <div id="rv-tel-row" hidden>
+                    <p class="rv-tel-why" id="rv-tel-why"></p>
+                    <input class="rv-input" id="rv-f-tel" type="tel" inputmode="tel" placeholder="Ton numéro de téléphone" autocomplete="tel" maxlength="30">
+                </div>
                 <p class="rv-modal-err" id="rv-modal-err" role="alert"></p>
-                <button type="submit" class="rv-book-btn" id="rv-book-btn">Réserver ce créneau</button>
-                <p class="rv-modal-note">C'est le numéro sur lequel on t'appellera.</p>
+                <button type="submit" class="rv-book-btn" id="rv-book-btn">Continuer</button>
+                <p class="rv-modal-note" id="rv-modal-note">On retrouve automatiquement tes infos d'inscription.</p>
             </form>
         </div>
     </div>
@@ -265,12 +272,72 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         }
         function openModal(slot) {
             modalErr('');
-            initTelInput();
             el('rv-modal-when').textContent = fmtFull.format(new Date(slot.start));
             el('rv-modal').hidden = false;
-            el('rv-f-prenom').focus();
+            el('rv-f-email').focus();
         }
         function closeModal() { el('rv-modal').hidden = true; }
+
+        // ---- Identification par email seul : prénom + numéro retrouvés en base ----
+        var CHECKED = null; // null | {found:true, prenom, hint} | {found:false}
+        function showTelRow(why) {
+            el('rv-tel-row').hidden = false;
+            el('rv-tel-why').textContent = why;
+            el('rv-modal-note').textContent = "C'est le numéro sur lequel on t'appellera.";
+            initTelInput();
+        }
+        function resetIdent() {
+            CHECKED = null;
+            el('rv-ident-ok').hidden = true;
+            el('rv-tel-row').hidden = true;
+            el('rv-book-btn').textContent = 'Continuer';
+            el('rv-modal-note').textContent = "On retrouve automatiquement tes infos d'inscription.";
+            modalErr('');
+        }
+        async function checkEmail() {
+            var email = el('rv-f-email').value.trim().toLowerCase();
+            if (!email || CHECKED) return;
+            var btn = el('rv-book-btn');
+            var prev = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Vérification…';
+            try {
+                var r = await fetch(EP + '?email=' + encodeURIComponent(email));
+                var d = await r.json().catch(function () { return {}; });
+                if (r.ok && (d.mode === 'purchased' || d.mode === 'no_closer')) { closeModal(); render(d); }
+                else if (r.ok && d.mode === 'ok') {
+                    CHECKED = { found: true, prenom: d.prenom || '', hint: d.phone_hint || '' };
+                    var box = el('rv-ident-ok');
+                    box.innerHTML = '<span>&#10003; ' + (CHECKED.prenom ? '<b>' + esc(CHECKED.prenom) + '</b>, on t\'a retrouvé(e) !' : 'On t\'a retrouvé(e) !') +
+                        (CHECKED.hint ? ' Ton coach t\'appellera sur ton numéro finissant par <b>&bull;&bull;' + esc(CHECKED.hint) + '</b>.<br><a href="#" id="rv-othertel">Ce n\'est plus ton numéro ?</a>' : '') + '</span>';
+                    box.hidden = false;
+                    if (!CHECKED.hint) showTelRow("Il nous manque ton numéro pour que ton coach puisse t'appeler :");
+                    btn.textContent = 'Réserver ce créneau';
+                    modalErr('');
+                } else if (r.status === 404) {
+                    CHECKED = { found: false };
+                    modalErr((d && d.error) || "On ne trouve pas ton inscription. Utilise l'email avec lequel tu t'es inscrit(e) à la masterclass.");
+                    showTelRow("Ou identifie-toi avec le numéro donné à l'inscription :");
+                    btn.textContent = 'Réserver ce créneau';
+                } else {
+                    modalErr((d && d.error) || 'Erreur, réessaie.');
+                    btn.textContent = prev;
+                }
+            } catch (e) {
+                modalErr('Erreur réseau. Vérifie ta connexion et réessaie.');
+                btn.textContent = prev;
+            }
+            btn.disabled = false;
+        }
+        el('rv-f-email').addEventListener('input', resetIdent);
+        el('rv-f-email').addEventListener('focusout', function () {
+            if (!CHECKED && this.value.trim()) checkEmail();
+        });
+        el('rv-ident-ok').addEventListener('click', function (e) {
+            var a = e.target.closest('#rv-othertel');
+            if (!a) return;
+            e.preventDefault();
+            showTelRow("Entre le nouveau numéro sur lequel t'appeler :");
+        });
 
         function renderSlots(slots) {
             SLOTS = {}; SELECTED = null;
@@ -383,45 +450,64 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             e.preventDefault();
             var s = SLOTS[SELECTED];
             if (!s) return;
-            var prenom = el('rv-f-prenom').value.trim();
             var email = el('rv-f-email').value.trim().toLowerCase();
-            var tel = el('rv-f-tel').value.trim();
-            if (itiRdv) { try { tel = itiRdv.getNumber() || tel; } catch (e2) {} }
-            if (!prenom || !email || !tel) { modalErr('Remplis les trois champs.'); return; }
-            if (itiRdv && typeof itiRdv.isValidNumber === 'function' && !itiRdv.isValidNumber()) {
-                modalErr('Ce numéro de téléphone ne semble pas valide. Vérifie le format et réessaie.');
-                return;
+            if (!email) { modalErr('Entre ton email.'); return; }
+
+            // Étape 1 : identification par email (prénom + numéro retrouvés en base).
+            if (!CHECKED) { await checkEmail(); return; }
+
+            // Étape 2 : réservation. Téléphone seulement si le champ est affiché.
+            var tel = '';
+            if (!el('rv-tel-row').hidden) {
+                tel = el('rv-f-tel').value.trim();
+                if (itiRdv) { try { tel = itiRdv.getNumber() || tel; } catch (e2) {} }
+                if (tel && itiRdv && typeof itiRdv.isValidNumber === 'function' && !itiRdv.isValidNumber()) {
+                    modalErr('Ce numéro de téléphone ne semble pas valide. Vérifie le format et réessaie.');
+                    return;
+                }
             }
+            if (CHECKED.found === false && !tel) { modalErr("Entre ton numéro pour qu'on te retrouve."); return; }
+            if (CHECKED.found && !CHECKED.hint && !tel) { modalErr('Entre ton numéro pour être appelé(e).'); return; }
+
+            var prenom = (CHECKED && CHECKED.prenom) || '';
             var btn = el('rv-book-btn');
             btn.disabled = true; btn.textContent = 'Réservation…';
             modalErr('');
             try {
+                var payload = { email: email, start: s.start };
+                if (tel) payload.telephone = tel;
                 var r = await fetch(EP, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prenom: prenom, email: email, telephone: tel, start: s.start }),
+                    body: JSON.stringify(payload),
                 });
                 var d = await r.json().catch(function () { return {}; });
-                if (await handleBookResponse(r, d)) { IDENT = { prenom: prenom, email: email, telephone: tel }; }
+                if (await handleBookResponse(r, d)) { IDENT = { email: email, telephone: tel }; }
                 else if (r.status === 404) {
+                    CHECKED = { found: false };
                     modalErr((d && d.error) || "On ne trouve pas ton inscription. Utilise l'email avec lequel tu t'es inscrit(e) à la masterclass.");
+                    showTelRow("Ou identifie-toi avec le numéro donné à l'inscription :");
+                } else if (r.status === 400 && d && d.code === 'phone_required') {
+                    showTelRow("Il nous manque ton numéro pour que ton coach puisse t'appeler :");
+                    modalErr(d.error || '');
                 } else if (r.status === 409) {
-                    // Créneau plus dispo pour SON conseiller -> on affiche ses vrais créneaux.
-                    IDENT = { prenom: prenom, email: email, telephone: tel };
+                    // Créneau plus dispo pour SON coach -> on affiche ses vrais créneaux.
+                    IDENT = { email: email, telephone: tel };
                     closeModal();
                     LAST = { mode: 'ok', prenom: prenom, closer: d.closer || '', closer_phone: d.closer_phone || null, phone_hint: '' };
                     var n = el('rv-notice');
                     n.innerHTML = esc((d && d.error) || 'Ce créneau n\'est plus disponible. Choisis-en un autre ci-dessous.');
                     n.hidden = false;
                     renderSlots(Array.isArray(d.slots) ? d.slots : []);
-                    if (!(d.slots || []).length) info('📞', 'Merci ' + esc(prenom) + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ''));
+                    if (!(d.slots || []).length) info('📞', 'Merci' + (prenom ? ' ' + esc(prenom) : '') + ' !', 'Il n\'y a plus de créneau en ligne pour le moment.' + (d.closer ? ' Ton coach <b>' + esc(d.closer) + '</b> te contactera directement par téléphone.' : ''));
                 } else {
                     modalErr((d && d.error) || 'Erreur, réessaie.');
                 }
             } catch (err) {
                 modalErr('Erreur réseau. Vérifie ta connexion et réessaie.');
             }
-            btn.disabled = false; btn.textContent = 'Réserver ce créneau';
+            btn.disabled = false;
+            btn.textContent = CHECKED ? 'Réserver ce créneau' : 'Continuer';
         });
 
         // --- Barre de confirmation (token SMS, ou déjà identifié après un conflit) ---
@@ -433,7 +519,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             try {
                 var payload;
                 if (TOKEN) { payload = { t: TOKEN, slot_id: s.id }; }
-                else { payload = { prenom: IDENT.prenom, email: IDENT.email, telephone: IDENT.telephone, start: s.start }; }
+                else { payload = { email: IDENT.email, start: s.start }; if (IDENT.telephone) payload.telephone = IDENT.telephone; }
                 var r = await fetch(EP, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

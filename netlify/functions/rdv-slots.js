@@ -227,6 +227,14 @@ export default async (req) => {
       if (!closerInfo) return json(200, { mode: 'no_closer', prenom: reg.prenom || prenom });
       const closer = closerInfo.name;
 
+      // Identifié par email seul mais aucun numéro en base : impossible d'appeler.
+      if (!reg.telephone && !telephone) {
+        return json(400, {
+          code: 'phone_required',
+          error: "Il nous manque ton numéro pour que ton coach puisse t'appeler.",
+        });
+      }
+
       // Le numéro saisi = numéro à appeler pour le RDV ; prénom complété s'il manquait.
       const extra = {};
       if (telephone) extra.rdv_phone = telephone;
