@@ -2211,8 +2211,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const shouldShowLive = diff > 4;
                 liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
 
-                // On limite le recule total pour rester cohérent avec les fenêtres/CTA basés sur le timing live.
-                const canRewind = cur >= 15 && diff > 0 && diff < MAX_BEHIND_LIVE_SECONDS;
+                // FIX (2026-07-13) : bouton -15s toujours actif dès 15s de lecture. On NE conditionne
+                // plus sur `diff > 0`/`diff < 60` : au bord du live, `diff` oscille autour de 0 chaque
+                // seconde (liveOffset est un palier Math.floor pendant que cur avance en continu), ce qui
+                // faisait clignoter le bouton (~1×/s via timeupdate). Le recul reste borné à 60s DANS le
+                // clic (voir handler : target = max(liveOffset - 60, cur - 15)), donc aucune régression.
+                const canRewind = cur >= 15;
                 rewind15Btn.classList.remove('hidden');
                 rewind15Btn.disabled = !canRewind;
                 rewind15Btn.classList.toggle('is-disabled', !canRewind);
