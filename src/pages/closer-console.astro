@@ -1436,7 +1436,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
     .cc-nav-ext svg{width:13px;height:13px;}
     .cc-nav-link:hover .cc-nav-ext{color:#64748b;}
     .cc-side.is-collapsed{width:60px;flex-basis:60px;padding:14px 8px;}
-    .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext{display:none;}
+    .cc-nav-count{flex:0 0 auto;background:#7c3aed;color:#fff;border-radius:999px;font-size:11px;font-weight:800;line-height:1;padding:3px 8px;}
+    .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext,.cc-side.is-collapsed .cc-nav-count{display:none;}
     .cc-side.is-collapsed .cc-side-head{justify-content:center;padding:2px 0 12px;}
     .cc-side.is-collapsed .cc-nav-link{justify-content:center;padding:10px 0;gap:0;}
     .cc-side.is-collapsed .cc-side-toggle{transform:rotate(180deg);}
@@ -1448,7 +1449,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
       .cc-side-head{border-bottom:0;padding-bottom:0;margin-bottom:6px;}
       .cc-nav{flex-direction:row;flex-wrap:wrap;}
       .cc-side.is-collapsed{width:auto;flex-basis:auto;padding:14px 12px;}
-      .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext{display:initial;}
+      .cc-side.is-collapsed .cc-side-brand,.cc-side.is-collapsed .cc-nav-label,.cc-side.is-collapsed .cc-nav-ext,.cc-side.is-collapsed .cc-nav-count{display:initial;}
       .cc-side.is-collapsed .cc-nav-link{justify-content:flex-start;padding:8px 12px;gap:11px;}
     }
     .cc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
@@ -1639,6 +1640,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     <button type="button" class="cc-nav-link" id="cc-nav-dispo" title="Mes disponibilités — créneaux d'appel du week-end">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
                         <span class="cc-nav-label">Mes disponibilités</span>
+                    </button>
+                    <button type="button" class="cc-nav-link" id="cc-nav-rdv" title="Mes rendez-vous — RDV fixés à venir">
+                        <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                        <span class="cc-nav-label">Mes rendez-vous</span>
+                        <span class="cc-nav-count" id="cc-nav-rdv-count" hidden>0</span>
                     </button>
                     <a class="cc-nav-link" href="/closer-documentation" target="_blank" rel="noopener noreferrer" title="Documentation (nouvel onglet)">
                         <span class="cc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
@@ -1901,7 +1907,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
               '<td style="text-align:right"><span class="cc-chev">&#9656;</span></td></tr>'+
               '<tr class="cc-det" data-detail="'+esc(l.token)+'" hidden><td colspan="9"></td></tr>';}
 
-        function renderChips(){chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='todo')?LEADS.filter(todoF).length:(c.k==='rdv')?LEADS.filter(hasRdv).length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
+        function updateRdvNav(){var el=document.getElementById('cc-nav-rdv-count');if(!el)return;var n=(ALL_LEADS||[]).filter(function(l){return l.rdv_at&&!l.purchased&&new Date(l.rdv_at).getTime()>Date.now();}).length;el.textContent=n;el.hidden=!n;}
+        function renderChips(){updateRdvNav();chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='todo')?LEADS.filter(todoF).length:(c.k==='rdv')?LEADS.filter(hasRdv).length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='todo')return todoF(l);if(FILTER==='rdv')return hasRdv(l);if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
         function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.visited_sales)return 1;return 0;}
         function srcKey(l){return l.traffic_source==='meta_ad'?'meta':(l.traffic_source==='tiktok_ad'?'tiktok':'orga');}
@@ -2011,6 +2018,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function syncDetail(det,token){var l=DATA[token];det.querySelector('.cc-hist').innerHTML='<div class="cc-hist-t">Historique des appels</div>'+histHtml(l.call_log);var cs=det.querySelector('.cc-curst');if(cs)cs.innerHTML='Statut actuel '+stPill(statusOf(l))+' <span style="color:#94a3b8">(determine par le dernier appel)</span>';}
 
         chipsEl.addEventListener('click',function(e){var b=e.target.closest('.cc-chip');if(!b)return;FILTER=b.getAttribute('data-f');renderChips();renderList();});
+        var navRdv=document.getElementById('cc-nav-rdv');
+        if(navRdv)navRdv.addEventListener('click',function(){FILTER='rdv';renderChips();renderList();try{chipsEl.scrollIntoView({behavior:'smooth',block:'start'});}catch(_){}});
 
         function ccFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
         function ccCopy(text,btn,doneLabel){var orig=btn.innerHTML;var ok=function(){btn.classList.add('copied');btn.innerHTML=doneLabel||'&#10003; Copié';setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=orig;},1500);};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,function(){ccFallbackCopy(text);ok();});}else{ccFallbackCopy(text);ok();}}catch(_){ccFallbackCopy(text);ok();}}
