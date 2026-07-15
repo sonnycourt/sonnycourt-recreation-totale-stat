@@ -188,6 +188,11 @@
                 <!-- Réglages -->
                 <section id="tab-settings" hidden>
                     <div class="st-h"><h1>⚙️ Réglages</h1></div>
+                    <div class="st-card" style="border-width:2px" id="tap-card">
+                        <div class="st-field" style="margin-bottom:0"><label>🚰 Robinet de prospection (nouveaux contacts)</label>
+                            <button class="st-btn" id="set-tap" style="font-size:15px;padding:12px 22px">…</button>
+                            <p class="st-note" style="margin-top:8px">OFF = plus aucun nouveau prospect contacté. Les conversations en cours continuent normalement. À couper quand Romain est plein ou absent.</p></div>
+                    </div>
                     <div class="st-card">
                         <div class="st-field"><label>Mode supervisé (les réponses IA aux vrais prospects attendent ta validation)</label>
                             <button class="st-btn ghost" id="set-supervised">…</button></div>
@@ -375,15 +380,27 @@
         });
 
         // ---- Réglages ----
-        var SUPERVISED=true;
+        var SUPERVISED=true,TAP=false;
+        function renderTap(){
+            var b=el('set-tap');
+            b.textContent=TAP?'🟢 OUVERT — la prospection tourne':'🔴 FERMÉ — aucun nouveau contact';
+            b.style.background=TAP?'#16a34a':'#dc2626';
+            el('tap-card').style.borderColor=TAP?'#86efac':'#fecaca';
+        }
         async function loadSettings(){
             var res=await api(API+'?view=settings');
             var s=res.d.settings||{};
+            TAP=s.prospection_on===true;
+            renderTap();
             SUPERVISED=s.supervised_mode!==false;
             el('set-supervised').textContent=SUPERVISED?'✅ Activé (recommandé au début)':'⚠️ Désactivé : l\'IA envoie sans validation';
             el('set-drip').value=Number(s.drip_per_day)||100;
             el('set-booking').value=s.booking_url||'https://sonnycourt.com/seance';
         }
+        el('set-tap').addEventListener('click',async function(){
+            TAP=!TAP;renderTap();
+            await post(API,{action:'setting_set',key:'prospection_on',value:TAP});
+        });
         el('set-supervised').addEventListener('click',function(){SUPERVISED=!SUPERVISED;el('set-supervised').textContent=SUPERVISED?'✅ Activé (recommandé au début)':'⚠️ Désactivé : l\'IA envoie sans validation';});
         el('set-save').addEventListener('click',async function(){
             await post(API,{action:'setting_set',key:'supervised_mode',value:SUPERVISED});
