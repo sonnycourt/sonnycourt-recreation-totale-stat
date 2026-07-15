@@ -1,0 +1,404 @@
+---
+// Console Setter IA — pilotage des conversations SMS automatisées (no-shows masterclass).
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Setter IA — Console</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+
+    <style is:global>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    [hidden]{display:none !important;}
+    body{font-family:Inter,system-ui,sans-serif;background:#f8fafc;color:#0f172a;line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+    /* ---- Gate ---- */
+    .st-gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#0f172a,#1e293b);padding:18px;}
+    .st-gate.is-hidden{display:none;}
+    .st-gate-card{background:#fff;border-radius:18px;padding:30px 26px;width:100%;max-width:400px;text-align:center;}
+    .st-gate-card h1{font-size:1.2rem;font-weight:900;margin-bottom:6px;}
+    .st-gate-hint{font-size:13.5px;color:#64748b;margin-bottom:16px;}
+    .st-in{width:100%;border:1.5px solid #cbd5e1;border-radius:11px;padding:12px 13px;font:inherit;font-size:15px;margin-top:10px;}
+    .st-in:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+    .st-gate-err{color:#dc2626;font-size:13px;font-weight:700;min-height:18px;margin-top:10px;}
+    .st-gate-btn{width:100%;margin-top:8px;border:0;border-radius:11px;background:#2563eb;color:#fff;font:inherit;font-size:15px;font-weight:800;padding:13px;cursor:pointer;}
+    .st-gate-btn:hover{background:#3b82f6;} .st-gate-btn:disabled{opacity:.6;}
+
+    /* ---- Shell ---- */
+    #st{max-width:1200px;margin:0 auto;padding:24px 16px 90px;}
+    .st-shell{display:flex;gap:22px;align-items:flex-start;}
+    .st-side{width:210px;flex:0 0 210px;position:sticky;top:24px;background:#fff;border:1px solid #e8edf3;border-radius:16px;padding:12px;}
+    .st-brand{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:4px 8px 12px;border-bottom:1px solid #f1f5f9;margin-bottom:8px;}
+    .st-nav{display:flex;flex-direction:column;gap:4px;}
+    .st-nav button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;border-radius:10px;padding:10px 11px;font:inherit;font-size:14px;font-weight:600;color:#475569;cursor:pointer;text-align:left;}
+    .st-nav button:hover{background:#f1f5f9;color:#0f172a;}
+    .st-nav button.on{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;}
+    .st-logout{margin-top:10px;width:100%;border:0;background:none;border-radius:10px;padding:10px 11px;font:inherit;font-size:13.5px;font-weight:600;color:#64748b;cursor:pointer;text-align:left;}
+    .st-logout:hover{background:#fef2f2;color:#dc2626;}
+    .st-main{flex:1;min-width:0;}
+    .st-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .st-h h1{font-size:21px;font-weight:800;}
+    .st-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,23,42,.05);margin-bottom:14px;}
+    .st-note{font-size:13px;color:#64748b;}
+    .st-btn{border:0;border-radius:10px;background:#2563eb;color:#fff;font:inherit;font-size:13.5px;font-weight:700;padding:9px 15px;cursor:pointer;}
+    .st-btn:hover{background:#3b82f6;} .st-btn:disabled{opacity:.55;cursor:default;}
+    .st-btn.ghost{background:#fff;color:#334155;border:1.5px solid #cbd5e1;}
+    .st-btn.ghost:hover{border-color:#94a3b8;}
+    .st-btn.green{background:#16a34a;} .st-btn.green:hover{background:#15803d;}
+    .st-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:700;color:#475569;cursor:pointer;}
+    .st-chip.on{background:#2563eb;border-color:#2563eb;color:#fff;}
+    .st-empty{text-align:center;color:#94a3b8;padding:40px 16px;font-size:14px;}
+    .st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;}
+    .st-kpi{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;}
+    .st-kpi b{display:block;font-size:22px;font-weight:900;}
+    .st-kpi span{font-size:11.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+
+    /* ---- Chat ---- */
+    .st-chat{display:flex;flex-direction:column;gap:9px;max-height:52vh;overflow-y:auto;padding:4px 2px;}
+    .st-m{max-width:78%;padding:9px 13px;border-radius:13px;font-size:13.5px;line-height:1.5;word-wrap:break-word;}
+    .st-m.out{align-self:flex-end;background:#2563eb;color:#fff;border-bottom-right-radius:4px;}
+    .st-m.out.draft{background:#fff7ed;color:#9a3412;border:1.5px dashed #fb923c;}
+    .st-m.in{align-self:flex-start;background:#f1f5f9;color:#0f172a;border-bottom-left-radius:4px;}
+    .st-m small{display:block;font-size:10px;opacity:.7;margin-top:3px;}
+    .st-chatbar{display:flex;gap:8px;margin-top:12px;}
+    .st-chatbar input{flex:1;border:1.5px solid #cbd5e1;border-radius:11px;padding:11px 13px;font:inherit;font-size:14px;}
+    .st-chatbar input:focus{outline:none;border-color:#60a5fa;}
+    .st-typing{font-size:12px;color:#94a3b8;font-weight:700;margin-top:8px;min-height:15px;}
+
+    /* ---- Tables ---- */
+    .st-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+    .st-tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:700;padding:10px 10px;border-bottom:1px solid #e2e8f0;white-space:nowrap;}
+    .st-tbl td{padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+    .st-tbl tr.click{cursor:pointer;} .st-tbl tr.click:hover td{background:#f8fafc;}
+    .st-st{font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+    .st-st.nouveau{background:#f1f5f9;color:#64748b;} .st-st.ouvert{background:#dbeafe;color:#1d4ed8;}
+    .st-st.relance{background:#fef3c7;color:#b45309;} .st-st.booke{background:#dcfce7;color:#15803d;}
+    .st-st.opt_out{background:#fee2e2;color:#dc2626;} .st-st.handoff{background:#ede9fe;color:#6d28d9;}
+    .st-st.clos{background:#f1f5f9;color:#94a3b8;}
+
+    .st-field{margin-bottom:12px;}
+    .st-field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin-bottom:5px;}
+    .st-saved{font-size:12.5px;font-weight:700;color:#16a34a;min-height:16px;margin-top:8px;}
+    textarea.st-in{resize:vertical;min-height:64px;margin-top:0;}
+    @media(max-width:720px){.st-shell{flex-direction:column;}.st-side{width:auto;flex:none;position:static;}.st-nav{flex-direction:row;flex-wrap:wrap;}}
+    </style>
+</head>
+<body>
+    <!-- Gate -->
+    <div id="st-gate" class="st-gate" role="dialog" aria-modal="true">
+        <div class="st-gate-card">
+            <h1>Setter IA · accès réservé</h1>
+            <p class="st-gate-hint">Connecte-toi avec ton email et ton mot de passe.</p>
+            <form id="st-gate-form">
+                <input class="st-in" id="st-g-email" type="email" placeholder="Email" autocomplete="username">
+                <input class="st-in" id="st-g-pass" type="password" placeholder="Mot de passe" autocomplete="current-password">
+                <p class="st-gate-err" id="st-g-err"></p>
+                <button type="submit" class="st-gate-btn" id="st-g-btn">Accéder</button>
+            </form>
+        </div>
+    </div>
+
+    <main id="st" hidden>
+        <div class="st-shell">
+            <aside class="st-side">
+                <div class="st-brand">Setter IA</div>
+                <nav class="st-nav" id="st-nav">
+                    <button data-tab="sim" class="on">🧪 Simulateur</button>
+                    <button data-tab="conv">💬 Conversations</button>
+                    <button data-tab="targets">🎯 Ciblage</button>
+                    <button data-tab="playbook">📖 Playbook</button>
+                    <button data-tab="settings">⚙️ Réglages</button>
+                </nav>
+                <button class="st-logout" id="st-logout">Déconnexion</button>
+            </aside>
+
+            <div class="st-main">
+                <!-- Simulateur -->
+                <section id="tab-sim">
+                    <div class="st-h"><h1>🧪 Simulateur</h1><button class="st-btn ghost" id="sim-new">+ Nouvelle conversation test</button></div>
+                    <div class="st-card">
+                        <p class="st-note" style="margin-bottom:12px">Joue le rôle du prospect : l'IA répond exactement comme elle le fera par SMS. Aucun SMS réel n'est envoyé, mais tout est enregistré (préfixe <b>sim-</b>).</p>
+                        <div id="sim-start">
+                            <div class="st-field"><label>Prénom du prospect fictif</label><input class="st-in" id="sim-prenom" style="margin-top:0" value="Julie" maxlength="40"></div>
+                            <button class="st-btn green" id="sim-go">Démarrer : l'IA envoie le 1er SMS</button>
+                        </div>
+                        <div id="sim-chat" hidden>
+                            <div class="st-chat" id="sim-msgs"></div>
+                            <p class="st-typing" id="sim-typing"></p>
+                            <div class="st-chatbar">
+                                <input id="sim-in" placeholder="Réponds comme le prospect…" autocomplete="off">
+                                <button class="st-btn" id="sim-send">Envoyer</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Conversations -->
+                <section id="tab-conv" hidden>
+                    <div class="st-h"><h1>💬 Conversations</h1><button class="st-btn ghost" id="conv-refresh">↻ Rafraîchir</button></div>
+                    <div class="st-kpis" id="conv-kpis"></div>
+                    <div class="st-card">
+                        <div id="conv-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+                        <div id="conv-list"><div class="st-empty">Chargement…</div></div>
+                    </div>
+                    <div class="st-card" id="conv-detail" hidden>
+                        <div class="st-h"><h1 id="conv-d-title" style="font-size:16px"></h1><button class="st-btn ghost" id="conv-d-close">✕ Fermer</button></div>
+                        <div class="st-chat" id="conv-d-msgs"></div>
+                        <div id="conv-d-draft" hidden style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                            <button class="st-btn green" id="conv-d-approve">✓ Valider et envoyer</button>
+                            <button class="st-btn ghost" id="conv-d-regen">↻ Régénérer</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Ciblage -->
+                <section id="tab-targets" hidden>
+                    <div class="st-h"><h1>🎯 Ciblage</h1><button class="st-btn ghost" id="tg-refresh">↻ Recharger</button></div>
+                    <div class="st-card">
+                        <p class="st-note" style="margin-bottom:12px">No-shows pays riches (ni direct, ni replay, jamais appelés, jamais contactés par le setter). L'injection en batch s'activera avec la passerelle SMS.</p>
+                        <div id="tg-count" style="font-weight:800;font-size:15px;margin-bottom:10px"></div>
+                        <div id="tg-list"><div class="st-empty">Clique sur Recharger.</div></div>
+                    </div>
+                </section>
+
+                <!-- Playbook -->
+                <section id="tab-playbook" hidden>
+                    <div class="st-h"><h1>📖 Playbook</h1></div>
+                    <div class="st-card">
+                        <p class="st-note" style="margin-bottom:12px">Leçons injectées dans le prompt de l'IA. Ajoute ce que tu observes ; l'analyse automatique hebdo viendra enrichir cette liste.</p>
+                        <div class="st-field"><label>Nouvelle leçon</label><textarea class="st-in" id="pb-content" placeholder="Ex. : quand la personne dit qu'elle n'a pas le temps, proposer directement deux créneaux précis."></textarea></div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <select class="st-in" id="pb-kind" style="margin-top:0;width:auto"><option value="lecon">Leçon</option><option value="objection">Objection</option><option value="opener">Opener</option></select>
+                            <button class="st-btn" id="pb-add">Ajouter</button>
+                        </div>
+                        <p class="st-saved" id="pb-saved"></p>
+                        <div id="pb-list" style="margin-top:10px"><div class="st-empty">Chargement…</div></div>
+                    </div>
+                </section>
+
+                <!-- Réglages -->
+                <section id="tab-settings" hidden>
+                    <div class="st-h"><h1>⚙️ Réglages</h1></div>
+                    <div class="st-card">
+                        <div class="st-field"><label>Mode supervisé (les réponses IA aux vrais prospects attendent ta validation)</label>
+                            <button class="st-btn ghost" id="set-supervised">…</button></div>
+                        <div class="st-field"><label>SMS d'ouverture max par jour (drip)</label>
+                            <input class="st-in" id="set-drip" type="number" min="1" max="500" style="margin-top:0;width:120px"></div>
+                        <div class="st-field"><label>Lien de réservation envoyé par l'IA</label>
+                            <input class="st-in" id="set-booking" type="url" style="margin-top:0"></div>
+                        <button class="st-btn" id="set-save">Enregistrer</button>
+                        <p class="st-saved" id="set-saved"></p>
+                    </div>
+                    <div class="st-card">
+                        <div class="st-field"><label>Changer mon mot de passe</label>
+                            <input class="st-in" id="pw-cur" type="password" placeholder="Mot de passe actuel" style="margin-top:0">
+                            <input class="st-in" id="pw-new" type="password" placeholder="Nouveau (10 caractères min)"></div>
+                        <button class="st-btn" id="pw-save">Changer</button>
+                        <p class="st-saved" id="pw-saved"></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script is:inline>
+    (function () {
+        var LOGIN='/.netlify/functions/setter-login';
+        var API='/.netlify/functions/setter-console';
+        var AGENT='/.netlify/functions/setter-agent';
+        function el(id){return document.getElementById(id);}
+        function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+        function fmt(iso){if(!iso)return '';var d=new Date(iso);var p=function(n){return (n<10?'0':'')+n;};return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes());}
+        async function api(url,opts){var r=await fetch(url,Object.assign({credentials:'same-origin'},opts||{}));var d=await r.json().catch(function(){return{};});return {r:r,d:d};}
+        async function post(url,body){return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+
+        // ---- Gate ----
+        var gate=el('st-gate');
+        async function boot(){
+            var s=await api(LOGIN);
+            if(s.d&&s.d.authenticated){reveal();}
+        }
+        function reveal(){gate.classList.add('is-hidden');el('st').hidden=false;loadOverview();}
+        el('st-gate-form').addEventListener('submit',async function(e){
+            e.preventDefault();
+            var btn=el('st-g-btn');btn.disabled=true;btn.textContent='Vérification…';
+            var res=await post(LOGIN,{email:el('st-g-email').value.trim(),password:el('st-g-pass').value});
+            btn.disabled=false;btn.textContent='Accéder';
+            if(res.r.ok){reveal();}else{el('st-g-err').textContent=(res.d&&res.d.error)||'Erreur';}
+        });
+        el('st-logout').addEventListener('click',async function(){await post(LOGIN,{action:'logout'});location.reload();});
+
+        // ---- Tabs ----
+        el('st-nav').addEventListener('click',function(e){
+            var b=e.target.closest('button[data-tab]');if(!b)return;
+            document.querySelectorAll('#st-nav button').forEach(function(x){x.classList.toggle('on',x===b);});
+            ['sim','conv','targets','playbook','settings'].forEach(function(t){el('tab-'+t).hidden=t!==b.getAttribute('data-tab');});
+            var t=b.getAttribute('data-tab');
+            if(t==='conv')loadConversations();
+            if(t==='playbook')loadPlaybook();
+            if(t==='settings')loadSettings();
+        });
+
+        // ---- Simulateur ----
+        var SIM_ID=null;
+        function bubble(m){
+            var cls=m.direction==='in'?'in':'out'+(m.status==='a_valider'?' draft':'');
+            var tag=m.direction==='in'?'prospect':(m.ai_generated?'IA':'manuel')+(m.status==='a_valider'?' · brouillon à valider':'');
+            return '<div class="st-m '+cls+'">'+esc(m.body)+'<small>'+esc(tag)+' · '+fmt(m.created_at)+'</small></div>';
+        }
+        function renderSim(msgs){el('sim-msgs').innerHTML=msgs.map(bubble).join('');var c=el('sim-msgs');c.scrollTop=c.scrollHeight;}
+        el('sim-go').addEventListener('click',async function(){
+            this.disabled=true;el('sim-typing').textContent='L\'IA rédige le premier SMS…';
+            var res=await post(AGENT,{action:'simulate_start',prenom:el('sim-prenom').value.trim()});
+            this.disabled=false;el('sim-typing').textContent='';
+            if(!res.r.ok){el('sim-typing').textContent='⚠ '+((res.d&&res.d.error)||'Erreur');return;}
+            SIM_ID=res.d.conversation_id;
+            el('sim-start').hidden=true;el('sim-chat').hidden=false;
+            renderSim(res.d.messages||[]);
+            el('sim-in').focus();
+        });
+        el('sim-new').addEventListener('click',function(){SIM_ID=null;el('sim-chat').hidden=true;el('sim-start').hidden=false;el('sim-msgs').innerHTML='';});
+        async function simSend(){
+            var v=el('sim-in').value.trim();if(!v||!SIM_ID)return;
+            el('sim-in').value='';
+            el('sim-msgs').innerHTML+=bubble({direction:'in',body:v,created_at:new Date().toISOString()});
+            el('sim-typing').textContent='L\'IA répond…';
+            var res=await post(AGENT,{action:'inbound',conversation_id:SIM_ID,body:v});
+            el('sim-typing').textContent=res.r.ok?'':'⚠ '+((res.d&&res.d.error)||'Erreur');
+            if(res.r.ok)renderSim(res.d.messages||[]);
+        }
+        el('sim-send').addEventListener('click',simSend);
+        el('sim-in').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();simSend();}});
+
+        // ---- Conversations ----
+        var CONV_FILTER='',CONV_ID=null;
+        var CHIPS=[['','Toutes'],['ouvert','Ouvertes'],['booke','Bookées'],['handoff','Handoff'],['opt_out','Opt-out'],['clos','Closes']];
+        async function loadOverview(){
+            var res=await api(API+'?view=overview');
+            if(!res.r.ok)return;
+            var c=res.d.counts||{};
+            el('conv-kpis').innerHTML=
+                '<div class="st-kpi"><b>'+(res.d.total||0)+'</b><span>contacts réels</span></div>'+
+                '<div class="st-kpi"><b>'+(c.booke||0)+'</b><span>RDV bookés</span></div>'+
+                '<div class="st-kpi"><b>'+(c.ouvert||0)+'</b><span>en cours</span></div>'+
+                '<div class="st-kpi"><b>'+(c.handoff||0)+'</b><span>handoff</span></div>'+
+                '<div class="st-kpi"><b>'+(res.d.opt_outs||0)+'</b><span>opt-out</span></div>'+
+                '<div class="st-kpi"><b>'+(res.d.simulations||0)+'</b><span>simulations</span></div>';
+        }
+        function renderChips(){
+            el('conv-chips').innerHTML=CHIPS.map(function(c){return '<button class="st-chip'+(CONV_FILTER===c[0]?' on':'')+'" data-f="'+c[0]+'">'+c[1]+'</button>';}).join('')+
+            '<button class="st-chip'+(CONV_FILTER==='sim'?' on':'')+'" data-f="sim">🧪 Simulations</button>';
+        }
+        el('conv-chips').addEventListener('click',function(e){var b=e.target.closest('.st-chip');if(!b)return;CONV_FILTER=b.getAttribute('data-f');loadConversations();});
+        async function loadConversations(){
+            renderChips();loadOverview();
+            var q=API+'?view=conversations'+(CONV_FILTER==='sim'?'&sim=1':(CONV_FILTER?'&status='+CONV_FILTER:''));
+            var res=await api(q);
+            var list=res.d.conversations||[];
+            if(!list.length){el('conv-list').innerHTML='<div class="st-empty">Aucune conversation.</div>';return;}
+            el('conv-list').innerHTML='<table class="st-tbl"><thead><tr><th>Contact</th><th>Statut</th><th>Dernier échange</th><th></th></tr></thead><tbody>'+
+                list.map(function(c){return '<tr class="click" data-id="'+c.id+'"><td><b>'+esc(c.prenom||'?')+'</b><br><span style="color:#94a3b8;font-size:11px">'+esc(c.phone)+'</span></td>'+
+                '<td><span class="st-st '+esc(c.status)+'">'+esc(c.status)+'</span></td>'+
+                '<td style="font-size:12px;color:#64748b">'+fmt(c.updated_at)+'</td><td>▸</td></tr>';}).join('')+'</tbody></table>';
+        }
+        el('conv-refresh').addEventListener('click',loadConversations);
+        el('conv-list').addEventListener('click',async function(e){
+            var tr=e.target.closest('tr[data-id]');if(!tr)return;
+            CONV_ID=Number(tr.getAttribute('data-id'));
+            var res=await api(API+'?view=conversation&id='+CONV_ID);
+            if(!res.r.ok)return;
+            el('conv-detail').hidden=false;
+            el('conv-d-title').textContent=(res.d.conversation.prenom||'?')+' · '+res.d.conversation.phone;
+            el('conv-d-msgs').innerHTML=(res.d.messages||[]).filter(function(m){return m.status!=='brouillon';}).map(bubble).join('');
+            var hasDraft=(res.d.messages||[]).some(function(m){return m.status==='a_valider';});
+            el('conv-d-draft').hidden=!hasDraft;
+            el('conv-detail').scrollIntoView({behavior:'smooth'});
+        });
+        el('conv-d-close').addEventListener('click',function(){el('conv-detail').hidden=true;});
+        el('conv-d-approve').addEventListener('click',async function(){
+            var res=await api(API+'?view=conversation&id='+CONV_ID);
+            var draft=(res.d.messages||[]).filter(function(m){return m.status==='a_valider';}).pop();
+            if(!draft)return;
+            await post(AGENT,{action:'approve',message_id:draft.id});
+            el('conv-list').querySelector('tr[data-id="'+CONV_ID+'"]')&&el('conv-list').querySelector('tr[data-id="'+CONV_ID+'"]').click();
+        });
+        el('conv-d-regen').addEventListener('click',async function(){
+            this.disabled=true;
+            await post(AGENT,{action:'regenerate',conversation_id:CONV_ID});
+            this.disabled=false;
+            document.querySelector('#conv-list tr[data-id="'+CONV_ID+'"]').click();
+        });
+
+        // ---- Ciblage ----
+        async function loadTargets(){
+            el('tg-list').innerHTML='<div class="st-empty">Chargement…</div>';
+            var res=await api(API+'?view=targets');
+            if(!res.r.ok){el('tg-list').innerHTML='<div class="st-empty">Erreur : '+esc((res.d&&res.d.error)||'')+'</div>';return;}
+            el('tg-count').textContent=res.d.total_sample+' cibles dans l\'échantillon (300 dernières inscriptions scannées)';
+            var t=res.d.targets||[];
+            if(!t.length){el('tg-list').innerHTML='<div class="st-empty">Aucune cible.</div>';return;}
+            el('tg-list').innerHTML='<table class="st-tbl"><thead><tr><th>Prénom</th><th>Pays</th><th>Téléphone</th><th>Session</th></tr></thead><tbody>'+
+                t.map(function(x){return '<tr><td><b>'+esc(x.prenom||'?')+'</b></td><td>'+esc(x.pays||'')+'</td><td>'+esc(x.telephone||'')+'</td><td style="font-size:12px;color:#64748b">'+String(x.session_date||'').slice(0,10)+'</td></tr>';}).join('')+'</tbody></table>';
+        }
+        el('tg-refresh').addEventListener('click',loadTargets);
+
+        // ---- Playbook ----
+        async function loadPlaybook(){
+            var res=await api(API+'?view=playbook');
+            var rows=res.d.playbook||[];
+            if(!rows.length){el('pb-list').innerHTML='<div class="st-empty">Aucune leçon pour l\'instant.</div>';return;}
+            el('pb-list').innerHTML=rows.map(function(p){
+                return '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed #e2e8f0;'+(p.active?'':'opacity:.45')+'">'+
+                '<span class="st-st ouvert" style="flex:0 0 auto">'+esc(p.kind)+'</span>'+
+                '<span style="flex:1;font-size:13px">'+esc(p.content)+'</span>'+
+                '<button class="st-chip" data-pbid="'+p.id+'">'+(p.active?'Désactiver':'Activer')+'</button></div>';
+            }).join('');
+        }
+        el('pb-list').addEventListener('click',async function(e){
+            var b=e.target.closest('[data-pbid]');if(!b)return;
+            await post(API,{action:'playbook_toggle',id:Number(b.getAttribute('data-pbid'))});
+            loadPlaybook();
+        });
+        el('pb-add').addEventListener('click',async function(){
+            var content=el('pb-content').value.trim();if(!content)return;
+            var res=await post(API,{action:'playbook_add',kind:el('pb-kind').value,content:content});
+            if(res.r.ok){el('pb-content').value='';el('pb-saved').textContent='✓ Ajouté';setTimeout(function(){el('pb-saved').textContent='';},1500);loadPlaybook();}
+        });
+
+        // ---- Réglages ----
+        var SUPERVISED=true;
+        async function loadSettings(){
+            var res=await api(API+'?view=settings');
+            var s=res.d.settings||{};
+            SUPERVISED=s.supervised_mode!==false;
+            el('set-supervised').textContent=SUPERVISED?'✅ Activé (recommandé au début)':'⚠️ Désactivé : l\'IA envoie sans validation';
+            el('set-drip').value=Number(s.drip_per_day)||100;
+            el('set-booking').value=s.booking_url||'https://sonnycourt.com/seance';
+        }
+        el('set-supervised').addEventListener('click',function(){SUPERVISED=!SUPERVISED;el('set-supervised').textContent=SUPERVISED?'✅ Activé (recommandé au début)':'⚠️ Désactivé : l\'IA envoie sans validation';});
+        el('set-save').addEventListener('click',async function(){
+            await post(API,{action:'setting_set',key:'supervised_mode',value:SUPERVISED});
+            await post(API,{action:'setting_set',key:'drip_per_day',value:Number(el('set-drip').value)||100});
+            await post(API,{action:'setting_set',key:'booking_url',value:el('set-booking').value.trim()});
+            el('set-saved').textContent='✓ Enregistré';setTimeout(function(){el('set-saved').textContent='';},1500);
+        });
+        el('pw-save').addEventListener('click',async function(){
+            var res=await post(API,{action:'password_change',current:el('pw-cur').value,next:el('pw-new').value});
+            el('pw-saved').textContent=res.r.ok?'✓ Mot de passe changé':'⚠ '+((res.d&&res.d.error)||'Erreur');
+            if(res.r.ok){el('pw-cur').value='';el('pw-new').value='';}
+        });
+
+        boot();
+    })();
+    </script>
+</body>
+</html>
