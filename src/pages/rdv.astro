@@ -542,7 +542,13 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         async function boot() {
             show('rv-loading');
             try {
-                var url = EP + (TOKEN ? '?t=' + encodeURIComponent(TOKEN) : '');
+                // Sans token URL : on joint le token localStorage (posé par les pages
+                // masterclass) pour tamponner la visite côté serveur, sans changer le flux.
+                var visitor = '';
+                if (!TOKEN) {
+                    try { visitor = (localStorage.getItem('masterclass_es2_token') || '').trim(); } catch (e) { /* noop */ }
+                }
+                var url = EP + (TOKEN ? '?t=' + encodeURIComponent(TOKEN) : (visitor ? '?visitor=' + encodeURIComponent(visitor) : ''));
                 var r = await fetch(url);
                 if (TOKEN && (r.status === 404 || r.status === 400)) { show('rv-error'); return; }
                 if (!r.ok) throw 0;

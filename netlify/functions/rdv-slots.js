@@ -44,6 +44,23 @@ function normDigits(v) {
   return String(v || '').replace(/\D/g, '');
 }
 
+/**
+ * Marque la première visite de la page /rdv (signal closer : intention sans résa).
+ * Silencieux : n'écrase pas une visite déjà tamponnée, n'échoue jamais la requête.
+ */
+async function stampRdvVisit(token) {
+  if (!token) return;
+  try {
+    await supabasePatch(
+      'webinaire_registrations',
+      `token=eq.${encodeURIComponent(token)}&rdv_page_visited_at=is.null`,
+      { rdv_page_visited_at: new Date().toISOString() },
+    );
+  } catch (e) {
+    /* noop */
+  }
+}
+
 /** Email d'abord, sinon téléphone (9 derniers chiffres). */
 async function findRegByIdentity({ email, telephone }) {
   if (email) {
@@ -182,9 +199,13 @@ export default async (req) => {
     const url = new URL(req.url);
     const token = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
     const email = (url.searchParams.get('email') || '').trim();
+    // Token localStorage envoyé par le front en mode ouvert : sert uniquement à
+    // tamponner la visite, ne change ni le mode ni la réponse.
+    const visitor = (url.searchParams.get('visitor') || '').trim();
 
     // --- Mode ouvert : calendrier anonyme, identification à la réservation ---
     if (!token && !email) {
+      await stampRdvVisit(visitor);
       const slots = await getOpenSlots();
       if (!slots) return json(500, { error: 'Erreur lecture' });
       return json(200, { mode: 'open', slots });
@@ -193,6 +214,7 @@ export default async (req) => {
     // --- Flux historique (lien SMS avec token, ou email en query) ---
     const reg = await getRegByTokenOrEmail({ token, email });
     if (!reg) return json(404, { error: token ? 'Lien invalide' : NOT_FOUND_MSG });
+    await stampRdvVisit(reg.token);
     const base = { prenom: reg.prenom || '', phone_hint: phoneHint(reg.telephone) };
     if (reg.purchased) return json(200, { mode: 'purchased', ...base });
     if (!reg.assigned_closer_id) return json(200, { mode: 'no_closer', ...base });
