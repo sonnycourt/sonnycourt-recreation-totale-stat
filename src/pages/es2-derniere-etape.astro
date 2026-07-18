@@ -128,6 +128,7 @@
     .iti__country.iti__highlight { background: rgba(59, 130, 246, 0.18); }
     .iti__dial-code { color: rgba(255, 255, 255, 0.5); }
     .field-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+    .field-row--even { grid-template-columns: 1fr 1fr; }
     .suggestions {
       position: absolute;
       top: 100%;
@@ -212,9 +213,15 @@
         <label for="f-email">Email d'inscription</label>
         <input type="email" id="f-email" autocomplete="email" placeholder="ton@email.com" />
       </div>
-      <div class="field">
-        <label for="f-name">Nom complet</label>
-        <input type="text" id="f-name" autocomplete="name" placeholder="Prénom Nom" required />
+      <div class="field field-row field-row--even">
+        <div>
+          <label for="f-firstname">Prénom</label>
+          <input type="text" id="f-firstname" autocomplete="given-name" placeholder="Prénom" required />
+        </div>
+        <div>
+          <label for="f-lastname">Nom</label>
+          <input type="text" id="f-lastname" autocomplete="family-name" placeholder="Nom" required />
+        </div>
       </div>
       <div class="field">
         <label for="f-phone">Téléphone</label>
@@ -306,7 +313,7 @@
           if (res.ok) {
             const d = await res.json();
             regEmail = d.email || '';
-            if (d.prenom && !el('f-name').value) el('f-name').value = d.prenom;
+            if (d.prenom && !el('f-firstname').value) el('f-firstname').value = d.prenom;
             if (d.telephone) {
               pendingPhone = d.telephone;
               if (iti) iti.setNumber(d.telephone);
@@ -396,7 +403,7 @@
             body: JSON.stringify({
               t: token || '',
               email: regEmail || (el('f-email').value || '').trim(),
-              full_name: el('f-name').value.trim(),
+              full_name: (el('f-firstname').value.trim() + ' ' + el('f-lastname').value.trim()).trim(),
               phone: (iti && iti.getNumber && iti.getNumber()) || el('f-phone').value.trim(),
               street: el('f-street').value.trim(),
               street2: el('f-street2').value.trim(),
