@@ -379,6 +379,109 @@ spiffy.load("sonnycourt");
     @media (max-width: 768px) {
       .video-grid { grid-template-columns: 1fr; max-width: 340px; margin-left: auto; margin-right: auto; }
     }
+    /* Exit popup (desktop uniquement) */
+    .exit-popup {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(2, 6, 23, 0.82);
+      backdrop-filter: blur(10px);
+    }
+    .exit-popup.is-visible { display: flex; }
+    .exit-popup__panel {
+      position: relative;
+      width: min(560px, 100%);
+      padding: 42px 38px 34px;
+      border-radius: 20px;
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      background:
+        radial-gradient(130% 160% at 50% -30%, rgba(37, 99, 235, 0.25) 0%, rgba(15, 23, 42, 0.97) 55%, rgba(15, 23, 42, 1) 100%);
+      box-shadow: 0 40px 120px rgba(2, 6, 23, 0.8), 0 0 60px rgba(59, 130, 246, 0.15);
+      text-align: center;
+      overflow: hidden;
+      animation: exitPopIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes exitPopIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .exit-popup__glow {
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 160px;
+      background: radial-gradient(closest-side, rgba(96, 165, 250, 0.35), transparent);
+      pointer-events: none;
+    }
+    .exit-popup__close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .exit-popup__close:hover { background: rgba(255, 255, 255, 0.15); }
+    .exit-popup__kicker {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 12px;
+    }
+    .exit-popup__title {
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+    .exit-popup__text {
+      font-size: 15.5px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.78);
+      margin-bottom: 14px;
+    }
+    .exit-popup__text--strong { color: #fff; font-weight: 600; }
+    .exit-popup__cta {
+      display: block;
+      width: 100%;
+      height: 54px;
+      margin-top: 22px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+      transition: transform 0.12s ease;
+    }
+    .exit-popup__cta:active { transform: scale(0.985); }
+    .exit-popup__dismiss {
+      margin-top: 14px;
+      background: none;
+      border: none;
+      font-size: 12.5px;
+      font-family: inherit;
+      color: rgba(255, 255, 255, 0.4);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .exit-popup__dismiss:hover { color: rgba(255, 255, 255, 0.6); }
     /* Gate d'identification (pas de token trouvé) */
     .page.is-locked .checkout-wrap,
     .page.is-locked .checkout-note,
@@ -593,6 +696,24 @@ spiffy.load("sonnycourt");
     </div>
   </div>
 
+  <div class="exit-popup" id="exit-popup" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="exit-popup__panel">
+      <button type="button" class="exit-popup__close" id="exit-popup-close" aria-label="Fermer">&times;</button>
+      <div class="exit-popup__glow" aria-hidden="true"></div>
+      <p class="exit-popup__kicker">Avant de partir</p>
+      <h2 class="exit-popup__title">Attends une seconde.</h2>
+      <p class="exit-popup__text">
+        Tu sais exactement ce qui t'attend si tu fermes cette page.<br />
+        La même vie. Les mêmes pensées qui tournent en rond, les mêmes matins sans élan, la même promesse de t'y mettre « un jour ».
+      </p>
+      <p class="exit-popup__text exit-popup__text--strong">
+        Tu as tenu plus d'une heure face à ce qui te bloque. Une partie de toi a déjà dit oui. La seule question, c'est : combien de temps encore tu vas la faire attendre ?
+      </p>
+      <button type="button" class="exit-popup__cta" id="exit-popup-cta">Je choisis ma nouvelle vie →</button>
+      <button type="button" class="exit-popup__dismiss" id="exit-popup-dismiss">Non merci, je retourne à mon ancienne vie</button>
+    </div>
+  </div>
+
   <div id="purchase-toast" class="purchase-toast" aria-live="polite">
     <div class="purchase-toast__content">
       <div class="purchase-toast__thumb-wrap">
@@ -779,6 +900,46 @@ spiffy.load("sonnycourt");
           countdownInterval = setInterval(renderCountdown, 1000);
         }
       }
+
+      // --- Exit popup : desktop uniquement, une fois par session ---
+      (function () {
+        const popup = document.getElementById('exit-popup');
+        if (!popup) return;
+        const EXIT_KEY = 'es2_exit_popup_shown';
+        const isDesktop = window.matchMedia('(pointer: fine)').matches && window.innerWidth >= 1024;
+        function canShow() {
+          if (!isDesktop) return false;
+          if (pageEl.classList.contains('is-locked') || pageEl.classList.contains('is-expired')) return false;
+          try { if (sessionStorage.getItem(EXIT_KEY)) return false; } catch (e) { /* noop */ }
+          return true;
+        }
+        function openPopup() {
+          if (!canShow()) return;
+          try { sessionStorage.setItem(EXIT_KEY, '1'); } catch (e) { /* noop */ }
+          popup.classList.add('is-visible');
+          popup.setAttribute('aria-hidden', 'false');
+        }
+        function closePopup() {
+          popup.classList.remove('is-visible');
+          popup.setAttribute('aria-hidden', 'true');
+        }
+        document.addEventListener('mouseout', function (ev) {
+          if (!ev.relatedTarget && ev.clientY <= 0) openPopup();
+        });
+        document.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape') closePopup();
+        });
+        popup.addEventListener('click', function (ev) {
+          if (ev.target === popup) closePopup();
+        });
+        document.getElementById('exit-popup-close').addEventListener('click', closePopup);
+        document.getElementById('exit-popup-dismiss').addEventListener('click', closePopup);
+        document.getElementById('exit-popup-cta').addEventListener('click', function () {
+          closePopup();
+          const target = document.getElementById('checkout-slot');
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      })();
 
       // --- Témoignages vidéo : lecture exclusive (une vidéo à la fois) ---
       document.querySelectorAll('.video-card').forEach(function (card) {
