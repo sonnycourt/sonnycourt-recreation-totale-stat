@@ -129,6 +129,60 @@ spiffy.load("sonnycourt");
       font-size: 13px;
       color: rgba(255, 255, 255, 0.55);
     }
+    /* Gate d'identification (pas de token trouvé) */
+    .page.is-locked .checkout-wrap,
+    .page.is-locked .checkout-note,
+    .page.is-locked .offer-countdown { display: none; }
+    .gate-overlay {
+      display: none;
+      margin: 40px auto 0;
+      max-width: 460px;
+      padding: 34px 26px;
+      border-radius: 18px;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 24px 70px rgba(2, 6, 23, 0.45);
+      text-align: center;
+    }
+    .gate-overlay.is-visible { display: block; }
+    .gate-overlay h2 { font-size: 21px; font-weight: 900; margin-bottom: 8px; }
+    .gate-overlay p { color: rgba(255, 255, 255, 0.72); font-size: 14.5px; line-height: 1.55; margin-bottom: 18px; }
+    .gate-form { display: flex; flex-direction: column; gap: 10px; }
+    .gate-input {
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      padding: 0 14px;
+      outline: none;
+    }
+    .gate-input:focus { border-color: rgba(96, 165, 250, 0.7); }
+    .gate-btn {
+      height: 48px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    .gate-btn:active { transform: scale(0.98); }
+    .gate-btn[disabled] { opacity: 0.6; cursor: wait; }
+    .gate-error {
+      display: none;
+      margin-top: 12px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #fca5a5;
+    }
+    .gate-error.on { display: block; }
+    .gate-error a { color: #93c5fd; }
     /* Offre expirée */
     .expired-overlay {
       display: none;
@@ -190,7 +244,7 @@ spiffy.load("sonnycourt");
   </style>
 </head>
 <body>
-  <div class="page" id="page">
+  <div class="page is-locked" id="page">
     <header class="hero">
       <div class="hero-badge">Offre réservée aux participants de la masterclass</div>
       <h1>Ta place dans <span class="accent">Esprit Subconscient 2.0</span> t'attend.</h1>
@@ -210,6 +264,16 @@ spiffy.load("sonnycourt");
       <spiffy-checkout url="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2"></spiffy-checkout>
     </section>
     <p class="checkout-note">Paiement sécurisé · Garantie satisfaction 30 jours</p>
+
+    <div class="gate-overlay" id="gate-overlay">
+      <h2>Retrouvons ton invitation</h2>
+      <p>Cette offre est réservée aux participants de la masterclass. Entre l'email utilisé lors de ton inscription pour retrouver ton accès et ton temps restant.</p>
+      <form class="gate-form" id="gate-form">
+        <input type="email" class="gate-input" id="gate-email" placeholder="ton@email.com" autocomplete="email" required />
+        <button type="submit" class="gate-btn" id="gate-btn">Accéder à mon offre</button>
+      </form>
+      <p class="gate-error" id="gate-error"></p>
+    </div>
 
     <div class="expired-overlay" id="expired-overlay">
       <div class="icon">⏳</div>
@@ -236,12 +300,31 @@ spiffy.load("sonnycourt");
       const isPreview = params.get('preview') === 'true' || params.get('preview') === 'dev';
       const TOKEN_KEY = 'masterclass_es2_token';
 
+      // Token : URL -> localStorage -> cookie. S'il existe quelque part, on ne
+      // demande rien au visiteur ; sinon, gate d'identification par email.
+      function readCookieToken() {
+        const m = document.cookie.match(/(?:^|;\s*)masterclass_es2_token=([^;]+)/);
+        return m ? decodeURIComponent(m[1]).trim() : '';
+      }
       const urlToken = (params.get('t') || params.get('token') || '').trim();
       let token = urlToken;
       if (!token) {
         try { token = (localStorage.getItem(TOKEN_KEY) || '').trim(); } catch (e) { /* noop */ }
-      } else {
+      }
+      if (!token) token = readCookieToken();
+      if (token) {
         try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { /* noop */ }
+      }
+
+      const pageEl = document.getElementById('page');
+      const gateEl = document.getElementById('gate-overlay');
+      function unlockPage() {
+        pageEl.classList.remove('is-locked');
+        gateEl.classList.remove('is-visible');
+      }
+      function showGate() {
+        pageEl.classList.add('is-locked');
+        gateEl.classList.add('is-visible');
       }
 
       const countdownEl = document.getElementById('offer-countdown');
@@ -269,8 +352,14 @@ spiffy.load("sonnycourt");
         if (overlay) overlay.classList.add('is-visible');
       }
 
-      // --- Récupération de l'expiration réelle du lead (source serveur) ---
-      if (token && !isPreview) {
+      // --- Gate + récupération de l'expiration réelle du lead (source serveur) ---
+      if (isPreview) {
+        // Aperçu interne : pas de token requis, countdown sur la fenêtre courante.
+        const win = getCurrentWindow(Date.now());
+        offerExpiryMs = win.endMs;
+        sessionStartsAtMs = win.startMs - SCARCITY_WINDOW_START_AFTER_SESSION_MS;
+        unlockPage();
+      } else if (token) {
         try {
           const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
           if (res.ok) {
@@ -279,15 +368,63 @@ spiffy.load("sonnycourt");
             const ses = new Date(data.sessionStartsAt || data.session_date || '').getTime();
             if (Number.isFinite(exp)) offerExpiryMs = exp;
             if (Number.isFinite(ses)) sessionStartsAtMs = ses;
+            unlockPage();
+          } else if (res.status === 404 || res.status === 400) {
+            // Token inconnu en base : on nettoie et on demande l'email.
+            try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ }
+            showGate();
+          } else {
+            // Erreur serveur passagère : on ne bloque pas un acheteur.
+            unlockPage();
           }
-        } catch (e) { /* réseau KO : on n'affiche pas de countdown, le checkout reste dispo */ }
+        } catch (e) {
+          // Réseau KO : on ne bloque pas un acheteur, countdown absent.
+          unlockPage();
+        }
+      } else {
+        showGate();
       }
 
-      // Preview sans token : countdown branché sur la fenêtre scarcity courante.
-      if (isPreview && !Number.isFinite(offerExpiryMs)) {
-        const win = getCurrentWindow(Date.now());
-        offerExpiryMs = win.endMs;
-        sessionStartsAtMs = win.startMs - SCARCITY_WINDOW_START_AFTER_SESSION_MS;
+      // --- Gate : retrouver le token via l'email d'inscription masterclass ---
+      const gateForm = document.getElementById('gate-form');
+      const gateBtn = document.getElementById('gate-btn');
+      const gateErr = document.getElementById('gate-error');
+      if (gateForm) {
+        gateForm.addEventListener('submit', async function (ev) {
+          ev.preventDefault();
+          const email = (document.getElementById('gate-email').value || '').trim().toLowerCase();
+          if (!email) return;
+          gateErr.classList.remove('on');
+          gateBtn.disabled = true;
+          const prevLabel = gateBtn.textContent;
+          gateBtn.textContent = 'Recherche…';
+          try {
+            const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (res.ok && data.reason === 'already_registered' && data.token) {
+              try { localStorage.setItem(TOKEN_KEY, data.token); } catch (e) { /* noop */ }
+              window.location.replace('/invitation-es2/?t=' + encodeURIComponent(data.token));
+              return;
+            }
+            if (res.ok && data.eligible === true) {
+              gateErr.innerHTML = 'Aucune inscription trouvée avec cet email. Utilise l\'email de ton inscription à la masterclass, ou <a href="/masterclass/">inscris-toi ici</a>.';
+            } else if (res.ok && data.reason === 'excluded') {
+              gateErr.innerHTML = 'Un problème avec ton accès ? Écris-nous : <a href="mailto:support@sonnycourt.com">support@sonnycourt.com</a>';
+            } else {
+              gateErr.textContent = 'Erreur de connexion, réessaie dans un instant.';
+            }
+            gateErr.classList.add('on');
+          } catch (e) {
+            gateErr.textContent = 'Erreur réseau, vérifie ta connexion et réessaie.';
+            gateErr.classList.add('on');
+          }
+          gateBtn.disabled = false;
+          gateBtn.textContent = prevLabel;
+        });
       }
 
       if (Number.isFinite(offerExpiryMs)) {
@@ -304,7 +441,9 @@ spiffy.load("sonnycourt");
       const toast = document.getElementById('purchase-toast');
       const toastFlag = document.getElementById('purchase-toast-flag');
       const toastText = document.getElementById('purchase-toast-text');
-      if (toast && toastFlag && toastText && !document.getElementById('page').classList.contains('is-expired')) {
+      if (toast && toastFlag && toastText
+          && !pageEl.classList.contains('is-expired')
+          && !pageEl.classList.contains('is-locked')) {
         let hideTimer = null;
         let queueGapTimer = null;
         const toastQueue = [];
