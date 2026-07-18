@@ -459,8 +459,9 @@ spiffy.load("sonnycourt");
       </div>
     </header>
 
-    <section class="checkout-wrap">
-      <spiffy-checkout url="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2"></spiffy-checkout>
+    <section class="checkout-wrap" id="checkout-slot">
+      <!-- L'élément <spiffy-checkout> est injecté en JS avec les infos du lead
+           préremplies (name_first, email) une fois le token résolu. -->
     </section>
     <p class="checkout-note">Paiement sécurisé · Garantie satisfaction 30 jours</p>
 
@@ -517,6 +518,20 @@ spiffy.load("sonnycourt");
 
       const pageEl = document.getElementById('page');
       const gateEl = document.getElementById('gate-overlay');
+      const CHECKOUT_BASE = 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2';
+      let checkoutMounted = false;
+      // Monte l'embed avec les infos du lead préremplies (name_first, email).
+      // Le nom de famille n'existe pas en base masterclass, Spiffy le demandera.
+      function mountCheckout(lead) {
+        if (checkoutMounted) return;
+        checkoutMounted = true;
+        const q = new URLSearchParams();
+        if (lead && lead.prenom) q.set('name_first', lead.prenom);
+        if (lead && lead.email) q.set('email', lead.email);
+        const el = document.createElement('spiffy-checkout');
+        el.setAttribute('url', q.toString() ? CHECKOUT_BASE + '?' + q.toString() : CHECKOUT_BASE);
+        document.getElementById('checkout-slot').appendChild(el);
+      }
       function unlockPage() {
         pageEl.classList.remove('is-locked');
         gateEl.classList.remove('is-visible');
@@ -558,6 +573,7 @@ spiffy.load("sonnycourt");
         offerExpiryMs = win.endMs;
         sessionStartsAtMs = win.startMs - SCARCITY_WINDOW_START_AFTER_SESSION_MS;
         unlockPage();
+        mountCheckout(null);
       } else if (token) {
         try {
           const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
@@ -568,6 +584,7 @@ spiffy.load("sonnycourt");
             if (Number.isFinite(exp)) offerExpiryMs = exp;
             if (Number.isFinite(ses)) sessionStartsAtMs = ses;
             unlockPage();
+            mountCheckout({ prenom: data.prenom || '', email: data.email || '' });
           } else if (res.status === 404 || res.status === 400) {
             // Token inconnu en base : on nettoie et on demande l'email.
             try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ }
@@ -575,10 +592,12 @@ spiffy.load("sonnycourt");
           } else {
             // Erreur serveur passagère : on ne bloque pas un acheteur.
             unlockPage();
+            mountCheckout(null);
           }
         } catch (e) {
           // Réseau KO : on ne bloque pas un acheteur, countdown absent.
           unlockPage();
+          mountCheckout(null);
         }
       } else {
         showGate();
