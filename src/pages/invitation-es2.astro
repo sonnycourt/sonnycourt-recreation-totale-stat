@@ -74,15 +74,15 @@ spiffy.load("sonnycourt");
       max-width: 620px;
       margin: 0 auto;
     }
-    /* Countdown */
-    .offer-countdown { margin: 26px auto 0; text-align: center; display: none; }
+    /* Countdown (intégré au bloc scarcity, thème rouge) */
+    .offer-countdown { margin: 0; text-align: center; display: none; }
     .offer-countdown.is-visible { display: block; }
     .offer-countdown-title {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.10em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.65);
+      color: rgba(255, 255, 255, 0.55);
       margin-bottom: 10px;
     }
     .offer-countdown-grid {
@@ -94,26 +94,32 @@ spiffy.load("sonnycourt");
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-width: 66px;
-      padding: 10px 8px;
+      min-width: 62px;
+      padding: 9px 8px;
       border-radius: 12px;
-      border: 1px solid rgba(96, 165, 250, 0.3);
-      background: rgba(15, 23, 42, 0.85);
-      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+      border: 1px solid rgba(248, 113, 113, 0.24);
+      background: rgba(2, 6, 23, 0.45);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
     .offer-countdown-value {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 900;
-      color: #7dd3fc;
+      color: #fff;
       font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 18px rgba(239, 68, 68, 0.45);
     }
     .offer-countdown-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.55);
+      color: rgba(255, 255, 255, 0.5);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       margin-top: 2px;
+    }
+    .scarcity-divider {
+      height: 1px;
+      margin: 16px 4px 14px;
+      background: linear-gradient(90deg, rgba(248, 113, 113, 0), rgba(248, 113, 113, 0.35), rgba(248, 113, 113, 0));
     }
     /* Checkout */
     .checkout-wrap {
@@ -348,19 +354,20 @@ spiffy.load("sonnycourt");
       <div class="hero-badge">Offre réservée aux participants de la masterclass</div>
       <h1 class="hero-upper">La partie la plus difficile, <span class="accent">tu viens de la faire.</span></h1>
       <p class="sub">Tenir plus d'1 heure face à ce qui te bloque, c'était le vrai test. La suite est guidée pas à pas : accès immédiat, première leçon accessible tout de suite.</p>
-      <div class="offer-countdown" id="offer-countdown">
-        <p class="offer-countdown-title">L'offre expire dans :</p>
-        <div class="offer-countdown-grid">
-          <div class="offer-countdown-box"><span id="offer-days" class="offer-countdown-value">--</span><span class="offer-countdown-label">Jours</span></div>
-          <div class="offer-countdown-box"><span id="offer-hours" class="offer-countdown-value">--</span><span class="offer-countdown-label">Heures</span></div>
-          <div class="offer-countdown-box"><span id="offer-minutes" class="offer-countdown-value">--</span><span class="offer-countdown-label">Minutes</span></div>
-          <div class="offer-countdown-box"><span id="offer-seconds" class="offer-countdown-value">--</span><span class="offer-countdown-label">Secondes</span></div>
-        </div>
-      </div>
       <div class="scarcity-card" id="scarcity-card" aria-live="polite">
         <div class="scarcity-top">
-          <span class="scarcity-live"><span class="scarcity-live__dot"></span>Places limitées</span>
+          <span class="scarcity-live"><span class="scarcity-live__dot"></span>Offre limitée</span>
         </div>
+        <div class="offer-countdown" id="offer-countdown">
+          <p class="offer-countdown-title">Expire dans</p>
+          <div class="offer-countdown-grid">
+            <div class="offer-countdown-box"><span id="offer-days" class="offer-countdown-value">--</span><span class="offer-countdown-label">Jours</span></div>
+            <div class="offer-countdown-box"><span id="offer-hours" class="offer-countdown-value">--</span><span class="offer-countdown-label">Heures</span></div>
+            <div class="offer-countdown-box"><span id="offer-minutes" class="offer-countdown-value">--</span><span class="offer-countdown-label">Min</span></div>
+            <div class="offer-countdown-box"><span id="offer-seconds" class="offer-countdown-value">--</span><span class="offer-countdown-label">Sec</span></div>
+          </div>
+        </div>
+        <div class="scarcity-divider" aria-hidden="true"></div>
         <div class="scarcity-main">
           <span class="scarcity-number" id="current-places">–</span>
           <span class="scarcity-caption">places<br />restantes</span>
@@ -565,6 +572,8 @@ spiffy.load("sonnycourt");
           lockExpired();
         } else {
           countdownEl.classList.add('is-visible');
+          const card = document.getElementById('scarcity-card');
+          if (card) card.classList.add('is-visible');
           renderCountdown();
           countdownInterval = setInterval(renderCountdown, 1000);
         }
