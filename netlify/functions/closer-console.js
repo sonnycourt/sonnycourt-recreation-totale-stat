@@ -90,9 +90,10 @@ function dateISO(v) {
 
 // Liens d'affiliation Spiffy par formation : le checkout est le même pour tous
 // les closers, seul l'identifiant affilié (fin d'URL) change (spiffy_affiliate_id).
+// 4e élément = URL fixe (pas de tracking affilié) : remplace le lien Spiffy si présent.
 const SPIFFY_CHECKOUTS = [
   ['Esprit Subconscient 2.0', 'Q0vnCdQy0VN', true], // formation principale, mise en avant
-  ['Manifest', '2bnEhP4ZYkB'],
+  ['Manifest', null, false, 'https://sonnycourt.com/manifest-presentation/'], // page présentation closers (deadline = offre ES2)
   ['Système Souhaits-Réalisés', '0DkQtNVKJvL'],
   ['Esprit Subconscient (1.0, pas ES2.0)', 'vpE4s0bJBlR'],
 ];
@@ -100,9 +101,9 @@ const SPIFFY_CHECKOUTS = [
 function affiliateLinks(affiliateId) {
   const aff = String(affiliateId || '').trim();
   if (!aff) return [];
-  return SPIFFY_CHECKOUTS.map(([title, slug, featured]) => ({
+  return SPIFFY_CHECKOUTS.map(([title, slug, featured, fixedUrl]) => ({
     title,
-    url: `https://sonnycourt.spiffy.co/a/${slug}/${aff}`,
+    url: fixedUrl || `https://sonnycourt.spiffy.co/a/${slug}/${aff}`,
     featured: !!featured,
   }));
 }
