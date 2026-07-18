@@ -13,6 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js" defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -111,6 +113,20 @@
       outline: none;
     }
     .field input:focus, .field select:focus { border-color: rgba(96, 165, 250, 0.7); }
+    /* intl-tel-input adapté au thème sombre */
+    .iti { width: 100%; }
+    .iti__flag-container { border-radius: 12px 0 0 12px; }
+    .iti--separate-dial-code .iti__selected-flag { background: rgba(255, 255, 255, 0.06); border-radius: 12px 0 0 12px; }
+    .iti--separate-dial-code .iti__selected-dial-code { color: rgba(255, 255, 255, 0.85); }
+    .iti__country-list {
+      background: #0b1220;
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.6);
+    }
+    .iti__country.iti__highlight { background: rgba(59, 130, 246, 0.18); }
+    .iti__dial-code { color: rgba(255, 255, 255, 0.5); }
     .field-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
     .suggestions {
       position: absolute;
@@ -260,6 +276,29 @@
       const el = (id) => document.getElementById(id);
       setTimeout(function () { el('prefill-fill').style.width = '80%'; }, 300);
 
+      // Téléphone avec indicatifs + drapeaux : même modèle que l'opt-in masterclass.
+      let iti = null;
+      let pendingPhone = '';
+      function initTelInput() {
+        if (iti || typeof intlTelInput === 'undefined') return;
+        iti = intlTelInput(el('f-phone'), {
+          initialCountry: 'auto',
+          geoIpLookup: function (callback) {
+            fetch('https://ipapi.co/json/')
+              .then(function (res) { return res.json(); })
+              .then(function (data) { callback((data.country_code || 'fr').toLowerCase()); })
+              .catch(function () { callback('fr'); });
+          },
+          preferredCountries: ['fr', 'be', 'ch', 'ca'],
+          separateDialCode: true,
+          dropdownContainer: document.body,
+          utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/utils.js',
+        });
+        if (pendingPhone) iti.setNumber(pendingPhone);
+      }
+      if (typeof intlTelInput !== 'undefined') initTelInput();
+      else window.addEventListener('load', initTelInput);
+
       let regEmail = '';
       if (token) {
         try {
@@ -268,7 +307,11 @@
             const d = await res.json();
             regEmail = d.email || '';
             if (d.prenom && !el('f-name').value) el('f-name').value = d.prenom;
-            if (d.telephone && !el('f-phone').value) el('f-phone').value = d.telephone;
+            if (d.telephone) {
+              pendingPhone = d.telephone;
+              if (iti) iti.setNumber(d.telephone);
+              else el('f-phone').value = d.telephone;
+            }
             if (d.pays && d.pays !== 'Autre') el('f-country').value = d.pays;
           } else {
             token = '';
@@ -354,7 +397,7 @@
               t: token || '',
               email: regEmail || (el('f-email').value || '').trim(),
               full_name: el('f-name').value.trim(),
-              phone: el('f-phone').value.trim(),
+              phone: (iti && iti.getNumber && iti.getNumber()) || el('f-phone').value.trim(),
               street: el('f-street').value.trim(),
               street2: el('f-street2').value.trim(),
               zip: el('f-zip').value.trim(),
@@ -368,6 +411,9 @@
             el('page').classList.add('is-done');
             el('success-card').classList.add('on');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(function () {
+              window.location.href = 'https://sonnycourt.com/masterclass/success/';
+            }, 1600);
             return;
           }
           err.textContent = d.error === 'Inscription introuvable'
