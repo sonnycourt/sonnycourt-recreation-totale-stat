@@ -1,0 +1,387 @@
+---
+// Page post-achat ES2 (/es2-derniere-etape) : complète le dossier de facturation
+// (nom complet, téléphone, adresse avec autocomplete) avant la page de remerciement.
+// Préremplie depuis Supabase via le token webinaire ; champs modifiables, tous requis.
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Dernière étape — Esprit Subconscient 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -100px, rgba(59, 130, 246, 0.18), transparent 60%), #0f172a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .page { max-width: 640px; margin: 0 auto; padding: 48px 16px 80px; }
+    .hero { text-align: center; margin-bottom: 26px; }
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      background: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 38px);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .hero h1 .accent { color: #60a5fa; }
+    .hero .sub {
+      font-size: 15.5px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.75);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    /* Progression (même langage visuel que la page checkout) */
+    .prefill-progress {
+      position: relative;
+      margin: 26px auto 0;
+      width: 100%;
+      padding: 18px 26px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(96, 165, 250, 0.32);
+      background: radial-gradient(140% 180% at 50% -40%, rgba(37, 99, 235, 0.22) 0%, rgba(15, 23, 42, 0.55) 55%, rgba(15, 23, 42, 0.85) 100%);
+      box-shadow: 0 18px 45px rgba(30, 58, 138, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(8px);
+    }
+    .prefill-progress__row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+    .prefill-progress__label { font-size: 14.5px; font-weight: 800; }
+    .prefill-progress__pct { font-size: 16px; font-weight: 900; color: #60a5fa; font-variant-numeric: tabular-nums; text-shadow: 0 0 16px rgba(59, 130, 246, 0.5); }
+    .prefill-progress__bar { height: 14px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.09); box-shadow: inset 0 1px 3px rgba(2, 6, 23, 0.5); }
+    .prefill-progress__fill {
+      position: relative; height: 100%; width: 0; border-radius: inherit; overflow: hidden;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+      transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .prefill-progress__fill::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(110deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.38) 50%, rgba(255,255,255,0) 80%);
+      background-size: 220% 100%;
+      animation: prefillShimmer 1.9s linear infinite;
+    }
+    @keyframes prefillShimmer { 0% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
+    /* Formulaire */
+    .form-card {
+      margin-top: 26px;
+      padding: 26px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.75);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.35);
+    }
+    .field { margin-bottom: 16px; position: relative; }
+    .field label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 6px;
+    }
+    .field input, .field select {
+      width: 100%;
+      height: 50px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      padding: 0 14px;
+      outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: rgba(96, 165, 250, 0.7); }
+    .field-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      z-index: 50;
+      margin-top: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      background: #0b1220;
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.6);
+      overflow: hidden;
+      display: none;
+    }
+    .suggestions.on { display: block; }
+    .suggestions button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 11px 14px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .suggestions button:hover { background: rgba(59, 130, 246, 0.15); }
+    .submit-btn {
+      width: 100%;
+      height: 54px;
+      margin-top: 6px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+      transition: transform 0.12s ease;
+    }
+    .submit-btn:active { transform: scale(0.985); }
+    .submit-btn[disabled] { opacity: 0.6; cursor: wait; }
+    .form-error { display: none; margin-top: 12px; font-size: 13.5px; color: #fca5a5; text-align: center; }
+    .form-error.on { display: block; }
+    .form-note { margin-top: 12px; font-size: 12px; color: rgba(255, 255, 255, 0.45); text-align: center; }
+    /* Succès */
+    .success-card {
+      display: none;
+      margin-top: 26px;
+      padding: 44px 26px;
+      border-radius: 16px;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      background: rgba(6, 78, 59, 0.25);
+      text-align: center;
+    }
+    .success-card.on { display: block; }
+    .success-card .icon { font-size: 42px; margin-bottom: 12px; }
+    .success-card h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+    .success-card p { color: rgba(255, 255, 255, 0.75); line-height: 1.55; }
+    .is-done .form-card { display: none; }
+  </style>
+</head>
+<body>
+  <div class="page" id="page">
+    <header class="hero">
+      <div class="hero-badge">Paiement confirmé ✓</div>
+      <h1>Dernière étape, <span class="accent">et tout est prêt.</span></h1>
+      <p class="sub">Complète tes informations ci-dessous pour finaliser ton dossier d'inscription. 30 secondes, montre en main.</p>
+      <div class="prefill-progress">
+        <div class="prefill-progress__row">
+          <span class="prefill-progress__label">Ton inscription</span>
+          <span class="prefill-progress__pct">80&nbsp;%</span>
+        </div>
+        <div class="prefill-progress__bar"><div class="prefill-progress__fill" id="prefill-fill"></div></div>
+      </div>
+    </header>
+
+    <form class="form-card" id="billing-form" novalidate>
+      <div class="field" id="field-email" style="display:none;">
+        <label for="f-email">Email d'inscription</label>
+        <input type="email" id="f-email" autocomplete="email" placeholder="ton@email.com" />
+      </div>
+      <div class="field">
+        <label for="f-name">Nom complet</label>
+        <input type="text" id="f-name" autocomplete="name" placeholder="Prénom Nom" required />
+      </div>
+      <div class="field">
+        <label for="f-phone">Téléphone</label>
+        <input type="tel" id="f-phone" autocomplete="tel" placeholder="+33 6 12 34 56 78" required />
+      </div>
+      <div class="field">
+        <label for="f-street">Adresse</label>
+        <input type="text" id="f-street" autocomplete="off" placeholder="Commence à taper ton adresse…" required />
+        <div class="suggestions" id="street-suggestions"></div>
+      </div>
+      <div class="field">
+        <label for="f-street2">Complément (optionnel)</label>
+        <input type="text" id="f-street2" autocomplete="address-line2" placeholder="Appartement, bâtiment, étage…" />
+      </div>
+      <div class="field field-row">
+        <div>
+          <label for="f-zip">Code postal</label>
+          <input type="text" id="f-zip" autocomplete="postal-code" required />
+        </div>
+        <div>
+          <label for="f-city">Ville</label>
+          <input type="text" id="f-city" autocomplete="address-level2" required />
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-country">Pays</label>
+        <select id="f-country" required>
+          <option value="">Choisis ton pays</option>
+          <option>France</option>
+          <option>Belgique</option>
+          <option>Suisse</option>
+          <option>Luxembourg</option>
+          <option>Monaco</option>
+          <option>Canada</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <button type="submit" class="submit-btn" id="submit-btn">Finaliser mon inscription →</button>
+      <p class="form-error" id="form-error"></p>
+      <p class="form-note">Ces informations servent uniquement à ton dossier de facturation. 🔒</p>
+    </form>
+
+    <div class="success-card" id="success-card">
+      <div class="icon">🦋</div>
+      <h2>Ton dossier est complet</h2>
+      <p>Tout est en ordre. Ton accès à Esprit Subconscient 2.0 t'attend dans ta boîte mail, et ta première leçon est déjà disponible. À tout de suite de l'autre côté.</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      const params = new URLSearchParams(window.location.search);
+      const TOKEN_KEY = 'masterclass_es2_token';
+      let token = (params.get('t') || params.get('token') || '').trim();
+      if (!token) {
+        try { token = (localStorage.getItem(TOKEN_KEY) || '').trim(); } catch (e) { /* noop */ }
+      }
+
+      const el = (id) => document.getElementById(id);
+      setTimeout(function () { el('prefill-fill').style.width = '80%'; }, 300);
+
+      let regEmail = '';
+      if (token) {
+        try {
+          const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
+          if (res.ok) {
+            const d = await res.json();
+            regEmail = d.email || '';
+            if (d.prenom && !el('f-name').value) el('f-name').value = d.prenom;
+            if (d.telephone && !el('f-phone').value) el('f-phone').value = d.telephone;
+            if (d.pays && d.pays !== 'Autre') el('f-country').value = d.pays;
+          } else {
+            token = '';
+          }
+        } catch (e) { /* préremplissage indisponible, le formulaire reste utilisable */ }
+      }
+      // Spiffy peut passer l'email de commande en paramètre ; sinon champ email visible.
+      if (!token) {
+        const spiffyEmail = (params.get('email') || params.get('contact_email') || '').trim();
+        if (spiffyEmail) {
+          regEmail = spiffyEmail;
+        } else {
+          el('field-email').style.display = 'block';
+          el('f-email').required = true;
+        }
+      }
+
+      // --- Autocomplete adresse (Photon / OpenStreetMap, FR-BE-CH-CA + LU-MC) ---
+      const ALLOWED = { FR: 'France', BE: 'Belgique', CH: 'Suisse', LU: 'Luxembourg', MC: 'Monaco', CA: 'Canada' };
+      const streetInput = el('f-street');
+      const sugBox = el('street-suggestions');
+      let debounce = null;
+      let suggestions = [];
+      function hideSug() { sugBox.classList.remove('on'); sugBox.innerHTML = ''; suggestions = []; }
+      function applySuggestion(idx) {
+        const p = suggestions[idx];
+        if (!p) return;
+        streetInput.value = [p.housenumber, p.street || p.name].filter(Boolean).join(' ');
+        if (p.postcode) el('f-zip').value = p.postcode;
+        if (p.city) el('f-city').value = p.city;
+        const cc = (p.countrycode || '').toUpperCase();
+        if (ALLOWED[cc]) el('f-country').value = ALLOWED[cc];
+        hideSug();
+      }
+      streetInput.addEventListener('input', function () {
+        const q = streetInput.value.trim();
+        if (debounce) clearTimeout(debounce);
+        if (q.length < 4) { hideSug(); return; }
+        debounce = setTimeout(async function () {
+          try {
+            const r = await fetch('https://photon.komoot.io/api/?lang=fr&limit=8&q=' + encodeURIComponent(q));
+            const d = await r.json();
+            const feats = (d.features || [])
+              .map((f) => f.properties || {})
+              .filter((p) => ALLOWED[(p.countrycode || '').toUpperCase()] && (p.street || p.housenumber || p.name))
+              .slice(0, 5);
+            suggestions = feats;
+            if (!feats.length) { hideSug(); return; }
+            sugBox.innerHTML = feats.map(function (p, i) {
+              const line = [[p.housenumber, p.street || p.name].filter(Boolean).join(' '),
+                            [p.postcode, p.city].filter(Boolean).join(' '),
+                            ALLOWED[(p.countrycode || '').toUpperCase()]].filter(Boolean).join(', ');
+              return '<button type="button" data-i="' + i + '">' + line.replace(/</g, '&lt;') + '</button>';
+            }).join('');
+            sugBox.classList.add('on');
+          } catch (e) { hideSug(); }
+        }, 280);
+      });
+      sugBox.addEventListener('click', function (ev) {
+        const b = ev.target.closest('button[data-i]');
+        if (b) applySuggestion(Number(b.dataset.i));
+      });
+      document.addEventListener('click', function (ev) {
+        if (!sugBox.contains(ev.target) && ev.target !== streetInput) hideSug();
+      });
+
+      // --- Envoi ---
+      const form = el('billing-form');
+      const btn = el('submit-btn');
+      const err = el('form-error');
+      form.addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        err.classList.remove('on');
+        if (!form.reportValidity()) return;
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = 'Enregistrement…';
+        try {
+          const res = await fetch('/.netlify/functions/es2-billing-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              t: token || '',
+              email: regEmail || (el('f-email').value || '').trim(),
+              full_name: el('f-name').value.trim(),
+              phone: el('f-phone').value.trim(),
+              street: el('f-street').value.trim(),
+              street2: el('f-street2').value.trim(),
+              zip: el('f-zip').value.trim(),
+              city: el('f-city').value.trim(),
+              country: el('f-country').value,
+            }),
+          });
+          const d = await res.json().catch(function () { return {}; });
+          if (res.ok && d.ok) {
+            el('prefill-fill').style.width = '100%';
+            el('page').classList.add('is-done');
+            el('success-card').classList.add('on');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+          err.textContent = d.error === 'Inscription introuvable'
+            ? "On ne retrouve pas ton inscription. Vérifie l'email utilisé lors de ton inscription à la masterclass."
+            : (d.error || 'Erreur, réessaie dans un instant.');
+          err.classList.add('on');
+        } catch (e) {
+          err.textContent = 'Erreur réseau, vérifie ta connexion et réessaie.';
+          err.classList.add('on');
+        }
+        btn.disabled = false;
+        btn.textContent = prev;
+      });
+    });
+  </script>
+</body>
+</html>
