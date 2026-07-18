@@ -121,6 +121,50 @@ spiffy.load("sonnycourt");
       margin: 16px 4px 14px;
       background: linear-gradient(90deg, rgba(248, 113, 113, 0), rgba(248, 113, 113, 0.35), rgba(248, 113, 113, 0));
     }
+    /* Barre de progression préremplissage (effet de progression dotée) */
+    .prefill-progress {
+      display: none;
+      margin: 30px auto 0;
+      width: 100%;
+    }
+    .prefill-progress.is-visible { display: block; }
+    .page.is-locked .prefill-progress, .page.is-expired .prefill-progress { display: none; }
+    .prefill-progress__row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .prefill-progress__label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .prefill-progress__pct {
+      font-size: 14px;
+      font-weight: 900;
+      color: #60a5fa;
+      font-variant-numeric: tabular-nums;
+    }
+    .prefill-progress__bar {
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.10);
+    }
+    .prefill-progress__fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+      transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .prefill-progress__hint {
+      margin-top: 7px;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.6);
+    }
     /* Checkout */
     .checkout-wrap {
       margin-top: 34px;
@@ -376,6 +420,15 @@ spiffy.load("sonnycourt");
       </div>
     </header>
 
+    <div class="prefill-progress" id="prefill-progress">
+      <div class="prefill-progress__row">
+        <span class="prefill-progress__label">Ton inscription a déjà commencé</span>
+        <span class="prefill-progress__pct">60&nbsp;%</span>
+      </div>
+      <div class="prefill-progress__bar"><div class="prefill-progress__fill" id="prefill-fill"></div></div>
+      <p class="prefill-progress__hint">Tes infos sont préremplies : il ne reste que le paiement.</p>
+    </div>
+
     <section class="checkout-wrap" id="checkout-slot">
       <!-- L'élément <spiffy-checkout> est injecté en JS avec les infos du lead
            préremplies (name_first, email) une fois le token résolu. -->
@@ -451,6 +504,17 @@ spiffy.load("sonnycourt");
         const el = document.createElement('spiffy-checkout');
         el.setAttribute('url', parts.length ? CHECKOUT_BASE + '?' + parts.join('&') : CHECKOUT_BASE);
         document.getElementById('checkout-slot').appendChild(el);
+        // Barre "déjà commencé" : uniquement si le préremplissage a réellement eu lieu.
+        if (lead && (lead.prenom || lead.email)) {
+          const prog = document.getElementById('prefill-progress');
+          const fill = document.getElementById('prefill-fill');
+          if (prog && fill) {
+            prog.classList.add('is-visible');
+            requestAnimationFrame(function () {
+              setTimeout(function () { fill.style.width = '60%'; }, 250);
+            });
+          }
+        }
       }
       function unlockPage() {
         pageEl.classList.remove('is-locked');
