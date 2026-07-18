@@ -113,49 +113,8 @@
       outline: none;
     }
     .field input:focus, .field select:focus { border-color: rgba(96, 165, 250, 0.7); }
-    /* intl-tel-input adapté au thème sombre */
-    .iti { width: 100%; }
-    .iti__flag-container { border-radius: 12px 0 0 12px; }
-    .iti--separate-dial-code .iti__selected-flag { background: rgba(255, 255, 255, 0.06); border-radius: 12px 0 0 12px; }
-    .iti--separate-dial-code .iti__selected-dial-code { color: rgba(255, 255, 255, 0.85); }
-    .iti__country-list {
-      background: #0b1220;
-      border: 1px solid rgba(96, 165, 250, 0.35);
-      border-radius: 12px;
-      color: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.6);
-    }
-    .iti__country.iti__highlight { background: rgba(59, 130, 246, 0.18); }
-    .iti__dial-code { color: rgba(255, 255, 255, 0.5); }
     .field-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
     .field-row--even { grid-template-columns: 1fr 1fr; }
-    .suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0; right: 0;
-      z-index: 50;
-      margin-top: 4px;
-      border-radius: 12px;
-      border: 1px solid rgba(96, 165, 250, 0.35);
-      background: #0b1220;
-      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.6);
-      overflow: hidden;
-      display: none;
-    }
-    .suggestions.on { display: block; }
-    .suggestions button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 11px 14px;
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-    }
-    .suggestions button:hover { background: rgba(59, 130, 246, 0.15); }
     .submit-btn {
       width: 100%;
       height: 54px;
@@ -191,6 +150,31 @@
     .success-card h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
     .success-card p { color: rgba(255, 255, 255, 0.75); line-height: 1.55; }
     .is-done .form-card { display: none; }
+  </style>
+  <style is:global>
+    /* intl-tel-input : styles globaux (le dropdown est créé dynamiquement,
+       il n'a pas les attributs de scope Astro, d'où le is:global). */
+    .iti { width: 100%; display: block; }
+    .iti--separate-dial-code .iti__selected-flag {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px 0 0 12px;
+    }
+    .iti--separate-dial-code .iti__selected-dial-code { color: rgba(255, 255, 255, 0.85); }
+    .iti__arrow { border-top-color: rgba(255, 255, 255, 0.6); }
+    .iti__arrow--up { border-bottom-color: rgba(255, 255, 255, 0.6); }
+    .iti__country-list {
+      background: #0b1220 !important;
+      border: 1px solid rgba(96, 165, 250, 0.35) !important;
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.65);
+      margin-top: 4px;
+    }
+    .iti__country { padding: 9px 12px; }
+    .iti__country-name { color: rgba(255, 255, 255, 0.88); }
+    .iti__dial-code { color: rgba(255, 255, 255, 0.5); }
+    .iti__country.iti__highlight { background: rgba(59, 130, 246, 0.2) !important; }
+    .iti__divider { border-bottom: 1px solid rgba(148, 163, 184, 0.25); }
   </style>
 </head>
 <body>
@@ -229,8 +213,7 @@
       </div>
       <div class="field">
         <label for="f-street">Adresse</label>
-        <input type="text" id="f-street" autocomplete="off" placeholder="Commence à taper ton adresse…" required />
-        <div class="suggestions" id="street-suggestions"></div>
+        <input type="text" id="f-street" autocomplete="street-address" placeholder="Numéro et rue" required />
       </div>
       <div class="field">
         <label for="f-street2">Complément (optionnel)</label>
@@ -335,55 +318,6 @@
           el('f-email').required = true;
         }
       }
-
-      // --- Autocomplete adresse (Photon / OpenStreetMap, FR-BE-CH-CA + LU-MC) ---
-      const ALLOWED = { FR: 'France', BE: 'Belgique', CH: 'Suisse', LU: 'Luxembourg', MC: 'Monaco', CA: 'Canada' };
-      const streetInput = el('f-street');
-      const sugBox = el('street-suggestions');
-      let debounce = null;
-      let suggestions = [];
-      function hideSug() { sugBox.classList.remove('on'); sugBox.innerHTML = ''; suggestions = []; }
-      function applySuggestion(idx) {
-        const p = suggestions[idx];
-        if (!p) return;
-        streetInput.value = [p.housenumber, p.street || p.name].filter(Boolean).join(' ');
-        if (p.postcode) el('f-zip').value = p.postcode;
-        if (p.city) el('f-city').value = p.city;
-        const cc = (p.countrycode || '').toUpperCase();
-        if (ALLOWED[cc]) el('f-country').value = ALLOWED[cc];
-        hideSug();
-      }
-      streetInput.addEventListener('input', function () {
-        const q = streetInput.value.trim();
-        if (debounce) clearTimeout(debounce);
-        if (q.length < 4) { hideSug(); return; }
-        debounce = setTimeout(async function () {
-          try {
-            const r = await fetch('https://photon.komoot.io/api/?lang=fr&limit=8&q=' + encodeURIComponent(q));
-            const d = await r.json();
-            const feats = (d.features || [])
-              .map((f) => f.properties || {})
-              .filter((p) => ALLOWED[(p.countrycode || '').toUpperCase()] && (p.street || p.housenumber || p.name))
-              .slice(0, 5);
-            suggestions = feats;
-            if (!feats.length) { hideSug(); return; }
-            sugBox.innerHTML = feats.map(function (p, i) {
-              const line = [[p.housenumber, p.street || p.name].filter(Boolean).join(' '),
-                            [p.postcode, p.city].filter(Boolean).join(' '),
-                            ALLOWED[(p.countrycode || '').toUpperCase()]].filter(Boolean).join(', ');
-              return '<button type="button" data-i="' + i + '">' + line.replace(/</g, '&lt;') + '</button>';
-            }).join('');
-            sugBox.classList.add('on');
-          } catch (e) { hideSug(); }
-        }, 280);
-      });
-      sugBox.addEventListener('click', function (ev) {
-        const b = ev.target.closest('button[data-i]');
-        if (b) applySuggestion(Number(b.dataset.i));
-      });
-      document.addEventListener('click', function (ev) {
-        if (!sugBox.contains(ev.target) && ev.target !== streetInput) hideSug();
-      });
 
       // --- Envoi ---
       const form = el('billing-form');
