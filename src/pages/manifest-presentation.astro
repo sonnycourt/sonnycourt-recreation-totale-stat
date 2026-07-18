@@ -5956,11 +5956,17 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
                     setExpired();
                     return;
                 }
-                var h = Math.floor(remaining / 3600000);
+                var totalH = Math.floor(remaining / 3600000);
                 var m = Math.floor((remaining % 3600000) / 60000);
                 var s = Math.floor((remaining % 60000) / 1000);
-                if (barTimer) barTimer.textContent =
-                    String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                var txt;
+                if (totalH >= 24) {
+                    var d = Math.floor(totalH / 24);
+                    txt = d + 'j ' + String(totalH % 24).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                } else {
+                    txt = String(totalH).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                }
+                if (barTimer) barTimer.textContent = txt;
             }
             tick();
             itv = setInterval(tick, 1000);

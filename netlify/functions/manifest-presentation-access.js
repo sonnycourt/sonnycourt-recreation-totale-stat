@@ -1,7 +1,9 @@
-// Deadline personnelle 24h pour /manifest-presentation (leads envoyés par les closers, token ES2).
-// À la 1ère ouverture avec un token, on ancre startedAt ; ensuite on renvoie toujours la même échéance.
+// Deadline pour /manifest-presentation (leads envoyés par les closers, token ES2).
+// Règle : même échéance que l'offre ES2 du lead (offre_expires_at, dimanche 23h Paris) si le lead
+// ouvre la page pendant que l'offre est encore valide. Si sa 1ère ouverture arrive APRÈS (envoi
+// tardif / rattrapage), fallback : 24h personnelles ancrées à cette 1ère ouverture.
 // Sans token, accepte ?email= et retrouve le token ES2 dans webinaire_registrations (lecture seule).
-// Stockage Netlify Blobs, store dédié — aucune fonction existante touchée.
+// Ancre de 1ère ouverture en Netlify Blobs, store dédié — aucune fonction existante touchée.
 
 import { getStore } from '@netlify/blobs';
 import { supabaseGet } from './lib/supabase-rest.mjs';
@@ -38,6 +40,8 @@ export default async (req) => {
         const email = (url.searchParams.get('email') || '').trim().toLowerCase();
 
         // Pas de token mais un email : on retrouve le token ES2 du lead (lecture seule)
+        let offreExpiresMs = null;
+        let offreLookupDone = false;
         if (!token && email) {
             if (email.length > 200 || !email.includes('@')) {
                 return new Response(JSON.stringify({ ok: false, notFound: true }), {
@@ -46,7 +50,7 @@ export default async (req) => {
                 });
             }
             const lookup = await supabaseGet(
-                `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token&limit=1`,
+                `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,offre_expires_at&limit=1`,
             );
             const row = lookup.ok && Array.isArray(lookup.data) ? lookup.data[0] : null;
             if (!row || !row.token) {
@@ -56,6 +60,11 @@ export default async (req) => {
                 });
             }
             token = String(row.token);
+            offreLookupDone = true;
+            if (row.offre_expires_at) {
+                const ms = new Date(row.offre_expires_at).getTime();
+                if (Number.isFinite(ms)) offreExpiresMs = ms;
+            }
         }
 
         if (!token || token.length > 200) {
@@ -68,6 +77,7 @@ export default async (req) => {
         const store = getStore('manifest-presentation-deadlines');
         const now = Date.now();
 
+        // Ancre de 1ère ouverture (persistée en Blobs, jamais réinitialisée)
         let entry = null;
         const raw = await store.get(token);
         if (raw) {
@@ -79,7 +89,25 @@ export default async (req) => {
             await store.set(token, JSON.stringify(entry));
         }
 
-        const expiresAt = entry.startedAt + WINDOW_MS;
+        const firstSeen = entry.startedAt;
+
+        // Échéance ES2 du lead (si arrivé par ?t=, on la lit maintenant)
+        if (!offreLookupDone) {
+            const lookup = await supabaseGet(
+                `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=offre_expires_at&limit=1`,
+            );
+            const row = lookup.ok && Array.isArray(lookup.data) ? lookup.data[0] : null;
+            if (row && row.offre_expires_at) {
+                const ms = new Date(row.offre_expires_at).getTime();
+                if (Number.isFinite(ms)) offreExpiresMs = ms;
+            }
+        }
+
+        // Règle : deadline ES2 si le lead a découvert la page pendant que l'offre était valide ;
+        // sinon (1ère ouverture après l'échéance, ou token hors base) : 24h de rattrapage.
+        const expiresAt = (offreExpiresMs && firstSeen < offreExpiresMs)
+            ? offreExpiresMs
+            : firstSeen + WINDOW_MS;
 
         return new Response(JSON.stringify({
             ok: true,
