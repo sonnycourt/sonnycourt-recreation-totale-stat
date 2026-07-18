@@ -437,11 +437,14 @@ spiffy.load("sonnycourt");
       function mountCheckout(lead) {
         if (checkoutMounted) return;
         checkoutMounted = true;
-        const q = new URLSearchParams();
-        if (lead && lead.prenom) q.set('name_first', lead.prenom);
-        if (lead && lead.email) q.set('email', lead.email);
+        // encodeURIComponent (espace -> %20) : Spiffy ne décode pas le "+"
+        // produit par URLSearchParams dans les champs texte.
+        const parts = [];
+        if (lead && lead.prenom) parts.push('name_first=' + encodeURIComponent(lead.prenom));
+        if (lead && lead.email) parts.push('email=' + encodeURIComponent(lead.email));
+        if (lead && lead.pays && lead.pays !== 'Autre') parts.push('country=' + encodeURIComponent(lead.pays));
         const el = document.createElement('spiffy-checkout');
-        el.setAttribute('url', q.toString() ? CHECKOUT_BASE + '?' + q.toString() : CHECKOUT_BASE);
+        el.setAttribute('url', parts.length ? CHECKOUT_BASE + '?' + parts.join('&') : CHECKOUT_BASE);
         document.getElementById('checkout-slot').appendChild(el);
       }
       function unlockPage() {
@@ -496,7 +499,7 @@ spiffy.load("sonnycourt");
             if (Number.isFinite(exp)) offerExpiryMs = exp;
             if (Number.isFinite(ses)) sessionStartsAtMs = ses;
             unlockPage();
-            mountCheckout({ prenom: data.prenom || '', email: data.email || '' });
+            mountCheckout({ prenom: data.prenom || '', email: data.email || '', pays: data.pays || '' });
           } else if (res.status === 404 || res.status === 400) {
             // Token inconnu en base : on nettoie et on demande l'email.
             try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ }
