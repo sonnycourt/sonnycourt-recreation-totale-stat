@@ -274,6 +274,72 @@ spiffy.load("sonnycourt");
     @media (max-width: 768px) {
       .scarcity-number { font-size: 44px; }
     }
+    /* Témoignages vidéo (mêmes visuels que /invitation) */
+    .video-reviews { margin-top: 56px; text-align: center; }
+    .page.is-locked .video-reviews, .page.is-expired .video-reviews { display: none; }
+    .video-reviews__title {
+      font-size: clamp(22px, 3.5vw, 30px);
+      font-weight: 900;
+    }
+    .video-reviews__title .accent { color: #60a5fa; }
+    .video-reviews__sub {
+      margin-top: 8px;
+      font-size: 14.5px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(16px, 2.5vw, 32px);
+      margin-top: clamp(24px, 4vw, 40px);
+    }
+    .video-card {
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.04), rgba(15, 23, 42, 0.5));
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 20px;
+      padding: clamp(10px, 1.5vw, 16px);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+      aspect-ratio: 9 / 16;
+    }
+    .review-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 14px;
+      background: #0f172a;
+      outline: none;
+      cursor: pointer;
+    }
+    .custom-play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(44px, 8vw, 72px);
+      height: clamp(44px, 8vw, 72px);
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 5;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .custom-play-button svg { width: 100%; height: 100%; filter: drop-shadow(0 6px 18px rgba(2, 6, 23, 0.5)); }
+    .custom-play-button .pause-icon { display: none; }
+    .video-card.playing .custom-play-button { opacity: 0; pointer-events: none; }
+    .video-card.playing:hover .custom-play-button { opacity: 1; pointer-events: auto; }
+    .video-card.playing .play-icon { display: none; }
+    .video-card.playing .pause-icon { display: block; }
+    @media (max-width: 768px) {
+      .video-grid { grid-template-columns: 1fr; max-width: 340px; margin-left: auto; margin-right: auto; }
+    }
     /* Gate d'identification (pas de token trouvé) */
     .page.is-locked .checkout-wrap,
     .page.is-locked .checkout-note,
@@ -432,6 +498,43 @@ spiffy.load("sonnycourt");
     <section class="checkout-wrap" id="checkout-slot">
       <!-- L'élément <spiffy-checkout> est injecté en JS avec les infos du lead
            préremplies (name_first, email) une fois le token résolu. -->
+    </section>
+
+    <section class="video-reviews" id="video-reviews">
+      <h2 class="video-reviews__title">Témoignages <span class="accent">vidéo</span></h2>
+      <p class="video-reviews__sub">Découvre les expériences réelles de nos participants</p>
+      <div class="video-grid">
+        <div class="video-card">
+          <video class="review-video" controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata">
+            <source src="https://sonnycourt-videos-public.b-cdn.net/review%20Malika%20(Sans%20Date%20et%20avec%20compression).mp4" type="video/mp4">
+            Ton navigateur ne supporte pas la lecture de vidéos.
+          </video>
+          <button class="custom-play-button" type="button" aria-label="Lire le témoignage">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><rect x="8" y="8" width="3" height="8" fill="white"/><rect x="13" y="8" width="3" height="8" fill="white"/></svg>
+          </button>
+        </div>
+        <div class="video-card">
+          <video class="review-video" controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata">
+            <source src="https://sonnycourt-videos-public.b-cdn.net/TE%CC%81MOIGNAGES%20-%20Vide%CC%81os/john.lelong95310%40gmail.com%20(John).mp4" type="video/mp4">
+            Ton navigateur ne supporte pas la lecture de vidéos.
+          </video>
+          <button class="custom-play-button" type="button" aria-label="Lire le témoignage">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><rect x="8" y="8" width="3" height="8" fill="white"/><rect x="13" y="8" width="3" height="8" fill="white"/></svg>
+          </button>
+        </div>
+        <div class="video-card">
+          <video class="review-video" controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture playsinline preload="metadata">
+            <source src="https://sonnycourt-videos-public.b-cdn.net/TE%CC%81MOIGNAGES%20-%20Vide%CC%81os/Emilie.Tasserit%40Outlook.Fr%20(Emilie).mp4" type="video/mp4">
+            Ton navigateur ne supporte pas la lecture de vidéos.
+          </video>
+          <button class="custom-play-button" type="button" aria-label="Lire le témoignage">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><path d="M9 8.5L16 12L9 15.5V8.5Z" fill="white"/></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="#3B82F6" stroke="#3B82F6" stroke-width="2"/><rect x="8" y="8" width="3" height="8" fill="white"/><rect x="13" y="8" width="3" height="8" fill="white"/></svg>
+          </button>
+        </div>
+      </div>
     </section>
 
     <div class="gate-overlay" id="gate-overlay">
@@ -637,6 +740,28 @@ spiffy.load("sonnycourt");
           countdownInterval = setInterval(renderCountdown, 1000);
         }
       }
+
+      // --- Témoignages vidéo : lecture exclusive (une vidéo à la fois) ---
+      document.querySelectorAll('.video-card').forEach(function (card) {
+        const video = card.querySelector('video');
+        const btn = card.querySelector('.custom-play-button');
+        if (!video || !btn) return;
+        function toggle() {
+          if (video.paused) {
+            document.querySelectorAll('.video-card video').forEach(function (v) {
+              if (v !== video) v.pause();
+            });
+            video.play();
+          } else {
+            video.pause();
+          }
+        }
+        btn.addEventListener('click', toggle);
+        video.addEventListener('click', toggle);
+        video.addEventListener('play', function () { card.classList.add('playing'); });
+        video.addEventListener('pause', function () { card.classList.remove('playing'); });
+        video.addEventListener('ended', function () { card.classList.remove('playing'); });
+      });
 
       // --- Notifications d'achat (même moteur que /invitation) ---
       const toast = document.getElementById('purchase-toast');
