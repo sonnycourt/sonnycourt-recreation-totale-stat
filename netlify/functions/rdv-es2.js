@@ -307,10 +307,17 @@ export default async (req) => {
         replay_url: `/masterclass/replay?t=${encodeURIComponent(reg.token)}`,
       });
     }
-    const [calendar, declaredBudget] = await Promise.all([
-      buildCalendar(reg),
-      getBudget(reg.token),
-    ]);
+    const declaredBudget = await getBudget(reg.token);
+    // « Moins de 200 » déjà déclaré : définitif (pas de seconde réponse pour
+    // accéder au coaching) → écran offre adaptée, pas de calendrier.
+    if (declaredBudget === '<200') {
+      return json(200, {
+        mode: 'downsell',
+        ...base,
+        manifest_url: `/manifest-presentation/?t=${encodeURIComponent(reg.token)}`,
+      });
+    }
+    const calendar = await buildCalendar(reg);
     if (!calendar) return json(500, { error: 'Erreur lecture' });
     return json(200, {
       mode: 'ok',
@@ -327,16 +334,19 @@ export default async (req) => {
   if (action === 'budget') {
     const budget = typeof body.budget === 'string' ? body.budget.trim() : '';
     if (!BUDGET_VALUES.includes(budget)) return json(400, { error: 'Budget invalide' });
+    const manifestUrl = `/manifest-presentation/?t=${encodeURIComponent(reg.token)}`;
+    // Verrou anti-triche : un « <200 » déjà posé ne se change plus (même via l'API).
+    const current = await getBudget(reg.token);
+    if (current === '<200') {
+      return json(200, { ok: true, locked: true, downsell: true, manifest_url: manifestUrl });
+    }
     try {
       await setBudget(reg.token, budget);
     } catch (e) {
       return json(500, { error: 'Erreur enregistrement' });
     }
     if (budget === '<200') {
-      return json(200, {
-        ok: true,
-        redirect: `/manifest-presentation/?t=${encodeURIComponent(reg.token)}`,
-      });
+      return json(200, { ok: true, downsell: true, manifest_url: manifestUrl });
     }
     return json(200, { ok: true });
   }

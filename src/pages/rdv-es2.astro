@@ -71,8 +71,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .rv-confirm { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); background: rgba(248,250,252,.92); backdrop-filter: blur(8px); border-top: 1px solid #e2e8f0; transform: translateY(110%); transition: transform .18s ease; }
         .rv-confirm.on { transform: translateY(0); }
         .rv-confirm-in { max-width: 560px; margin: 0 auto; }
-        .rv-confirm-btn { width: 100%; border: 0; border-radius: 12px; background: #16a34a; color: #fff; font: inherit; font-size: 16px; font-weight: 800; padding: 15px 18px; cursor: pointer; }
-        .rv-confirm-btn:hover { background: #15803d; }
+        .rv-confirm-btn { width: 100%; border: 0; border-radius: 12px; background: #2563eb; color: #fff; font: inherit; font-size: 16px; font-weight: 800; padding: 15px 18px; cursor: pointer; }
+        .rv-confirm-btn:hover { background: #1d4ed8; }
         .rv-confirm-btn:disabled { opacity: .6; cursor: default; }
 
         .rv-msg { font-size: 14px; font-weight: 700; color: #dc2626; margin-top: 12px; min-height: 18px; }
@@ -83,8 +83,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .rv-tel-why { font-size: 12.5px; font-weight: 700; color: #475569; margin-bottom: 6px; }
         .rv-err { display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: #dc2626; }
         .rv-err.on { display: block; }
-        .rv-book-btn { border: 0; border-radius: 12px; background: #16a34a; color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 14px 18px; cursor: pointer; }
-        .rv-book-btn:hover { background: #15803d; }
+        .rv-book-btn { border: 0; border-radius: 12px; background: #2563eb; color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 14px 18px; cursor: pointer; }
+        .rv-book-btn:hover { background: #1d4ed8; }
         .rv-book-btn:disabled { opacity: .6; cursor: default; }
         .rv-note { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 8px; }
         .rv-form .iti { width: 100%; }
@@ -99,8 +99,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         .rv-budget-opt:hover { border-color: #93c5fd; background: #f8fafc; }
         .rv-budget-opt .ic { font-size: 20px; }
         .rv-budget-opt:disabled { opacity: .55; cursor: wait; }
-        .rv-redirect { display: none; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 14px 16px; margin-top: 16px; font-size: 14.5px; font-weight: 700; color: #5b21b6; }
-        .rv-redirect.on { display: block; }
+        .rv-downsell-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; text-decoration: none; font-weight: 800; font-size: 15px; border-radius: 12px; padding: 15px 22px; box-shadow: 0 6px 18px rgba(124,58,237,.3); }
+        .rv-downsell-btn:hover { filter: brightness(1.08); }
 
         /* Étape replay */
         .rv-replay-btn { display: inline-flex; align-items: center; gap: 9px; margin-top: 18px; background: #dc2626; color: #fff; text-decoration: none; font-weight: 800; font-size: 15px; border-radius: 12px; padding: 14px 20px; }
@@ -170,8 +170,15 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <button type="button" class="rv-budget-opt" data-budget="200-500"><span class="ic">💪</span> 200 à 500 € par mois</button>
                 <button type="button" class="rv-budget-opt" data-budget="&lt;200"><span class="ic">🌱</span> Moins de 200 € par mois</button>
             </div>
-            <div class="rv-redirect" id="rv-redirect">Merci pour ta franchise 🙏 L'appel n'est pas adapté pour le moment — on t'emmène vers une offre qui peut te correspondre…</div>
             <p class="rv-err" id="rv-budget-err" role="alert"></p>
+        </div>
+
+        <!-- Budget < 200 : offre adaptée (clic volontaire, pas de redirection auto) -->
+        <div id="rv-downsell" class="rv-card" hidden>
+            <div class="rv-info-ic">🙏</div>
+            <h1>Merci pour ta franchise</h1>
+            <p class="rv-sub">L'appel avec un coach n'est pas adapté pour le moment — il est pensé pour un accompagnement premium.<br><br>Mais tu n'es pas laissé(e) de côté : on a préparé <b>une offre qui correspond à ta situation</b>, accessible dès maintenant.</p>
+            <a class="rv-downsell-btn" id="rv-downsell-link" href="/manifest-presentation/">👉&nbsp; Voir l'offre adaptée à ma situation</a>
         </div>
 
         <div id="rv-info" class="rv-card" hidden>
@@ -241,7 +248,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function el(id) { return document.getElementById(id); }
         function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
         function show(id) {
-            ['rv-loading', 'rv-ident', 'rv-replay', 'rv-budget', 'rv-info', 'rv-book', 'rv-done'].forEach(function (v) { el(v).hidden = v !== id; });
+            ['rv-loading', 'rv-ident', 'rv-replay', 'rv-budget', 'rv-downsell', 'rv-info', 'rv-book', 'rv-done'].forEach(function (v) { el(v).hidden = v !== id; });
             if (id !== 'rv-book') setConfirm(false);
         }
         function setConfirm(on, label) {
@@ -379,6 +386,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             }
         }
 
+        function showDownsell(url) {
+            if (url) el('rv-downsell-link').setAttribute('href', url);
+            show('rv-downsell');
+        }
+
         function routeMode(d) {
             if (d.mode === 'purchased') {
                 info('🎉', 'Tu fais déjà partie du programme' + (d.prenom ? ', ' + esc(d.prenom) : '') + ' !', 'Pas besoin de rendez-vous : ton accès t\'attend dans tes emails. À tout de suite à l\'intérieur.');
@@ -388,6 +400,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 el('rv-replay-title').textContent = (d.prenom ? esc(d.prenom) + ', r' : 'R') + 'egarde d\'abord le replay';
                 if (d.replay_url) el('rv-replay-link').setAttribute('href', d.replay_url);
                 show('rv-replay');
+                return true;
+            }
+            if (d.mode === 'downsell') {
+                showDownsell(d.manifest_url);
                 return true;
             }
             return false;
@@ -402,7 +418,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     body: JSON.stringify(Object.assign({ action: 'identify' }, payloadIdent)),
                 });
                 var d = await res.json().catch(function () { return {}; });
-                if (res.ok && (d.mode === 'ok' || d.mode === 'purchased' || d.mode === 'replay')) {
+                if (res.ok && (d.mode === 'ok' || d.mode === 'purchased' || d.mode === 'replay' || d.mode === 'downsell')) {
                     IDENT = payloadIdent;
                     try { if (d.token) localStorage.setItem('masterclass_es2_token', d.token); } catch (e) {}
                     if (!routeMode(d)) afterIdentify(d);
@@ -449,11 +465,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             try {
                 var res = await api('budget', { budget: budget });
                 if (res.r.ok && res.d.ok) {
-                    if (res.d.redirect) {
-                        el('rv-redirect').classList.add('on');
-                        setTimeout(function () { location.href = res.d.redirect; }, 2800);
-                        return;
-                    }
+                    if (res.d.downsell) { showDownsell(res.d.manifest_url); return; }
                     showCalendar(LAST);
                     return;
                 }
