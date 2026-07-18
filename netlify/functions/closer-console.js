@@ -122,6 +122,18 @@ export default async (req) => {
         '&order=watch_max_minutes.desc',
     );
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
+    const leads = Array.isArray(r.data) ? r.data : [];
+    // Budget déclaré sur /rdv-es2 : stocké en Netlify Blobs (index agrégé), pas en base.
+    try {
+      const { getStore } = await import('@netlify/blobs');
+      const raw = await getStore('rdv-es2-budgets').get('index');
+      const map = raw ? JSON.parse(raw) : {};
+      for (const lead of leads) {
+        if (map[lead.token]) lead.rdv_budget_declared = map[lead.token];
+      }
+    } catch (e) {
+      /* budgets indisponibles -> console fonctionne sans */
+    }
     // Coordonnées du closer (téléphones + liens checkout) affichées en tête de console.
     let me = null;
     const meRes = await supabaseGet(
@@ -132,7 +144,7 @@ export default async (req) => {
       me.affiliate_links = affiliateLinks(me.spiffy_affiliate_id);
       delete me.spiffy_affiliate_id;
     }
-    return json(200, { leads: Array.isArray(r.data) ? r.data : [], me });
+    return json(200, { leads, me });
   }
 
   if (req.method === 'POST') {
