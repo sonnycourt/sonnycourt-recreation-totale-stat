@@ -1,0 +1,356 @@
+---
+// Page checkout direct ES2 avec Spiffy embed (/invitation-es2).
+// Page autonome, en parallèle du funnel actuel : rien d'existant ne pointe ici.
+// Countdown = offre_expires_at du lead (token webinaire), vérifié côté serveur.
+// Notifications d'achat = même moteur scarcity que la page /invitation.
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Rejoindre Esprit Subconscient 2.0</title>
+  <meta name="description" content="Complète ton inscription à Esprit Subconscient 2.0." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <script is:inline>
+"use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
+;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t
+;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+spiffy.SNIPPET_VERSION="1.1.0";
+spiffy.config({
+    hideSidebar: false,
+})
+spiffy.load("sonnycourt");
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -100px, rgba(59, 130, 246, 0.18), transparent 60%), #0f172a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 16px 80px;
+    }
+    .hero { text-align: center; margin-bottom: 28px; }
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(96, 165, 250, 0.45);
+      background: rgba(59, 130, 246, 0.14);
+      color: #93c5fd;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+    }
+    .hero h1 .accent { color: #60a5fa; }
+    .hero .sub {
+      font-size: clamp(15px, 2.5vw, 18px);
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.78);
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    /* Countdown */
+    .offer-countdown { margin: 26px auto 0; text-align: center; display: none; }
+    .offer-countdown.is-visible { display: block; }
+    .offer-countdown-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 10px;
+    }
+    .offer-countdown-grid {
+      display: inline-flex;
+      gap: 8px;
+    }
+    .offer-countdown-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 66px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      background: rgba(15, 23, 42, 0.85);
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+    }
+    .offer-countdown-value {
+      font-size: 26px;
+      font-weight: 900;
+      color: #7dd3fc;
+      font-variant-numeric: tabular-nums;
+    }
+    .offer-countdown-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+    /* Checkout */
+    .checkout-wrap {
+      margin-top: 34px;
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: 0 24px 70px rgba(2, 6, 23, 0.55);
+      overflow: hidden;
+      padding: 8px;
+    }
+    .checkout-note {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    /* Offre expirée */
+    .expired-overlay {
+      display: none;
+      text-align: center;
+      margin-top: 40px;
+      padding: 40px 24px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.85);
+    }
+    .expired-overlay.is-visible { display: block; }
+    .expired-overlay .icon { font-size: 40px; margin-bottom: 12px; }
+    .expired-overlay h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+    .expired-overlay p { color: rgba(255, 255, 255, 0.72); line-height: 1.55; max-width: 480px; margin: 0 auto; }
+    .is-expired .checkout-wrap, .is-expired .offer-countdown { display: none; }
+    /* Toast notifications d'achat (identique /invitation) */
+    .purchase-toast {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .purchase-toast.show { opacity: 1; transform: translateY(0); }
+    .purchase-toast__content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    .purchase-toast__thumb-wrap { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+    .purchase-toast__thumb {
+      width: 58px; height: 58px; border-radius: 9px; object-fit: cover; display: block;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+    }
+    .purchase-toast__thumb-flag {
+      position: absolute; right: -4px; bottom: -4px; font-size: 14px; line-height: 1;
+      filter: drop-shadow(0 2px 6px rgba(2, 6, 23, 0.5));
+    }
+    .purchase-toast__text { margin: 0; font-size: 14px; line-height: 1.35; color: #fff; }
+    .purchase-toast__name { color: #60a5fa !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(96, 165, 250, 0.35); }
+    .purchase-toast__action { color: rgba(255, 255, 255, 0.72); }
+    .purchase-toast__course { display: block; margin-top: 2px; color: #ffffff !important; font-weight: 400 !important; }
+    @media (max-width: 1023px) {
+      .purchase-toast { left: 10px; right: 10px; top: 10px; bottom: auto; transform: translateY(-20px); }
+      .purchase-toast__content { max-width: 100%; }
+      .page { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="page">
+    <header class="hero">
+      <div class="hero-badge">Offre réservée aux participants de la masterclass</div>
+      <h1>Ta place dans <span class="accent">Esprit Subconscient 2.0</span> t'attend.</h1>
+      <p class="sub">Complète ton inscription ci-dessous : ton accès s'ouvre immédiatement, et ta première leçon t'attend demain matin.</p>
+      <div class="offer-countdown" id="offer-countdown">
+        <p class="offer-countdown-title">L'offre expire dans :</p>
+        <div class="offer-countdown-grid">
+          <div class="offer-countdown-box"><span id="offer-days" class="offer-countdown-value">--</span><span class="offer-countdown-label">Jours</span></div>
+          <div class="offer-countdown-box"><span id="offer-hours" class="offer-countdown-value">--</span><span class="offer-countdown-label">Heures</span></div>
+          <div class="offer-countdown-box"><span id="offer-minutes" class="offer-countdown-value">--</span><span class="offer-countdown-label">Minutes</span></div>
+          <div class="offer-countdown-box"><span id="offer-seconds" class="offer-countdown-value">--</span><span class="offer-countdown-label">Secondes</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="checkout-wrap">
+      <spiffy-checkout url="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2"></spiffy-checkout>
+    </section>
+    <p class="checkout-note">Paiement sécurisé · Garantie satisfaction 30 jours</p>
+
+    <div class="expired-overlay" id="expired-overlay">
+      <div class="icon">⏳</div>
+      <h2>L'offre n'est plus disponible</h2>
+      <p>Ta fenêtre d'inscription est terminée. Si tu as des questions, contacte le support&nbsp;: support@sonnycourt.com</p>
+    </div>
+  </div>
+
+  <div id="purchase-toast" class="purchase-toast" aria-live="polite">
+    <div class="purchase-toast__content">
+      <div class="purchase-toast__thumb-wrap">
+        <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
+        <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
+      </div>
+      <p class="purchase-toast__text" id="purchase-toast-text"><span class="purchase-toast__name">Sophie</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span></p>
+    </div>
+  </div>
+
+  <script>
+    import { startScarcityEngine, getCurrentWindow, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../lib/scarcity-engine';
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      const params = new URLSearchParams(window.location.search);
+      const isPreview = params.get('preview') === 'true' || params.get('preview') === 'dev';
+      const TOKEN_KEY = 'masterclass_es2_token';
+
+      const urlToken = (params.get('t') || params.get('token') || '').trim();
+      let token = urlToken;
+      if (!token) {
+        try { token = (localStorage.getItem(TOKEN_KEY) || '').trim(); } catch (e) { /* noop */ }
+      } else {
+        try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { /* noop */ }
+      }
+
+      const countdownEl = document.getElementById('offer-countdown');
+      const pad2 = (n) => String(n).padStart(2, '0');
+      let offerExpiryMs = null;
+      let sessionStartsAtMs = null;
+      let countdownInterval = null;
+
+      function renderCountdown() {
+        if (!Number.isFinite(offerExpiryMs)) return;
+        const diff = Math.max(0, offerExpiryMs - Date.now());
+        const total = Math.floor(diff / 1000);
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = pad2(v); };
+        set('offer-days', Math.floor(total / 86400));
+        set('offer-hours', Math.floor((total % 86400) / 3600));
+        set('offer-minutes', Math.floor((total % 3600) / 60));
+        set('offer-seconds', total % 60);
+        if (diff <= 0) lockExpired();
+      }
+
+      function lockExpired() {
+        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+        document.getElementById('page').classList.add('is-expired');
+        const overlay = document.getElementById('expired-overlay');
+        if (overlay) overlay.classList.add('is-visible');
+      }
+
+      // --- Récupération de l'expiration réelle du lead (source serveur) ---
+      if (token && !isPreview) {
+        try {
+          const res = await fetch('/.netlify/functions/get-webinaire-registration?t=' + encodeURIComponent(token));
+          if (res.ok) {
+            const data = await res.json();
+            const exp = new Date(data.offreExpiresAt || data.offre_expires_at || '').getTime();
+            const ses = new Date(data.sessionStartsAt || data.session_date || '').getTime();
+            if (Number.isFinite(exp)) offerExpiryMs = exp;
+            if (Number.isFinite(ses)) sessionStartsAtMs = ses;
+          }
+        } catch (e) { /* réseau KO : on n'affiche pas de countdown, le checkout reste dispo */ }
+      }
+
+      // Preview sans token : countdown branché sur la fenêtre scarcity courante.
+      if (isPreview && !Number.isFinite(offerExpiryMs)) {
+        const win = getCurrentWindow(Date.now());
+        offerExpiryMs = win.endMs;
+        sessionStartsAtMs = win.startMs - SCARCITY_WINDOW_START_AFTER_SESSION_MS;
+      }
+
+      if (Number.isFinite(offerExpiryMs)) {
+        if (offerExpiryMs - Date.now() <= 0) {
+          lockExpired();
+        } else {
+          countdownEl.classList.add('is-visible');
+          renderCountdown();
+          countdownInterval = setInterval(renderCountdown, 1000);
+        }
+      }
+
+      // --- Notifications d'achat (même moteur que /invitation) ---
+      const toast = document.getElementById('purchase-toast');
+      const toastFlag = document.getElementById('purchase-toast-flag');
+      const toastText = document.getElementById('purchase-toast-text');
+      if (toast && toastFlag && toastText && !document.getElementById('page').classList.contains('is-expired')) {
+        let hideTimer = null;
+        let queueGapTimer = null;
+        const toastQueue = [];
+        let toastBusy = false;
+        function flushToastQueue() {
+          if (toastBusy) return;
+          const next = toastQueue.shift();
+          if (!next) return;
+          toastBusy = true;
+          const actionText = next.mode === 'replay'
+            ? `a rejoint il y a ${next.detail || 'quelques instants'}`
+            : 'vient de rejoindre';
+          toastFlag.textContent = next.purchase.flag;
+          toastText.innerHTML = `<span class="purchase-toast__name">${next.purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
+          toast.classList.add('show');
+          if (hideTimer) clearTimeout(hideTimer);
+          if (queueGapTimer) clearTimeout(queueGapTimer);
+          hideTimer = setTimeout(function () {
+            toast.classList.remove('show');
+            queueGapTimer = setTimeout(function () {
+              toastBusy = false;
+              flushToastQueue();
+            }, 1000);
+          }, 4000);
+        }
+
+        const fallbackWin = getCurrentWindow(Date.now());
+        const windowStartMs = Number.isFinite(sessionStartsAtMs)
+          ? sessionStartsAtMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS
+          : fallbackWin.startMs;
+        const windowEndMs = Number.isFinite(offerExpiryMs) ? offerExpiryMs : fallbackWin.endMs;
+
+        startScarcityEngine({
+          now: () => Date.now(),
+          isActive: () => !document.getElementById('page').classList.contains('is-expired'),
+          windowStartMs,
+          windowEndMs,
+          enableReplay: true,
+          onSeatsLeft: function () { /* pas de compteur de places sur cette page */ },
+          onNotification: function (purchase, mode, detail) {
+            toastQueue.push({ purchase, mode, detail });
+            if (!toastBusy) flushToastQueue();
+          },
+        });
+      }
+    });
+  </script>
+</body>
+</html>
