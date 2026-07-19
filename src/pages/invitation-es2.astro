@@ -954,7 +954,12 @@ spiffy.load("sonnycourt");
           if (ev.target === popup) closePopup();
         });
         document.getElementById('exit-popup-close').addEventListener('click', closePopup);
-        document.getElementById('exit-popup-dismiss').addEventListener('click', closePopup);
+        // « J'avance seul » : retour sur la page de vente (avec le token du lead),
+        // là où vit toute l'argumentation, plutôt que de le laisser filer.
+        document.getElementById('exit-popup-dismiss').addEventListener('click', function () {
+          const t = urlToken || token || '';
+          window.location.href = '/invitation/' + (t ? '?t=' + encodeURIComponent(t) : '');
+        });
         document.getElementById('exit-popup-cta').addEventListener('click', function () {
           closePopup();
           const target = document.getElementById('checkout-slot');
