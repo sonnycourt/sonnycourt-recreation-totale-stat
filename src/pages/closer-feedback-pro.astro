@@ -1,0 +1,270 @@
+---
+// Questionnaire de debrief payé des closers (/closer-feedback-pro).
+// Tronc commun de 10 questions + 2 questions personnalisées par closer.
+// Réponses stockées côté serveur (Netlify Blobs) + notification Telegram.
+// Brouillon auto-sauvegardé en localStorage pour ne rien perdre en cours de route.
+---
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Debrief closing ES2 — ton retour terrain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -100px, rgba(59, 130, 246, 0.18), transparent 60%), #0f172a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; padding: 48px 16px 90px; }
+    .hero { text-align: center; margin-bottom: 30px; }
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(96, 165, 250, 0.45);
+      background: rgba(59, 130, 246, 0.14);
+      color: #93c5fd;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 { font-size: clamp(24px, 4.5vw, 34px); font-weight: 900; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 .accent { color: #60a5fa; }
+    .hero .sub { font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, 0.75); max-width: 560px; margin: 0 auto; }
+    .hero .sub b { color: #fff; }
+    .card {
+      margin-top: 22px;
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.75);
+    }
+    .who { display: flex; gap: 12px; }
+    .who-opt {
+      flex: 1;
+      height: 54px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.5);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease;
+    }
+    .who-opt.on { border-color: #60a5fa; background: rgba(59, 130, 246, 0.18); }
+    .section-title {
+      margin: 34px 0 4px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .q { margin-top: 18px; }
+    .q label { display: block; font-size: 15px; font-weight: 600; line-height: 1.5; margin-bottom: 8px; }
+    .q label .num { color: #60a5fa; font-weight: 900; margin-right: 6px; }
+    .q textarea {
+      width: 100%;
+      min-height: 96px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.5;
+      font-family: inherit;
+      padding: 12px 14px;
+      outline: none;
+      resize: vertical;
+    }
+    .q textarea:focus { border-color: rgba(96, 165, 250, 0.7); }
+    .perso { display: none; }
+    .perso.on { display: block; }
+    .submit-btn {
+      width: 100%;
+      height: 56px;
+      margin-top: 30px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+    }
+    .submit-btn[disabled] { opacity: 0.6; cursor: wait; }
+    .form-error { display: none; margin-top: 12px; font-size: 13.5px; color: #fca5a5; text-align: center; }
+    .form-error.on { display: block; }
+    .autosave-note { margin-top: 10px; font-size: 12px; color: rgba(255, 255, 255, 0.4); text-align: center; }
+    .success {
+      display: none;
+      margin-top: 26px;
+      padding: 46px 26px;
+      border-radius: 16px;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      background: rgba(6, 78, 59, 0.25);
+      text-align: center;
+    }
+    .success.on { display: block; }
+    .success .icon { font-size: 42px; margin-bottom: 12px; }
+    .success h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+    .success p { color: rgba(255, 255, 255, 0.75); line-height: 1.6; }
+    .is-done form { display: none; }
+  </style>
+</head>
+<body>
+  <div class="page" id="page">
+    <header class="hero">
+      <div class="hero-badge">Debrief closing ES2 · 15 min · 50 € ajoutés à ta facture</div>
+      <h1>Ton retour terrain vaut de l'or.<br /><span class="accent">Aide-nous à construire la suite.</span></h1>
+      <p class="sub">Réponds avec du <b>concret</b> : des exemples réels d'appels, des phrases entendues telles quelles, des chiffres quand tu en as. Il n'y a pas de bonne réponse, il y a <b>ta réalité de terrain</b>. C'est elle qui nous sert. Ton brouillon se sauvegarde tout seul, tu peux répondre en plusieurs fois.</p>
+    </header>
+
+    <form id="fb-form" novalidate>
+      <div class="card">
+        <div class="section-title" style="margin-top:0;">Qui es-tu ?</div>
+        <div class="who" style="margin-top:12px;">
+          <button type="button" class="who-opt" data-closer="Romain">Romain</button>
+          <button type="button" class="who-opt" data-closer="Valentin">Valentin</button>
+        </div>
+      </div>
+
+      <div class="section-title">Le prospect</div>
+      <div class="q"><label for="q1"><span class="num">1.</span>Décris-moi les 2-3 profils types que tu as eus au téléphone (âge approximatif, situation pro, état émotionnel, rapport à l'argent). Lequel revenait le plus souvent ?</label><textarea id="q1"></textarea></div>
+      <div class="q"><label for="q2"><span class="num">2.</span>Quelles phrases exactes reviennent le plus quand ils expliquent pourquoi ils n'achètent pas ? Cite-les de mémoire, telles qu'ils les disent.</label><textarea id="q2"></textarea></div>
+      <div class="q"><label for="q3"><span class="num">3.</span>Quand tu annonçais le prix d'ES2 (197 €/mois), décris la réaction typique : silence, choc, négociation, esquive ? À quel moment de l'appel le sujet argent arrivait-il, et qui le mettait sur la table en premier, toi ou eux ?</label><textarea id="q3"></textarea></div>
+      <div class="q"><label for="q4"><span class="num">4.</span>Parmi ceux qui ont dit non, combien selon toi POUVAIENT payer mais n'étaient pas convaincus, et combien ne pouvaient objectivement pas ? Qu'est-ce qui te faisait sentir la différence ?</label><textarea id="q4"></textarea></div>
+
+      <div class="section-title">L'offre et le mécanisme</div>
+      <div class="q"><label for="q5"><span class="num">5.</span>Qu'est-ce qui, dans l'offre ES2 telle qu'elle est, t'a le plus AIDÉ à vendre ? Et qu'est-ce qui t'a le plus MANQUÉ comme argument ou comme option au moment de conclure ?</label><textarea id="q5"></textarea></div>
+      <div class="q"><label for="q6"><span class="num">6.</span>Le downsell (Manifest / ES1) : dans quelles situations exactes le sortais-tu, et comment les gens y réagissaient-ils comparé à ES2 ?</label><textarea id="q6"></textarea></div>
+      <div class="q"><label for="q7"><span class="num">7.</span>Si tu pouvais changer UNE seule chose à l'offre ou au prix pour doubler tes ventes, ce serait quoi, et pourquoi celle-là ?</label><textarea id="q7"></textarea></div>
+
+      <div class="section-title">Le process</div>
+      <div class="q"><label for="q8"><span class="num">8.</span>Sur 10 appels typiques, combien décrochent, combien t'écoutent plus de 5 minutes, combien vont au bout de la trame ? Où est la plus grosse fuite selon toi ?</label><textarea id="q8"></textarea></div>
+      <div class="q"><label for="q9"><span class="num">9.</span>Classe ces canaux par efficacité réelle vécue : appel direct, SMS « rappelle-moi », vocal WhatsApp, RDV pris par le prospect. Un exemple de ce qui t'a surpris ?</label><textarea id="q9"></textarea></div>
+      <div class="q"><label for="q10"><span class="num">10.</span>Qu'est-ce que tu ferais différemment dès le premier jour si tu recommençais ce cycle à zéro ?</label><textarea id="q10"></textarea></div>
+
+      <div class="perso" id="perso-romain">
+        <div class="section-title">Spécial Romain</div>
+        <div class="q"><label for="r1"><span class="num">11.</span>Tu as senti une montée en puissance en fin de cycle (tu l'as écrit toi-même). Qu'est-ce qui a « cliqué » exactement, et à quel moment ?</label><textarea id="r1"></textarea></div>
+        <div class="q"><label for="r2"><span class="num">12.</span>Ta V2 de trame : donne-moi les 3 changements principaux que tu y mettrais, en une ligne chacun.</label><textarea id="r2"></textarea></div>
+      </div>
+
+      <div class="perso" id="perso-valentin">
+        <div class="section-title">Spécial Valentin</div>
+        <div class="q"><label for="v1"><span class="num">11.</span>Tu as décrit des appels de 10-15 minutes « qui finissent sur rien ». Raconte-moi UN de ces appels concrètement : comment il a commencé, où il a tourné, pourquoi tu n'as pas pu ni conclure ni couper.</label><textarea id="v1"></textarea></div>
+        <div class="q"><label for="v2"><span class="num">12.</span>Avec le recul, qu'est-ce qui t'aurait le plus aidé : un meilleur script, de meilleurs leads, plus de formation, un autre format de mission ? Sois cash, c'est le but.</label><textarea id="v2"></textarea></div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">Envoyer mon debrief →</button>
+      <p class="form-error" id="form-error"></p>
+      <p class="autosave-note" id="autosave-note">💾 Brouillon sauvegardé automatiquement sur cet appareil.</p>
+    </form>
+
+    <div class="success" id="success">
+      <div class="icon">🙏</div>
+      <h2>Reçu, et merci.</h2>
+      <p>Ton retour part directement nourrir la V2 du système. Les 50 € sont à ajouter sur ta prochaine facture. À très vite.</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const KEY = 'closer_feedback_pro_draft';
+      const QIDS = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','r1','r2','v1','v2'];
+      const el = (id) => document.getElementById(id);
+      let closer = '';
+
+      // --- Restauration du brouillon ---
+      try {
+        const draft = JSON.parse(localStorage.getItem(KEY) || '{}');
+        QIDS.forEach(function (id) { if (draft[id] && el(id)) el(id).value = draft[id]; });
+        if (draft.closer) selectCloser(draft.closer, true);
+      } catch (e) { /* noop */ }
+
+      function saveDraft() {
+        const d = { closer };
+        QIDS.forEach(function (id) { if (el(id)) d[id] = el(id).value; });
+        try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { /* noop */ }
+      }
+      QIDS.forEach(function (id) { if (el(id)) el(id).addEventListener('input', saveDraft); });
+
+      function selectCloser(name, silent) {
+        closer = name;
+        document.querySelectorAll('.who-opt').forEach(function (b) {
+          b.classList.toggle('on', b.dataset.closer === name);
+        });
+        el('perso-romain').classList.toggle('on', name === 'Romain');
+        el('perso-valentin').classList.toggle('on', name === 'Valentin');
+        if (!silent) saveDraft();
+      }
+      document.querySelectorAll('.who-opt').forEach(function (b) {
+        b.addEventListener('click', function () { selectCloser(b.dataset.closer); });
+      });
+
+      // --- Envoi ---
+      const form = el('fb-form');
+      const btn = el('submit-btn');
+      const err = el('form-error');
+      form.addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        err.classList.remove('on');
+        if (!closer) {
+          err.textContent = 'Choisis ton prénom en haut du formulaire.';
+          err.classList.add('on');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        const answers = {};
+        QIDS.forEach(function (id) { if (el(id)) answers[id] = el(id).value.trim(); });
+        const filled = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'].filter(function (id) { return answers[id]; }).length;
+        if (filled < 5) {
+          err.textContent = 'Réponds au moins à 5 des 10 questions principales avant d\'envoyer (tu peux compléter le reste plus tard, ton brouillon est sauvegardé).';
+          err.classList.add('on');
+          return;
+        }
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = 'Envoi…';
+        try {
+          const res = await fetch('/.netlify/functions/closer-feedback-pro', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ closer, answers }),
+          });
+          const d = await res.json().catch(function () { return {}; });
+          if (res.ok && d.ok) {
+            try { localStorage.removeItem(KEY); } catch (e) { /* noop */ }
+            el('page').classList.add('is-done');
+            el('success').classList.add('on');
+            el('autosave-note').style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+          err.textContent = d.error || 'Erreur, réessaie dans un instant.';
+          err.classList.add('on');
+        } catch (e) {
+          err.textContent = 'Erreur réseau, vérifie ta connexion et réessaie. Ton brouillon est sauvegardé.';
+          err.classList.add('on');
+        }
+        btn.disabled = false;
+        btn.textContent = prev;
+      });
+    });
+  </script>
+</body>
+</html>
