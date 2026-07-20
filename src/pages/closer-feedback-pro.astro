@@ -91,6 +91,70 @@
     .q textarea:focus { border-color: rgba(96, 165, 250, 0.7); }
     .perso { display: none; }
     .perso.on { display: block; }
+    /* Choix rapides (pills) */
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.5);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.1s ease, background 0.1s ease;
+    }
+    .pill.on { border-color: #60a5fa; background: rgba(59, 130, 246, 0.2); color: #fff; }
+    .sub-label { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.6); margin: 12px 0 8px; }
+    /* Curseur */
+    .slider-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+    .slider-row input[type="range"] { flex: 1; accent-color: #3b82f6; height: 32px; }
+    .slider-val {
+      min-width: 74px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 900;
+      color: #7dd3fc;
+      background: rgba(59, 130, 246, 0.14);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Compteurs numériques */
+    .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+    .nums .n label { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 6px; min-height: 30px; }
+    .nums input[type="number"] {
+      width: 100%;
+      height: 46px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      font-family: inherit;
+      text-align: center;
+      outline: none;
+    }
+    /* Classement canaux */
+    .ranks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .ranks .r { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .ranks .r span { font-size: 14px; font-weight: 600; }
+    .ranks select {
+      width: 150px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 0 10px;
+      outline: none;
+    }
+    @media (max-width: 560px) { .nums { grid-template-columns: 1fr; } .nums .n label { min-height: 0; } }
     .submit-btn {
       width: 100%;
       height: 56px;
@@ -145,8 +209,35 @@
       <div class="section-title">Le prospect</div>
       <div class="q"><label for="q1"><span class="num">1.</span>Décris-moi les 2-3 profils types que tu as eus au téléphone (âge approximatif, situation pro, état émotionnel, rapport à l'argent). Lequel revenait le plus souvent ?</label><textarea id="q1"></textarea></div>
       <div class="q"><label for="q2"><span class="num">2.</span>Quelles phrases exactes reviennent le plus quand ils expliquent pourquoi ils n'achètent pas ? Cite-les de mémoire, telles qu'ils les disent.</label><textarea id="q2"></textarea></div>
-      <div class="q"><label for="q3"><span class="num">3.</span>Quand tu annonçais le prix d'ES2 (197 €/mois), décris la réaction typique : silence, choc, négociation, esquive ? À quel moment de l'appel le sujet argent arrivait-il, et qui le mettait sur la table en premier, toi ou eux ?</label><textarea id="q3"></textarea></div>
-      <div class="q"><label for="q4"><span class="num">4.</span>Parmi ceux qui ont dit non, combien selon toi POUVAIENT payer mais n'étaient pas convaincus, et combien ne pouvaient objectivement pas ? Qu'est-ce qui te faisait sentir la différence ?</label><textarea id="q4"></textarea></div>
+      <div class="q">
+        <label><span class="num">3.</span>Quand tu annonçais le prix d'ES2 (197 €/mois), quelle était la réaction typique ?</label>
+        <div class="pills" data-group="q3_reaction">
+          <button type="button" class="pill" data-val="Silence">😶 Silence</button>
+          <button type="button" class="pill" data-val="Choc">😳 Choc</button>
+          <button type="button" class="pill" data-val="Négociation">🤝 Négociation</button>
+          <button type="button" class="pill" data-val="Esquive polie">🌫️ Esquive polie</button>
+          <button type="button" class="pill" data-val="Objection directe">🙅 Objection directe</button>
+        </div>
+        <input type="hidden" id="q3_reaction" />
+        <p class="sub-label">Qui mettait le sujet argent sur la table en premier ?</p>
+        <div class="pills" data-group="q3_initiateur">
+          <button type="button" class="pill" data-val="Moi">Moi</button>
+          <button type="button" class="pill" data-val="Eux">Eux</button>
+          <button type="button" class="pill" data-val="Ça dépendait">Ça dépendait</button>
+        </div>
+        <input type="hidden" id="q3_initiateur" />
+        <p class="sub-label">Contexte, exemples, à quel moment de l'appel ça arrivait :</p>
+        <textarea id="q3"></textarea>
+      </div>
+      <div class="q">
+        <label><span class="num">4.</span>Sur 10 personnes qui ont dit non, combien POUVAIENT payer selon toi mais n'étaient pas convaincues ?</label>
+        <div class="slider-row">
+          <input type="range" id="q4_ratio" min="0" max="10" step="1" value="5" />
+          <span class="slider-val" id="q4_ratio_val">5 / 10</span>
+        </div>
+        <p class="sub-label">Qu'est-ce qui te faisait sentir la différence entre les deux ?</p>
+        <textarea id="q4"></textarea>
+      </div>
 
       <div class="section-title">L'offre et le mécanisme</div>
       <div class="q"><label for="q5"><span class="num">5.</span>Qu'est-ce qui, dans l'offre ES2 telle qu'elle est, t'a le plus AIDÉ à vendre ? Et qu'est-ce qui t'a le plus MANQUÉ comme argument ou comme option au moment de conclure ?</label><textarea id="q5"></textarea></div>
@@ -154,8 +245,27 @@
       <div class="q"><label for="q7"><span class="num">7.</span>Si tu pouvais changer UNE seule chose à l'offre ou au prix pour doubler tes ventes, ce serait quoi, et pourquoi celle-là ?</label><textarea id="q7"></textarea></div>
 
       <div class="section-title">Le process</div>
-      <div class="q"><label for="q8"><span class="num">8.</span>Sur 10 appels typiques, combien décrochent, combien t'écoutent plus de 5 minutes, combien vont au bout de la trame ? Où est la plus grosse fuite selon toi ?</label><textarea id="q8"></textarea></div>
-      <div class="q"><label for="q9"><span class="num">9.</span>Classe ces canaux par efficacité réelle vécue : appel direct, SMS « rappelle-moi », vocal WhatsApp, RDV pris par le prospect. Un exemple de ce qui t'a surpris ?</label><textarea id="q9"></textarea></div>
+      <div class="q">
+        <label><span class="num">8.</span>Sur 10 appels typiques :</label>
+        <div class="nums">
+          <div class="n"><label for="q8_decrochent">…combien décrochent ?</label><input type="number" id="q8_decrochent" min="0" max="10" inputmode="numeric" placeholder="0-10" /></div>
+          <div class="n"><label for="q8_ecoutent">…combien t'écoutent plus de 5 min ?</label><input type="number" id="q8_ecoutent" min="0" max="10" inputmode="numeric" placeholder="0-10" /></div>
+          <div class="n"><label for="q8_bout">…combien vont au bout de la trame ?</label><input type="number" id="q8_bout" min="0" max="10" inputmode="numeric" placeholder="0-10" /></div>
+        </div>
+        <p class="sub-label">Où est la plus grosse fuite selon toi ?</p>
+        <textarea id="q8"></textarea>
+      </div>
+      <div class="q">
+        <label><span class="num">9.</span>Classe ces canaux par efficacité réelle vécue (1 = le plus efficace) :</label>
+        <div class="ranks">
+          <div class="r"><span>📞 Appel direct</span><select id="q9_appel"><option value="">Classer…</option><option value="1">1er</option><option value="2">2e</option><option value="3">3e</option><option value="4">4e</option></select></div>
+          <div class="r"><span>💬 SMS « rappelle-moi »</span><select id="q9_sms"><option value="">Classer…</option><option value="1">1er</option><option value="2">2e</option><option value="3">3e</option><option value="4">4e</option></select></div>
+          <div class="r"><span>🎙️ Vocal WhatsApp</span><select id="q9_vocal"><option value="">Classer…</option><option value="1">1er</option><option value="2">2e</option><option value="3">3e</option><option value="4">4e</option></select></div>
+          <div class="r"><span>📅 RDV pris par le prospect</span><select id="q9_rdv"><option value="">Classer…</option><option value="1">1er</option><option value="2">2e</option><option value="3">3e</option><option value="4">4e</option></select></div>
+        </div>
+        <p class="sub-label">Un exemple de ce qui t'a surpris ?</p>
+        <textarea id="q9"></textarea>
+      </div>
       <div class="q"><label for="q10"><span class="num">10.</span>Qu'est-ce que tu ferais différemment dès le premier jour si tu recommençais ce cycle à zéro ?</label><textarea id="q10"></textarea></div>
 
       <div class="perso" id="perso-romain">
@@ -185,9 +295,37 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const KEY = 'closer_feedback_pro_draft';
-      const QIDS = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','r1','r2','v1','v2'];
+      const QIDS = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','r1','r2','v1','v2',
+                    'q3_reaction','q3_initiateur','q4_ratio',
+                    'q8_decrochent','q8_ecoutent','q8_bout',
+                    'q9_appel','q9_sms','q9_vocal','q9_rdv'];
       const el = (id) => document.getElementById(id);
       let closer = '';
+
+      // Pills (choix rapides) -> valeur dans l'input hidden du même nom
+      document.querySelectorAll('.pills').forEach(function (group) {
+        const target = el(group.dataset.group);
+        group.querySelectorAll('.pill').forEach(function (p) {
+          p.addEventListener('click', function () {
+            group.querySelectorAll('.pill').forEach(function (x) { x.classList.remove('on'); });
+            p.classList.add('on');
+            target.value = p.dataset.val;
+            target.dispatchEvent(new Event('input'));
+          });
+        });
+      });
+      function syncPills() {
+        document.querySelectorAll('.pills').forEach(function (group) {
+          const v = el(group.dataset.group).value;
+          group.querySelectorAll('.pill').forEach(function (p) {
+            p.classList.toggle('on', p.dataset.val === v);
+          });
+        });
+      }
+      // Curseur Q4 : affichage de la valeur
+      const q4r = el('q4_ratio');
+      function syncSlider() { el('q4_ratio_val').textContent = q4r.value + ' / 10'; }
+      q4r.addEventListener('input', syncSlider);
 
       // --- Restauration du brouillon ---
       try {
@@ -195,13 +333,20 @@
         QIDS.forEach(function (id) { if (draft[id] && el(id)) el(id).value = draft[id]; });
         if (draft.closer) selectCloser(draft.closer, true);
       } catch (e) { /* noop */ }
+      syncPills();
+      syncSlider();
 
       function saveDraft() {
         const d = { closer };
         QIDS.forEach(function (id) { if (el(id)) d[id] = el(id).value; });
         try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { /* noop */ }
       }
-      QIDS.forEach(function (id) { if (el(id)) el(id).addEventListener('input', saveDraft); });
+      QIDS.forEach(function (id) {
+        const node = el(id);
+        if (!node) return;
+        node.addEventListener('input', saveDraft);
+        node.addEventListener('change', saveDraft);
+      });
 
       function selectCloser(name, silent) {
         closer = name;
@@ -231,7 +376,19 @@
         }
         const answers = {};
         QIDS.forEach(function (id) { if (el(id)) answers[id] = el(id).value.trim(); });
-        const filled = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'].filter(function (id) { return answers[id]; }).length;
+        // Une question "compte" si son texte OU un de ses champs structurés est rempli.
+        const groups = {
+          q1: ['q1'], q2: ['q2'],
+          q3: ['q3', 'q3_reaction', 'q3_initiateur'],
+          q4: ['q4'],
+          q5: ['q5'], q6: ['q6'], q7: ['q7'],
+          q8: ['q8', 'q8_decrochent', 'q8_ecoutent', 'q8_bout'],
+          q9: ['q9', 'q9_appel', 'q9_sms', 'q9_vocal', 'q9_rdv'],
+          q10: ['q10'],
+        };
+        const filled = Object.values(groups).filter(function (ids) {
+          return ids.some(function (id) { return answers[id]; });
+        }).length;
         if (filled < 5) {
           err.textContent = 'Réponds au moins à 5 des 10 questions principales avant d\'envoyer (tu peux compléter le reste plus tard, ton brouillon est sauvegardé).';
           err.classList.add('on');
