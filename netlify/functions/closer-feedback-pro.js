@@ -1,8 +1,9 @@
-import { getStore } from '@netlify/blobs';
+import { supabasePost } from './lib/supabase-rest.mjs';
 
 /**
  * /closer-feedback-pro : questionnaire de debrief payé des closers (fin de cycle).
- * Stocke la réponse complète dans Netlify Blobs et notifie Sonny sur Telegram.
+ * Stocke la réponse complète dans Supabase (table closer_feedback_pro)
+ * et notifie Sonny sur Telegram.
  */
 
 const CLOSERS = ['Romain', 'Valentin', 'TEST'];
@@ -55,12 +56,11 @@ export default async (req) => {
     }
     if (filled < 5) return json(400, { error: 'Réponds au moins aux questions principales avant d\'envoyer.' });
 
-    const at = new Date().toISOString();
-    const store = getStore('closer-feedback-pro');
-    await store.set(
-      `${closer.toLowerCase()}-${Date.now()}`,
-      JSON.stringify({ closer, at, answers: clean }, null, 2),
-    );
+    const ins = await supabasePost('closer_feedback_pro', { closer, answers: clean });
+    if (!ins.ok) {
+      console.error('closer-feedback-pro insert error:', ins.status, ins.error);
+      return json(500, { error: 'Enregistrement impossible, réessaie (ton brouillon est sauvegardé).' });
+    }
 
     if (closer !== 'TEST') {
       await notifyTelegram(
