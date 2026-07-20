@@ -2,8 +2,7 @@ import { supabasePost } from './lib/supabase-rest.mjs';
 
 /**
  * /closer-feedback-pro : questionnaire de debrief payé des closers (fin de cycle).
- * Stocke la réponse complète dans Supabase (table closer_feedback_pro)
- * et notifie Sonny sur Telegram.
+ * Stocke la réponse complète dans Supabase (table closer_feedback_pro).
  */
 
 const CLOSERS = ['Romain', 'Valentin', 'TEST'];
@@ -13,27 +12,6 @@ function json(status, body) {
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
-}
-
-async function notifyTelegram(text) {
-  const botToken = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  const chatId = String(process.env.TELEGRAM_CHAT_ID || '').trim();
-  if (!botToken || !chatId) return false;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text.slice(0, 4090),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
 }
 
 export default async (req) => {
@@ -62,13 +40,6 @@ export default async (req) => {
       return json(500, { error: 'Enregistrement impossible, réessaie (ton brouillon est sauvegardé).' });
     }
 
-    if (closer !== 'TEST') {
-      await notifyTelegram(
-        `📋 <b>Debrief closer reçu : ${closer}</b>\n` +
-        `${filled} réponses remplies.\n` +
-        `Q7 (LE changement pour doubler les ventes) :\n« ${(clean.q7 || '').slice(0, 500)} »`,
-      );
-    }
     return json(200, { ok: true });
   } catch (error) {
     console.error('closer-feedback-pro error:', error);
