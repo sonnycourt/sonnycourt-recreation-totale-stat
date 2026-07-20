@@ -107,6 +107,12 @@
     }
     .pill.on { border-color: #60a5fa; background: rgba(59, 130, 246, 0.2); color: #fff; }
     .sub-label { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.6); margin: 12px 0 8px; }
+    /* Duo (Q1 : deux avatars côte à côte) */
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .duo .sub-label { margin-top: 0; }
+    .duo textarea { min-height: 120px; }
+    /* Phrases courtes (Q2) */
+    .q textarea.phrase { min-height: 64px; }
     /* Curseur */
     .slider-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
     .slider-row input[type="range"] { flex: 1; accent-color: #3b82f6; height: 32px; }
@@ -154,7 +160,7 @@
       padding: 0 10px;
       outline: none;
     }
-    @media (max-width: 560px) { .nums { grid-template-columns: 1fr; } .nums .n label { min-height: 0; } }
+    @media (max-width: 560px) { .nums { grid-template-columns: 1fr; } .nums .n label { min-height: 0; } .duo { grid-template-columns: 1fr; } }
     .submit-btn {
       width: 100%;
       height: 56px;
@@ -207,8 +213,28 @@
       </div>
 
       <div class="section-title">Le prospect</div>
-      <div class="q"><label for="q1"><span class="num">1.</span>Décris-moi les 2-3 profils types que tu as eus au téléphone (âge approximatif, situation pro, état émotionnel, rapport à l'argent). Lequel revenait le plus souvent ?</label><textarea id="q1"></textarea></div>
-      <div class="q"><label for="q2"><span class="num">2.</span>Quelles phrases exactes reviennent le plus quand ils expliquent pourquoi ils n'achètent pas ? Cite-les de mémoire, telles qu'ils les disent.</label><textarea id="q2"></textarea></div>
+      <div class="q">
+        <label><span class="num">1.</span>Décris les deux profils types que tu as eus au téléphone (âge approximatif, situation pro, état émotionnel, rapport à l'argent).</label>
+        <div class="duo">
+          <div>
+            <p class="sub-label">👤 Avatar principal (le plus fréquent)</p>
+            <textarea id="q1_principal"></textarea>
+          </div>
+          <div>
+            <p class="sub-label">👥 Avatar secondaire</p>
+            <textarea id="q1_secondaire"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="q">
+        <label><span class="num">2.</span>Quelles phrases exactes reviennent le plus quand ils expliquent pourquoi ils n'achètent pas ? Cite-les de mémoire, telles qu'ils les disent.</label>
+        <p class="sub-label" style="margin-top:0;">Phrase 1</p>
+        <textarea id="q2_p1" class="phrase"></textarea>
+        <p class="sub-label">Phrase 2</p>
+        <textarea id="q2_p2" class="phrase"></textarea>
+        <p class="sub-label">Phrase 3</p>
+        <textarea id="q2_p3" class="phrase"></textarea>
+      </div>
       <div class="q">
         <label><span class="num">3.</span>Quand tu annonçais le prix d'ES2 (197 €/mois), quelle était la réaction typique ?</label>
         <div class="pills" data-group="q3_reaction">
@@ -295,7 +321,8 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const KEY = 'closer_feedback_pro_draft';
-      const QIDS = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','r1','r2','v1','v2',
+      const QIDS = ['q1_principal','q1_secondaire','q2_p1','q2_p2','q2_p3',
+                    'q3','q4','q5','q6','q7','q8','q9','q10','r1','r2','v1','v2',
                     'q3_reaction','q3_initiateur','q4_ratio',
                     'q8_decrochent','q8_ecoutent','q8_bout',
                     'q9_appel','q9_sms','q9_vocal','q9_rdv'];
@@ -378,7 +405,7 @@
         QIDS.forEach(function (id) { if (el(id)) answers[id] = el(id).value.trim(); });
         // Une question "compte" si son texte OU un de ses champs structurés est rempli.
         const groups = {
-          q1: ['q1'], q2: ['q2'],
+          q1: ['q1_principal', 'q1_secondaire'], q2: ['q2_p1', 'q2_p2', 'q2_p3'],
           q3: ['q3', 'q3_reaction', 'q3_initiateur'],
           q4: ['q4'],
           q5: ['q5'], q6: ['q6'], q7: ['q7'],
