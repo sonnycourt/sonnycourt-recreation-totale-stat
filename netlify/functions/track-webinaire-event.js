@@ -290,6 +290,12 @@ export default async (req) => {
     // Best-effort mirror to MailerLite. Never block client response.
     void mirrorToMailerLite(row.email || '', eventName, patch);
 
+    // Clic checkout → groupe MailerLite CHECKOUT-ABANDON (l'automation de Ludovic
+    // filtre les vrais abandons via délai + condition « pas acheteur »).
+    if (eventName === 'checkout_clicked') {
+      void addToCheckoutAbandonGroup(row.email || '', process.env.MAILERLITE_API_KEY);
+    }
+
     // Best-effort logging des freeze events (table dédiée). Toute erreur est swallowed,
     // n'impacte pas la réponse au client ni les autres branches du tracking.
     if (eventName === 'video_freeze_recovery') {

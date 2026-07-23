@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
+import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -165,6 +166,8 @@ export default async (req) => {
         ...(amount != null ? { refund_amount: amount } : {}),
       });
     } else if (isSale) {
+      // Achat confirmé → sortie du groupe CHECKOUT-ABANDON (coupe la relance).
+      await removeFromCheckoutAbandonGroup(email, process.env.MAILERLITE_API_KEY);
       // Affilié Spiffy = source de vérité pour l'attribution des ventes closers.
       const affiliate = findAffiliate(body);
       await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {

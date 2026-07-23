@@ -5,7 +5,7 @@ import {
   getOffreExpiresAtUtc,
   formatParisOptinTimestamp,
 } from './lib/webinaire-session-paris.mjs';
-import { upsertWebinaireSubscriber, getWebinaireGroupEnv } from './lib/mailerlite-webinaire.mjs';
+import { upsertWebinaireSubscriber, getWebinaireGroupEnv, assignEs2SegmentGroups } from './lib/mailerlite-webinaire.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
@@ -150,7 +150,7 @@ export default async (req) => {
     }
 
     const existing = await supabaseGet(
-      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at`,
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at,traffic_source`,
     );
     if (existing.ok && Array.isArray(existing.data) && existing.data.length > 0) {
       const e = existing.data[0];
@@ -214,6 +214,12 @@ export default async (req) => {
               );
             }
           }
+          await assignEs2SegmentGroups({
+            email,
+            sessionDateIso: e.session_date,
+            trafficSource: e.traffic_source || null,
+            apiKey,
+          });
         } catch (mlErr) {
           console.error('MailerLite register-webinaire existing:', mlErr);
         }
@@ -271,7 +277,7 @@ export default async (req) => {
         rawErr.includes('23505');
       if (looksLikeDuplicate) {
         const existingAfterConflict = await supabaseGet(
-          `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at`,
+          `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom,telephone,pays,mailerlite_group_added_at,statut,session_date,session_ends_at,offre_expires_at,traffic_source`,
         );
         if (
           existingAfterConflict.ok &&
@@ -326,6 +332,12 @@ export default async (req) => {
             );
           }
         }
+        await assignEs2SegmentGroups({
+          email,
+          sessionDateIso: sessionStart.toISOString(),
+          trafficSource,
+          apiKey,
+        });
       } catch (mlErr) {
         console.error('MailerLite register-webinaire:', mlErr);
       }

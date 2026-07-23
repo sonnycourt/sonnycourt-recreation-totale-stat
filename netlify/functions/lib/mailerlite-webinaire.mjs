@@ -228,3 +228,70 @@ export function getWebinaireGroupEnv() {
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS,
   };
 }
+
+
+/* ====== Segmentation ES2 W9+ (groupes MailerLite de Ludovic, 23/7/2026) ====== */
+
+export const ES2_SEGMENT_GROUPS = {
+  rituel: '193700166599968678',
+  marathon: '193700167866647896',
+  srcMeta: '193700169050490378',
+  srcTiktok: '193700170407347470',
+  srcOrga: '193700172043126599',
+  checkoutAbandon: '193700174840727293',
+};
+
+export async function removeSubscriberFromGroup(subscriberId, groupId, apiKey) {
+  const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}/groups/${groupId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+  });
+  return res.ok || res.status === 404;
+}
+
+/**
+ * Rituel (session à 4 jours ou plus) vs Marathon (3 jours ou moins) + groupe
+ * source. Même règle de seuil que la page confirmation (3 × 24h pleines).
+ * Idempotent, ne lève jamais : un échec ne doit pas bloquer une inscription.
+ */
+export async function assignEs2SegmentGroups({ email, sessionDateIso, trafficSource, apiKey }) {
+  try {
+    if (!apiKey || !email) return;
+    const sub = await getMailerLiteSubscriberId(email, apiKey);
+    if (!sub?.id) return;
+
+    const DAY = 86400000;
+    const startMs = new Date(sessionDateIso || '').getTime();
+    const isMarathon = Number.isFinite(startMs) && startMs - Date.now() <= 3 * DAY;
+    const cadenceGroup = isMarathon ? ES2_SEGMENT_GROUPS.marathon : ES2_SEGMENT_GROUPS.rituel;
+    const srcGroup =
+      trafficSource === 'meta_ad' ? ES2_SEGMENT_GROUPS.srcMeta
+      : trafficSource === 'tiktok_ad' ? ES2_SEGMENT_GROUPS.srcTiktok
+      : ES2_SEGMENT_GROUPS.srcOrga;
+
+    await addSubscriberToGroup(sub.id, cadenceGroup, apiKey);
+    await addSubscriberToGroup(sub.id, srcGroup, apiKey);
+  } catch (err) {
+    console.error('assignEs2SegmentGroups:', err);
+  }
+}
+
+export async function addToCheckoutAbandonGroup(email, apiKey) {
+  try {
+    if (!apiKey || !email) return;
+    const sub = await getMailerLiteSubscriberId(email, apiKey);
+    if (sub?.id) await addSubscriberToGroup(sub.id, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
+  } catch (err) {
+    console.error('addToCheckoutAbandonGroup:', err);
+  }
+}
+
+export async function removeFromCheckoutAbandonGroup(email, apiKey) {
+  try {
+    if (!apiKey || !email) return;
+    const sub = await getMailerLiteSubscriberId(email, apiKey);
+    if (sub?.id) await removeSubscriberFromGroup(sub.id, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
+  } catch (err) {
+    console.error('removeFromCheckoutAbandonGroup:', err);
+  }
+}
