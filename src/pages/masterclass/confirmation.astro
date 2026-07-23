@@ -1210,7 +1210,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (step > 1) {
                         if (badge) badge.textContent = 'À regarder aujourd\'hui';
                         if (state) state.textContent = card.getAttribute('data-video') ? 'Disponible — clique pour lancer la lecture' : 'Disponible ici très bientôt';
-                        if (card.getAttribute('data-video')) card.classList.add('is-playable');
+                        if (card.getAttribute('data-video')) {
+                            card.classList.add('is-playable');
+                            const thumbEl = card.querySelector('.cursus-thumb-big');
+                            if (thumbEl && !thumbEl.querySelector('.cursus-thumb-play')) {
+                                const playEl = document.createElement('span');
+                                playEl.className = 'cursus-thumb-play cursus-thumb-play--big';
+                                playEl.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+                                thumbEl.appendChild(playEl);
+                            }
+                        }
                     }
                 });
             })();
