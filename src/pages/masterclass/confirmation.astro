@@ -1562,6 +1562,50 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
     let activeVideo = null;
 
+    // --- Tracking chauffe : position max par vidéo, pings légers ---
+    function cursusToken() {
+        try {
+            const u = new URL(window.location.href);
+            return (u.searchParams.get('t') || u.searchParams.get('token')
+                || localStorage.getItem('masterclass_es2_token') || '').trim();
+        } catch { return ''; }
+    }
+
+    function trackCursus(video, step) {
+        const token = cursusToken();
+        if (!token || !step) return;
+        let maxSec = 0;
+        let lastSent = 0;
+
+        function send(useBeacon) {
+            const sec = Math.floor(maxSec);
+            if (sec <= lastSent) return;
+            lastSent = sec;
+            const payload = JSON.stringify({ token: token, step: step, seconds: sec });
+            const url = '/.netlify/functions/track-cursus';
+            if (useBeacon && navigator.sendBeacon) {
+                navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+            } else {
+                fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+            }
+        }
+
+        let ticker = null;
+        video.addEventListener('timeupdate', function () {
+            if (video.currentTime > maxSec) maxSec = video.currentTime;
+        });
+        video.addEventListener('play', function () {
+            if (ticker) return;
+            ticker = setInterval(function () { send(false); }, 30000);
+        });
+        video.addEventListener('pause', function () { send(false); });
+        video.addEventListener('ended', function () { send(false); });
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden') send(true);
+        });
+        window.addEventListener('pagehide', function () { send(true); });
+    }
+
     function isHlsUrl(url) {
         return /\.m3u8(\?|#|$)/i.test(String(url || ''));
     }
@@ -1592,6 +1636,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     }
 
     function mountPlayer(thumb, src) {
+        const cardEl = thumb.closest('.cursus-card');
+        const trackStep = cardEl ? Number(cardEl.getAttribute('data-step')) : 0;
         const posterMatch = String(thumb.style.backgroundImage || '').match(/url\(["']?([^"')]+)["']?\)/);
 
         const root = document.createElement('div');
@@ -1629,6 +1675,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         video.setAttribute('controlsList', 'nodownload noremoteplayback');
         video.disablePictureInPicture = true;
         if (posterMatch) video.poster = posterMatch[1];
+        if (trackStep) trackCursus(video, trackStep);
         root.insertBefore(video, root.firstChild);
 
         thumb.innerHTML = '';
