@@ -257,8 +257,8 @@ export async function removeSubscriberFromGroup(subscriberId, groupId, apiKey) {
 export async function assignEs2SegmentGroups({ email, sessionDateIso, trafficSource, apiKey }) {
   try {
     if (!apiKey || !email) return;
-    const sub = await getMailerLiteSubscriberId(email, apiKey);
-    if (!sub?.id) return;
+    const subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+    if (!subscriberId) return;
 
     const DAY = 86400000;
     const startMs = new Date(sessionDateIso || '').getTime();
@@ -269,8 +269,8 @@ export async function assignEs2SegmentGroups({ email, sessionDateIso, trafficSou
       : trafficSource === 'tiktok_ad' ? ES2_SEGMENT_GROUPS.srcTiktok
       : ES2_SEGMENT_GROUPS.srcOrga;
 
-    await addSubscriberToGroup(sub.id, cadenceGroup, apiKey);
-    await addSubscriberToGroup(sub.id, srcGroup, apiKey);
+    await addSubscriberToGroup(subscriberId, cadenceGroup, apiKey);
+    await addSubscriberToGroup(subscriberId, srcGroup, apiKey);
   } catch (err) {
     console.error('assignEs2SegmentGroups:', err);
   }
@@ -279,8 +279,8 @@ export async function assignEs2SegmentGroups({ email, sessionDateIso, trafficSou
 export async function addToCheckoutAbandonGroup(email, apiKey) {
   try {
     if (!apiKey || !email) return;
-    const sub = await getMailerLiteSubscriberId(email, apiKey);
-    if (sub?.id) await addSubscriberToGroup(sub.id, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
+    const subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+    if (subscriberId) await addSubscriberToGroup(subscriberId, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
   } catch (err) {
     console.error('addToCheckoutAbandonGroup:', err);
   }
@@ -289,8 +289,8 @@ export async function addToCheckoutAbandonGroup(email, apiKey) {
 export async function removeFromCheckoutAbandonGroup(email, apiKey) {
   try {
     if (!apiKey || !email) return;
-    const sub = await getMailerLiteSubscriberId(email, apiKey);
-    if (sub?.id) await removeSubscriberFromGroup(sub.id, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
+    const subscriberId = await getMailerLiteSubscriberId(email, apiKey);
+    if (subscriberId) await removeSubscriberFromGroup(subscriberId, ES2_SEGMENT_GROUPS.checkoutAbandon, apiKey);
   } catch (err) {
     console.error('removeFromCheckoutAbandonGroup:', err);
   }
