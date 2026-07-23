@@ -576,6 +576,96 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             pointer-events: none;
             z-index: 9998;
         }
+        /* --- Cursus de préparation (couloir de chauffe) --- */
+        .cursus-intro { color: rgba(255,255,255,.85); font-size: 15.5px; line-height: 1.6; margin-bottom: 16px; }
+        .cursus-intro strong { color: #fff; }
+        .cursus-video-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #93c5fd; margin-bottom: 8px; }
+        .cursus-embed { position: relative; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #020617; border: 1px solid rgba(148,163,184,.25); }
+        .cursus-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+        .cursus-locked { display: grid; gap: 10px; margin-top: 14px; }
+        .cursus-locked-card { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; border: 1px dashed rgba(148,163,184,.35); color: rgba(255,255,255,.55); font-size: 14px; font-weight: 700; }
+        .cursus-locked-card span { font-weight: 400; font-size: 12.5px; color: rgba(255,255,255,.4); }
+        .cursus-facade { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: radial-gradient(420px 220px at 50% 35%, rgba(59,130,246,.22), transparent 70%), #0b1220; border: 0; cursor: pointer; color: #fff; }
+        .cursus-facade-play { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #3b82f6; color: #fff; box-shadow: 0 10px 30px rgba(59,130,246,.45); transition: transform .15s ease; }
+        .cursus-facade:hover .cursus-facade-play { transform: scale(1.08); }
+        .cursus-facade-title { font-size: 16px; font-weight: 800; }
+        .cursus-facade-meta { font-size: 12.5px; color: rgba(255,255,255,.55); }
+        .cursus-list { display: grid; gap: 12px; }
+        .cursus-card { display: flex; gap: 14px; align-items: stretch; padding: 12px; border-radius: 14px; background: rgba(15,23,42,.65); border: 1px solid rgba(148,163,184,.22); }
+        .cursus-card.is-upcoming { opacity: .62; }
+        .cursus-thumb { position: relative; flex: 0 0 168px; min-height: 94px; border-radius: 10px; overflow: hidden; background: radial-gradient(140px 90px at 50% 40%, rgba(59,130,246,.35), transparent 70%), #0b1220; display: flex; align-items: center; justify-content: center; }
+        .cursus-thumb-play { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #3b82f6; color: #fff; box-shadow: 0 8px 22px rgba(59,130,246,.45); }
+        .cursus-thumb-badge { position: absolute; left: 14px; bottom: 14px; font-size: 16.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #dbeafe; background: rgba(2,6,23,.82); padding: 11px 20px; border-radius: 999px; }
+        .cursus-card-body h3 { font-size: 15px; font-weight: 800; line-height: 1.35; margin: 2px 0 6px; color: #fff; text-transform: uppercase; }
+        .cursus-card-meta { font-size: 12.5px; color: rgba(255,255,255,.6); margin-bottom: 6px; }
+        .cursus-card-state { font-size: 13px; color: #93c5fd; font-weight: 600; }
+        @media (max-width: 560px) { .cursus-card { flex-direction: column; } .cursus-thumb { flex-basis: auto; min-height: 150px; } }
+        .cal-details summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; }
+        .cal-details summary::-webkit-details-marker { display: none; }
+        .cal-details summary h2 { margin: 0; }
+        .cal-chevron { font-size: 18px; color: rgba(255,255,255,.55); transition: transform .2s ease; }
+        .cal-details[open] .cal-chevron { transform: rotate(180deg); }
+        .cal-details .calendar-grid { margin-top: 14px; }
+        .cursus-player { margin-bottom: 12px; }
+        .cursus-player video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; display: block; border: 1px solid rgba(148,163,184,.25); }
+        .cursus-card.is-playable { cursor: pointer; transition: border-color .15s ease; }
+        .cursus-card.is-playable:hover { border-color: rgba(59,130,246,.6); }
+        /* --- Desktop large : page pleine largeur, propre --- */
+        @media (min-width: 900px) {
+            .container { max-width: 940px; padding: 44px 32px 72px; }
+            .section { padding: 28px 32px; border-radius: 18px; margin-bottom: 22px; }
+            .section h2 { font-size: 1.22rem; }
+            .countdown { gap: 12px; }
+            .calendar-grid { grid-template-columns: repeat(3, 1fr); }
+            .cursus-thumb { flex-basis: 220px; min-height: 124px; }
+            .cursus-card-body h3 { font-size: 16.5px; }
+        }
+        @media (min-width: 1280px) {
+            .container { max-width: 1040px; }
+        }
+        /* --- Cartes cursus format vidéo (grosses vignettes) --- */
+        .cursus-card--big { display: block; padding: 0; overflow: hidden; }
+        .cursus-card--big.is-upcoming { opacity: 1; }
+        .cursus-card--big .cursus-card-body { padding: 14px 16px 16px; }
+        .cursus-thumb-big { position: relative; aspect-ratio: 16 / 9; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
+        .is-upcoming .cursus-thumb-big::after { content: ''; position: absolute; inset: 0; background: rgba(2, 6, 23, 0.55); }
+        .cursus-thumb-big .cursus-thumb-badge { z-index: 2; }
+        .cursus-thumb-play--big { width: 64px; height: 64px; z-index: 2; }
+        .cursus-lock { position: relative; z-index: 2; width: 104px; height: 104px; border-radius: 50%; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.45); display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+        .cursus-upcoming-grid { display: grid; gap: 14px; }
+        .cursus-day { position: absolute; top: 14px; left: 14px; z-index: 2; background: #3b82f6; color: #fff; font-weight: 800; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; padding: 10px 20px; border-radius: 999px; box-shadow: 0 8px 22px rgba(59,130,246,.5); }
+    </style>
+    <style is:global>
+        /* --- Lecteur custom cursus : DOM créé en JS => styles globaux (hors scoping Astro) --- */
+        .cvp { position: absolute; inset: 0; background: #000; outline: none; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .cvp video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
+        .cvp-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
+        .cvp.is-paused .cvp-center { opacity: 1; }
+        .cvp-playbtn { width: clamp(56px, 12vw, 72px); height: clamp(56px, 12vw, 72px); border-radius: 50%; border: 2px solid rgba(96, 165, 250, 0.7); background: rgba(59, 130, 246, 0.25); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; }
+        .cvp-playbtn svg { width: 24px; height: 24px; fill: #60a5fa; margin-left: 3px; }
+        .cvp-controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: linear-gradient(0deg, rgba(0,0,0,.78) 0%, transparent 100%); opacity: 0; transition: opacity .25s ease; z-index: 5; }
+        .cvp.show-controls .cvp-controls, .cvp.is-paused .cvp-controls { opacity: 1; }
+        .cvp-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .cvp-btn svg { width: 18px; height: 18px; }
+        .cvp-progress { flex: 1; height: 5px; border-radius: 5px; background: rgba(255,255,255,.18); position: relative; cursor: pointer; touch-action: none; }
+        .cvp-progress:hover { height: 7px; }
+        .cvp-buffer { position: absolute; top: 0; bottom: 0; left: 0; width: 0%; border-radius: 5px; background: rgba(255,255,255,.22); }
+        .cvp-played { position: absolute; top: 0; bottom: 0; left: 0; width: 0%; border-radius: 5px; background: #3b82f6; }
+        .cvp-time { font-size: 12px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.85); flex-shrink: 0; font-weight: 600; }
+        .cvp-speed { flex-shrink: 0; min-width: 44px; padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(96,165,250,.45); background: rgba(59,130,246,.18); color: #dbeafe; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .cvp-speed:hover { background: rgba(59,130,246,.32); }
+        .cvp-menu { position: absolute; right: 12px; bottom: 54px; display: none; flex-direction: column; gap: 2px; padding: 6px; border-radius: 12px; background: rgba(10,14,30,.96); border: 1px solid rgba(96,165,250,.35); box-shadow: 0 12px 32px rgba(0,0,0,.5); z-index: 6; }
+        .cvp-menu.open { display: flex; }
+        .cvp-menu button { border: none; background: none; color: rgba(255,255,255,.8); font-size: 13px; font-weight: 600; padding: 7px 18px; border-radius: 8px; cursor: pointer; text-align: center; font-family: inherit; }
+        .cvp-menu button:hover { background: rgba(59,130,246,.2); color: #fff; }
+        .cvp-menu button.active { background: #3b82f6; color: #fff; }
+        .cvp-volume-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .cvp-volume-slider { -webkit-appearance: none; appearance: none; width: 52px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.2); outline: none; cursor: pointer; }
+        .cvp-volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: #fff; cursor: pointer; }
+        .cvp-volume-slider::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
+        @media (max-width: 480px) { .cvp-volume-wrap { display: none; } }
+        .cvp:fullscreen { border-radius: 0; }
+        .cvp:fullscreen video { object-fit: contain; }
     </style>
 </head>
 <body>
@@ -716,14 +806,64 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 </ul>
             </div>
 
-            <div class="section">
-                <h2>Ajouter au calendrier</h2>
-                <div class="calendar-grid">
-                    <a id="link-google" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Google Calendar</a>
-                    <a id="link-outlook" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Outlook</a>
-                    <button type="button" id="btn-apple" class="cal-btn">Apple Calendar</button>
-                </div>
+            <div class="section" id="calendar-section">
+                <details class="cal-details">
+                    <summary>
+                        <h2>Ajouter au calendrier</h2>
+                        <span class="cal-chevron" aria-hidden="true">▾</span>
+                    </summary>
+                    <div class="calendar-grid">
+                        <a id="link-google" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Google Calendar</a>
+                        <a id="link-outlook" class="cal-btn" href="#" target="_blank" rel="noopener noreferrer">Outlook</a>
+                        <button type="button" id="btn-apple" class="cal-btn">Apple Calendar</button>
+                    </div>
+                </details>
             </div>
+
+            <div class="section" id="cursus-section">
+                <h2>Ta préparation commence maintenant</h2>
+                <p class="cursus-intro">Rien d'obligatoire ici. Mais si tu veux arriver à la masterclass avec une longueur d'avance, commence par la vidéo juste en dessous. <strong>Une vidéo par jour, 15 minutes aujourd'hui. C'est tout.</strong></p>
+                <div class="cursus-list">
+                    <article class="cursus-card cursus-card--big is-playable" data-step="1" data-video="https://vz-601d6eb4-a9a.b-cdn.net/62d20436-3119-4120-982a-24830ed2176c/playlist.m3u8">
+                        <div class="cursus-thumb-big" style="background-image:url('/media/pages/cursus-jour1-thumb.webp');">
+                            <span class="cursus-thumb-play cursus-thumb-play--big"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
+                            <span class="cursus-day">Jour #1</span>
+                            <span class="cursus-thumb-badge">À regarder aujourd'hui</span>
+                        </div>
+                        <div class="cursus-card-body">
+                            <h3>Ça m'a pris plus de 30 ans pour réaliser ce que je vais te dire en 10 minutes</h3>
+                            <p class="cursus-card-meta">15 min · ▶ 242 778 vues · ❤ 12 753 j'aime</p>
+                            <p class="cursus-card-state">Disponible — clique pour lancer la lecture</p>
+                        </div>
+                    </article>
+                    <div class="cursus-upcoming-grid">
+                        <article class="cursus-card cursus-card--big is-upcoming" data-step="2" data-video="https://vz-601d6eb4-a9a.b-cdn.net/2f5db16d-1a26-48c6-bd0f-682682d8c124/playlist.m3u8">
+                            <div class="cursus-thumb-big" style="background-image:url('/media/pages/cursus-jour2-thumb.webp');">
+                                <span class="cursus-lock"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                                <span class="cursus-day">Jour #2</span>
+                                <span class="cursus-thumb-badge">Reviens demain — elle se débloque ici</span>
+                            </div>
+                            <div class="cursus-card-body">
+                                <h3>Essaie ces 10 habitudes avant la masterclass</h3>
+                                <p class="cursus-card-meta">40 min · ▶ 841 646 vues · ❤ 19 832 j'aime</p>
+                                <p class="cursus-card-state">Étape 2 — demain dans ta boîte mail.</p>
+                            </div>
+                        </article>
+                        <article class="cursus-card cursus-card--big is-upcoming" data-step="3" data-video="https://vz-601d6eb4-a9a.b-cdn.net/bd31669d-e350-4532-ad1e-e648e24a8ebf/playlist.m3u8">
+                            <div class="cursus-thumb-big" style="background-image:url('/media/pages/cursus-jour3-thumb.webp');">
+                                <span class="cursus-lock"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+                                <span class="cursus-day">Jour #3</span>
+                                <span class="cursus-thumb-badge">Se débloque après-demain</span>
+                            </div>
+                            <div class="cursus-card-body">
+                                <h3>Tu ne verras plus jamais le monde de la même façon — on t'a menti</h3>
+                                <p class="cursus-card-meta">33 min · ▶ 123 694 vues · ❤ 4 673 j'aime</p>
+                                <p class="cursus-card-state">Étape 3 — la dernière fondation avant la masterclass.</p>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
 
         </div>
     </div>
@@ -1006,16 +1146,74 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         /** Aperçu design local : pas de token ni d’API Netlify */
-        const PREVIEW_SUBTITLE =
-            'Rendez-vous le jeudi 27 mars 2026 à 20h (heure de Paris)';
-        const PREVIEW_SESSION_START_ISO = '2026-03-27T19:00:00.000Z';
-        const PREVIEW_SESSION_END_ISO = '2026-03-27T19:45:00.000Z';
+        // Session factice = prochain jeudi à 7 jours minimum, inscription du jour :
+        // état "première connexion" en mode rituel (vidéo 1 dispo, 2 et 3 verrouillées).
+        const PREVIEW_SESSION_START_ISO = (function () {
+            const d = new Date();
+            d.setUTCHours(18, 0, 0, 0);
+            do { d.setUTCDate(d.getUTCDate() + 1); } while (d.getUTCDay() !== 4 || d.getTime() - Date.now() < 7 * 86400000);
+            return d.toISOString();
+        })();
+        const PREVIEW_SESSION_END_ISO = new Date(new Date(PREVIEW_SESSION_START_ISO).getTime() + 90 * 60000).toISOString();
+        const PREVIEW_REGISTERED_AT_ISO = new Date().toISOString();
         /** Token factice pour afficher le bloc « lien session » en preview=dev (ou utiliser ?preview=dev&t=TON_TOKEN) */
         const PREVIEW_SESSION_ACCESS_TOKEN = '00000000-0000-4000-8000-000000000001';
 
         function mountConfirmation(data, options) {
             const tokenForApple = options && options.appleUid ? options.appleUid : 'preview@webinaire-es2.sonnycourt';
             const startMs = new Date(data.sessionStartsAt).getTime();
+            // Titre dynamique vidéo 2 du cursus : nb de jours restants avant la masterclass
+            (function () {
+                const t2 = document.querySelector('.cursus-card[data-step="2"] h3');
+                if (t2 && Number.isFinite(startMs)) {
+                    const days = Math.ceil((startMs - Date.now()) / 86400000);
+                    t2.textContent = days >= 3
+                        ? 'Essaie ces 10 habitudes pendant ' + days + ' jours avant la masterclass'
+                        : "Essaie ces 10 habitudes d'ici la masterclass";
+                }
+            })();
+            // --- Régime cursus : rituel (déblocage quotidien) vs marathon (inscrit à moins de 3 jours de sa session) ---
+            (function () {
+                const sec = document.getElementById('cursus-section');
+                if (!sec || !Number.isFinite(startMs)) return;
+                const DAY = 86400000;
+                const regMs = new Date(data.registeredAt || '').getTime();
+                const now = Date.now();
+                const marathon = Number.isFinite(regMs) ? (startMs - regMs) <= 3 * DAY : (startMs - now) <= 3 * DAY;
+                const daysToSession = Math.max(0, Math.ceil((startMs - now) / DAY));
+                const unlockedStep = function (step) {
+                    if (marathon) return true;
+                    if (!Number.isFinite(regMs)) return step === 1;
+                    return now >= regMs + (step - 1) * DAY;
+                };
+                const intro = sec.querySelector('.cursus-intro');
+                if (marathon && intro) {
+                    const quand = daysToSession <= 0 ? "aujourd'hui" : 'dans ' + daysToSession + ' jour' + (daysToSession > 1 ? 's' : '');
+                    intro.innerHTML = 'Ta masterclass est ' + quand + ' — pas le temps de faire durer : <strong>voici ton marathon de préparation. Les 3 fondations, dans l\'ordre, avant la session.</strong>';
+                }
+                sec.querySelectorAll('.cursus-card').forEach(function (card) {
+                    const step = Number(card.getAttribute('data-step'));
+                    const chip = card.querySelector('.cursus-day');
+                    const badge = card.querySelector('.cursus-thumb-badge');
+                    const lock = card.querySelector('.cursus-lock');
+                    const state = card.querySelector('.cursus-card-state');
+                    if (marathon && chip) chip.textContent = 'Étape #' + step;
+                    if (!unlockedStep(step)) {
+                        if (badge && Number.isFinite(regMs)) {
+                            const inDays = Math.ceil((regMs + (step - 1) * DAY - now) / DAY);
+                            badge.textContent = inDays <= 1 ? 'Reviens demain — elle se débloque ici' : 'Se débloque dans ' + inDays + ' jours';
+                        }
+                        return;
+                    }
+                    card.classList.remove('is-upcoming');
+                    if (lock) lock.remove();
+                    if (step > 1) {
+                        if (badge) badge.textContent = 'À regarder aujourd\'hui';
+                        if (state) state.textContent = card.getAttribute('data-video') ? 'Disponible — clique pour lancer la lecture' : 'Disponible ici très bientôt';
+                        if (card.getAttribute('data-video')) card.classList.add('is-playable');
+                    }
+                });
+            })();
             const whatsappStep = document.getElementById('whatsapp-step');
             const whatsappLinkEl = document.getElementById('link-whatsapp');
             const whatsappGroupsCompleteEl = document.getElementById('whatsapp-groups-complete');
@@ -1277,8 +1475,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     {
                         sessionStartsAt: PREVIEW_SESSION_START_ISO,
                         sessionEndsAt: PREVIEW_SESSION_END_ISO,
+                        registeredAt: PREVIEW_REGISTERED_AT_ISO,
                         creneau: '20h',
-                        subtitleText: PREVIEW_SUBTITLE,
                         whatsappLink: 'https://chat.whatsapp.com/PLACEHOLDER',
                         whatsappGroupNumber: 1,
                     },
@@ -1341,6 +1539,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 {
                     sessionStartsAt: data.sessionStartsAt,
                     sessionEndsAt: data.sessionEndsAt,
+                    registeredAt: data.registeredAt,
                     creneau: data.creneau,
                     whatsappLink: data.whatsappLink || '',
                     whatsappGroupNumber: data.whatsappGroupNumber,
@@ -1353,5 +1552,266 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         })();
     </script>
     <script>document.documentElement.classList.add('ready');</script>
+<script>
+// Lecteur custom des vidéos cursus : UI de la page, vitesses, plein écran,
+// pas de téléchargement. MP4 direct ou HLS (.m3u8) via hls.js chargé à la demande.
+(function () {
+    const list = document.querySelector('.cursus-list');
+    if (!list) return;
+
+    const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+    let activeVideo = null;
+
+    function isHlsUrl(url) {
+        return /\.m3u8(\?|#|$)/i.test(String(url || ''));
+    }
+
+    function fmtTime(s) {
+        if (!Number.isFinite(s) || s < 0) s = 0;
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = Math.floor(s % 60);
+        const mm = h ? String(m).padStart(2, '0') : String(m);
+        return (h ? h + ':' : '') + mm + ':' + String(sec).padStart(2, '0');
+    }
+
+    async function attachSource(video, src) {
+        if (isHlsUrl(src) && !video.canPlayType('application/vnd.apple.mpegurl')) {
+            try {
+                const mod = await import('hls.js');
+                const Hls = mod.default;
+                if (Hls.isSupported()) {
+                    const hls = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 60 });
+                    hls.loadSource(src);
+                    hls.attachMedia(video);
+                    return;
+                }
+            } catch { /* retombe en src direct */ }
+        }
+        video.src = src;
+    }
+
+    function mountPlayer(thumb, src) {
+        const posterMatch = String(thumb.style.backgroundImage || '').match(/url\(["']?([^"')]+)["']?\)/);
+
+        const root = document.createElement('div');
+        root.className = 'cvp is-paused';
+        root.tabIndex = 0;
+        root.innerHTML = [
+            '<div class="cvp-center"><span class="cvp-playbtn"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polygon points="6,3 20,12 6,21"/></svg></span></div>',
+            '<div class="cvp-controls">',
+            '  <button class="cvp-btn" data-cvp="playpause" aria-label="Lecture/Pause">',
+            '    <svg data-cvp="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>',
+            '    <svg data-cvp="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>',
+            '  </button>',
+            '  <div class="cvp-progress" data-cvp="progress"><div class="cvp-buffer" data-cvp="buffer"></div><div class="cvp-played" data-cvp="played"></div></div>',
+            '  <span class="cvp-time" data-cvp="time">0:00 / 0:00</span>',
+            '  <button class="cvp-speed" data-cvp="speed" type="button" aria-label="Vitesse de lecture">1x</button>',
+            '  <div class="cvp-volume-wrap">',
+            '    <button class="cvp-btn" data-cvp="mute" aria-label="Muet">',
+            '      <svg data-cvp="icon-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+            '      <svg data-cvp="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+            '    </button>',
+            '    <input type="range" class="cvp-volume-slider" data-cvp="volume" min="0" max="1" step="0.05" value="1" />',
+            '  </div>',
+            '  <button class="cvp-btn" data-cvp="fullscreen" aria-label="Plein écran">',
+            '    <svg data-cvp="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+            '    <svg data-cvp="icon-compress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M16 3v3a2 2 0 0 0 2 2h3"/><path d="M8 21v-3a2 2 0 0 0-2-2H3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>',
+            '  </button>',
+            '</div>',
+            '<div class="cvp-menu" data-cvp="menu"></div>',
+        ].join('');
+
+        const video = document.createElement('video');
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.setAttribute('playsinline', '');
+        video.setAttribute('controlsList', 'nodownload noremoteplayback');
+        video.disablePictureInPicture = true;
+        if (posterMatch) video.poster = posterMatch[1];
+        root.insertBefore(video, root.firstChild);
+
+        thumb.innerHTML = '';
+        thumb.appendChild(root);
+
+        const q = function (name) { return root.querySelector('[data-cvp="' + name + '"]'); };
+        const btnPlay = q('playpause');
+        const iconPlay = q('icon-play');
+        const iconPause = q('icon-pause');
+        const progress = q('progress');
+        const barBuffer = q('buffer');
+        const barPlayed = q('played');
+        const timeEl = q('time');
+        const btnSpeed = q('speed');
+        const menu = q('menu');
+        const btnMute = q('mute');
+        const iconVol = q('icon-vol');
+        const iconMuted = q('icon-muted');
+        const volume = q('volume');
+        const btnFs = q('fullscreen');
+        const iconExpand = q('icon-expand');
+        const iconCompress = q('icon-compress');
+
+        let hideTimer = null;
+
+        function syncPlayState() {
+            const paused = video.paused;
+            root.classList.toggle('is-paused', paused);
+            iconPlay.style.display = paused ? '' : 'none';
+            iconPause.style.display = paused ? 'none' : '';
+        }
+
+        function showControls() {
+            root.classList.add('show-controls');
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(function () {
+                if (!video.paused && !menu.classList.contains('open')) {
+                    root.classList.remove('show-controls');
+                }
+            }, 2800);
+        }
+
+        function togglePlay() {
+            if (video.paused) {
+                if (activeVideo && activeVideo !== video) activeVideo.pause();
+                activeVideo = video;
+                video.play().catch(function () {});
+            } else {
+                video.pause();
+            }
+            showControls();
+        }
+
+        function syncTime() {
+            barPlayed.style.width = video.duration ? ((video.currentTime / video.duration) * 100) + '%' : '0%';
+            timeEl.textContent = fmtTime(video.currentTime) + ' / ' + fmtTime(video.duration);
+        }
+
+        function syncBuffer() {
+            try {
+                if (video.buffered.length && video.duration) {
+                    barBuffer.style.width = ((video.buffered.end(video.buffered.length - 1) / video.duration) * 100) + '%';
+                }
+            } catch { /* ignore */ }
+        }
+
+        function syncVolume() {
+            const muted = video.muted || video.volume === 0;
+            iconVol.style.display = muted ? 'none' : '';
+            iconMuted.style.display = muted ? '' : 'none';
+            volume.value = video.muted ? 0 : video.volume;
+        }
+
+        SPEEDS.forEach(function (rate) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = rate === 1 ? 'Normale' : rate + 'x';
+            if (rate === 1) b.classList.add('active');
+            b.addEventListener('click', function (e) {
+                e.stopPropagation();
+                video.playbackRate = rate;
+                btnSpeed.textContent = rate + 'x';
+                menu.querySelectorAll('button').forEach(function (x) { x.classList.remove('active'); });
+                b.classList.add('active');
+                menu.classList.remove('open');
+            });
+            menu.appendChild(b);
+        });
+
+        btnSpeed.addEventListener('click', function (e) {
+            e.stopPropagation();
+            menu.classList.toggle('open');
+            showControls();
+        });
+
+        function seekFromEvent(e) {
+            const rect = progress.getBoundingClientRect();
+            const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+            if (video.duration) video.currentTime = (x / rect.width) * video.duration;
+            syncTime();
+        }
+        progress.addEventListener('pointerdown', function (e) {
+            e.stopPropagation();
+            progress.setPointerCapture(e.pointerId);
+            seekFromEvent(e);
+        });
+        progress.addEventListener('pointermove', function (e) {
+            if (progress.hasPointerCapture && progress.hasPointerCapture(e.pointerId)) seekFromEvent(e);
+        });
+
+        btnPlay.addEventListener('click', function (e) { e.stopPropagation(); togglePlay(); });
+        video.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.remove('open'); togglePlay(); });
+        btnMute.addEventListener('click', function (e) { e.stopPropagation(); video.muted = !video.muted; syncVolume(); });
+        volume.addEventListener('input', function () {
+            video.volume = parseFloat(volume.value);
+            video.muted = video.volume === 0;
+            syncVolume();
+        });
+        volume.addEventListener('click', function (e) { e.stopPropagation(); });
+
+        /* Plein écran (fallback iPhone : plein écran natif de la vidéo) */
+        btnFs.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (document.fullscreenElement === root) {
+                document.exitFullscreen().catch(function () {});
+            } else if (root.requestFullscreen) {
+                root.requestFullscreen().catch(function () {});
+            } else if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            }
+        });
+        document.addEventListener('fullscreenchange', function () {
+            const fs = document.fullscreenElement === root;
+            iconExpand.style.display = fs ? 'none' : '';
+            iconCompress.style.display = fs ? '' : 'none';
+        });
+
+        root.addEventListener('keydown', function (e) {
+            const k = String(e.key || '').toLowerCase();
+            if (k === ' ' || k === 'k') { e.preventDefault(); togglePlay(); }
+            else if (k === 'arrowright') { e.preventDefault(); if (video.duration) video.currentTime = Math.min(video.currentTime + 10, video.duration); }
+            else if (k === 'arrowleft') { e.preventDefault(); video.currentTime = Math.max(video.currentTime - 10, 0); }
+            else if (k === 'm') { video.muted = !video.muted; syncVolume(); }
+            else if (k === 'f') { btnFs.click(); }
+        });
+
+        video.addEventListener('play', function () { syncPlayState(); showControls(); });
+        video.addEventListener('pause', function () { syncPlayState(); clearTimeout(hideTimer); root.classList.add('show-controls'); });
+        video.addEventListener('timeupdate', syncTime);
+        video.addEventListener('durationchange', syncTime);
+        video.addEventListener('progress', syncBuffer);
+        video.addEventListener('ended', function () { syncPlayState(); });
+        root.addEventListener('pointermove', showControls);
+        root.addEventListener('mouseleave', function () {
+            if (!video.paused && !menu.classList.contains('open')) {
+                clearTimeout(hideTimer);
+                root.classList.remove('show-controls');
+            }
+        });
+        root.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+        syncPlayState();
+        syncVolume();
+
+        void attachSource(video, src).then(function () {
+            if (activeVideo && activeVideo !== video) activeVideo.pause();
+            activeVideo = video;
+            video.play().catch(function () {});
+            root.focus({ preventScroll: true });
+        });
+    }
+
+    list.addEventListener('click', function (e) {
+        const card = e.target.closest('.cursus-card');
+        if (!card || !list.contains(card)) return;
+        if (card.classList.contains('is-upcoming')) return; // verrouillée : pas de lecture
+        const src = card.getAttribute('data-video');
+        if (!src) return;
+        const thumb = card.querySelector('.cursus-thumb-big');
+        if (!thumb || thumb.querySelector('video')) return;
+        mountPlayer(thumb, src);
+    });
+})();
+</script>
 </body>
 </html>

@@ -259,7 +259,7 @@ export default async (req) => {
     }
 
     const res = await supabaseGet(
-      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,pays,creneau,session_date,session_ends_at,offre_expires_at,statut,email,telephone,purchased,attended_live,traffic_source,tt_click_id,meta_fbc,meta_fbp,whatsapp_group_number,whatsapp_link`,
+      `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=prenom,pays,creneau,session_date,session_ends_at,offre_expires_at,statut,email,telephone,purchased,attended_live,traffic_source,tt_click_id,meta_fbc,meta_fbp,whatsapp_group_number,whatsapp_link,created_at`,
     );
 
     if (!res.ok) {
@@ -293,6 +293,7 @@ export default async (req) => {
       email: row.email || undefined,
       sessionStartsAt: row.session_date,
       sessionEndsAt: row.session_ends_at,
+      registeredAt: row.created_at,
       offreExpiresAt: row.offre_expires_at,
       attended_live: row.attended_live === true,
       purchased,
