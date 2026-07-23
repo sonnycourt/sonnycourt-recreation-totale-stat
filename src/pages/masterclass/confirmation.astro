@@ -594,6 +594,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .cursus-card { display: flex; gap: 14px; align-items: stretch; padding: 12px; border-radius: 14px; background: rgba(15,23,42,.65); border: 1px solid rgba(148,163,184,.22); }
         .cursus-card.is-upcoming { opacity: .62; }
         .cursus-thumb { position: relative; flex: 0 0 168px; min-height: 94px; border-radius: 10px; overflow: hidden; background: radial-gradient(140px 90px at 50% 40%, rgba(59,130,246,.35), transparent 70%), #0b1220; display: flex; align-items: center; justify-content: center; }
+        .cursus-card.is-upcoming .cursus-thumb-play { display: none; }
         .cursus-thumb-play { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #3b82f6; color: #fff; box-shadow: 0 8px 22px rgba(59,130,246,.45); }
         .cursus-thumb-badge { position: absolute; left: 14px; bottom: 14px; font-size: 16.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #dbeafe; background: rgba(2,6,23,.82); padding: 11px 20px; border-radius: 999px; }
         .cursus-card-body h3 { font-size: 15px; font-weight: 800; line-height: 1.35; margin: 2px 0 6px; color: #fff; text-transform: uppercase; }
@@ -839,6 +840,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     <div class="cursus-upcoming-grid">
                         <article class="cursus-card cursus-card--big is-upcoming" data-step="2" data-video="https://vz-601d6eb4-a9a.b-cdn.net/2f5db16d-1a26-48c6-bd0f-682682d8c124/playlist.m3u8">
                             <div class="cursus-thumb-big" style="background-image:url('/media/pages/cursus-jour2-thumb.webp');">
+                                <span class="cursus-thumb-play cursus-thumb-play--big"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
                                 <span class="cursus-lock"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
                                 <span class="cursus-day">Jour #2</span>
                                 <span class="cursus-thumb-badge">Reviens demain — elle se débloque ici</span>
@@ -851,6 +853,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         </article>
                         <article class="cursus-card cursus-card--big is-upcoming" data-step="3" data-video="https://vz-601d6eb4-a9a.b-cdn.net/bd31669d-e350-4532-ad1e-e648e24a8ebf/playlist.m3u8">
                             <div class="cursus-thumb-big" style="background-image:url('/media/pages/cursus-jour3-thumb.webp');">
+                                <span class="cursus-thumb-play cursus-thumb-play--big"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
                                 <span class="cursus-lock"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
                                 <span class="cursus-day">Jour #3</span>
                                 <span class="cursus-thumb-badge">Se débloque après-demain</span>
@@ -1210,16 +1213,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (step > 1) {
                         if (badge) badge.textContent = 'À regarder aujourd\'hui';
                         if (state) state.textContent = card.getAttribute('data-video') ? 'Disponible — clique pour lancer la lecture' : 'Disponible ici très bientôt';
-                        if (card.getAttribute('data-video')) {
-                            card.classList.add('is-playable');
-                            const thumbEl = card.querySelector('.cursus-thumb-big');
-                            if (thumbEl && !thumbEl.querySelector('.cursus-thumb-play')) {
-                                const playEl = document.createElement('span');
-                                playEl.className = 'cursus-thumb-play cursus-thumb-play--big';
-                                playEl.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
-                                thumbEl.appendChild(playEl);
-                            }
-                        }
+                        if (card.getAttribute('data-video')) card.classList.add('is-playable');
                     }
                 });
             })();
