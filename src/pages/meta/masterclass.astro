@@ -45,9 +45,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-    <link rel="preload" as="image" href="/media/pages/blue%20butterfly%20animation%202.gif" type="image/gif">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css"></noscript>
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js" defer></script>
 
     <style>
@@ -62,6 +62,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             --primary-light: #60a5fa;
             --primary-dark: #2563eb;
             --accent: #93c5fd;
+            --cta-orange: #ff7a00;
+            --cta-orange-dark: #e85d04;
             --bg-dark: #0a0a1a;
             --text-white: #ffffff;
             --text-muted: rgba(255, 255, 255, 0.72);
@@ -448,20 +450,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             padding: 16px 30px;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--cta-orange) 0%, var(--cta-orange-dark) 100%);
             color: #fff;
             font-size: 1rem;
             font-weight: 700;
             letter-spacing: 0.7px;
             cursor: pointer;
             text-transform: uppercase;
-            box-shadow: 0 10px 35px rgba(59, 130, 246, 0.45);
+            box-shadow: 0 10px 35px rgba(255, 122, 0, 0.36);
             transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
 
         .cta-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 14px 40px rgba(59, 130, 246, 0.6);
+            box-shadow: 0 14px 40px rgba(255, 122, 0, 0.52);
         }
 
         .image-wrapper {
@@ -1117,6 +1119,24 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             color: rgba(96, 165, 250, 0.92);
         }
 
+        .phone-privacy-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin: -2px 0 16px;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .phone-privacy-note svg {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+            color: #60a5fa;
+        }
+
         /* Case engagement - même ADN que session-bubble / champs (bleu profond) */
         .commit-row {
             display: flex;
@@ -1287,7 +1307,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
 
             .hero-image {
-                order: -1;
+                order: 0;
             }
 
             .countdown {
@@ -1340,6 +1360,57 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 height: 14px;
             }
         }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 18px 16px 40px;
+            }
+
+            .hero {
+                gap: 18px;
+                margin-bottom: 28px;
+            }
+
+            .badge {
+                margin-bottom: 12px;
+                padding: 7px 12px;
+                font-size: 0.7rem;
+            }
+
+            .hero h1 {
+                margin-bottom: 12px;
+                font-size: clamp(1.78rem, 8.3vw, 2.15rem);
+                line-height: 1.12;
+            }
+
+            .subheadline {
+                margin-bottom: 14px;
+                font-size: 0.94rem;
+                line-height: 1.48;
+            }
+
+            .next-session {
+                margin-bottom: 10px;
+            }
+
+            .sessions-visual {
+                margin-bottom: 12px;
+            }
+
+            .countdown {
+                gap: 6px;
+                margin-bottom: 16px;
+            }
+
+            .count-card {
+                padding: 8px 4px;
+            }
+
+            .cta-button {
+                min-height: 54px;
+                font-size: 0.96rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1347,13 +1418,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     <div id="pre-optin-overlay" class="pre-optin-overlay" aria-live="polite" aria-hidden="true">
         <div class="pre-optin-overlay__inner">
-            <img
+            <video
                 class="pre-optin-overlay__butterfly"
-                src="/media/pages/blue butterfly animation 2.gif"
-                loading="eager"
-                decoding="async"
+                muted
+                loop
+                playsinline
+                preload="none"
                 aria-hidden="true"
-            />
+            >
+                <source src="/media/pages/masterclass-butterfly.webm" type="video/webm" />
+                <source src="/media/pages/masterclass-butterfly.mp4" type="video/mp4" />
+            </video>
         </div>
         <p class="pre-optin-overlay__text">Vérification des places...</p>
         <div id="pre-optin-success" class="pre-optin-overlay__success" aria-hidden="true">
@@ -1435,7 +1510,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             <div class="hero-image">
                 <div class="image-wrapper">
-                    <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" style="width:100%;height:100%;object-fit:cover;" />
+                    <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
                 </div>
             </div>
         </section>
@@ -1557,7 +1632,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             <div id="step2-form" style="display:none;">
                 <div id="step2-phone-container" class="phone-field-wrap" aria-live="polite"></div>
-                <p class="form-note">Ton numéro sera utilisé pour t'envoyer un rappel avant la diffusion.</p>
+                <p class="phone-privacy-note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
+                    <span>Ton numéro reste confidentiel</span>
+                </p>
                 <button id="step2-next" class="submit-btn" type="button">Continuer</button>
             </div>
 
@@ -1589,10 +1670,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const LEGACY_TOKEN_KEY = 'webinaire_es2_token';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
         const STEP3_SUBMIT_LABEL = 'Confirmer mon inscription';
-        const PRE_OPTIN_DELAY_MS = 4000;
-        const PRE_OPTIN_FADE_MS = 300;
-        const PRE_OPTIN_SUCCESS_MS = 1420;
-        const OPTIN_VARIANT = 'v2';
+        const PRE_OPTIN_DELAY_MS = 1200;
+        const PRE_OPTIN_FADE_MS = 180;
+        const PRE_OPTIN_SUCCESS_MS = 650;
+        const OPTIN_VARIANT = 'v3';
         const OPTIN_TRAFFIC_SOURCE = 'meta_ad';
 
         const state = {
@@ -2092,6 +2173,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             overlay.setAttribute('aria-hidden', 'false');
             overlay.classList.remove('is-fading');
             overlay.classList.add('is-visible');
+            const butterflyVideo = overlay.querySelector('.pre-optin-overlay__butterfly');
+            if (butterflyVideo && typeof butterflyVideo.play === 'function') {
+                try {
+                    if (butterflyVideo.readyState > 0) butterflyVideo.currentTime = 0;
+                    butterflyVideo.play().catch(function () {});
+                } catch (e) {}
+            }
             const success = document.getElementById('pre-optin-success');
             if (success) success.classList.remove('is-visible');
             document.body.style.overflow = 'hidden';
@@ -2570,8 +2658,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             initProofSectionCountUp();
 
-            var _preGif = new Image();
-            _preGif.src = '/media/pages/blue butterfly animation 2.gif';
+            const butterflyVideo = document.querySelector('.pre-optin-overlay__butterfly');
+            const primeButterflyVideo = function () {
+                if (!butterflyVideo) return;
+                butterflyVideo.preload = 'auto';
+                butterflyVideo.load();
+            };
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(primeButterflyVideo, { timeout: 1500 });
+            } else {
+                window.setTimeout(primeButterflyVideo, 700);
+            }
 
             document.querySelectorAll('.popup-trigger').forEach((btn) => {
                 btn.addEventListener('click', function () {
