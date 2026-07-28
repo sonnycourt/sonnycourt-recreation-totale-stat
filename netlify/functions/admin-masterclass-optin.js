@@ -12,6 +12,7 @@ const RICH_COUNTRIES = new Set(['FR', 'BE', 'CH', 'CA', 'LU', 'MC', 'DE']);
 const MAX_DAYS = 120;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 50000;
+const SOURCE_ORDER = ['all', 'organic', 'meta_ad', 'tiktok_ad', 'other'];
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -61,16 +62,23 @@ function emptyCounts() {
   return Object.fromEntries(EVENT_ORDER.map((name) => [name, 0]));
 }
 
+function normalizeSource(value) {
+  const source = String(value || '').trim().toLowerCase();
+  if (!source) return 'organic';
+  if (source === 'meta_ad' || source === 'tiktok_ad') return source;
+  return 'other';
+}
+
 function summarize(rows) {
   const funnels = new Map();
   for (const row of rows) {
-    if (row.path !== '/masterclass/' || String(row.traffic_source || '').trim()) continue;
     const id = String(row.funnel_id || '');
     if (!id) continue;
     if (!funnels.has(id)) {
       funnels.set(id, {
         id,
         variant: row.variant || 'v2',
+        source: normalizeSource(row.traffic_source),
         countryCode: null,
         selectedCountry: null,
         sessionDate: row.session_date || null,
@@ -89,23 +97,33 @@ function summarize(rows) {
   }
 
   const groups = new Map();
-  const ensure = (variant, segment) => {
-    const key = `${variant}::${segment}`;
+  const ensure = (variant, source, segment) => {
+    const key = `${variant}::${source}::${segment}`;
     if (!groups.has(key)) {
-      groups.set(key, { variant, segment, counts: emptyCounts() });
+      groups.set(key, { variant, source, segment, counts: emptyCounts() });
     }
     return groups.get(key);
   };
 
+  const trackedFunnelsBySource = {
+    organic: 0,
+    meta_ad: 0,
+    tiktok_ad: 0,
+    other: 0,
+  };
+
   for (const funnel of funnels.values()) {
+    trackedFunnelsBySource[funnel.source] += 1;
     const segment = funnel.countryCode
       ? RICH_COUNTRIES.has(funnel.countryCode)
         ? 'pays_forts'
         : 'autres'
       : 'inconnu';
     for (const target of [
-      ensure(funnel.variant, 'global'),
-      ensure(funnel.variant, segment),
+      ensure(funnel.variant, 'all', 'global'),
+      ensure(funnel.variant, 'all', segment),
+      ensure(funnel.variant, funnel.source, 'global'),
+      ensure(funnel.variant, funnel.source, segment),
     ]) {
       for (const eventName of EVENT_ORDER) {
         if (funnel.events.has(eventName)) target.counts[eventName] += 1;
@@ -128,6 +146,7 @@ function summarize(rows) {
     });
     return {
       variant: group.variant,
+      source: group.source,
       segment: group.segment,
       counts: group.counts,
       conversion_rate:
@@ -138,9 +157,11 @@ function summarize(rows) {
 
   return {
     tracked_funnels: funnels.size,
-    groups: results.sort((a, b) =>
-      `${a.variant}:${a.segment}`.localeCompare(`${b.variant}:${b.segment}`),
-    ),
+    tracked_funnels_by_source: trackedFunnelsBySource,
+    groups: results.sort((a, b) => {
+      const sourceDelta = SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source);
+      return sourceDelta || `${a.variant}:${a.segment}`.localeCompare(`${b.variant}:${b.segment}`);
+    }),
   };
 }
 

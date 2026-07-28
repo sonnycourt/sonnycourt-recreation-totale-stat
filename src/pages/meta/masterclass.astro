@@ -1592,6 +1592,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const PRE_OPTIN_DELAY_MS = 4000;
         const PRE_OPTIN_FADE_MS = 300;
         const PRE_OPTIN_SUCCESS_MS = 1420;
+        const OPTIN_VARIANT = 'v2';
+        const OPTIN_TRAFFIC_SOURCE = 'meta_ad';
 
         const state = {
             name: '',
@@ -1602,6 +1604,41 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         let iti = null;
         let preOptinOverlayBusy = false;
+        const optinFunnelId = createOptinFunnelId();
+
+        function createOptinFunnelId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (char) {
+                const random = Math.floor(Math.random() * 16);
+                const value = char === 'x' ? random : (random & 0x3) | 0x8;
+                return value.toString(16);
+            });
+        }
+
+        function trackOptinEvent(eventName) {
+            try {
+                const session = getOptinMasterclassSessionUtc(new Date());
+                const payload = {
+                    funnel_id: optinFunnelId,
+                    event_name: eventName,
+                    variant: OPTIN_VARIANT,
+                    path: '/meta/masterclass/',
+                    traffic_source: OPTIN_TRAFFIC_SOURCE,
+                    selected_country: state.country || null,
+                    session_date: session ? session.toISOString() : null,
+                };
+                fetch('/.netlify/functions/track-masterclass-optin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    keepalive: true,
+                }).catch(function () {});
+            } catch (e) {
+                /* Le tracking ne doit jamais perturber le funnel. */
+            }
+        }
 
         // Tracking source pub Meta : capte les UTM + fbclid de l'URL, persiste 30j.
         const META_TRACKING_KEY = 'meta_tracking_params';
@@ -2004,6 +2041,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             updatePopupSessionBubble();
             document.getElementById('custom-popup').style.display = 'block';
             document.body.style.overflow = 'hidden';
+            trackOptinEvent('popup_opened');
         }
 
         function closePopup() {
@@ -2371,6 +2409,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
 
                 setTokenEverywhere(result.token);
+                trackOptinEvent('registration_completed');
 
                 // Meta Pixel : conversion = inscription complète confirmée (Lead).
                 try {
@@ -2562,6 +2601,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                             'Tu es d\u00e9j\u00e0 inscrit(e). Tu ne peux pas te r\u00e9inscrire.';
                         return;
                     }
+                    trackOptinEvent('step_1_completed');
                     goToContactStep();
                     // UX: on passe immédiatement à l'étape 2 et on fait la capture en arrière-plan.
                     saveStep1Lead()
@@ -2580,6 +2620,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             document.getElementById('step2-next').addEventListener('click', function () {
                 if (!validateContactStep()) return;
+                trackOptinEvent('step_2_completed');
                 goToCommitStep();
             });
 
@@ -2592,6 +2633,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         async function bootstrapAfterAccessGate() {
             const shouldInit = await runEntryGate();
             if (shouldInit) {
+                trackOptinEvent('page_view');
                 initMainInteractions();
             }
         }

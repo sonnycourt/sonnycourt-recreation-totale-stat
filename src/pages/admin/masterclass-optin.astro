@@ -169,6 +169,47 @@
         .topbar p { margin: 8px 0 0; color: var(--muted); font-size: 0.95rem; }
         .top-actions { display: flex; align-items: center; gap: 10px; }
 
+        .source-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 13px 14px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+        }
+
+        .source-title strong { display: block; font-size: 0.82rem; }
+        .source-title span { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
+
+        .source-switcher {
+            display: flex;
+            gap: 5px;
+            padding: 4px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--surface-soft);
+        }
+
+        .source-button {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 790;
+            transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .source-button:hover { color: var(--ink); }
+        .source-button.is-active {
+            background: #fff;
+            color: var(--blue);
+            box-shadow: 0 3px 10px rgba(30, 55, 90, 0.11);
+        }
+
         .filter-panel {
             display: grid;
             grid-template-columns: minmax(150px, 210px) minmax(150px, 210px) auto 1fr;
@@ -358,6 +399,9 @@
             .top-actions { position: absolute; top: 16px; right: 12px; }
             .top-actions .btn { min-height: 38px; padding: 8px 11px; font-size: 0.76rem; }
             .topbar p { max-width: 78%; }
+            .source-panel { display: grid; }
+            .source-switcher { overflow-x: auto; }
+            .source-button { flex: 0 0 auto; }
             .filter-panel { grid-template-columns: 1fr 1fr; }
             .filter-panel .btn { grid-column: 1 / -1; }
             .decision-card { grid-template-columns: auto 1fr; }
@@ -395,6 +439,19 @@
                 </div>
             </header>
 
+            <section class="panel source-panel" aria-label="Source d’acquisition">
+                <div class="source-title">
+                    <strong>Source d’acquisition</strong>
+                    <span>Compare le même funnel sans mélanger la qualité des trafics.</span>
+                </div>
+                <div class="source-switcher" role="group" aria-label="Filtrer par source">
+                    <button class="source-button is-active" type="button" data-source="all" aria-pressed="true">Tout</button>
+                    <button class="source-button" type="button" data-source="organic" aria-pressed="false">Organique</button>
+                    <button class="source-button" type="button" data-source="meta_ad" aria-pressed="false">Meta Ads</button>
+                    <button class="source-button" type="button" data-source="tiktok_ad" aria-pressed="false">TikTok Ads</button>
+                </div>
+            </section>
+
             <section class="panel filter-panel" aria-label="Période d’analyse">
                 <div class="field">
                     <label for="from">Depuis</label>
@@ -419,6 +476,15 @@
         const LOGOUT_API = '/.netlify/functions/admin-es2-logout';
         const DATA_API = '/.netlify/functions/admin-masterclass-optin';
         const RICH_SAMPLE_TARGET = 500;
+        const SOURCE_LABELS = {
+            all: 'Tout le trafic',
+            organic: 'Organique',
+            meta_ad: 'Meta Ads',
+            tiktok_ad: 'TikTok Ads',
+            other: 'Autre source',
+        };
+        let selectedSource = 'all';
+        let latestData = null;
 
         const STEP_LABELS = {
             page_view: 'Visiteurs de la page',
@@ -456,8 +522,13 @@
             return element;
         }
 
-        function findGroup(groups, variant, segment) {
-            return groups.find((group) => group.variant === variant && group.segment === segment) || null;
+        function findGroup(groups, variant, source, segment) {
+            return groups.find(
+                (group) =>
+                    group.variant === variant &&
+                    group.source === source &&
+                    group.segment === segment,
+            ) || null;
         }
 
         function emptyGroup(segment) {
@@ -554,7 +625,7 @@
             return grid;
         }
 
-        function renderFunnel(global, variant) {
+        function renderFunnel(global, variant, source) {
             const panel = make('section', 'panel');
             const head = make('div', 'panel-head');
             const headCopy = make('div');
@@ -562,7 +633,7 @@
                 make('h2', '', 'Funnel de conversion'),
                 make('p', '', 'Chaque pourcentage est calculé depuis les visiteurs de la page.'),
             );
-            head.append(headCopy, make('span', 'variant-pill', variant));
+            head.append(headCopy, make('span', 'variant-pill', `${variant} · ${SOURCE_LABELS[source] || source}`));
             panel.appendChild(head);
 
             const list = make('div', 'funnel-list');
@@ -665,38 +736,53 @@
             return stack;
         }
 
-        function renderVariant(groups, variant, trackedFunnels) {
-            const global = findGroup(groups, variant, 'global') || emptyGroup('global');
-            const rich = findGroup(groups, variant, 'pays_forts') || emptyGroup('pays_forts');
-            const other = findGroup(groups, variant, 'autres') || emptyGroup('autres');
+        function renderVariant(groups, variant, source, trackedFunnels) {
+            const global = findGroup(groups, variant, source, 'global') || emptyGroup('global');
+            const rich = findGroup(groups, variant, source, 'pays_forts') || emptyGroup('pays_forts');
+            const other = findGroup(groups, variant, source, 'autres') || emptyGroup('autres');
             const section = make('section', 'variant-section');
             section.append(
                 renderDecision(rich, global),
                 renderKpis(global, rich, other, trackedFunnels),
             );
             const content = make('div', 'content-grid');
-            content.append(renderFunnel(global, variant), renderSide(rich, other));
+            content.append(renderFunnel(global, variant, source), renderSide(rich, other));
             section.appendChild(content);
             return section;
+        }
+
+        function selectedTrackedFunnels(data) {
+            if (selectedSource === 'all') return data.tracked_funnels || 0;
+            return data.tracked_funnels_by_source?.[selectedSource] || 0;
+        }
+
+        function updateSourceButtons() {
+            document.querySelectorAll('.source-button').forEach((button) => {
+                const isActive = button.dataset.source === selectedSource;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
         }
 
         function render(data) {
             const root = document.getElementById('results');
             root.replaceChildren();
             const groups = Array.isArray(data.groups) ? data.groups : [];
-            if (!groups.length) {
+            const sourceGroups = groups.filter((group) => group.source === selectedSource);
+            if (!sourceGroups.length) {
                 const empty = make('div', 'panel empty');
                 empty.append(
-                    make('strong', '', 'Aucun parcours sur cette période'),
-                    make('span', '', 'Le cockpit se remplira automatiquement dès la prochaine visite de la page Masterclass.'),
+                    make('strong', '', `Aucun parcours ${SOURCE_LABELS[selectedSource].toLowerCase()} sur cette période`),
+                    make('span', '', 'Le cockpit se remplira automatiquement dès la prochaine visite de cette source.'),
                 );
                 root.appendChild(empty);
                 return;
             }
 
-            const variants = [...new Set(groups.map((group) => group.variant || 'v2'))];
+            const trackedFunnels = selectedTrackedFunnels(data);
+            const variants = [...new Set(sourceGroups.map((group) => group.variant || 'v2'))];
             for (const variant of variants) {
-                root.appendChild(renderVariant(groups, variant, data.tracked_funnels || 0));
+                root.appendChild(renderVariant(sourceGroups, variant, selectedSource, trackedFunnels));
             }
         }
 
@@ -723,8 +809,9 @@
                 }
                 const body = await response.json();
                 if (!response.ok) throw new Error(body.error || 'Lecture impossible');
+                latestData = body;
                 render(body);
-                status.textContent = `${formatNumber(body.tracked_funnels)} parcours · mis à jour ${new Date(body.generated_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+                status.textContent = `${SOURCE_LABELS[selectedSource]} · ${formatNumber(selectedTrackedFunnels(body))} parcours · mis à jour ${new Date(body.generated_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
             } finally {
                 refresh.disabled = false;
                 refresh.textContent = 'Actualiser';
@@ -766,6 +853,18 @@
             loadData().catch(function (error) {
                 const root = document.getElementById('results');
                 root.replaceChildren(make('div', 'screen-error', error.message || 'Lecture impossible'));
+            });
+        });
+
+        document.querySelectorAll('.source-button').forEach((button) => {
+            button.addEventListener('click', function () {
+                selectedSource = this.dataset.source || 'all';
+                updateSourceButtons();
+                if (latestData) {
+                    render(latestData);
+                    document.getElementById('status').textContent =
+                        `${SOURCE_LABELS[selectedSource]} · ${formatNumber(selectedTrackedFunnels(latestData))} parcours`;
+                }
             });
         });
 

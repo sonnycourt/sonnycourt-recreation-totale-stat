@@ -10,6 +10,14 @@ const ALLOWED_EVENTS = new Set([
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COUNTRY_RE = /^[A-Z]{2}$/;
+const ALLOWED_PATHS = new Set([
+  '/masterclass/',
+  '/masterclass',
+  '/meta/masterclass/',
+  '/meta/masterclass',
+  '/tt/masterclass/',
+  '/tt/masterclass',
+]);
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -83,7 +91,7 @@ export default async (req, context) => {
   }
 
   const path = cleanText(body?.path, 120);
-  if (path !== '/masterclass/' && path !== '/masterclass') {
+  if (!ALLOWED_PATHS.has(path)) {
     return json(400, { error: 'Invalid path' });
   }
 
@@ -97,7 +105,7 @@ export default async (req, context) => {
     funnel_id: funnelId,
     event_name: eventName,
     variant: cleanText(body?.variant, 40) || 'v2',
-    path: '/masterclass/',
+    path: path.endsWith('/') ? path : `${path}/`,
     traffic_source: cleanText(body?.traffic_source, 40),
     country_code: getGeoCountryCode(req, context),
     selected_country: cleanText(body?.selected_country, 80),
