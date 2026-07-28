@@ -3,9 +3,12 @@ import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
 
 const EVENT_ORDER = [
   'page_view',
+  'cta_clicked',
   'popup_opened',
   'step_1_completed',
   'step_2_completed',
+  'commitment_checked',
+  'registration_submitted',
   'registration_completed',
 ];
 const RICH_COUNTRIES = new Set(['FR', 'BE', 'CH', 'CA', 'LU', 'MC', 'DE']);

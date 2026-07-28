@@ -2,9 +2,12 @@ import { supabasePost } from './lib/supabase-rest.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'page_view',
+  'cta_clicked',
   'popup_opened',
   'step_1_completed',
   'step_2_completed',
+  'commitment_checked',
+  'registration_submitted',
   'registration_completed',
 ]);
 

@@ -7,9 +7,12 @@ create table if not exists public.masterclass_optin_events (
   event_name text not null check (
     event_name in (
       'page_view',
+      'cta_clicked',
       'popup_opened',
       'step_1_completed',
       'step_2_completed',
+      'commitment_checked',
+      'registration_submitted',
       'registration_completed'
     )
   ),

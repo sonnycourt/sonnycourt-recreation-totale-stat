@@ -2051,6 +2051,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         function showPreOptinOverlayThenOpenPopup() {
             if (preOptinOverlayBusy) return;
+            trackOptinEvent('cta_clicked');
             const overlay = document.getElementById('pre-optin-overlay');
             if (!overlay) {
                 openPopup();
@@ -2548,7 +2549,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
 
             document.getElementById('commit-present').addEventListener('change', function () {
-                if (this.checked) setCommitRowError(false);
+                if (this.checked) {
+                    setCommitRowError(false);
+                    trackOptinEvent('commitment_checked');
+                }
             });
 
             document.getElementById('popup-close-btn').addEventListener('click', closePopup);
@@ -2626,6 +2630,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
             document.getElementById('step3-submit').addEventListener('click', function () {
                 if (!validateCommitStep()) return;
+                trackOptinEvent('registration_submitted');
                 submitRegistration();
             });
         }
