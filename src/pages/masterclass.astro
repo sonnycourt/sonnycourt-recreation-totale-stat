@@ -553,6 +553,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             padding: 0;
         }
 
+        .hero-image--mobile {
+            display: none;
+        }
+
         /* === Sections below hero === */
         .section {
             margin-top: clamp(24px, 4vw, 40px);
@@ -1377,8 +1381,19 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 gap: 22px;
             }
 
-            .hero-image {
-                order: 0;
+            .hero-image--desktop {
+                display: none;
+            }
+
+            .hero-image--mobile {
+                display: block;
+                width: min(64vw, 240px);
+                margin: 2px auto 14px;
+            }
+
+            .hero-image--mobile .image-wrapper {
+                border-radius: 14px;
+                box-shadow: 0 14px 42px rgba(59, 130, 246, 0.22);
             }
 
             .countdown {
@@ -1505,11 +1520,11 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 muted
                 loop
                 playsinline
-                preload="none"
+                preload="auto"
                 aria-hidden="true"
             >
-                <source src="/media/pages/masterclass-butterfly.webm" type="video/webm" />
                 <source src="/media/pages/masterclass-butterfly.mp4" type="video/mp4" />
+                <source src="/media/pages/masterclass-butterfly.webm" type="video/webm" />
             </video>
         </div>
         <p class="pre-optin-overlay__text">Vérification des places...</p>
@@ -1568,6 +1583,12 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                     </div>
                 </div>
 
+                <div class="hero-image hero-image--mobile">
+                    <div class="image-wrapper">
+                        <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
+                    </div>
+                </div>
+
                 <div class="countdown" aria-live="polite">
                     <div class="count-card">
                         <span id="days" class="count-value">00</span>
@@ -1590,7 +1611,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             </div>
 
-            <div class="hero-image">
+            <div class="hero-image hero-image--desktop">
                 <div class="image-wrapper">
                     <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
                 </div>
@@ -2219,8 +2240,17 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             const butterflyVideo = overlay.querySelector('.pre-optin-overlay__butterfly');
             if (butterflyVideo && typeof butterflyVideo.play === 'function') {
                 try {
+                    butterflyVideo.muted = true;
+                    butterflyVideo.playsInline = true;
                     if (butterflyVideo.readyState > 0) butterflyVideo.currentTime = 0;
-                    butterflyVideo.play().catch(function () {});
+                    const startButterfly = function () {
+                        butterflyVideo.play().catch(function () {});
+                    };
+                    if (butterflyVideo.readyState < 2) {
+                        butterflyVideo.addEventListener('canplay', startButterfly, { once: true });
+                        butterflyVideo.load();
+                    }
+                    startButterfly();
                 } catch (e) {}
             }
             const success = document.getElementById('pre-optin-success');
@@ -2240,6 +2270,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                             overlay.classList.remove('is-visible', 'is-fading');
                             overlay.setAttribute('aria-hidden', 'true');
                             if (success) success.classList.remove('is-visible');
+                            if (butterflyVideo && typeof butterflyVideo.pause === 'function') butterflyVideo.pause();
                             preOptinOverlayBusy = false;
                         }, PRE_OPTIN_FADE_MS);
                     });
