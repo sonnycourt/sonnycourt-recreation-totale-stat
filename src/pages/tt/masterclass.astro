@@ -1598,6 +1598,36 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         let iti = null;
         let preOptinOverlayBusy = false;
         const optinFunnelId = createOptinFunnelId();
+        const OPTIN_INTERNAL_TRAFFIC_KEY = 'masterclass_optin_internal';
+
+        function isOptinInternalTraffic() {
+            let internalParam = '';
+            try {
+                internalParam = new URLSearchParams(window.location.search).get('internal') || '';
+            } catch (e) {}
+
+            if (internalParam === '1') {
+                try { localStorage.setItem(OPTIN_INTERNAL_TRAFFIC_KEY, '1'); } catch (e) {}
+                try { document.cookie = `${OPTIN_INTERNAL_TRAFFIC_KEY}=1; path=/; max-age=31536000; SameSite=Lax; Secure; domain=.sonnycourt.com`; } catch (e) {}
+                return true;
+            }
+
+            if (internalParam === '0') {
+                try { localStorage.removeItem(OPTIN_INTERNAL_TRAFFIC_KEY); } catch (e) {}
+                try {
+                    document.cookie = `${OPTIN_INTERNAL_TRAFFIC_KEY}=; path=/; max-age=0; SameSite=Lax; Secure; domain=.sonnycourt.com`;
+                    document.cookie = `${OPTIN_INTERNAL_TRAFFIC_KEY}=; path=/; max-age=0; SameSite=Lax`;
+                } catch (e) {}
+                return false;
+            }
+
+            try {
+                return localStorage.getItem(OPTIN_INTERNAL_TRAFFIC_KEY) === '1'
+                    || document.cookie.split(';').some((cookie) => cookie.trim() === `${OPTIN_INTERNAL_TRAFFIC_KEY}=1`);
+            } catch (e) {
+                return false;
+            }
+        }
 
         function createOptinFunnelId() {
             if (window.crypto && typeof window.crypto.randomUUID === 'function') {
@@ -1612,6 +1642,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         function trackOptinEvent(eventName) {
             try {
+                if (isOptinInternalTraffic()) return;
                 const session = getOptinMasterclassSessionUtc(new Date());
                 const payload = {
                     funnel_id: optinFunnelId,

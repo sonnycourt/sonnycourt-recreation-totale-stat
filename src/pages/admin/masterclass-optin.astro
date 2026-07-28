@@ -430,7 +430,7 @@
         <section id="dashboard-view" hidden>
             <header class="topbar">
                 <div>
-                    <div class="eyebrow"><span class="live-dot"></span> Tracking interne actif</div>
+                    <div class="eyebrow"><span class="live-dot"></span> Appareil admin exclu du tracking</div>
                     <h1>Opt-in Masterclass</h1>
                     <p>La performance business, les pays forts et les pertes du funnel en un coup d’œil.</p>
                 </div>
@@ -885,6 +885,8 @@
         });
 
         async function boot() {
+            try { localStorage.setItem('masterclass_optin_internal', '1'); } catch (e) {}
+            try { document.cookie = 'masterclass_optin_internal=1; path=/; max-age=31536000; SameSite=Lax; Secure; domain=.sonnycourt.com'; } catch (e) {}
             const today = new Date();
             const fromInput = document.getElementById('from');
             fromInput.min = COMPLETE_TRACKING_START_DATE;
