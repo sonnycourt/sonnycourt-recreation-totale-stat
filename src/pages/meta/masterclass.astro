@@ -466,6 +466,36 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             box-shadow: 0 14px 40px rgba(255, 122, 0, 0.52);
         }
 
+        .session-social-proof {
+            display: none;
+            align-items: center;
+            gap: 9px;
+            margin: 0 0 13px;
+            color: #fed7aa;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .session-social-proof.is-visible {
+            display: flex;
+        }
+
+        .session-social-proof::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            flex: 0 0 8px;
+            border-radius: 50%;
+            background: var(--cta-orange);
+            box-shadow: 0 0 0 5px rgba(255, 122, 0, 0.13);
+        }
+
+        .parcours-cta .session-social-proof,
+        .final-cta .session-social-proof {
+            justify-content: center;
+        }
+
         .image-wrapper {
             border-radius: 20px;
             overflow: hidden;
@@ -1526,6 +1556,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     </div>
                 </div>
 
+                <p class="session-social-proof" aria-live="polite"></p>
                 <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             </div>
 
@@ -1562,6 +1593,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 </figure>
             </div>
             <div class="parcours-cta">
+                <p class="session-social-proof" aria-live="polite"></p>
                 <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             </div>
         </section>
@@ -1585,6 +1617,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         <div class="final-cta">
             <p class="final-cta-text">Les places sont limitées.<br />Réserve la tienne maintenant.</p>
+            <p class="session-social-proof" aria-live="polite"></p>
             <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             <div class="stats-card stats-card--bare">
                 <div class="stat-item">
@@ -1694,7 +1727,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const PRE_OPTIN_DELAY_MS = 1200;
         const PRE_OPTIN_FADE_MS = 180;
         const PRE_OPTIN_SUCCESS_MS = 650;
-        const OPTIN_VARIANT = 'v3';
+        const OPTIN_VARIANT = 'v4';
         const OPTIN_TRAFFIC_SOURCE = 'meta_ad';
 
         const state = {
@@ -2674,6 +2707,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             io.observe(section);
         }
 
+        async function initSessionSocialProof() {
+            try {
+                const response = await fetch('/.netlify/functions/masterclass-session-count', {
+                    headers: { Accept: 'application/json' },
+                });
+                if (!response.ok) return;
+
+                const result = await response.json();
+                const count = Number(result?.count);
+                if (!result?.visible || !Number.isFinite(count) || count < 300) return;
+
+                const formattedCount = Math.floor(count).toLocaleString('fr-FR');
+                const message = `Déjà ${formattedCount} personnes ont réservé leur place pour jeudi`;
+                document.querySelectorAll('.session-social-proof').forEach((element) => {
+                    element.textContent = message;
+                    element.classList.add('is-visible');
+                });
+            } catch {
+                // La preuve sociale reste simplement masquée si le compteur est indisponible.
+            }
+        }
+
         function initMainInteractions() {
             refreshCountdownTarget();
             updateCountdown();
@@ -2688,6 +2743,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 }
             });
             initProofSectionCountUp();
+            initSessionSocialProof();
 
             const butterflyVideo = document.querySelector('.pre-optin-overlay__butterfly');
             const primeButterflyVideo = function () {
