@@ -16,6 +16,7 @@ const MAX_DAYS = 120;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 50000;
 const SOURCE_ORDER = ['all', 'organic', 'meta_ad', 'tiktok_ad', 'other'];
+const COMPLETE_TRACKING_START = Date.parse('2026-07-28T20:28:05.586Z');
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -175,7 +176,8 @@ export default async (req) => {
   const requestUrl = new URL(req.url);
   const now = new Date();
   const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const from = isoOrNull(requestUrl.searchParams.get('from')) || defaultFrom.toISOString();
+  const requestedFrom = isoOrNull(requestUrl.searchParams.get('from')) || defaultFrom.toISOString();
+  const from = new Date(Math.max(Date.parse(requestedFrom), COMPLETE_TRACKING_START)).toISOString();
   const to = isoOrNull(requestUrl.searchParams.get('to')) || now.toISOString();
   const span = Date.parse(to) - Date.parse(from);
   if (span < 0 || span > MAX_DAYS * 24 * 60 * 60 * 1000) {

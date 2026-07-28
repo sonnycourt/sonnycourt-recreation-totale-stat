@@ -442,7 +442,7 @@
             <section class="panel source-panel" aria-label="Source d’acquisition">
                 <div class="source-title">
                     <strong>Source d’acquisition</strong>
-                    <span>Compare le même funnel sans mélanger la qualité des trafics.</span>
+                    <span>Données comparables depuis le tracking complet : 28/07/2026 à 22:28.</span>
                 </div>
                 <div class="source-switcher" role="group" aria-label="Filtrer par source">
                     <button class="source-button is-active" type="button" data-source="all" aria-pressed="true">Tout</button>
@@ -476,6 +476,8 @@
         const LOGOUT_API = '/.netlify/functions/admin-es2-logout';
         const DATA_API = '/.netlify/functions/admin-masterclass-optin';
         const RICH_SAMPLE_TARGET = 500;
+        const COMPLETE_TRACKING_START = new Date('2026-07-28T20:28:05.586Z');
+        const COMPLETE_TRACKING_START_DATE = '2026-07-28';
         const SOURCE_LABELS = {
             all: 'Tout le trafic',
             organic: 'Organique',
@@ -797,7 +799,10 @@
             const refresh = document.getElementById('refresh');
             const fromValue = document.getElementById('from').value;
             const toValue = document.getElementById('to').value;
-            const from = new Date(`${fromValue}T00:00:00`).toISOString();
+            const requestedFrom = new Date(`${fromValue}T00:00:00`);
+            const from = new Date(
+                Math.max(requestedFrom.getTime(), COMPLETE_TRACKING_START.getTime()),
+            ).toISOString();
             const to = new Date(`${toValue}T23:59:59.999`).toISOString();
 
             refresh.disabled = true;
@@ -881,8 +886,9 @@
 
         async function boot() {
             const today = new Date();
-            const trackingStart = new Date('2026-07-28T20:25:34+02:00');
-            document.getElementById('from').value = localDateValue(trackingStart);
+            const fromInput = document.getElementById('from');
+            fromInput.min = COMPLETE_TRACKING_START_DATE;
+            fromInput.value = COMPLETE_TRACKING_START_DATE;
             document.getElementById('to').value = localDateValue(today);
             const response = await fetch(SESSION_API, { credentials: 'same-origin' }).catch(() => null);
             if (response && response.ok) {
