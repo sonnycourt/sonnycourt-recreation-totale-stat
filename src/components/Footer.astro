@@ -1,13 +1,14 @@
 ---
 interface Props {
   hideFormations?: boolean;
+  variant?: 'default' | 'compact-glass';
 }
 
-const { hideFormations = false } = Astro.props;
+const { hideFormations = false, variant = 'default' } = Astro.props;
 const currentYear = new Date().getFullYear();
 ---
 
-<footer>
+<footer class:list={{ 'footer--compact-glass': variant === 'compact-glass' }}>
   <div class="footer-container">
     <div class="footer-content">
       <div class="footer-section">
@@ -24,29 +25,7 @@ const currentYear = new Date().getFullYear();
         </p>
       </div>
       
-      <div class:list={['footer-links', hideFormations ? 'footer-links--no-formations' : '']}>
-        {!hideFormations && (
-          <div class="footer-column">
-            <h4>Formations</h4>
-            <ul>
-              <li><a href="/ssr-lancement/">Système Souhaits Réalisés</a></li>
-              <li><a href="/neuro-ia/">Neuro IA</a></li>
-              <li><a href="/manifest/">Manifest</a></li>
-              <li><a href="/esprit-subconscient/">Esprit Subconscient</a></li>
-            </ul>
-          </div>
-        )}
-        
-        <div class="footer-column">
-          <h4>Ressources</h4>
-          <ul>
-            <li><a href="/blog/">Blog</a></li>
-            <li><a href="/court-circuit/">Court-Circuit</a></li>
-            <li><a href="/ressources-gratuites/">Ressources Gratuites</a></li>
-            <li><a href="/respire">Respire</a></li>
-          </ul>
-        </div>
-        
+      <div class="footer-links">
         <div class="footer-column">
           <h4>Entreprise</h4>
           <ul>
@@ -61,35 +40,28 @@ const currentYear = new Date().getFullYear();
     
     <div class="footer-bottom">
       <div class="footer-legal">
+        <div class="footer-audience" aria-label="4,3 millions d'abonnés cumulés sur Instagram, TikTok, YouTube et Facebook">
+          <div class="footer-audience-copy">
+            <strong>4,3 M</strong>
+            <span>d’abonnés cumulés</span>
+          </div>
+          <span class="footer-audience-divider" aria-hidden="true"></span>
+          <div class="footer-audience-logos" aria-label="Instagram, TikTok, YouTube et Facebook">
+            <a href="https://instagram.com/sonnycourt" aria-label="Instagram">
+              <img src="/media/brands/instagram.svg?v=2" alt="" width="26" height="26" loading="lazy" />
+            </a>
+            <a href="https://tiktok.com/@sonnycourt" aria-label="TikTok">
+              <img src="/media/brands/tiktok.svg?v=2" alt="" width="24" height="26" loading="lazy" />
+            </a>
+            <a href="https://youtube.com/@sonnycourt" aria-label="YouTube">
+              <img src="/media/brands/youtube.svg?v=2" alt="" width="30" height="22" loading="lazy" />
+            </a>
+            <a href="https://facebook.com/sonnycourt" aria-label="Facebook">
+              <img src="/media/brands/facebook.svg?v=2" alt="" width="26" height="26" loading="lazy" />
+            </a>
+          </div>
+        </div>
         <p>&copy; {currentYear} Sonny Court. Tous droits réservés.</p>
-      </div>
-      
-      <div class="footer-social">
-        <a href="https://instagram.com/sonnycourt" aria-label="Instagram">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-          </svg>
-        </a>
-        <a href="https://youtube.com/@sonnycourt" aria-label="YouTube">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-          </svg>
-        </a>
-        <a href="https://tiktok.com/@sonnycourt" aria-label="TikTok">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.2 0-.63.15-1.23.42-1.73.76-.31.21-.59.47-.83.77-.48.62-.76 1.37-.79 2.15-.1 1.56 1.21 2.98 2.77 3.04 1.34.05 2.54-.64 3.27-1.76.28-.43.45-.92.51-1.43.06-.52.04-1.04.01-1.56-.02-.38-.06-.76-.1-1.14-.01-.13-.01-.26-.02-.39z"/>
-          </svg>
-        </a>
-        <a href="https://facebook.com/sonnycourt" aria-label="Facebook">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-        </a>
-        <a href="https://open.spotify.com/artist/1RgCXKbouBsV6xgTmNi1PT" aria-label="Spotify">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-          </svg>
-        </a>
       </div>
     </div>
   </div>
@@ -150,12 +122,8 @@ const currentYear = new Date().getFullYear();
 
   .footer-links {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 40px;
-  }
-
-  .footer-links--no-formations {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .footer-column h4 {
@@ -195,34 +163,197 @@ const currentYear = new Date().getFullYear();
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
+  .footer-legal {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
   .footer-legal p {
     color: #636366;
     font-size: 12px;
     margin: 0;
   }
 
-  .footer-social {
+  .footer-audience {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 42px;
+    padding: 6px 9px 6px 13px;
     display: flex;
-    gap: 16px;
+    align-items: center;
+    gap: 11px;
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 12px 34px rgba(0, 0, 0, 0.14);
   }
 
-  .footer-social a {
-    color: #8E8E93;
-    transition: color 0.2s ease;
+  .footer-audience-copy {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .footer-audience-copy strong {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 17px;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .footer-audience-copy span {
+    color: rgba(191, 219, 254, 0.5);
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .footer-audience-divider {
+    width: 1px;
+    height: 20px;
+    flex-shrink: 0;
+    background: rgba(191, 219, 254, 0.12);
+  }
+
+  .footer-audience-logos {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .footer-audience-logos a {
+    width: 18px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease;
   }
 
-  .footer-social a:hover {
-    color: #FFFFFF;
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #48484A;
+  .footer-audience-logos a:hover {
+    opacity: 0.72;
+    transform: translateY(-1px);
+  }
+
+  .footer-audience-logos img {
+    display: block;
+    max-width: 15px;
+    max-height: 15px;
+    object-fit: contain;
+    opacity: 0.84;
+    filter:
+      drop-shadow(0 1px 0 rgba(255, 255, 255, 0.14))
+      drop-shadow(0 2px 5px rgba(37, 99, 235, 0.18));
+  }
+
+  .footer-audience-logos a[aria-label='TikTok'] img {
+    max-width: 13px;
+  }
+
+  .footer-audience-logos a[aria-label='YouTube'] img {
+    max-width: 18px;
+  }
+
+  .footer-audience-logos a[aria-label='Facebook'] img {
+    max-width: 14px;
+  }
+
+  footer.footer--compact-glass {
+    margin-top: 0;
+    padding: 28px 0;
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, #061128 0%, #030812 100%);
+    border-top-color: rgba(147, 197, 253, 0.1);
+    box-shadow: 0 1px 0 #030812;
+  }
+
+  footer.footer--compact-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(110deg, transparent 18%, rgba(96, 165, 250, 0.05) 52%, transparent 82%);
+  }
+
+  .footer--compact-glass .footer-container {
+    position: relative;
+    padding: 22px 26px 18px;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    border-radius: 26px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
+    box-shadow:
+      0 26px 70px rgba(1, 5, 15, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+  }
+
+  .footer--compact-glass .footer-content {
+    grid-template-columns: minmax(310px, 0.85fr) minmax(460px, 1.4fr);
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 16px;
+  }
+
+  .footer--compact-glass .footer-section {
+    max-width: none;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .footer--compact-glass .footer-logo {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .footer--compact-glass .footer-description {
+    margin: 0;
+    max-width: 260px;
+    padding-left: 18px;
+    border-left: 1px solid rgba(191, 219, 254, 0.12);
+    line-height: 1.4;
+    color: rgba(191, 219, 254, 0.54);
+    font-size: 12px;
+  }
+
+  .footer--compact-glass .footer-links,
+  .footer--compact-glass .footer-column ul {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px 22px;
+  }
+
+  .footer--compact-glass .footer-column h4 {
+    display: none;
+  }
+
+  .footer--compact-glass .footer-column li {
+    margin: 0;
+  }
+
+  .footer--compact-glass .footer-column a {
+    color: rgba(191, 219, 254, 0.6);
+    font-size: 13px;
+  }
+
+  .footer--compact-glass .footer-bottom {
+    padding-top: 14px;
+    border-top-color: rgba(147, 197, 253, 0.1);
   }
 
   /* Mobile Optimization */
@@ -258,6 +389,105 @@ const currentYear = new Date().getFullYear();
       flex-direction: column;
       gap: 20px;
       text-align: center;
+    }
+
+    .footer-legal {
+      align-items: center;
+    }
+
+    footer.footer--compact-glass {
+      padding: 18px 0;
+    }
+
+    .footer--compact-glass .footer-container {
+      width: calc(100% - 24px);
+      padding: 20px 14px 14px;
+      border-radius: 22px;
+    }
+
+    .footer--compact-glass .footer-content {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .footer--compact-glass .footer-section {
+      display: block;
+    }
+
+    .footer--compact-glass .footer-logo {
+      justify-content: center;
+      margin-bottom: 0;
+    }
+
+    .footer--compact-glass .footer-description {
+      display: none;
+    }
+
+    .footer--compact-glass .footer-links,
+    .footer--compact-glass .footer-column ul {
+      justify-content: center;
+      gap: 8px 14px;
+    }
+
+    .footer--compact-glass .footer-column a {
+      font-size: 11px;
+    }
+
+    .footer--compact-glass .footer-bottom {
+      gap: 10px;
+      padding-top: 12px;
+    }
+
+    .footer-audience {
+      min-height: 38px;
+      padding: 5px 8px 5px 10px;
+      gap: 7px;
+    }
+
+    .footer-audience-copy {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 5px;
+      text-align: left;
+    }
+
+    .footer-audience-copy strong {
+      font-size: 15px;
+    }
+
+    .footer-audience-copy span {
+      font-size: 8px;
+    }
+
+    .footer-audience-divider {
+      height: 18px;
+    }
+
+    .footer-audience-logos {
+      gap: 7px;
+    }
+
+    .footer-audience-logos a {
+      width: 15px;
+      height: 18px;
+    }
+
+    .footer-audience-logos img {
+      max-width: 13px;
+      max-height: 13px;
+    }
+
+    .footer-audience-logos a[aria-label='TikTok'] img {
+      max-width: 11px;
+    }
+
+    .footer-audience-logos a[aria-label='YouTube'] img {
+      max-width: 15px;
+    }
+
+    .footer-audience-logos a[aria-label='Facebook'] img {
+      max-width: 12px;
     }
   }
 

@@ -13,7 +13,10 @@ export interface Props {
   showHeader?: boolean;
   showFooter?: boolean;
   hideFormationsInHeader?: boolean;
+  hideBlogInHeader?: boolean;
   hideFormationsInFooter?: boolean;
+  headerVariant?: 'default' | 'glass';
+  footerVariant?: 'default' | 'compact-glass';
 }
 
 const { 
@@ -25,7 +28,10 @@ const {
   showHeader = true,
   showFooter = true,
   hideFormationsInHeader = false,
-  hideFormationsInFooter = false
+  hideBlogInHeader = false,
+  hideFormationsInFooter = false,
+  headerVariant = 'default',
+  footerVariant = 'default'
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -73,11 +79,11 @@ const GTM_ID = 'GTM-NGS86CLW';
   </head>
   <body>
     <slot name="before-header" />
-    {showHeader && <Header currentPath={currentPath} hideFormations={hideFormationsInHeader} />}
+    {showHeader && <Header currentPath={currentPath} hideFormations={hideFormationsInHeader} hideBlog={hideBlogInHeader} variant={headerVariant} />}
     <main>
       <slot />
     </main>
-    {showFooter && <Footer hideFormations={hideFormationsInFooter} />}
+    {showFooter && <Footer hideFormations={hideFormationsInFooter} variant={footerVariant} />}
     <CookieConsent />
   </body>
 </html>
