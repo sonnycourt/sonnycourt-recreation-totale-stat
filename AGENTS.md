@@ -53,6 +53,7 @@ Les protections couvrent notamment :
 - `/masterclass/`, `/meta/masterclass/` et `/tt/masterclass/`
 - `/admin/masterclass-optin/`
 - `/masterclass/confirmation/`
+- `/coach/` et `/coach-romain/`
 - les fonctions de tracking associées
 
 La liste technique complète se trouve dans
