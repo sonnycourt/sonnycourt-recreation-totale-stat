@@ -49,7 +49,8 @@ function run(command, args, options = {}) {
 }
 
 function git(args, capture = true) {
-  return run('git', args, { capture }).trim();
+  const output = run('git', args, { capture });
+  return capture ? output.trim() : '';
 }
 
 function netlifyApi(method, data) {
