@@ -16,7 +16,7 @@ const MAX_DAYS = 120;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 50000;
 const SOURCE_ORDER = ['all', 'organic', 'meta_ad', 'tiktok_ad', 'other'];
-const COMPLETE_TRACKING_START = Date.parse('2026-07-28T20:28:05.586Z');
+const COMPLETE_TRACKING_START = Date.parse('2026-07-29T17:13:16.000Z');
 
 function json(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -135,7 +135,7 @@ function summarize(rows) {
     }
   }
 
-  const results = Array.from(groups.values()).map((group) => {
+  const buildResults = (targetMap) => Array.from(targetMap.values()).map((group) => {
     const views = group.counts.page_view;
     const steps = EVENT_ORDER.map((name, index) => {
       const count = group.counts[name];
@@ -159,13 +159,16 @@ function summarize(rows) {
     };
   });
 
+  const sortResults = (results) => results.sort((a, b) => {
+    const sourceDelta = SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source);
+    return sourceDelta
+      || `${a.variant}:${a.segment}`.localeCompare(`${b.variant}:${b.segment}`);
+  });
+
   return {
     tracked_funnels: funnels.size,
     tracked_funnels_by_source: trackedFunnelsBySource,
-    groups: results.sort((a, b) => {
-      const sourceDelta = SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source);
-      return sourceDelta || `${a.variant}:${a.segment}`.localeCompare(`${b.variant}:${b.segment}`);
-    }),
+    groups: sortResults(buildResults(groups)),
   };
 }
 

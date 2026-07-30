@@ -380,6 +380,77 @@
 
         .data-note-mark { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: #c9f4e2; font-weight: 900; }
 
+        .ab-summary {
+            margin-bottom: 18px;
+            padding: 20px;
+            border-radius: 18px;
+        }
+
+        .ab-summary-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 16px;
+        }
+
+        .ab-summary-head h2 { margin: 0; font-size: 1.08rem; letter-spacing: -0.025em; }
+        .ab-summary-head p { margin: 5px 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+        .ab-balance { flex: 0 0 auto; padding: 8px 11px; border-radius: 11px; background: var(--blue-soft); color: var(--blue); font-size: 0.72rem; font-weight: 820; }
+
+        .ab-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .ab-card {
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: var(--surface);
+            box-shadow: 0 8px 28px rgba(30, 55, 90, 0.05);
+        }
+
+        .ab-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: #94a3b8;
+        }
+
+        .ab-card--a::before { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+        .ab-card--b::before { background: linear-gradient(90deg, var(--cyan), #22d3ee); }
+        .ab-card.is-leading { border-color: rgba(15, 159, 110, 0.34); }
+        .ab-card.is-leading::before { background: linear-gradient(90deg, var(--green), #34d399); }
+
+        .ab-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .ab-letter { display: inline-grid; width: 28px; height: 28px; place-items: center; margin-bottom: 10px; border-radius: 9px; background: var(--blue-soft); color: var(--blue); font-size: 0.73rem; font-weight: 900; }
+        .ab-card--b .ab-letter { background: #e9fbff; color: var(--cyan); }
+        .ab-card h3 { margin: 0; font-size: 0.98rem; letter-spacing: -0.02em; }
+        .ab-card-sub { margin-top: 4px; color: var(--muted); font-size: 0.72rem; }
+        .ab-conversion { text-align: right; }
+        .ab-conversion strong { display: block; font-size: 1.75rem; line-height: 1; letter-spacing: -0.05em; }
+        .ab-conversion span { color: var(--muted); font-size: 0.68rem; }
+
+        .ab-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 9px;
+            margin-top: 18px;
+        }
+
+        .ab-metric { padding: 11px; border-radius: 11px; background: var(--surface-soft); border: 1px solid #edf1f6; }
+        .ab-metric strong { display: block; font-size: 0.9rem; }
+        .ab-metric span { display: block; margin-top: 3px; color: var(--muted); font-size: 0.63rem; line-height: 1.3; }
+        .ab-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 15px; color: var(--muted); font-size: 0.7rem; }
+        .ab-verdict { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--amber-soft); color: #8a4b05; font-size: 0.76rem; line-height: 1.5; }
+        .ab-verdict.is-testing { background: var(--blue-soft); color: var(--blue-dark); }
+        .ab-verdict.is-solid { background: var(--green-soft); color: #09684b; }
+
         .variant-section + .variant-section { margin-top: 20px; }
         .empty { padding: 46px 28px; text-align: center; color: var(--muted); }
         .empty strong { display: block; margin-bottom: 5px; color: var(--ink-2); }
@@ -404,6 +475,9 @@
             .source-button { flex: 0 0 auto; }
             .filter-panel { grid-template-columns: 1fr 1fr; }
             .filter-panel .btn { grid-column: 1 / -1; }
+            .ab-summary-head { display: grid; }
+            .ab-balance { justify-self: start; }
+            .ab-grid { grid-template-columns: 1fr; }
             .decision-card { grid-template-columns: auto 1fr; }
             .sample-chip { grid-column: 1 / -1; }
             .kpi-grid, .side-stack { grid-template-columns: 1fr; }
@@ -448,6 +522,7 @@
                     <button class="source-button is-active" type="button" data-source="all" aria-pressed="true">Tout</button>
                     <button class="source-button" type="button" data-source="organic" aria-pressed="false">Organique</button>
                     <button class="source-button" type="button" data-source="meta_ad" aria-pressed="false">Meta Ads</button>
+                    <button class="source-button" type="button" data-source="meta_ab" aria-pressed="false">Meta : campagnes × pages</button>
                     <button class="source-button" type="button" data-source="tiktok_ad" aria-pressed="false">TikTok Ads</button>
                 </div>
             </section>
@@ -476,15 +551,24 @@
         const LOGOUT_API = '/.netlify/functions/admin-es2-logout';
         const DATA_API = '/.netlify/functions/admin-masterclass-optin';
         const RICH_SAMPLE_TARGET = 500;
-        const COMPLETE_TRACKING_START = new Date('2026-07-28T20:28:05.586Z');
-        const COMPLETE_TRACKING_START_DATE = '2026-07-28';
+        const COMPLETE_TRACKING_START = new Date('2026-07-29T17:13:16.000Z');
+        const COMPLETE_TRACKING_START_DATE = '2026-07-29';
         const SOURCE_LABELS = {
             all: 'Tout le trafic',
             organic: 'Organique',
             meta_ad: 'Meta Ads',
+            meta_ab: 'Meta : campagnes × pages',
             tiktok_ad: 'TikTok Ads',
             other: 'Autre source',
         };
+        const META_AB_VARIANTS = [
+            { key: 'parcours', letter: 'A', label: 'Parcours visuel', className: 'ab-card--a' },
+            { key: 'contenu', letter: 'B', label: 'Ce que tu vas découvrir', className: 'ab-card--b' },
+        ];
+        const META_CAMPAIGNS = [
+            { key: 'lal', label: 'LAL Watchers historique' },
+            { key: 'rt', label: 'Retargeting chaud' },
+        ];
         let selectedSource = 'all';
         let latestData = null;
 
@@ -759,7 +843,134 @@
             return section;
         }
 
+        function rateFromCounts(group, numerator) {
+            const views = group.counts.page_view || 0;
+            return views > 0 ? ((group.counts[numerator] || 0) / views) * 100 : null;
+        }
+
+        function getMetaAbData(groups, campaign, definition) {
+            const variantKey = `meta_v2_${campaign.key}_${definition.key}`;
+            return {
+                ...definition,
+                campaignKey: campaign.key,
+                campaignLabel: campaign.label,
+                key: variantKey,
+                cardKey: variantKey,
+                global: findGroup(groups, variantKey, 'meta_ad', 'global') || emptyGroup('global'),
+                rich: findGroup(groups, variantKey, 'meta_ad', 'pays_forts') || emptyGroup('pays_forts'),
+            };
+        }
+
+        function renderMetaAbCard(item, totalViews, leaderKey) {
+            const views = item.global.counts.page_view || 0;
+            const completed = item.global.counts.registration_completed || 0;
+            const richViews = item.rich.counts.page_view || 0;
+            const richCompleted = item.rich.counts.registration_completed || 0;
+            const allocation = totalViews > 0 ? (views / totalViews) * 100 : 0;
+            const card = make(
+                'article',
+                `ab-card ${item.className}${leaderKey === item.cardKey ? ' is-leading' : ''}`,
+            );
+            const head = make('div', 'ab-card-head');
+            const title = make('div');
+            title.append(
+                make('span', 'ab-letter', item.letter),
+                make('h3', '', item.label),
+                make('div', 'ab-card-sub', item.campaignLabel),
+            );
+            const conversion = make('div', 'ab-conversion');
+            conversion.append(
+                make('strong', '', formatRate(item.global.conversion_rate)),
+                make('span', '', 'visiteur → inscrit'),
+            );
+            head.append(title, conversion);
+
+            const metrics = make('div', 'ab-metrics');
+            const metricValues = [
+                [formatNumber(views), 'visiteurs'],
+                [formatRate(rateFromCounts(item.global, 'cta_clicked')), 'cliquent le bouton'],
+                [formatRate(item.rich.conversion_rate), `${formatNumber(richCompleted)}/${formatNumber(richViews)} pays forts`],
+            ];
+            metricValues.forEach(([value, label]) => {
+                const metric = make('div', 'ab-metric');
+                metric.append(make('strong', '', value), make('span', '', label));
+                metrics.appendChild(metric);
+            });
+
+            const foot = make('div', 'ab-foot');
+            foot.append(
+                make('span', '', `${formatNumber(completed)} inscriptions confirmées`),
+                make('span', '', `${formatRate(allocation)} du trafic test`),
+            );
+            card.append(head, metrics, foot);
+            return card;
+        }
+
+        function renderMetaAb(groups) {
+            const items = META_CAMPAIGNS.flatMap((campaign) =>
+                META_AB_VARIANTS.map((definition) => getMetaAbData(groups, campaign, definition))
+            );
+            const totalViews = items.reduce((sum, item) => sum + (item.global.counts.page_view || 0), 0);
+            const viewCounts = items.map((item) => item.global.counts.page_view || 0);
+            const minRichViews = Math.min(...items.map((item) => item.rich.counts.page_view || 0));
+            const comparableItems = items.filter((item) => (item.global.counts.page_view || 0) > 0);
+            let leaderKey = null;
+            if (minRichViews >= 100 && comparableItems.length === 4) {
+                leaderKey = comparableItems
+                    .slice()
+                    .sort((a, b) => (b.rich.conversion_rate || 0) - (a.rich.conversion_rate || 0))[0].cardKey;
+            }
+
+            const summary = make('section', 'panel ab-summary');
+            const head = make('div', 'ab-summary-head');
+            const copy = make('div');
+            copy.append(
+                make('h2', '', 'Deux campagnes × deux pages, en direct'),
+                make('p', '', 'Chaque campagne est lue séparément. La répartition A/B reste persistante et équilibrée pour chaque visiteur.'),
+            );
+            head.append(
+                copy,
+                make('div', 'ab-balance', totalViews ? `${formatNumber(totalViews)} visites depuis le redémarrage` : 'En attente du trafic'),
+            );
+            summary.appendChild(head);
+
+            const grid = make('div', 'ab-grid');
+            items.forEach((item) => grid.appendChild(renderMetaAbCard(item, totalViews, leaderKey)));
+            summary.appendChild(grid);
+
+            const verdict = make('div', 'ab-verdict');
+            if (!totalViews) {
+                verdict.textContent = 'Le test démarrera automatiquement au prochain visiteur de la page Meta. Aucun réglage de campagne supplémentaire n’est nécessaire.';
+            } else if (minRichViews < 100) {
+                verdict.textContent = `Trop tôt pour choisir : attends au moins 100 visiteurs de pays forts par version. Le plus petit échantillon en compte actuellement ${formatNumber(minRichViews)}.`;
+            } else if (minRichViews < RICH_SAMPLE_TARGET) {
+                verdict.classList.add('is-testing');
+                const leader = items.find((item) => item.cardKey === leaderKey);
+                verdict.textContent = `Tendance provisoire : ${leader ? `${leader.campaignLabel} · ${leader.label}` : 'aucun gagnant net'}. Continue jusqu’à ${formatNumber(RICH_SAMPLE_TARGET)} visiteurs de pays forts par cellule avant de trancher.`;
+            } else {
+                verdict.classList.add('is-solid');
+                const leader = items.find((item) => item.cardKey === leaderKey);
+                verdict.textContent = `Échantillon exploitable. ${leader ? `${leader.campaignLabel} · ${leader.label}` : 'La meilleure cellule'} mène actuellement sur la conversion des pays forts.`;
+            }
+            summary.appendChild(verdict);
+            return summary;
+        }
+
         function selectedTrackedFunnels(data) {
+            if (selectedSource === 'meta_ab') {
+                const activeVariants = new Set(
+                    META_CAMPAIGNS.flatMap((campaign) =>
+                        META_AB_VARIANTS.map((definition) => `meta_v2_${campaign.key}_${definition.key}`)
+                    )
+                );
+                return (data.groups || [])
+                    .filter((group) =>
+                        group.source === 'meta_ad'
+                        && group.segment === 'global'
+                        && activeVariants.has(group.variant)
+                    )
+                    .reduce((sum, group) => sum + (group.counts?.page_view || 0), 0);
+            }
             if (selectedSource === 'all') return data.tracked_funnels || 0;
             return data.tracked_funnels_by_source?.[selectedSource] || 0;
         }
@@ -776,6 +987,10 @@
             const root = document.getElementById('results');
             root.replaceChildren();
             const groups = Array.isArray(data.groups) ? data.groups : [];
+            if (selectedSource === 'meta_ab') {
+                root.appendChild(renderMetaAb(groups));
+                return;
+            }
             const sourceGroups = groups.filter((group) => group.source === selectedSource);
             if (!sourceGroups.length) {
                 const empty = make('div', 'panel empty');

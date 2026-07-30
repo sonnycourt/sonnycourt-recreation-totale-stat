@@ -76,6 +76,21 @@ export default async (req) => {
     const metaFbc = trim255(body?.meta_fbc);
     const metaFbp = trim255(body?.meta_fbp);
     const metaEventId = trim255(body?.meta_event_id);
+    const ALLOWED_OPTIN_VARIANTS = new Set([
+      'meta_v1_parcours',
+      'meta_v1_contenu',
+      'meta_v2_lal_parcours',
+      'meta_v2_lal_contenu',
+      'meta_v2_rt_parcours',
+      'meta_v2_rt_contenu',
+      'meta_v2_other_parcours',
+      'meta_v2_other_contenu',
+    ]);
+    const rawOptinVariant = trim255(body?.optin_variant);
+    const optinVariant =
+      trafficSource === 'meta_ad' && ALLOWED_OPTIN_VARIANTS.has(rawOptinVariant)
+        ? rawOptinVariant
+        : null;
 
     // Consentement d'appel (RGPD) : état de la case + texte exact affiché. Horodaté serveur.
     const callConsentProvided = body && Object.prototype.hasOwnProperty.call(body, 'call_consent');
@@ -130,6 +145,7 @@ export default async (req) => {
           fbp: metaFbp,
           url: pageUrl,
           contentName: 'Masterclass ES2',
+          optinVariant,
         });
       } catch (e) {
         console.error('Meta CAPI Lead:', e);

@@ -51,6 +51,7 @@ function hashPhone(phone) {
  * @param {number} [p.value]             - montant (pour Purchase)
  * @param {string} [p.currency]          - ex 'EUR'
  * @param {string} [p.contentName]
+ * @param {string} [p.optinVariant]      - variante A/B de la page d'opt-in
  */
 export async function sendMetaEvent(p = {}) {
   const accessToken = process.env.META_ACCESS_TOKEN;
@@ -81,6 +82,9 @@ export async function sendMetaEvent(p = {}) {
   }
   if (p.contentName) {
     customData.content_name = p.contentName;
+  }
+  if (p.optinVariant) {
+    customData.optin_variant = String(p.optinVariant);
   }
 
   const eventData = {

@@ -1,1 +1,0 @@
-module.exports = require('./netlify/functions/video-retention.js')

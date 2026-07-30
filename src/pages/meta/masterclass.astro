@@ -3,7 +3,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 ---
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-meta-optin-ab="parcours">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +14,61 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <GAConsentMode />
+    <GAConsentMode performanceMode />
+
+    <!-- Attribution A/B Meta : exécutée avant le rendu pour éviter tout changement visuel. -->
+    <script is:inline>
+        (function () {
+            var storageKey = 'meta_optin_ab_v2';
+            var cookieMaxAge = 180 * 24 * 60 * 60;
+            var normalize = function (value) {
+                return value === 'parcours' || value === 'contenu' ? value : '';
+            };
+            var readCookie = function () {
+                try {
+                    var match = document.cookie.match(new RegExp('(?:^|; )' + storageKey + '=([^;]*)'));
+                    return match ? normalize(decodeURIComponent(match[1])) : '';
+                } catch (error) {
+                    return '';
+                }
+            };
+            var params;
+            try {
+                params = new URLSearchParams(window.location.search);
+            } catch (error) {
+                params = { get: function () { return ''; } };
+            }
+
+            var isPreview = params.get('preview') === 'dev';
+            var variant = isPreview ? normalize(params.get('ab')) : '';
+
+            if (!variant) {
+                try { variant = normalize(localStorage.getItem(storageKey)); } catch (error) {}
+            }
+            if (!variant) variant = readCookie();
+            if (!variant) {
+                try {
+                    var random = new Uint32Array(1);
+                    window.crypto.getRandomValues(random);
+                    variant = random[0] % 2 === 0 ? 'parcours' : 'contenu';
+                } catch (error) {
+                    variant = Math.random() < 0.5 ? 'parcours' : 'contenu';
+                }
+            }
+
+            if (!isPreview) {
+                try { localStorage.setItem(storageKey, variant); } catch (error) {}
+                try {
+                    var secure = window.location.protocol === 'https:' ? '; Secure' : '';
+                    document.cookie = storageKey + '=' + encodeURIComponent(variant)
+                        + '; path=/meta/masterclass; max-age=' + cookieMaxAge + '; SameSite=Lax' + secure;
+                } catch (error) {}
+            }
+
+            document.documentElement.dataset.metaOptinAb = variant;
+            window.__META_OPTIN_AB_VARIANT__ = variant;
+        })();
+    </script>
 
     <!-- Meta Pixel (page /meta/masterclass uniquement) -->
     <script type="text/javascript">
@@ -34,10 +88,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <!-- Meta Pixel End -->
 
     <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
+        (function(c,l,a,r,i){
             c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            function loadClarity(){
+                if(l.querySelector('script[data-sonny-clarity]')) return;
+                var t=l.createElement(r);
+                t.async=1;
+                t.dataset.sonnyClarity='true';
+                t.src="https://www.clarity.ms/tag/"+i;
+                l.head.appendChild(t);
+            }
+            function scheduleClarity(){
+                if('requestIdleCallback' in c) c.requestIdleCallback(loadClarity,{timeout:3000});
+                else c.setTimeout(loadClarity,1200);
+            }
+            if(l.readyState==='complete') scheduleClarity();
+            else c.addEventListener('load',scheduleClarity,{once:true});
         })(window, document, "clarity", "script", "wkawxw5jtq");
     </script>
 
@@ -45,11 +111,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css"></noscript>
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js" defer></script>
-
     <style>
         * {
             margin: 0;
@@ -363,9 +424,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         .next-session {
-            margin-bottom: 16px;
-            color: var(--accent);
-            font-weight: 600;
+            color: #fff;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .next-session--mobile {
+            display: none;
+        }
+
+        .next-session--desktop {
+            width: 100%;
+            margin: 14px 0 0;
+            padding: 13px 16px;
+            border: 1px solid rgba(96, 165, 250, 0.38);
+            border-radius: 12px;
+            background:
+                linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 58, 138, 0.38) 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 10px 30px rgba(2, 6, 23, 0.22);
+            font-size: 0.92rem;
         }
 
         .sessions-visual {
@@ -443,6 +523,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         .cta-button {
+            position: relative;
+            overflow: hidden;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -461,17 +543,68 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
 
+        .cta-button::after {
+            content: "";
+            position: absolute;
+            top: -35%;
+            bottom: -35%;
+            left: -38%;
+            width: 22%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+            filter: blur(1px);
+            pointer-events: none;
+            transform: skewX(-18deg);
+            animation: cta-soft-shine 4.8s ease-in-out infinite;
+        }
+
+        @keyframes cta-soft-shine {
+            0%,
+            70% {
+                opacity: 0;
+                transform: translateX(0) skewX(-18deg);
+            }
+
+            74% {
+                opacity: 0.55;
+            }
+
+            86% {
+                opacity: 0;
+                transform: translateX(720%) skewX(-18deg);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateX(720%) skewX(-18deg);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .cta-button::after {
+                animation: none;
+            }
+        }
+
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 14px 40px rgba(255, 122, 0, 0.52);
+        }
+
+        .cta-button--blue {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 10px 35px rgba(59, 130, 246, 0.36);
+        }
+
+        .cta-button--blue:hover {
+            box-shadow: 0 14px 40px rgba(59, 130, 246, 0.52);
         }
 
         .session-social-proof {
             display: none;
             align-items: center;
             gap: 9px;
-            margin: 0 0 13px;
-            color: #fed7aa;
+            margin: 13px 0 0;
+            color: #bfdbfe;
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1.35;
@@ -487,8 +620,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             height: 8px;
             flex: 0 0 8px;
             border-radius: 50%;
-            background: var(--cta-orange);
-            box-shadow: 0 0 0 5px rgba(255, 122, 0, 0.13);
+            background: var(--primary-light);
+            box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.14);
         }
 
         .parcours-cta .session-social-proof,
@@ -667,6 +800,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             border: 1px solid rgba(96, 165, 250, 0.12);
             border-radius: 20px;
             padding: clamp(28px, 4vw, 44px) clamp(24px, 3.5vw, 40px);
+        }
+
+        [data-optin-preview-variant] {
+            display: none !important;
+        }
+
+        html[data-meta-optin-ab="parcours"] [data-optin-preview-variant="parcours"],
+        html[data-meta-optin-ab="contenu"] [data-optin-preview-variant="contenu"] {
+            display: block !important;
         }
 
         .discover-list {
@@ -854,6 +996,31 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 flex-wrap: wrap;
                 justify-content: center;
                 gap: 18px 28px;
+            }
+
+            .stats-card--bare {
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                gap: 4px;
+                width: 100%;
+                margin-top: 18px;
+                padding-top: 18px;
+            }
+
+            .stats-card--bare .stat-item {
+                flex: 1 1 0;
+                gap: 4px;
+                justify-content: center;
+            }
+
+            .stats-card--bare .stat-icon {
+                width: 16px;
+                height: 16px;
+            }
+
+            .stats-card--bare .stat-number {
+                font-size: clamp(0.62rem, 2.7vw, 0.82rem);
+                white-space: nowrap;
             }
         }
 
@@ -1138,6 +1305,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             margin: 0 auto 14px;
         }
 
+        .phone-field-loading {
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
         .form-note--after-cta {
             margin: 14px 0 0;
             display: flex;
@@ -1340,13 +1516,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 gap: 22px;
             }
 
+            .hero > div:first-child {
+                display: flex;
+                flex-direction: column;
+            }
+
             .hero-image--desktop {
                 display: none;
             }
 
             .hero-image--mobile {
                 display: block;
-                width: min(64vw, 240px);
+                order: 1;
+                width: 100%;
+                max-width: none;
                 margin: 2px 0 14px;
             }
 
@@ -1355,8 +1538,41 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 box-shadow: 0 14px 42px rgba(59, 130, 246, 0.22);
             }
 
+            .next-session--desktop {
+                display: none;
+            }
+
+            .next-session--mobile {
+                display: block;
+                order: 2;
+                width: 100%;
+                margin: 0 0 14px;
+                padding: 13px 14px;
+                border: 1px solid rgba(96, 165, 250, 0.38);
+                border-radius: 12px;
+                background:
+                    linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 58, 138, 0.38) 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                    0 10px 30px rgba(2, 6, 23, 0.22);
+                font-size: 0.9rem;
+            }
+
+            .sessions-visual {
+                display: none;
+            }
+
             .countdown {
+                order: 3;
                 max-width: 100%;
+            }
+
+            .hero .cta-button {
+                order: 4;
+            }
+
+            .hero .session-social-proof {
+                order: 5;
             }
 
             .cta-button {
@@ -1416,7 +1632,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 margin-bottom: 28px;
             }
 
+            .hero > div:first-child {
+                display: flex;
+                flex-direction: column;
+            }
+
             .badge {
+                align-self: flex-start;
                 margin-bottom: 12px;
                 padding: 7px 12px;
                 font-size: 0.7rem;
@@ -1434,21 +1656,61 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 line-height: 1.48;
             }
 
+            .hero-image--mobile {
+                order: 1;
+                width: 100%;
+                max-width: none;
+                margin: 0 0 12px;
+            }
+
             .next-session {
-                margin-bottom: 10px;
+                order: 2;
+                width: 100%;
+                margin: 0 0 14px;
+                padding: 13px 14px;
+                border: 1px solid rgba(96, 165, 250, 0.38);
+                border-radius: 12px;
+                background:
+                    linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 58, 138, 0.38) 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                    0 10px 30px rgba(2, 6, 23, 0.22);
+                color: #fff;
+                font-size: clamp(0.8rem, 3.55vw, 0.9rem);
+                font-weight: 700;
+                line-height: 1.35;
+                text-align: center;
             }
 
             .sessions-visual {
-                margin-bottom: 12px;
+                display: none;
             }
 
             .countdown {
+                order: 3;
                 gap: 6px;
                 margin-bottom: 16px;
             }
 
+            .hero .cta-button {
+                order: 4;
+            }
+
+            .hero .session-social-proof {
+                order: 5;
+            }
+
             .count-card {
                 padding: 8px 4px;
+            }
+
+            .count-card:last-child .count-label {
+                font-size: 0;
+            }
+
+            .count-card:last-child .count-label::after {
+                content: "SEC";
+                font-size: 0.75rem;
             }
 
             .cta-button {
@@ -1468,7 +1730,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 muted
                 loop
                 playsinline
-                preload="auto"
+                preload="none"
                 aria-hidden="true"
             >
                 <source src="/media/pages/masterclass-butterfly.mp4" type="video/mp4" />
@@ -1521,19 +1783,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <div>
                 <div class="badge">MASTERCLASS DIFFUSION EN DIRECT</div>
                 <h1>Reprogramme Ton Subconscient Et Avance Vers La Vie De Tes Rêves</h1>
-                <p class="subheadline">1H30 pour apprendre à reprogrammer ton subconscient à travers les neurosciences, la spiritualité, et un système que personne ne t'a jamais montré.</p>
+                <p class="subheadline">1H30 pour apprendre à reprogrammer ton subconscient à travers les neurosciences, la spiritualité, et un protocole gardé secret jusqu'ici.</p>
 
-                <p id="next-session-label" class="next-session">Jeudi … à 20h (heure de Paris)</p>
+                <p class="next-session next-session--mobile">Jeudi … à 20h (heure de Paris)</p>
                 <div class="hero-image hero-image--mobile">
                     <div class="image-wrapper">
-                        <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
-                    </div>
-                </div>
-
-                <div class="sessions-visual sessions-visual--one" aria-label="Session du jeudi">
-                    <div class="session-bubble active">
-                        <span class="session-day">Jeudi</span>
-                        <span class="session-hour">20h</span>
+                        <img src="/media/pages/masterclass-gratuite-banner.webp" srcset="/media/pages/masterclass-gratuite-banner-640.webp 640w, /media/pages/masterclass-gratuite-banner-800.webp 800w, /media/pages/masterclass-gratuite-banner.webp 1280w" sizes="(max-width: 600px) calc(100vw - 32px), 480px" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
                     </div>
                 </div>
 
@@ -1556,52 +1811,81 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     </div>
                 </div>
 
+                <button class="cta-button cta-button--blue popup-trigger" type="button">JE M'INSCRIS MAINTENANT</button>
                 <p class="session-social-proof" aria-live="polite"></p>
-                <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             </div>
 
             <div class="hero-image hero-image--desktop">
                 <div class="image-wrapper">
-                    <img src="/media/pages/masterclass-gratuite-banner.webp" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
+                    <img src="/media/pages/masterclass-gratuite-banner.webp" srcset="/media/pages/masterclass-gratuite-banner-640.webp 640w, /media/pages/masterclass-gratuite-banner-800.webp 800w, /media/pages/masterclass-gratuite-banner.webp 1280w" sizes="(max-width: 600px) calc(100vw - 32px), 480px" alt="Webinaire Esprit Subconscient 2.0 - Sonny Court" width="1280" height="853" loading="eager" fetchpriority="high" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
                 </div>
+                <p class="next-session next-session--desktop">Jeudi … à 20h (heure de Paris)</p>
             </div>
         </section>
 
-        <section class="section parcours-section" aria-label="Le parcours">
+        <section class="section parcours-section" aria-label="Le parcours" data-optin-preview-variant="parcours">
             <h2 class="section-title">Ton <span class="title-accent">parcours</span></h2>
             <div class="parcours-grid">
                 <figure class="parcours-card">
-                    <img src="/media/pages/parcours-le-manque.webp" alt="Le Manque : seul dans la tempête, la nuit" loading="lazy" decoding="async" width="1400" height="788" />
+                    <img class="deferred-content-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-src="/media/pages/parcours-le-manque.webp" alt="Le Doute : sentir qu'une autre vie est possible" loading="lazy" fetchpriority="low" decoding="async" width="1400" height="788" />
                     <figcaption>
-                        <span class="parcours-step">Le Manque</span>
-                        <p>Quand tout espoir semble perdu, mais que tu décides de jouer ta dernière carte.</p>
+                        <span class="parcours-step">LE DOUTE</span>
+                        <p>Tu sens qu'une autre vie est possible, sans encore savoir comment l'atteindre.</p>
                     </figcaption>
                 </figure>
                 <figure class="parcours-card">
-                    <img src="/media/pages/parcours-la-masterclass.webp" alt="La Masterclass : traverser les obstacles" loading="lazy" decoding="async" width="1400" height="788" />
+                    <img class="deferred-content-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-src="/media/pages/parcours-la-masterclass.webp" alt="Le Déclic : comprendre enfin ce qui manquait" loading="lazy" fetchpriority="low" decoding="async" width="1400" height="788" />
                     <figcaption>
-                        <span class="parcours-step">La Masterclass</span>
-                        <p>Une vraie épreuve. Tes croyances y passeront une par une, et certaines ne survivront pas.</p>
+                        <span class="parcours-step">LE DÉCLIC</span>
+                        <p>La masterclass remet en question ce que tu croyais savoir et te montre enfin ce qui manquait.</p>
                     </figcaption>
                 </figure>
                 <figure class="parcours-card">
-                    <img src="/media/pages/parcours-l-abondance.webp" alt="L'Abondance : un intérieur qui déborde" loading="lazy" decoding="async" width="1400" height="788" />
+                    <img class="deferred-content-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-src="/media/pages/parcours-l-abondance.webp" alt="La Certitude : le monde extérieur commence à s'aligner" loading="lazy" fetchpriority="low" decoding="async" width="1400" height="788" />
                     <figcaption>
-                        <span class="parcours-step">L'Abondance</span>
-                        <p>Après le déclic : quand ton monde intérieur change, ton monde extérieur s'aligne sans effort.</p>
+                        <span class="parcours-step">LA CERTITUDE</span>
+                        <p>Après le déclic, quand ton monde intérieur change, ton monde extérieur commence à s'aligner.</p>
                     </figcaption>
                 </figure>
             </div>
             <div class="parcours-cta">
-                <p class="session-social-proof" aria-live="polite"></p>
-                <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
+                <button class="cta-button cta-button--blue popup-trigger" type="button">JE M'INSCRIS MAINTENANT</button>
+            </div>
+        </section>
+
+        <section class="section discover-section" aria-label="Ce que tu vas découvrir" data-optin-preview-variant="contenu">
+            <h2 class="section-title">Ce que tu vas <span class="title-accent">découvrir</span></h2>
+            <ul class="discover-list">
+                <li class="discover-item">
+                    <span class="discover-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <span class="discover-text">Pourquoi tu attires souvent les mêmes galères, les mêmes relations, les mêmes blocages.</span>
+                </li>
+                <li class="discover-item">
+                    <span class="discover-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <span class="discover-text">Ce que font vraiment les gens qui transforment leur rapport à l'argent, à l'amour et à la liberté.</span>
+                </li>
+                <li class="discover-item">
+                    <span class="discover-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <span class="discover-text">La raison exacte pour laquelle tu restes bloqué au même endroit, malgré tout ce que tu as déjà essayé.</span>
+                </li>
+                <li class="discover-item">
+                    <span class="discover-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <span class="discover-text">Le seul mécanisme derrière la prière, la loi d'attraction et ces coïncidences qu'on n'explique pas.</span>
+                </li>
+                <li class="discover-item">
+                    <span class="discover-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <span class="discover-text">Comment aligner ton subconscient avec ce que tu veux pour qu'il travaille pour toi.</span>
+                </li>
+            </ul>
+            <div class="parcours-cta">
+                <button class="cta-button cta-button--blue popup-trigger" type="button">JE M'INSCRIS MAINTENANT</button>
             </div>
         </section>
 
         <section class="section gift-section">
             <span class="gift-sticker">BONUS</span>
             <div class="gift-image-wrap">
-                <img class="gift-image" src="/media/pages/secrets-book.webp" alt="Cadeau participant" width="830" height="1114" loading="lazy" decoding="async" />
+                <img class="gift-image deferred-content-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-src="/media/pages/secrets-book.webp" alt="Cadeau participant" width="830" height="1114" loading="lazy" fetchpriority="low" decoding="async" />
             </div>
             <div>
                 
@@ -1617,8 +1901,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         <div class="final-cta">
             <p class="final-cta-text">Les places sont limitées.<br />Réserve la tienne maintenant.</p>
+            <button class="cta-button cta-button--blue popup-trigger" type="button">JE M'INSCRIS MAINTENANT</button>
             <p class="session-social-proof" aria-live="polite"></p>
-            <button class="cta-button popup-trigger" type="button">JE RÉSERVE MA PLACE</button>
             <div class="stats-card stats-card--bare">
                 <div class="stat-item">
                     <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="#fff" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
@@ -1660,7 +1944,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 <input id="name" class="form-input" type="text" placeholder="Ton prénom" required />
                 <input id="email" class="form-input" type="email" placeholder="Ton email" required autocomplete="email" />
                 <p id="step1-message" class="form-error" role="alert"></p>
-                <button id="step1-button" class="submit-btn" type="button">Je réserve ma place</button>
+                <button id="step1-button" class="submit-btn" type="button">Je m'inscris maintenant</button>
                 <p class="form-note form-note--after-cta">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1727,7 +2011,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const PRE_OPTIN_DELAY_MS = 1200;
         const PRE_OPTIN_FADE_MS = 180;
         const PRE_OPTIN_SUCCESS_MS = 650;
-        const OPTIN_VARIANT = 'v5';
+        const META_TRACKING_KEY = 'meta_tracking_params';
+        const OPTIN_CONTENT_VARIANT =
+            window.__META_OPTIN_AB_VARIANT__ === 'contenu' ? 'contenu' : 'parcours';
+        const OPTIN_CAMPAIGN_KEY = resolveMetaCampaignKey();
+        const OPTIN_VARIANT = `meta_v2_${OPTIN_CAMPAIGN_KEY}_${OPTIN_CONTENT_VARIANT}`;
         const OPTIN_TRAFFIC_SOURCE = 'meta_ad';
 
         const state = {
@@ -1738,9 +2026,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         };
 
         let iti = null;
+        let phoneInputLibraryPromise = null;
         let preOptinOverlayBusy = false;
         const optinFunnelId = createOptinFunnelId();
         const OPTIN_INTERNAL_TRAFFIC_KEY = 'masterclass_optin_internal';
+
+        try {
+            if (window.clarity) window.clarity('set', 'meta_optin_ab', OPTIN_CONTENT_VARIANT);
+        } catch (e) {}
 
         function isOptinInternalTraffic() {
             let internalParam = '';
@@ -1807,7 +2100,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         // Tracking source pub Meta : capte les UTM + fbclid de l'URL, persiste 30j.
-        const META_TRACKING_KEY = 'meta_tracking_params';
         function captureTrafficParams() {
             try {
                 const params = new URLSearchParams(window.location.search);
@@ -1827,6 +2119,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             } catch (e) {
                 return {};
             }
+        }
+
+        function resolveMetaCampaignKey() {
+            const campaign = String(captureTrafficParams().utm_campaign || '').trim().toLowerCase();
+            if (campaign === 'test_qv_lookalike') return 'lal';
+            if (campaign === 'rt_chaud_w9') return 'rt';
+            return 'other';
         }
         // fbc : cookie _fbc posé par le pixel ; sinon reconstruit depuis fbclid (format fb.1.<ts>.<fbclid>).
         function resolveFbc(fbclid) {
@@ -1850,6 +2149,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 utm_term: p.utm_term || null,
                 meta_fbc: resolveFbc(p.fbclid),
                 meta_fbp: fbp,
+                optin_variant: OPTIN_VARIANT,
+                optin_funnel_id: optinFunnelId,
             };
         }
 
@@ -2052,9 +2353,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         function refreshCountdownTarget() {
             const t = getMarketingCountdownTargetUtcSafe(new Date());
             __countdownTargetMs = t ? t.getTime() : null;
-            const labelEl = document.getElementById('next-session-label');
-            if (labelEl && t) {
-                labelEl.textContent = formatParisDateNoTime(t) + ' à 20h (heure de Paris)';
+            if (t) {
+                document.querySelectorAll('.next-session').forEach(function (labelEl) {
+                    labelEl.textContent = formatParisDateNoTime(t) + ' à 20h (heure de Paris)';
+                });
             }
             updatePopupSessionBubble();
         }
@@ -2218,6 +2520,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         function showPreOptinOverlayThenOpenPopup() {
             if (preOptinOverlayBusy) return;
             trackOptinEvent('cta_clicked');
+            ensurePhoneInputLibrary().catch(function () {});
             const overlay = document.getElementById('pre-optin-overlay');
             if (!overlay) {
                 openPopup();
@@ -2311,9 +2614,82 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             document.getElementById('step3-form').style.display = stepNumber === 3 ? 'block' : 'none';
         }
 
-        function goToContactStep() {
+        function loadPhoneInputStyles() {
+            if (document.getElementById('intl-tel-input-styles')) return Promise.resolve();
+            return new Promise(function (resolve, reject) {
+                const link = document.createElement('link');
+                link.id = 'intl-tel-input-styles';
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/css/intlTelInput.css';
+                link.onload = resolve;
+                link.onerror = reject;
+                document.head.appendChild(link);
+            });
+        }
+
+        function loadPhoneInputScript() {
+            if (typeof window.intlTelInput === 'function') return Promise.resolve();
+            return new Promise(function (resolve, reject) {
+                const existing = document.getElementById('intl-tel-input-script');
+                if (existing) {
+                    existing.addEventListener('load', resolve, { once: true });
+                    existing.addEventListener('error', reject, { once: true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.id = 'intl-tel-input-script';
+                script.src = 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.3/build/js/intlTelInput.min.js';
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        function ensurePhoneInputLibrary() {
+            if (typeof window.intlTelInput === 'function') return Promise.resolve();
+            if (!phoneInputLibraryPromise) {
+                phoneInputLibraryPromise = Promise.all([
+                    loadPhoneInputStyles(),
+                    loadPhoneInputScript(),
+                ]).catch(function (error) {
+                    phoneInputLibraryPromise = null;
+                    throw error;
+                });
+            }
+            return phoneInputLibraryPromise;
+        }
+
+        function initNativePhoneFallback() {
+            const wrap = document.getElementById('step2-phone-container');
+            if (!wrap || document.getElementById('phone')) return;
+            wrap.innerHTML = '';
+            const input = document.createElement('input');
+            input.type = 'tel';
+            input.id = 'phone';
+            input.setAttribute('autocomplete', 'tel');
+            input.placeholder = 'Ton numéro';
+            input.style.setProperty('padding', '16px', 'important');
+            wrap.appendChild(input);
+        }
+
+        async function goToContactStep() {
             showStep(2);
-            if (!iti) initPhoneInput();
+            if (iti || document.getElementById('phone')) return;
+            const wrap = document.getElementById('step2-phone-container');
+            const nextButton = document.getElementById('step2-next');
+            if (wrap) wrap.innerHTML = '<p class="phone-field-loading">Préparation du champ sécurisé…</p>';
+            if (nextButton) nextButton.disabled = true;
+            try {
+                await ensurePhoneInputLibrary();
+                initPhoneInput();
+            } catch (error) {
+                initNativePhoneFallback();
+            } finally {
+                if (nextButton) nextButton.disabled = false;
+                const input = document.getElementById('phone');
+                if (input) input.focus({ preventScroll: true });
+            }
         }
 
         function goToCommitStep() {
@@ -2600,6 +2976,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     if (window.fbq) {
                         window.fbq('track', 'Lead', {
                             content_name: 'Masterclass ES2',
+                            optin_variant: OPTIN_VARIANT,
                         }, { eventID: metaEventId });
                     }
                 } catch (e) {}
@@ -2720,7 +3097,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
                 const finalCount = Math.floor(count);
                 const formatMessage = (value) =>
-                    `Déjà ${value.toLocaleString('fr-FR')} personnes ont réservé leur place pour jeudi`;
+                    `Déjà ${value.toLocaleString('fr-FR')} personnes inscrites`;
                 document.querySelectorAll('.session-social-proof').forEach((element) => {
                     element.classList.add('is-visible');
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -2745,7 +3122,40 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
         }
 
+        function initDeferredContentImages() {
+            const images = Array.from(document.querySelectorAll('img[data-src]'));
+            if (!images.length) return;
+            const reveal = function (image) {
+                const src = image.getAttribute('data-src');
+                if (!src) return;
+                image.src = src;
+                image.removeAttribute('data-src');
+            };
+            if (!('IntersectionObserver' in window)) {
+                window.setTimeout(function () {
+                    images.forEach(reveal);
+                }, 1500);
+                return;
+            }
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    reveal(entry.target);
+                    observer.unobserve(entry.target);
+                });
+            }, { rootMargin: '240px 0px', threshold: 0.01 });
+            images.forEach(function (image) {
+                observer.observe(image);
+            });
+        }
+
         function initMainInteractions() {
+            const authorityStats = document.querySelector('.stats-card--bare');
+            const hero = document.querySelector('.hero');
+            if (authorityStats && hero) {
+                hero.insertAdjacentElement('afterend', authorityStats);
+            }
+            initDeferredContentImages();
             refreshCountdownTarget();
             updateCountdown();
             startCountdownTicker();
@@ -2760,18 +3170,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             initProofSectionCountUp();
             initSessionSocialProof();
-
-            const butterflyVideo = document.querySelector('.pre-optin-overlay__butterfly');
-            const primeButterflyVideo = function () {
-                if (!butterflyVideo) return;
-                butterflyVideo.preload = 'auto';
-                butterflyVideo.load();
-            };
-            if ('requestIdleCallback' in window) {
-                window.requestIdleCallback(primeButterflyVideo, { timeout: 1500 });
-            } else {
-                window.setTimeout(primeButterflyVideo, 700);
-            }
 
             document.querySelectorAll('.popup-trigger').forEach((btn) => {
                 btn.addEventListener('click', function () {

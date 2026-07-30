@@ -1,9 +1,11 @@
 ---
 const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || "";
+const performanceMode = Boolean(Astro.props.performanceMode);
 ---
 
 <script is:inline set:html={`(function(){
   var GA_MEASUREMENT_ID = ${JSON.stringify(GA_ID)};
+  var PERFORMANCE_MODE = ${JSON.stringify(performanceMode)};
   if(!GA_MEASUREMENT_ID){
     window.dataLayer = window.dataLayer || [];
     window.gtag = function(){ window.dataLayer.push(arguments); };
@@ -22,14 +24,36 @@ const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || "";
     ad_personalization:'denied'
   });
 
-  var s=document.createElement('script');
-  s.async=true;
-  s.src='https://www.googletagmanager.com/gtag/js?id='+GA_MEASUREMENT_ID;
-  document.head.appendChild(s);
-  s.onload=function(){
-    gtag('js', new Date());
-    gtag('config', GA_MEASUREMENT_ID, { anonymize_ip: true });
-  };
+  function loadGoogleAnalytics(){
+    if(document.querySelector('script[data-sonny-ga]')) return;
+    var s=document.createElement('script');
+    s.async=true;
+    s.dataset.sonnyGa='true';
+    s.src='https://www.googletagmanager.com/gtag/js?id='+GA_MEASUREMENT_ID;
+    document.head.appendChild(s);
+    s.onload=function(){
+      gtag('js', new Date());
+      gtag('config', GA_MEASUREMENT_ID, { anonymize_ip: true });
+    };
+  }
+
+  function scheduleGoogleAnalytics(){
+    if('requestIdleCallback' in window){
+      window.requestIdleCallback(loadGoogleAnalytics, { timeout: 2500 });
+    }else{
+      window.setTimeout(loadGoogleAnalytics, 900);
+    }
+  }
+
+  if(PERFORMANCE_MODE){
+    if(document.readyState === 'complete'){
+      scheduleGoogleAnalytics();
+    }else{
+      window.addEventListener('load', scheduleGoogleAnalytics, { once:true });
+    }
+  }else{
+    loadGoogleAnalytics();
+  }
 
   window.__consent={
     accept:function(){
@@ -55,6 +79,33 @@ const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || "";
   };
 })();`}></script>
 
-<script defer src="https://stats.sonnycourt.com/script.js" data-website-id="3f4e4f08-4822-432d-8016-c4052ac85fe7"></script>
-
+{
+  performanceMode ? (
+    <script is:inline set:html={`(function(){
+      function loadStats(){
+        if(document.querySelector('script[data-sonny-stats]')) return;
+        var s=document.createElement('script');
+        s.async=true;
+        s.dataset.sonnyStats='true';
+        s.dataset.websiteId='3f4e4f08-4822-432d-8016-c4052ac85fe7';
+        s.src='https://stats.sonnycourt.com/script.js';
+        document.head.appendChild(s);
+      }
+      function scheduleStats(){
+        if('requestIdleCallback' in window){
+          window.requestIdleCallback(loadStats, { timeout: 3000 });
+        }else{
+          window.setTimeout(loadStats, 1200);
+        }
+      }
+      if(document.readyState === 'complete'){
+        scheduleStats();
+      }else{
+        window.addEventListener('load', scheduleStats, { once:true });
+      }
+    })();`}></script>
+  ) : (
+    <script defer src="https://stats.sonnycourt.com/script.js" data-website-id="3f4e4f08-4822-432d-8016-c4052ac85fe7"></script>
+  )
+}
 
