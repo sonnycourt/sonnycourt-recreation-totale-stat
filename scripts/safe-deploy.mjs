@@ -109,7 +109,9 @@ process.on('SIGTERM', () => {
 function htmlFileForRoute(routePath) {
   const clean = routePath.replace(/^\/|\/$/g, '');
   const candidates = clean
-    ? [join(root, 'dist', clean, 'index.html'), join(root, 'dist', `${clean}.html`)]
+    ? clean.endsWith('.html')
+      ? [join(root, 'dist', clean)]
+      : [join(root, 'dist', clean, 'index.html'), join(root, 'dist', `${clean}.html`)]
     : [join(root, 'dist', 'index.html')];
   return candidates.find(existsSync);
 }

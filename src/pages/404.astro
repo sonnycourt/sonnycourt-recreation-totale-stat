@@ -1,185 +1,380 @@
 ---
-// Page 404 standalone pour Netlify
-import GAConsentMode from '../components/GAConsentMode.astro';
+import Layout from '../layouts/Layout.astro';
 ---
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Page non trouvée - Sonny Court</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  
-  <!-- GA4 Consent Mode v2 -->
-  <GAConsentMode />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
-  <div class="not-found">
-    <div class="nf-inner">
-      <div class="nf-logo">SC</div>
-      <h1 class="nf-code">404</h1>
-      <h2 class="nf-title">Oups ! Cette page n'existe pas</h2>
-      <p class="nf-text">La page que tu recherches semble avoir disparu ou n'a jamais existé. Pas de panique, on va te remettre sur le bon chemin !</p>
-      <div class="nf-actions">
-        <a href="/" class="btn-primary">Retour à l'accueil</a>
-        <div class="nf-links">
-          <a href="/formations" class="btn-secondary">Nos formations</a>
-          <a href="/contact" class="btn-secondary">Nous contacter</a>
+<Layout
+  title="Page introuvable — Sonny Court"
+  description="Cette page n'existe pas ou a été déplacée."
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <section class="not-found">
+    <div class="ambient ambient--left" aria-hidden="true"></div>
+    <div class="ambient ambient--right" aria-hidden="true"></div>
+
+    <div class="not-found__shell">
+      <div class="not-found__card">
+        <div class="glass-shine" aria-hidden="true"></div>
+
+        <div class="not-found__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M10.6 13.4a4 4 0 0 0 5.66.05l2.1-2.1a4 4 0 0 0-5.66-5.66l-1.2 1.2"></path>
+            <path d="M13.4 10.6a4 4 0 0 0-5.66-.05l-2.1 2.1a4 4 0 0 0 5.66 5.66l1.2-1.2"></path>
+            <path d="m9 9 6 6"></path>
+          </svg>
         </div>
-      </div>
-      <div class="nf-quote">
-        <p>"Chaque erreur est une opportunité d'apprendre quelque chose de nouveau." <span class="nf-quote-author">- Sonny Court</span></p>
+
+        <p class="not-found__eyebrow">Erreur 404</p>
+        <h1>Oups ! Cette page<br /><span>n’existe pas.</span></h1>
+        <p class="not-found__text">
+          La page que tu cherches semble avoir disparu ou n’a jamais existé.
+        </p>
+
+        <div class="not-found__actions">
+          <a class="button button--primary" href="/">
+            <span>Retour à l’accueil</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 10h12M11 5l5 5-5 5"></path>
+            </svg>
+          </a>
+          <a class="button button--glass" href="/masterclass">
+            Découvrir la masterclass
+          </a>
+        </div>
+
+        <a class="not-found__support" href="/contact">
+          Besoin d’aide ? <span>Nous contacter</span>
+        </a>
       </div>
     </div>
-  </div>
-</body>
-</html>
+  </section>
+</Layout>
 
-<style is:global>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 100%);
+<style>
+  .not-found {
+    min-height: 100vh;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    padding: 150px 24px 88px;
     color: #ffffff;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(23, 85, 178, 0.24), transparent 32%),
+      linear-gradient(118deg, #02050c 0%, #061226 42%, #092755 76%, #0b356f 100%);
+  }
+
+  .not-found::before,
+  .not-found::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .not-found::before {
+    z-index: -3;
+    background:
+      linear-gradient(
+        112deg,
+        transparent 0%,
+        transparent 30%,
+        rgba(147, 197, 253, 0.045) 43%,
+        rgba(219, 234, 254, 0.1) 51%,
+        rgba(96, 165, 250, 0.025) 63%,
+        transparent 76%
+      );
+  }
+
+  .not-found::after {
+    z-index: -2;
+    opacity: 0.2;
+    background-image:
+      linear-gradient(rgba(191, 219, 254, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(191, 219, 254, 0.08) 1px, transparent 1px);
+    background-size: 92px 92px;
+    mask-image: radial-gradient(circle at 50% 48%, #000 4%, transparent 64%);
+    -webkit-mask-image: radial-gradient(circle at 50% 48%, #000 4%, transparent 64%);
+  }
+
+  .ambient {
+    position: absolute;
+    z-index: -1;
+    width: 420px;
+    height: 420px;
+    border-radius: 999px;
+    filter: blur(10px);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  .ambient--left {
+    top: 25%;
+    left: -230px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.22), transparent 68%);
+  }
+
+  .ambient--right {
+    right: -210px;
+    bottom: 4%;
+    background: radial-gradient(circle, rgba(96, 165, 250, 0.22), transparent 68%);
+  }
+
+  .not-found__shell {
+    width: min(760px, 100%);
+    position: relative;
+  }
+
+  .not-found__shell::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 14% 12% -8%;
+    border-radius: 48px;
+    background: rgba(37, 99, 235, 0.2);
+    filter: blur(54px);
+  }
+
+  .not-found__card {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(40px, 7vw, 72px);
+    text-align: center;
+    border: 1px solid rgba(191, 219, 254, 0.18);
+    border-radius: 36px;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.11), transparent 30%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035));
+    box-shadow:
+      0 42px 110px rgba(1, 5, 15, 0.46),
+      inset 0 1px 0 rgba(255, 255, 255, 0.17),
+      inset 0 -1px 0 rgba(96, 165, 250, 0.08);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+    animation: reveal 650ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .glass-shine {
+    position: absolute;
+    inset: 0 10% auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+    pointer-events: none;
+  }
+
+  .not-found__icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 22px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(191, 219, 254, 0.22);
+    border-radius: 21px;
+    background:
+      radial-gradient(circle at 28% 14%, rgba(255, 255, 255, 0.24), transparent 38%),
+      linear-gradient(145deg, rgba(96, 165, 250, 0.2), rgba(37, 99, 235, 0.07));
+    box-shadow:
+      0 16px 38px rgba(1, 8, 24, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .not-found__icon svg {
+    width: 29px;
+    height: 29px;
+    fill: none;
+    stroke: rgba(239, 246, 255, 0.92);
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .not-found__eyebrow {
+    margin: 0 0 15px;
+    color: rgba(147, 197, 253, 0.82);
+    font-size: 13px;
+    font-weight: 730;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(46px, 8.5vw, 82px);
+    font-weight: 780;
+    line-height: 0.94;
+    letter-spacing: -0.065em;
+    text-wrap: balance;
+  }
+
+  h1 span {
+    display: inline-block;
+    margin-top: 9px;
+    background: linear-gradient(180deg, #ffffff 0%, #dbeafe 48%, #8fb4e8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .not-found__text {
+    max-width: 560px;
+    margin: 26px auto 0;
+    color: rgba(219, 234, 254, 0.66);
+    font-size: clamp(16px, 2vw, 18px);
+    font-weight: 430;
     line-height: 1.6;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
-  
-  .not-found { 
-    min-height: 100vh; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    padding: 40px 16px; 
-  }
-  
-  .nf-inner { 
-    width: 100%; 
-    max-width: 720px; 
-    text-align: center; 
-    animation: fadeIn .6s ease-out; 
-  }
-  
-  @keyframes fadeIn { 
-    from { 
-      opacity: 0; 
-      transform: translateY(20px);
-    } 
-    to { 
-      opacity: 1; 
-      transform: translateY(0);
-    } 
-  }
-  
-  .nf-logo { 
-    width: 96px; 
-    height: 96px; 
-    margin: 0 auto 24px; 
-    border-radius: 9999px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    color: #fff; 
-    font-weight: 800; 
-    font-size: 28px; 
-    background: linear-gradient(90deg, #2563eb, #4f46e5); 
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35); 
-  }
-  
-  .nf-code { 
-    color: #fff; 
-    font-weight: 800; 
-    font-size: 64px; 
-    line-height: 1.1; 
-    margin: 0 0 8px; 
-  }
-  
-  .nf-title { 
-    color: #d1d5db; 
-    font-weight: 700; 
-    font-size: 22px; 
-    margin: 0 0 20px; 
-  }
-  
-  .nf-text { 
-    color: #9ca3af; 
-    font-size: 18px; 
-    line-height: 1.6; 
-    margin: 0 auto 28px; 
-    max-width: 56ch; 
-  }
-  
-  .nf-actions { 
-    margin-bottom: 32px; 
-  }
-  
-  .btn-primary { 
-    display: inline-block; 
-    padding: 12px 24px; 
-    border-radius: 10px; 
-    background: linear-gradient(90deg, #2563eb, #4f46e5); 
-    color: #fff; 
-    font-weight: 700; 
-    text-decoration: none; 
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35); 
-    transition: transform .2s ease, filter .2s ease; 
-  }
-  
-  .btn-primary:hover { 
-    transform: translateY(-2px); 
-    filter: brightness(1.05); 
-  }
-  
-  .nf-links { 
-    display: flex; 
-    gap: 12px; 
-    justify-content: center; 
-    margin-top: 16px; 
-    flex-wrap: wrap; 
+
+  .not-found__actions {
+    display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 12px;
+    margin-top: 34px;
   }
-  
-  .btn-secondary { 
-    display: inline-block; 
-    padding: 10px 18px; 
-    border-radius: 10px; 
-    border: 1px solid rgba(59,130,246,.35); 
-    color: #60a5fa; 
-    background: rgba(255,255,255,0.02); 
-    text-decoration: none; 
-    transition: background .2s ease, transform .2s ease; 
+
+  .button {
+    min-height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 24px;
+    border: 1px solid transparent;
+    border-radius: 17px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 680;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease;
   }
-  
-  .btn-secondary:hover { 
-    background: rgba(59,130,246,.08); 
-    transform: translateY(-2px); 
+
+  .button svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 180ms ease;
   }
-  
-  .nf-quote { 
-    background: rgba(31,41,55,0.6); 
-    border: 1px solid rgba(75,85,99,0.3); 
-    border-radius: 12px; 
-    padding: 18px; 
+
+  .button--primary {
+    border-color: rgba(147, 197, 253, 0.38);
+    background:
+      radial-gradient(circle at 28% 0%, rgba(255, 255, 255, 0.22), transparent 38%),
+      linear-gradient(135deg, #1684ff 0%, #0763df 50%, #074ebd 100%);
+    box-shadow:
+      0 15px 34px rgba(0, 93, 219, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
-  
-  .nf-quote p { 
-    color: #d1d5db; 
-    font-style: italic; 
-    margin: 0; 
+
+  .button--glass {
+    border-color: rgba(191, 219, 254, 0.16);
+    color: rgba(239, 246, 255, 0.86);
+    background: rgba(255, 255, 255, 0.055);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
-  
-  .nf-quote-author { 
-    display: block; 
-    margin-top: 8px; 
-    color: #9ca3af; 
-    font-size: 14px; 
+
+  .button:hover {
+    transform: translateY(-2px);
+  }
+
+  .button--primary:hover {
+    box-shadow:
+      0 19px 42px rgba(0, 93, 219, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .button--primary:hover svg {
+    transform: translateX(3px);
+  }
+
+  .button--glass:hover {
+    border-color: rgba(191, 219, 254, 0.28);
+    background: rgba(255, 255, 255, 0.085);
+  }
+
+  .not-found__support {
+    display: inline-block;
+    margin-top: 26px;
+    color: rgba(191, 219, 254, 0.5);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .not-found__support span {
+    color: rgba(219, 234, 254, 0.78);
+    text-decoration: underline;
+    text-decoration-color: rgba(147, 197, 253, 0.35);
+    text-underline-offset: 4px;
+    transition: color 180ms ease;
+  }
+
+  .not-found__support:hover span {
+    color: #ffffff;
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @media (max-width: 620px) {
+    .not-found {
+      padding: 118px 16px 62px;
+    }
+
+    .not-found__card {
+      padding: 38px 20px 32px;
+      border-radius: 28px;
+    }
+
+    .not-found__icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 19px;
+    }
+
+    .not-found__actions {
+      flex-direction: column;
+    }
+
+    .button {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .not-found__card {
+      animation: none;
+    }
+
+    .button,
+    .button svg {
+      transition: none;
+    }
   }
 </style>
