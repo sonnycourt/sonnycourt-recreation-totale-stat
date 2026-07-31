@@ -1,7 +1,7 @@
 import { getStore } from '@netlify/blobs';
 
 const STORE_NAME = 'admin-es2-auth-rl';
-const MAX_FAILS = 5;
+const MAX_FAILS = 3;
 const BLOCK_MS = 15 * 60 * 1000;
 
 export function clientIp(req) {

@@ -82,7 +82,16 @@
             const stored = localStorage.getItem('stats_access');
             if (stored === ACCESS_CODE) {
                 showDashboard();
+                return;
             }
+            // SSO hub : une session admin active ouvre la page sans code
+            fetch('/.netlify/functions/admin-es2-session', { credentials: 'same-origin' })
+                .then((r) => {
+                    if (r && r.ok && document.getElementById('dashboard').style.display !== 'block') {
+                        showDashboard();
+                    }
+                })
+                .catch(() => {});
         }
 
         function checkAccess() {

@@ -611,6 +611,10 @@
                 <p class="login-subtitle">Point d'entrée du back-office</p>
                 <form id="loginForm">
                     <div class="field">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+                        <input id="email" type="email" autocomplete="username" placeholder="Email" value="sonnycourt@gmail.com" required />
+                    </div>
+                    <div class="field">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7.8a5 5 0 0 1 10 0V10"/><rect x="4" y="10" width="16" height="11" rx="3"/></svg>
                         <input id="password" type="password" autocomplete="current-password" placeholder="Mot de passe" required />
                     </div>
@@ -722,6 +726,7 @@
 
         document.getElementById('loginForm').addEventListener('submit', async (ev) => {
             ev.preventDefault();
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const err = document.getElementById('loginError');
             err.style.display = 'none';
@@ -730,11 +735,26 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ password }),
+                    body: JSON.stringify({ email, password }),
                 });
                 if (r.ok) { showHub(); }
-                else { err.style.display = 'block'; }
-            } catch (e) { err.style.display = 'block'; }
+                else if (r.status === 429) {
+                    let mins = 15;
+                    try {
+                        const d = await r.json();
+                        const ra = Number(d?.retryAfterSec) || Number(r.headers.get('Retry-After')) || 900;
+                        mins = Math.max(1, Math.ceil(ra / 60));
+                    } catch (e) {}
+                    err.textContent = 'Trop de tentatives. Réessaie dans ' + mins + ' min.';
+                    err.style.display = 'block';
+                } else {
+                    err.textContent = 'Email ou mot de passe incorrect';
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                err.textContent = 'Erreur réseau. Réessaie.';
+                err.style.display = 'block';
+            }
             document.getElementById('password').value = '';
         });
 

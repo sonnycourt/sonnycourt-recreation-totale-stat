@@ -70,6 +70,25 @@ export default async (req) => {
     return json(400, { error: 'Password required' });
   }
 
+  // Login email + mot de passe (hub) : si un email est fourni, il doit être le bon.
+  // Les pages internes historiques n'envoient que le mot de passe (compat conservée).
+  const ADMIN_EMAIL = 'sonnycourt@gmail.com';
+  if (typeof body.email === 'string' && body.email.trim() !== '') {
+    const email = body.email.trim().toLowerCase();
+    if (email !== ADMIN_EMAIL) {
+      const rf = await recordFailure(req);
+      if (rf.blocked) {
+        const h = new Headers([
+          ['Content-Type', 'application/json'],
+          ['Cache-Control', 'no-store'],
+          ['Retry-After', String(rf.retryAfterSec || 900)],
+        ]);
+        return new Response(JSON.stringify({ error: 'Too many attempts. Try again later.' }), { status: 429, headers: h });
+      }
+      return json(401, { error: 'Invalid credentials' });
+    }
+  }
+
   const ok = await bcrypt.compare(password, hash);
   if (!ok) {
     const rf = await recordFailure(req);

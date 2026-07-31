@@ -781,6 +781,16 @@ import Layout from '../../layouts/Layout.astro';
   const MAX_ATTEMPTS = 3;
   const BLOCK_DURATION = 15 * 60 * 1000; // 15 minutes in ms
 
+  // SSO hub : une session admin active ouvre la page sans mot de passe local
+  fetch('/.netlify/functions/admin-es2-session', { credentials: 'same-origin' })
+    .then((r) => {
+      if (r && r.ok && sessionStorage.getItem(AUTH_STORAGE_KEY) !== 'authenticated') {
+        sessionStorage.setItem(AUTH_STORAGE_KEY, 'authenticated');
+        showDashboard();
+      }
+    })
+    .catch(() => {});
+
   // Check if already authenticated
   function checkAuth() {
     const authToken = sessionStorage.getItem(AUTH_STORAGE_KEY);
