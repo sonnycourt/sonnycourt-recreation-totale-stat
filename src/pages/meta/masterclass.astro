@@ -42,19 +42,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             var isPreview = params.get('preview') === 'dev';
             var variant = isPreview ? normalize(params.get('ab')) : '';
 
-            if (!variant) {
-                try { variant = normalize(localStorage.getItem(storageKey)); } catch (error) {}
-            }
-            if (!variant) variant = readCookie();
-            if (!variant) {
-                try {
-                    var random = new Uint32Array(1);
-                    window.crypto.getRandomValues(random);
-                    variant = random[0] % 2 === 0 ? 'parcours' : 'contenu';
-                } catch (error) {
-                    variant = Math.random() < 0.5 ? 'parcours' : 'contenu';
-                }
-            }
+            // A/B figé le 01/08/2026 : « parcours » gagnant (+59-70 % d'inscriptions vs « contenu »
+            // sur les 2 campagnes, significatif en poolé). Tout le trafic est servi en « parcours »,
+            // y compris les visiteurs précédemment assignés à « contenu ».
+            // La version « contenu » reste archivée dans le code, testable via ?preview=dev&ab=contenu.
+            if (!variant) variant = 'parcours';
 
             if (!isPreview) {
                 try { localStorage.setItem(storageKey, variant); } catch (error) {}
