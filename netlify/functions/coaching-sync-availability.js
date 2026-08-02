@@ -56,6 +56,7 @@ export default async (req) => {
   const token = await googleAccessTokenForCoach(coach.id).catch(() => null);
   if (!token) return json(409, { error: 'Connecte d’abord Google Calendar.' });
   const rulesResult = await supabaseGet(`coaching_availability_rules?coach_id=eq.${coach.id}&active=eq.true&select=weekday,start_time,end_time,slot_minutes,buffer_minutes,timezone`);
+  if (!rulesResult.ok) return json(502, { error: 'Impossible de lire les disponibilités.' });
   const rules = rulesResult.ok && Array.isArray(rulesResult.data) ? rulesResult.data : [];
   if (!rules.length) return json(409, { error: 'Ajoute au moins une plage de disponibilité.' });
 
@@ -89,14 +90,22 @@ export default async (req) => {
     }
   }
 
+  const uniqueCandidates = [...new Map(candidates.map((slot) => [slot.starts_at, slot])).values()];
+
   const existingResult = await supabaseGet(`coaching_availability_slots?coach_id=eq.${coach.id}&source=eq.google&starts_at=gte.${encodeURIComponent(timeMin.toISOString())}&starts_at=lte.${encodeURIComponent(timeMax.toISOString())}&select=id,starts_at,status`);
+  if (!existingResult.ok) return json(502, { error: 'Impossible de lire les créneaux existants.' });
   const existing = existingResult.ok && Array.isArray(existingResult.data) ? existingResult.data : [];
   const byStart = new Map(existing.map((slot) => [new Date(slot.starts_at).toISOString(), slot]));
-  const wanted = new Set(candidates.map((slot) => slot.starts_at));
-  await Promise.all(existing.filter((slot) => slot.status === 'available' && !wanted.has(new Date(slot.starts_at).toISOString())).map((slot) => supabasePatch('coaching_availability_slots', `id=eq.${slot.id}&status=eq.available`, { status: 'blocked' })));
-  const inserts = candidates.filter((slot) => !byStart.has(slot.starts_at));
-  const reopens = candidates.filter((slot) => byStart.get(slot.starts_at)?.status === 'blocked');
-  if (inserts.length) await supabasePost('coaching_availability_slots', inserts, { prefer: 'return=minimal' });
-  await Promise.all(reopens.map((slot) => supabasePatch('coaching_availability_slots', `id=eq.${byStart.get(slot.starts_at).id}&status=eq.blocked`, { status: 'available', ends_at: slot.ends_at })));
-  return json(200, { ok: true, available: candidates.length, added: inserts.length, reopened: reopens.length });
+  const wanted = new Set(uniqueCandidates.map((slot) => slot.starts_at));
+  const blockedResults = await Promise.all(existing.filter((slot) => slot.status === 'available' && !wanted.has(new Date(slot.starts_at).toISOString())).map((slot) => supabasePatch('coaching_availability_slots', `id=eq.${slot.id}&status=eq.available`, { status: 'blocked' })));
+  if (blockedResults.some((result) => !result.ok)) return json(502, { error: 'Synchronisation incomplète des anciens créneaux.' });
+  const inserts = uniqueCandidates.filter((slot) => !byStart.has(slot.starts_at));
+  const reopens = uniqueCandidates.filter((slot) => byStart.get(slot.starts_at)?.status === 'blocked');
+  if (inserts.length) {
+    const inserted = await supabasePost('coaching_availability_slots', inserts, { prefer: 'return=minimal' });
+    if (!inserted.ok) return json(502, { error: 'Impossible d’ajouter les nouveaux créneaux.' });
+  }
+  const reopenedResults = await Promise.all(reopens.map((slot) => supabasePatch('coaching_availability_slots', `id=eq.${byStart.get(slot.starts_at).id}&status=eq.blocked`, { status: 'available', ends_at: slot.ends_at })));
+  if (reopenedResults.some((result) => !result.ok)) return json(502, { error: 'Synchronisation incomplète des créneaux rouverts.' });
+  return json(200, { ok: true, available: uniqueCandidates.length, added: inserts.length, reopened: reopens.length });
 };

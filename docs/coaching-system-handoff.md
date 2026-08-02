@@ -36,6 +36,8 @@ Garanties importantes :
 - webhooks et remboursements idempotents ;
 - jetons Google chiffrés en AES-256-GCM côté serveur ;
 - liens d'activation stockés uniquement sous forme de hash et valables 48 heures.
+- aucun visiteur Google SSO ne reçoit de rôle ni ne crée de dossier si son
+  email ne correspond pas déjà à un achat ou une invitation.
 
 `sql/coach_diagnostic.sql` reste séparé pour le tunnel historique de première
 consultation à 97 €. Rien n'est supprimé pendant la transition.
@@ -107,6 +109,25 @@ Les rappels récurrents ne sont volontairement pas activés : leur activation
 nécessite une validation explicite car ils transmettent automatiquement des
 données personnelles et des liens Meet à MailerSend.
 
+## Vérifications automatisées
+
+Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel :
+
+- `npm run test:coaching-db` installe les deux migrations dans un PostgreSQL
+  isolé et teste les rôles, les accès croisés interdits, la première
+  consultation, les crédits, les réservations, annulations, achats et
+  remboursements idempotents ;
+- `npm run test:coaching-functions` vérifie que les fonctions refusent les
+  appels non configurés/non authentifiés, la signature Spiffy, sa limite de
+  fraîcheur et le chiffrement des jetons Google ;
+- `npm run build` construit les 270 pages.
+
+Résultat local au 2 août 2026 : tous ces tests passent. Le sas de publication
+signale volontairement un seul changement métier à approuver : la page
+`/coach-romain/` ne dit plus que les créneaux « ouvriront prochainement », car
+elle permet maintenant de réserver. Ne pas modifier la liste des routes
+critiques sans validation explicite de Sonny.
+
 ## Activation restante
 
 1. Autoriser l'écriture Supabase puis appliquer `sql/coach_diagnostic.sql` et
@@ -119,6 +140,15 @@ données personnelles et des liens Meet à MailerSend.
 5. Renseigner les variables Google, Spiffy et MailerSend ci-dessus.
 6. Créer/renseigner les trois checkouts Spiffy et leur webhook signé.
 7. Faire un achat test, une réservation, un déplacement et un remboursement.
+
+Webhook Spiffy à renseigner :
+
+`https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook`
+
+Le pont qui transforme aussi le paiement historique de la première
+consultation à 97 € en dossier/séance Coaching OS et en email d'activation
+reste volontairement désactivé jusqu'à l'autorisation explicite de Sonny. Les
+packs 1, 3 et 6 séances utilisent déjà le flux Coaching OS.
 
 ## Décisions commerciales encore modifiables
 

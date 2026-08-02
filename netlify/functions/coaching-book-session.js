@@ -29,7 +29,8 @@ export default async (req) => {
     const detail = String(payload?.message || payload?.error || '');
     const conflict = detail.includes('slot_unavailable');
     const noCredit = detail.includes('no_credit');
-    return json(conflict ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? 'Tu n’as plus de crédit disponible.' : 'La réservation n’a pas pu être confirmée.' });
+    const preparationRequired = detail.includes('preparation_required');
+    return json(conflict || preparationRequired ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? 'Tu n’as plus de crédit disponible.' : preparationRequired ? 'Complète d’abord ta préparation avant de choisir un créneau.' : 'La réservation n’a pas pu être confirmée.' });
   }
   const row = Array.isArray(payload) ? payload[0] : payload;
   if (!row?.session_id) return json(500, { error: 'Réservation incomplète.' });

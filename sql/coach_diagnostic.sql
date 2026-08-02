@@ -44,6 +44,9 @@ alter table public.coach_diagnostic_bookings alter column focus drop not null;
 alter table public.coach_diagnostic_slots enable row level security;
 alter table public.coach_diagnostic_bookings enable row level security;
 
+grant all on public.coach_diagnostic_slots, public.coach_diagnostic_bookings to service_role;
+grant usage, select on sequence public.coach_diagnostic_slots_id_seq to service_role;
+
 create index if not exists idx_coach_diagnostic_slots_available
   on public.coach_diagnostic_slots (coach_slug, starts_at, status);
 
@@ -74,23 +77,23 @@ declare
   v_booking public.coach_diagnostic_bookings%rowtype;
   v_expires timestamptz := now() + interval '20 minutes';
 begin
-  update public.coach_diagnostic_bookings
+  update public.coach_diagnostic_bookings as booking
      set status = 'expired'
-   where status = 'pending_payment'
-     and expires_at < now();
+   where booking.status = 'pending_payment'
+     and booking.expires_at < now();
 
-  update public.coach_diagnostic_slots
+  update public.coach_diagnostic_slots as slot
      set status = 'available', held_until = null
-   where status = 'held'
-     and held_until < now();
+   where slot.status = 'held'
+     and slot.held_until < now();
 
-  update public.coach_diagnostic_slots
+  update public.coach_diagnostic_slots as slot
      set status = 'held', held_until = v_expires
-   where id = p_slot_id
-     and coach_slug = 'romain'
-     and starts_at > now() + interval '2 hours'
-     and status = 'available'
-  returning * into v_slot;
+   where slot.id = p_slot_id
+     and slot.coach_slug = 'romain'
+     and slot.starts_at > now() + interval '2 hours'
+     and slot.status = 'available'
+  returning slot.* into v_slot;
 
   if v_slot.id is null then
     raise exception 'slot_unavailable';

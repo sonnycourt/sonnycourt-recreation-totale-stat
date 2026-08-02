@@ -380,8 +380,9 @@ grant execute on function public.coaching_current_client_id() to authenticated;
 grant execute on function public.coaching_current_coach_id() to authenticated;
 grant execute on function public.coaching_can_access_client(uuid) to authenticated;
 
--- Création sûre d'un profil client lors de la création d'un compte. Un nouveau
--- compte ne peut jamais s'auto-promouvoir coach ou propriétaire.
+-- Rattachement sûr d'un compte à un client déjà connu. Un visiteur qui utilise
+-- Google SSO sans achat ou invitation ne crée aucun dossier vide et ne reçoit
+-- aucun rôle. Les coachs et propriétaires sont attribués côté serveur.
 create or replace function public.coaching_handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -391,24 +392,26 @@ as $$
 declare
   v_first_name text;
   v_last_name text;
+  v_client_id uuid;
 begin
   v_first_name := coalesce(nullif(trim(new.raw_user_meta_data ->> 'first_name'), ''), split_part(coalesce(new.email, ''), '@', 1), 'Élève');
   v_last_name := nullif(trim(new.raw_user_meta_data ->> 'last_name'), '');
 
-  insert into public.coaching_memberships(user_id, role, active)
-  values (new.id, 'client', true)
-  on conflict (user_id) do nothing;
-
   if new.email is not null then
-    insert into public.coaching_clients(auth_user_id, first_name, last_name, email)
-    values (new.id, v_first_name, v_last_name, lower(new.email))
-    on conflict ((lower(email))) do update
-      set auth_user_id = excluded.auth_user_id,
-          first_name = coalesce(nullif(public.coaching_clients.first_name, ''), excluded.first_name),
-          last_name = coalesce(public.coaching_clients.last_name, excluded.last_name),
-          updated_at = now()
-      where public.coaching_clients.auth_user_id is null
-         or public.coaching_clients.auth_user_id = excluded.auth_user_id;
+    update public.coaching_clients
+    set auth_user_id = new.id,
+        first_name = coalesce(nullif(public.coaching_clients.first_name, ''), v_first_name),
+        last_name = coalesce(public.coaching_clients.last_name, v_last_name),
+        updated_at = now()
+    where lower(email) = lower(new.email)
+      and (auth_user_id is null or auth_user_id = new.id)
+    returning id into v_client_id;
+
+    if v_client_id is not null then
+      insert into public.coaching_memberships(user_id, role, active)
+      values (new.id, 'client', true)
+      on conflict (user_id) do nothing;
+    end if;
   end if;
   return new;
 end;
@@ -427,7 +430,7 @@ begin
   foreach t in array array[
     'coaching_memberships','coaching_coaches','coaching_clients','coaching_offers',
     'coaching_engagements','coaching_availability_slots','coaching_availability_rules','coaching_sessions','coaching_form_templates',
-    'coaching_form_responses','coaching_orders','coaching_session_notes','coaching_actions'
+    'coaching_form_responses','coaching_orders','coaching_session_notes','coaching_actions','coaching_google_connections'
   ] loop
     execute format('drop trigger if exists %I on public.%I', t || '_updated_at', t);
     execute format('create trigger %I before update on public.%I for each row execute function public.coaching_set_updated_at()', t || '_updated_at', t);
@@ -499,8 +502,25 @@ create policy coaching_engagements_read on public.coaching_engagements for selec
 using (public.coaching_can_access_client(client_id));
 drop policy if exists coaching_engagements_staff_write on public.coaching_engagements;
 create policy coaching_engagements_staff_write on public.coaching_engagements for all to authenticated
-using (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id())
-with check (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id());
+using (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and exists (
+      select 1 from public.coaching_clients c
+      where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+    )
+  )
+) with check (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and exists (
+      select 1 from public.coaching_clients c
+      where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+    )
+  )
+);
 
 drop policy if exists coaching_availability_read on public.coaching_availability_slots;
 create policy coaching_availability_read on public.coaching_availability_slots for select to authenticated
@@ -524,8 +544,25 @@ create policy coaching_sessions_read on public.coaching_sessions for select to a
 using (public.coaching_can_access_client(client_id));
 drop policy if exists coaching_sessions_staff_write on public.coaching_sessions;
 create policy coaching_sessions_staff_write on public.coaching_sessions for all to authenticated
-using (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id())
-with check (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id());
+using (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and exists (
+      select 1 from public.coaching_clients c
+      where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+    )
+  )
+) with check (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and exists (
+      select 1 from public.coaching_clients c
+      where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+    )
+  )
+);
 
 drop policy if exists coaching_templates_read on public.coaching_form_templates;
 create policy coaching_templates_read on public.coaching_form_templates for select to authenticated
@@ -564,20 +601,73 @@ using (public.coaching_can_access_client(client_id));
 -- lit pas depuis le navigateur.
 drop policy if exists coaching_notes_coach_only on public.coaching_session_notes;
 create policy coaching_notes_coach_only on public.coaching_session_notes for all to authenticated
-using (coach_id = public.coaching_current_coach_id() and author_user_id = auth.uid())
-with check (coach_id = public.coaching_current_coach_id() and author_user_id = auth.uid());
+using (
+  coach_id = public.coaching_current_coach_id()
+  and author_user_id = auth.uid()
+  and exists (
+    select 1
+    from public.coaching_sessions s
+    join public.coaching_clients c on c.id = s.client_id
+    where s.id = session_id
+      and s.coach_id = public.coaching_current_coach_id()
+      and c.coach_id = public.coaching_current_coach_id()
+  )
+) with check (
+  coach_id = public.coaching_current_coach_id()
+  and author_user_id = auth.uid()
+  and exists (
+    select 1
+    from public.coaching_sessions s
+    join public.coaching_clients c on c.id = s.client_id
+    where s.id = session_id
+      and s.coach_id = public.coaching_current_coach_id()
+      and c.coach_id = public.coaching_current_coach_id()
+  )
+);
 
 drop policy if exists coaching_actions_read on public.coaching_actions;
 create policy coaching_actions_read on public.coaching_actions for select to authenticated
 using (
   public.coaching_current_role() = 'owner'
-  or coach_id = public.coaching_current_coach_id()
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and (
+      client_id is null
+      or exists (
+        select 1 from public.coaching_clients c
+        where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+      )
+    )
+  )
   or (visibility = 'client' and client_id = public.coaching_current_client_id())
 );
 drop policy if exists coaching_actions_staff_write on public.coaching_actions;
 create policy coaching_actions_staff_write on public.coaching_actions for all to authenticated
-using (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id())
-with check (public.coaching_current_role() = 'owner' or coach_id = public.coaching_current_coach_id());
+using (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and (
+      client_id is null
+      or exists (
+        select 1 from public.coaching_clients c
+        where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+      )
+    )
+  )
+) with check (
+  public.coaching_current_role() = 'owner'
+  or (
+    coach_id = public.coaching_current_coach_id()
+    and (
+      client_id is null
+      or exists (
+        select 1 from public.coaching_clients c
+        where c.id = client_id and c.coach_id = public.coaching_current_coach_id()
+      )
+    )
+  )
+);
 
 drop policy if exists coaching_activity_owner_read on public.coaching_activity_log;
 create policy coaching_activity_owner_read on public.coaching_activity_log for select to authenticated
@@ -607,6 +697,15 @@ grant select, insert, update on public.coaching_session_notes to authenticated;
 grant select, insert, update on public.coaching_actions to authenticated;
 grant select on public.coaching_activity_log to authenticated;
 grant usage, select on sequence public.coaching_activity_log_id_seq to authenticated;
+grant all on public.coaching_memberships, public.coaching_coaches, public.coaching_clients,
+  public.coaching_offers, public.coaching_engagements, public.coaching_availability_slots,
+  public.coaching_availability_rules, public.coaching_google_connections,
+  public.coaching_google_oauth_states, public.coaching_sessions,
+  public.coaching_form_templates, public.coaching_form_responses, public.coaching_orders,
+  public.coaching_credit_ledger, public.coaching_session_notes, public.coaching_actions,
+  public.coaching_activity_log, public.coaching_account_activations,
+  public.coaching_email_deliveries to service_role;
+grant usage, select on sequence public.coaching_activity_log_id_seq to service_role;
 revoke all on public.coaching_account_activations from anon, authenticated;
 grant all on public.coaching_account_activations to service_role;
 revoke all on public.coaching_email_deliveries from anon, authenticated;
@@ -679,18 +778,26 @@ declare
   v_session public.coaching_sessions%rowtype;
   v_slot public.coaching_availability_slots%rowtype;
 begin
+  if public.coaching_current_role() <> 'client' then raise exception 'client_required'; end if;
+
   select * into v_client from public.coaching_clients where auth_user_id = auth.uid() for update;
   if v_client.id is null then raise exception 'client_profile_missing'; end if;
   if v_client.coach_id is null then raise exception 'coach_not_assigned'; end if;
 
-  select * into v_slot
-  from public.coaching_availability_slots
-  where id = p_slot_id
-    and coach_id = v_client.coach_id
-    and status = 'available'
-    and starts_at > now() + interval '2 hours'
+  select slot.* into v_slot
+  from public.coaching_availability_slots slot
+  where slot.id = p_slot_id
+    and slot.coach_id = v_client.coach_id
+    and slot.status = 'available'
+    and slot.starts_at > now() + interval '2 hours'
   for update;
   if v_slot.id is null then raise exception 'slot_unavailable'; end if;
+  if not exists (
+    select 1 from public.coaching_form_responses response
+    where response.client_id = v_client.id
+      and response.status = 'submitted'
+      and response.session_id is null
+  ) then raise exception 'preparation_required'; end if;
 
   select * into v_engagement
   from public.coaching_engagements
@@ -720,9 +827,9 @@ begin
   update public.coaching_form_responses
   set session_id = v_session.id
   where id = (
-    select id from public.coaching_form_responses
-    where client_id = v_client.id and status = 'submitted' and session_id is null
-    order by submitted_at desc nulls last, created_at desc
+    select response.id from public.coaching_form_responses response
+    where response.client_id = v_client.id and response.status = 'submitted' and response.session_id is null
+    order by response.submitted_at desc nulls last, response.created_at desc
     limit 1
   );
 
@@ -777,6 +884,40 @@ end;
 $$;
 revoke all on function public.coaching_cancel_session(uuid, text) from public;
 grant execute on function public.coaching_cancel_session(uuid, text) to authenticated;
+
+-- Clôture explicite par le coach : la séance sort de l'agenda actif, reste
+-- dans l'historique du client et génère une trace opérationnelle sans exposer
+-- la note privée.
+create or replace function public.coaching_complete_session(p_session_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_session public.coaching_sessions%rowtype;
+begin
+  if public.coaching_current_role() <> 'coach' then raise exception 'coach_required'; end if;
+  select session.* into v_session
+  from public.coaching_sessions session
+  where session.id = p_session_id
+    and session.coach_id = public.coaching_current_coach_id()
+  for update;
+  if v_session.id is null then raise exception 'session_not_found'; end if;
+  if v_session.status <> 'confirmed' then raise exception 'session_not_completable'; end if;
+  if v_session.starts_at > now() + interval '15 minutes' then raise exception 'session_too_early'; end if;
+
+  update public.coaching_sessions
+  set status = 'completed', completed_at = now()
+  where id = v_session.id;
+
+  insert into public.coaching_activity_log(actor_user_id, event_type, entity_type, entity_id, client_id)
+  values (auth.uid(), 'session.completed', 'session', v_session.id, v_session.client_id);
+  return v_session.id;
+end;
+$$;
+revoke all on function public.coaching_complete_session(uuid) from public;
+grant execute on function public.coaching_complete_session(uuid) to authenticated;
 
 -- Enregistrement idempotent d'une commande Spiffy. Exécutable uniquement avec
 -- la clé service role côté serveur.
@@ -909,6 +1050,7 @@ begin
     if not found then raise exception 'coach_profile_not_found'; end if;
   elsif p_role = 'client' then
     update public.coaching_clients set auth_user_id = v_user_id where lower(email) = lower(trim(p_email));
+    if not found then raise exception 'client_profile_not_found'; end if;
   end if;
   return v_user_id;
 end;

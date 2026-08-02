@@ -15,7 +15,8 @@ export default async (req) => {
   const found = await supabaseGet(`coaching_google_oauth_states?token_hash=eq.${hash}&used_at=is.null&expires_at=gt.${encodeURIComponent(now)}&select=id,coach_id&limit=1`);
   const stored = found.ok && Array.isArray(found.data) ? found.data[0] : null;
   if (!stored) return redirect(origin, 'expired');
-  await supabasePatch('coaching_google_oauth_states', `id=eq.${stored.id}&used_at=is.null`, { used_at: now });
+  const claimed = await supabasePatch('coaching_google_oauth_states', `id=eq.${stored.id}&used_at=is.null`, { used_at: now });
+  if (!claimed.ok || !Array.isArray(claimed.data) || !claimed.data[0]) return redirect(origin, 'expired');
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ code, client_id: process.env.GOOGLE_COACHING_CLIENT_ID || '', client_secret: process.env.GOOGLE_COACHING_CLIENT_SECRET || '', redirect_uri: coachingGoogleRedirectUri(origin), grant_type: 'authorization_code' }),

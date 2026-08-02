@@ -29,7 +29,7 @@ function render(state, live = false) {
       <td>${Number(coach.activeClients || 0)} clients</td>
       <td>${Number(coach.sessionsThisMonth || 0)} séances</td>
       <td>${coach.satisfaction ? `${escapeHtml(coach.satisfaction)}/10` : '—'}</td>
-      <td><a class="action-link" href="${live ? '/coach-console' : '/coach-console?preview=1'}">Ouvrir son espace</a></td>
+      <td><a class="action-link" href="${live ? '#coachs' : '/coach-console?preview=1'}">${live ? 'Activité' : 'Ouvrir son espace'}</a></td>
     </tr>
   `).join('');
 
@@ -39,7 +39,7 @@ function render(state, live = false) {
       <td>${escapeHtml(client.plan || 'Aucune formule')}</td>
       <td>${Number(client.remaining || 0)} crédit${Number(client.remaining || 0) > 1 ? 's' : ''}</td>
       <td>${escapeHtml(client.nextSession || 'À réserver')}</td>
-      <td><a class="action-link" href="${live ? `/coach-console#clients` : client.id === 'claire' ? '/coaching/eleve?preview=1' : '/coach-console?preview=1#clients'}">Voir</a></td>
+      <td><a class="action-link" href="${live ? '#clients' : client.id === 'claire' ? '/coaching/eleve?preview=1' : '/coach-console?preview=1#clients'}">Voir</a></td>
     </tr>
   `).join('');
 
@@ -145,6 +145,7 @@ async function boot() {
   if (!access) return;
   if (access.mode === 'demo') {
     setDemoSession('owner', { name: 'Sonny', email: 'sonnycourt@gmail.com' });
+    document.querySelectorAll('[data-demo-link]').forEach((link) => { link.href = link.dataset.demoLink; });
     render(demoState(), false);
   } else {
     document.querySelector('[data-reset-demo]')?.closest('.sidebar-foot')?.querySelector('[data-reset-demo]')?.setAttribute('hidden', '');

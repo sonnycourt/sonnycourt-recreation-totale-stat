@@ -50,8 +50,8 @@ form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
-  if (!email || password.length < 8) {
-    showFeedback('Entre un email valide et un mot de passe d’au moins 8 caractères.', true);
+  if (!email || !password) {
+    showFeedback('Entre ton email et ton mot de passe.', true);
     return;
   }
 

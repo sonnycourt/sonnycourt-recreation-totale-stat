@@ -244,6 +244,7 @@ async function loadLiveCoachData(session) {
   for (const row of clientResult.data || []) {
     const clientSessions = sessions.filter((item) => item.client_id === row.id);
     const future = clientSessions.filter((item) => item.status === 'confirmed' && new Date(item.starts_at) >= new Date()).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0];
+    const noteSession = future || clientSessions.find((item) => !['cancelled', 'no_show'].includes(item.status));
     const engagement = engagements.find((item) => item.client_id === row.id && item.status === 'active') || engagements.find((item) => item.client_id === row.id);
     const offer = engagement?.coaching_offers;
     const prep = responses.find((item) => item.client_id === row.id && item.status === 'submitted');
@@ -265,6 +266,9 @@ async function loadLiveCoachData(session) {
       next: future ? escapeHtml(formatDateTime(future.starts_at)) : 'Non planifiée',
       nextSessionId: future?.id || null,
       nextSessionStart: future?.starts_at || null,
+      noteSessionId: noteSession?.id || null,
+      noteSessionStart: noteSession?.starts_at || null,
+      noteSessionStatus: noteSession?.status || null,
       meetUrl: future?.meet_url || null,
       objective: escapeHtml(row.objective || prep?.answers?.outcome || 'Objectif à clarifier avec le client.'),
       context: escapeHtml([prep?.answers?.progress, prep?.answers?.obstacle, prep?.answers?.context].filter(Boolean).join(' ') || 'Aucun contexte supplémentaire transmis.'),
@@ -459,6 +463,7 @@ function clientMarkup(client) {
       </section>
       <div class="drawer-footer-actions">
         <button class="secondary-button" type="button" data-toast="La planification sera synchronisée avec Google Calendar."><svg><use href="#co-icon-calendar"></use></svg><span>Planifier</span></button>
+        ${consoleMode === 'live' && client.noteSessionStatus === 'confirmed' && new Date(client.noteSessionStart).getTime() <= Date.now() + 15 * 60 * 1000 ? `<button class="secondary-button" type="button" data-complete-client="${client.id}"><svg><use href="#co-icon-check"></use></svg><span>Marquer terminée</span></button>` : ''}
         <button class="primary-button" type="button" data-note-client="${client.id}"><svg><use href="#co-icon-note"></use></svg><span>Écrire une note</span></button>
       </div>
     </div>
@@ -484,15 +489,15 @@ async function openNote(id) {
   const client = clients[id];
   if (!client) return;
   noteClientId = id;
-  document.getElementById('note-title').textContent = 'Préparer la séance avec ' + client.name.split(' ')[0];
+  document.getElementById('note-title').textContent = 'Préparer la séance avec ' + (client.nameText || client.name).split(' ')[0];
   document.getElementById('note-client').innerHTML = `
     <span class="avatar ${client.avatar}">${client.initials}</span>
     <span><strong>${client.name}</strong><small>${client.type} · ${client.next}</small></span>
   `;
   noteForm.reset();
   let draft = null;
-  if (consoleMode === 'live' && client.nextSessionId) {
-    const existing = await coachingSupabase.from('coaching_session_notes').select('intention,observations,decision,commitment,next_focus').eq('session_id', client.nextSessionId).eq('coach_id', liveCoachId).maybeSingle();
+  if (consoleMode === 'live' && client.noteSessionId) {
+    const existing = await coachingSupabase.from('coaching_session_notes').select('intention,observations,decision,commitment,next_focus').eq('session_id', client.noteSessionId).eq('coach_id', liveCoachId).maybeSingle();
     if (!existing.error && existing.data) draft = { ...existing.data, next: existing.data.next_focus };
   } else if (consoleMode === 'demo') {
     try { draft = JSON.parse(localStorage.getItem('coach-note-' + id) || 'null'); } catch {}
@@ -515,6 +520,19 @@ function closeNote() {
   noteModal.classList.remove('is-open');
   noteModal.setAttribute('aria-hidden', 'true');
   if (!drawer.classList.contains('is-open')) body.style.overflow = '';
+}
+
+async function completeClientSession(id) {
+  if (consoleMode !== 'live') return;
+  const client = clients[id];
+  if (!client?.noteSessionId) return showToast('Aucune séance à clôturer.');
+  const { error } = await coachingSupabase.rpc('coaching_complete_session', { p_session_id: client.noteSessionId });
+  if (error) return showToast('La séance n’a pas pu être clôturée.');
+  client.noteSessionStatus = 'completed';
+  const session = client.sessions.find((item) => item.status === 'À venir');
+  if (session) session.status = 'Terminée';
+  closeClient();
+  showToast('Séance terminée et ajoutée à l’historique.');
 }
 
 function renderGlobalSearch(query) {
@@ -574,6 +592,9 @@ document.addEventListener('click', (event) => {
   const noteButton = target.closest('[data-note-client]');
   if (noteButton) openNote(noteButton.dataset.noteClient);
 
+  const completeButton = target.closest('[data-complete-client]');
+  if (completeButton) completeClientSession(completeButton.dataset.completeClient);
+
   if (target.closest('[data-drawer-close]')) closeClient();
   if (target.closest('[data-note-close]')) closeNote();
 
@@ -629,9 +650,9 @@ noteForm.addEventListener('submit', async (event) => {
   const draft = Object.fromEntries(new FormData(noteForm).entries());
   if (consoleMode === 'live') {
     const client = clients[noteClientId];
-    if (!client?.nextSessionId) return showToast('Planifie d’abord une séance pour rattacher cette note.');
+    if (!client?.noteSessionId) return showToast('Planifie d’abord une séance pour rattacher cette note.');
     const { error } = await coachingSupabase.from('coaching_session_notes').upsert({
-      session_id: client.nextSessionId,
+      session_id: client.noteSessionId,
       coach_id: liveCoachId,
       author_user_id: liveUserId,
       status: 'draft',
