@@ -6,11 +6,25 @@ function renderStudent(student) {
   const ratio = student.creditsTotal ? (remaining / student.creditsTotal) * 100 : 0;
   const fullName = [student.firstName, student.lastName].filter(Boolean).join(' ');
   const initials = fullName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const coachName = student.coachName || 'Romain';
+  const coachAvatar = String(student.coachAvatar || '/media/coachs/romain.webp?v=ai-hd');
 
   document.querySelectorAll('[data-student-first-name]').forEach((node) => { node.textContent = student.firstName; });
   document.querySelectorAll('[data-student-full-name]').forEach((node) => { node.textContent = fullName; });
   document.querySelectorAll('[data-student-initials]').forEach((node) => { node.textContent = initials; });
   document.querySelectorAll('[data-student-remaining]').forEach((node) => { node.textContent = String(remaining); });
+  document.querySelectorAll('[data-coach-name]').forEach((node) => { node.textContent = coachName; });
+  document.querySelectorAll('[data-coach-avatar]').forEach((image) => {
+    image.src = coachAvatar.startsWith('/') || /^https:\/\//i.test(coachAvatar) ? coachAvatar : '/favicon.svg';
+    image.alt = coachName;
+  });
+  const continuationUrl = student.coachSlug === 'romain' || !student.coachSlug
+    ? `/coach-romain/continuer?prenom=${encodeURIComponent(student.firstName)}&email=${encodeURIComponent(student.email || '')}`
+    : '';
+  document.querySelectorAll('[data-continuation-link]').forEach((link) => {
+    link.hidden = !continuationUrl;
+    if (continuationUrl) link.href = continuationUrl;
+  });
   document.querySelector('[data-student-total]').textContent = String(student.creditsTotal);
   document.querySelector('[data-student-plan]').textContent = student.plan || 'Accompagnement individuel';
   document.querySelector('[data-credit-visual]').style.background = `conic-gradient(var(--cp-green) 0 ${ratio}%, rgba(136,190,246,.09) ${ratio}% 100%)`;
@@ -23,19 +37,20 @@ function renderStudent(student) {
 
   if (student.nextSession) {
     nextTitle.textContent = 'Ta prochaine séance est réservée.';
-    nextCopy.textContent = `${formatDateTime(student.nextSession)} avec ${student.coachName || 'Romain'}. Ton lien Google Meet apparaîtra ici dès sa création.`;
+    nextCopy.textContent = `${formatDateTime(student.nextSession)} avec ${coachName}. Ton lien Google Meet apparaîtra ici dès sa création.`;
     setNextActions('/coaching/confirmation', 'Voir ma réservation');
   } else if (remaining <= 0) {
     nextTitle.textContent = 'Choisis comment tu veux continuer.';
     nextCopy.textContent = 'Ton cycle actuel est terminé. Tu peux choisir une séance ponctuelle ou un nouveau parcours.';
-    setNextActions(`/coach-romain/continuer?prenom=${encodeURIComponent(student.firstName)}&email=${encodeURIComponent(student.email || '')}`, 'Voir les options');
+    if (continuationUrl) setNextActions(continuationUrl, 'Voir les options');
+    else setNextActions('/coaching', 'Contacter l’équipe coaching');
   } else if (student.preparation.completed) {
     nextTitle.textContent = 'Ta préparation est prête.';
-    nextCopy.textContent = `${student.coachName || 'Romain'} retrouvera tes réponses dans ton dossier. Il reste seulement à choisir un créneau.`;
+    nextCopy.textContent = `${coachName} retrouvera tes réponses dans ton dossier. Il reste seulement à choisir un créneau.`;
     setNextActions('/coaching/reserver', 'Choisir mon créneau');
   } else {
     nextTitle.textContent = 'Prépare ta prochaine séance.';
-    nextCopy.textContent = `Quelques réponses courtes permettront à ${student.coachName || 'Romain'} de reprendre le fil sans perdre les premières minutes.`;
+    nextCopy.textContent = `Quelques réponses courtes permettront à ${coachName} de reprendre le fil sans perdre les premières minutes.`;
     setNextActions('/coaching/preparation', 'Commencer ma préparation');
   }
 
@@ -52,7 +67,7 @@ function renderStudent(student) {
 async function getLiveStudent(session) {
   const { data: client, error: clientError } = await coachingSupabase
     .from('coaching_clients')
-    .select('id,first_name,last_name,email,objective,coach_id,coaching_coaches(first_name,last_name)')
+    .select('id,first_name,last_name,email,objective,coach_id,coaching_coaches(slug,first_name,last_name,avatar_url)')
     .eq('auth_user_id', session.user.id)
     .single();
   if (clientError) throw clientError;
@@ -86,6 +101,8 @@ async function getLiveStudent(session) {
     email: client.email,
     objective: client.objective,
     coachName: coach ? [coach.first_name, coach.last_name].filter(Boolean).join(' ') : 'Romain',
+    coachSlug: coach?.slug || 'romain',
+    coachAvatar: coach?.avatar_url || '/media/coachs/romain.webp?v=ai-hd',
     plan: offer?.name || 'Accompagnement individuel',
     creditsTotal: Math.max(Number(offer?.sessions_count || 0), balance),
     creditsUsed: Math.max(Number(offer?.sessions_count || 0) - balance, 0),

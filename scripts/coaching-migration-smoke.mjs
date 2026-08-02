@@ -37,7 +37,8 @@ const ids = {
   alice: '00000000-0000-4000-8000-000000000003',
   lea: '00000000-0000-4000-8000-000000000004',
   bob: '00000000-0000-4000-8000-000000000005',
-  stranger: '00000000-0000-4000-8000-000000000006'
+  stranger: '00000000-0000-4000-8000-000000000006',
+  preexisting: '00000000-0000-4000-8000-000000000007'
 }
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0]
@@ -76,8 +77,12 @@ await db.exec(`
   insert into auth.users(id, email, raw_user_meta_data) values
     ('${ids.sonny}', 'sonny@example.test', '{"first_name":"Sonny"}'),
     ('${ids.romain}', 'romain@example.test', '{"first_name":"Romain"}'),
-    ('${ids.lea}', 'lea@example.test', '{"first_name":"Léa"}');
+    ('${ids.lea}', 'lea@example.test', '{"first_name":"Léa"}'),
+    ('${ids.preexisting}', 'preexisting@example.test', '{"first_name":"Déjà connecté"}');
 `)
+
+assert.equal(await count('select count(*) from public.coaching_memberships where user_id = $1', [ids.preexisting]), 0)
+assert.equal(await count("select count(*) from public.coaching_clients where email = 'preexisting@example.test'"), 0)
 
 await asRole('service_role', async () => {
   await db.query("select public.coaching_assign_role_by_email($1, 'owner', null)", ['sonny@example.test'])
@@ -100,8 +105,16 @@ const bobOrder = await asRole('service_role', () => one(`
     24700, 0, 'EUR', 'CH', '{}'::jsonb
   )
 `))
+const preexistingOrder = await asRole('service_role', () => one(`
+  select * from public.coaching_record_spiffy_order(
+    'spiffy-preexisting-001', 'preexisting@example.test', 'Déjà', 'Connecté', 'session-1',
+    24700, 0, 'EUR', 'CH', '{}'::jsonb
+  )
+`))
 const alice = { id: aliceOrder.client_id }
 const bob = { id: bobOrder.client_id }
+assert.equal(await count('select count(*) from public.coaching_clients where id = $1 and auth_user_id = $2', [preexistingOrder.client_id, ids.preexisting]), 1)
+assert.equal(await count("select count(*) from public.coaching_memberships where user_id = $1 and role = 'client' and active", [ids.preexisting]), 1)
 await db.exec(`
   insert into auth.users(id, email, raw_user_meta_data) values
     ('${ids.alice}', 'alice@example.test', '{"first_name":"Alice"}'),
@@ -302,6 +315,7 @@ console.log(JSON.stringify({
   booking: 'ok',
   cancellation: 'ok',
   session_completion: 'ok',
+  preexisting_sso_purchase_link: 'ok',
   spiffy_idempotency: 'ok',
   refund_idempotency: 'ok'
 }))

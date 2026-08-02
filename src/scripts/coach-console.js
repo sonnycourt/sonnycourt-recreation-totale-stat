@@ -202,6 +202,11 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 }
 
+function safeAvatar(value) {
+  const avatar = String(value || '');
+  return avatar.startsWith('/') || /^https:\/\//i.test(avatar) ? avatar : '/favicon.svg';
+}
+
 function renderLiveClientRows() {
   const table = document.querySelector('.clients-table');
   const head = table?.querySelector('.client-head');
@@ -222,8 +227,17 @@ function renderLiveClientRows() {
 }
 
 async function loadLiveCoachData(session) {
-  const { data: coach, error: coachError } = await coachingSupabase.from('coaching_coaches').select('id,first_name,last_name,email').eq('auth_user_id', session.user.id).single();
+  const { data: coach, error: coachError } = await coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url').eq('auth_user_id', session.user.id).single();
   if (coachError) throw coachError;
+  const coachName = [coach.first_name, coach.last_name].filter(Boolean).join(' ') || 'Coach';
+  viewMeta.dashboard[0] = `Espace de ${coachName}`;
+  document.getElementById('view-kicker').textContent = viewMeta.dashboard[0];
+  document.title = `Espace Coaching — ${coachName}`;
+  document.querySelectorAll('[data-coach-name]').forEach((node) => { node.textContent = coachName; });
+  document.querySelectorAll('[data-coach-avatar]').forEach((image) => {
+    image.src = safeAvatar(coach.avatar_url);
+    image.alt = coachName;
+  });
   liveCoachId = coach.id;
   liveUserId = session.user.id;
   const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult] = await Promise.all([
@@ -284,7 +298,7 @@ async function loadLiveCoachData(session) {
   document.querySelector('.sidebar-status strong').textContent = 'Supabase connecté';
   document.querySelector('.sidebar-status small').textContent = `${Object.keys(clients).length} client(s) attribué(s)`;
   document.querySelector('.preview-badge strong').textContent = 'Données réelles';
-  document.querySelector('.preview-badge small').textContent = 'Accès isolé de Romain';
+  document.querySelector('.preview-badge small').textContent = `Accès isolé de ${coachName}`;
   document.querySelector('.metric-card.green strong').textContent = String(Object.keys(clients).length);
   document.querySelector('.metric-card.purple strong').textContent = String(actions.length);
   renderLiveWorkspace(sessions, actions, availabilityResult.data || []);

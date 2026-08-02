@@ -8,6 +8,12 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }
 
+
+function safeAvatar(value) {
+  const avatar = String(value || '');
+  return avatar.startsWith('/') || /^https:\/\//i.test(avatar) ? avatar : '/favicon.svg';
+}
+
 function render(state, live = false) {
   const activeClients = state.clients.filter((client) => client.status === 'active');
   const sessionsRemaining = state.clients.reduce((sum, client) => sum + Math.max(Number(client.remaining || 0), 0), 0);
@@ -24,7 +30,7 @@ function render(state, live = false) {
 
   document.querySelector('[data-coach-rows]').innerHTML = state.coaches.map((coach) => `
     <tr>
-      <td><div class="coach-cell"><img src="/media/coachs/romain.webp?v=ai-hd" alt=""><span><strong>${escapeHtml(coach.name)}</strong><small>${escapeHtml(coach.email || 'Email à renseigner')}</small></span></div></td>
+      <td><div class="coach-cell"><img src="${escapeHtml(safeAvatar(coach.avatarUrl))}" alt=""><span><strong>${escapeHtml(coach.name)}</strong><small>${escapeHtml(coach.email || 'Email à renseigner')}</small></span></div></td>
       <td><span class="state-pill">${coach.status === 'active' ? 'Actif' : escapeHtml(coach.status)}</span></td>
       <td>${Number(coach.activeClients || 0)} clients</td>
       <td>${Number(coach.sessionsThisMonth || 0)} séances</td>
@@ -72,7 +78,7 @@ async function liveState() {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
   const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult] = await Promise.all([
-    coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,status'),
+    coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,status'),
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,status,coach_id'),
     coachingSupabase.from('coaching_engagements').select('id,client_id,offer_id,status,started_at').eq('status', 'active').order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_offers').select('id,name,sessions_count'),
@@ -112,6 +118,7 @@ async function liveState() {
     id: coach.id,
     name: [coach.first_name, coach.last_name].filter(Boolean).join(' '),
     email: coach.email,
+    avatarUrl: coach.avatar_url,
     status: coach.status,
     activeClients: clients.filter((client) => client.coach_id === coach.id && client.status === 'active').length,
     sessionsThisMonth: (sessionsResult.data || []).filter((session) => session.coach_id === coach.id && new Date(session.starts_at) >= monthStart).length,

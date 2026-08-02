@@ -38,6 +38,10 @@ Garanties importantes :
 - liens d'activation stockés uniquement sous forme de hash et valables 48 heures.
 - aucun visiteur Google SSO ne reçoit de rôle ni ne crée de dossier si son
   email ne correspond pas déjà à un achat ou une invitation.
+- si ce visiteur achète ensuite, la commande rattache automatiquement son
+  compte Google existant au dossier client sans générer de lien inutilisable ;
+- l’identité affichée dans les espaces coach et élève provient du coach assigné
+  (`nom` et `avatar_url`) : le socle n’est pas limité à Romain.
 
 `sql/coach_diagnostic.sql` reste séparé pour le tunnel historique de première
 consultation à 97 €. Rien n'est supprimé pendant la transition.
@@ -46,7 +50,7 @@ consultation à 97 €. Rien n'est supprimé pendant la transition.
 
 Le webhook `coach-spiffy-webhook` :
 
-1. refuse tout appel non signé ;
+1. refuse tout appel non authentifié (signature ou token privé) ;
 2. conserve la logique de la première consultation existante ;
 3. reconnaît les checkouts 1, 3 et 6 séances ;
 4. crée ou rattache le client ;
@@ -65,6 +69,8 @@ Les identifiants reconnus par le webhook sont configurés avec :
 - `SPIFFY_COACHING_SESSION_1_IDS`
 - `SPIFFY_COACHING_PACK_3_IDS`
 - `SPIFFY_COACHING_PACK_6_IDS`
+- `SPIFFY_FIRST_CONSULTATION_IDS` (`39602` pour la checkout actuelle)
+- `COACHING_SPIFFY_WEBHOOK_TOKEN` (secret aléatoire long, distinct des autres)
 
 Variables Supabase nécessaires aux fonctions serveur :
 
@@ -94,7 +100,8 @@ L'URI OAuth autorisée est :
 
 Google SSO pour la connexion des utilisateurs est un réglage séparé dans
 Supabase Auth. Ajouter les redirects `/coaching/auth/callback` de production et
-de localhost.
+de localhost, ainsi que `/coaching/reset-password` pour la récupération du mot
+de passe.
 
 ## Emails
 
@@ -116,11 +123,13 @@ Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel
 - `npm run test:coaching-db` installe les deux migrations dans un PostgreSQL
   isolé et teste les rôles, les accès croisés interdits, la première
   consultation, les crédits, les réservations, annulations, achats et
-  remboursements idempotents ;
+  remboursements idempotents, ainsi que le cas Google SSO avant achat ;
 - `npm run test:coaching-functions` vérifie que les fonctions refusent les
   appels non configurés/non authentifiés, la signature Spiffy, sa limite de
   fraîcheur et le chiffrement des jetons Google ;
 - `npm run build` construit les 270 pages.
+- `npm run check:coaching-readiness` vérifie la présence de chaque variable
+  externe sans jamais afficher sa valeur.
 
 Résultat local au 2 août 2026 : tous ces tests passent. Le sas de publication
 signale volontairement un seul changement métier à approuver : la page
@@ -138,12 +147,28 @@ critiques sans validation explicite de Sonny.
    - `coaching_assign_role_by_email('email-romain', 'coach', 'romain')`
 4. Ajouter les plages de Romain dans `coaching_availability_rules`.
 5. Renseigner les variables Google, Spiffy et MailerSend ci-dessus.
-6. Créer/renseigner les trois checkouts Spiffy et leur webhook signé.
+6. Créer/renseigner les trois checkouts Spiffy et leur webhook protégé.
 7. Faire un achat test, une réservation, un déplacement et un remboursement.
 
-Webhook Spiffy à renseigner :
+Configurer MailerSend **avant** d’activer les webhooks Spiffy. Si une livraison
+d’email échoue après l’achat, Spiffy peut rejouer le webhook : le système ne
+recrédite pas la commande, invalide l’ancien lien et en délivre un nouveau.
 
-`https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook`
+Webhooks Spiffy à renseigner dans les automatisations correspondantes :
+
+- achat : `https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook?event=purchase&token=SECRET`
+- remboursement : `https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook?event=refund&token=SECRET`
+
+Le paramètre est volontaire : les Custom Webhooks Spiffy héritent du contexte
+de l’automatisation mais ne fournissent pas toujours un nom d’événement dans le
+corps. Le serveur refuse donc les événements ambigus et les commandes échouées.
+Il ne conserve pas le corps complet (adresse, téléphone ou données de carte
+partielles), seulement quelques identifiants techniques d’audit.
+
+`SECRET` doit être exactement la valeur de `COACHING_SPIFFY_WEBHOOK_TOKEN`.
+Spiffy n’envoie pas systématiquement les en-têtes Svix observés sur d’autres
+providers ; le serveur accepte donc soit une signature valide, soit ce token
+privé, mais jamais un appel dépourvu des deux.
 
 Le pont qui transforme aussi le paiement historique de la première
 consultation à 97 € en dossier/séance Coaching OS et en email d'activation

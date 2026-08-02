@@ -13,6 +13,7 @@ const defaultState = {
       id: 'romain',
       name: 'Romain',
       email: 'romain@sonnycourt.com',
+      avatarUrl: '/media/coachs/romain.webp?v=ai-hd',
       status: 'active',
       activeClients: 12,
       sessionsThisMonth: 28,

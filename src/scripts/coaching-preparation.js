@@ -7,6 +7,13 @@ let mode = 'demo';
 let liveContext = null;
 let saveTimer;
 
+function renderCoachName(name) {
+  const coachName = name || 'Romain';
+  document.querySelectorAll('[data-coach-name]').forEach((node) => { node.textContent = coachName; });
+  const context = document.querySelector('[data-coach-placeholder]');
+  if (context) context.placeholder = `Seulement ce qui aidera ${coachName} à comprendre la situation actuelle.`;
+}
+
 function fillForm(values = {}) {
   Object.entries(values).forEach(([name, value]) => {
     const field = form.elements.namedItem(name);
@@ -19,8 +26,10 @@ function collect() {
 }
 
 async function loadLiveContext(session) {
-  const { data: client, error: clientError } = await coachingSupabase.from('coaching_clients').select('id').eq('auth_user_id', session.user.id).single();
+  const { data: client, error: clientError } = await coachingSupabase.from('coaching_clients').select('id,coaching_coaches(first_name,last_name)').eq('auth_user_id', session.user.id).single();
   if (clientError) throw clientError;
+  const coach = client.coaching_coaches;
+  renderCoachName(coach ? [coach.first_name, coach.last_name].filter(Boolean).join(' ') : 'Romain');
   const { data: template, error: templateError } = await coachingSupabase.from('coaching_form_templates').select('id,slug,version').eq('purpose', 'session_preparation').eq('status', 'active').order('version', { ascending: false }).limit(1).single();
   if (templateError) throw templateError;
   const { data: response, error: responseError } = await coachingSupabase.from('coaching_form_responses').select('id,answers,status').eq('client_id', client.id).eq('template_id', template.id).is('session_id', null).order('created_at', { ascending: false }).limit(1).maybeSingle();

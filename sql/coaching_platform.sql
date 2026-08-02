@@ -30,6 +30,7 @@ create table if not exists public.coaching_coaches (
   first_name text not null,
   last_name text,
   email text,
+  avatar_url text,
   timezone text not null default 'Europe/Zurich',
   status text not null default 'active' check (status in ('invited', 'active', 'paused', 'archived')),
   google_calendar_id text,
@@ -37,6 +38,8 @@ create table if not exists public.coaching_coaches (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.coaching_coaches add column if not exists avatar_url text;
 
 create unique index if not exists coaching_coaches_email_unique
   on public.coaching_coaches (lower(email)) where email is not null;
@@ -311,6 +314,7 @@ create index if not exists coaching_activations_open_idx
 create table if not exists public.coaching_email_deliveries (
   id uuid primary key default gen_random_uuid(),
   session_id uuid references public.coaching_sessions(id) on delete cascade,
+  order_id uuid references public.coaching_orders(id) on delete cascade,
   client_id uuid references public.coaching_clients(id) on delete cascade,
   kind text not null,
   recipient_email text not null,
@@ -319,6 +323,10 @@ create table if not exists public.coaching_email_deliveries (
   created_at timestamptz not null default now(),
   unique (session_id, kind, recipient_email)
 );
+
+alter table public.coaching_email_deliveries add column if not exists order_id uuid references public.coaching_orders(id) on delete cascade;
+create unique index if not exists coaching_email_order_delivery_unique
+  on public.coaching_email_deliveries(order_id, kind, recipient_email);
 
 -- Helpers d'autorisation : les rôles sont lus dans une table contrôlée, jamais
 -- dans les métadonnées modifiables par l'utilisateur.
@@ -943,6 +951,8 @@ declare
   v_client public.coaching_clients%rowtype;
   v_offer public.coaching_offers%rowtype;
   v_coach_id uuid;
+  v_auth_user_id uuid;
+  v_auth_role text;
   v_engagement_id uuid;
   v_order_id uuid;
 begin
@@ -968,6 +978,36 @@ begin
   if v_coach_id is null then
     select id into v_coach_id from public.coaching_coaches where slug = 'romain' and status = 'active' limit 1;
     update public.coaching_clients set coach_id = v_coach_id where id = v_client.id;
+  end if;
+
+  -- Un prospect peut avoir essayé Google SSO avant son achat. Dans ce cas,
+  -- son compte Auth existe déjà mais le déclencheur n'avait encore aucun
+  -- dossier client à rattacher. L'achat effectue ce rattachement sans jamais
+  -- écraser un rôle propriétaire ou coach existant.
+  select u.id into v_auth_user_id
+  from auth.users u
+  where lower(u.email) = lower(trim(p_email))
+  limit 1;
+  if v_auth_user_id is not null then
+    select role into v_auth_role
+    from public.coaching_memberships
+    where user_id = v_auth_user_id and active = true;
+    if v_auth_role is null or v_auth_role = 'client' then
+      if v_client.auth_user_id is null then
+        update public.coaching_clients
+        set auth_user_id = v_auth_user_id
+        where id = v_client.id
+          and auth_user_id is null;
+        v_client.auth_user_id := v_auth_user_id;
+      elsif v_client.auth_user_id <> v_auth_user_id then
+        raise exception 'client_auth_conflict';
+      end if;
+      insert into public.coaching_memberships(user_id, role, active)
+      values (v_auth_user_id, 'client', true)
+      on conflict (user_id) do update
+      set active = true, updated_at = now()
+      where public.coaching_memberships.role = 'client';
+    end if;
   end if;
 
   insert into public.coaching_engagements(client_id, coach_id, offer_id, status, expires_at)
@@ -1059,9 +1099,9 @@ revoke all on function public.coaching_assign_role_by_email(text, text, text) fr
 grant execute on function public.coaching_assign_role_by_email(text, text, text) to service_role;
 
 -- Données de référence alignées sur la promesse affichée sur la page de suite.
-insert into public.coaching_coaches(slug, first_name, status, timezone)
-values ('romain', 'Romain', 'active', 'Europe/Zurich')
-on conflict (slug) do update set first_name = excluded.first_name, status = excluded.status, updated_at = now();
+insert into public.coaching_coaches(slug, first_name, avatar_url, status, timezone)
+values ('romain', 'Romain', '/media/coachs/romain.webp?v=ai-hd', 'active', 'Europe/Zurich')
+on conflict (slug) do update set first_name = excluded.first_name, avatar_url = coalesce(public.coaching_coaches.avatar_url, excluded.avatar_url), status = excluded.status, updated_at = now();
 
 insert into public.coaching_offers(slug, name, sessions_count, price_cents, currency, duration_minutes, validity_days, is_active)
 values

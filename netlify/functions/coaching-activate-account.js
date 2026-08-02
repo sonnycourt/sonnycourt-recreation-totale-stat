@@ -42,10 +42,14 @@ export default async (req) => {
   }
 
   const clientUpdate = await supabasePatch('coaching_clients', `id=eq.${client.id}`, { auth_user_id: userId });
-  if (!clientUpdate.ok) {
+  if (!clientUpdate.ok || !Array.isArray(clientUpdate.data) || !clientUpdate.data[0]) {
     await supabasePatch('coaching_account_activations', `id=eq.${activation.id}`, { used_at: null });
     return json(500, { error: 'Impossible de relier ton espace à ton achat.' });
   }
-  await supabasePost('coaching_memberships?on_conflict=user_id', { user_id: userId, role: 'client', active: true }, { prefer: 'resolution=merge-duplicates,return=minimal' });
+  const membership = await supabasePost('coaching_memberships?on_conflict=user_id', { user_id: userId, role: 'client', active: true }, { prefer: 'resolution=merge-duplicates,return=minimal' });
+  if (!membership.ok) {
+    await supabasePatch('coaching_account_activations', `id=eq.${activation.id}`, { used_at: null });
+    return json(500, { error: 'Ton compte existe, mais son accès coaching doit encore être finalisé.' });
+  }
   return json(200, { ok: true });
 };

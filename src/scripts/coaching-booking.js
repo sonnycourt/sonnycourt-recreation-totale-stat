@@ -9,6 +9,17 @@ const confirmButton = document.querySelector('[data-confirm-booking]');
 const errorNode = document.querySelector('[data-booking-error]');
 let selectedSlot = null;
 let mode = 'demo';
+let coachName = 'Romain';
+
+function renderCoach(coach = {}) {
+  coachName = [coach.first_name, coach.last_name].filter(Boolean).join(' ') || 'Romain';
+  const avatar = String(coach.avatar_url || '/media/coachs/romain.webp?v=ai-hd');
+  document.querySelectorAll('[data-coach-name]').forEach((node) => { node.textContent = coachName; });
+  document.querySelectorAll('[data-coach-avatar]').forEach((image) => {
+    image.src = avatar.startsWith('/') || /^https:\/\//i.test(avatar) ? avatar : '/favicon.svg';
+    image.alt = coachName;
+  });
+}
 
 function showError(message) {
   errorNode.textContent = message;
@@ -37,7 +48,7 @@ function renderLiveSlots(slots) {
     days.get(key).slots.push(slot);
   }
   if (!days.size) {
-    slotDays.innerHTML = '<div class="empty-state"><strong>Aucun créneau ouvert.</strong><p>Romain ajoutera bientôt de nouvelles disponibilités.</p></div>';
+    slotDays.innerHTML = `<div class="empty-state"><strong>Aucun créneau ouvert.</strong><p>${coachName} ajoutera bientôt de nouvelles disponibilités.</p></div>`;
     return;
   }
   slotDays.innerHTML = [...days.values()].map(({ date, slots: daySlots }) => {
@@ -72,8 +83,9 @@ async function bootDemo() {
 }
 
 async function bootLive(session) {
-  const { data: client, error: clientError } = await coachingSupabase.from('coaching_clients').select('id,coach_id,first_name').eq('auth_user_id', session.user.id).single();
+  const { data: client, error: clientError } = await coachingSupabase.from('coaching_clients').select('id,coach_id,first_name,coaching_coaches(slug,first_name,last_name,avatar_url)').eq('auth_user_id', session.user.id).single();
   if (clientError) throw clientError;
+  renderCoach(client.coaching_coaches || {});
   const [balanceResult, prepResult, slotsResult] = await Promise.all([
     coachingSupabase.rpc('coaching_credit_balance', { p_client_id: client.id }),
     coachingSupabase.from('coaching_form_responses').select('answers,status').eq('client_id', client.id).eq('status', 'submitted').is('session_id', null).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
@@ -91,8 +103,8 @@ async function bootLive(session) {
     return;
   }
   document.querySelector('[data-booking-credits]').textContent = String(remaining);
-  document.querySelector('[data-prep-subject]').textContent = prepResult.data.answers?.subject || 'Sujet transmis à Romain';
-  document.querySelector('[data-booking-source]').textContent = 'Ces créneaux sont synchronisés avec les disponibilités réelles de Romain.';
+  document.querySelector('[data-prep-subject]').textContent = prepResult.data.answers?.subject || `Sujet transmis à ${coachName}`;
+  document.querySelector('[data-booking-source]').textContent = `Ces créneaux sont synchronisés avec les disponibilités réelles de ${coachName}.`;
   renderLiveSlots(slotsResult.data || []);
 }
 

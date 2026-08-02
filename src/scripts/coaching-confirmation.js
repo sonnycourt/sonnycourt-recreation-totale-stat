@@ -9,6 +9,10 @@ function icsDate(date) {
 
 function render(session, remaining, live) {
   appointment = session;
+  const coach = session.coaching_coaches;
+  const coachName = coach ? [coach.first_name, coach.last_name].filter(Boolean).join(' ') : 'Romain';
+  appointment.coach_name = coachName;
+  document.querySelectorAll('[data-coach-name]').forEach((node) => { node.textContent = coachName; });
   const start = new Date(session.starts_at);
   const end = new Date(session.ends_at || start.getTime() + 60 * 60 * 1000);
   const minutes = Math.round((end - start) / 60000);
@@ -42,7 +46,7 @@ async function boot() {
     const { data: client, error: clientError } = await coachingSupabase.from('coaching_clients').select('id').eq('auth_user_id', access.session.user.id).single();
     if (clientError) throw clientError;
     const wantedId = sessionStorage.getItem('coaching:last-session-id');
-    let query = coachingSupabase.from('coaching_sessions').select('id,starts_at,ends_at,meet_url,status').eq('client_id', client.id).eq('status', 'confirmed').order('starts_at').limit(1);
+    let query = coachingSupabase.from('coaching_sessions').select('id,starts_at,ends_at,meet_url,status,coaching_coaches(first_name,last_name)').eq('client_id', client.id).eq('status', 'confirmed').order('starts_at').limit(1);
     if (wantedId) query = query.eq('id', wantedId);
     const [{ data: booked, error: bookedError }, balanceResult] = await Promise.all([query.maybeSingle(), coachingSupabase.rpc('coaching_credit_balance', { p_client_id: client.id })]);
     if (bookedError || balanceResult.error) throw bookedError || balanceResult.error;
@@ -58,7 +62,7 @@ document.querySelector('[data-download-calendar]')?.addEventListener('click', ()
   if (!appointment) return;
   const start = new Date(appointment.starts_at);
   const end = new Date(appointment.ends_at || start.getTime() + 3600000);
-  const calendar = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sonny Court//Coaching//FR','BEGIN:VEVENT',`DTSTART:${icsDate(start)}`,`DTEND:${icsDate(end)}`,'SUMMARY:Séance de coaching avec Romain',`DESCRIPTION:${appointment.meet_url ? `Google Meet: ${appointment.meet_url}` : 'Le lien Google Meet sera ajouté à ton espace.'}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const calendar = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sonny Court//Coaching//FR','BEGIN:VEVENT',`DTSTART:${icsDate(start)}`,`DTEND:${icsDate(end)}`,`SUMMARY:Séance de coaching avec ${appointment.coach_name || 'Romain'}`,`DESCRIPTION:${appointment.meet_url ? `Google Meet: ${appointment.meet_url}` : 'Le lien Google Meet sera ajouté à ton espace.'}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
   const url = URL.createObjectURL(new Blob([calendar], { type: 'text/calendar;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
