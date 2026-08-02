@@ -188,14 +188,20 @@ export async function finalizeCoachingBooking(sessionId) {
   return results;
 }
 
-export async function sendCoachingActivationEmail({ email, firstName, activationUrl, credits }) {
+export async function sendCoachingActivationEmail({ email, firstName, activationUrl, credits, firstConsultation = false }) {
   const safeName = escapeHtml(firstName);
   const safeUrl = escapeHtml(activationUrl);
+  const purchaseCopy = firstConsultation
+    ? '<p>Ton paiement est confirmé. Active ton espace coaching pour retrouver ta première consultation et transmettre ta préparation à Romain.</p>'
+    : `<p>Ton achat est confirmé et <strong>${Number(credits) || 0} crédit(s)</strong> sont disponibles.</p>`;
+  const textCopy = firstConsultation
+    ? 'Ton paiement est confirmé. Active ton espace coaching pour retrouver ta première consultation.'
+    : `Ton achat est confirmé et ${Number(credits) || 0} crédit(s) sont disponibles.`;
   return sendCoachingTransactionalEmail({
     to: email,
     name: firstName,
     subject: 'Active ton espace coaching',
-    html: `<p>Bonjour ${safeName},</p><p>Ton achat est confirmé et <strong>${Number(credits) || 0} crédit(s)</strong> sont disponibles.</p><p><a href="${safeUrl}">Choisir mon mot de passe et ouvrir mon espace</a></p><p>Ce lien personnel expire dans 48 heures.</p>`,
-    text: `Bonjour ${firstName}, ton achat est confirmé. Active ton espace dans les 48 heures : ${activationUrl}`,
+    html: `<p>Bonjour ${safeName},</p>${purchaseCopy}<p><a href="${safeUrl}">Choisir mon mot de passe et ouvrir mon espace</a></p><p>Ce lien personnel expire dans 48 heures.</p>`,
+    text: `Bonjour ${firstName}, ${textCopy} Active ton espace dans les 48 heures : ${activationUrl}`,
   });
 }

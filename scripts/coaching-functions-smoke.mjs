@@ -189,12 +189,18 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test'
 process.env.MAILERSEND_API_KEY = 'mailersend-test'
 process.env.COACHING_EMAIL_FROM = 'coaching@example.test'
 process.env.SPIFFY_COACHING_SESSION_1_IDS = 'followup-checkout-1'
+process.env.SPIFFY_FIRST_CONSULTATION_IDS = '39602'
 process.env.URL = 'https://sonnycourt.com'
+const firstConsultationSessionId = '10000000-0000-4000-8000-000000000010'
 let recordedOrderPayload = null
 let mailerSendCalls = 0
 let orderRecordCalls = 0
 let refundRpcCalls = 0
+let firstConsultationImportCalls = 0
 let activationDeliveryAlreadySent = false
+let diagnosticBookingStatus = 'pending_payment'
+let diagnosticBookingExpiresAt = new Date(Date.now() + 600000).toISOString()
+let diagnosticSlotStatus = 'held'
 globalThis.fetch = async (url, options = {}) => {
   const target = String(url)
   if (target.endsWith('/rest/v1/rpc/coaching_record_spiffy_order')) {
@@ -217,6 +223,43 @@ globalThis.fetch = async (url, options = {}) => {
   if (target.endsWith('/rest/v1/rpc/coaching_refund_spiffy_order')) {
     refundRpcCalls += 1
     return new Response(JSON.stringify([{ order_id: '10000000-0000-4000-8000-000000000001', client_id: '10000000-0000-4000-8000-000000000002', credits_removed: 1, already_processed: false }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.endsWith('/rest/v1/rpc/coaching_import_first_consultation')) {
+    firstConsultationImportCalls += 1
+    return new Response(JSON.stringify(firstConsultationSessionId), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coach_diagnostic_bookings?') && options.method === 'PATCH') {
+    const payload = JSON.parse(options.body)
+    diagnosticBookingStatus = payload.status
+    return new Response(JSON.stringify([{ id: '10000000-0000-4000-8000-000000000008' }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coach_diagnostic_bookings?')) {
+    return new Response(JSON.stringify([{
+      id: '10000000-0000-4000-8000-000000000008',
+      slot_id: 42,
+      status: diagnosticBookingStatus,
+      expires_at: diagnosticBookingExpiresAt
+    }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coach_diagnostic_slots?') && options.method === 'PATCH') {
+    if (!['held', 'booked'].includes(diagnosticSlotStatus)) return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
+    diagnosticSlotStatus = 'booked'
+    return new Response(JSON.stringify([{ id: 42 }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes(`/rest/v1/coaching_sessions?id=eq.${firstConsultationSessionId}`)) {
+    return new Response(JSON.stringify([{
+      id: firstConsultationSessionId,
+      starts_at: '2026-08-10T08:00:00.000Z',
+      ends_at: '2026-08-10T08:45:00.000Z',
+      timezone: 'Europe/Zurich',
+      google_event_id: null,
+      meet_url: null,
+      coaching_clients: { id: '10000000-0000-4000-8000-000000000002', first_name: 'Camille', last_name: '', email: 'camille@example.test' },
+      coaching_coaches: { id: '10000000-0000-4000-8000-000000000009', slug: 'romain', first_name: 'Romain', last_name: '', email: 'romain@example.test', google_calendar_id: 'primary' }
+    }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_google_connections?')) {
+    return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
   }
   if (target.includes('/rest/v1/coaching_sessions?engagement_id=')) {
     return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
@@ -334,7 +377,60 @@ assert.equal(refundBody.type, 'coaching_refund')
 assert.equal(refundBody.integrations.calendar.status, 'done')
 assert.equal(refundRpcCalls, 1)
 
-for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS', 'URL']) delete process.env[key]
+activationDeliveryAlreadySent = false
+const firstConsultationPayload = JSON.stringify({
+  order_id: 'spiffy-first-consultation-001',
+  checkout_id: '39602',
+  coach_booking_token: '10000000-0000-4000-8000-000000000007',
+  order_total: '97.00',
+  currency: 'EUR',
+  email: 'camille@example.test',
+  name_first: 'Camille'
+})
+const firstConsultationSignature = crypto.createHmac('sha256', signatureSecretBytes).update(`${webhookId}.${timestamp}.${firstConsultationPayload}`).digest('base64')
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    'webhook-id': webhookId,
+    'webhook-timestamp': timestamp,
+    'webhook-signature': `v1,${firstConsultationSignature}`
+  },
+  body: firstConsultationPayload
+}))
+const firstConsultationBody = await body(response)
+assert.equal(response.status, 200)
+assert.equal(firstConsultationBody.type, 'paid')
+assert.equal(firstConsultationBody.coaching.type, 'coaching_order')
+assert.equal(firstConsultationBody.session.status, 'imported')
+assert.equal(firstConsultationBody.session.session_id, firstConsultationSessionId)
+assert.equal(firstConsultationBody.session.integrations.calendar.status, 'not_configured')
+assert.equal(recordedOrderPayload.p_offer_slug, 'first-consultation')
+assert.equal(recordedOrderPayload.p_amount_cents, 9700)
+assert.equal(mailerSendCalls, 4)
+assert.equal(firstConsultationImportCalls, 1)
+
+activationDeliveryAlreadySent = true
+diagnosticBookingExpiresAt = new Date(Date.now() - 600000).toISOString()
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    'webhook-id': webhookId,
+    'webhook-timestamp': timestamp,
+    'webhook-signature': `v1,${firstConsultationSignature}`
+  },
+  body: firstConsultationPayload
+}))
+const repeatedFirstConsultationBody = await body(response)
+assert.equal(response.status, 200)
+assert.equal(repeatedFirstConsultationBody.type, 'paid')
+assert.equal(repeatedFirstConsultationBody.session.session_id, firstConsultationSessionId)
+assert.equal(diagnosticSlotStatus, 'booked')
+assert.equal(firstConsultationImportCalls, 2)
+assert.equal(mailerSendCalls, 4)
+
+for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS', 'SPIFFY_FIRST_CONSULTATION_IDS', 'URL']) delete process.env[key]
 globalThis.fetch = async () => {
   throw new Error('Aucun appel réseau ne doit partir pendant ces tests')
 }
@@ -428,6 +524,7 @@ console.log(JSON.stringify({
   unknown_checkouts_rejected: 'ok',
   failed_orders_rejected: 'ok',
   spiffy_purchase_contract: 'ok',
+  first_consultation_bridge: 'ok',
   webhook_amount_required: 'ok',
   activation_email_idempotency: 'ok',
   booking_integration_idempotency: 'ok',

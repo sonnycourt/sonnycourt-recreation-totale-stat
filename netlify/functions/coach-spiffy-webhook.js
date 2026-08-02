@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
-import { deleteCoachingGoogleMeeting, sendCoachingActivationEmail } from './lib/coaching-integrations.mjs';
+import { deleteCoachingGoogleMeeting, finalizeCoachingBooking, sendCoachingActivationEmail } from './lib/coaching-integrations.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -203,11 +203,12 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
   const clientResult = await supabaseGet(`coaching_clients?id=eq.${row.client_id}&select=id,email,first_name,auth_user_id&limit=1`);
   const client = clientResult.ok && Array.isArray(clientResult.data) ? clientResult.data[0] : null;
   if (!client) throw new Error('coaching_client_missing');
-  if (client.auth_user_id) return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'existing_account' };
+  const identifiers = { order_id: row.order_id, client_id: row.client_id, engagement_id: row.engagement_id };
+  if (client.auth_user_id) return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'existing_account', ...identifiers };
   const deliveredResult = await supabaseGet(`coaching_email_deliveries?order_id=eq.${row.order_id}&kind=eq.account_activation&recipient_email=eq.${encodeURIComponent(client.email)}&status=eq.sent&select=id&limit=1`);
   if (!deliveredResult.ok) throw new Error(`coaching_activation_delivery_check_${deliveredResult.status}`);
   if (Array.isArray(deliveredResult.data) && deliveredResult.data[0]) {
-    return { ok: true, type: 'coaching_order', already_processed: true, credits_added: row.credits_added, activation: 'already_sent' };
+    return { ok: true, type: 'coaching_order', already_processed: true, credits_added: row.credits_added, activation: 'already_sent', ...identifiers };
   }
   if (!process.env.MAILERSEND_API_KEY || !process.env.COACHING_EMAIL_FROM) throw new Error('coaching_activation_email_not_configured');
 
@@ -229,7 +230,13 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
   if (!activation.ok) throw new Error(`coaching_activation_${activation.status}`);
   const origin = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://sonnycourt.com';
   const activationUrl = `${origin.replace(/\/$/, '')}/coaching/activer?token=${encodeURIComponent(token)}`;
-  const delivery = await sendCoachingActivationEmail({ email: client.email, firstName: client.first_name, activationUrl, credits });
+  const delivery = await sendCoachingActivationEmail({
+    email: client.email,
+    firstName: client.first_name,
+    activationUrl,
+    credits,
+    firstConsultation: offerSlug === 'first-consultation',
+  });
   if (delivery.status !== 'sent') throw new Error(`coaching_activation_email_${delivery.status}`);
   const loggedDelivery = await supabasePost('coaching_email_deliveries', {
     order_id: row.order_id,
@@ -240,7 +247,24 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
     status: 'sent',
   });
   if (!loggedDelivery.ok) throw new Error(`coaching_activation_delivery_log_${loggedDelivery.status}`);
-  return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: delivery.status };
+  return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: delivery.status, ...identifiers };
+}
+
+async function importFirstConsultationSession(orderId, bookingId) {
+  if (!orderId || !bookingId) return { status: 'skipped' };
+  const imported = await supabasePost('rpc/coaching_import_first_consultation', {
+    p_provider_order_id: orderId,
+    p_legacy_booking_id: bookingId,
+  });
+  if (!imported.ok) throw new Error(`coaching_first_consultation_${imported.status}`);
+  const row = Array.isArray(imported.data) ? imported.data[0] : imported.data;
+  const sessionId = typeof row === 'string' ? row : row?.coaching_import_first_consultation || row?.session_id;
+  if (!sessionId) throw new Error('coaching_first_consultation_session_missing');
+  const integrations = await finalizeCoachingBooking(sessionId).catch((error) => {
+    console.error('coaching first consultation integrations:', error);
+    return { calendar: { status: 'deferred' }, client_email: { status: 'deferred' }, coach_email: { status: 'deferred' } };
+  });
+  return { status: 'imported', session_id: sessionId, integrations };
 }
 
 export default async (req) => {
@@ -265,6 +289,8 @@ export default async (req) => {
     const email = (findEmail(body) || '').trim().toLowerCase();
     const orderId = findValue(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
     const offerSlug = coachingOfferSlug(body);
+    const firstConsultation = isFirstConsultationCheckout(body);
+    let coachingRefund = null;
 
     if (isRefund && orderId) {
       const existingOrder = await supabaseGet(`coaching_orders?provider=eq.spiffy&provider_order_id=eq.${encodeURIComponent(orderId)}&select=id,engagement_id&limit=1`);
@@ -272,7 +298,8 @@ export default async (req) => {
         const refunded = await supabasePost('rpc/coaching_refund_spiffy_order', { p_provider_order_id: orderId });
         if (!refunded.ok) throw new Error(`coaching_refund_${refunded.status}`);
         const calendar = await cleanRefundedCalendarEvents(existingOrder.data[0].engagement_id);
-        return json(200, { ok: true, type: 'coaching_refund', integrations: { calendar } });
+        coachingRefund = { status: 'refunded', integrations: { calendar } };
+        if (!firstConsultation && !token) return json(200, { ok: true, type: 'coaching_refund', integrations: { calendar } });
       }
     }
 
@@ -283,19 +310,20 @@ export default async (req) => {
     // Un checkout inconnu ne doit jamais être rapproché par email d'une
     // réservation de première consultation. Le token est prioritaire ; sinon
     // l'identifiant 39602 doit être explicitement configuré côté Netlify.
-    if (!token && !isFirstConsultationCheckout(body)) return json(200, { ok: true, skipped: 'checkout' });
+    if (!token && !firstConsultation) return json(200, { ok: true, skipped: 'checkout' });
 
     let query = '';
-    if (token) query = 'public_token=eq.' + encodeURIComponent(token);
+    if (isRefund && orderId) query = 'spiffy_order_id=eq.' + encodeURIComponent(orderId);
+    else if (token) query = 'public_token=eq.' + encodeURIComponent(token);
     else if (email) query = 'customer_email=eq.' + encodeURIComponent(email) + '&order=created_at.desc';
-    else return json(200, { ok: true, skipped: 'identity' });
+    else return json(200, coachingRefund ? { ok: true, type: 'coaching_refund', coaching: coachingRefund, legacy: 'identity_missing' } : { ok: true, skipped: 'identity' });
 
     const found = await supabaseGet(
       'coach_diagnostic_bookings?' + query +
-      '&status=in.(pending_payment,paid,expired)&select=id,slot_id,status,expires_at&limit=1',
+      '&status=in.(pending_payment,paid,expired,payment_review)&select=id,slot_id,status,expires_at&limit=1',
     );
     const booking = found.ok && Array.isArray(found.data) ? found.data[0] : null;
-    if (!booking) return json(200, { ok: true, skipped: 'booking_not_found' });
+    if (!booking) return json(200, coachingRefund ? { ok: true, type: 'coaching_refund', coaching: coachingRefund, legacy: 'booking_not_found' } : { ok: true, skipped: 'booking_not_found' });
 
     const now = new Date();
     if (isRefund) {
@@ -311,17 +339,19 @@ export default async (req) => {
         { status: 'available', held_until: null },
       );
       if (!releasedSlot.ok) throw new Error(`diagnostic_refund_slot_${releasedSlot.status}`);
-      return json(200, { ok: true, type: 'refund' });
+      return json(200, { ok: true, type: 'refund', ...(coachingRefund ? { coaching: coachingRefund } : {}) });
     }
 
-    const expired = booking.status === 'expired' || new Date(booking.expires_at).getTime() < now.getTime();
+    const paymentAlreadyRecorded = booking.status === 'paid' || booking.status === 'payment_review';
+    const expired = booking.status === 'payment_review' || booking.status === 'expired' ||
+      (!paymentAlreadyRecorded && new Date(booking.expires_at).getTime() < now.getTime());
     const status = expired ? 'payment_review' : 'paid';
     const paidBooking = await supabasePatch(
       'coach_diagnostic_bookings',
       'id=eq.' + encodeURIComponent(booking.id),
       {
         status,
-        paid_at: now.toISOString(),
+        ...(!paymentAlreadyRecorded ? { paid_at: now.toISOString() } : {}),
         amount_eur: amountEur(data),
         ...(orderId ? { spiffy_order_id: orderId } : {}),
       },
@@ -331,13 +361,22 @@ export default async (req) => {
     if (!expired) {
       const bookedSlot = await supabasePatch(
         'coach_diagnostic_slots',
-        'id=eq.' + encodeURIComponent(booking.slot_id) + '&status=eq.held',
+        'id=eq.' + encodeURIComponent(booking.slot_id) + '&status=in.(held,booked)',
         { status: 'booked', held_until: null },
       );
       if (!bookedSlot.ok || !Array.isArray(bookedSlot.data) || !bookedSlot.data[0]) throw new Error('diagnostic_slot_not_booked');
     }
 
-    return json(200, { ok: true, type: status });
+    let coaching = null;
+    let session = null;
+    if (firstConsultation && orderId) {
+      coaching = await activatePurchasedCoaching(body, data, orderId, email, 'first-consultation', event);
+      session = status === 'paid'
+        ? await importFirstConsultationSession(orderId, booking.id)
+        : { status: 'payment_review' };
+    }
+
+    return json(200, { ok: true, type: status, ...(coaching ? { coaching, session } : {}) });
   } catch (error) {
     console.error('coach-spiffy-webhook error:', error);
     return json(500, { ok: false });

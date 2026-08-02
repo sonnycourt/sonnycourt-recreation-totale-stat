@@ -150,8 +150,9 @@ critiques sans validation explicite de Sonny.
 
 ## Activation restante
 
-1. Autoriser l'écriture Supabase puis appliquer `sql/coach_diagnostic.sql` et
-   `sql/coaching_platform.sql` dans cet ordre.
+1. Autoriser l'écriture Supabase puis appliquer `sql/coach_diagnostic.sql`,
+   `sql/coaching_platform.sql` et `sql/coaching_first_consultation_bridge.sql`
+   dans cet ordre.
 2. Créer les comptes Sonny et Romain dans Supabase Auth.
 3. Attribuer les rôles avec la fonction serveur :
    - `coaching_assign_role_by_email('email-sonny', 'owner', null)`
@@ -181,10 +182,13 @@ Spiffy n’envoie pas systématiquement les en-têtes Svix observés sur d’aut
 providers ; le serveur accepte donc soit une signature valide, soit ce token
 privé, mais jamais un appel dépourvu des deux.
 
-Le pont qui transforme aussi le paiement historique de la première
-consultation à 97 € en dossier/séance Coaching OS et en email d'activation
-reste volontairement désactivé jusqu'à l'autorisation explicite de Sonny. Les
-packs 1, 3 et 6 séances utilisent déjà le flux Coaching OS.
+Le pont qui transforme le paiement historique de la première consultation à
+97 € en dossier, séance Coaching OS et email d'activation a été autorisé par
+Sonny le 2 août 2026. Il est installé par
+`sql/coaching_first_consultation_bridge.sql`. Un paiement reçu après
+expiration du créneau crée le dossier et le crédit, mais place la séance en
+revue au lieu de réserver un horaire potentiellement repris. Les packs 1, 3 et
+6 séances utilisent le même flux Coaching OS.
 
 Le centre de suivi du coach est branché à `coaching_actions` : création d'une
 action interne liée à un client, échéance, priorité, clôture et réouverture. Ces

@@ -30,6 +30,8 @@ const migration = await fs.readFile(new URL('../sql/coaching_platform.sql', impo
 await db.exec(migration)
 const diagnosticMigration = await fs.readFile(new URL('../sql/coach_diagnostic.sql', import.meta.url), 'utf8')
 await db.exec(diagnosticMigration)
+const firstConsultationBridge = await fs.readFile(new URL('../sql/coaching_first_consultation_bridge.sql', import.meta.url), 'utf8')
+await db.exec(firstConsultationBridge)
 
 const ids = {
   sonny: '00000000-0000-4000-8000-000000000001',
@@ -111,6 +113,37 @@ const preexistingOrder = await asRole('service_role', () => one(`
     24700, 0, 'EUR', 'CH', '{}'::jsonb
   )
 `))
+const firstConsultationOrder = await asRole('service_role', () => one(`
+  select * from public.coaching_record_spiffy_order(
+    'spiffy-first-consultation-001', 'consultation@example.test', 'Camille', '', 'first-consultation',
+    9700, 0, 'EUR', 'FR', '{}'::jsonb
+  )
+`))
+const firstConsultationBooking = await one(`
+  with slot as (
+    insert into public.coach_diagnostic_slots(coach_slug, starts_at, ends_at, status)
+    values ('romain', now() + interval '10 days', now() + interval '10 days 45 minutes', 'booked')
+    returning id
+  )
+  insert into public.coach_diagnostic_bookings(
+    slot_id, coach_slug, customer_name, customer_email, status, expires_at, paid_at, spiffy_order_id
+  )
+  select id, 'romain', 'Camille', 'consultation@example.test', 'paid', now() + interval '1 day', now(), 'spiffy-first-consultation-001'
+  from slot
+  returning id
+`)
+const importedFirstSession = await asRole('service_role', () => one(
+  'select public.coaching_import_first_consultation($1, $2) as id',
+  ['spiffy-first-consultation-001', firstConsultationBooking.id]
+))
+const repeatedFirstSession = await asRole('service_role', () => one(
+  'select public.coaching_import_first_consultation($1, $2) as id',
+  ['spiffy-first-consultation-001', firstConsultationBooking.id]
+))
+assert.equal(repeatedFirstSession.id, importedFirstSession.id)
+assert.equal(await count('select count(*) from public.coaching_sessions where id = $1', [importedFirstSession.id]), 1)
+assert.equal(await count("select count(*) from public.coaching_credit_ledger where session_id = $1 and reason = 'booking'", [importedFirstSession.id]), 1)
+assert.equal(Number((await one('select public.coaching_credit_balance($1) as balance', [firstConsultationOrder.client_id])).balance), 0)
 const alice = { id: aliceOrder.client_id }
 const bob = { id: bobOrder.client_id }
 assert.equal(await count('select count(*) from public.coaching_clients where id = $1 and auth_user_id = $2', [preexistingOrder.client_id, ids.preexisting]), 1)
@@ -223,7 +256,7 @@ await expectRejected(
 )
 
 await asRole('anon', async () => {
-  assert.equal(await count('select count(*) from public.coaching_offers'), 3)
+  assert.equal(await count('select count(*) from public.coaching_offers'), 4)
   await expectRejected(() => db.query('select * from public.coaching_clients'), 'permission denied')
 })
 
@@ -384,6 +417,7 @@ console.log(JSON.stringify({
   role_escalation: 'blocked',
   session_completion: 'ok',
   preexisting_sso_purchase_link: 'ok',
+  first_consultation_bridge: 'ok',
   spiffy_idempotency: 'ok',
   refund_idempotency: 'ok'
 }))
