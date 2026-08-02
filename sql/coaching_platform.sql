@@ -379,10 +379,10 @@ as $$
     )
 $$;
 
-revoke all on function public.coaching_current_role() from public;
-revoke all on function public.coaching_current_client_id() from public;
-revoke all on function public.coaching_current_coach_id() from public;
-revoke all on function public.coaching_can_access_client(uuid) from public;
+revoke all on function public.coaching_current_role() from public, anon, authenticated;
+revoke all on function public.coaching_current_client_id() from public, anon, authenticated;
+revoke all on function public.coaching_current_coach_id() from public, anon, authenticated;
+revoke all on function public.coaching_can_access_client(uuid) from public, anon, authenticated;
 grant execute on function public.coaching_current_role() to authenticated;
 grant execute on function public.coaching_current_client_id() to authenticated;
 grant execute on function public.coaching_current_coach_id() to authenticated;
@@ -424,6 +424,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function public.coaching_handle_new_auth_user() from public, anon, authenticated;
 
 drop trigger if exists coaching_auth_user_created on auth.users;
 create trigger coaching_auth_user_created
@@ -742,7 +744,7 @@ as $$
       )
     )
 $$;
-revoke all on function public.coaching_credit_balance(uuid) from public;
+revoke all on function public.coaching_credit_balance(uuid) from public, anon, authenticated;
 grant execute on function public.coaching_credit_balance(uuid) to authenticated;
 
 create or replace function public.coaching_replace_my_availability_rules(
@@ -773,7 +775,7 @@ begin
   return v_count;
 end;
 $$;
-revoke all on function public.coaching_replace_my_availability_rules(smallint[], time, time, integer, integer, text) from public;
+revoke all on function public.coaching_replace_my_availability_rules(smallint[], time, time, integer, integer, text) from public, anon, authenticated;
 grant execute on function public.coaching_replace_my_availability_rules(smallint[], time, time, integer, integer, text) to authenticated;
 
 -- Réservation transactionnelle depuis le portail élève.
@@ -876,7 +878,7 @@ exception
   when unique_violation then raise exception 'slot_unavailable';
 end;
 $$;
-revoke all on function public.coaching_book_session(uuid, text) from public;
+revoke all on function public.coaching_book_session(uuid, text) from public, anon, authenticated;
 grant execute on function public.coaching_book_session(uuid, text) to authenticated;
 
 create or replace function public.coaching_cancel_session(p_session_id uuid, p_reason text default null)
@@ -936,7 +938,7 @@ begin
   return query select v_session.id, v_balance;
 end;
 $$;
-revoke all on function public.coaching_cancel_session(uuid, text) from public;
+revoke all on function public.coaching_cancel_session(uuid, text) from public, anon, authenticated;
 grant execute on function public.coaching_cancel_session(uuid, text) to authenticated;
 
 -- Clôture explicite par le coach : la séance sort de l'agenda actif, reste
@@ -970,7 +972,7 @@ begin
   return v_session.id;
 end;
 $$;
-revoke all on function public.coaching_complete_session(uuid) from public;
+revoke all on function public.coaching_complete_session(uuid) from public, anon, authenticated;
 grant execute on function public.coaching_complete_session(uuid) to authenticated;
 
 -- Enregistrement idempotent d'une commande Spiffy. Exécutable uniquement avec
@@ -1073,7 +1075,7 @@ begin
   return query select v_order_id, v_client.id, v_engagement_id, v_offer.sessions_count, false;
 end;
 $$;
-revoke all on function public.coaching_record_spiffy_order(text, text, text, text, text, integer, integer, text, text, jsonb) from public;
+revoke all on function public.coaching_record_spiffy_order(text, text, text, text, text, integer, integer, text, text, jsonb) from public, anon, authenticated;
 grant execute on function public.coaching_record_spiffy_order(text, text, text, text, text, integer, integer, text, text, jsonb) to service_role;
 
 create or replace function public.coaching_refund_spiffy_order(p_provider_order_id text)
@@ -1143,7 +1145,7 @@ begin
   return query select v_order.id, v_order.client_id, v_offer.sessions_count, false;
 end;
 $$;
-revoke all on function public.coaching_refund_spiffy_order(text) from public;
+revoke all on function public.coaching_refund_spiffy_order(text) from public, anon, authenticated;
 grant execute on function public.coaching_refund_spiffy_order(text) to service_role;
 
 -- Attribution administrative d'un rôle après création du compte par mot de
@@ -1180,7 +1182,7 @@ begin
   return v_user_id;
 end;
 $$;
-revoke all on function public.coaching_assign_role_by_email(text, text, text) from public;
+revoke all on function public.coaching_assign_role_by_email(text, text, text) from public, anon, authenticated;
 grant execute on function public.coaching_assign_role_by_email(text, text, text) to service_role;
 
 -- Données de référence alignées sur la promesse affichée sur la page de suite.

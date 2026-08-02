@@ -119,7 +119,7 @@ begin
 end;
 $$;
 
-revoke all on function public.hold_coach_diagnostic_slot(bigint, text, text) from public;
+revoke all on function public.hold_coach_diagnostic_slot(bigint, text, text) from public, anon, authenticated;
 grant execute on function public.hold_coach_diagnostic_slot(bigint, text, text) to service_role;
 
 -- Exemple volontairement commenté : les vrais horaires de Romain doivent être

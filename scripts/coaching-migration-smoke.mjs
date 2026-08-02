@@ -196,6 +196,15 @@ assert.equal(Number(tables.rows[0].count), 19)
 assert.equal(Number(rls.rows[0].count), 19)
 assert.equal(diagnosticTables, 2)
 assert.equal(diagnosticRls, 2)
+assert.equal((await one("select has_function_privilege('anon', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, true)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_assign_role_by_email(text,text,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_record_spiffy_order(text,text,text,text,text,integer,integer,text,text,jsonb)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_refund_spiffy_order(text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_handle_new_auth_user()', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('anon', 'public.hold_coach_diagnostic_slot(bigint,text,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.hold_coach_diagnostic_slot(bigint,text,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('service_role', 'public.hold_coach_diagnostic_slot(bigint,text,text)', 'EXECUTE') as allowed")).allowed, true)
 
 const diagnosticSlot = await one(`
   insert into public.coach_diagnostic_slots(starts_at, ends_at)
@@ -364,6 +373,7 @@ console.log(JSON.stringify({
   diagnostic_tables: diagnosticTables,
   diagnostic_rls: diagnosticRls,
   diagnostic_hold: 'ok',
+  function_privileges: 'ok',
   authorization: 'ok',
   action_workflow: 'ok',
   booking: 'ok',
