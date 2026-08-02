@@ -33,6 +33,7 @@ for (const page of [
   'src/pages/coaching/preparation.astro',
   'src/pages/coaching/reserver.astro',
   'src/pages/coaching/confirmation.astro',
+  'src/pages/coaching/achat-confirme.astro',
   'src/pages/coaching/activer.astro',
   'src/pages/coaching/reset-password.astro',
   'src/pages/coaching/auth/callback.astro',
@@ -55,6 +56,6 @@ console.log(JSON.stringify({
   magic_links: 'absent',
   role_routing: ['owner', 'coach', 'client'],
   coach_actions: 'persistent',
-  portal_pages: 10,
+  portal_pages: 11,
   server_endpoints: 7,
 }))

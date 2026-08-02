@@ -66,15 +66,15 @@ Le webhook `coach-spiffy-webhook` :
 
 Les trois URLs de checkout sont injectées avec :
 
-- `PUBLIC_SPIFFY_COACHING_SESSION_1_URL`
-- `PUBLIC_SPIFFY_COACHING_PACK_3_URL`
-- `PUBLIC_SPIFFY_COACHING_PACK_6_URL`
+- `PUBLIC_SPIFFY_COACHING_SESSION_1_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-1-seance`
+- `PUBLIC_SPIFFY_COACHING_PACK_3_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-pack-3`
+- `PUBLIC_SPIFFY_COACHING_PACK_6_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-pack-6`
 
 Les identifiants reconnus par le webhook sont configurés avec :
 
-- `SPIFFY_COACHING_SESSION_1_IDS`
-- `SPIFFY_COACHING_PACK_3_IDS`
-- `SPIFFY_COACHING_PACK_6_IDS`
+- `SPIFFY_COACHING_SESSION_1_IDS=39609`
+- `SPIFFY_COACHING_PACK_3_IDS=39610`
+- `SPIFFY_COACHING_PACK_6_IDS=39611`
 - `SPIFFY_FIRST_CONSULTATION_IDS` (`39602` pour la checkout actuelle)
 - `COACHING_SPIFFY_WEBHOOK_TOKEN` (secret aléatoire long, distinct des autres)
 
