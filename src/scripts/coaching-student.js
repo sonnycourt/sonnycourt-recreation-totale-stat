@@ -73,8 +73,8 @@ function renderStudent(student) {
 
   if (student.nextSession) {
     nextTitle.textContent = 'Ta prochaine séance est réservée.';
-    nextCopy.textContent = `${formatDateTime(student.nextSession)} avec ${coachName}. Ton lien Google Meet apparaîtra ici dès sa création.`;
-    setNextActions(coachingUrl('/coaching/confirmation'), 'Voir ma réservation');
+    nextCopy.textContent = `${formatDateTime(student.nextSession)} avec ${coachName}. Ton accès visio est regroupé dans l’onglet Ma prochaine séance.`;
+    setNextActions(coachingUrl('/coaching/seance'), 'Accéder à ma séance');
   } else if (remaining <= 0) {
     nextTitle.textContent = 'Choisis comment tu veux continuer.';
     nextCopy.textContent = 'Ton cycle actuel est terminé. Tu peux choisir une séance ponctuelle ou un nouveau parcours.';

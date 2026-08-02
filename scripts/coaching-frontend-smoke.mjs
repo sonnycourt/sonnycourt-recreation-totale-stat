@@ -38,6 +38,7 @@ for (const page of [
   'src/pages/coaching/compte.astro',
   'src/pages/coaching/preparation.astro',
   'src/pages/coaching/reserver.astro',
+  'src/pages/coaching/seance.astro',
   'src/pages/coaching/confirmation.astro',
   'src/pages/coaching/achat-confirme.astro',
   'src/pages/coaching/activer.astro',
@@ -48,18 +49,25 @@ for (const page of [
 const wallet = await read('src/scripts/coaching-credits.js')
 const account = await read('src/scripts/coaching-account.js')
 const student = await read('src/scripts/coaching-student.js')
+const nextSession = await read('src/scripts/coaching-next-session.js')
+const nextSessionPage = await read('src/pages/coaching/seance.astro')
 assert.match(wallet, /coaching_credit_balance/)
 assert.match(wallet, /membership-6|coaching_subscriptions/)
 assert.match(account, /coaching_update_my_profile/)
 assert.match(account, /coaching-avatars/)
 assert.match(student, /data-continuation-prompt|openContinuationPrompt/)
+assert.match(student, /coaching\/seance/)
+assert.match(nextSession, /meet_url/)
+assert.match(nextSession, /coaching_sessions/)
+assert.match(nextSessionPage, /data-session-meet-link/)
+assert.match(nextSessionPage, /Ma prochaine séance/)
 assert.equal(isCoachingAppHost('coaching.sonnycourt.com'), true)
 assert.equal(isCoachingAppHost('sonnycourt.com'), false)
 assert.equal(coachingUrl('/coaching', 'coaching.sonnycourt.com'), '/')
 assert.equal(coachingUrl('/coaching/eleve?preview=1', 'coaching.sonnycourt.com'), '/eleve?preview=1')
 assert.equal(coachingUrl('/coach-console#clients', 'coaching.sonnycourt.com'), '/coach#clients')
 assert.equal(coachingUrl('/coaching/eleve', 'localhost'), '/coaching/eleve')
-for (const route of ['admin', 'coach', 'eleve', 'credits', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
+for (const route of ['admin', 'coach', 'eleve', 'credits', 'compte', 'preparation', 'reserver', 'seance', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
   assert.ok(netlify.includes(`from = "https://coaching.sonnycourt.com/${route}"`))
 }
 assert.match(netlify, /https:\/\/sonnycourt\.com\/coaching\/\*/)
@@ -84,6 +92,6 @@ console.log(JSON.stringify({
   role_routing: ['owner', 'coach', 'client'],
   coach_actions: 'persistent',
   coaching_subdomain: 'ready',
-  portal_pages: 11,
+  portal_pages: 12,
   server_endpoints: 7,
 }))
