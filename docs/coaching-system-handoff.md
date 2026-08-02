@@ -8,7 +8,7 @@ Le système fonctionne en deux modes sans toucher aux funnels existants :
 - avec `?live=1` ou sur le domaine, les mêmes écrans utilisent Supabase.
 
 Les pages publiques d'acquisition restent sur `sonnycourt.com`. L'application
-privée est servie depuis `https://coaching.sonycourt.com` :
+privée est servie depuis `https://coaching.sonnycourt.com` :
 
 - `/` : connexion email + mot de passe, Google SSO et récupération ;
 - `/admin` : supervision propriétaire ;
@@ -110,7 +110,7 @@ Variables Supabase nécessaires aux fonctions serveur :
 - `SUPABASE_PUBLISHABLE_KEY` (ou l'ancien `SUPABASE_ANON_KEY`)
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `COACHING_APP_ORIGIN=https://coaching.sonycourt.com`
+- `COACHING_APP_ORIGIN=https://coaching.sonnycourt.com`
 
 ## Google Calendar et Meet
 
@@ -130,12 +130,12 @@ Variables :
 
 L'URI OAuth Google Calendar autorisée est :
 
-`https://coaching.sonycourt.com/.netlify/functions/coaching-google-callback`
+`https://coaching.sonnycourt.com/.netlify/functions/coaching-google-callback`
 
 Google SSO pour la connexion des utilisateurs est un réglage séparé dans
-Supabase Auth. Le `Site URL` doit être `https://coaching.sonycourt.com`. Ajouter
-`https://coaching.sonycourt.com/auth/callback` et
-`https://coaching.sonycourt.com/reset-password` aux redirects autorisés, tout
+Supabase Auth. Le `Site URL` doit être `https://coaching.sonnycourt.com`. Ajouter
+`https://coaching.sonnycourt.com/auth/callback` et
+`https://coaching.sonnycourt.com/reset-password` aux redirects autorisés, tout
 en conservant temporairement les URLs localhost pour les tests.
 
 ## Emails
@@ -177,9 +177,9 @@ critiques sans validation explicite de Sonny.
 
 ## Activation restante
 
-1. Ajouter `coaching.sonycourt.com` comme alias du site Netlify et faire pointer
+1. Ajouter `coaching.sonnycourt.com` comme alias du site Netlify et faire pointer
    le DNS vers ce même site ; le domaine principal reste `sonnycourt.com`.
-2. Définir `COACHING_APP_ORIGIN=https://coaching.sonycourt.com` dans Netlify.
+2. Définir `COACHING_APP_ORIGIN=https://coaching.sonnycourt.com` dans Netlify.
 3. Mettre à jour les URLs Supabase Auth et l'URI OAuth Google ci-dessus.
 4. Autoriser l'écriture Supabase puis appliquer, dans cet ordre :
    `sql/coach_diagnostic.sql`, `sql/coaching_platform.sql`,
@@ -195,7 +195,7 @@ critiques sans validation explicite de Sonny.
 9. Créer/renseigner les trois recharges et les trois memberships Spiffy, puis
    brancher leur webhook protégé.
 10. Configurer le retour de checkout Spiffy vers
-    `https://coaching.sonycourt.com/achat-confirme` puis faire un achat test,
+    `https://coaching.sonnycourt.com/achat-confirme` puis faire un achat test,
     une réservation, un déplacement et un remboursement.
 
 Configurer MailerSend **avant** d’activer les webhooks Spiffy. Si une livraison

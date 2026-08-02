@@ -1,4 +1,4 @@
-export const COACHING_APP_HOST = 'coaching.sonycourt.com';
+export const COACHING_APP_HOST = 'coaching.sonnycourt.com';
 
 export function isCoachingAppHost(hostname = typeof window !== 'undefined' ? window.location.hostname : '') {
   return String(hostname || '').trim().toLowerCase().split(':')[0] === COACHING_APP_HOST;

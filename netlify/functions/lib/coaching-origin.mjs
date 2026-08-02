@@ -1,4 +1,4 @@
-export const DEFAULT_COACHING_APP_ORIGIN = 'https://coaching.sonycourt.com';
+export const DEFAULT_COACHING_APP_ORIGIN = 'https://coaching.sonnycourt.com';
 
 export function coachingAppOrigin(environment = process.env) {
   const candidate = String(environment.COACHING_APP_ORIGIN || DEFAULT_COACHING_APP_ORIGIN).trim().replace(/\/$/, '');

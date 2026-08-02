@@ -108,8 +108,8 @@ assert.equal(response.status, 503)
 
 response = await googleCallback(request('http://localhost/.netlify/functions/coaching-google-callback'))
 assert.equal(response.status, 302)
-assert.equal(response.headers.get('location'), 'https://coaching.sonycourt.com/coach?google=error#settings')
-assert.equal(coachingAppOrigin({}), 'https://coaching.sonycourt.com')
+assert.equal(response.headers.get('location'), 'https://coaching.sonnycourt.com/coach?google=error#settings')
+assert.equal(coachingAppOrigin({}), 'https://coaching.sonnycourt.com')
 assert.equal(coachingAppUrl('/eleve', { COACHING_APP_ORIGIN: 'http://localhost:4321' }), 'http://localhost:4321/eleve')
 
 response = await syncAvailability(request('http://localhost/.netlify/functions/coaching-sync-availability', {
@@ -344,7 +344,7 @@ assert.equal(recordedOrderPayload.p_raw_payload.checkout_id, 'followup-checkout-
 assert.ok(!JSON.stringify(recordedOrderPayload.p_raw_payload).includes('camille@example.test'))
 assert.ok(!JSON.stringify(recordedOrderPayload.p_raw_payload).includes('4242'))
 assert.equal(mailerSendCalls, 1)
-assert.ok(lastMailerPayload.html.includes('https://coaching.sonycourt.com/activer?token='))
+assert.ok(lastMailerPayload.html.includes('https://coaching.sonnycourt.com/activer?token='))
 
 activationDeliveryAlreadySent = true
 response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {
