@@ -1,5 +1,4 @@
-import crypto from 'crypto';
-import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
+import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { googleAccessTokenForCoach } from './coaching-google.mjs';
 
 async function googleAccessToken() {
@@ -17,30 +16,70 @@ async function googleAccessToken() {
 }
 
 async function createGoogleMeeting(context) {
+  if (context.session.google_event_id && context.session.meet_url) {
+    return { status: 'already_created', meet_url: context.session.meet_url };
+  }
   const token = await googleAccessTokenForCoach(context.coach.id) || (context.coach.slug === 'romain' ? await googleAccessToken() : null);
-  if (!token) return { status: 'not_configured' };
+  if (!token) return context.session.google_event_id ? { status: 'already_created', meet_url: null } : { status: 'not_configured' };
   const calendarId = context.coach.google_calendar_id || process.env.GOOGLE_ROMAIN_CALENDAR_ID || 'primary';
-  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=all`, {
+  const eventId = `c${String(context.session.id).replace(/-/g, '').toLowerCase()}`;
+  if (context.session.google_event_id) {
+    const existing = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(context.session.google_event_id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (existing.ok) {
+      const data = await existing.json().catch(() => ({}));
+      const meetUrl = data.hangoutLink || data.conferenceData?.entryPoints?.find((item) => item.entryPointType === 'video')?.uri || null;
+      if (meetUrl) {
+        const stored = await supabasePatch('coaching_sessions', `id=eq.${encodeURIComponent(context.session.id)}`, { meet_url: meetUrl });
+        if (!stored.ok || !Array.isArray(stored.data) || !stored.data[0]) throw new Error(`google_calendar_persist_${stored.status}`);
+      }
+      return { status: meetUrl ? 'refreshed' : 'already_created', meet_url: meetUrl };
+    }
+    if (existing.status !== 404 && existing.status !== 410) throw new Error(`google_calendar_lookup_${existing.status}`);
+  }
+  let response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=all`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      id: eventId,
       summary: `Coaching individuel — ${context.client.first_name}`,
       description: 'Séance de coaching Sonny Court. La préparation est disponible dans le Coaching OS.',
       start: { dateTime: context.session.starts_at, timeZone: context.session.timezone || 'Europe/Zurich' },
       end: { dateTime: context.session.ends_at, timeZone: context.session.timezone || 'Europe/Zurich' },
       attendees: [context.client.email, context.coach.email].filter(Boolean).map((email) => ({ email })),
-      conferenceData: { createRequest: { requestId: `coaching-${context.session.id}-${crypto.randomUUID()}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } },
+      conferenceData: { createRequest: { requestId: `coaching-${context.session.id}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } },
     }),
   });
-  const data = await response.json().catch(() => ({}));
+  let data = await response.json().catch(() => ({}));
+  if (response.status === 409) {
+    response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    data = await response.json().catch(() => ({}));
+  }
   if (!response.ok) throw new Error(`google_calendar_${response.status}`);
   const meetUrl = data.hangoutLink || data.conferenceData?.entryPoints?.find((item) => item.entryPointType === 'video')?.uri || null;
-  await supabasePatch('coaching_sessions', `id=eq.${encodeURIComponent(context.session.id)}`, { google_event_id: data.id, meet_url: meetUrl });
+  const stored = await supabasePatch('coaching_sessions', `id=eq.${encodeURIComponent(context.session.id)}`, { google_event_id: data.id || eventId, meet_url: meetUrl });
+  if (!stored.ok || !Array.isArray(stored.data) || !stored.data[0]) throw new Error(`google_calendar_persist_${stored.status}`);
   return { status: 'created', meet_url: meetUrl };
 }
 
-function frenchDate(value) {
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Europe/Zurich' }).format(new Date(value));
+export async function deleteCoachingGoogleMeeting({ coachId, coachSlug, calendarId, eventId }) {
+  if (!eventId || !coachId) return { status: 'skipped' };
+  const token = await googleAccessTokenForCoach(coachId) || (coachSlug === 'romain' ? await googleAccessToken() : null);
+  if (!token) return { status: 'not_configured' };
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId || 'primary')}/events/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (response.status === 404 || response.status === 410) return { status: 'already_deleted' };
+  if (!response.ok) throw new Error(`google_calendar_delete_${response.status}`);
+  return { status: 'deleted' };
+}
+
+function frenchDate(value, timeZone = 'Europe/Zurich') {
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone }).format(new Date(value));
 }
 
 function escapeHtml(value) {
@@ -68,11 +107,32 @@ export async function sendCoachingTransactionalEmail({ to, name, subject, html, 
 
 async function loadContext(sessionId) {
   const result = await supabaseGet(
-    `coaching_sessions?id=eq.${encodeURIComponent(sessionId)}&select=id,starts_at,ends_at,timezone,meet_url,coaching_clients(id,first_name,last_name,email),coaching_coaches(id,slug,first_name,last_name,email,google_calendar_id)&limit=1`,
+    `coaching_sessions?id=eq.${encodeURIComponent(sessionId)}&select=id,starts_at,ends_at,timezone,google_event_id,meet_url,coaching_clients(id,first_name,last_name,email),coaching_coaches(id,slug,first_name,last_name,email,google_calendar_id)&limit=1`,
   );
   const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
   if (!row) throw new Error('session_context_missing');
   return { session: row, client: row.coaching_clients, coach: row.coaching_coaches };
+}
+
+async function sendSessionEmailOnce({ context, kind, recipient, send }) {
+  if (!recipient) return { status: 'skipped' };
+  const delivered = await supabaseGet(
+    `coaching_email_deliveries?session_id=eq.${encodeURIComponent(context.session.id)}&kind=eq.${encodeURIComponent(kind)}&recipient_email=eq.${encodeURIComponent(recipient)}&status=eq.sent&select=id&limit=1`,
+  );
+  if (!delivered.ok) throw new Error(`coaching_delivery_check_${delivered.status}`);
+  if (Array.isArray(delivered.data) && delivered.data[0]) return { status: 'already_sent' };
+  const result = await send();
+  if (result.status !== 'sent') return result;
+  const logged = await supabasePost('coaching_email_deliveries', {
+    session_id: context.session.id,
+    client_id: context.client.id,
+    kind,
+    recipient_email: recipient,
+    provider: 'mailersend',
+    status: 'sent',
+  });
+  if (!logged.ok && logged.status !== 409) throw new Error(`coaching_delivery_log_${logged.status}`);
+  return result;
 }
 
 export async function finalizeCoachingBooking(sessionId) {
@@ -85,29 +145,41 @@ export async function finalizeCoachingBooking(sessionId) {
     console.error('coaching Google Calendar:', error);
     results.calendar = { status: 'error' };
   }
-  const when = frenchDate(context.session.starts_at);
+  const when = frenchDate(context.session.starts_at, context.session.timezone || 'Europe/Zurich');
   const safeFirstName = escapeHtml(context.client.first_name);
+  const coachName = [context.coach.first_name, context.coach.last_name].filter(Boolean).join(' ') || 'ton coach';
+  const safeCoachName = escapeHtml(coachName);
   const safeMeetUrl = escapeHtml(context.session.meet_url);
   const meetLine = context.session.meet_url ? `<p><a href="${safeMeetUrl}">Rejoindre Google Meet</a></p>` : '<p>Le lien Google Meet apparaîtra dans ton espace.</p>';
   try {
-    results.client_email = await sendCoachingTransactionalEmail({
-      to: context.client.email,
-      name: context.client.first_name,
-      subject: 'Ta séance avec Romain est confirmée',
-      html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance est confirmée pour le <strong>${when}</strong>.</p>${meetLine}<p>Tu retrouveras tous les détails dans ton espace coaching.</p>`,
-      text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'}`,
+    results.client_email = await sendSessionEmailOnce({
+      context,
+      kind: 'booking_confirmation_client',
+      recipient: context.client.email,
+      send: () => sendCoachingTransactionalEmail({
+        to: context.client.email,
+        name: context.client.first_name,
+        subject: `Ta séance avec ${coachName} est confirmée`,
+        html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} est confirmée pour le <strong>${when}</strong>.</p>${meetLine}<p>Tu retrouveras tous les détails dans ton espace coaching.</p>`,
+        text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'}`,
+      }),
     });
   } catch (error) {
     console.error('coaching client email:', error);
     results.client_email = { status: 'error' };
   }
   try {
-    results.coach_email = await sendCoachingTransactionalEmail({
-      to: context.coach.email,
-      name: context.coach.first_name,
-      subject: `Nouvelle séance — ${context.client.first_name}`,
-      html: `<p>Une séance avec ${context.client.first_name} est confirmée pour le <strong>${when}</strong>.</p><p>La préparation est disponible dans le Coaching OS.</p>${meetLine}`,
-      text: `Séance avec ${context.client.first_name} confirmée pour le ${when}.`,
+    results.coach_email = await sendSessionEmailOnce({
+      context,
+      kind: 'booking_notification_coach',
+      recipient: context.coach.email,
+      send: () => sendCoachingTransactionalEmail({
+        to: context.coach.email,
+        name: context.coach.first_name,
+        subject: `Nouvelle séance — ${context.client.first_name}`,
+        html: `<p>Une séance avec ${context.client.first_name} est confirmée pour le <strong>${when}</strong>.</p><p>La préparation est disponible dans le Coaching OS.</p>${meetLine}`,
+        text: `Séance avec ${context.client.first_name} confirmée pour le ${when}.`,
+      }),
     });
   } catch (error) {
     console.error('coaching coach email:', error);

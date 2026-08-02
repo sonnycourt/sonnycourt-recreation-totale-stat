@@ -95,7 +95,10 @@ async function bootLive(session) {
   if (failure) throw failure;
   const remaining = Number(balanceResult.data || 0);
   if (remaining <= 0) {
-    window.location.replace(`/coach-romain/continuer?prenom=${encodeURIComponent(client.first_name)}`);
+    const continuation = client.coaching_coaches?.slug === 'romain'
+      ? `/coach-romain/continuer?prenom=${encodeURIComponent(client.first_name)}`
+      : '/coaching/eleve?notice=no-credit';
+    window.location.replace(continuation);
     return;
   }
   if (!prepResult.data) {

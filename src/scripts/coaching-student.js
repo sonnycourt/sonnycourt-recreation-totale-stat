@@ -72,8 +72,9 @@ async function getLiveStudent(session) {
     .single();
   if (clientError) throw clientError;
 
+  const nowIso = new Date().toISOString();
   const [engagementResult, balanceResult, sessionsResult, responsesResult] = await Promise.all([
-    coachingSupabase.from('coaching_engagements').select('id,offer_id,started_at,coaching_offers(name,sessions_count,duration_minutes)').eq('client_id', client.id).eq('status', 'active').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+    coachingSupabase.from('coaching_engagements').select('id,offer_id,started_at,expires_at,coaching_offers(name,sessions_count,duration_minutes)').eq('client_id', client.id).eq('status', 'active').or(`expires_at.is.null,expires_at.gt.${nowIso}`).order('started_at', { ascending: false }),
     coachingSupabase.rpc('coaching_credit_balance', { p_client_id: client.id }),
     coachingSupabase.from('coaching_sessions').select('id,starts_at,ends_at,status,meet_url').eq('client_id', client.id).order('starts_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,status,submitted_at,session_id').eq('client_id', client.id).is('session_id', null).order('created_at', { ascending: false }).limit(1),
@@ -81,9 +82,11 @@ async function getLiveStudent(session) {
   const error = [engagementResult, balanceResult, sessionsResult, responsesResult].find((result) => result.error)?.error;
   if (error) throw error;
 
-  const engagement = engagementResult.data;
+  const engagements = engagementResult.data || [];
+  const engagement = engagements[0];
   const offer = engagement?.coaching_offers;
   const balance = Number(balanceResult.data || 0);
+  const purchasedCredits = engagements.reduce((sum, item) => sum + Number(item.coaching_offers?.sessions_count || 0), 0);
   const now = Date.now();
   const sessions = sessionsResult.data || [];
   const next = sessions.filter((item) => item.status === 'confirmed' && new Date(item.starts_at).getTime() >= now).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0];
@@ -103,9 +106,9 @@ async function getLiveStudent(session) {
     coachName: coach ? [coach.first_name, coach.last_name].filter(Boolean).join(' ') : 'Romain',
     coachSlug: coach?.slug || 'romain',
     coachAvatar: coach?.avatar_url || '/media/coachs/romain.webp?v=ai-hd',
-    plan: offer?.name || 'Accompagnement individuel',
-    creditsTotal: Math.max(Number(offer?.sessions_count || 0), balance),
-    creditsUsed: Math.max(Number(offer?.sessions_count || 0) - balance, 0),
+    plan: engagements.length > 1 ? `${engagements.length} parcours actifs` : offer?.name || 'Accompagnement individuel',
+    creditsTotal: Math.max(purchasedCredits, balance),
+    creditsUsed: Math.max(purchasedCredits - balance, 0),
     durationMinutes: Number(offer?.duration_minutes || 60),
     nextSession: next?.starts_at || null,
     preparation: { completed: (responsesResult.data || []).some((item) => item.status === 'submitted') },

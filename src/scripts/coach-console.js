@@ -207,6 +207,16 @@ function safeAvatar(value) {
   return avatar.startsWith('/') || /^https:\/\//i.test(avatar) ? avatar : '/favicon.svg';
 }
 
+function updateStorageLabels() {
+  const live = consoleMode === 'live';
+  const drawerState = document.querySelector('#client-drawer .save-state');
+  const draftState = document.querySelector('#note-modal .draft-state');
+  const notePrivacy = noteForm?.querySelector('footer p');
+  if (drawerState) drawerState.innerHTML = `<i></i> ${live ? 'Supabase · synchronisé' : 'Maquette · non synchronisée'}`;
+  if (draftState) draftState.innerHTML = `<i></i> ${live ? 'Brouillon privé Supabase' : 'Brouillon local'}`;
+  if (notePrivacy) notePrivacy.innerHTML = `<svg><use href="#co-icon-lock"></use></svg>${live ? 'Cette note est protégée et visible uniquement par le coach assigné.' : 'Cette note reste uniquement sur cet appareil de démonstration.'}`;
+}
+
 function renderLiveClientRows() {
   const table = document.querySelector('.clients-table');
   const head = table?.querySelector('.client-head');
@@ -227,7 +237,7 @@ function renderLiveClientRows() {
 }
 
 async function loadLiveCoachData(session) {
-  const { data: coach, error: coachError } = await coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url').eq('auth_user_id', session.user.id).single();
+  const { data: coach, error: coachError } = await coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,calendar_connected_at').eq('auth_user_id', session.user.id).single();
   if (coachError) throw coachError;
   const coachName = [coach.first_name, coach.last_name].filter(Boolean).join(' ') || 'Coach';
   viewMeta.dashboard[0] = `Espace de ${coachName}`;
@@ -243,7 +253,7 @@ async function loadLiveCoachData(session) {
   const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult] = await Promise.all([
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,phone,status,objective,created_at').eq('coach_id', coach.id).neq('status', 'archived').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
-    coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
+    coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,client_id,status,answers,submitted_at').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority').eq('coach_id', coach.id).eq('status', 'open'),
     coachingSupabase.from('coaching_availability_slots').select('id,starts_at,ends_at,status').eq('coach_id', coach.id).eq('status', 'available').gte('starts_at', new Date().toISOString()).order('starts_at').limit(100),
@@ -259,11 +269,12 @@ async function loadLiveCoachData(session) {
     const clientSessions = sessions.filter((item) => item.client_id === row.id);
     const future = clientSessions.filter((item) => item.status === 'confirmed' && new Date(item.starts_at) >= new Date()).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0];
     const noteSession = future || clientSessions.find((item) => !['cancelled', 'no_show'].includes(item.status));
-    const engagement = engagements.find((item) => item.client_id === row.id && item.status === 'active') || engagements.find((item) => item.client_id === row.id);
+    const activeEngagements = engagements.filter((item) => item.client_id === row.id && item.status === 'active' && (!item.expires_at || new Date(item.expires_at).getTime() > Date.now()));
+    const engagement = activeEngagements[0] || engagements.find((item) => item.client_id === row.id);
     const offer = engagement?.coaching_offers;
     const prep = responses.find((item) => item.client_id === row.id && item.status === 'submitted');
     const completed = clientSessions.filter((item) => item.status === 'completed').length;
-    const total = Number(offer?.sessions_count || Math.max(completed + (future ? 1 : 0), 1));
+    const total = Number(activeEngagements.reduce((sum, item) => sum + Number(item.coaching_offers?.sessions_count || 0), 0) || offer?.sessions_count || Math.max(completed + (future ? 1 : 0), 1));
     const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ');
     const initials = fullName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
     clients[row.id] = {
@@ -299,6 +310,12 @@ async function loadLiveCoachData(session) {
   document.querySelector('.sidebar-status small').textContent = `${Object.keys(clients).length} client(s) attribué(s)`;
   document.querySelector('.preview-badge strong').textContent = 'Données réelles';
   document.querySelector('.preview-badge small').textContent = `Accès isolé de ${coachName}`;
+  const calendarBadge = document.querySelector('[data-view-panel="settings"] .integration-card .status-pill');
+  if (calendarBadge && coach.calendar_connected_at) {
+    calendarBadge.textContent = 'Connecté';
+    calendarBadge.classList.remove('amber');
+    calendarBadge.classList.add('green');
+  }
   document.querySelector('.metric-card.green strong').textContent = String(Object.keys(clients).length);
   document.querySelector('.metric-card.purple strong').textContent = String(actions.length);
   renderLiveWorkspace(sessions, actions, availabilityResult.data || []);
@@ -737,6 +754,7 @@ async function bootConsole() {
   const access = await requireCoachingRole('coach');
   if (!access) return;
   consoleMode = access.mode;
+  updateStorageLabels();
   if (consoleMode === 'demo') {
     showApp();
     return;

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
-import { sendCoachingActivationEmail } from './lib/coaching-integrations.mjs';
+import { deleteCoachingGoogleMeeting, sendCoachingActivationEmail } from './lib/coaching-integrations.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -79,19 +79,20 @@ function findEmail(obj, depth = 0) {
 }
 
 function amountEur(obj) {
-  return amountCents(obj) / 100;
+  return amountCents(obj, 9700) / 100;
 }
 
-function amountCents(obj) {
+function amountCents(obj, fallback = null) {
   for (const key of ['amount_cents', 'total_cents']) {
     const value = Number(obj?.[key]);
     if (Number.isFinite(value) && value > 0) return Math.round(value);
   }
   for (const key of ['order_total', 'total', 'amount', 'amount_total', 'grand_total']) {
-    const value = Number(obj?.[key]);
-    if (Number.isFinite(value) && value > 0) return value > 2000 ? Math.round(value) : Math.round(value * 100);
+    const raw = String(obj?.[key] ?? '').trim();
+    const value = Number(raw.includes(',') && !raw.includes('.') ? raw.replace(',', '.') : raw);
+    if (Number.isFinite(value) && value > 0) return Math.round(value * 100);
   }
-  return 9700;
+  return fallback;
 }
 
 function coachingOfferSlug(body) {
@@ -155,9 +156,27 @@ function safeAuditPayload(body, event) {
   };
 }
 
+async function cleanRefundedCalendarEvents(engagementId) {
+  if (!engagementId) return { status: 'skipped', deleted: 0 };
+  const found = await supabaseGet(
+    `coaching_sessions?engagement_id=eq.${encodeURIComponent(engagementId)}&status=eq.cancelled&cancellation_reason=eq.${encodeURIComponent('Remboursement Spiffy')}&google_event_id=not.is.null&select=google_event_id,coaching_coaches(id,slug,google_calendar_id)`,
+  );
+  if (!found.ok) return { status: 'error', deleted: 0 };
+  const results = await Promise.allSettled((found.data || []).map((session) => deleteCoachingGoogleMeeting({
+    coachId: session.coaching_coaches?.id,
+    coachSlug: session.coaching_coaches?.slug,
+    calendarId: session.coaching_coaches?.google_calendar_id,
+    eventId: session.google_event_id,
+  })));
+  const failed = results.filter((result) => result.status === 'rejected').length;
+  return { status: failed ? 'partial' : 'done', deleted: results.length - failed, failed };
+}
+
 async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, event) {
   if (!orderId || !email) return { ok: true, skipped: 'coaching_identity' };
-  const firstName = findValue(body, ['first_name', 'firstname', 'name_first', 'customer_first_name']) || 'Bonjour';
+  const purchaseAmountCents = amountCents(data) || amountCents(body);
+  if (!purchaseAmountCents) throw new Error('coaching_amount_missing');
+  const firstName = findValue(body, ['first_name', 'firstname', 'name_first', 'customer_first_name']) || 'Élève';
   const lastName = findValue(body, ['last_name', 'lastname', 'name_last', 'customer_last_name']) || '';
   const country = findValue(body, ['country_code', 'billing_country', 'country']) || '';
   const currency = findValue(body, ['currency', 'currency_code']) || 'EUR';
@@ -169,7 +188,7 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
     p_first_name: firstName,
     p_last_name: lastName,
     p_offer_slug: offerSlug,
-    p_amount_cents: amountCents(data),
+    p_amount_cents: purchaseAmountCents,
     p_tax_cents: taxCents,
     p_currency: currency,
     p_country: country,
@@ -244,15 +263,16 @@ export default async (req) => {
 
     const token = findValue(body, ['coach_booking_token', 'booking_token']);
     const email = (findEmail(body) || '').trim().toLowerCase();
-    const orderId = findValue(body, ['order_id', 'orderId']) || findValue(data, ['id']);
+    const orderId = findValue(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
     const offerSlug = coachingOfferSlug(body);
 
     if (isRefund && orderId) {
-      const existingOrder = await supabaseGet(`coaching_orders?provider=eq.spiffy&provider_order_id=eq.${encodeURIComponent(orderId)}&select=id&limit=1`);
+      const existingOrder = await supabaseGet(`coaching_orders?provider=eq.spiffy&provider_order_id=eq.${encodeURIComponent(orderId)}&select=id,engagement_id&limit=1`);
       if (existingOrder.ok && Array.isArray(existingOrder.data) && existingOrder.data[0]) {
         const refunded = await supabasePost('rpc/coaching_refund_spiffy_order', { p_provider_order_id: orderId });
         if (!refunded.ok) throw new Error(`coaching_refund_${refunded.status}`);
-        return json(200, { ok: true, type: 'coaching_refund' });
+        const calendar = await cleanRefundedCalendarEvents(existingOrder.data[0].engagement_id);
+        return json(200, { ok: true, type: 'coaching_refund', integrations: { calendar } });
       }
     }
 

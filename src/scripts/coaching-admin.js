@@ -80,9 +80,9 @@ async function liveState() {
   const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult] = await Promise.all([
     coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,status'),
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,status,coach_id'),
-    coachingSupabase.from('coaching_engagements').select('id,client_id,offer_id,status,started_at').eq('status', 'active').order('started_at', { ascending: false }),
+    coachingSupabase.from('coaching_engagements').select('id,client_id,offer_id,status,started_at,expires_at').eq('status', 'active').order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_offers').select('id,name,sessions_count'),
-    coachingSupabase.from('coaching_credit_ledger').select('client_id,quantity'),
+    coachingSupabase.from('coaching_credit_ledger').select('client_id,engagement_id,quantity'),
     coachingSupabase.from('coaching_sessions').select('client_id,coach_id,starts_at,status').order('starts_at', { ascending: true }),
     coachingSupabase.from('coaching_activity_log').select('event_type,client_id,metadata,created_at').order('created_at', { ascending: false }).limit(12),
     coachingSupabase.from('coaching_orders').select('amount_cents,status').eq('status', 'paid'),
@@ -91,10 +91,13 @@ async function liveState() {
   if (error) throw error;
 
   const clients = clientsResult.data || [];
-  const engagements = engagementsResult.data || [];
+  const engagements = (engagementsResult.data || []).filter((engagement) => !engagement.expires_at || engagement.expires_at > nowIso);
   const offers = new Map((offersResult.data || []).map((offer) => [offer.id, offer]));
+  const activeEngagementIds = new Set(engagements.map((engagement) => engagement.id));
   const creditBalance = new Map();
-  (creditsResult.data || []).forEach((entry) => creditBalance.set(entry.client_id, (creditBalance.get(entry.client_id) || 0) + Number(entry.quantity || 0)));
+  (creditsResult.data || []).filter((entry) => !entry.engagement_id || activeEngagementIds.has(entry.engagement_id)).forEach((entry) => {
+    creditBalance.set(entry.client_id, (creditBalance.get(entry.client_id) || 0) + Number(entry.quantity || 0));
+  });
   const futureSessions = (sessionsResult.data || []).filter((item) => item.status === 'confirmed' && item.starts_at >= nowIso);
 
   const normalizedClients = clients.map((client) => {
@@ -109,7 +112,7 @@ async function liveState() {
       email: client.email,
       status: client.status,
       plan: offer?.name,
-      remaining: creditBalance.get(client.id) || 0,
+      remaining: Math.max(creditBalance.get(client.id) || 0, 0),
       nextSession: next ? dateTime.format(new Date(next.starts_at)) : 'À réserver',
     };
   });
@@ -121,7 +124,7 @@ async function liveState() {
     avatarUrl: coach.avatar_url,
     status: coach.status,
     activeClients: clients.filter((client) => client.coach_id === coach.id && client.status === 'active').length,
-    sessionsThisMonth: (sessionsResult.data || []).filter((session) => session.coach_id === coach.id && new Date(session.starts_at) >= monthStart).length,
+    sessionsThisMonth: (sessionsResult.data || []).filter((session) => session.coach_id === coach.id && ['confirmed', 'completed'].includes(session.status) && new Date(session.starts_at) >= monthStart).length,
     satisfaction: null,
   }));
 

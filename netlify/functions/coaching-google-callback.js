@@ -38,6 +38,7 @@ export default async (req) => {
     updated_at: now,
   }, { prefer: 'resolution=merge-duplicates,return=minimal' });
   if (!upsert.ok) return redirect(origin, 'error');
-  await supabasePatch('coaching_coaches', `id=eq.${stored.coach_id}`, { google_calendar_id: 'primary', calendar_connected_at: now });
+  const connected = await supabasePatch('coaching_coaches', `id=eq.${stored.coach_id}`, { google_calendar_id: 'primary', calendar_connected_at: now });
+  if (!connected.ok || !Array.isArray(connected.data) || !connected.data[0]) return redirect(origin, 'error');
   return redirect(origin, 'connected');
 };

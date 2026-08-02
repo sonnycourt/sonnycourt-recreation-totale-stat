@@ -9,6 +9,7 @@ import googleConnect from '../netlify/functions/coaching-google-connect.js'
 import spiffyWebhook from '../netlify/functions/coach-spiffy-webhook.js'
 import syncAvailability from '../netlify/functions/coaching-sync-availability.js'
 import { decryptCoachingSecret, encryptCoachingSecret } from '../netlify/functions/lib/coaching-google.mjs'
+import { finalizeCoachingBooking } from '../netlify/functions/lib/coaching-integrations.mjs'
 
 const managedEnv = [
   'COACHING_TOKEN_ENCRYPTION_KEY', 'GOOGLE_COACHING_CLIENT_ID',
@@ -16,7 +17,7 @@ const managedEnv = [
   'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL',
   'PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'URL', 'DEPLOY_PRIME_URL',
   'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS',
-  'COACHING_SPIFFY_WEBHOOK_TOKEN'
+  'COACHING_SPIFFY_WEBHOOK_TOKEN', 'GOOGLE_ROMAIN_REFRESH_TOKEN'
 ]
 for (const key of managedEnv) delete process.env[key]
 
@@ -31,6 +32,38 @@ let response = await activateAccount(request('http://localhost/.netlify/function
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
 }))
 assert.equal(response.status, 400)
+
+process.env.SUPABASE_URL = 'https://example.supabase.co'
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test'
+let authAdminCalls = 0
+globalThis.fetch = async (url, options = {}) => {
+  const target = String(url)
+  if (target.includes('/rest/v1/coaching_account_activations?') && (!options.method || options.method === 'GET')) {
+    return new Response(JSON.stringify([{
+      id: '00000000-0000-4000-8000-000000000010',
+      client_id: '00000000-0000-4000-8000-000000000011',
+      coaching_clients: { id: '00000000-0000-4000-8000-000000000011', auth_user_id: '00000000-0000-4000-8000-000000000012', email: 'coach@example.test', first_name: 'Coach', last_name: 'Interne' }
+    }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_account_activations?') && options.method === 'PATCH') {
+    return new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-000000000010' }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_memberships?')) {
+    return new Response(JSON.stringify([{ role: 'coach' }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/auth/v1/admin/users')) authAdminCalls += 1
+  throw new Error(`Appel inattendu pendant le test de rôle: ${target}`)
+}
+response = await activateAccount(request('http://localhost/.netlify/functions/coaching-activate-account', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: 'a'.repeat(48), password: 'mot-de-passe-solide' })
+}))
+assert.equal(response.status, 409)
+assert.equal(authAdminCalls, 0)
+delete process.env.SUPABASE_URL
+delete process.env.SUPABASE_SERVICE_ROLE_KEY
+globalThis.fetch = async () => {
+  throw new Error('Aucun appel réseau ne doit partir pendant ces tests')
+}
 
 response = await bookSession(request('http://localhost/.netlify/functions/coaching-book-session', { method: 'POST' }))
 assert.equal(response.status, 503)
@@ -160,6 +193,7 @@ process.env.URL = 'https://sonnycourt.com'
 let recordedOrderPayload = null
 let mailerSendCalls = 0
 let orderRecordCalls = 0
+let refundRpcCalls = 0
 let activationDeliveryAlreadySent = false
 globalThis.fetch = async (url, options = {}) => {
   const target = String(url)
@@ -176,6 +210,16 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (target.includes('/rest/v1/coaching_clients?')) {
     return new Response(JSON.stringify([{ id: '10000000-0000-4000-8000-000000000002', email: 'camille@example.test', first_name: 'Camille', auth_user_id: null }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_orders?')) {
+    return new Response(JSON.stringify([{ id: '10000000-0000-4000-8000-000000000001', engagement_id: '10000000-0000-4000-8000-000000000006' }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.endsWith('/rest/v1/rpc/coaching_refund_spiffy_order')) {
+    refundRpcCalls += 1
+    return new Response(JSON.stringify([{ order_id: '10000000-0000-4000-8000-000000000001', client_id: '10000000-0000-4000-8000-000000000002', credits_removed: 1, already_processed: false }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_sessions?engagement_id=')) {
+    return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
   }
   if (target.includes('/rest/v1/coaching_email_deliveries?')) {
     return new Response(JSON.stringify(activationDeliveryAlreadySent ? [{ id: '10000000-0000-4000-8000-000000000005' }] : []), { status: 200, headers: { 'content-type': 'application/json' } })
@@ -209,6 +253,30 @@ const realPurchasePayload = JSON.stringify({
   phone_number: '+33000000000',
   last_four: '4242'
 })
+
+const missingAmountPayload = JSON.stringify({
+  order_id: 'spiffy-order-without-amount',
+  checkout_id: 'followup-checkout-1',
+  email: 'camille@example.test',
+  name_first: 'Camille'
+})
+const missingAmountSignature = crypto.createHmac('sha256', signatureSecretBytes).update(`${webhookId}.${timestamp}.${missingAmountPayload}`).digest('base64')
+const originalConsoleError = console.error
+console.error = () => {}
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    'webhook-id': webhookId,
+    'webhook-timestamp': timestamp,
+    'webhook-signature': `v1,${missingAmountSignature}`
+  },
+  body: missingAmountPayload
+}))
+console.error = originalConsoleError
+assert.equal(response.status, 500)
+assert.equal(orderRecordCalls, 0)
+
 const realPurchaseSignature = crypto.createHmac('sha256', signatureSecretBytes).update(`${webhookId}.${timestamp}.${realPurchasePayload}`).digest('base64')
 response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {
   method: 'POST',
@@ -243,7 +311,103 @@ assert.equal(response.status, 200)
 assert.equal((await body(response)).activation, 'already_sent')
 assert.equal(mailerSendCalls, 1)
 
+const refundPayload = JSON.stringify({
+  event: 'order.refunded',
+  order_id: 'spiffy-order-247',
+  checkout_id: 'followup-checkout-1',
+  email: 'camille@example.test'
+})
+const refundSignature = crypto.createHmac('sha256', signatureSecretBytes).update(`${webhookId}.${timestamp}.${refundPayload}`).digest('base64')
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook', {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    'webhook-id': webhookId,
+    'webhook-timestamp': timestamp,
+    'webhook-signature': `v1,${refundSignature}`
+  },
+  body: refundPayload
+}))
+const refundBody = await body(response)
+assert.equal(response.status, 200)
+assert.equal(refundBody.type, 'coaching_refund')
+assert.equal(refundBody.integrations.calendar.status, 'done')
+assert.equal(refundRpcCalls, 1)
+
 for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS', 'URL']) delete process.env[key]
+globalThis.fetch = async () => {
+  throw new Error('Aucun appel réseau ne doit partir pendant ces tests')
+}
+
+process.env.SUPABASE_URL = 'https://example.supabase.co'
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test'
+process.env.MAILERSEND_API_KEY = 'mailersend-test'
+process.env.COACHING_EMAIL_FROM = 'coaching@example.test'
+process.env.GOOGLE_COACHING_CLIENT_ID = 'google-client-test'
+process.env.GOOGLE_COACHING_CLIENT_SECRET = 'google-secret-test'
+process.env.GOOGLE_ROMAIN_REFRESH_TOKEN = 'legacy-refresh-token-test'
+const integrationSessionId = '20000000-0000-4000-8000-000000000001'
+let integrationFinalized = false
+let calendarCreates = 0
+let integrationEmails = 0
+const deliveredKinds = new Set()
+globalThis.fetch = async (url, options = {}) => {
+  const target = String(url)
+  if (target.includes('/rest/v1/coaching_sessions?') && options.method === 'PATCH') {
+    integrationFinalized = true
+    return new Response(JSON.stringify([{ id: integrationSessionId }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_sessions?')) {
+    return new Response(JSON.stringify([{
+      id: integrationSessionId,
+      starts_at: '2026-08-10T08:00:00.000Z',
+      ends_at: '2026-08-10T09:00:00.000Z',
+      timezone: 'Europe/Zurich',
+      google_event_id: integrationFinalized ? `c${integrationSessionId.replaceAll('-', '')}` : null,
+      meet_url: integrationFinalized ? 'https://meet.google.com/test-room' : null,
+      coaching_clients: { id: '20000000-0000-4000-8000-000000000002', first_name: 'Camille', last_name: 'Test', email: 'camille@example.test' },
+      coaching_coaches: { id: '20000000-0000-4000-8000-000000000003', slug: 'romain', first_name: 'Romain', last_name: 'Coach', email: 'romain@example.test', google_calendar_id: 'primary' }
+    }]), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_google_connections?')) {
+    return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target === 'https://oauth2.googleapis.com/token') {
+    return new Response(JSON.stringify({ access_token: 'google-access-test' }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('www.googleapis.com/calendar/v3/calendars/primary/events?')) {
+    calendarCreates += 1
+    const sent = JSON.parse(options.body)
+    assert.equal(sent.id, `c${integrationSessionId.replaceAll('-', '')}`)
+    return new Response(JSON.stringify({ id: sent.id, hangoutLink: 'https://meet.google.com/test-room' }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target.includes('/rest/v1/coaching_email_deliveries?')) {
+    const kind = new URL(target).searchParams.get('kind')?.replace(/^eq\./, '')
+    return new Response(JSON.stringify(deliveredKinds.has(kind) ? [{ id: `delivery-${kind}` }] : []), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  if (target === 'https://api.mailersend.com/v1/email') {
+    integrationEmails += 1
+    return new Response('', { status: 202 })
+  }
+  if (target.endsWith('/rest/v1/coaching_email_deliveries') && options.method === 'POST') {
+    const payload = JSON.parse(options.body)
+    deliveredKinds.add(payload.kind)
+    return new Response(JSON.stringify([{ id: `delivery-${payload.kind}` }]), { status: 201, headers: { 'content-type': 'application/json' } })
+  }
+  throw new Error(`Appel réseau inattendu pendant le test intégrations: ${target}`)
+}
+const firstFinalization = await finalizeCoachingBooking(integrationSessionId)
+assert.equal(firstFinalization.calendar.status, 'created')
+assert.equal(calendarCreates, 1)
+assert.equal(integrationEmails, 2)
+const repeatedFinalization = await finalizeCoachingBooking(integrationSessionId)
+assert.equal(repeatedFinalization.calendar.status, 'already_created')
+assert.equal(repeatedFinalization.client_email.status, 'already_sent')
+assert.equal(repeatedFinalization.coach_email.status, 'already_sent')
+assert.equal(calendarCreates, 1)
+assert.equal(integrationEmails, 2)
+
+for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'GOOGLE_COACHING_CLIENT_ID', 'GOOGLE_COACHING_CLIENT_SECRET', 'GOOGLE_ROMAIN_REFRESH_TOKEN']) delete process.env[key]
 globalThis.fetch = async () => {
   throw new Error('Aucun appel réseau ne doit partir pendant ces tests')
 }
@@ -255,6 +419,7 @@ assert.equal(decryptCoachingSecret(encrypted), 'refresh-token-test')
 
 console.log(JSON.stringify({
   fail_closed_endpoints: 8,
+  staff_activation_guard: 'ok',
   preparation_gate: 'ok',
   webhook_signature: 'ok',
   webhook_private_token: 'ok',
@@ -263,7 +428,10 @@ console.log(JSON.stringify({
   unknown_checkouts_rejected: 'ok',
   failed_orders_rejected: 'ok',
   spiffy_purchase_contract: 'ok',
+  webhook_amount_required: 'ok',
   activation_email_idempotency: 'ok',
+  booking_integration_idempotency: 'ok',
+  refund_calendar_cleanup: 'ok',
   webhook_data_minimization: 'ok',
   token_encryption: 'ok',
   network_calls: 0

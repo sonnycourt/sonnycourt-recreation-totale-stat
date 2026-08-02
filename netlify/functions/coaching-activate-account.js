@@ -23,6 +23,18 @@ export default async (req) => {
   const client = activation.coaching_clients;
 
   let userId = client.auth_user_id;
+  if (userId) {
+    const roleResult = await supabaseGet(`coaching_memberships?user_id=eq.${encodeURIComponent(userId)}&active=eq.true&select=role&limit=1`);
+    if (!roleResult.ok) {
+      await supabasePatch('coaching_account_activations', `id=eq.${activation.id}`, { used_at: null });
+      return json(500, { error: 'Impossible de vérifier les droits de ce compte.' });
+    }
+    const currentRole = Array.isArray(roleResult.data) ? roleResult.data[0]?.role : null;
+    if (currentRole && currentRole !== 'client') {
+      await supabasePatch('coaching_account_activations', `id=eq.${activation.id}`, { used_at: null });
+      return json(409, { error: 'Ce compte interne ne peut pas être activé comme espace élève.' });
+    }
+  }
   const endpoint = userId ? `${url}/auth/v1/admin/users/${userId}` : `${url}/auth/v1/admin/users`;
   const authResponse = await fetch(endpoint, {
     method: userId ? 'PUT' : 'POST',

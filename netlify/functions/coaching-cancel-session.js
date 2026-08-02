@@ -1,4 +1,4 @@
-import { googleAccessTokenForCoach } from './lib/coaching-google.mjs';
+import { deleteCoachingGoogleMeeting } from './lib/coaching-integrations.mjs';
 import { supabaseGet } from './lib/supabase-rest.mjs';
 
 function json(status, body) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }); }
@@ -17,14 +17,22 @@ export default async (req) => {
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) return json(response.status, { error: 'Cette séance ne peut pas être déplacée.' });
-  const found = await supabaseGet(`coaching_sessions?id=eq.${body.session_id}&select=google_event_id,coaching_coaches(id,google_calendar_id)&limit=1`);
+  const found = await supabaseGet(`coaching_sessions?id=eq.${body.session_id}&select=google_event_id,coaching_coaches(id,slug,google_calendar_id)&limit=1`);
   const booked = found.ok && Array.isArray(found.data) ? found.data[0] : null;
+  let calendar = { status: 'skipped' };
   if (booked?.google_event_id && booked.coaching_coaches?.id) {
     try {
-      const token = await googleAccessTokenForCoach(booked.coaching_coaches.id);
-      if (token) await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(booked.coaching_coaches.google_calendar_id || 'primary')}/events/${encodeURIComponent(booked.google_event_id)}?sendUpdates=all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    } catch (error) { console.error('coaching cancellation calendar:', error); }
+      calendar = await deleteCoachingGoogleMeeting({
+        coachId: booked.coaching_coaches.id,
+        coachSlug: booked.coaching_coaches.slug,
+        calendarId: booked.coaching_coaches.google_calendar_id,
+        eventId: booked.google_event_id,
+      });
+    } catch (error) {
+      console.error('coaching cancellation calendar:', error);
+      calendar = { status: 'error' };
+    }
   }
   const row = Array.isArray(payload) ? payload[0] : payload;
-  return json(200, { ok: true, ...row });
+  return json(200, { ok: true, ...row, integrations: { calendar } });
 };

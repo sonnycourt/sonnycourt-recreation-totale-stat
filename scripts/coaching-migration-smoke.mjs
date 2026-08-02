@@ -263,6 +263,17 @@ await asUser(ids.bob, async () => {
   await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [bobSlot.id, 'Europe/Zurich']), 'preparation_required')
 })
 
+await db.query(`
+  insert into public.coaching_form_responses(template_id, client_id, submitted_by, status, answers, submitted_at)
+  values ($1, $2, $3, 'submitted', '{"subject":"test expiration"}'::jsonb, now())
+`, [template.id, bob.id, ids.bob])
+await db.query("update public.coaching_engagements set expires_at = now() - interval '1 minute' where id = $1", [bobOrder.engagement_id])
+await asUser(ids.bob, async () => {
+  assert.equal((await one('select public.coaching_credit_balance($1) as balance', [bob.id])).balance, 0)
+  await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [bobSlot.id, 'Europe/Zurich']), 'engagement_missing')
+  assert.equal((await db.query("update public.coaching_memberships set role = 'owner' where user_id = $1", [ids.bob])).affectedRows, 0)
+})
+
 let booked
 await asUser(ids.alice, async () => {
   assert.equal((await one('select public.coaching_current_role() as role')).role, 'client')
@@ -286,6 +297,33 @@ await asUser(ids.alice, async () => {
   await expectRejected(() => db.query('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test 2']), 'session_not_cancellable')
 })
 
+const manualFutureSession = await one(`
+  insert into public.coaching_sessions(client_id, coach_id, engagement_id, starts_at, ends_at, status, source)
+  values ($1, $2, $3, now() + interval '20 days', now() + interval '20 days 1 hour', 'confirmed', 'manual')
+  returning id
+`, [alice.id, romain.id, aliceOrder.engagement_id])
+await asUser(ids.alice, async () => {
+  const before = (await one('select public.coaching_credit_balance($1) as balance', [alice.id])).balance
+  const cancelled = await one('select * from public.coaching_cancel_session($1, $2)', [manualFutureSession.id, 'Séance manuelle'])
+  assert.equal(cancelled.credits_remaining, before)
+  assert.equal(await count("select count(*) from public.coaching_credit_ledger where session_id = $1 and reason = 'cancellation'", [manualFutureSession.id]), 0)
+})
+
+const refundableSlot = await one(`
+  insert into public.coaching_availability_slots(coach_id, starts_at, ends_at, status, source)
+  values ($1, now() + interval '25 days', now() + interval '25 days 1 hour', 'booked', 'manual')
+  returning id, starts_at, ends_at
+`, [romain.id])
+const refundableSession = await one(`
+  insert into public.coaching_sessions(client_id, coach_id, engagement_id, starts_at, ends_at, status, source)
+  values ($1, $2, $3, $4, $5, 'confirmed', 'portal')
+  returning id
+`, [alice.id, romain.id, aliceOrder.engagement_id, refundableSlot.starts_at, refundableSlot.ends_at])
+await db.query(`
+  insert into public.coaching_credit_ledger(client_id, engagement_id, session_id, quantity, reason)
+  values ($1, $2, $3, -1, 'booking')
+`, [alice.id, aliceOrder.engagement_id, refundableSession.id])
+
 const repeatOrder = await asRole('service_role', () => one(`
   select * from public.coaching_record_spiffy_order(
     'spiffy-alice-001', 'alice@example.test', 'Alice', '', 'pack-3',
@@ -299,6 +337,10 @@ assert.equal(await count("select count(*) from public.coaching_credit_ledger whe
 const refunded = await asRole('service_role', () => one("select * from public.coaching_refund_spiffy_order('spiffy-alice-001')"))
 assert.equal(refunded.already_processed, false)
 assert.equal(refunded.credits_removed, 3)
+assert.equal(await count("select count(*) from public.coaching_sessions where id = $1 and status = 'cancelled' and cancellation_reason = 'Remboursement Spiffy'", [refundableSession.id]), 1)
+assert.equal(await count("select count(*) from public.coaching_availability_slots where id = $1 and status = 'available'", [refundableSlot.id]), 1)
+assert.equal(await count("select count(*) from public.coaching_credit_ledger where session_id = $1 and reason = 'cancellation'", [refundableSession.id]), 1)
+assert.equal(Number((await one('select coalesce(sum(quantity), 0) as balance from public.coaching_credit_ledger where client_id = $1', [alice.id])).balance), 0)
 const repeatRefund = await asRole('service_role', () => one("select * from public.coaching_refund_spiffy_order('spiffy-alice-001')"))
 assert.equal(repeatRefund.already_processed, true)
 assert.equal(repeatRefund.credits_removed, 0)
@@ -314,6 +356,10 @@ console.log(JSON.stringify({
   authorization: 'ok',
   booking: 'ok',
   cancellation: 'ok',
+  expired_credits: 'ok',
+  cancellation_credit_integrity: 'ok',
+  refund_future_sessions: 'ok',
+  role_escalation: 'blocked',
   session_completion: 'ok',
   preexisting_sso_purchase_link: 'ok',
   spiffy_idempotency: 'ok',

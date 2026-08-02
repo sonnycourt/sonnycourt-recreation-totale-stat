@@ -40,7 +40,8 @@ export async function googleAccessTokenForCoach(coachId) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.access_token) throw new Error(`google_refresh_${response.status}`);
   const expiresAt = new Date(Date.now() + Number(data.expires_in || 3600) * 1000).toISOString();
-  await supabasePatch('coaching_google_connections', `coach_id=eq.${encodeURIComponent(coachId)}`, { encrypted_access_token: encryptCoachingSecret(data.access_token), access_expires_at: expiresAt });
+  const stored = await supabasePatch('coaching_google_connections', `coach_id=eq.${encodeURIComponent(coachId)}`, { encrypted_access_token: encryptCoachingSecret(data.access_token), access_expires_at: expiresAt });
+  if (!stored.ok || !Array.isArray(stored.data) || !stored.data[0]) throw new Error(`google_refresh_persist_${stored.status}`);
   return data.access_token;
 }
 

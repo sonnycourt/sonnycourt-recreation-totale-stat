@@ -730,9 +730,17 @@ security definer
 set search_path = public
 as $$
   select coalesce(sum(quantity), 0)::integer
-  from public.coaching_credit_ledger
-  where client_id = p_client_id
+  from public.coaching_credit_ledger ledger
+  left join public.coaching_engagements engagement on engagement.id = ledger.engagement_id
+  where ledger.client_id = p_client_id
     and public.coaching_can_access_client(p_client_id)
+    and (
+      ledger.engagement_id is null
+      or (
+        engagement.status = 'active'
+        and (engagement.expires_at is null or engagement.expires_at > now())
+      )
+    )
 $$;
 revoke all on function public.coaching_credit_balance(uuid) from public;
 grant execute on function public.coaching_credit_balance(uuid) to authenticated;
@@ -807,14 +815,33 @@ begin
       and response.session_id is null
   ) then raise exception 'preparation_required'; end if;
 
-  select * into v_engagement
-  from public.coaching_engagements
-  where client_id = v_client.id and status = 'active'
-  order by started_at desc limit 1;
+  -- Consomme d'abord le cycle qui expire le plus tôt. Un engagement expiré
+  -- ou sans crédit propre ne peut jamais financer une nouvelle séance.
+  select engagement.* into v_engagement
+  from public.coaching_engagements engagement
+  where engagement.client_id = v_client.id
+    and engagement.status = 'active'
+    and (engagement.expires_at is null or engagement.expires_at > now())
+    and (
+      select coalesce(sum(ledger.quantity), 0)
+      from public.coaching_credit_ledger ledger
+      where ledger.engagement_id = engagement.id
+    ) > 0
+  order by engagement.expires_at asc nulls last, engagement.started_at asc
+  limit 1;
   if v_engagement.id is null then raise exception 'engagement_missing'; end if;
 
   select coalesce(sum(quantity), 0)::integer into v_balance
-  from public.coaching_credit_ledger where client_id = v_client.id;
+  from public.coaching_credit_ledger ledger
+  left join public.coaching_engagements engagement on engagement.id = ledger.engagement_id
+  where ledger.client_id = v_client.id
+    and (
+      ledger.engagement_id is null
+      or (
+        engagement.status = 'active'
+        and (engagement.expires_at is null or engagement.expires_at > now())
+      )
+    );
   if v_balance <= 0 then raise exception 'no_credit'; end if;
 
   select coalesce(o.duration_minutes, 60) into v_duration
@@ -878,11 +905,30 @@ begin
     and starts_at = v_session.starts_at
     and status = 'booked';
 
+  -- Seule une séance ayant réellement débité un crédit peut en restituer un.
+  -- Une séance manuelle ou migrée ne doit jamais permettre de créer du solde.
   insert into public.coaching_credit_ledger(client_id, engagement_id, session_id, quantity, reason, created_by)
-  values (v_session.client_id, v_session.engagement_id, v_session.id, 1, 'cancellation', auth.uid());
+  select v_session.client_id, v_session.engagement_id, v_session.id, 1, 'cancellation', auth.uid()
+  where exists (
+    select 1 from public.coaching_credit_ledger debit
+    where debit.session_id = v_session.id and debit.reason = 'booking' and debit.quantity < 0
+  )
+  and not exists (
+    select 1 from public.coaching_credit_ledger credit
+    where credit.session_id = v_session.id and credit.reason = 'cancellation'
+  );
 
   select coalesce(sum(quantity), 0)::integer into v_balance
-  from public.coaching_credit_ledger where client_id = v_session.client_id;
+  from public.coaching_credit_ledger ledger
+  left join public.coaching_engagements engagement on engagement.id = ledger.engagement_id
+  where ledger.client_id = v_session.client_id
+    and (
+      ledger.engagement_id is null
+      or (
+        engagement.status = 'active'
+        and (engagement.expires_at is null or engagement.expires_at > now())
+      )
+    );
 
   insert into public.coaching_activity_log(actor_user_id, event_type, entity_type, entity_id, client_id)
   values (auth.uid(), 'session.cancelled', 'session', v_session.id, v_session.client_id);
@@ -1049,6 +1095,45 @@ begin
     return;
   end if;
   select * into v_offer from public.coaching_offers where id = v_order.offer_id;
+
+  -- Les rendez-vous futurs liés à une commande remboursée sont annulés. Un
+  -- crédit de réservation n'est restitué que s'il avait réellement été
+  -- débité ; le retrait de l'achat ramène alors le cycle à zéro. Les séances
+  -- déjà réalisées restent dans l'historique et peuvent produire un solde
+  -- négatif, ce qui empêche de réserver de nouvelles prestations gratuites.
+  insert into public.coaching_credit_ledger(client_id, engagement_id, order_id, session_id, quantity, reason, note)
+  select session.client_id, session.engagement_id, v_order.id, session.id, 1, 'cancellation', 'Annulation automatique après remboursement'
+  from public.coaching_sessions session
+  where session.engagement_id = v_order.engagement_id
+    and session.status = 'confirmed'
+    and session.starts_at > now()
+    and exists (
+      select 1 from public.coaching_credit_ledger debit
+      where debit.session_id = session.id and debit.reason = 'booking' and debit.quantity < 0
+    )
+    and not exists (
+      select 1 from public.coaching_credit_ledger restored
+      where restored.session_id = session.id and restored.reason = 'cancellation'
+    );
+
+  update public.coaching_availability_slots slot
+  set status = 'available', held_until = null
+  where slot.status = 'booked'
+    and exists (
+      select 1 from public.coaching_sessions session
+      where session.engagement_id = v_order.engagement_id
+        and session.status = 'confirmed'
+        and session.starts_at > now()
+        and session.coach_id = slot.coach_id
+        and session.starts_at = slot.starts_at
+    );
+
+  update public.coaching_sessions
+  set status = 'cancelled', cancelled_at = now(), cancellation_reason = 'Remboursement Spiffy'
+  where engagement_id = v_order.engagement_id
+    and status = 'confirmed'
+    and starts_at > now();
+
   update public.coaching_orders set status = 'refunded', refunded_at = now() where id = v_order.id;
   update public.coaching_engagements set status = 'cancelled' where id = v_order.engagement_id and status <> 'completed';
   insert into public.coaching_credit_ledger(client_id, engagement_id, order_id, quantity, reason, note)

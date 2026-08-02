@@ -33,7 +33,13 @@ Garanties importantes :
 - les notes privées ne sont lisibles que par leur coach, pas par le propriétaire ;
 - crédits dans un journal append-only ;
 - réservation atomique d'un créneau et d'un crédit ;
+- les crédits expirés sont exclus du solde et le cycle expirant le plus tôt est
+  consommé en priorité ;
+- une annulation ne restitue un crédit que si cette séance l'avait réellement
+  débité : une séance manuelle ne peut pas fabriquer de solde ;
 - webhooks et remboursements idempotents ;
+- un remboursement annule les rendez-vous futurs concernés, libère les
+  créneaux et supprime leurs événements Google Calendar ;
 - jetons Google chiffrés en AES-256-GCM côté serveur ;
 - liens d'activation stockés uniquement sous forme de hash et valables 48 heures.
 - aucun visiteur Google SSO ne reçoit de rôle ni ne crée de dossier si son
@@ -86,6 +92,8 @@ Le coach clique sur « Connecter Google » dans sa configuration. L'OAuth stocke
 ses jetons chiffrés. « Synchroniser » transforme ses règles de disponibilité
 en créneaux, en retirant les périodes occupées dans Google Calendar. Après une
 réservation, l'événement et le lien Meet sont créés puis envoyés aux participants.
+L'identifiant Google de l'événement est déterministe : une relance ne crée pas
+de doublon. Les emails client et coach sont également dédupliqués par séance.
 
 Variables :
 
@@ -127,9 +135,12 @@ Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel
 - `npm run test:coaching-functions` vérifie que les fonctions refusent les
   appels non configurés/non authentifiés, la signature Spiffy, sa limite de
   fraîcheur et le chiffrement des jetons Google ;
+- `npm run test:coaching-frontend` garantit la présence des trois routages de
+  rôle, de l'email/mot de passe, de Google SSO et de la récupération, ainsi que
+  l'absence de magic links ;
 - `npm run build` construit les 270 pages.
-- `npm run check:coaching-readiness` vérifie la présence de chaque variable
-  externe sans jamais afficher sa valeur.
+- `npm run check:coaching-readiness` vérifie la présence, la cohérence et le
+  format de chaque variable externe sans jamais afficher sa valeur.
 
 Résultat local au 2 août 2026 : tous ces tests passent. Le sas de publication
 signale volontairement un seul changement métier à approuver : la page

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { googleAccessTokenForCoach } from './lib/coaching-google.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 
@@ -34,7 +35,12 @@ function minutes(value) {
 
 async function resolveCoach(req, requestedSlug) {
   const syncSecret = req.headers.get('x-coaching-sync-secret');
-  if (process.env.COACHING_SYNC_SECRET && syncSecret === process.env.COACHING_SYNC_SECRET) {
+  const expectedSecret = process.env.COACHING_SYNC_SECRET || '';
+  let validSyncSecret = false;
+  try {
+    validSyncSecret = Boolean(expectedSecret && syncSecret && syncSecret.length === expectedSecret.length && crypto.timingSafeEqual(Buffer.from(syncSecret), Buffer.from(expectedSecret)));
+  } catch {}
+  if (validSyncSecret) {
     const found = await supabaseGet(`coaching_coaches?slug=eq.${encodeURIComponent(requestedSlug || 'romain')}&status=eq.active&select=id,slug,google_calendar_id&limit=1`);
     return found.ok && Array.isArray(found.data) ? found.data[0] : null;
   }
