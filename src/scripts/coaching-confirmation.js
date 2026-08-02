@@ -1,4 +1,5 @@
 import { formatDateTime, getDemoState, setDemoSession } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole } from './coaching-supabase.js';
 
 let appointment = null;
@@ -38,7 +39,7 @@ async function boot() {
   if (access.mode === 'demo') {
     setDemoSession('student', { name: 'Claire', email: 'claire@exemple.fr' });
     const state = getDemoState();
-    if (!state.student.nextSession) return window.location.replace('/coaching/eleve');
+    if (!state.student.nextSession) return window.location.replace(coachingUrl('/coaching/eleve'));
     render({ starts_at: state.student.nextSession, ends_at: new Date(new Date(state.student.nextSession).getTime() + 3600000).toISOString(), meet_url: null }, Math.max(state.student.creditsTotal - state.student.creditsUsed, 0), false);
     return;
   }
@@ -50,7 +51,7 @@ async function boot() {
     if (wantedId) query = query.eq('id', wantedId);
     const [{ data: booked, error: bookedError }, balanceResult] = await Promise.all([query.maybeSingle(), coachingSupabase.rpc('coaching_credit_balance', { p_client_id: client.id })]);
     if (bookedError || balanceResult.error) throw bookedError || balanceResult.error;
-    if (!booked) return window.location.replace('/coaching/eleve');
+    if (!booked) return window.location.replace(coachingUrl('/coaching/eleve'));
     render(booked, Number(balanceResult.data || 0), true);
   } catch (error) {
     console.error('coaching confirmation load', error);
@@ -86,7 +87,7 @@ document.querySelector('[data-cancel-session]')?.addEventListener('click', async
     return;
   }
   sessionStorage.removeItem('coaching:last-session-id');
-  window.location.href = '/coaching/preparation';
+  window.location.href = coachingUrl('/coaching/preparation');
 });
 
 boot();

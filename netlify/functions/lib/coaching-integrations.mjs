@@ -1,5 +1,6 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { googleAccessTokenForCoach } from './coaching-google.mjs';
+import { coachingAppUrl } from './coaching-origin.mjs';
 
 async function googleAccessToken() {
   const refreshToken = process.env.GOOGLE_ROMAIN_REFRESH_TOKEN;
@@ -150,6 +151,8 @@ export async function finalizeCoachingBooking(sessionId) {
   const coachName = [context.coach.first_name, context.coach.last_name].filter(Boolean).join(' ') || 'ton coach';
   const safeCoachName = escapeHtml(coachName);
   const safeMeetUrl = escapeHtml(context.session.meet_url);
+  const studentSpaceUrl = coachingAppUrl('/eleve');
+  const coachSpaceUrl = coachingAppUrl('/coach');
   const meetLine = context.session.meet_url ? `<p><a href="${safeMeetUrl}">Rejoindre Google Meet</a></p>` : '<p>Le lien Google Meet apparaîtra dans ton espace.</p>';
   try {
     results.client_email = await sendSessionEmailOnce({
@@ -160,8 +163,8 @@ export async function finalizeCoachingBooking(sessionId) {
         to: context.client.email,
         name: context.client.first_name,
         subject: `Ta séance avec ${coachName} est confirmée`,
-        html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} est confirmée pour le <strong>${when}</strong>.</p>${meetLine}<p>Tu retrouveras tous les détails dans ton espace coaching.</p>`,
-        text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'}`,
+        html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} est confirmée pour le <strong>${when}</strong>.</p>${meetLine}<p><a href="${studentSpaceUrl}">Ouvrir mon espace coaching</a></p>`,
+        text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'} Espace coaching : ${studentSpaceUrl}`,
       }),
     });
   } catch (error) {
@@ -177,8 +180,8 @@ export async function finalizeCoachingBooking(sessionId) {
         to: context.coach.email,
         name: context.coach.first_name,
         subject: `Nouvelle séance — ${context.client.first_name}`,
-        html: `<p>Une séance avec ${context.client.first_name} est confirmée pour le <strong>${when}</strong>.</p><p>La préparation est disponible dans le Coaching OS.</p>${meetLine}`,
-        text: `Séance avec ${context.client.first_name} confirmée pour le ${when}.`,
+        html: `<p>Une séance avec ${context.client.first_name} est confirmée pour le <strong>${when}</strong>.</p><p>La préparation est disponible dans le Coaching OS.</p>${meetLine}<p><a href="${coachSpaceUrl}">Ouvrir mon espace coach</a></p>`,
+        text: `Séance avec ${context.client.first_name} confirmée pour le ${when}. Espace coach : ${coachSpaceUrl}`,
       }),
     });
   } catch (error) {

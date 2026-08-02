@@ -1,4 +1,7 @@
 const groups = {
+  app: [
+    'COACHING_APP_ORIGIN',
+  ],
   supabase: [
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
@@ -56,6 +59,7 @@ for (const name of ['PUBLIC_SPIFFY_COACHING_SESSION_1_URL', 'PUBLIC_SPIFFY_COACH
 invalidate('google', 'COACHING_TOKEN_ENCRYPTION_KEY', String(process.env.COACHING_TOKEN_ENCRYPTION_KEY || '').length >= 32);
 invalidate('google', 'COACHING_SYNC_SECRET', String(process.env.COACHING_SYNC_SECRET || '').length >= 32);
 invalidate('email', 'COACHING_EMAIL_FROM', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(process.env.COACHING_EMAIL_FROM || '')));
+invalidate('app', 'COACHING_APP_ORIGIN', String(process.env.COACHING_APP_ORIGIN || '').replace(/\/$/, '') === 'https://coaching.sonycourt.com');
 
 for (const group of Object.values(report)) group.ready = group.missing.length === 0 && group.invalid.length === 0;
 const missing = Object.values(report).flatMap((item) => item.missing);

@@ -1,4 +1,5 @@
 import { clearDemoSession, getDemoSession, getDemoState, updateDemoState } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
 const form = document.querySelector('[data-account-form]');
@@ -10,7 +11,11 @@ let session = null;
 let profile = null;
 let pendingFile = null;
 
-const destinations = { owner: '/coaching/admin', coach: '/coach-console', client: '/coaching/eleve' };
+const destinations = {
+  owner: coachingUrl('/coaching/admin'),
+  coach: coachingUrl('/coach-console'),
+  client: coachingUrl('/coaching/eleve'),
+};
 const labels = { owner: 'Propriétaire', coach: 'Coach', client: 'Élève' };
 
 function safeAvatar(value) {
@@ -143,7 +148,7 @@ document.querySelectorAll('[data-logout]').forEach((link) => link.addEventListen
   event.preventDefault();
   if (accessMode === 'demo') {
     clearDemoSession();
-    window.location.href = '/coaching';
+    window.location.href = coachingUrl('/coaching');
   } else await signOutCoaching();
 }));
 

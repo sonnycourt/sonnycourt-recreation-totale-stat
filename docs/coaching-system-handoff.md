@@ -7,17 +7,23 @@ Le système fonctionne en deux modes sans toucher aux funnels existants :
 - sur `localhost`, une démonstration complète repose sur `localStorage` ;
 - avec `?live=1` ou sur le domaine, les mêmes écrans utilisent Supabase.
 
-Entrées principales :
+Les pages publiques d'acquisition restent sur `sonnycourt.com`. L'application
+privée est servie depuis `https://coaching.sonycourt.com` :
 
-- `/coaching` : connexion email + mot de passe, Google SSO et récupération ;
-- `/coaching/admin` : supervision propriétaire ;
-- `/coach-console` : espace isolé du coach ;
-- `/coaching/eleve` : espace du client ;
-- `/coaching/credits` : wallet, memberships et recharges ;
-- `/coaching/compte` : identité, photo et préférences de chaque rôle ;
-- `/coaching/preparation` → `/coaching/reserver` → `/coaching/confirmation` ;
+- `/` : connexion email + mot de passe, Google SSO et récupération ;
+- `/admin` : supervision propriétaire ;
+- `/coach` : espace isolé du coach ;
+- `/eleve` : espace du client ;
+- `/credits` : wallet, memberships et recharges ;
+- `/compte` : identité, photo et préférences de chaque rôle ;
+- `/preparation` → `/reserver` → `/confirmation` ;
 - `/coach-romain/continuer` : offres 1, 3 et 6 séances ;
-- `/coaching/activer` : création du mot de passe après un premier achat.
+- `/activer` : création du mot de passe après un premier achat.
+
+Les anciennes routes `/coaching/*` et `/coach-console` sur `sonnycourt.com`
+redirigent vers le sous-domaine. Le code source historique reste en place : les
+routes propres du sous-domaine sont des rewrites Netlify, sans duplication des
+écrans ni des données.
 
 ## Couche métier
 
@@ -104,6 +110,7 @@ Variables Supabase nécessaires aux fonctions serveur :
 - `SUPABASE_PUBLISHABLE_KEY` (ou l'ancien `SUPABASE_ANON_KEY`)
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `COACHING_APP_ORIGIN=https://coaching.sonycourt.com`
 
 ## Google Calendar et Meet
 
@@ -121,14 +128,15 @@ Variables :
 - `COACHING_TOKEN_ENCRYPTION_KEY` (secret long et stable)
 - `COACHING_SYNC_SECRET` (pour une future synchronisation planifiée)
 
-L'URI OAuth autorisée est :
+L'URI OAuth Google Calendar autorisée est :
 
-`https://sonnycourt.com/.netlify/functions/coaching-google-callback`
+`https://coaching.sonycourt.com/.netlify/functions/coaching-google-callback`
 
 Google SSO pour la connexion des utilisateurs est un réglage séparé dans
-Supabase Auth. Ajouter les redirects `/coaching/auth/callback` de production et
-de localhost, ainsi que `/coaching/reset-password` pour la récupération du mot
-de passe.
+Supabase Auth. Le `Site URL` doit être `https://coaching.sonycourt.com`. Ajouter
+`https://coaching.sonycourt.com/auth/callback` et
+`https://coaching.sonycourt.com/reset-password` aux redirects autorisés, tout
+en conservant temporairement les URLs localhost pour les tests.
 
 ## Emails
 
@@ -169,20 +177,26 @@ critiques sans validation explicite de Sonny.
 
 ## Activation restante
 
-1. Autoriser l'écriture Supabase puis appliquer, dans cet ordre :
+1. Ajouter `coaching.sonycourt.com` comme alias du site Netlify et faire pointer
+   le DNS vers ce même site ; le domaine principal reste `sonnycourt.com`.
+2. Définir `COACHING_APP_ORIGIN=https://coaching.sonycourt.com` dans Netlify.
+3. Mettre à jour les URLs Supabase Auth et l'URI OAuth Google ci-dessus.
+4. Autoriser l'écriture Supabase puis appliquer, dans cet ordre :
    `sql/coach_diagnostic.sql`, `sql/coaching_platform.sql`,
    `sql/coaching_first_consultation_bridge.sql`,
    `sql/coaching_wallet_memberships.sql`, puis
    `sql/coaching_profile_storage.sql`.
-2. Créer les comptes Sonny et Romain dans Supabase Auth.
-3. Attribuer les rôles avec la fonction serveur :
+5. Créer les comptes Sonny et Romain dans Supabase Auth.
+6. Attribuer les rôles avec la fonction serveur :
    - `coaching_assign_role_by_email('email-sonny', 'owner', null)`
    - `coaching_assign_role_by_email('email-romain', 'coach', 'romain')`
-4. Ajouter les plages de Romain dans `coaching_availability_rules`.
-5. Renseigner les variables Google, Spiffy et MailerSend ci-dessus.
-6. Créer/renseigner les trois recharges et les trois memberships Spiffy, puis
+7. Ajouter les plages de Romain dans `coaching_availability_rules`.
+8. Renseigner les variables Google, Spiffy et MailerSend ci-dessus.
+9. Créer/renseigner les trois recharges et les trois memberships Spiffy, puis
    brancher leur webhook protégé.
-7. Faire un achat test, une réservation, un déplacement et un remboursement.
+10. Configurer le retour de checkout Spiffy vers
+    `https://coaching.sonycourt.com/achat-confirme` puis faire un achat test,
+    une réservation, un déplacement et un remboursement.
 
 Configurer MailerSend **avant** d’activer les webhooks Spiffy. Si une livraison
 d’email échoue après l’achat, Spiffy peut rejouer le webhook : le système ne

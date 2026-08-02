@@ -10,6 +10,7 @@ import spiffyWebhook from '../netlify/functions/coach-spiffy-webhook.js'
 import syncAvailability from '../netlify/functions/coaching-sync-availability.js'
 import { decryptCoachingSecret, encryptCoachingSecret } from '../netlify/functions/lib/coaching-google.mjs'
 import { finalizeCoachingBooking } from '../netlify/functions/lib/coaching-integrations.mjs'
+import { coachingAppOrigin, coachingAppUrl } from '../netlify/functions/lib/coaching-origin.mjs'
 
 const managedEnv = [
   'COACHING_TOKEN_ENCRYPTION_KEY', 'GOOGLE_COACHING_CLIENT_ID',
@@ -17,7 +18,8 @@ const managedEnv = [
   'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL',
   'PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'URL', 'DEPLOY_PRIME_URL',
   'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS',
-  'COACHING_SPIFFY_WEBHOOK_TOKEN', 'GOOGLE_ROMAIN_REFRESH_TOKEN'
+  'COACHING_SPIFFY_WEBHOOK_TOKEN', 'GOOGLE_ROMAIN_REFRESH_TOKEN',
+  'COACHING_APP_ORIGIN',
 ]
 for (const key of managedEnv) delete process.env[key]
 
@@ -106,7 +108,9 @@ assert.equal(response.status, 503)
 
 response = await googleCallback(request('http://localhost/.netlify/functions/coaching-google-callback'))
 assert.equal(response.status, 302)
-assert.ok(response.headers.get('location').includes('google=error'))
+assert.equal(response.headers.get('location'), 'https://coaching.sonycourt.com/coach?google=error#settings')
+assert.equal(coachingAppOrigin({}), 'https://coaching.sonycourt.com')
+assert.equal(coachingAppUrl('/eleve', { COACHING_APP_ORIGIN: 'http://localhost:4321' }), 'http://localhost:4321/eleve')
 
 response = await syncAvailability(request('http://localhost/.netlify/functions/coaching-sync-availability', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
@@ -194,6 +198,7 @@ process.env.URL = 'https://sonnycourt.com'
 const firstConsultationSessionId = '10000000-0000-4000-8000-000000000010'
 let recordedOrderPayload = null
 let mailerSendCalls = 0
+let lastMailerPayload = null
 let orderRecordCalls = 0
 let refundRpcCalls = 0
 let firstConsultationImportCalls = 0
@@ -275,6 +280,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (target === 'https://api.mailersend.com/v1/email') {
     mailerSendCalls += 1
+    lastMailerPayload = JSON.parse(options.body)
     return new Response('', { status: 202 })
   }
   if (target.endsWith('/rest/v1/coaching_email_deliveries') && options.method === 'POST') {
@@ -338,6 +344,7 @@ assert.equal(recordedOrderPayload.p_raw_payload.checkout_id, 'followup-checkout-
 assert.ok(!JSON.stringify(recordedOrderPayload.p_raw_payload).includes('camille@example.test'))
 assert.ok(!JSON.stringify(recordedOrderPayload.p_raw_payload).includes('4242'))
 assert.equal(mailerSendCalls, 1)
+assert.ok(lastMailerPayload.html.includes('https://coaching.sonycourt.com/activer?token='))
 
 activationDeliveryAlreadySent = true
 response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase', {

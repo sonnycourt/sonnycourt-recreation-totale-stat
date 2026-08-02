@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { deleteCoachingGoogleMeeting, finalizeCoachingBooking, sendCoachingActivationEmail } from './lib/coaching-integrations.mjs';
+import { coachingAppUrl } from './lib/coaching-origin.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -249,8 +250,7 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
   if (!closed.ok) throw new Error(`coaching_activation_close_${closed.status}`);
   const activation = await supabasePost('coaching_account_activations', { client_id: client.id, order_id: row.order_id, token_hash: tokenHash, expires_at: expiresAt });
   if (!activation.ok) throw new Error(`coaching_activation_${activation.status}`);
-  const origin = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://sonnycourt.com';
-  const activationUrl = `${origin.replace(/\/$/, '')}/coaching/activer?token=${encodeURIComponent(token)}`;
+  const activationUrl = coachingAppUrl(`/activer?token=${encodeURIComponent(token)}`);
   const delivery = await sendCoachingActivationEmail({
     email: client.email,
     firstName: client.first_name,

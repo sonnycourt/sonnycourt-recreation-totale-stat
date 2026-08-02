@@ -1,4 +1,5 @@
 import { getDemoState, setDemoSession, updateDemoState } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole } from './coaching-supabase.js';
 
 const form = document.querySelector('[data-preparation-form]');
@@ -113,7 +114,7 @@ async function boot() {
     submit.disabled = true;
     try {
       await persist(collect(), true);
-      window.location.href = '/coaching/reserver';
+      window.location.href = coachingUrl('/coaching/reserver');
     } catch (error) {
       console.error('coaching preparation submit', error);
       saveLabel.textContent = 'Impossible d’enregistrer pour le moment.';
@@ -125,7 +126,7 @@ async function boot() {
   document.querySelector('[data-save-later]')?.addEventListener('click', async () => {
     window.clearTimeout(saveTimer);
     try { await persist(collect(), false); } catch {}
-    window.location.href = '/coaching/eleve';
+    window.location.href = coachingUrl('/coaching/eleve');
   });
 }
 

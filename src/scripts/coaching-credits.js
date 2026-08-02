@@ -1,4 +1,5 @@
 import { clearDemoSession, getDemoState, setDemoSession } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
 let mode = 'demo';
@@ -79,7 +80,7 @@ document.querySelector('[data-logout]')?.addEventListener('click', async (event)
   event.preventDefault();
   if (mode === 'demo') {
     clearDemoSession();
-    window.location.href = '/coaching';
+    window.location.href = coachingUrl('/coaching');
   } else await signOutCoaching();
 });
 

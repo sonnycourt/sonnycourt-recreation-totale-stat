@@ -1,4 +1,5 @@
 import { formatDateTime, getDemoState, setDemoSession, updateDemoState } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole } from './coaching-supabase.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -66,11 +67,11 @@ async function bootDemo() {
   const state = getDemoState();
   const remaining = Math.max(state.student.creditsTotal - state.student.creditsUsed, 0);
   if (remaining < 3) {
-    window.location.replace('/coaching/credits?notice=insufficient');
+    window.location.replace(coachingUrl('/coaching/credits?notice=insufficient'));
     return;
   }
   if (!state.student.preparation.completed && !params.has('preview')) {
-    window.location.replace('/coaching/preparation');
+    window.location.replace(coachingUrl('/coaching/preparation'));
     return;
   }
   document.querySelector('[data-booking-credits]').textContent = String(remaining);
@@ -95,11 +96,11 @@ async function bootLive(session) {
   if (failure) throw failure;
   const remaining = Number(balanceResult.data || 0);
   if (remaining < 3) {
-    window.location.replace('/coaching/credits?notice=insufficient');
+    window.location.replace(coachingUrl('/coaching/credits?notice=insufficient'));
     return;
   }
   if (!prepResult.data) {
-    window.location.replace('/coaching/preparation');
+    window.location.replace(coachingUrl('/coaching/preparation'));
     return;
   }
   document.querySelector('[data-booking-credits]').textContent = String(remaining);
@@ -156,7 +157,7 @@ confirmButton.addEventListener('click', async () => {
   confirmButton.textContent = 'Confirmation…';
   try {
     if (mode === 'demo') await confirmDemo(); else await confirmLive();
-    window.location.href = '/coaching/confirmation';
+    window.location.href = coachingUrl('/coaching/confirmation');
   } catch (error) {
     showError(error.message || 'Impossible de confirmer ce créneau.');
     confirmButton.disabled = false;

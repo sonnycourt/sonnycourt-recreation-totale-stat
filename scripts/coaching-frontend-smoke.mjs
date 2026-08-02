@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 
 const read = async (path) => fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8')
+const { coachingUrl, isCoachingAppHost } = await import('../src/scripts/coaching-routes.js')
 
 const portal = await read('src/scripts/coaching-portal.js')
 const auth = await read('src/scripts/coaching-supabase.js')
@@ -11,6 +12,9 @@ const activation = await read('src/scripts/coaching-activate-account.js')
 const coachConsole = await read('src/scripts/coach-console.js')
 const coachConsolePage = await read('src/pages/coach-console.astro')
 const combinedAuth = [portal, auth, callback, reset, activation].join('\n')
+const netlify = await read('netlify.toml')
+const googleCallback = await read('netlify/functions/coaching-google-callback.js')
+const spiffyWebhook = await read('netlify/functions/coach-spiffy-webhook.js')
 
 assert.match(portal, /signInWithPassword/)
 assert.match(portal, /signInWithOAuth/)
@@ -49,6 +53,18 @@ assert.match(wallet, /membership-6|coaching_subscriptions/)
 assert.match(account, /coaching_update_my_profile/)
 assert.match(account, /coaching-avatars/)
 assert.match(student, /data-continuation-prompt|openContinuationPrompt/)
+assert.equal(isCoachingAppHost('coaching.sonycourt.com'), true)
+assert.equal(isCoachingAppHost('sonnycourt.com'), false)
+assert.equal(coachingUrl('/coaching', 'coaching.sonycourt.com'), '/')
+assert.equal(coachingUrl('/coaching/eleve?preview=1', 'coaching.sonycourt.com'), '/eleve?preview=1')
+assert.equal(coachingUrl('/coach-console#clients', 'coaching.sonycourt.com'), '/coach#clients')
+assert.equal(coachingUrl('/coaching/eleve', 'localhost'), '/coaching/eleve')
+for (const route of ['admin', 'coach', 'eleve', 'credits', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
+  assert.ok(netlify.includes(`from = "https://coaching.sonycourt.com/${route}"`))
+}
+assert.match(netlify, /https:\/\/sonnycourt\.com\/coaching\/\*/)
+assert.match(googleCallback, /coachingAppUrl\(`\/coach/)
+assert.match(spiffyWebhook, /coachingAppUrl\(`\/activer/)
 
 for (const endpoint of [
   'netlify/functions/coaching-activate-account.js',
@@ -67,6 +83,7 @@ console.log(JSON.stringify({
   magic_links: 'absent',
   role_routing: ['owner', 'coach', 'client'],
   coach_actions: 'persistent',
+  coaching_subdomain: 'ready',
   portal_pages: 11,
   server_endpoints: 7,
 }))

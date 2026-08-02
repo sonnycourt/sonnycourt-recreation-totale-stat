@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
+import { coachingAppOrigin } from './coaching-origin.mjs';
 
 function encryptionKey() {
   const raw = process.env.COACHING_TOKEN_ENCRYPTION_KEY;
@@ -45,6 +46,6 @@ export async function googleAccessTokenForCoach(coachId) {
   return data.access_token;
 }
 
-export function coachingGoogleRedirectUri(origin) {
+export function coachingGoogleRedirectUri(origin = coachingAppOrigin()) {
   return `${String(origin).replace(/\/$/, '')}/.netlify/functions/coaching-google-callback`;
 }

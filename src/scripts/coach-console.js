@@ -1,4 +1,5 @@
 import { clearDemoSession, formatDateTime, getDemoState } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
 const clients = {
@@ -660,7 +661,7 @@ function filterClientRows() {
 document.getElementById('coach-gate-form').addEventListener('submit', (event) => {
   event.preventDefault();
   if (previewMode) showApp();
-  else window.location.href = '/coaching';
+  else window.location.href = coachingUrl('/coaching');
 });
 
 document.addEventListener('click', (event) => {
@@ -849,7 +850,7 @@ document.querySelector('[data-availability-form]')?.addEventListener('submit', a
 document.querySelector('[data-coach-logout]')?.addEventListener('click', async () => {
   if (consoleMode === 'demo') {
     clearDemoSession();
-    window.location.href = '/coaching';
+    window.location.href = coachingUrl('/coaching');
   } else await signOutCoaching();
 });
 
@@ -873,7 +874,7 @@ async function bootConsole() {
     if (googleResult && googleResult !== 'connected') showToast('La connexion Google n’a pas pu être terminée.');
   } catch (error) {
     console.error('coach console load', error);
-    window.location.href = '/coaching?error=coach-data';
+    window.location.href = coachingUrl('/coaching?error=coach-data');
   }
 }
 

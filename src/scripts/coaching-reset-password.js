@@ -1,4 +1,5 @@
 import { coachingSupabase, friendlyAuthError } from './coaching-supabase.js';
+import { coachingUrl } from './coaching-routes.js';
 
 const form = document.querySelector('[data-reset-form]');
 const feedback = document.querySelector('[data-reset-feedback]');
@@ -25,5 +26,5 @@ form?.addEventListener('submit', async (event) => {
   }
   feedback.style.color = 'var(--cp-green)';
   feedback.textContent = 'Mot de passe enregistré. Ouverture de la connexion…';
-  window.setTimeout(() => { window.location.href = '/coaching'; }, 900);
+  window.setTimeout(() => { window.location.href = coachingUrl('/coaching'); }, 900);
 });

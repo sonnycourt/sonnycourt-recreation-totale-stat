@@ -1,4 +1,5 @@
 import { clearDemoSession, formatDateTime, getDemoState, setDemoSession } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
 function creditTimeLabel(credits) {
@@ -55,7 +56,7 @@ function renderStudent(student) {
     image.src = coachAvatar.startsWith('/') || /^https:\/\//i.test(coachAvatar) ? coachAvatar : '/favicon.svg';
     image.alt = coachName;
   });
-  const continuationUrl = '/coaching/credits';
+  const continuationUrl = coachingUrl('/coaching/credits');
   document.querySelectorAll('[data-continuation-link]').forEach((link) => {
     link.hidden = !continuationUrl;
     if (continuationUrl) link.href = continuationUrl;
@@ -73,7 +74,7 @@ function renderStudent(student) {
   if (student.nextSession) {
     nextTitle.textContent = 'Ta prochaine séance est réservée.';
     nextCopy.textContent = `${formatDateTime(student.nextSession)} avec ${coachName}. Ton lien Google Meet apparaîtra ici dès sa création.`;
-    setNextActions('/coaching/confirmation', 'Voir ma réservation');
+    setNextActions(coachingUrl('/coaching/confirmation'), 'Voir ma réservation');
   } else if (remaining <= 0) {
     nextTitle.textContent = 'Choisis comment tu veux continuer.';
     nextCopy.textContent = 'Ton cycle actuel est terminé. Tu peux choisir une séance ponctuelle ou un nouveau parcours.';
@@ -81,11 +82,11 @@ function renderStudent(student) {
   } else if (student.preparation.completed) {
     nextTitle.textContent = 'Ta préparation est prête.';
     nextCopy.textContent = `${coachName} retrouvera tes réponses dans ton dossier. Il reste seulement à choisir un créneau.`;
-    setNextActions('/coaching/reserver', 'Choisir mon créneau');
+    setNextActions(coachingUrl('/coaching/reserver'), 'Choisir mon créneau');
   } else {
     nextTitle.textContent = 'Prépare ta prochaine séance.';
     nextCopy.textContent = `Quelques réponses courtes permettront à ${coachName} de reprendre le fil sans perdre les premières minutes.`;
-    setNextActions('/coaching/preparation', 'Commencer ma préparation');
+    setNextActions(coachingUrl('/coaching/preparation'), 'Commencer ma préparation');
   }
 
   prepBadge.textContent = student.preparation.completed ? 'Préparation complétée' : 'Environ 3 minutes';
@@ -179,7 +180,7 @@ document.querySelector('[data-logout]')?.addEventListener('click', async (event)
   event.preventDefault();
   if ((await requireCoachingRole('client'))?.mode === 'demo') {
     clearDemoSession();
-    window.location.href = '/coaching';
+    window.location.href = coachingUrl('/coaching');
   } else await signOutCoaching();
 });
 

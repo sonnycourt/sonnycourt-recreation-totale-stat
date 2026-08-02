@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { coachingUrl } from './coaching-routes.js';
 
 const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL || 'https://skomdzfwenlrzsjsjyqu.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_toQ5q4YbxTOG8MRX1U7EXw_ilshC2Ov';
@@ -13,10 +14,10 @@ export const coachingSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_
 });
 
 export const roleDestinations = {
-  owner: '/coaching/admin',
-  coach: '/coach-console',
-  client: '/coaching/eleve',
-  student: '/coaching/eleve',
+  owner: coachingUrl('/coaching/admin'),
+  coach: coachingUrl('/coach-console'),
+  client: coachingUrl('/coaching/eleve'),
+  student: coachingUrl('/coaching/eleve'),
 };
 
 export function isLocalCoachingPreview() {
@@ -46,17 +47,17 @@ export async function requireCoachingRole(expectedRole) {
   if (isLocalCoachingPreview()) return { mode: 'demo', session: null, membership: { role: expectedRole } };
   const { data: { session }, error } = await coachingSupabase.auth.getSession();
   if (error || !session) {
-    window.location.replace('/coaching');
+    window.location.replace(coachingUrl('/coaching'));
     return null;
   }
   const membership = await getCoachingMembership(session.user.id);
   if (!membership) {
     await coachingSupabase.auth.signOut();
-    window.location.replace('/coaching?error=role');
+    window.location.replace(coachingUrl('/coaching?error=role'));
     return null;
   }
   if (expectedRole && membership.role !== expectedRole) {
-    window.location.replace(roleDestinations[membership.role] || '/coaching');
+    window.location.replace(roleDestinations[membership.role] || coachingUrl('/coaching'));
     return null;
   }
   return { mode: 'live', session, membership };
@@ -64,7 +65,7 @@ export async function requireCoachingRole(expectedRole) {
 
 export async function signOutCoaching() {
   await coachingSupabase.auth.signOut();
-  window.location.href = '/coaching';
+  window.location.href = coachingUrl('/coaching');
 }
 
 export function friendlyAuthError(error) {

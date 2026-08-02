@@ -1,4 +1,5 @@
 import { clearDemoSession, getDemoState, resetDemoState, setDemoSession } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
 const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -39,7 +40,7 @@ function render(state, live = false) {
       <td>${Number(coach.activeClients || 0)} clients</td>
       <td>${Number(coach.sessionsThisMonth || 0)} séances</td>
       <td>${euro.format(Number(coach.pendingPayoutCents || 0) / 100)}</td>
-      <td><a class="action-link" href="${live ? '#coachs' : '/coach-console?preview=1'}">${live ? 'Activité' : 'Ouvrir son espace'}</a></td>
+      <td><a class="action-link" href="${live ? '#coachs' : coachingUrl('/coach-console?preview=1')}">${live ? 'Activité' : 'Ouvrir son espace'}</a></td>
     </tr>
   `).join('');
 
@@ -50,7 +51,7 @@ function render(state, live = false) {
       <td>${Number(client.remaining || 0)} crédit${Number(client.remaining || 0) > 1 ? 's' : ''}</td>
       <td><span class="state-pill${client.membership ? '' : ' muted'}">${client.membership ? 'Actif' : 'Ponctuel'}</span></td>
       <td>${escapeHtml(client.nextSession || 'À réserver')}</td>
-      <td><a class="action-link" href="${live ? '#clients' : client.id === 'claire' ? '/coaching/eleve?preview=1' : '/coach-console?preview=1#clients'}">Voir</a></td>
+      <td><a class="action-link" href="${live ? '#clients' : client.id === 'claire' ? coachingUrl('/coaching/eleve?preview=1') : coachingUrl('/coach-console?preview=1#clients')}">Voir</a></td>
     </tr>
   `).join('');
 
@@ -207,7 +208,7 @@ document.querySelector('[data-logout]')?.addEventListener('click', async (event)
   event.preventDefault();
   if ((await requireCoachingRole('owner'))?.mode === 'demo') {
     clearDemoSession();
-    window.location.href = '/coaching';
+    window.location.href = coachingUrl('/coaching');
   } else await signOutCoaching();
 });
 

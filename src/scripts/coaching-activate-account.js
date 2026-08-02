@@ -1,3 +1,5 @@
+import { coachingUrl } from './coaching-routes.js';
+
 const form = document.querySelector('[data-activation-form]');
 const feedback = document.querySelector('[data-activation-feedback]');
 const token = new URLSearchParams(window.location.search).get('token') || '';
@@ -25,5 +27,5 @@ form.addEventListener('submit', async (event) => {
   }
   feedback.style.color = 'var(--cp-green)';
   feedback.textContent = 'Ton espace est activé. Ouverture de la connexion…';
-  window.setTimeout(() => { window.location.href = '/coaching'; }, 900);
+  window.setTimeout(() => { window.location.href = coachingUrl('/coaching'); }, 900);
 });

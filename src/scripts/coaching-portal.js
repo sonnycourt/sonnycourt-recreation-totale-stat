@@ -1,4 +1,5 @@
 import { getDemoSession, setDemoSession } from './coaching-demo-store.js';
+import { coachingUrl } from './coaching-routes.js';
 import {
   coachingSupabase,
   friendlyAuthError,
@@ -21,9 +22,9 @@ if (statusBadge && !demoMode) {
 }
 
 const demoDestinations = {
-  owner: '/coaching/admin?preview=1',
-  coach: '/coach-console?preview=1',
-  student: '/coaching/eleve?preview=1',
+  owner: coachingUrl('/coaching/admin?preview=1'),
+  coach: coachingUrl('/coach-console?preview=1'),
+  student: coachingUrl('/coaching/eleve?preview=1'),
 };
 
 function showFeedback(message, error = false) {
@@ -81,7 +82,7 @@ document.querySelector('[data-google-login]')?.addEventListener('click', async (
   const { error } = await coachingSupabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/coaching/auth/callback`,
+      redirectTo: `${window.location.origin}${coachingUrl('/coaching/auth/callback')}`,
       queryParams: { prompt: 'select_account' },
     },
   });
@@ -100,7 +101,7 @@ document.querySelector('[data-forgot-password]')?.addEventListener('click', asyn
     return;
   }
   const { error } = await coachingSupabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/coaching/reset-password`,
+    redirectTo: `${window.location.origin}${coachingUrl('/coaching/reset-password')}`,
   });
   showFeedback(error ? friendlyAuthError(error) : 'Un email de réinitialisation vient d’être envoyé.', Boolean(error));
 });
