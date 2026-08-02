@@ -139,16 +139,16 @@ exports.handler = async (event, context) => {
         let targetGroupId;
         if (groupId === 'WAITLIST_SSR_2026') {
             // Liste d'attente SSR 2026
-            targetGroupId = process.env.MAILERLITE_GROUP_SSR_WAITINGLIST_2026_EVERGREEN;
+            targetGroupId = process.env.ML_WAIT || process.env.MAILERLITE_GROUP_SSR_WAITINGLIST_2026_EVERGREEN;
         } else if (groupId === 'SSR_2026_EVERGREEN') {
             // Groupe principal SSR
-            targetGroupId = process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN;
+            targetGroupId = process.env.ML_SSR || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN;
         } else if (groupId === 'COURTCIRCUIT_2') {
             // Court-Circuit version 2 (avec Quiz)
-            targetGroupId = process.env.MAILERLITE_GROUP_COURTCIRCUIT_2;
+            targetGroupId = process.env.ML_CC2 || process.env.MAILERLITE_GROUP_COURTCIRCUIT_2;
         } else {
             // Priorité : groupId dans le body > MAILERLITE_GROUP_SSR_2026_EVERGREEN > MAILERLITE_GROUP_COURTCIRCUIT > fallback
-            targetGroupId = groupId || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
+            targetGroupId = groupId || process.env.ML_SSR || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN || process.env.ML_CC1 || process.env.MAILERLITE_GROUP_COURTCIRCUIT || '172875888042443786';
         }
 
         // Préparer les champs personnalisés

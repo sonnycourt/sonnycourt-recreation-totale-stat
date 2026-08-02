@@ -53,7 +53,7 @@ exports.handler = async (event, context) => {
         }
 
         // Récupérer le Group ID SSR depuis les variables d'environnement
-        const ssrGroupId = process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN;
+        const ssrGroupId = process.env.ML_SSR || process.env.MAILERLITE_GROUP_SSR_2026_EVERGREEN;
         
         if (!ssrGroupId) {
             console.error('MAILERLITE_GROUP_SSR_2026_EVERGREEN not found in environment variables');
@@ -163,4 +163,3 @@ exports.handler = async (event, context) => {
         };
     }
 };
-

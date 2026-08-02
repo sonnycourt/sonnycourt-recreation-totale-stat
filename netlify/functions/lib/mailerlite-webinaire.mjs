@@ -213,17 +213,21 @@ export async function patchMailerLiteWebinaireCoreFields({ email, token, pays, s
 export function getWebinaireGroupEnv() {
   return {
     inscrits:
+      process.env.ML_WEB_REG ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_INSCRITS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_INSCRITS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2 ||
       process.env.MAILERLITE_GROUP_WEBINAR_ES2,
     presents:
+      process.env.ML_WEB_PRES ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_PRESENTS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS,
     acheteurs:
+      process.env.ML_WEB_BUY ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS,
     nonAcheteurs:
+      process.env.ML_WEB_NO ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS,
   };

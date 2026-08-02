@@ -7,6 +7,7 @@ const MAILERLITE_TIMEOUT_MS = 3000;
 
 function getAcheteursGroupId() {
   return (
+    process.env.ML_WEB_BUY ||
     process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS ||
     process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS ||
     ''

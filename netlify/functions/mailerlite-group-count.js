@@ -12,7 +12,7 @@ exports.handler = async (event) => {
   }
 
   const apiKey = process.env.MAILERLITE_API_KEY;
-  const groupId = process.env.MAILERLITE_GROUP_COURTCIRCUIT_2;
+  const groupId = process.env.ML_CC2 || process.env.MAILERLITE_GROUP_COURTCIRCUIT_2;
 
   if (!apiKey) {
     return {
@@ -90,4 +90,3 @@ exports.handler = async (event) => {
     };
   }
 };
-

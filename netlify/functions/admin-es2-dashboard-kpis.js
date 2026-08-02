@@ -579,7 +579,7 @@ export default async (req) => {
 
     // Source de vérité des ventes = colonne purchased (webhook Spiffy + backfill).
     // La sync MailerLite est désactivée (re-marquait des comptes test comme achats).
-    const acheteursGroupId = String(process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS || '').trim();
+    const acheteursGroupId = String(process.env.ML_WEB_BUY || process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS || '').trim();
     const mlBuyers = { emails: new Set(), error: null, pages: 0 };
 
     const kpis = computeKpis(filteredRows, salesRows);

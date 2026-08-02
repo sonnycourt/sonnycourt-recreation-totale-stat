@@ -36,6 +36,7 @@ export default async () => {
     const groups = getWebinaireGroupEnv();
     const groupNonAcheteurs =
       groups.nonAcheteurs ||
+      process.env.ML_WEB_NO ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS;
 

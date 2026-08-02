@@ -104,9 +104,9 @@ function coachingOfferSlug(body) {
     .filter(Boolean)
     .map((value) => value.toLowerCase());
   const configured = {
-    'session-1': String(process.env.SPIFFY_COACHING_SESSION_1_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
-    'pack-3': String(process.env.SPIFFY_COACHING_PACK_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
-    'pack-6': String(process.env.SPIFFY_COACHING_PACK_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'session-1': String(process.env.SP_SESSION || process.env.SPIFFY_COACHING_SESSION_1_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'pack-3': String(process.env.SP_PACK3 || process.env.SPIFFY_COACHING_PACK_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'pack-6': String(process.env.SP_PACK6 || process.env.SPIFFY_COACHING_PACK_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'membership-3': String(process.env.SPIFFY_COACHING_MEMBERSHIP_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'membership-6': String(process.env.SPIFFY_COACHING_MEMBERSHIP_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'membership-12': String(process.env.SPIFFY_COACHING_MEMBERSHIP_12_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
@@ -117,7 +117,7 @@ function coachingOfferSlug(body) {
 function isFirstConsultationCheckout(body) {
   const checkoutId = findValue(body, ['checkout_id', 'checkout_uuid']);
   if (!checkoutId) return false;
-  const configured = String(process.env.SPIFFY_FIRST_CONSULTATION_IDS || '')
+  const configured = String(process.env.SP_FIRST || process.env.SPIFFY_FIRST_CONSULTATION_IDS || '')
     .split(',')
     .map((id) => id.trim().toLowerCase())
     .filter(Boolean);

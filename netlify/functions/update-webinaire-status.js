@@ -64,14 +64,17 @@ export default async (req) => {
     const groups = getWebinaireGroupEnv();
     const groupPresents =
       groups.presents ||
+      process.env.ML_WEB_PRES ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_PRESENTS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_PRESENTS;
     const groupAcheteurs =
       groups.acheteurs ||
+      process.env.ML_WEB_BUY ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ACHETEURS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_ACHETEURS;
     const groupNonAcheteurs =
       groups.nonAcheteurs ||
+      process.env.ML_WEB_NO ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_NON_ACHETEURS ||
       process.env.MAILERLITE_GROUP_WEBINAIRE_ES2_NON_ACHETEURS;
 
