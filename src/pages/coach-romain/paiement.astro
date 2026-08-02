@@ -1,0 +1,306 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Finaliser ta première consultation avec Romain — 97 €"
+  description="Finalise le paiement sécurisé de ta première consultation avec Romain."
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <script is:inline>
+    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."));
+    f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+    e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t;
+    var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+    spiffy.SNIPPET_VERSION="1.1.0";
+    spiffy.config({ hideSidebar: true });
+    spiffy.load("sonnycourt");
+  </script>
+
+  <main class="payment-page">
+    <div class="aurora aurora-one" aria-hidden="true"></div>
+    <div class="aurora aurora-two" aria-hidden="true"></div>
+
+    <div class="payment-shell">
+      <nav class="payment-nav" aria-label="Navigation">
+        <a href="/coach-romain/premiere-consultation">Modifier le créneau</a>
+        <span><i></i>Paiement chiffré et sécurisé</span>
+      </nav>
+
+      <header class="payment-hero">
+        <p class="eyebrow">Dernière étape · moins d’une minute</p>
+        <h1>Ton créneau est choisi.<br /><em>Il ne reste que la carte.</em></h1>
+        <p>Ton prénom et ton email sont déjà enregistrés. Aucun questionnaire maintenant.</p>
+      </header>
+
+      <section class="payment-grid">
+        <aside class="order-card glass-card">
+          <div class="coach-row">
+            <img src="/media/coachs/romain.webp?v=ai-hd" alt="Romain" width="92" height="92" />
+            <div>
+              <span>Première consultation</span>
+              <strong>Avec Romain</strong>
+              <small>En visioconférence · 45 minutes</small>
+            </div>
+          </div>
+
+          <div class="appointment-row">
+            <span class="calendar-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" /></svg>
+            </span>
+            <div><span>Ton rendez-vous</span><strong id="appointment-date">Créneau réservé</strong></div>
+          </div>
+
+          <div class="identity-row">
+            <div><span>Réservé pour</span><strong id="customer-name">—</strong></div>
+            <div><span>Confirmation envoyée à</span><strong id="customer-email">—</strong></div>
+          </div>
+
+          <div class="price-row">
+            <div><span>Total aujourd’hui</span><small>Paiement unique</small></div>
+            <strong>97&nbsp;€</strong>
+          </div>
+
+          <div class="reassurance-list">
+            <span><i></i>Aucun abonnement</span>
+            <span><i></i>Questionnaire après paiement</span>
+            <span><i></i>Créneau gardé 20 minutes</span>
+          </div>
+        </aside>
+
+        <div class="checkout-card glass-card">
+          <div class="checkout-heading">
+            <div>
+              <p>PAIEMENT</p>
+              <h2>Finalise ta réservation.</h2>
+            </div>
+            <span class="lock-badge" aria-label="Paiement sécurisé">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2m-9 0h8a2 2 0 0 1 2 2v7H6v-7a2 2 0 0 1 2-2Z" /></svg>
+              Sécurisé
+            </span>
+          </div>
+
+          <div class="loading-state" id="loading-state">
+            <span></span>
+            Préparation du paiement sécurisé…
+          </div>
+          <div class="checkout-slot" id="checkout-slot" hidden></div>
+          <div class="error-state" id="error-state" hidden>
+            <strong>Le paiement n’a pas pu charger.</strong>
+            <p>Actualise la page ou reviens choisir ton créneau.</p>
+            <button type="button" id="retry-button">Réessayer</button>
+          </div>
+
+          <p class="checkout-note">
+            Après le paiement, tu pourras donner quelques informations à Romain. Ta réservation sera déjà confirmée.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const API = '/.netlify/functions/coach-diagnostic';
+  const params = new URLSearchParams(window.location.search);
+  const booking = params.get('booking') || '';
+  const isPreview = import.meta.env.DEV && params.has('preview');
+  const slot = document.getElementById('checkout-slot');
+  const loading = document.getElementById('loading-state');
+  const error = document.getElementById('error-state');
+  let mounted = false;
+
+  const formatter = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+  });
+
+  function setIdentity(data) {
+    document.getElementById('customer-name').textContent = data.name || 'Prénom enregistré';
+    document.getElementById('customer-email').textContent = data.email || 'Email enregistré';
+    if (data.start) document.getElementById('appointment-date').textContent = formatter.format(new Date(data.start));
+  }
+
+  function checkoutUrl(data) {
+    if (data.checkout_url) return data.checkout_url;
+    const url = new URL('https://sonnycourt.spiffy.co/checkout/premiere-consultation-romain');
+    if (data.name) url.searchParams.set('name_first', data.name);
+    url.searchParams.set('name_last', '-');
+    if (data.email) url.searchParams.set('email', data.email);
+    if (booking) url.searchParams.set('coach_booking_token', booking);
+    return url.toString();
+  }
+
+  function mount(data) {
+    if (mounted) return;
+    mounted = true;
+    setIdentity(data);
+    const url = checkoutUrl(data);
+
+    if (window.location.protocol === 'http:') {
+      const previewUrl = new URL(url);
+      previewUrl.searchParams.set('elements', btoa(JSON.stringify({
+        modality: 'inline', uid: 1, from: window.location.href, handles: {}
+      })));
+      const frame = document.createElement('iframe');
+      frame.className = 'checkout-frame';
+      frame.src = previewUrl.toString();
+      frame.title = 'Paiement sécurisé de la première consultation';
+      frame.setAttribute('allow', 'payment');
+      frame.setAttribute('loading', 'eager');
+      frame.setAttribute('scrolling', 'no');
+      slot.appendChild(frame);
+    } else {
+      const checkout = document.createElement('spiffy-checkout');
+      checkout.setAttribute('url', url);
+      slot.appendChild(checkout);
+    }
+
+    loading.hidden = true;
+    error.hidden = true;
+    slot.hidden = false;
+  }
+
+  function fail() {
+    loading.hidden = true;
+    slot.hidden = true;
+    error.hidden = false;
+  }
+
+  async function loadCheckout() {
+    loading.hidden = false;
+    error.hidden = true;
+    if (isPreview) {
+      const start = params.get('start') || new Date(Date.now() + 86400000).toISOString();
+      mount({ name: params.get('name') || 'Sonny', email: params.get('email') || 'sonny@example.com', start });
+      return;
+    }
+    if (!booking) return fail();
+    try {
+      const response = await fetch(API + '?booking=' + encodeURIComponent(booking));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.checkout_url || !['pending_payment', 'paid'].includes(data.status)) throw new Error();
+      mount(data);
+    } catch {
+      fail();
+    }
+  }
+
+  document.getElementById('retry-button').addEventListener('click', () => {
+    mounted = false;
+    slot.replaceChildren();
+    loadCheckout();
+  });
+  loadCheckout();
+</script>
+
+<style>
+  :global(body) { background: #02050c; }
+  .payment-page {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 122px 20px 92px;
+    color: #f7fbff;
+    background:
+      radial-gradient(circle at 49% -8%, rgba(0, 122, 255, 0.3), transparent 34rem),
+      radial-gradient(circle at 92% 78%, rgba(22, 130, 255, 0.15), transparent 27rem),
+      linear-gradient(132deg, #02050c 0%, #07172f 49%, #092d61 100%);
+  }
+  .payment-page::before {
+    position: fixed; inset: 0; z-index: -2; content: '';
+    opacity: .19;
+    background-image: linear-gradient(rgba(191,219,254,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(191,219,254,.055) 1px,transparent 1px);
+    background-size: 84px 84px;
+    mask-image: radial-gradient(circle at 50% 42%,#000,transparent 72%);
+  }
+  .aurora { position: fixed; z-index: -1; border-radius: 50%; filter: blur(85px); pointer-events: none; }
+  .aurora-one { top: 110px; left: 8%; width: 260px; height: 260px; background: rgba(70,164,255,.15); }
+  .aurora-two { right: 9%; bottom: 10%; width: 320px; height: 230px; background: rgba(42,116,255,.12); }
+  .payment-shell { width: min(1120px,100%); margin: 0 auto; }
+  .payment-nav {
+    min-height: 48px; padding: 0 17px; display:flex; align-items:center; justify-content:space-between; gap:20px;
+    border:1px solid rgba(191,219,254,.13); border-radius:16px; background:rgba(255,255,255,.045);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+  }
+  .payment-nav a { color:rgba(219,234,254,.66); font-size:11px; font-weight:650; text-decoration:none; }
+  .payment-nav a::before { margin-right:8px; content:'‹'; color:#7dc0ff; font-size:18px; vertical-align:-1px; }
+  .payment-nav > span { display:flex; align-items:center; gap:7px; color:rgba(191,219,254,.48); font-size:9px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
+  .payment-nav i { width:7px; height:7px; border-radius:50%; background:#58d8ae; box-shadow:0 0 13px rgba(88,216,174,.62); }
+  .payment-hero { max-width:780px; margin:55px auto 38px; text-align:center; }
+  .eyebrow,.checkout-heading p { margin:0 0 12px; color:rgba(125,192,255,.72); font-size:10px; font-weight:760; letter-spacing:.13em; text-transform:uppercase; }
+  .payment-hero h1 { margin:0; font-size:clamp(36px,5.5vw,62px); line-height:1.02; letter-spacing:-.052em; }
+  .payment-hero h1 em { color:#83c5ff; font-family:Georgia,serif; font-weight:500; }
+  .payment-hero > p:last-child { max-width:560px; margin:19px auto 0; color:rgba(219,234,254,.58); font-size:14px; line-height:1.65; }
+  .payment-grid { display:grid; grid-template-columns:minmax(300px,.74fr) minmax(460px,1.26fr); gap:18px; align-items:start; }
+  .glass-card {
+    border:1px solid rgba(191,219,254,.16); border-radius:30px;
+    background:radial-gradient(circle at 15% 0%,rgba(255,255,255,.11),transparent 30%),linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022));
+    box-shadow:0 34px 90px rgba(0,5,18,.3),inset 0 1px 0 rgba(255,255,255,.14);
+    backdrop-filter:blur(30px) saturate(155%); -webkit-backdrop-filter:blur(30px) saturate(155%);
+  }
+  .order-card { position:sticky; top:96px; overflow:hidden; }
+  .coach-row { padding:25px; display:flex; align-items:center; gap:16px; border-bottom:1px solid rgba(191,219,254,.1); }
+  .coach-row img { width:70px; height:70px; border:1px solid rgba(147,197,253,.28); border-radius:22px; object-fit:cover; box-shadow:0 12px 30px rgba(0,5,18,.3); }
+  .coach-row div { min-width:0; display:grid; gap:3px; }
+  .coach-row span,.appointment-row span,.identity-row span,.price-row span { color:rgba(191,219,254,.42); font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .coach-row strong { font-size:18px; letter-spacing:-.02em; }
+  .coach-row small { color:rgba(219,234,254,.5); font-size:10px; }
+  .appointment-row { margin:18px; padding:15px; display:flex; align-items:center; gap:12px; border:1px solid rgba(96,165,250,.17); border-radius:16px; background:rgba(20,121,232,.08); }
+  .calendar-mark { width:37px; height:37px; display:grid; place-items:center; flex:0 0 auto; border-radius:12px; background:rgba(54,150,255,.14); }
+  .calendar-mark svg,.lock-badge svg { width:18px; height:18px; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .appointment-row div { min-width:0; display:grid; gap:4px; }
+  .appointment-row strong { color:#cfe9ff; font-size:12px; line-height:1.35; text-transform:capitalize; }
+  .identity-row { padding:4px 25px 21px; display:grid; gap:13px; border-bottom:1px solid rgba(191,219,254,.09); }
+  .identity-row div { display:grid; gap:4px; }
+  .identity-row strong { overflow:hidden; color:rgba(239,246,255,.78); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+  .price-row { padding:22px 25px; display:flex; align-items:center; justify-content:space-between; gap:18px; background:rgba(3,12,29,.15); }
+  .price-row div { display:grid; gap:3px; }
+  .price-row small { color:rgba(219,234,254,.45); font-size:10px; }
+  .price-row > strong { color:#82c5ff; font-size:32px; letter-spacing:-.05em; text-shadow:0 0 24px rgba(59,130,246,.25); }
+  .reassurance-list { padding:17px 25px 22px; display:grid; gap:10px; border-top:1px solid rgba(191,219,254,.08); }
+  .reassurance-list span { display:flex; align-items:center; gap:8px; color:rgba(219,234,254,.48); font-size:10px; }
+  .reassurance-list i { width:6px; height:6px; border-radius:50%; background:#59dcb2; box-shadow:0 0 10px rgba(89,220,178,.5); }
+  .checkout-card { min-height:550px; padding:28px; }
+  .checkout-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:23px; }
+  .checkout-heading p { margin-bottom:7px; }
+  .checkout-heading h2 { margin:0; font-size:clamp(25px,3vw,36px); line-height:1.06; letter-spacing:-.043em; }
+  .lock-badge { padding:8px 10px; display:flex; align-items:center; gap:6px; color:rgba(167,231,208,.75); border:1px solid rgba(85,230,178,.14); border-radius:11px; background:rgba(85,230,178,.055); font-size:9px; font-weight:700; text-transform:uppercase; }
+  .lock-badge svg { width:14px; height:14px; }
+  .loading-state { min-height:360px; display:flex; align-items:center; justify-content:center; gap:11px; color:rgba(191,219,254,.45); font-size:11px; }
+  .loading-state[hidden], .checkout-slot[hidden], .error-state[hidden] { display:none !important; }
+  .loading-state span { width:20px; height:20px; border:2px solid rgba(191,219,254,.12); border-top-color:#69b7ff; border-radius:50%; animation:spin 700ms linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .checkout-slot { overflow:hidden; min-height:390px; border-radius:20px; }
+  :global(.checkout-frame) { display:block; width:100%; height:820px; overflow:hidden; border:0; border-radius:20px; background:transparent; }
+  .checkout-note { margin:18px 8px 0; color:rgba(191,219,254,.38); font-size:10px; line-height:1.55; text-align:center; }
+  .error-state { min-height:330px; padding:30px; text-align:center; }
+  .error-state strong { display:block; margin-top:80px; font-size:18px; }
+  .error-state p { color:rgba(219,234,254,.5); font-size:12px; }
+  .error-state button { margin-top:12px; padding:11px 16px; color:#fff; border:1px solid rgba(96,165,250,.32); border-radius:12px; background:rgba(20,121,232,.22); font:inherit; font-size:11px; cursor:pointer; }
+  @media (max-width:850px) {
+    .payment-page { padding:104px 14px 70px; }
+    .payment-hero { margin:40px auto 28px; }
+    .payment-grid { grid-template-columns:1fr; }
+    .order-card { position:relative; top:auto; }
+    .checkout-card { min-height:500px; }
+  }
+  @media (max-width:560px) {
+    .payment-nav > span { display:none; }
+    .payment-hero h1 { font-size:38px; }
+    .glass-card { border-radius:24px; }
+    .checkout-card { padding:20px 14px; }
+    .checkout-heading { padding:0 5px; }
+    .lock-badge { padding:7px; font-size:0; }
+    :global(.checkout-frame) { height:900px; }
+  }
+</style>

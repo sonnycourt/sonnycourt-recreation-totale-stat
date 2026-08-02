@@ -1,0 +1,1211 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Réserver ta première consultation avec Romain — 97 €"
+  description="Choisis ton créneau pour une première consultation individuelle de 45 minutes avec Romain."
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <main class="booking-page">
+    <div class="booking-bg" aria-hidden="true"></div>
+
+    <div class="booking-shell">
+      <nav class="booking-nav" aria-label="Navigation">
+        <a href="/coach-romain">Retour à la page de Romain</a>
+        <span><i></i>Paiement sécurisé via Spiffy</span>
+      </nav>
+
+      <header class="booking-hero">
+        <div>
+          <p class="eyebrow">Première consultation · 45 minutes</p>
+          <h1>Choisis le moment où tu veux <em>voir clair.</em></h1>
+          <p class="hero-copy">
+            Ton créneau est réservé pendant 20 minutes. Tu règles ensuite les
+            97&nbsp;€ sur Spiffy et tu reçois immédiatement ta confirmation.
+          </p>
+        </div>
+
+        <div class="coach-chip">
+          <img src="/media/coachs/romain.webp?v=ai-hd" alt="Romain" width="96" height="96" />
+          <div>
+            <strong>Romain</strong>
+            <span>Coach certifié · près de 20 ans d’expérience</span>
+          </div>
+          <b>97&nbsp;€</b>
+        </div>
+      </header>
+
+      <div class="booking-layout">
+        <section class="booking-card" aria-labelledby="booking-title">
+          <div class="progress" aria-label="Progression">
+            <div class="progress-item active" data-progress="1"><span>1</span><b>Créneau</b></div>
+            <div class="progress-line"></div>
+            <div class="progress-item" data-progress="2"><span>2</span><b>Paiement</b></div>
+          </div>
+
+          <div class="booking-step" id="step-slots">
+            <div class="step-heading">
+              <div>
+                <p>Étape 1</p>
+                <h2 id="booking-title">Choisis ton créneau.</h2>
+              </div>
+              <span class="timezone" id="timezone-label"></span>
+            </div>
+
+            <div class="slot-loading" id="slot-loading">
+              <span></span>
+              Recherche des prochains créneaux…
+            </div>
+            <div class="slot-days" id="slot-days" hidden></div>
+            <div class="slot-error" id="slot-error" hidden>
+              Aucun créneau n’est disponible pour le moment. Reviens bientôt ou écris-nous.
+            </div>
+          </div>
+
+          <form class="booking-step details-step" id="payment-form" hidden>
+            <div class="step-heading">
+              <div>
+                <p>Étape 2</p>
+                <h2>Confirme ta première consultation.</h2>
+              </div>
+              <button class="change-slot" type="button" id="change-slot">Changer</button>
+            </div>
+
+            <div class="selected-slot" id="selected-slot"></div>
+
+            <div class="payment-summary compact-summary">
+              <div><span>Avec</span><strong>Romain</strong></div>
+              <div><span>Durée</span><strong>45 minutes</strong></div>
+              <div><span>Total</span><strong>97&nbsp;€</strong></div>
+            </div>
+
+            <div class="field-grid">
+              <label>
+                <span>Ton prénom</span>
+                <input name="name" type="text" autocomplete="given-name" placeholder="Prénom" required maxlength="60" />
+              </label>
+              <label>
+                <span>Ton email</span>
+                <input name="email" type="email" autocomplete="email" inputmode="email" placeholder="toi@email.com" required />
+              </label>
+            </div>
+
+            <p class="form-error" id="form-error" role="alert"></p>
+
+            <button class="continue-button" id="payment-button" type="submit">
+              <span class="button-label">Payer et réserver</span>
+              <span>97&nbsp;€</span>
+            </button>
+            <p class="payment-note" id="payment-note">
+              Paiement unique et sécurisé via Spiffy. Les deux questions de préparation viennent après.
+            </p>
+          </form>
+        </section>
+
+        <aside class="reassurance">
+          <div class="reassurance-card">
+            <p class="aside-kicker">Ce que tu réserves</p>
+            <h2>Une vraie séance. Pas une vente cachée.</h2>
+
+            <ul>
+              <li>
+                <span>01</span>
+                <div><strong>Clarté</strong><p>Mettre des mots précis sur ce qui te freine aujourd’hui.</p></div>
+              </li>
+              <li>
+                <span>02</span>
+                <div><strong>Point de levier</strong><p>Identifier le mécanisme derrière le problème visible.</p></div>
+              </li>
+              <li>
+                <span>03</span>
+                <div><strong>Mouvement</strong><p>Repartir avec un premier levier concret à incarner.</p></div>
+              </li>
+            </ul>
+
+            <blockquote>
+              “Tu n’as pas besoin de tout résoudre en 45 minutes. Tu as besoin de trouver le bon endroit où commencer.”
+            </blockquote>
+          </div>
+
+          <div class="trust-row">
+            <span>Paiement unique</span>
+            <span>Visioconférence</span>
+            <span>Report jusqu’à 24 h</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const API = '/.netlify/functions/coach-diagnostic';
+  const IS_LOCAL_PREVIEW = import.meta.env.DEV;
+  const slotLoading = document.getElementById('slot-loading');
+  const slotDays = document.getElementById('slot-days');
+  const slotError = document.getElementById('slot-error');
+  const paymentForm = document.getElementById('payment-form');
+  const slotStep = document.getElementById('step-slots');
+  const selectedSlotBox = document.getElementById('selected-slot');
+  const paymentButton = document.getElementById('payment-button');
+  const paymentButtonLabel = paymentButton.querySelector('.button-label');
+  const paymentNote = document.getElementById('payment-note');
+  const formError = document.getElementById('form-error');
+  let selectedSlot = null;
+  let availableSlots = [];
+
+  const dayFormatter = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+  const timeFormatter = new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const fullFormatter = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  document.getElementById('timezone-label').textContent =
+    Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ');
+
+  function previewSlots() {
+    const slots = [];
+    const hours = [9.5, 11, 14, 16.5];
+    let dayOffset = 1;
+    while (slots.length < 12) {
+      const date = new Date();
+      date.setDate(date.getDate() + dayOffset);
+      const weekday = date.getDay();
+      if (weekday !== 0 && weekday !== 6) {
+        hours.slice(0, dayOffset % 3 === 0 ? 2 : 4).forEach((hour, index) => {
+          const start = new Date(date);
+          start.setHours(Math.floor(hour), hour % 1 ? 30 : 0, 0, 0);
+          const end = new Date(start.getTime() + 45 * 60000);
+          slots.push({
+            id: 'preview-' + dayOffset + '-' + index,
+            start: start.toISOString(),
+            end: end.toISOString()
+          });
+        });
+      }
+      dayOffset += 1;
+    }
+    return slots.slice(0, 12);
+  }
+
+  function setProgress(step) {
+    document.querySelectorAll('[data-progress]').forEach((item) => {
+      const value = Number(item.getAttribute('data-progress'));
+      item.classList.toggle('active', value === step);
+      item.classList.toggle('done', value < step);
+    });
+  }
+
+  function renderSlots(slots) {
+    availableSlots = slots;
+    slotLoading.hidden = true;
+    if (!slots.length) {
+      slotError.hidden = false;
+      return;
+    }
+
+    const groups = new Map();
+    slots.forEach((slot) => {
+      const date = new Date(slot.start);
+      const key = date.toISOString().slice(0, 10);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(slot);
+    });
+
+    slotDays.innerHTML = '';
+    Array.from(groups.values()).slice(0, 4).forEach((group) => {
+      const day = document.createElement('section');
+      day.className = 'slot-day';
+
+      const title = document.createElement('h3');
+      title.textContent = dayFormatter.format(new Date(group[0].start));
+      day.appendChild(title);
+
+      const grid = document.createElement('div');
+      grid.className = 'slot-grid';
+      group.forEach((slot) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'slot-button';
+        button.textContent = timeFormatter.format(new Date(slot.start));
+        button.setAttribute('aria-label', fullFormatter.format(new Date(slot.start)));
+        button.addEventListener('click', () => chooseSlot(slot, button));
+        grid.appendChild(button);
+      });
+      day.appendChild(grid);
+      slotDays.appendChild(day);
+    });
+    slotDays.hidden = false;
+  }
+
+  function chooseSlot(slot, button) {
+    selectedSlot = slot;
+    document.querySelectorAll('.slot-button').forEach((item) => item.classList.remove('selected'));
+    button.classList.add('selected');
+    selectedSlotBox.textContent = fullFormatter.format(new Date(slot.start)) + ' · 45 minutes avec Romain';
+    slotStep.hidden = true;
+    paymentForm.hidden = false;
+    setProgress(2);
+    paymentForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  document.getElementById('change-slot').addEventListener('click', () => {
+    paymentForm.hidden = true;
+    slotStep.hidden = false;
+    setProgress(1);
+    slotStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  paymentForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    formError.textContent = '';
+    if (!selectedSlot) return;
+
+    const form = new FormData(paymentForm);
+    const payload = {
+      slot_id: selectedSlot.id,
+      name: String(form.get('name') || '').trim(),
+      email: String(form.get('email') || '').trim()
+    };
+
+    paymentButton.disabled = true;
+    paymentButtonLabel.textContent = 'Ouverture du paiement…';
+
+    try {
+      let result;
+      if (IS_LOCAL_PREVIEW) {
+        result = {
+          payment_url: '/coach-romain/paiement?preview=1&start=' + encodeURIComponent(selectedSlot.start) +
+            '&name=' + encodeURIComponent(payload.name) +
+            '&email=' + encodeURIComponent(payload.email),
+          preview: true
+        };
+      } else {
+        const response = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Ce créneau vient peut-être d’être pris.');
+      }
+
+      if (result.preview) {
+        paymentNote.textContent = 'Aperçu local : paiement simulé. En production, Spiffy prend le relais ici.';
+      }
+      window.location.href = result.payment_url;
+    } catch (error) {
+      formError.textContent = error instanceof Error ? error.message : 'Une erreur est survenue. Réessaie.';
+    } finally {
+      paymentButton.disabled = false;
+      paymentButtonLabel.textContent = 'Payer et réserver';
+    }
+  });
+
+  async function loadSlots() {
+    try {
+      if (IS_LOCAL_PREVIEW) {
+        renderSlots(previewSlots());
+        return;
+      }
+      const response = await fetch(API);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error();
+      renderSlots(Array.isArray(data.slots) ? data.slots : []);
+    } catch {
+      slotLoading.hidden = true;
+      slotError.hidden = false;
+    }
+  }
+
+  loadSlots();
+</script>
+
+<style>
+  :global(body) {
+    background: #02050c;
+  }
+
+  .booking-page {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    isolation: isolate;
+    color: #f7fbff;
+    background:
+      radial-gradient(circle at 76% 3%, rgba(0, 122, 255, 0.25), transparent 30rem),
+      radial-gradient(circle at 0% 52%, rgba(42, 109, 232, 0.16), transparent 28rem),
+      linear-gradient(130deg, #02050c 0%, #07162d 48%, #0a2b5c 100%);
+  }
+
+  .booking-bg {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    opacity: 0.18;
+    background-image:
+      linear-gradient(rgba(191, 219, 254, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(191, 219, 254, 0.07) 1px, transparent 1px);
+    background-size: 88px 88px;
+    mask-image: radial-gradient(circle at 52% 40%, #000 0%, transparent 74%);
+    -webkit-mask-image: radial-gradient(circle at 52% 40%, #000 0%, transparent 74%);
+  }
+
+  .booking-shell {
+    width: min(1160px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 122px 0 100px;
+  }
+
+  .booking-nav {
+    min-height: 48px;
+    padding: 0 17px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border: 1px solid rgba(191, 219, 254, 0.13);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  .booking-nav a {
+    color: rgba(219, 234, 254, 0.67);
+    font-size: 11px;
+    font-weight: 620;
+    text-decoration: none;
+  }
+
+  .booking-nav a::before {
+    margin-right: 8px;
+    content: '‹';
+    color: #7dc0ff;
+    font-size: 18px;
+    vertical-align: -1px;
+  }
+
+  .booking-nav > span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(191, 219, 254, 0.48);
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .booking-nav i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #52dfa6;
+    box-shadow: 0 0 12px rgba(82, 223, 166, 0.58);
+  }
+
+  .booking-hero {
+    padding: 66px 22px 52px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 56px;
+  }
+
+  .eyebrow,
+  .aside-kicker,
+  .payment-kicker {
+    margin: 0 0 15px;
+    color: rgba(125, 192, 255, 0.72);
+    font-size: 9px;
+    font-weight: 760;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .booking-hero h1 {
+    max-width: 750px;
+    margin: 0;
+    font-size: clamp(46px, 6.2vw, 78px);
+    font-weight: 710;
+    line-height: 0.98;
+    letter-spacing: -0.065em;
+  }
+
+  .booking-hero h1 em {
+    color: #82c7ff;
+    font-style: normal;
+  }
+
+  .hero-copy {
+    max-width: 650px;
+    margin: 24px 0 0;
+    color: rgba(219, 234, 254, 0.58);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .coach-chip {
+    width: 290px;
+    padding: 13px;
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(191, 219, 254, 0.15);
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 50px rgba(0, 5, 18, 0.18);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .coach-chip img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border: 1px solid rgba(191, 219, 254, 0.2);
+    border-radius: 15px;
+  }
+
+  .coach-chip strong,
+  .coach-chip span {
+    display: block;
+  }
+
+  .coach-chip strong {
+    font-size: 13px;
+  }
+
+  .coach-chip span {
+    margin-top: 3px;
+    color: rgba(191, 219, 254, 0.45);
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  .coach-chip b {
+    color: #a9d7ff;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .booking-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(310px, 0.7fr);
+    align-items: start;
+    gap: 18px;
+  }
+
+  .booking-card,
+  .reassurance-card {
+    border: 1px solid rgba(191, 219, 254, 0.16);
+    background:
+      radial-gradient(circle at 16% 0%, rgba(255, 255, 255, 0.11), transparent 30%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+    box-shadow: 0 34px 90px rgba(0, 5, 18, 0.29), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+  }
+
+  .booking-card {
+    min-height: 630px;
+    overflow: hidden;
+    border-radius: 30px;
+  }
+
+  .progress {
+    padding: 19px 24px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(191, 219, 254, 0.1);
+    background: rgba(2, 10, 25, 0.22);
+  }
+
+  .progress-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(191, 219, 254, 0.31);
+  }
+
+  .progress-item span {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(191, 219, 254, 0.13);
+    border-radius: 50%;
+    font-size: 9px;
+  }
+
+  .progress-item b {
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .progress-item.active {
+    color: #f4f9ff;
+  }
+
+  .progress-item.active span {
+    border-color: rgba(96, 165, 250, 0.55);
+    background: #1479e8;
+    box-shadow: 0 0 20px rgba(20, 121, 232, 0.35);
+  }
+
+  .progress-item.done {
+    color: rgba(115, 222, 183, 0.8);
+  }
+
+  .progress-item.done span {
+    border-color: rgba(85, 230, 178, 0.35);
+    background: rgba(85, 230, 178, 0.12);
+  }
+
+  .progress-item.done span {
+    font-size: 0;
+  }
+
+  .progress-item.done span::after {
+    content: '✓';
+    font-size: 10px;
+  }
+
+  .progress-line {
+    width: 34px;
+    height: 1px;
+    margin: 0 11px;
+    background: rgba(191, 219, 254, 0.12);
+  }
+
+  .booking-step {
+    padding: 34px;
+  }
+
+  .step-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .step-heading p {
+    margin: 0 0 8px;
+    color: rgba(125, 192, 255, 0.65);
+    font-size: 9px;
+    font-weight: 720;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .step-heading h2,
+  .payment-step h2 {
+    max-width: 590px;
+    margin: 0;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.07;
+    letter-spacing: -0.045em;
+  }
+
+  .timezone {
+    padding: 7px 9px;
+    color: rgba(191, 219, 254, 0.45);
+    border: 1px solid rgba(191, 219, 254, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .slot-loading,
+  .slot-error {
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    color: rgba(191, 219, 254, 0.45);
+    font-size: 11px;
+  }
+
+  .slot-loading span {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(191, 219, 254, 0.12);
+    border-top-color: #69b7ff;
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .slot-days {
+    margin-top: 31px;
+    display: grid;
+    gap: 11px;
+  }
+
+  :global(.slot-day) {
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 145px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    border: 1px solid rgba(191, 219, 254, 0.11);
+    border-radius: 18px;
+    background: rgba(2, 12, 30, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  :global(.slot-day h3) {
+    margin: 0;
+    color: rgba(235, 245, 255, 0.78);
+    font-size: 12px;
+    font-weight: 680;
+    line-height: 1.35;
+  }
+
+  :global(.slot-day h3::first-letter) {
+    text-transform: uppercase;
+  }
+
+  :global(.slot-grid) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  :global(.slot-button) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 8px;
+    color: rgba(239, 246, 255, 0.82);
+    border: 1px solid rgba(125, 192, 255, 0.17);
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 680;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  }
+
+  :global(.slot-button:hover),
+  :global(.slot-button.selected) {
+    color: #ffffff;
+    border-color: rgba(96, 165, 250, 0.55);
+    background: linear-gradient(145deg, rgba(35, 137, 255, 0.34), rgba(20, 121, 232, 0.18));
+    box-shadow: 0 10px 24px rgba(0, 91, 205, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.11);
+    transform: translateY(-1px);
+  }
+
+  .details-step {
+    display: grid;
+    gap: 18px;
+  }
+
+  .change-slot,
+  .edit-details {
+    padding: 7px 10px;
+    color: rgba(147, 197, 253, 0.72);
+    border: 1px solid rgba(147, 197, 253, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+    font: inherit;
+    font-size: 9px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  .selected-slot {
+    padding: 12px 14px;
+    color: #a9d7ff;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 13px;
+    background: rgba(20, 121, 232, 0.09);
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  .selected-slot::first-letter {
+    text-transform: uppercase;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .details-step > label,
+  .field-grid label {
+    display: grid;
+    gap: 7px;
+  }
+
+  .details-step label > span,
+  fieldset legend {
+    color: rgba(219, 234, 254, 0.62);
+    font-size: 10px;
+    font-weight: 620;
+  }
+
+  .details-step small {
+    color: rgba(191, 219, 254, 0.32);
+    font-weight: 500;
+  }
+
+  .details-step input,
+  .details-step textarea {
+    width: 100%;
+    padding: 13px 14px;
+    color: #ffffff;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    border-radius: 13px;
+    outline: none;
+    background: rgba(2, 10, 25, 0.36);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    font: inherit;
+    font-size: 13px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .details-step textarea {
+    resize: vertical;
+  }
+
+  .details-step input:focus,
+  .details-step textarea:focus {
+    border-color: rgba(96, 165, 250, 0.62);
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+  }
+
+  .details-step input::placeholder,
+  .details-step textarea::placeholder {
+    color: rgba(191, 219, 254, 0.25);
+  }
+
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  fieldset legend {
+    margin-bottom: 9px;
+  }
+
+  .focus-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .focus-options label {
+    position: relative;
+  }
+
+  .focus-options input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .focus-options span {
+    min-height: 42px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    color: rgba(219, 234, 254, 0.58);
+    border: 1px solid rgba(191, 219, 254, 0.11);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .focus-options input:checked + span {
+    color: #eef8ff;
+    border-color: rgba(96, 165, 250, 0.5);
+    background: rgba(20, 121, 232, 0.15);
+  }
+
+  .consent {
+    display: flex !important;
+    grid-template-columns: none !important;
+    align-items: flex-start;
+    gap: 8px !important;
+  }
+
+  .consent input {
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    flex: 0 0 auto;
+    accent-color: #1479e8;
+  }
+
+  .consent span {
+    color: rgba(191, 219, 254, 0.4) !important;
+    font-size: 9px !important;
+    line-height: 1.45;
+  }
+
+  .form-error {
+    min-height: 16px;
+    margin: -7px 0;
+    color: #ff9bad;
+    font-size: 10px;
+    font-weight: 620;
+  }
+
+  .continue-button,
+  .payment-button {
+    min-height: 54px;
+    padding: 0 17px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    color: #ffffff;
+    border: 1px solid rgba(147, 197, 253, 0.35);
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at 24% 0%, rgba(255, 255, 255, 0.25), transparent 38%),
+      linear-gradient(135deg, #1684ff, #0758cc);
+    box-shadow: 0 17px 38px rgba(0, 92, 214, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 720;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .continue-button > span:last-child {
+    padding-left: 13px;
+    border-left: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 11px;
+  }
+
+  .button-label {
+    text-align: left;
+  }
+
+  .compact-summary {
+    margin: 2px 0 0;
+  }
+
+  .continue-button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+
+  .payment-step {
+    text-align: center;
+  }
+
+  .payment-step h2 {
+    margin-inline: auto;
+  }
+
+  .payment-summary {
+    margin: 28px 0;
+    overflow: hidden;
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    border-radius: 18px;
+    background: rgba(2, 10, 25, 0.25);
+  }
+
+  .payment-summary > div {
+    padding: 13px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid rgba(191, 219, 254, 0.08);
+  }
+
+  .payment-summary > div:last-child {
+    border-bottom: 0;
+  }
+
+  .payment-summary span {
+    color: rgba(191, 219, 254, 0.4);
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+
+  .payment-summary strong {
+    max-width: 70%;
+    color: rgba(239, 246, 255, 0.86);
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .payment-button {
+    justify-content: center;
+  }
+
+  .payment-note {
+    max-width: 420px;
+    margin: 14px auto 0;
+    color: rgba(191, 219, 254, 0.38);
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  .edit-details {
+    margin-top: 14px;
+  }
+
+  .reassurance {
+    position: sticky;
+    top: 100px;
+  }
+
+  .reassurance-card {
+    padding: 29px;
+    border-radius: 27px;
+  }
+
+  .reassurance-card h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.08;
+    letter-spacing: -0.045em;
+  }
+
+  .reassurance-card ul {
+    margin: 28px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 16px;
+    list-style: none;
+  }
+
+  .reassurance-card li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .reassurance-card li > span {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    color: rgba(125, 192, 255, 0.7);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 9px;
+    background: rgba(20, 121, 232, 0.08);
+    font-size: 8px;
+  }
+
+  .reassurance-card li strong {
+    display: block;
+    color: rgba(239, 246, 255, 0.83);
+    font-size: 11px;
+  }
+
+  .reassurance-card li p {
+    margin: 4px 0 0;
+    color: rgba(191, 219, 254, 0.4);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .reassurance-card blockquote {
+    margin: 29px 0 0;
+    padding: 20px;
+    color: rgba(226, 239, 255, 0.68);
+    border: 1px solid rgba(191, 219, 254, 0.1);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.035);
+    font-size: 13px;
+    font-weight: 580;
+    line-height: 1.52;
+    letter-spacing: -0.015em;
+  }
+
+  .trust-row {
+    padding: 14px 5px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 15px;
+    color: rgba(191, 219, 254, 0.33);
+    font-size: 8px;
+    font-weight: 620;
+    text-transform: uppercase;
+  }
+
+  .trust-row span::before {
+    margin-right: 5px;
+    content: '·';
+    color: #52dfa6;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 900px) {
+    .booking-hero {
+      grid-template-columns: 1fr;
+      align-items: start;
+      gap: 30px;
+    }
+
+    .coach-chip {
+      width: min(100%, 360px);
+    }
+
+    .booking-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .reassurance {
+      position: static;
+    }
+
+    .reassurance-card {
+      display: grid;
+      grid-template-columns: 0.8fr 1fr;
+      gap: 25px;
+    }
+
+    .reassurance-card ul {
+      margin: 0;
+    }
+
+    .reassurance-card blockquote {
+      grid-column: 1 / -1;
+      margin-top: 0;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .booking-shell {
+      width: calc(100% - 24px);
+      padding: 104px 0 60px;
+    }
+
+    .booking-nav {
+      padding: 0 13px;
+    }
+
+    .booking-nav > span {
+      font-size: 0;
+    }
+
+    .booking-nav > span::after {
+      content: 'Sécurisé';
+      font-size: 8px;
+    }
+
+    .booking-hero {
+      padding: 43px 3px 34px;
+    }
+
+    .booking-hero h1 {
+      font-size: clamp(43px, 13vw, 58px);
+    }
+
+    .hero-copy {
+      font-size: 13px;
+    }
+
+    .booking-card {
+      min-height: 590px;
+      border-radius: 24px;
+    }
+
+    .progress {
+      padding: 15px;
+      justify-content: space-between;
+    }
+
+    .progress-item b {
+      display: none;
+    }
+
+    .progress-line {
+      flex: 1 1 auto;
+      max-width: 48px;
+    }
+
+    .booking-step {
+      padding: 24px 18px;
+    }
+
+    .step-heading {
+      display: block;
+    }
+
+    .timezone,
+    .change-slot {
+      margin-top: 13px;
+    }
+
+    :global(.slot-day) {
+      grid-template-columns: 1fr;
+      gap: 11px;
+      padding: 14px;
+    }
+
+    :global(.slot-grid) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .field-grid,
+    .focus-options {
+      grid-template-columns: 1fr;
+    }
+
+    .reassurance-card {
+      display: block;
+      padding: 24px 20px;
+    }
+
+    .reassurance-card ul {
+      margin-top: 26px;
+    }
+
+    .reassurance-card blockquote {
+      margin-top: 25px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slot-loading span {
+      animation: none;
+    }
+
+    :global(.slot-button) {
+      transition: none;
+    }
+  }
+</style>

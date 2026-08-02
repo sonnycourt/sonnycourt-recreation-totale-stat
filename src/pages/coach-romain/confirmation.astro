@@ -1,0 +1,781 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Ta première consultation est réservée — Romain"
+  description="Confirmation de ta première consultation avec Romain."
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <main class="confirmation-page">
+    <div class="confirmation-glow" aria-hidden="true"></div>
+
+    <section class="confirmation-card" id="loading-state">
+      <div class="loader" aria-label="Vérification du paiement"></div>
+      <h1>On vérifie ton paiement…</h1>
+      <p>Cette étape prend généralement quelques secondes.</p>
+    </section>
+
+    <section class="confirmation-card" id="pending-state" hidden>
+      <div class="status-mark pending" aria-hidden="true"><span></span></div>
+      <p class="eyebrow">Paiement en cours de confirmation</p>
+      <h1>Ton créneau est toujours gardé au chaud.</h1>
+      <p class="lead">
+        Spiffy n’a pas encore confirmé le paiement. Cette page se mettra à jour
+        automatiquement.
+      </p>
+      <button class="secondary-button" type="button" id="check-again">Vérifier à nouveau</button>
+    </section>
+
+    <section class="confirmation-card success-card" id="success-state" hidden>
+      <div class="status-mark success" aria-hidden="true"><span></span></div>
+      <p class="eyebrow">Paiement confirmé · rendez-vous réservé</p>
+      <h1>Tu as rendez-vous avec Romain.</h1>
+      <p class="lead">
+        Bloque vraiment ce moment pour toi. Tu n’as rien à préparer de parfait :
+        arrive simplement avec la situation que tu veux faire bouger.
+      </p>
+
+      <div class="appointment">
+        <img src="/media/coachs/romain.webp?v=ai-hd" alt="Romain" width="120" height="120" />
+        <div>
+          <span>Première consultation · 45 minutes</span>
+          <strong id="appointment-date"></strong>
+          <p>En visioconférence · le lien arrive par email</p>
+        </div>
+        <b>97&nbsp;€ payé</b>
+      </div>
+
+      <div class="confirmation-actions">
+        <a class="primary-button" id="google-calendar" href="#" target="_blank" rel="noopener">Ajouter à Google Agenda</a>
+        <button class="secondary-button" type="button" id="download-ics">Télécharger le calendrier</button>
+      </div>
+
+      <section class="preparation-box" aria-labelledby="preparation-title">
+        <div class="preparation-heading">
+          <div>
+            <p class="eyebrow">Facultatif · 2 minutes</p>
+            <h2 id="preparation-title">Donne à Romain une longueur d’avance.</h2>
+          </div>
+          <span>Ta consultation est déjà confirmée</span>
+        </div>
+
+        <form id="preparation-form">
+          <fieldset>
+            <legend>Sur quoi veux-tu avancer en priorité&nbsp;?</legend>
+            <div class="preparation-options">
+              <label><input type="radio" name="focus" value="direction" required /><span>Retrouver une direction</span></label>
+              <label><input type="radio" name="focus" value="decision" /><span>Prendre une décision</span></label>
+              <label><input type="radio" name="focus" value="confidence" /><span>Dépasser un blocage</span></label>
+              <label><input type="radio" name="focus" value="action" /><span>Passer à l’action</span></label>
+            </div>
+          </fieldset>
+
+          <label class="preparation-note">
+            <span>Que devrait savoir Romain avant ton échange&nbsp;?</span>
+            <textarea name="note" rows="4" maxlength="800" placeholder="Ta situation en quelques lignes…"></textarea>
+          </label>
+
+          <button class="primary-button preparation-submit" id="preparation-submit" type="submit">
+            Envoyer à Romain
+          </button>
+          <p class="preparation-status" id="preparation-status" role="status"></p>
+        </form>
+
+        <div class="preparation-saved" id="preparation-saved" hidden>
+          <strong>C’est envoyé.</strong>
+          <span>Romain pourra préparer ton échange avec ce contexte.</span>
+        </div>
+      </section>
+
+      <div class="prepare-grid">
+        <article>
+          <span>Avant</span>
+          <h2>Choisis le vrai sujet</h2>
+          <p>Une situation, une décision ou un schéma qui revient. Pas besoin de raconter toute ta vie.</p>
+        </article>
+        <article>
+          <span>Pendant</span>
+          <h2>Sois honnête, pas impressionnant</h2>
+          <p>Plus tu es précis sur ce qui se passe réellement, plus cette consultation peut être utile.</p>
+        </article>
+        <article>
+          <span>Après</span>
+          <h2>Protège le mouvement</h2>
+          <p>Garde quelques minutes libres après la séance pour noter ce que tu décides d’incarner.</p>
+        </article>
+      </div>
+
+      <p class="support-note">
+        Un empêchement&nbsp;? Réponds simplement à l’email de confirmation au moins 24&nbsp;h avant.
+      </p>
+    </section>
+
+    <section class="confirmation-card" id="error-state" hidden>
+      <div class="status-mark error" aria-hidden="true"><span></span></div>
+      <p class="eyebrow">Impossible de retrouver la réservation</p>
+      <h1>Le lien semble incomplet.</h1>
+      <p class="lead">Vérifie l’email envoyé après ton paiement ou contacte-nous en répondant à ton reçu Spiffy.</p>
+      <a class="secondary-button" href="/coach-romain">Revenir à la page de Romain</a>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const API = '/.netlify/functions/coach-diagnostic';
+  const query = new URLSearchParams(window.location.search);
+  const IS_PREVIEW = import.meta.env.DEV && query.has('preview');
+  const token = query.get('booking') || '';
+  let appointmentStart = null;
+  let refreshTimer = null;
+  const preparationForm = document.getElementById('preparation-form');
+  const preparationStatus = document.getElementById('preparation-status');
+  const preparationSaved = document.getElementById('preparation-saved');
+  const preparationSubmit = document.getElementById('preparation-submit');
+
+  const formatter = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  function show(state) {
+    ['loading', 'pending', 'success', 'error'].forEach((name) => {
+      document.getElementById(name + '-state').hidden = name !== state;
+    });
+  }
+
+  function compactUtc(date) {
+    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  }
+
+  function setupCalendar(startValue) {
+    appointmentStart = new Date(startValue);
+    const end = new Date(appointmentStart.getTime() + 45 * 60000);
+    document.getElementById('appointment-date').textContent = formatter.format(appointmentStart);
+
+    const google = new URL('https://calendar.google.com/calendar/render');
+    google.searchParams.set('action', 'TEMPLATE');
+    google.searchParams.set('text', 'Première consultation avec Romain');
+    google.searchParams.set('dates', compactUtc(appointmentStart) + '/' + compactUtc(end));
+    google.searchParams.set('details', 'Première consultation individuelle de 45 minutes avec Romain. Le lien de visioconférence est envoyé par email.');
+    document.getElementById('google-calendar').href = google.toString();
+  }
+
+  document.getElementById('download-ics').addEventListener('click', () => {
+    if (!appointmentStart) return;
+    const end = new Date(appointmentStart.getTime() + 45 * 60000);
+    const body = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Sonny Court//Premiere consultation Romain//FR',
+      'BEGIN:VEVENT',
+      'UID:consultation-romain-' + appointmentStart.getTime() + '@sonnycourt.com',
+      'DTSTAMP:' + compactUtc(new Date()),
+      'DTSTART:' + compactUtc(appointmentStart),
+      'DTEND:' + compactUtc(end),
+      'SUMMARY:Première consultation avec Romain',
+      'DESCRIPTION:Première consultation individuelle de 45 minutes avec Romain.',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
+    link.download = 'premiere-consultation-romain.ics';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  preparationForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    preparationStatus.textContent = '';
+    const form = new FormData(preparationForm);
+    const focus = String(form.get('focus') || '');
+    const note = String(form.get('note') || '').trim();
+    if (!focus) return;
+
+    preparationSubmit.disabled = true;
+    preparationSubmit.textContent = 'Envoi…';
+    try {
+      if (!IS_PREVIEW) {
+        const response = await fetch(API, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking: token, focus, note })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Impossible d’enregistrer ta réponse.');
+      }
+      preparationForm.hidden = true;
+      preparationSaved.hidden = false;
+    } catch (error) {
+      preparationStatus.textContent = error instanceof Error ? error.message : 'Une erreur est survenue.';
+      preparationSubmit.disabled = false;
+      preparationSubmit.textContent = 'Envoyer à Romain';
+    }
+  });
+
+  async function verify() {
+    show('loading');
+    if (IS_PREVIEW) {
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() + 2);
+      fallback.setHours(10, 0, 0, 0);
+      setupCalendar(query.get('start') || fallback.toISOString());
+      show('success');
+      return;
+    }
+    if (!token) {
+      show('error');
+      return;
+    }
+    try {
+      const response = await fetch(API + '?booking=' + encodeURIComponent(token));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error();
+      if (data.status === 'paid') {
+        clearTimeout(refreshTimer);
+        setupCalendar(data.start);
+        show('success');
+      } else if (data.status === 'pending_payment') {
+        show('pending');
+        refreshTimer = window.setTimeout(verify, 5000);
+      } else {
+        show('error');
+      }
+    } catch {
+      show('error');
+    }
+  }
+
+  document.getElementById('check-again').addEventListener('click', verify);
+  verify();
+</script>
+
+<style>
+  :global(body) {
+    background: #02050c;
+  }
+
+  .confirmation-page {
+    position: relative;
+    min-height: 100vh;
+    padding: 132px 20px 100px;
+    overflow: hidden;
+    isolation: isolate;
+    color: #f7fbff;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(0, 122, 255, 0.27), transparent 32rem),
+      radial-gradient(circle at 0% 70%, rgba(31, 176, 129, 0.12), transparent 28rem),
+      linear-gradient(130deg, #02050c 0%, #07162d 50%, #0a2b5c 100%);
+  }
+
+  .confirmation-glow {
+    position: absolute;
+    z-index: -1;
+    top: 80px;
+    left: 50%;
+    width: 560px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(58, 150, 255, 0.13);
+    filter: blur(75px);
+    transform: translateX(-50%);
+  }
+
+  .confirmation-card {
+    width: min(900px, 100%);
+    margin: 0 auto;
+    padding: 56px;
+    text-align: center;
+    border: 1px solid rgba(191, 219, 254, 0.16);
+    border-radius: 34px;
+    background:
+      radial-gradient(circle at 16% 0%, rgba(255, 255, 255, 0.12), transparent 30%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.025));
+    box-shadow: 0 34px 90px rgba(0, 5, 18, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+  }
+
+  .loader {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 25px;
+    border: 3px solid rgba(191, 219, 254, 0.12);
+    border-top-color: #69b7ff;
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-mark {
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 25px;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+  }
+
+  .status-mark span {
+    position: relative;
+    width: 24px;
+    height: 24px;
+  }
+
+  .status-mark.success {
+    border: 1px solid rgba(85, 230, 178, 0.3);
+    background: rgba(85, 230, 178, 0.1);
+    box-shadow: 0 15px 38px rgba(25, 177, 124, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.13);
+  }
+
+  .status-mark.success span::before {
+    position: absolute;
+    top: 3px;
+    left: 7px;
+    width: 8px;
+    height: 14px;
+    content: '';
+    border-right: 2px solid #70efc1;
+    border-bottom: 2px solid #70efc1;
+    transform: rotate(45deg);
+  }
+
+  .status-mark.pending,
+  .status-mark.error {
+    border: 1px solid rgba(255, 200, 92, 0.25);
+    background: rgba(255, 200, 92, 0.08);
+  }
+
+  .status-mark.pending span {
+    border: 2px solid rgba(255, 210, 120, 0.65);
+    border-radius: 50%;
+  }
+
+  .status-mark.pending span::after {
+    position: absolute;
+    top: 4px;
+    left: 10px;
+    width: 1px;
+    height: 8px;
+    content: '';
+    background: rgba(255, 210, 120, 0.75);
+    transform-origin: bottom;
+    transform: rotate(-25deg);
+  }
+
+  .status-mark.error {
+    border-color: rgba(255, 130, 154, 0.25);
+    background: rgba(255, 130, 154, 0.08);
+  }
+
+  .status-mark.error span::before,
+  .status-mark.error span::after {
+    position: absolute;
+    top: 11px;
+    left: 3px;
+    width: 18px;
+    height: 2px;
+    content: '';
+    background: #ff9bad;
+    transform: rotate(45deg);
+  }
+
+  .status-mark.error span::after {
+    transform: rotate(-45deg);
+  }
+
+  .eyebrow {
+    margin: 0 0 14px;
+    color: rgba(125, 192, 255, 0.72);
+    font-size: 9px;
+    font-weight: 760;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .confirmation-card h1 {
+    max-width: 720px;
+    margin: 0 auto;
+    font-size: clamp(42px, 6vw, 68px);
+    line-height: 0.99;
+    letter-spacing: -0.06em;
+  }
+
+  .confirmation-card > p,
+  .lead {
+    max-width: 630px;
+    margin: 22px auto 0;
+    color: rgba(219, 234, 254, 0.57);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .appointment {
+    margin: 36px 0 0;
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 15px;
+    text-align: left;
+    border: 1px solid rgba(85, 230, 178, 0.17);
+    border-radius: 21px;
+    background: rgba(85, 230, 178, 0.055);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .appointment img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 17px;
+  }
+
+  .appointment span,
+  .appointment strong,
+  .appointment p {
+    display: block;
+  }
+
+  .appointment span {
+    color: rgba(112, 239, 193, 0.68);
+    font-size: 8px;
+    font-weight: 710;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .appointment strong {
+    margin-top: 5px;
+    font-size: 15px;
+  }
+
+  .appointment strong::first-letter {
+    text-transform: uppercase;
+  }
+
+  .appointment p {
+    margin: 5px 0 0;
+    color: rgba(191, 219, 254, 0.4);
+    font-size: 9px;
+  }
+
+  .appointment > b {
+    padding: 9px 11px;
+    color: rgba(112, 239, 193, 0.75);
+    border: 1px solid rgba(85, 230, 178, 0.17);
+    border-radius: 11px;
+    background: rgba(85, 230, 178, 0.07);
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .confirmation-actions {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .preparation-box {
+    margin-top: 34px;
+    padding: 26px;
+    text-align: left;
+    border: 1px solid rgba(125, 192, 255, 0.15);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(42, 137, 255, 0.14), transparent 38%),
+      rgba(2, 12, 30, 0.27);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  }
+
+  .preparation-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .preparation-heading .eyebrow {
+    margin-bottom: 8px;
+  }
+
+  .preparation-heading h2 {
+    max-width: 520px;
+    margin: 0;
+    font-size: 25px;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+  }
+
+  .preparation-heading > span {
+    padding: 7px 9px;
+    color: rgba(112, 239, 193, 0.7);
+    border: 1px solid rgba(85, 230, 178, 0.15);
+    border-radius: 10px;
+    background: rgba(85, 230, 178, 0.055);
+    font-size: 8px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  #preparation-form {
+    margin-top: 25px;
+    display: grid;
+    gap: 18px;
+  }
+
+  #preparation-form fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  #preparation-form legend,
+  .preparation-note > span {
+    display: block;
+    margin-bottom: 9px;
+    color: rgba(219, 234, 254, 0.62);
+    font-size: 10px;
+    font-weight: 620;
+  }
+
+  .preparation-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .preparation-options label {
+    position: relative;
+  }
+
+  .preparation-options input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .preparation-options span {
+    min-height: 44px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    color: rgba(219, 234, 254, 0.58);
+    border: 1px solid rgba(191, 219, 254, 0.11);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .preparation-options input:checked + span {
+    color: #eef8ff;
+    border-color: rgba(96, 165, 250, 0.5);
+    background: rgba(20, 121, 232, 0.15);
+  }
+
+  .preparation-note textarea {
+    width: 100%;
+    padding: 13px 14px;
+    resize: vertical;
+    color: #ffffff;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    border-radius: 13px;
+    outline: none;
+    background: rgba(2, 10, 25, 0.36);
+    font: inherit;
+    font-size: 12px;
+  }
+
+  .preparation-note textarea:focus {
+    border-color: rgba(96, 165, 250, 0.62);
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+  }
+
+  .preparation-note textarea::placeholder {
+    color: rgba(191, 219, 254, 0.25);
+  }
+
+  .preparation-submit {
+    width: 100%;
+  }
+
+  .preparation-submit:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+
+  .preparation-status {
+    min-height: 14px;
+    margin: -8px 0 0 !important;
+    color: #ff9bad !important;
+    font-size: 9px !important;
+  }
+
+  .preparation-saved {
+    margin-top: 23px;
+    padding: 17px;
+    color: rgba(226, 255, 245, 0.82);
+    border: 1px solid rgba(85, 230, 178, 0.17);
+    border-radius: 15px;
+    background: rgba(85, 230, 178, 0.06);
+    text-align: center;
+  }
+
+  .preparation-saved strong,
+  .preparation-saved span {
+    display: block;
+  }
+
+  .preparation-saved strong {
+    font-size: 13px;
+  }
+
+  .preparation-saved span {
+    margin-top: 4px;
+    color: rgba(191, 219, 254, 0.48);
+    font-size: 9px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 49px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    border: 1px solid rgba(147, 197, 253, 0.32);
+    border-radius: 15px;
+    background: linear-gradient(135deg, #1684ff, #0758cc);
+    box-shadow: 0 15px 34px rgba(0, 92, 214, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 680;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .secondary-button {
+    color: rgba(226, 239, 255, 0.68);
+    border-color: rgba(191, 219, 254, 0.13);
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .prepare-grid {
+    margin-top: 42px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    text-align: left;
+  }
+
+  .prepare-grid article {
+    min-height: 170px;
+    padding: 20px;
+    border: 1px solid rgba(191, 219, 254, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.028);
+  }
+
+  .prepare-grid span {
+    color: rgba(125, 192, 255, 0.62);
+    font-size: 8px;
+    font-weight: 740;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .prepare-grid h2 {
+    margin: 35px 0 0;
+    font-size: 14px;
+    letter-spacing: -0.025em;
+  }
+
+  .prepare-grid p {
+    margin: 7px 0 0;
+    color: rgba(191, 219, 254, 0.4);
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  .support-note {
+    margin-top: 24px !important;
+    font-size: 9px !important;
+  }
+
+  @media (max-width: 660px) {
+    .confirmation-page {
+      padding: 106px 12px 60px;
+    }
+
+    .confirmation-card {
+      padding: 36px 18px;
+      border-radius: 25px;
+    }
+
+    .appointment {
+      grid-template-columns: 54px minmax(0, 1fr);
+    }
+
+    .appointment img {
+      width: 54px;
+      height: 54px;
+    }
+
+    .appointment > b {
+      grid-column: 1 / -1;
+      text-align: center;
+    }
+
+    .confirmation-actions,
+    .prepare-grid,
+    .preparation-options {
+      grid-template-columns: 1fr;
+    }
+
+    .preparation-box {
+      padding: 21px 16px;
+    }
+
+    .preparation-heading {
+      display: block;
+    }
+
+    .preparation-heading > span {
+      margin-top: 13px;
+      display: inline-flex;
+    }
+
+    .prepare-grid article {
+      min-height: 0;
+    }
+
+    .prepare-grid h2 {
+      margin-top: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loader {
+      animation: none;
+    }
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>
