@@ -8,6 +8,8 @@ const auth = await read('src/scripts/coaching-supabase.js')
 const callback = await read('src/scripts/coaching-auth-callback.js')
 const reset = await read('src/scripts/coaching-reset-password.js')
 const activation = await read('src/scripts/coaching-activate-account.js')
+const coachConsole = await read('src/scripts/coach-console.js')
+const coachConsolePage = await read('src/pages/coach-console.astro')
 const combinedAuth = [portal, auth, callback, reset, activation].join('\n')
 
 assert.match(portal, /signInWithPassword/)
@@ -17,6 +19,10 @@ assert.match(portal, /resetPasswordForEmail/)
 assert.match(callback, /exchangeCodeForSession/)
 assert.match(reset, /updateUser\(\{ password \}\)/)
 assert.doesNotMatch(combinedAuth, /signInWithOtp|magic.?link/i)
+assert.match(coachConsolePage, /data-new-action/)
+assert.match(coachConsolePage, /id="action-form"/)
+assert.match(coachConsole, /from\(['"]coaching_actions['"]\)\.insert/)
+assert.match(coachConsole, /from\(['"]coaching_actions['"]\)\.update/)
 
 for (const role of ['owner', 'coach', 'client']) assert.match(auth, new RegExp(`${role}:`))
 for (const page of [
@@ -48,6 +54,7 @@ console.log(JSON.stringify({
   password_recovery: 'ok',
   magic_links: 'absent',
   role_routing: ['owner', 'coach', 'client'],
+  coach_actions: 'persistent',
   portal_pages: 10,
   server_endpoints: 7,
 }))

@@ -186,6 +186,11 @@ consultation à 97 € en dossier/séance Coaching OS et en email d'activation
 reste volontairement désactivé jusqu'à l'autorisation explicite de Sonny. Les
 packs 1, 3 et 6 séances utilisent déjà le flux Coaching OS.
 
+Le centre de suivi du coach est branché à `coaching_actions` : création d'une
+action interne liée à un client, échéance, priorité, clôture et réouverture. Ces
+actions restent privées au coach assigné grâce aux règles RLS. Elles ne
+déclenchent volontairement aucun email ni rappel automatique.
+
 ## Décisions commerciales encore modifiables
 
 - séance de suivi à 60 minutes actuellement ;

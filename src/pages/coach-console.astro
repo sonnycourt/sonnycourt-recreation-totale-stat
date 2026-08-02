@@ -238,7 +238,7 @@ import '../styles/coach-console.css';
           </section>
 
           <section class="view-panel" data-view-panel="suivi">
-            <div class="section-intro"><div><p class="eyebrow">Centre de suivi</p><h2>Ce qui doit avancer, <em>au bon moment.</em></h2><p>Une file d’actions sobre, liée à chaque client et à chaque séance.</p></div><button class="secondary-button compact-button" type="button" data-toast="Les rappels automatiques seront créés dans Supabase et synchronisés au calendrier."><svg><use href="#co-icon-plus"></use></svg><span>Nouvelle action</span></button></div>
+            <div class="section-intro"><div><p class="eyebrow">Centre de suivi</p><h2>Ce qui doit avancer, <em>au bon moment.</em></h2><p>Une file d’actions sobre, liée à chaque client et à chaque séance.</p></div><button class="secondary-button compact-button" type="button" data-new-action><svg><use href="#co-icon-plus"></use></svg><span>Nouvelle action</span></button></div>
             <div class="follow-grid">
               <section class="follow-column glass-card"><header><span class="column-dot red"></span><div><strong>Aujourd’hui</strong><small>1 action prioritaire</small></div><b>1</b></header><article class="task-card"><span class="task-label amber">Note de séance</span><h3>Finaliser la note de Manon</h3><p>La structure est prête. Il reste la synthèse et l’engagement convenu.</p><button type="button" data-note-client="manon"><i class="avatar avatar-manon">ML</i><span>Manon Lefèvre</span><svg><use href="#co-icon-chevron"></use></svg></button><footer><time>Aujourd’hui · 18:00</time><label><input type="checkbox" /><span><svg><use href="#co-icon-check"></use></svg></span></label></footer></article></section>
               <section class="follow-column glass-card"><header><span class="column-dot amber"></span><div><strong>À venir</strong><small>2 actions planifiées</small></div><b>2</b></header><article class="task-card"><span class="task-label purple">Relance</span><h3>Reprendre contact avec Julien</h3><p>Valider s’il souhaite reprendre le parcours ou fermer proprement le cycle.</p><button type="button" data-client-id="julien"><i class="avatar avatar-julien">JP</i><span>Julien Perrin</span><svg><use href="#co-icon-chevron"></use></svg></button><footer><time>Demain · 09:30</time><label><input type="checkbox" /><span><svg><use href="#co-icon-check"></use></svg></span></label></footer></article><article class="task-card"><span class="task-label blue">Bilan</span><h3>Préparer la décision de Sarah</h3><p>Relire les objectifs initiaux et proposer deux chemins possibles pour la suite.</p><button type="button" data-client-id="sarah"><i class="avatar avatar-sarah">SD</i><span>Sarah Dubois</span><svg><use href="#co-icon-chevron"></use></svg></button><footer><time>4 août · 08:30</time><label><input type="checkbox" /><span><svg><use href="#co-icon-check"></use></svg></span></label></footer></article></section>
@@ -297,6 +297,19 @@ import '../styles/coach-console.css';
           <div class="note-field-grid"><label><span>Décision prise</span><textarea name="decision" rows="3" placeholder="La décision ou le changement de perspective…"></textarea></label><label><span>Engagement concret</span><textarea name="commitment" rows="3" placeholder="La prochaine action observable…"></textarea></label></div>
           <label><span>Point à reprendre à la prochaine séance</span><input name="next" type="text" placeholder="Le fil à ne pas perdre…" /></label>
           <footer><p><svg><use href="#co-icon-lock"></use></svg>Les notes sensibles devront être protégées par les règles d’accès Supabase.</p><button class="secondary-button" type="button" data-note-close>Annuler</button><button class="primary-button compact-button" type="submit"><span>Enregistrer le brouillon</span><svg><use href="#co-icon-check"></use></svg></button></footer>
+        </form>
+      </section>
+    </div>
+
+    <div class="note-modal" id="action-modal" aria-hidden="true">
+      <div class="note-backdrop" data-action-close></div>
+      <section class="note-panel action-panel glass-panel" role="dialog" aria-modal="true" aria-labelledby="action-title">
+        <header><div><p class="eyebrow">Centre de suivi</p><h2 id="action-title">Nouvelle action</h2></div><span class="draft-state"><i></i> Interne au coaching</span><button class="icon-button" type="button" data-action-close aria-label="Fermer"><svg><use href="#co-icon-close"></use></svg></button></header>
+        <form id="action-form">
+          <label><span>Dossier client</span><select name="client_id" required><option value="">Choisir un client…</option></select></label>
+          <label><span>Action à réaliser</span><input name="title" type="text" maxlength="180" required placeholder="Ex. Préparer le bilan de fin de cycle" /></label>
+          <div class="note-field-grid"><label><span>Échéance</span><input name="due_at" type="datetime-local" /></label><label><span>Priorité</span><select name="priority"><option value="normal">Normale</option><option value="high">Haute</option><option value="low">Basse</option></select></label></div>
+          <footer><p><svg><use href="#co-icon-lock"></use></svg>Aucun rappel ni email ne sera envoyé automatiquement.</p><button class="secondary-button" type="button" data-action-close>Annuler</button><button class="primary-button compact-button" type="submit"><span>Créer l’action</span><svg><use href="#co-icon-check"></use></svg></button></footer>
         </form>
       </section>
     </div>

@@ -188,6 +188,8 @@ const drawer = document.getElementById('client-drawer');
 const drawerContent = document.getElementById('drawer-content');
 const noteModal = document.getElementById('note-modal');
 const noteForm = document.getElementById('note-form');
+const actionModal = document.getElementById('action-modal');
+const actionForm = document.getElementById('action-form');
 const toast = document.getElementById('coach-toast');
 const searchResults = document.getElementById('search-results');
 const globalSearch = document.getElementById('global-search');
@@ -197,6 +199,7 @@ let activeView = 'dashboard';
 let consoleMode = 'demo';
 let liveCoachId = null;
 let liveUserId = null;
+let liveSession = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -237,6 +240,7 @@ function renderLiveClientRows() {
 }
 
 async function loadLiveCoachData(session) {
+  liveSession = session;
   const { data: coach, error: coachError } = await coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,calendar_connected_at').eq('auth_user_id', session.user.id).single();
   if (coachError) throw coachError;
   const coachName = [coach.first_name, coach.last_name].filter(Boolean).join(' ') || 'Coach';
@@ -255,7 +259,7 @@ async function loadLiveCoachData(session) {
     coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
     coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,client_id,status,answers,submitted_at').order('created_at', { ascending: false }),
-    coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority').eq('coach_id', coach.id).eq('status', 'open'),
+    coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority,completed_at,updated_at').eq('coach_id', coach.id).in('status', ['open', 'done']).order('updated_at', { ascending: false }).limit(100),
     coachingSupabase.from('coaching_availability_slots').select('id,starts_at,ends_at,status').eq('coach_id', coach.id).eq('status', 'available').gte('starts_at', new Date().toISOString()).order('starts_at').limit(100),
   ]);
   const failure = [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult].find((result) => result.error)?.error;
@@ -302,7 +306,7 @@ async function loadLiveCoachData(session) {
       journey: `${completed}/${total} séance${total > 1 ? 's' : ''}`,
       progress: Math.min(Math.round((completed / total) * 100), 100),
       sessions: clientSessions.map((item) => ({ title: 'Séance de coaching', date: escapeHtml(formatDateTime(item.starts_at)), status: item.status === 'completed' ? 'Terminée' : item.status === 'cancelled' ? 'Annulée' : 'À venir' })),
-      commitments: actions.filter((item) => item.client_id === row.id).map((item) => escapeHtml(item.title)),
+      commitments: actions.filter((item) => item.client_id === row.id && item.status === 'open').map((item) => escapeHtml(item.title)),
     };
   }
   renderLiveClientRows();
@@ -317,7 +321,7 @@ async function loadLiveCoachData(session) {
     calendarBadge.classList.add('green');
   }
   document.querySelector('.metric-card.green strong').textContent = String(Object.keys(clients).length);
-  document.querySelector('.metric-card.purple strong').textContent = String(actions.length);
+  document.querySelector('.metric-card.purple strong').textContent = String(actions.filter((item) => item.status === 'open').length);
   renderLiveWorkspace(sessions, actions, availabilityResult.data || []);
   const rulesResult = await coachingSupabase.from('coaching_availability_rules').select('weekday,start_time,end_time,slot_minutes,buffer_minutes').eq('coach_id', coach.id).eq('active', true).order('weekday');
   if (!rulesResult.error && rulesResult.data?.length) {
@@ -335,6 +339,9 @@ async function loadLiveCoachData(session) {
 
 function renderLiveWorkspace(sessions, actions, availableSlots) {
   const now = Date.now();
+  const dueTime = (action) => action.due_at ? new Date(action.due_at).getTime() : Number.POSITIVE_INFINITY;
+  const openActions = actions.filter((action) => action.status === 'open').sort((a, b) => dueTime(a) - dueTime(b));
+  const doneActions = actions.filter((action) => action.status === 'done').slice(0, 12);
   const upcoming = sessions.filter((item) => item.status === 'confirmed' && new Date(item.starts_at).getTime() >= now).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
   const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date());
   const todaySessions = upcoming.filter((item) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date(item.starts_at)) === todayKey);
@@ -377,15 +384,26 @@ function renderLiveWorkspace(sessions, actions, availableSlots) {
   if (folders) folders.innerHTML = Object.values(clients).slice(0, 6).map((client) => `<button class="folder-card glass-card" type="button" data-client-id="${client.id}"><span class="folder-top"><i class="avatar">${client.initials}</i><b class="status-pill ${client.nextSessionId ? 'blue' : 'gray'}">${client.nextSessionId ? 'Séance planifiée' : 'À planifier'}</b></span><strong>${client.name}</strong><p>${client.objective}</p><span class="folder-meta"><small>${client.sessions.length} séance(s)</small><small>${client.status}</small></span><span class="folder-action">Ouvrir le dossier<svg><use href="#co-icon-arrow"></use></svg></span></button>`).join('');
 
   const follow = document.querySelector('.follow-grid');
-  if (follow) follow.innerHTML = `<section class="follow-column glass-card"><header><span class="column-dot amber"></span><div><strong>Actions ouvertes</strong><small>Source Supabase</small></div><b>${actions.length}</b></header>${actions.length ? actions.map((action) => {
-    const client = clients[action.client_id];
-    return `<article class="task-card"><span class="task-label ${action.priority === 'high' ? 'amber' : 'blue'}">${escapeHtml(action.priority || 'normal')}</span><h3>${escapeHtml(action.title)}</h3>${client ? `<button type="button" data-client-id="${client.id}"><i class="avatar">${client.initials}</i><span>${client.name}</span><svg><use href="#co-icon-chevron"></use></svg></button>` : ''}<footer><time>${action.due_at ? escapeHtml(formatDateTime(action.due_at)) : 'Sans échéance'}</time></footer></article>`;
-  }).join('') : '<div class="empty-results"><strong>Aucune action ouverte.</strong><small>Rien ne demande ton attention.</small></div>'}</section>`;
+  if (follow) {
+    const actionMarkup = (action, checked = false) => {
+      const client = clients[action.client_id];
+      return `<article class="task-card${checked ? ' is-done' : ''}"><span class="task-label ${action.priority === 'high' ? 'amber' : action.priority === 'low' ? 'gray' : 'blue'}">${escapeHtml(action.priority || 'normal')}</span><h3>${escapeHtml(action.title)}</h3>${client ? `<button type="button" data-client-id="${client.id}"><i class="avatar">${client.initials}</i><span>${client.name}</span><svg><use href="#co-icon-chevron"></use></svg></button>` : ''}<footer><time>${action.due_at ? escapeHtml(formatDateTime(action.due_at)) : 'Sans échéance'}</time><label aria-label="${checked ? 'Rouvrir' : 'Terminer'} cette action"><input type="checkbox" data-action-id="${escapeHtml(action.id)}" ${checked ? 'checked' : ''} /><span><svg><use href="#co-icon-check"></use></svg></span></label></footer></article>`;
+    };
+    follow.classList.add('is-live');
+    follow.innerHTML = `<section class="follow-column glass-card"><header><span class="column-dot amber"></span><div><strong>Actions ouvertes</strong><small>Source Supabase</small></div><b>${openActions.length}</b></header>${openActions.length ? openActions.map((action) => actionMarkup(action)).join('') : '<div class="empty-results"><strong>Aucune action ouverte.</strong><small>Rien ne demande ton attention.</small></div>'}</section><section class="follow-column glass-card"><header><span class="column-dot green"></span><div><strong>Terminées récemment</strong><small>Réouverture possible</small></div><b>${doneActions.length}</b></header>${doneActions.length ? doneActions.map((action) => actionMarkup(action, true)).join('') : '<div class="empty-results"><strong>Aucune action terminée.</strong><small>Les dernières actions cochées apparaîtront ici.</small></div>'}</section>`;
+  }
+
+  const focusList = document.querySelector('.focus-list');
+  if (focusList) {
+    focusList.innerHTML = openActions.length ? openActions.slice(0, 4).map((action) => `<label><input type="checkbox" data-action-id="${escapeHtml(action.id)}" /><span><i><svg><use href="#co-icon-check"></use></svg></i><strong>${escapeHtml(action.title)}</strong><small>${action.due_at ? escapeHtml(formatDateTime(action.due_at)) : 'Sans échéance'}</small></span></label>`).join('') : '<div class="empty-results"><strong>Focus terminé.</strong><small>Aucune action ouverte.</small></div>';
+    const focusCount = document.querySelector('.focus-card .progress-ring');
+    if (focusCount) focusCount.textContent = String(openActions.length);
+  }
 
   const attention = document.querySelector('.attention-card');
   if (attention) {
-    attention.querySelector('h3').textContent = `${actions.length} élément${actions.length > 1 ? 's' : ''} mérite${actions.length > 1 ? 'nt' : ''} ton attention`;
-    attention.querySelector('.attention-list').innerHTML = actions.slice(0, 4).map((action) => {
+    attention.querySelector('h3').textContent = `${openActions.length} élément${openActions.length > 1 ? 's' : ''} mérite${openActions.length > 1 ? 'nt' : ''} ton attention`;
+    attention.querySelector('.attention-list').innerHTML = openActions.slice(0, 4).map((action) => {
       const client = clients[action.client_id];
       return `<button type="button" ${client ? `data-client-id="${client.id}"` : ''}><span class="attention-icon ${action.priority === 'high' ? 'amber' : 'blue'}"><svg><use href="#co-icon-check"></use></svg></span><span><strong>${escapeHtml(action.title)}</strong><small>${client?.name || 'Action coaching'}</small></span><time>${action.due_at ? escapeHtml(formatDateTime(action.due_at)) : 'À organiser'}</time><svg><use href="#co-icon-chevron"></use></svg></button>`;
     }).join('') || '<div class="empty-results"><strong>Tout est à jour.</strong><small>Aucune attention particulière.</small></div>';
@@ -501,6 +519,13 @@ function clientMarkup(client) {
   `;
 }
 
+function syncBodyLock() {
+  const overlayOpen = drawer.classList.contains('is-open')
+    || noteModal.classList.contains('is-open')
+    || actionModal.classList.contains('is-open');
+  body.style.overflow = overlayOpen ? 'hidden' : '';
+}
+
 function openClient(id) {
   const client = clients[id];
   if (!client) return;
@@ -513,7 +538,7 @@ function openClient(id) {
 function closeClient() {
   drawer.classList.remove('is-open');
   drawer.setAttribute('aria-hidden', 'true');
-  if (!noteModal.classList.contains('is-open')) body.style.overflow = '';
+  syncBodyLock();
 }
 
 async function openNote(id) {
@@ -550,7 +575,27 @@ async function openNote(id) {
 function closeNote() {
   noteModal.classList.remove('is-open');
   noteModal.setAttribute('aria-hidden', 'true');
-  if (!drawer.classList.contains('is-open')) body.style.overflow = '';
+  syncBodyLock();
+}
+
+function openAction() {
+  actionForm.reset();
+  const clientSelect = actionForm.elements.namedItem('client_id');
+  const options = Object.values(clients)
+    .sort((a, b) => String(a.nameText || a.name).localeCompare(String(b.nameText || b.name), 'fr'))
+    .map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.nameText || client.name)}</option>`)
+    .join('');
+  clientSelect.innerHTML = `<option value="">Choisir un client…</option>${options}`;
+  actionModal.classList.add('is-open');
+  actionModal.setAttribute('aria-hidden', 'false');
+  syncBodyLock();
+  window.setTimeout(() => clientSelect.focus(), 180);
+}
+
+function closeAction() {
+  actionModal.classList.remove('is-open');
+  actionModal.setAttribute('aria-hidden', 'true');
+  syncBodyLock();
 }
 
 async function completeClientSession(id) {
@@ -623,11 +668,14 @@ document.addEventListener('click', (event) => {
   const noteButton = target.closest('[data-note-client]');
   if (noteButton) openNote(noteButton.dataset.noteClient);
 
+  if (target.closest('[data-new-action]')) openAction();
+
   const completeButton = target.closest('[data-complete-client]');
   if (completeButton) completeClientSession(completeButton.dataset.completeClient);
 
   if (target.closest('[data-drawer-close]')) closeClient();
   if (target.closest('[data-note-close]')) closeNote();
+  if (target.closest('[data-action-close]')) closeAction();
 
   const meetButton = target.closest('[data-meet-url]');
   if (meetButton) window.open(meetButton.dataset.meetUrl, '_blank', 'noopener');
@@ -661,7 +709,8 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     searchResults.hidden = true;
     document.getElementById('coach-menu').hidden = true;
-    if (noteModal.classList.contains('is-open')) closeNote();
+    if (actionModal.classList.contains('is-open')) closeAction();
+    else if (noteModal.classList.contains('is-open')) closeNote();
     else if (drawer.classList.contains('is-open')) closeClient();
     else sidebar.classList.remove('is-open');
   }
@@ -701,10 +750,55 @@ noteForm.addEventListener('submit', async (event) => {
   showToast(consoleMode === 'live' ? 'Brouillon privé enregistré dans le dossier.' : 'Brouillon enregistré uniquement sur cet appareil.');
 });
 
-document.querySelectorAll('.focus-list input, .task-card footer input').forEach((checkbox) => {
-  checkbox.addEventListener('change', () => {
-    showToast(checkbox.checked ? 'Action marquée comme terminée dans la maquette.' : 'Action rouverte dans la maquette.');
+actionForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const submit = actionForm.querySelector('[type="submit"]');
+  const draft = Object.fromEntries(new FormData(actionForm).entries());
+  if (consoleMode === 'demo') {
+    closeAction();
+    return showToast('Action créée dans la maquette. Elle sera persistante avec Supabase.');
+  }
+  if (!clients[draft.client_id]) return showToast('Choisis un dossier client attribué.');
+  submit.disabled = true;
+  const dueAt = draft.due_at ? new Date(draft.due_at).toISOString() : null;
+  const { error } = await coachingSupabase.from('coaching_actions').insert({
+    client_id: draft.client_id,
+    coach_id: liveCoachId,
+    title: String(draft.title || '').trim(),
+    due_at: dueAt,
+    priority: draft.priority || 'normal',
+    status: 'open',
+    visibility: 'coach',
+    origin: 'manual',
   });
+  submit.disabled = false;
+  if (error) return showToast('L’action n’a pas pu être créée.');
+  closeAction();
+  await loadLiveCoachData(liveSession);
+  showToast('Action ajoutée au suivi privé du coach.');
+});
+
+document.addEventListener('change', async (event) => {
+  const checkbox = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!checkbox?.matches('.focus-list input, .task-card footer input')) return;
+  const actionId = checkbox.dataset.actionId;
+  if (consoleMode !== 'live' || !actionId) {
+    showToast(checkbox.checked ? 'Action marquée comme terminée dans la maquette.' : 'Action rouverte dans la maquette.');
+    return;
+  }
+  checkbox.disabled = true;
+  const done = checkbox.checked;
+  const { error } = await coachingSupabase.from('coaching_actions').update({
+    status: done ? 'done' : 'open',
+    completed_at: done ? new Date().toISOString() : null,
+  }).eq('id', actionId).eq('coach_id', liveCoachId);
+  if (error) {
+    checkbox.checked = !done;
+    checkbox.disabled = false;
+    return showToast('Le statut de l’action n’a pas pu être modifié.');
+  }
+  await loadLiveCoachData(liveSession);
+  showToast(done ? 'Action terminée. Elle reste réouvrable.' : 'Action rouverte.');
 });
 
 document.querySelector('[data-connect-google]')?.addEventListener('click', async () => {

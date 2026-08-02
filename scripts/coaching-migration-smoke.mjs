@@ -224,12 +224,22 @@ await asUser(ids.sonny, async () => {
   assert.equal(await count('select count(*) from public.coaching_session_notes'), 0)
 })
 
+let aliceActionId = null
 await asUser(ids.romain, async () => {
   assert.equal((await one('select public.coaching_current_role() as role')).role, 'coach')
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [alice.id]), 1)
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [bob.id]), 0)
   assert.equal(await count('select count(*) from public.coaching_session_notes'), 1)
   assert.equal((await one('select public.coaching_replace_my_availability_rules(array[1,3]::smallint[], $1::time, $2::time, 60, 15, $3) as count', ['09:00', '17:00', 'Europe/Zurich'])).count, 2)
+  aliceActionId = (await one(`
+    insert into public.coaching_actions(client_id, coach_id, title, priority, visibility, origin)
+    values ($1, $2, 'Préparer le bilan Alice', 'high', 'coach', 'manual')
+    returning id
+  `, [alice.id, romain.id])).id
+  assert.equal((await db.query("update public.coaching_actions set status = 'done', completed_at = now() where id = $1", [aliceActionId])).affectedRows, 1)
+  assert.equal(await count("select count(*) from public.coaching_actions where id = $1 and status = 'done' and completed_at is not null", [aliceActionId]), 1)
+  assert.equal((await db.query("update public.coaching_actions set status = 'open', completed_at = null where id = $1", [aliceActionId])).affectedRows, 1)
+  assert.equal(await count("select count(*) from public.coaching_actions where id = $1 and status = 'open' and completed_at is null", [aliceActionId]), 1)
 
   await expectRejected(
     () => db.query(`insert into public.coaching_session_notes(session_id, coach_id, author_user_id, observations) values ($1, $2, $3, 'intrusion')`, [bobPastSession.id, romain.id, ids.romain]),
@@ -256,6 +266,7 @@ await asUser(ids.lea, async () => {
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [alice.id]), 0)
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [bob.id]), 1)
   assert.equal((await db.query("update public.coaching_clients set objective = 'intrusion' where id = $1", [alice.id])).affectedRows, 0)
+  assert.equal((await db.query("update public.coaching_actions set status = 'done', completed_at = now() where id = $1", [aliceActionId])).affectedRows, 0)
 })
 
 await asUser(ids.bob, async () => {
@@ -354,6 +365,7 @@ console.log(JSON.stringify({
   diagnostic_rls: diagnosticRls,
   diagnostic_hold: 'ok',
   authorization: 'ok',
+  action_workflow: 'ok',
   booking: 'ok',
   cancellation: 'ok',
   expired_credits: 'ok',
