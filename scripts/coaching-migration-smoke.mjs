@@ -32,6 +32,8 @@ const diagnosticMigration = await fs.readFile(new URL('../sql/coach_diagnostic.s
 await db.exec(diagnosticMigration)
 const firstConsultationBridge = await fs.readFile(new URL('../sql/coaching_first_consultation_bridge.sql', import.meta.url), 'utf8')
 await db.exec(firstConsultationBridge)
+const walletMigration = await fs.readFile(new URL('../sql/coaching_wallet_memberships.sql', import.meta.url), 'utf8')
+await db.exec(walletMigration)
 
 const ids = {
   sonny: '00000000-0000-4000-8000-000000000001',
@@ -225,8 +227,8 @@ const diagnosticRls = await count(`
   where n.nspname = 'public' and c.relname like 'coach_diagnostic_%' and c.relrowsecurity
 `)
 
-assert.equal(Number(tables.rows[0].count), 19)
-assert.equal(Number(rls.rows[0].count), 19)
+assert.equal(Number(tables.rows[0].count), 23)
+assert.equal(Number(rls.rows[0].count), 23)
 assert.equal(diagnosticTables, 2)
 assert.equal(diagnosticRls, 2)
 assert.equal((await one("select has_function_privilege('anon', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, false)
@@ -256,7 +258,7 @@ await expectRejected(
 )
 
 await asRole('anon', async () => {
-  assert.equal(await count('select count(*) from public.coaching_offers'), 4)
+  assert.equal(await count('select count(*) from public.coaching_offers'), 7)
   await expectRejected(() => db.query('select * from public.coaching_clients'), 'permission denied')
 })
 
@@ -312,7 +314,7 @@ await asUser(ids.lea, async () => {
 })
 
 await asUser(ids.bob, async () => {
-  assert.equal((await one('select public.coaching_credit_balance($1) as balance', [bob.id])).balance, 1)
+  assert.equal((await one('select public.coaching_credit_balance($1) as balance', [bob.id])).balance, 3)
   await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [bobSlot.id, 'Europe/Zurich']), 'preparation_required')
 })
 
@@ -334,18 +336,18 @@ await asUser(ids.alice, async () => {
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [bob.id]), 0)
   assert.equal(await count("select count(*) from public.coaching_availability_slots where status = 'available'"), 1)
   assert.equal(await count('select count(*) from public.coaching_session_notes'), 0)
-  assert.equal((await one('select public.coaching_credit_balance($1) as balance', [alice.id])).balance, 3)
+  assert.equal((await one('select public.coaching_credit_balance($1) as balance', [alice.id])).balance, 9)
   await db.query("update public.coaching_form_responses set answers = '{\"focus\":\"nouveau\"}'::jsonb where id = $1", [aliceResponse.id])
   await expectRejected(() => db.query('select raw_payload from public.coaching_orders'), 'permission denied')
 
   booked = await one('select * from public.coaching_book_session($1, $2)', [aliceSlot.id, 'Europe/Zurich'])
-  assert.equal(booked.credits_remaining, 2)
+  assert.equal(booked.credits_remaining, 6)
   assert.equal(await count('select count(*) from public.coaching_form_responses where id = $1 and session_id = $2', [aliceResponse.id, booked.session_id]), 1)
   assert.equal((await db.query("update public.coaching_form_responses set answers = '{\"focus\":\"interdit\"}'::jsonb where id = $1", [aliceResponse.id])).affectedRows, 0)
   await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [aliceSlot.id, 'Europe/Zurich']), 'slot_unavailable')
 
   const cancelled = await one('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test'])
-  assert.equal(cancelled.credits_remaining, 3)
+  assert.equal(cancelled.credits_remaining, 9)
   assert.equal(await count("select count(*) from public.coaching_availability_slots where id = $1 and status = 'available'", [aliceSlot.id]), 1)
   await expectRejected(() => db.query('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test 2']), 'session_not_cancellable')
 })
@@ -389,7 +391,7 @@ assert.equal(await count("select count(*) from public.coaching_credit_ledger whe
 
 const refunded = await asRole('service_role', () => one("select * from public.coaching_refund_spiffy_order('spiffy-alice-001')"))
 assert.equal(refunded.already_processed, false)
-assert.equal(refunded.credits_removed, 3)
+assert.equal(refunded.credits_removed, 9)
 assert.equal(await count("select count(*) from public.coaching_sessions where id = $1 and status = 'cancelled' and cancellation_reason = 'Remboursement Spiffy'", [refundableSession.id]), 1)
 assert.equal(await count("select count(*) from public.coaching_availability_slots where id = $1 and status = 'available'", [refundableSlot.id]), 1)
 assert.equal(await count("select count(*) from public.coaching_credit_ledger where session_id = $1 and reason = 'cancellation'", [refundableSession.id]), 1)

@@ -30,6 +30,8 @@ for (const page of [
   'src/pages/coaching/admin.astro',
   'src/pages/coach-console.astro',
   'src/pages/coaching/eleve.astro',
+  'src/pages/coaching/credits.astro',
+  'src/pages/coaching/compte.astro',
   'src/pages/coaching/preparation.astro',
   'src/pages/coaching/reserver.astro',
   'src/pages/coaching/confirmation.astro',
@@ -38,6 +40,15 @@ for (const page of [
   'src/pages/coaching/reset-password.astro',
   'src/pages/coaching/auth/callback.astro',
 ]) await fs.access(new URL(`../${page}`, import.meta.url))
+
+const wallet = await read('src/scripts/coaching-credits.js')
+const account = await read('src/scripts/coaching-account.js')
+const student = await read('src/scripts/coaching-student.js')
+assert.match(wallet, /coaching_credit_balance/)
+assert.match(wallet, /membership-6|coaching_subscriptions/)
+assert.match(account, /coaching_update_my_profile/)
+assert.match(account, /coaching-avatars/)
+assert.match(student, /data-continuation-prompt|openContinuationPrompt/)
 
 for (const endpoint of [
   'netlify/functions/coaching-activate-account.js',

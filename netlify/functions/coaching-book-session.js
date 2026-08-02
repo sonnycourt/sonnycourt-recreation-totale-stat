@@ -28,9 +28,9 @@ export default async (req) => {
   if (!response.ok) {
     const detail = String(payload?.message || payload?.error || '');
     const conflict = detail.includes('slot_unavailable');
-    const noCredit = detail.includes('no_credit');
+    const noCredit = detail.includes('no_credit') || detail.includes('insufficient_credits');
     const preparationRequired = detail.includes('preparation_required');
-    return json(conflict || preparationRequired ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? 'Tu n’as plus de crédit disponible.' : preparationRequired ? 'Complète d’abord ta préparation avant de choisir un créneau.' : 'La réservation n’a pas pu être confirmée.' });
+    return json(conflict || preparationRequired ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? 'Il faut 3 crédits pour réserver cette séance de 45 minutes.' : preparationRequired ? 'Complète d’abord ta préparation avant de choisir un créneau.' : 'La réservation n’a pas pu être confirmée.' });
   }
   const row = Array.isArray(payload) ? payload[0] : payload;
   if (!row?.session_id) return json(500, { error: 'Réservation incomplète.' });

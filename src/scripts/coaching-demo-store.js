@@ -2,7 +2,7 @@ const STORE_KEY = 'sonnycourt-coaching-demo-v1';
 const SESSION_KEY = 'sonnycourt-coaching-session-v1';
 
 const defaultState = {
-  version: 1,
+  version: 2,
   owner: {
     id: 'sonny',
     name: 'Sonny',
@@ -19,13 +19,16 @@ const defaultState = {
       sessionsThisMonth: 28,
       satisfaction: 9.4,
       nextSession: 'Aujourd’hui · 14:00',
+      phone: '+41 79 000 00 00',
+      country: 'CH',
+      timezone: 'Europe/Zurich',
     },
   ],
   clients: [
-    { id: 'claire', name: 'Claire Martin', email: 'claire@exemple.fr', coachId: 'romain', plan: 'Le mouvement', creditsTotal: 3, creditsUsed: 1, status: 'active', nextSession: 'À réserver' },
-    { id: 'thomas', name: 'Thomas Rey', email: 'thomas@exemple.fr', coachId: 'romain', plan: 'La transformation', creditsTotal: 6, creditsUsed: 3, status: 'active', nextSession: 'Aujourd’hui · 16:30' },
-    { id: 'manon', name: 'Manon Girard', email: 'manon@exemple.fr', coachId: 'romain', plan: 'Le prochain pas', creditsTotal: 1, creditsUsed: 1, status: 'complete', nextSession: 'Aucune' },
-    { id: 'sarah', name: 'Sarah Dubois', email: 'sarah@exemple.fr', coachId: 'romain', plan: 'La transformation', creditsTotal: 6, creditsUsed: 5, status: 'active', nextSession: '4 août · 11:00' },
+    { id: 'claire', name: 'Claire Martin', email: 'claire@exemple.fr', coachId: 'romain', plan: 'Membership · Continuité', creditsTotal: 9, creditsUsed: 3, membership: 'active', creditsPurchased: 9, status: 'active', nextSession: 'À réserver' },
+    { id: 'thomas', name: 'Thomas Rey', email: 'thomas@exemple.fr', coachId: 'romain', plan: 'La transformation', creditsTotal: 18, creditsUsed: 9, membership: null, creditsPurchased: 18, status: 'active', nextSession: 'Aujourd’hui · 16:30' },
+    { id: 'manon', name: 'Manon Girard', email: 'manon@exemple.fr', coachId: 'romain', plan: 'Le prochain pas', creditsTotal: 3, creditsUsed: 3, membership: null, creditsPurchased: 3, status: 'complete', nextSession: 'Aucune' },
+    { id: 'sarah', name: 'Sarah Dubois', email: 'sarah@exemple.fr', coachId: 'romain', plan: 'Membership · Accélération', creditsTotal: 18, creditsUsed: 15, membership: 'active', creditsPurchased: 18, status: 'active', nextSession: '4 août · 11:00' },
   ],
   student: {
     id: 'claire',
@@ -33,9 +36,13 @@ const defaultState = {
     lastName: 'Martin',
     email: 'claire@exemple.fr',
     coachId: 'romain',
-    plan: 'Le mouvement',
-    creditsTotal: 3,
-    creditsUsed: 1,
+    plan: 'Membership · Continuité',
+    creditsTotal: 9,
+    creditsUsed: 3,
+    membership: { status: 'active', creditsPerMonth: 6 },
+    phone: '+33 6 00 00 00 01',
+    country: 'FR',
+    timezone: 'Europe/Zurich',
     objective: 'Prendre une décision professionnelle claire et avancer sans revenir constamment en arrière.',
     nextSession: null,
     preparation: {
@@ -53,7 +60,7 @@ const defaultState = {
     ],
   },
   activity: [
-    { tone: 'green', label: 'Paiement confirmé', detail: 'Claire · formule 3 séances', time: 'Il y a 2 jours' },
+    { tone: 'green', label: 'Crédits ajoutés', detail: 'Claire · membership 6 crédits', time: 'Il y a 2 jours' },
     { tone: 'blue', label: 'Questionnaire complété', detail: 'Thomas · séance 3/6', time: 'Hier' },
     { tone: 'purple', label: 'Note finalisée', detail: 'Romain · dossier Sarah', time: 'Hier' },
     { tone: 'amber', label: 'Action en attente', detail: 'Manon · bilan de fin', time: 'Aujourd’hui' },

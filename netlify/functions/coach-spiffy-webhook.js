@@ -97,7 +97,7 @@ function amountCents(obj, fallback = null) {
 
 function coachingOfferSlug(body) {
   const explicit = findValue(body, ['coaching_offer_slug', 'offer_slug']);
-  if (['session-1', 'pack-3', 'pack-6'].includes(explicit)) return explicit;
+  if (['session-1', 'pack-3', 'pack-6', 'membership-3', 'membership-6', 'membership-12'].includes(explicit)) return explicit;
   const payloadIds = ['checkout_id', 'product_id', 'offer_id', 'checkout_uuid']
     .map((key) => findValue(body, [key]))
     .filter(Boolean)
@@ -106,6 +106,9 @@ function coachingOfferSlug(body) {
     'session-1': String(process.env.SPIFFY_COACHING_SESSION_1_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'pack-3': String(process.env.SPIFFY_COACHING_PACK_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'pack-6': String(process.env.SPIFFY_COACHING_PACK_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'membership-3': String(process.env.SPIFFY_COACHING_MEMBERSHIP_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'membership-6': String(process.env.SPIFFY_COACHING_MEMBERSHIP_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'membership-12': String(process.env.SPIFFY_COACHING_MEMBERSHIP_12_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
   };
   return Object.entries(configured).find(([, ids]) => ids.some((id) => payloadIds.includes(id)))?.[0] || null;
 }
@@ -153,6 +156,7 @@ function safeAuditPayload(body, event) {
     offer_name: findValue(body, ['offer_name']),
     payment_gateway: findValue(body, ['payment_gateway']),
     created_at: findValue(body, ['created_at']),
+    subscription_id: findValue(body, ['subscription_id', 'subscriptionId', 'recurring_id']),
   };
 }
 
@@ -200,15 +204,32 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
   const row = Array.isArray(recorded.data) ? recorded.data[0] : recorded.data;
   if (!row) throw new Error('coaching_order_missing');
 
+  let subscription = null;
+  if (offerSlug.startsWith('membership-')) {
+    const subscriptionId = findValue(body, ['subscription_id', 'subscriptionId', 'recurring_id']);
+    if (subscriptionId) {
+      const savedSubscription = await supabasePost('rpc/coaching_upsert_spiffy_subscription', {
+        p_provider_subscription_id: subscriptionId,
+        p_client_id: row.client_id,
+        p_offer_slug: offerSlug,
+        p_status: findValue(body, ['subscription_status', 'status']) || 'active',
+        p_current_period_start: findValue(body, ['current_period_start', 'period_start']) || null,
+        p_current_period_end: findValue(body, ['current_period_end', 'period_end']) || null,
+      });
+      if (!savedSubscription.ok) throw new Error(`coaching_subscription_${savedSubscription.status}`);
+      subscription = { status: 'active', provider_subscription_id: subscriptionId };
+    } else subscription = { status: 'pending_provider_id' };
+  }
+
   const clientResult = await supabaseGet(`coaching_clients?id=eq.${row.client_id}&select=id,email,first_name,auth_user_id&limit=1`);
   const client = clientResult.ok && Array.isArray(clientResult.data) ? clientResult.data[0] : null;
   if (!client) throw new Error('coaching_client_missing');
   const identifiers = { order_id: row.order_id, client_id: row.client_id, engagement_id: row.engagement_id };
-  if (client.auth_user_id) return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'existing_account', ...identifiers };
+  if (client.auth_user_id) return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'existing_account', subscription, ...identifiers };
   const deliveredResult = await supabaseGet(`coaching_email_deliveries?order_id=eq.${row.order_id}&kind=eq.account_activation&recipient_email=eq.${encodeURIComponent(client.email)}&status=eq.sent&select=id&limit=1`);
   if (!deliveredResult.ok) throw new Error(`coaching_activation_delivery_check_${deliveredResult.status}`);
   if (Array.isArray(deliveredResult.data) && deliveredResult.data[0]) {
-    return { ok: true, type: 'coaching_order', already_processed: true, credits_added: row.credits_added, activation: 'already_sent', ...identifiers };
+    return { ok: true, type: 'coaching_order', already_processed: true, credits_added: row.credits_added, activation: 'already_sent', subscription, ...identifiers };
   }
   if (!process.env.MAILERSEND_API_KEY || !process.env.COACHING_EMAIL_FROM) throw new Error('coaching_activation_email_not_configured');
 
@@ -247,7 +268,7 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
     status: 'sent',
   });
   if (!loggedDelivery.ok) throw new Error(`coaching_activation_delivery_log_${loggedDelivery.status}`);
-  return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: delivery.status, ...identifiers };
+  return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: delivery.status, subscription, ...identifiers };
 }
 
 async function importFirstConsultationSession(orderId, bookingId) {

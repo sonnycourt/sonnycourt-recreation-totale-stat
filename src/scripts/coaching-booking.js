@@ -30,7 +30,7 @@ function selectSlot(button) {
   document.querySelectorAll('[data-slot-id]').forEach((slot) => slot.classList.toggle('active', slot === button));
   selectedSlot = { id: button.dataset.slotId, startsAt: button.dataset.slotStart };
   selectionTitle.textContent = formatDateTime(selectedSlot.startsAt);
-  selectionCopy.textContent = '60 minutes · Google Meet · Europe/Zurich';
+  selectionCopy.textContent = '45 minutes · 3 crédits · Google Meet';
   confirmButton.disabled = false;
   showError('');
 }
@@ -65,8 +65,8 @@ async function bootDemo() {
   setDemoSession('student', { name: 'Claire', email: 'claire@exemple.fr' });
   const state = getDemoState();
   const remaining = Math.max(state.student.creditsTotal - state.student.creditsUsed, 0);
-  if (remaining <= 0) {
-    window.location.replace(`/coach-romain/continuer?prenom=${encodeURIComponent(state.student.firstName)}`);
+  if (remaining < 3) {
+    window.location.replace('/coaching/credits?notice=insufficient');
     return;
   }
   if (!state.student.preparation.completed && !params.has('preview')) {
@@ -94,11 +94,8 @@ async function bootLive(session) {
   const failure = [balanceResult, prepResult, slotsResult].find((result) => result.error)?.error;
   if (failure) throw failure;
   const remaining = Number(balanceResult.data || 0);
-  if (remaining <= 0) {
-    const continuation = client.coaching_coaches?.slug === 'romain'
-      ? `/coach-romain/continuer?prenom=${encodeURIComponent(client.first_name)}`
-      : '/coaching/eleve?notice=no-credit';
-    window.location.replace(continuation);
+  if (remaining < 3) {
+    window.location.replace('/coaching/credits?notice=insufficient');
     return;
   }
   if (!prepResult.data) {
@@ -116,9 +113,9 @@ async function confirmDemo() {
     const isNewBooking = !state.student.nextSession;
     state.student.nextSession = selectedSlot.startsAt;
     if (isNewBooking) {
-      state.student.creditsUsed = Math.min(state.student.creditsUsed + 1, state.student.creditsTotal);
+      state.student.creditsUsed = Math.min(state.student.creditsUsed + 3, state.student.creditsTotal);
       const client = state.clients.find((item) => item.id === state.student.id);
-      if (client) client.creditsUsed = Math.min(client.creditsUsed + 1, client.creditsTotal);
+      if (client) client.creditsUsed = Math.min(client.creditsUsed + 3, client.creditsTotal);
     }
     const client = state.clients.find((item) => item.id === state.student.id);
     if (client) client.nextSession = formatDateTime(selectedSlot.startsAt);

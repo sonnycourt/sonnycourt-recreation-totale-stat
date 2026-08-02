@@ -13,6 +13,8 @@ Entrées principales :
 - `/coaching/admin` : supervision propriétaire ;
 - `/coach-console` : espace isolé du coach ;
 - `/coaching/eleve` : espace du client ;
+- `/coaching/credits` : wallet, memberships et recharges ;
+- `/coaching/compte` : identité, photo et préférences de chaque rôle ;
 - `/coaching/preparation` → `/coaching/reserver` → `/coaching/confirmation` ;
 - `/coach-romain/continuer` : offres 1, 3 et 6 séances ;
 - `/coaching/activer` : création du mot de passe après un premier achat.
@@ -49,6 +51,17 @@ Garanties importantes :
 - l’identité affichée dans les espaces coach et élève provient du coach assigné
   (`nom` et `avatar_url`) : le socle n’est pas limité à Romain.
 
+La migration additive `sql/coaching_wallet_memberships.sql` fait évoluer le
+modèle vers une unité simple : **1 crédit = 15 minutes**. Une séance standard
+de 45 minutes consomme donc 3 crédits. Elle ajoute les memberships, le suivi
+des rémunérations coach et de leurs bonus qualité, le feedback client et la
+mise à jour sécurisée des profils. Les crédits sont débités du cycle qui expire
+le plus tôt et une annulation restitue exactement les poches débitées.
+
+`sql/coaching_profile_storage.sql` crée uniquement le bucket d'avatars et ses
+politiques d'accès : un utilisateur peut modifier son propre dossier, sans
+accès en écriture à celui des autres.
+
 `sql/coach_diagnostic.sql` reste séparé pour le tunnel historique de première
 consultation à 97 €. Rien n'est supprimé pendant la transition.
 
@@ -58,7 +71,7 @@ Le webhook `coach-spiffy-webhook` :
 
 1. refuse tout appel non authentifié (signature ou token privé) ;
 2. conserve la logique de la première consultation existante ;
-3. reconnaît les checkouts 1, 3 et 6 séances ;
+3. reconnaît les recharges de 3, 9 et 18 crédits ainsi que les trois memberships ;
 4. crée ou rattache le client ;
 5. ajoute les crédits une seule fois ;
 6. envoie, pour un nouveau client, un lien d'activation du mot de passe ;
@@ -69,12 +82,18 @@ Les trois URLs de checkout sont injectées avec :
 - `PUBLIC_SPIFFY_COACHING_SESSION_1_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-1-seance`
 - `PUBLIC_SPIFFY_COACHING_PACK_3_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-pack-3`
 - `PUBLIC_SPIFFY_COACHING_PACK_6_URL=https://sonnycourt.spiffy.co/checkout/coaching-romain-pack-6`
+- `PUBLIC_SPIFFY_COACHING_MEMBERSHIP_3_URL` (à renseigner après création)
+- `PUBLIC_SPIFFY_COACHING_MEMBERSHIP_6_URL` (à renseigner après création)
+- `PUBLIC_SPIFFY_COACHING_MEMBERSHIP_12_URL` (à renseigner après création)
 
 Les identifiants reconnus par le webhook sont configurés avec :
 
 - `SPIFFY_COACHING_SESSION_1_IDS=39609`
 - `SPIFFY_COACHING_PACK_3_IDS=39610`
 - `SPIFFY_COACHING_PACK_6_IDS=39611`
+- `SPIFFY_COACHING_MEMBERSHIP_3_IDS` (à renseigner)
+- `SPIFFY_COACHING_MEMBERSHIP_6_IDS` (à renseigner)
+- `SPIFFY_COACHING_MEMBERSHIP_12_IDS` (à renseigner)
 - `SPIFFY_FIRST_CONSULTATION_IDS` (`39602` pour la checkout actuelle)
 - `COACHING_SPIFFY_WEBHOOK_TOKEN` (secret aléatoire long, distinct des autres)
 
@@ -128,7 +147,7 @@ données personnelles et des liens Meet à MailerSend.
 
 Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel :
 
-- `npm run test:coaching-db` installe les deux migrations dans un PostgreSQL
+- `npm run test:coaching-db` installe les quatre migrations métier dans un PostgreSQL
   isolé et teste les rôles, les accès croisés interdits, la première
   consultation, les crédits, les réservations, annulations, achats et
   remboursements idempotents, ainsi que le cas Google SSO avant achat ;
@@ -138,7 +157,7 @@ Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel
 - `npm run test:coaching-frontend` garantit la présence des trois routages de
   rôle, de l'email/mot de passe, de Google SSO et de la récupération, ainsi que
   l'absence de magic links ;
-- `npm run build` construit les 270 pages.
+- `npm run build` construit les 273 pages.
 - `npm run check:coaching-readiness` vérifie la présence, la cohérence et le
   format de chaque variable externe sans jamais afficher sa valeur.
 
@@ -150,16 +169,19 @@ critiques sans validation explicite de Sonny.
 
 ## Activation restante
 
-1. Autoriser l'écriture Supabase puis appliquer `sql/coach_diagnostic.sql`,
-   `sql/coaching_platform.sql` et `sql/coaching_first_consultation_bridge.sql`
-   dans cet ordre.
+1. Autoriser l'écriture Supabase puis appliquer, dans cet ordre :
+   `sql/coach_diagnostic.sql`, `sql/coaching_platform.sql`,
+   `sql/coaching_first_consultation_bridge.sql`,
+   `sql/coaching_wallet_memberships.sql`, puis
+   `sql/coaching_profile_storage.sql`.
 2. Créer les comptes Sonny et Romain dans Supabase Auth.
 3. Attribuer les rôles avec la fonction serveur :
    - `coaching_assign_role_by_email('email-sonny', 'owner', null)`
    - `coaching_assign_role_by_email('email-romain', 'coach', 'romain')`
 4. Ajouter les plages de Romain dans `coaching_availability_rules`.
 5. Renseigner les variables Google, Spiffy et MailerSend ci-dessus.
-6. Créer/renseigner les trois checkouts Spiffy et leur webhook protégé.
+6. Créer/renseigner les trois recharges et les trois memberships Spiffy, puis
+   brancher leur webhook protégé.
 7. Faire un achat test, une réservation, un déplacement et un remboursement.
 
 Configurer MailerSend **avant** d’activer les webhooks Spiffy. Si une livraison
@@ -195,10 +217,13 @@ action interne liée à un client, échéance, priorité, clôture et réouvertu
 actions restent privées au coach assigné grâce aux règles RLS. Elles ne
 déclenchent volontairement aucun email ni rappel automatique.
 
-## Décisions commerciales encore modifiables
+## Économie installée, encore modifiable
 
-- séance de suivi à 60 minutes actuellement ;
+- 1 crédit = 15 minutes ; séance de suivi standard = 3 crédits / 45 minutes ;
 - validités : 1 séance 90 jours, 3 séances 120 jours, 6 séances 240 jours ;
+- memberships : 3 crédits à 177 €, 6 à 318 €, 12 à 588 € par mois, reportables 90 jours ;
+- rémunération coach par défaut : 25 € par crédit livré, bonus qualité plafonné
+  à 5 € par crédit ; première consultation à 48,50 € pour le coach ;
 - aucune règle de pénalité pour annulation tardive à ce stade ;
 - questionnaire requis avant chaque nouvelle réservation ;
 - 247 €, 591 € et 882 € définis dans la migration et la page.

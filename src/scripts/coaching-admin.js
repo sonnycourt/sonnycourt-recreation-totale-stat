@@ -22,6 +22,10 @@ function render(state, live = false) {
   document.querySelector('[data-admin-credits]').textContent = String(sessionsRemaining);
   document.querySelector('[data-admin-coaches]').textContent = String(state.coaches.filter((coach) => coach.status === 'active').length);
   document.querySelector('[data-admin-revenue]').textContent = euro.format(state.revenueCents / 100);
+  document.querySelector('[data-economy-purchased]').textContent = String(state.economy?.purchasedCredits || 0);
+  document.querySelector('[data-economy-consumed]').textContent = String(state.economy?.consumedCredits || 0);
+  document.querySelector('[data-economy-memberships]').textContent = String(state.economy?.activeMemberships || 0);
+  document.querySelector('[data-economy-payout]').textContent = euro.format((state.economy?.payoutDueCents || 0) / 100);
   const infraStatus = document.querySelector('[data-infra-status]');
   if (infraStatus) {
     infraStatus.textContent = live ? 'Supabase connecté' : 'Mode local';
@@ -34,7 +38,7 @@ function render(state, live = false) {
       <td><span class="state-pill">${coach.status === 'active' ? 'Actif' : escapeHtml(coach.status)}</span></td>
       <td>${Number(coach.activeClients || 0)} clients</td>
       <td>${Number(coach.sessionsThisMonth || 0)} séances</td>
-      <td>${coach.satisfaction ? `${escapeHtml(coach.satisfaction)}/10` : '—'}</td>
+      <td>${euro.format(Number(coach.pendingPayoutCents || 0) / 100)}</td>
       <td><a class="action-link" href="${live ? '#coachs' : '/coach-console?preview=1'}">${live ? 'Activité' : 'Ouvrir son espace'}</a></td>
     </tr>
   `).join('');
@@ -44,6 +48,7 @@ function render(state, live = false) {
       <td><div class="coach-cell"><span class="role-avatar student">${escapeHtml(client.initials)}</span><span><strong>${escapeHtml(client.name)}</strong><small>${escapeHtml(client.email)}</small></span></div></td>
       <td>${escapeHtml(client.plan || 'Aucune formule')}</td>
       <td>${Number(client.remaining || 0)} crédit${Number(client.remaining || 0) > 1 ? 's' : ''}</td>
+      <td><span class="state-pill${client.membership ? '' : ' muted'}">${client.membership ? 'Actif' : 'Ponctuel'}</span></td>
       <td>${escapeHtml(client.nextSession || 'À réserver')}</td>
       <td><a class="action-link" href="${live ? '#clients' : client.id === 'claire' ? '/coaching/eleve?preview=1' : '/coach-console?preview=1#clients'}">Voir</a></td>
     </tr>
@@ -69,6 +74,12 @@ function demoState() {
     })),
     activity: state.activity,
     revenueCents: 328400,
+    economy: {
+      purchasedCredits: state.clients.reduce((sum, client) => sum + Number(client.creditsTotal || 0), 0),
+      consumedCredits: state.clients.reduce((sum, client) => sum + Number(client.creditsUsed || 0), 0),
+      activeMemberships: state.clients.filter((client) => client.membership).length,
+      payoutDueCents: 196400,
+    },
   };
 }
 
@@ -77,15 +88,17 @@ async function liveState() {
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult] = await Promise.all([
+  const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult, subscriptionsResult, payoutsResult] = await Promise.all([
     coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,status'),
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,status,coach_id'),
     coachingSupabase.from('coaching_engagements').select('id,client_id,offer_id,status,started_at,expires_at').eq('status', 'active').order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_offers').select('id,name,sessions_count'),
-    coachingSupabase.from('coaching_credit_ledger').select('client_id,engagement_id,quantity'),
+    coachingSupabase.from('coaching_credit_ledger').select('client_id,engagement_id,quantity,reason,created_at'),
     coachingSupabase.from('coaching_sessions').select('client_id,coach_id,starts_at,status').order('starts_at', { ascending: true }),
     coachingSupabase.from('coaching_activity_log').select('event_type,client_id,metadata,created_at').order('created_at', { ascending: false }).limit(12),
     coachingSupabase.from('coaching_orders').select('amount_cents,status').eq('status', 'paid'),
+    coachingSupabase.from('coaching_subscriptions').select('client_id,status').in('status', ['trialing', 'active', 'past_due']),
+    coachingSupabase.from('coaching_coach_payout_ledger').select('coach_id,base_amount_cents,bonus_amount_cents,status').in('status', ['pending', 'approved']),
   ]);
   const error = [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult].find((result) => result.error)?.error;
   if (error) throw error;
@@ -99,6 +112,7 @@ async function liveState() {
     creditBalance.set(entry.client_id, (creditBalance.get(entry.client_id) || 0) + Number(entry.quantity || 0));
   });
   const futureSessions = (sessionsResult.data || []).filter((item) => item.status === 'confirmed' && item.starts_at >= nowIso);
+  const activeMembershipClientIds = new Set(subscriptionsResult.error ? [] : (subscriptionsResult.data || []).map((item) => item.client_id));
 
   const normalizedClients = clients.map((client) => {
     const engagement = engagements.find((item) => item.client_id === client.id);
@@ -113,10 +127,15 @@ async function liveState() {
       status: client.status,
       plan: offer?.name,
       remaining: Math.max(creditBalance.get(client.id) || 0, 0),
+      membership: activeMembershipClientIds.has(client.id),
       nextSession: next ? dateTime.format(new Date(next.starts_at)) : 'À réserver',
     };
   });
 
+  const pendingPayoutByCoach = new Map();
+  if (!payoutsResult.error) (payoutsResult.data || []).forEach((payout) => {
+    pendingPayoutByCoach.set(payout.coach_id, (pendingPayoutByCoach.get(payout.coach_id) || 0) + Number(payout.base_amount_cents || 0) + Number(payout.bonus_amount_cents || 0));
+  });
   const normalizedCoaches = (coachesResult.data || []).map((coach) => ({
     id: coach.id,
     name: [coach.first_name, coach.last_name].filter(Boolean).join(' '),
@@ -126,6 +145,7 @@ async function liveState() {
     activeClients: clients.filter((client) => client.coach_id === coach.id && client.status === 'active').length,
     sessionsThisMonth: (sessionsResult.data || []).filter((session) => session.coach_id === coach.id && ['confirmed', 'completed'].includes(session.status) && new Date(session.starts_at) >= monthStart).length,
     satisfaction: null,
+    pendingPayoutCents: pendingPayoutByCoach.get(coach.id) || 0,
   }));
 
   const clientNames = new Map(normalizedClients.map((client) => [client.id, client.name]));
@@ -147,6 +167,12 @@ async function liveState() {
     clients: normalizedClients,
     activity,
     revenueCents: (ordersResult.data || []).reduce((sum, order) => sum + Number(order.amount_cents || 0), 0),
+    economy: {
+      purchasedCredits: (creditsResult.data || []).filter((entry) => entry.reason === 'purchase' && Number(entry.quantity) > 0).reduce((sum, entry) => sum + Number(entry.quantity), 0),
+      consumedCredits: Math.abs((creditsResult.data || []).filter((entry) => entry.reason === 'booking' && Number(entry.quantity) < 0).reduce((sum, entry) => sum + Number(entry.quantity), 0)),
+      activeMemberships: activeMembershipClientIds.size,
+      payoutDueCents: [...pendingPayoutByCoach.values()].reduce((sum, amount) => sum + amount, 0),
+    },
   };
 }
 

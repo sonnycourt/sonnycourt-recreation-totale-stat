@@ -21,6 +21,7 @@ const clients = {
       { title: 'Première consultation', date: 'Aujourd’hui · 14:00', status: 'À venir' },
     ],
     commitments: ['Nommer le coût réel de chaque option', 'Choisir un critère de décision avant l’appel'],
+    credits: 6,
   },
   thomas: {
     id: 'thomas', initials: 'TR', avatar: 'avatar-thomas', name: 'Thomas Rey',
@@ -36,6 +37,7 @@ const clients = {
       { title: 'Séance 1 · Direction', date: '10 juillet · 11:00', status: 'Terminée' },
     ],
     commitments: ['Rituel de 12 minutes chaque matin', 'Mesurer les répétitions, pas les résultats'],
+    credits: 9,
   },
   sarah: {
     id: 'sarah', initials: 'SD', avatar: 'avatar-sarah', name: 'Sarah Dubois',
@@ -51,6 +53,7 @@ const clients = {
       { title: 'Séance 4 · Validation', date: '7 juillet · 10:00', status: 'Terminée' },
     ],
     commitments: ['Écrire les trois changements les plus concrets', 'Choisir les situations encore fragiles'],
+    credits: 3,
   },
   manon: {
     id: 'manon', initials: 'ML', avatar: 'avatar-manon', name: 'Manon Lefèvre',
@@ -119,6 +122,7 @@ function syncClaireClientFromDemo() {
   claire.preparation = demoStudent.preparation.subject || 'Préparation en attente.';
   claire.focus = demoStudent.preparation.outcome || 'Préciser le résultat attendu';
   claire.journey = `${demoStudent.plan} · ${Math.max(demoStudent.creditsTotal - demoStudent.creditsUsed, 0)} crédit(s) restant(s)`;
+  claire.credits = Math.max(demoStudent.creditsTotal - demoStudent.creditsUsed, 0);
   claire.context = [demoStudent.preparation.progress, demoStudent.preparation.obstacle, demoStudent.preparation.context].filter(Boolean).join(' ')
     || claire.context;
   claire.commitments = [demoStudent.preparation.outcome || 'Définir une décision utile', 'Choisir la première action à réaliser'].filter(Boolean);
@@ -254,20 +258,26 @@ async function loadLiveCoachData(session) {
   });
   liveCoachId = coach.id;
   liveUserId = session.user.id;
-  const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult] = await Promise.all([
+  const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult] = await Promise.all([
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,phone,status,objective,created_at').eq('coach_id', coach.id).neq('status', 'archived').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
     coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,client_id,status,answers,submitted_at').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority,completed_at,updated_at').eq('coach_id', coach.id).in('status', ['open', 'done']).order('updated_at', { ascending: false }).limit(100),
     coachingSupabase.from('coaching_availability_slots').select('id,starts_at,ends_at,status').eq('coach_id', coach.id).eq('status', 'available').gte('starts_at', new Date().toISOString()).order('starts_at').limit(100),
+    coachingSupabase.from('coaching_credit_ledger').select('client_id,engagement_id,quantity'),
   ]);
-  const failure = [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult].find((result) => result.error)?.error;
+  const failure = [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult].find((result) => result.error)?.error;
   if (failure) throw failure;
   const sessions = sessionsResult.data || [];
   const engagements = engagementsResult.data || [];
   const responses = responsesResult.data || [];
   const actions = actionsResult.data || [];
+  const activeEngagementIds = new Set(engagements.filter((item) => item.status === 'active' && (!item.expires_at || new Date(item.expires_at).getTime() > Date.now())).map((item) => item.id));
+  const creditBalance = new Map();
+  (creditsResult.data || []).filter((item) => !item.engagement_id || activeEngagementIds.has(item.engagement_id)).forEach((item) => {
+    creditBalance.set(item.client_id, (creditBalance.get(item.client_id) || 0) + Number(item.quantity || 0));
+  });
   Object.keys(clients).forEach((key) => delete clients[key]);
   for (const row of clientResult.data || []) {
     const clientSessions = sessions.filter((item) => item.client_id === row.id);
@@ -307,6 +317,7 @@ async function loadLiveCoachData(session) {
       progress: Math.min(Math.round((completed / total) * 100), 100),
       sessions: clientSessions.map((item) => ({ title: 'Séance de coaching', date: escapeHtml(formatDateTime(item.starts_at)), status: item.status === 'completed' ? 'Terminée' : item.status === 'cancelled' ? 'Annulée' : 'À venir' })),
       commitments: actions.filter((item) => item.client_id === row.id && item.status === 'open').map((item) => escapeHtml(item.title)),
+      credits: Math.max(creditBalance.get(row.id) || 0, 0),
     };
   }
   renderLiveClientRows();
@@ -483,6 +494,7 @@ function clientMarkup(client) {
       <div class="drawer-summary-grid">
         <div><small>Accompagnement</small><strong>${client.type}</strong></div>
         <div><small>Prochaine séance</small><strong>${client.next}</strong></div>
+        <div><small>Crédits disponibles</small><strong>${Number(client.credits || 0)} · ${Number(client.credits || 0) * 15} min</strong></div>
         <div><small>État du dossier</small><strong>${client.status}</strong></div>
       </div>
       <div class="drawer-tabs" role="tablist">

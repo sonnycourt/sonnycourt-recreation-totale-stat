@@ -97,7 +97,7 @@ begin
     v_client.id, v_engagement.id, v_order.id, v_session_id, -1, 'booking',
     'Première consultation réservée avant paiement'
   )
-  on conflict (session_id, reason) where reason = 'booking' do nothing;
+  on conflict do nothing;
 
   if v_created then
     insert into public.coaching_activity_log (
