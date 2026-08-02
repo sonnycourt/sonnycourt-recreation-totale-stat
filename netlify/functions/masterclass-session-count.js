@@ -29,7 +29,6 @@ export default async (req) => {
   const query = new URLSearchParams({
     select: 'token',
     session_date: `eq.${sessionDate}`,
-    telephone: 'not.is.null',
     limit: '1',
   });
 
