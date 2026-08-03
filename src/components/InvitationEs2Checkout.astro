@@ -1,7 +1,7 @@
 ---
 // Composant checkout direct ES2 avec Spiffy embed.
 // Countdown = offre_expires_at du lead (token webinaire), vérifié côté serveur.
-// Notifications d'achat = même moteur scarcity que la page /invitation.
+// Preuve sociale = contrôleur commun /invitation + checkout, indépendant de la scarcity.
 interface Props {
   checkoutBase?: string;
   checkoutEnabled?: boolean;
@@ -1146,7 +1146,11 @@ spiffy.load("sonnycourt");
   <div class="page is-locked" id="page" data-checkout-base={checkoutBase} data-checkout-enabled={String(checkoutEnabled)}>
     <header class="hero">
       <h1>TU Y ES ! 🎉<span class="accent">LE PREMIER PAS EST DÉJÀ FAIT.</span></h1>
-      <p class="sub">Ta décision est protégée pendant 30 jours : suis le protocole et, si ta vie ne bouge pas, tu es remboursé intégralement.</p>
+      <p class="sub">
+        {plan === 'complet'
+          ? 'Ta décision est protégée pendant 30 jours : suis le protocole et, si ta vie ne bouge pas, tu es remboursé. Seules les prestations personnalisées déjà consommées restent dues.'
+          : 'Ta décision est protégée pendant 30 jours : suis le protocole et, si ta vie ne bouge pas, tu es remboursé intégralement.'}
+      </p>
     </header>
 
     <div class="urgency-sticky">
@@ -1207,7 +1211,7 @@ spiffy.load("sonnycourt");
               </span>
               <span class="custom-order-card__guarantee-copy">
                 <strong>Protégé par la garantie 30 jours</strong>
-                <small>Satisfait ou remboursé</small>
+                <small>{plan === 'complet' ? 'Satisfait ou remboursé · prestations consommées déduites' : 'Satisfait ou remboursé'}</small>
               </span>
             </div>
           </div>
@@ -1315,7 +1319,8 @@ spiffy.load("sonnycourt");
   </div>
 
   <script>
-    import { startScarcityEngine, getCurrentWindow, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../lib/scarcity-engine';
+    import { getCurrentWindow, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../lib/scarcity-engine';
+    import { mountCheckoutSocialProof, shouldEnableEs2SocialProof } from '../lib/es2-social-proof';
 
     document.addEventListener('DOMContentLoaded', async function () {
       const params = new URLSearchParams(window.location.search);
@@ -1595,59 +1600,23 @@ spiffy.load("sonnycourt");
         });
       })();
 
-      // --- Notifications d'achat (même moteur que /invitation) ---
+      // --- Preuve sociale checkout : contrôleur indépendant de la scarcity ---
       const toast = document.getElementById('purchase-toast');
       const toastFlag = document.getElementById('purchase-toast-flag');
       const toastText = document.getElementById('purchase-toast-text');
-      if (toast && toastFlag && toastText
-          && !pageEl.classList.contains('is-expired')
-          && !pageEl.classList.contains('is-locked')) {
-        let hideTimer = null;
-        let queueGapTimer = null;
-        const toastQueue = [];
-        let toastBusy = false;
-        function flushToastQueue() {
-          if (toastBusy) return;
-          const next = toastQueue.shift();
-          if (!next) return;
-          toastBusy = true;
-          const actionText = next.mode === 'replay'
-            ? `a rejoint il y a ${next.detail || 'quelques instants'}`
-            : 'vient de rejoindre';
-          toastFlag.textContent = next.purchase.flag;
-          toastText.innerHTML = `<span class="purchase-toast__name">${next.purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
-          toast.classList.add('show');
-          if (hideTimer) clearTimeout(hideTimer);
-          if (queueGapTimer) clearTimeout(queueGapTimer);
-          hideTimer = setTimeout(function () {
-            toast.classList.remove('show');
-            queueGapTimer = setTimeout(function () {
-              toastBusy = false;
-              flushToastQueue();
-            }, 1000);
-          }, 4000);
-        }
-
-        const fallbackWin = getCurrentWindow(Date.now());
-        const windowStartMs = Number.isFinite(sessionStartsAtMs)
-          ? sessionStartsAtMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS
-          : fallbackWin.startMs;
-        const windowEndMs = Number.isFinite(offerExpiryMs) ? offerExpiryMs : fallbackWin.endMs;
-
-        // Le moteur reste actif pour les notifications et conserve exactement
-        // la même fenêtre personnalisée liée à la session de chaque lead.
-        startScarcityEngine({
-          now: () => Date.now(),
-          isActive: () => !document.getElementById('page').classList.contains('is-expired'),
-          windowStartMs,
-          windowEndMs,
-          enableReplay: true,
-          onNotification: function (purchase, mode, detail) {
-            toastQueue.push({ purchase, mode, detail });
-            if (!toastBusy) flushToastQueue();
-          },
-        });
-      }
+      const socialProofEnabled = shouldEnableEs2SocialProof(params, params.get('preview') === 'dev');
+      mountCheckoutSocialProof({
+        enabled: socialProofEnabled,
+        token,
+        toast,
+        flag: toastFlag,
+        text: toastText,
+        canShow: function () {
+          return document.visibilityState === 'visible'
+            && !pageEl.classList.contains('is-expired')
+            && !pageEl.classList.contains('is-locked');
+        },
+      });
     });
   </script>
 </body>
