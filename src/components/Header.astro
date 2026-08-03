@@ -11,9 +11,13 @@ const { currentPath, hideFormations = false, hideBlog = false, variant = 'defaul
 const navItems = [
   ...(hideFormations ? [] : [{ href: "/formations", label: "Formations" }]),
   ...(hideBlog ? [] : [{ href: "/blog", label: "Blog" }]),
-  { href: "/contact", label: "Contact" },
-  { href: "https://volt.sonnycourt.com/sign_in#email", label: "Se connecter", className: "nav-login" },
-  { href: "/masterclass", label: "Commencer", className: "nav-cta" }
+  { href: "/contact", label: "Contact" }
+];
+
+const accessItems = [
+  { href: "https://volt.sonnycourt.com/sign_in#email", eyebrow: "Communauté", label: "Volt", mark: "V" },
+  { href: "https://morpho.day", eyebrow: "Application", label: "Morpho", mark: "M" },
+  { href: "https://coaching.sonnycourt.com", eyebrow: "Centre", label: "Coaching", mark: "C" }
 ];
 
 const isActivePath = (href: string) =>
@@ -37,7 +41,6 @@ const isActivePath = (href: string) =>
         <li>
           <a 
             href={item.href} 
-            class={item.className || ""}
             class:active={isActivePath(item.href)}
             aria-current={isActivePath(item.href) ? 'page' : undefined}
           >
@@ -45,6 +48,31 @@ const isActivePath = (href: string) =>
           </a>
         </li>
       ))}
+      <li class="nav-access">
+        <button
+          class="nav-login nav-access-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-haspopup="menu"
+          aria-controls="access-menu"
+        >
+          <span>Se connecter</span>
+          <i class="nav-access-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="nav-access-menu" id="access-menu" role="menu" aria-label="Choisir un espace">
+          <p>Choisir un espace</p>
+          {accessItems.map(item => (
+            <a class="nav-access-option" href={item.href} role="menuitem">
+              <span class="nav-access-mark" aria-hidden="true">{item.mark}</span>
+              <span><small>{item.eyebrow}</small><strong>{item.label}</strong></span>
+              <i class="nav-access-arrow" aria-hidden="true"></i>
+            </a>
+          ))}
+        </div>
+      </li>
+      <li>
+        <a href="/masterclass" class="nav-cta" class:active={isActivePath('/masterclass')} aria-current={isActivePath('/masterclass') ? 'page' : undefined}>Commencer</a>
+      </li>
     </ul>
     
     <button
@@ -160,6 +188,146 @@ const isActivePath = (href: string) =>
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
+  .nav-access {
+    position: relative;
+  }
+
+  .nav-access-trigger {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .nav-access-chevron {
+    width: 6px;
+    height: 6px;
+    display: block;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .nav-access.is-open .nav-access-chevron {
+    transform: translateY(2px) rotate(225deg);
+  }
+
+  .nav-access-menu {
+    position: absolute;
+    top: calc(100% + 16px);
+    right: 0;
+    width: 236px;
+    padding: 8px;
+    border: 1px solid rgba(191, 219, 254, 0.2);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.13), transparent 38%),
+      linear-gradient(145deg, rgba(11, 26, 53, 0.94), rgba(3, 12, 29, 0.96));
+    box-shadow:
+      0 26px 70px rgba(0, 5, 20, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.97);
+    transform-origin: top right;
+    transition:
+      opacity 0.2s ease,
+      visibility 0.2s ease,
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .nav-access.is-open .nav-access-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  .nav-access-menu > p {
+    margin: 2px 10px 7px;
+    color: rgba(191, 219, 254, 0.42);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .nav-menu .nav-access-option {
+    min-height: 56px;
+    display: grid;
+    grid-template-columns: 38px 1fr 12px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: rgba(239, 246, 255, 0.86);
+    transition:
+      color 0.18s ease,
+      background 0.18s ease,
+      border-color 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .nav-menu .nav-access-option:hover,
+  .nav-menu .nav-access-option:focus-visible {
+    color: #fff;
+    background: rgba(96, 165, 250, 0.1);
+    border-color: rgba(147, 197, 253, 0.16);
+    transform: translateX(2px);
+    outline: none;
+  }
+
+  .nav-access-mark {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(147, 197, 253, 0.18);
+    border-radius: 12px;
+    color: #8ec5ff;
+    background: linear-gradient(145deg, rgba(96, 165, 250, 0.16), rgba(37, 99, 235, 0.08));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+    font-size: 12px;
+    font-weight: 750;
+  }
+
+  .nav-access-option small,
+  .nav-access-option strong {
+    display: block;
+  }
+
+  .nav-access-option small {
+    color: rgba(191, 219, 254, 0.44);
+    font-size: 8px;
+    font-weight: 620;
+    letter-spacing: 0.04em;
+  }
+
+  .nav-access-option strong {
+    margin-top: 2px;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 680;
+  }
+
+  .nav-access-arrow {
+    width: 7px;
+    height: 7px;
+    border-top: 1.5px solid rgba(191, 219, 254, 0.42);
+    border-right: 1.5px solid rgba(191, 219, 254, 0.42);
+    transform: rotate(45deg);
+  }
+
   .nav-login:hover {
     color: #FFFFFF;
     background: rgba(255, 255, 255, 0.1);
@@ -221,6 +389,10 @@ const isActivePath = (href: string) =>
     border-color: transparent;
   }
 
+  .nav--glass .nav-access-menu {
+    top: calc(100% + 14px);
+  }
+
   .nav--glass .nav-menu a.active:not(.nav-login):not(.nav-cta) {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.065);
@@ -255,6 +427,12 @@ const isActivePath = (href: string) =>
       align-items: center;
       justify-content: center;
       line-height: 1;
+      border-radius: 999px;
+    }
+
+    .nav--glass .nav-access-trigger {
+      min-height: 38px;
+      padding: 0 16px;
       border-radius: 999px;
     }
 
@@ -460,6 +638,69 @@ const isActivePath = (href: string) =>
       letter-spacing: -0.01em;
     }
 
+    .nav-menu .nav-access-trigger {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px 4px;
+      color: rgba(191, 219, 254, 0.58);
+      background: transparent;
+      border: 0;
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-access-menu,
+    .nav--glass .nav-access-menu {
+      position: static;
+      width: min(100%, 360px);
+      max-height: 0;
+      margin: 0 auto;
+      padding: 0 8px;
+      overflow: hidden;
+      border-color: transparent;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.035);
+      box-shadow: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: none;
+      transition:
+        max-height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+        margin 0.28s ease,
+        padding 0.28s ease,
+        opacity 0.2s ease,
+        visibility 0.2s ease;
+    }
+
+    .nav-access.is-open .nav-access-menu {
+      max-height: 242px;
+      margin-top: 4px;
+      padding: 7px 8px;
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+    }
+
+    .nav-access-menu > p {
+      display: none;
+    }
+
+    .nav-menu .nav-access-option {
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: 36px 1fr 12px;
+      padding: 7px 9px;
+      border-radius: 15px;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .nav-access-mark {
+      width: 36px;
+      height: 36px;
+    }
+
     .nav-menu .nav-cta {
       max-width: 280px;
       margin: 12px auto 0;
@@ -494,6 +735,14 @@ const isActivePath = (href: string) =>
     const mobileToggle = document.querySelector('.mobile-menu-toggle');
     const navMenu = document.querySelector('.nav-menu');
     const nav = mobileToggle?.closest('nav');
+    const access = navMenu?.querySelector('.nav-access');
+    const accessTrigger = access?.querySelector('.nav-access-trigger');
+
+    const setAccessState = (isOpen) => {
+      if (!access || !accessTrigger) return;
+      access.classList.toggle('is-open', isOpen);
+      accessTrigger.setAttribute('aria-expanded', String(isOpen));
+    };
 
     const setMenuState = (isOpen) => {
       if (!mobileToggle || !navMenu) return;
@@ -504,7 +753,20 @@ const isActivePath = (href: string) =>
       mobileToggle.setAttribute('aria-expanded', String(isOpen));
       mobileToggle.setAttribute('aria-label', isOpen ? 'Fermer le menu' : 'Ouvrir le menu');
       document.documentElement.style.overflow = isOpen ? 'hidden' : '';
+      if (!isOpen) setAccessState(false);
     };
+
+    accessTrigger?.addEventListener('click', function(event) {
+      event.stopPropagation();
+      setAccessState(!access?.classList.contains('is-open'));
+    });
+
+    document.addEventListener('click', function(event) {
+      const target = event.target;
+      if (access?.classList.contains('is-open') && target instanceof Node && !access.contains(target)) {
+        setAccessState(false);
+      }
+    });
     
     if (mobileToggle && navMenu) {
       mobileToggle.addEventListener('click', function() {
@@ -519,7 +781,11 @@ const isActivePath = (href: string) =>
       });
 
       document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && navMenu.classList.contains('active')) {
+        if (event.key !== 'Escape') return;
+        if (access?.classList.contains('is-open')) {
+          setAccessState(false);
+          accessTrigger?.focus();
+        } else if (navMenu.classList.contains('active')) {
           setMenuState(false);
           mobileToggle.focus();
         }
