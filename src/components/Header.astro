@@ -15,9 +15,9 @@ const navItems = [
 ];
 
 const accessItems = [
-  { href: "https://volt.sonnycourt.com/sign_in#email", eyebrow: "Communauté", label: "Volt", mark: "V" },
-  { href: "https://morpho.day", eyebrow: "Application", label: "Morpho", mark: "M" },
-  { href: "https://coaching.sonnycourt.com", eyebrow: "Centre", label: "Coaching", mark: "C" }
+  { href: "https://volt.sonnycourt.com/sign_in#email", eyebrow: "Communauté", label: "Volt", mark: "V", disabled: false },
+  { href: "https://morpho.day", eyebrow: "Application", label: "Morpho", mark: "M", disabled: false },
+  { href: "https://coaching.sonnycourt.com", eyebrow: "Centre", label: "Coaching", mark: "C", disabled: true }
 ];
 
 const isActivePath = (href: string) =>
@@ -61,7 +61,13 @@ const isActivePath = (href: string) =>
         </button>
         <div class="nav-access-menu" id="access-menu" role="menu" aria-label="Choisir un espace">
           <p>Choisir un espace</p>
-          {accessItems.map(item => (
+          {accessItems.map(item => item.disabled ? (
+            <span class="nav-access-option is-disabled" role="menuitem" aria-disabled="true">
+              <span class="nav-access-mark" aria-hidden="true">{item.mark}</span>
+              <span><small>{item.eyebrow}</small><strong>{item.label}</strong></span>
+              <em class="nav-access-soon">Bientôt</em>
+            </span>
+          ) : (
             <a class="nav-access-option" href={item.href} role="menuitem">
               <span class="nav-access-mark" aria-hidden="true">{item.mark}</span>
               <span><small>{item.eyebrow}</small><strong>{item.label}</strong></span>
@@ -326,6 +332,29 @@ const isActivePath = (href: string) =>
     border-top: 1.5px solid rgba(191, 219, 254, 0.42);
     border-right: 1.5px solid rgba(191, 219, 254, 0.42);
     transform: rotate(45deg);
+  }
+
+  .nav-menu .nav-access-option.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+    filter: saturate(0.35);
+  }
+
+  .nav-menu .nav-access-option.is-disabled:hover {
+    color: rgba(239, 246, 255, 0.86);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .nav-access-soon {
+    color: rgba(191, 219, 254, 0.62);
+    font-size: 7px;
+    font-style: normal;
+    font-weight: 720;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   .nav-login:hover {
