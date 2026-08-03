@@ -13,15 +13,28 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <meta property="og:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="image" href="/media/pages/masterclass-gratuite-banner-800.webp" imagesrcset="/media/pages/masterclass-gratuite-banner-640.webp 640w, /media/pages/masterclass-gratuite-banner-800.webp 800w" imagesizes="calc(100vw - 32px)" fetchpriority="high" media="(max-width: 900px)" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <GAConsentMode performanceMode />
 
-    <!-- TikTok Pixel (page /tt/masterclass uniquement) -->
+    <!-- TikTok Pixel (page /tt/masterclass uniquement) : les événements sont mis en file
+         immédiatement, mais le fichier tiers attend que le contenu critique soit chargé. -->
     <script type="text/javascript">
     !function (w, d, t) {
       w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-      ttq.load('D8IU54BC77U7JESGLKT0');
+      function loadTikTokPixel(){
+        if(d.querySelector('script[src*="analytics.tiktok.com/i18n/pixel/events.js"]')) return;
+        ttq.load('D8IU54BC77U7JESGLKT0');
+      }
+      function scheduleTikTokPixel(){
+        if('requestIdleCallback' in w) w.requestIdleCallback(loadTikTokPixel,{timeout:1500});
+        else w.setTimeout(loadTikTokPixel,800);
+      }
       ttq.page();
+      w.addEventListener('pointerdown',loadTikTokPixel,{once:true,passive:true});
+      w.addEventListener('keydown',loadTikTokPixel,{once:true});
+      if(d.readyState==='complete') scheduleTikTokPixel();
+      else w.addEventListener('load',scheduleTikTokPixel,{once:true});
     }(window, document, 'ttq');
     </script>
     <!-- TikTok Pixel End -->
@@ -46,11 +59,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         })(window, document, "clarity", "script", "wkawxw5jtq");
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
     <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400 800;
+            font-display: swap;
+            src: url('/fonts/inter-latin.woff2') format('woff2');
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -3020,7 +3038,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     reveal(entry.target);
                     observer.unobserve(entry.target);
                 });
-            }, { rootMargin: '240px 0px', threshold: 0.01 });
+            }, { rootMargin: '96px 0px', threshold: 0.01 });
             images.forEach(function (image) {
                 observer.observe(image);
             });
