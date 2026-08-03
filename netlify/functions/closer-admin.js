@@ -7,6 +7,7 @@ import {
   verifyCloserToken,
 } from './lib/closer-access-crypto.mjs';
 import { supabaseGet, supabasePost, supabasePatch, supabaseDelete } from './lib/supabase-rest.mjs';
+import { computeLeadHeat, sortLeadsByHeat } from './lib/webinaire-lead-heat.mjs';
 
 const RICH_PAYS = ['France', 'Belgique', 'Suisse', 'Luxembourg', 'Monaco', 'Canada'];
 
@@ -373,14 +374,27 @@ export default async (req) => {
         typeof body.session_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.session_date)
           ? body.session_date
           : null;
+      const legacySelect = 'token,prenom,telephone,email,pays,watch_max_minutes,purchased,assigned_closer_id,call_status,traffic_source,visited_sales,checkout_clicked,saw_offer';
+      const intentSelect = ',watch_max_seconds_live,watch_max_seconds_replay,pdv_seconds,sales_max_scroll_pct,sales_pricing_viewed,sales_guarantee_viewed,checkout_click_count,checkout_view_count,checkout_engaged,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,last_intent_at,last_event_at';
       let q =
-        'webinaire_registrations?select=token,prenom,telephone,email,pays,watch_max_minutes,purchased,assigned_closer_id,call_status,traffic_source' +
+        `webinaire_registrations?select=${legacySelect}${intentSelect}` +
         `&pays=in.(${RICH_PAYS.map(encodeURIComponent).join(',')})` +
         '&order=watch_max_minutes.desc.nullslast';
       if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;
-      const r = await supabaseGet(q);
+      let r = await supabaseGet(q);
+      if (!r.ok) {
+        q =
+          `webinaire_registrations?select=${legacySelect}` +
+          `&pays=in.(${RICH_PAYS.map(encodeURIComponent).join(',')})` +
+          '&order=watch_max_minutes.desc.nullslast';
+        if (sd) q += `&session_date=gte.${sd}T00:00:00&session_date=lt.${sd}T23:59:59`;
+        r = await supabaseGet(q);
+      }
       if (!r.ok) return json(500, { error: 'Lecture du pool impossible', detail: r.error });
-      return json(200, { leads: Array.isArray(r.data) ? r.data : [] });
+      const leads = Array.isArray(r.data) ? r.data : [];
+      for (const lead of leads) Object.assign(lead, computeLeadHeat(lead));
+      leads.sort(sortLeadsByHeat);
+      return json(200, { leads });
     }
 
     // --- Assigner (ou désassigner) des leads à un closer ---

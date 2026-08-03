@@ -1,6 +1,7 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
+import { addToCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'session_joined',
@@ -10,6 +11,10 @@ const ALLOWED_EVENTS = new Set([
   'checkout_clicked',
   'auto_redirect_to_offer',
   'invitation_visited',
+  'sales_scroll',
+  'sales_section_viewed',
+  'checkout_viewed',
+  'checkout_engaged',
   'replay_started',
   'video_freeze_recovery',
 ]);
@@ -30,6 +35,68 @@ function toPositiveInt(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.floor(n));
+}
+
+function cleanText(value, max = 160) {
+  return String(value == null ? '' : value).trim().slice(0, max);
+}
+
+function sanitizeMeta(raw) {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const meta = {};
+  const textFields = {
+    page_path: 240,
+    route: 240,
+    button_id: 100,
+    section: 64,
+    plan: 24,
+    payment_mode: 8,
+    referrer: 240,
+    visit_id: 100,
+  };
+  for (const [key, max] of Object.entries(textFields)) {
+    const value = cleanText(source[key], max);
+    if (value) meta[key] = value;
+  }
+  if (source.percent != null) {
+    meta.percent = Math.min(100, Math.max(0, toPositiveInt(source.percent)));
+  }
+  if (source.active_seconds != null) {
+    meta.active_seconds = Math.min(86400, toPositiveInt(source.active_seconds));
+  }
+  if (typeof source.checkout_enabled === 'boolean') {
+    meta.checkout_enabled = source.checkout_enabled;
+  }
+  return meta;
+}
+
+function eventDedupeKey(eventName, meta) {
+  if (eventName === 'sales_scroll' && meta.percent) return `sales_scroll_${meta.percent}`;
+  if (eventName === 'sales_section_viewed' && meta.section) return `sales_section_${meta.section}`;
+  if (eventName === 'checkout_engaged') {
+    const visitId = cleanText(meta.visit_id || meta.route, 100);
+    return visitId ? `checkout_engaged_${visitId}` : null;
+  }
+  return null;
+}
+
+async function recordFunnelEvent(token, eventName, meta) {
+  const res = await supabasePost(
+    'rpc/record_webinaire_funnel_event',
+    {
+      p_token: token,
+      p_event_name: eventName,
+      p_metadata: meta,
+      p_dedupe_key: eventDedupeKey(eventName, meta),
+    },
+    { prefer: 'return=representation' },
+  );
+  // Migration non encore appliquée : le tracking historique ne doit jamais
+  // casser les indicateurs existants ni le parcours du prospect.
+  if (!res.ok) {
+    console.warn('track-webinaire-event funnel log unavailable:', res.status, res.error);
+  }
+  return res;
 }
 
 function buildPatch(eventName, currentRow, rawValue) {
@@ -258,6 +325,7 @@ export default async (req) => {
     const token = String(body?.token || '').trim();
     const eventName = String(body?.event || '').trim();
     const value = body?.value;
+    const meta = sanitizeMeta(body?.meta);
 
     if (!token) return jsonResponse(400, { error: 'Token manquant' });
     if (!ALLOWED_EVENTS.has(eventName)) return jsonResponse(400, { error: 'Event invalide' });
@@ -282,6 +350,10 @@ export default async (req) => {
       return jsonResponse(500, { error: 'Erreur écriture base' });
     }
 
+    // Historique détaillé et compteurs d'intention. L'appel reste compatible
+    // avec une production où la migration SQL n'aurait pas encore été jouée.
+    await recordFunnelEvent(token, eventName, meta);
+
     // Event mid-funnel TikTok (présence live / visionnage 81+ min). Awaité.
     await maybeFireTikTokFunnelEvent(req, eventName, row, patch);
     // Idem côté Meta.
@@ -292,7 +364,7 @@ export default async (req) => {
 
     // Clic checkout → groupe MailerLite CHECKOUT-ABANDON (l'automation de Ludovic
     // filtre les vrais abandons via délai + condition « pas acheteur »).
-    if (eventName === 'checkout_clicked') {
+    if (eventName === 'checkout_clicked' || eventName === 'checkout_viewed') {
       void addToCheckoutAbandonGroup(row.email || '', process.env.MAILERLITE_API_KEY);
     }
 

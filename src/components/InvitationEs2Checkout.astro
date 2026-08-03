@@ -1143,7 +1143,7 @@ spiffy.load("sonnycourt");
   </style>
 </head>
 <body>
-  <div class="page is-locked" id="page" data-checkout-base={checkoutBase} data-checkout-enabled={String(checkoutEnabled)}>
+  <div class="page is-locked" id="page" data-checkout-base={checkoutBase} data-checkout-enabled={String(checkoutEnabled)} data-plan={plan} data-payment-mode={paymentMode}>
     <header class="hero">
       <h1>TU Y ES ! 🎉<span class="accent">LE PREMIER PAS EST DÉJÀ FAIT.</span></h1>
       <p class="sub">
@@ -1347,7 +1347,55 @@ spiffy.load("sonnycourt");
       const gateEl = document.getElementById('gate-overlay');
       const CHECKOUT_ENABLED = pageEl.dataset.checkoutEnabled !== 'false';
       const CHECKOUT_BASE = pageEl.dataset.checkoutBase || 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-3';
+      const CHECKOUT_PLAN = pageEl.dataset.plan || '';
+      const CHECKOUT_PAYMENT_MODE = pageEl.dataset.paymentMode || '';
+      const CHECKOUT_VISIT_ID = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
       let checkoutMounted = false;
+      let checkoutViewTracked = false;
+      let checkoutEngagedTracked = false;
+
+      function trackCheckoutEvent(eventName, extraMeta) {
+        if (!token || isPreview || !eventName) return;
+        const meta = Object.assign({
+          page_path: window.location.pathname,
+          route: window.location.pathname,
+          plan: CHECKOUT_PLAN,
+          payment_mode: CHECKOUT_PAYMENT_MODE,
+          checkout_enabled: CHECKOUT_ENABLED,
+          visit_id: CHECKOUT_VISIT_ID,
+          referrer: document.referrer || '',
+        }, extraMeta || {});
+        fetch('/.netlify/functions/track-webinaire-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, event: eventName, meta }),
+          keepalive: true,
+        }).catch(function () {});
+      }
+
+      function trackCheckoutViewed() {
+        if (checkoutViewTracked || !token || isPreview) return;
+        checkoutViewTracked = true;
+        trackCheckoutEvent('checkout_viewed');
+        if (!CHECKOUT_ENABLED) return;
+        let activeSeconds = 0;
+        const engagementTimer = setInterval(function () {
+          if (checkoutEngagedTracked) {
+            clearInterval(engagementTimer);
+            return;
+          }
+          if (document.visibilityState !== 'visible'
+              || pageEl.classList.contains('is-locked')
+              || pageEl.classList.contains('is-expired')) return;
+          activeSeconds += 1;
+          if (activeSeconds < 20) return;
+          checkoutEngagedTracked = true;
+          clearInterval(engagementTimer);
+          trackCheckoutEvent('checkout_engaged', { active_seconds: activeSeconds });
+        }, 1000);
+      }
       // Monte l'embed avec les infos du lead préremplies (name_first, email).
       // Le nom de famille n'existe pas en base masterclass, Spiffy le demandera.
       function mountCheckout(lead) {
@@ -1484,6 +1532,7 @@ spiffy.load("sonnycourt");
             if (Number.isFinite(ses)) sessionStartsAtMs = ses;
             unlockPage();
             mountCheckout({ prenom: data.prenom || '', email: data.email || '', pays: data.pays || '' });
+            trackCheckoutViewed();
           } else if (res.status === 404 || res.status === 400) {
             // Token inconnu en base : on nettoie et on demande l'email.
             try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ }
@@ -1524,7 +1573,7 @@ spiffy.load("sonnycourt");
             const data = await res.json().catch(function () { return {}; });
             if (res.ok && data.reason === 'already_registered' && data.token) {
               try { localStorage.setItem(TOKEN_KEY, data.token); } catch (e) { /* noop */ }
-              window.location.replace('/invitation-es2/?t=' + encodeURIComponent(data.token));
+              window.location.replace(window.location.pathname + '?t=' + encodeURIComponent(data.token));
               return;
             }
             if (res.ok && data.eligible === true) {

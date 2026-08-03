@@ -1324,10 +1324,10 @@ const currentYear = new Date().getFullYear();
                                 <div class="xmen-price">
                                     <p class="xmen-price__main">12 paiements mensuels de 297 €</p>
                                     <p class="xmen-price__day">(soit 9,76 € par jour)</p>
-                                    <a class="xmen-cta" href="/invitation-es2-c12/">Accès immédiat</a>
+                                    <a class="xmen-cta" href="/invitation-es2-c12/" data-track-plan="complet" data-track-payment="12" data-track-button="pricing-complet-primary">Accès immédiat</a>
                                     <p class="xmen-price__micro">Clique pour t'inscrire</p>
                                     <img src="/media/pages/paiements.webp" alt="Moyens de paiement" class="xmen-price__methods">
-                                    <a class="xmen-price__save" href="/invitation-es2-c1/">Économise 567 € : paie en une fois</a>
+                                    <a class="xmen-price__save" href="/invitation-es2-c1/" data-track-plan="complet" data-track-payment="1" data-track-button="pricing-complet-onetime">Économise 567 € : paie en une fois</a>
                                 </div>
                             </article>
                             <article class="xmen-col">
@@ -1347,10 +1347,10 @@ const currentYear = new Date().getFullYear();
                                 <div class="xmen-price">
                                     <p class="xmen-price__main">12 paiements mensuels de 197 €</p>
                                     <p class="xmen-price__day">(soit 6,50 € par jour)</p>
-                                    <a class="xmen-cta" href="/invitation-es2-a12/">Accès immédiat</a>
+                                    <a class="xmen-cta" href="/invitation-es2-a12/" data-track-plan="avance" data-track-payment="12" data-track-button="pricing-avance-primary">Accès immédiat</a>
                                     <p class="xmen-price__micro">Clique pour t'inscrire</p>
                                     <img src="/media/pages/paiements.webp" alt="Moyens de paiement" class="xmen-price__methods">
-                                    <a class="xmen-price__save" href="/invitation-es2-a1/">Économise 367 € : paie en une fois</a>
+                                    <a class="xmen-price__save" href="/invitation-es2-a1/" data-track-plan="avance" data-track-payment="1" data-track-button="pricing-avance-onetime">Économise 367 € : paie en une fois</a>
                                 </div>
                             </article>
                             <article class="xmen-col">
@@ -1370,10 +1370,10 @@ const currentYear = new Date().getFullYear();
                                 <div class="xmen-price">
                                     <p class="xmen-price__main">12 paiements mensuels de 97 €</p>
                                     <p class="xmen-price__day">(soit 3,19 € par jour)</p>
-                                    <a class="xmen-cta" href="/invitation-es2-s12/">Accès immédiat</a>
+                                    <a class="xmen-cta" href="/invitation-es2-s12/" data-track-plan="standard" data-track-payment="12" data-track-button="pricing-standard-primary">Accès immédiat</a>
                                     <p class="xmen-price__micro">Clique pour t'inscrire</p>
                                     <img src="/media/pages/paiements.webp" alt="Moyens de paiement" class="xmen-price__methods">
-                                    <a class="xmen-price__save" href="/invitation-es2-s1/">Économise 167 € : paie en une fois</a>
+                                    <a class="xmen-price__save" href="/invitation-es2-s1/" data-track-plan="standard" data-track-payment="1" data-track-button="pricing-standard-onetime">Économise 167 € : paie en une fois</a>
                                 </div>
                             </article>
                         </div>
@@ -10923,15 +10923,17 @@ const currentYear = new Date().getFullYear();
             function setTokenEverywhere(nextToken) {
                 localStorage.setItem(TOKEN_KEY, nextToken);
             }
-            function trackWebinaireEvent(token, eventName, value) {
+            function trackWebinaireEvent(token, eventName, value, meta) {
                 if (!token || !eventName) return;
                 const payload = { token, event: eventName };
                 if (value !== undefined && value !== null) payload.value = String(value);
+                if (meta && typeof meta === 'object') payload.meta = meta;
                 console.log('[ES2 TRACKING]', eventName, payload);
                 fetch('/.netlify/functions/track-webinaire-event', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
+                    keepalive: true,
                 }).catch(function () {});
             }
 
@@ -10947,11 +10949,82 @@ const currentYear = new Date().getFullYear();
                     if (a.dataset.ctaTrackedBound === '1') return;
                     a.dataset.ctaTrackedBound = '1';
                     a.addEventListener('click', function () {
-                        trackWebinaireEvent(activeToken, 'cta_clicked');
+                        const route = (() => {
+                            try { return new URL(a.href, window.location.href).pathname; }
+                            catch (e) { return a.getAttribute('href') || ''; }
+                        })();
+                        const meta = {
+                            page_path: window.location.pathname,
+                            route,
+                            plan: a.dataset.trackPlan || '',
+                            payment_mode: a.dataset.trackPayment || '',
+                            button_id: a.dataset.trackButton || 'checkout-link',
+                        };
+                        trackWebinaireEvent(activeToken, 'cta_clicked', null, meta);
                         // Signal distinct : clic sur le bouton checkout (page de vente), pour le triage closers.
-                        trackWebinaireEvent(activeToken, 'checkout_clicked');
+                        trackWebinaireEvent(activeToken, 'checkout_clicked', null, meta);
                     });
                 });
+            }
+
+            function initSalesIntentTracking(activeToken) {
+                if (!activeToken || isPreview) return;
+                const milestones = [25, 50, 75, 90];
+                const sent = new Set();
+                let scheduled = false;
+
+                function sampleScroll() {
+                    scheduled = false;
+                    const doc = document.documentElement;
+                    const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+                    const percent = Math.min(100, Math.max(0, Math.round((window.scrollY / max) * 100)));
+                    milestones.forEach(function (milestone) {
+                        if (percent < milestone || sent.has(milestone)) return;
+                        sent.add(milestone);
+                        trackWebinaireEvent(activeToken, 'sales_scroll', milestone, {
+                            page_path: window.location.pathname,
+                            percent: milestone,
+                        });
+                    });
+                }
+                function scheduleScrollSample() {
+                    if (scheduled) return;
+                    scheduled = true;
+                    requestAnimationFrame(sampleScroll);
+                }
+                window.addEventListener('scroll', scheduleScrollSample, { passive: true });
+                window.addEventListener('resize', scheduleScrollSample, { passive: true });
+                sampleScroll();
+
+                if (!('IntersectionObserver' in window)) return;
+                const targets = [
+                    { el: document.getElementById('formules'), section: 'pricing' },
+                    { el: document.querySelector('.launch-guarantee-card'), section: 'guarantee' },
+                ].filter(function (item) { return item.el; });
+                const timers = new Map();
+                const completed = new Set();
+                const observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        const item = targets.find(function (candidate) { return candidate.el === entry.target; });
+                        if (!item || completed.has(item.section)) return;
+                        if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
+                            if (timers.has(item.section)) return;
+                            timers.set(item.section, setTimeout(function () {
+                                completed.add(item.section);
+                                timers.delete(item.section);
+                                observer.unobserve(item.el);
+                                trackWebinaireEvent(activeToken, 'sales_section_viewed', null, {
+                                    page_path: window.location.pathname,
+                                    section: item.section,
+                                });
+                            }, 1500));
+                        } else if (timers.has(item.section)) {
+                            clearTimeout(timers.get(item.section));
+                            timers.delete(item.section);
+                        }
+                    });
+                }, { threshold: [0.35] });
+                targets.forEach(function (item) { observer.observe(item.el); });
             }
 
             function initInvitationScarcity() {
@@ -11337,6 +11410,7 @@ const currentYear = new Date().getFullYear();
                 setTokenEverywhere(token);
                 propagateTokenToCheckoutLinks(token);
                 bindCheckoutClickTracking(token);
+                initSalesIntentTracking(token);
                 mountScarcityAudit();
                 updateScarcityAudit(sessionStartsAtMsForAudit, scarcityWindowStartMs, offerExpiryMs);
                 if (!isPreviewDev && Number.isFinite(offerExpiryMs) && invitationNowMs() >= offerExpiryMs) {
@@ -11379,9 +11453,12 @@ const currentYear = new Date().getFullYear();
                 } else if (Number.isFinite(offerExpiryMs)) {
                     updateInvitationOfferCountdown(offerExpiryMs);
                 }
-                if (!sessionStorage.getItem(INVITATION_VISITED_SESSION_KEY)) {
-                    sessionStorage.setItem(INVITATION_VISITED_SESSION_KEY, '1');
-                    trackWebinaireEvent(token, 'invitation_visited');
+                const invitationVisitedKey = INVITATION_VISITED_SESSION_KEY + ':' + token;
+                if (!sessionStorage.getItem(invitationVisitedKey)) {
+                    sessionStorage.setItem(invitationVisitedKey, '1');
+                    trackWebinaireEvent(token, 'invitation_visited', null, {
+                        page_path: window.location.pathname,
+                    });
                 }
 
                 const socialProofEnabled = shouldEnableEs2SocialProof(params, isPreviewDev);
