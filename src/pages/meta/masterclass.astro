@@ -13,7 +13,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <meta property="og:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="image" href="/media/pages/masterclass-gratuite-banner-800.webp" imagesrcset="/media/pages/masterclass-gratuite-banner-640.webp 640w, /media/pages/masterclass-gratuite-banner-800.webp 800w" imagesizes="calc(100vw - 32px)" fetchpriority="high" media="(max-width: 900px)" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <GAConsentMode performanceMode />
 
     <!-- Attribution A/B Meta : exécutée avant le rendu pour éviter tout changement visuel. -->
@@ -62,16 +63,44 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         })();
     </script>
 
-    <!-- Meta Pixel (page /meta/masterclass uniquement) -->
+    <!-- Meta Pixel (page /meta/masterclass uniquement) : les événements sont mis en file
+         immédiatement, mais le fichier tiers attend que le contenu critique soit chargé. -->
     <script type="text/javascript">
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
+    (function(f,b,e,v,n){
+        if(f.fbq) return;
+        n=f.fbq=function(){
+            n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments);
+        };
+        if(!f._fbq) f._fbq=n;
+        n.push=n;
+        n.loaded=!0;
+        n.version='2.0';
+        n.queue=[];
+
+        function loadMetaPixel(){
+            if(b.querySelector('script[data-sonny-meta-pixel]')) return;
+            var t=b.createElement(e);
+            t.async=!0;
+            t.dataset.sonnyMetaPixel='true';
+            t.src=v;
+            b.head.appendChild(t);
+        }
+
+        function scheduleMetaPixel(){
+            if('requestIdleCallback' in f){
+                f.requestIdleCallback(loadMetaPixel,{timeout:1500});
+            }else{
+                f.setTimeout(loadMetaPixel,800);
+            }
+        }
+
+        // Une interaction volontaire charge le pixel sans attendre, afin que les
+        // événements Lead restent transmis même sur une inscription très rapide.
+        f.addEventListener('pointerdown',loadMetaPixel,{once:true,passive:true});
+        f.addEventListener('keydown',loadMetaPixel,{once:true});
+        if(b.readyState==='complete') scheduleMetaPixel();
+        else f.addEventListener('load',scheduleMetaPixel,{once:true});
+    })(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '3367958190030822');
     fbq('track', 'PageView');
     </script>
@@ -3135,7 +3164,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     reveal(entry.target);
                     observer.unobserve(entry.target);
                 });
-            }, { rootMargin: '240px 0px', threshold: 0.01 });
+            }, { rootMargin: '96px 0px', threshold: 0.01 });
             images.forEach(function (image) {
                 observer.observe(image);
             });
