@@ -1355,6 +1355,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
         const FREEZE_RECOVERY_ENABLED = true;
+        // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
+        // 240/360/480/720/1080. La qualité repasse ensuite automatiquement en ABR.
+        const HLS_INITIAL_LEVEL = 1;
         const VIDEO_DURATION_FALLBACK_SECONDS = 5510; // fallback si metadata indisponible (nouveau live = 1h31m49s, arrondi supérieur)
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
@@ -1838,6 +1841,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             video.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
             });
+            const hlsDiagnostics = {
+                sourceAttachments: 0,
+                hardReloads: 0,
+                softRecoveries: 0,
+                fatalErrors: [],
+                levelSwitches: [],
+                manifestLevels: [],
+            };
+            if (isPreviewPage) window.__mcHlsDiagnostics = hlsDiagnostics;
             /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
             let hlsInstance = null;
             let attachedSourceUrl = '';
@@ -1853,17 +1865,39 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             function attachVideoSource(url) {
                 detachVideoSource();
                 attachedSourceUrl = String(url || '');
+                hlsDiagnostics.sourceAttachments += 1;
                 if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
                     hlsInstance = new Hls({
+                        // Démarrage conservateur en 360p, puis ABR automatique dès les
+                        // premiers segments mesurés. Évite une estimation initiale trop haute.
+                        startLevel: HLS_INITIAL_LEVEL,
                         // Ne pas télécharger de la 1080p sur un petit écran mobile :
                         // économise la bande passante des connexions fragiles.
                         capLevelToPlayerSize: true,
                         maxBufferLength: 60,
                     });
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function (_evt, data) {
+                        hlsDiagnostics.manifestLevels = (data?.levels || []).map(function (level) {
+                            return { height: level.height || null, bitrate: level.bitrate || null };
+                        });
+                    });
+                    hlsInstance.on(Hls.Events.LEVEL_SWITCHED, function (_evt, data) {
+                        const level = hlsInstance?.levels?.[data?.level];
+                        hlsDiagnostics.levelSwitches.push({
+                            at: Date.now(),
+                            level: Number.isFinite(data?.level) ? data.level : null,
+                            height: level?.height || null,
+                        });
+                    });
                     hlsInstance.on(Hls.Events.ERROR, function (_evt, data) {
-                        // Erreur fatale HLS (réseau/media) : même chemin de récupération que le watchdog.
+                        // Une erreur fatale tente d'abord la récupération native hls.js.
+                        // La reconstruction complète de la source reste le dernier recours.
                         if (data && data.fatal && FREEZE_RECOVERY_ENABLED) {
-                            void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+                            const trigger = data.type === Hls.ErrorTypes.MEDIA_ERROR
+                                ? 'hls_media_error'
+                                : (data.type === Hls.ErrorTypes.NETWORK_ERROR ? 'hls_network_error' : 'hls_other_error');
+                            hlsDiagnostics.fatalErrors.push({ at: Date.now(), type: data.type || null, details: data.details || null });
+                            void triggerFreezeRecovery(trigger, stalledAccumulatedMs / 1000);
                         }
                     });
                     hlsInstance.loadSource(attachedSourceUrl);
@@ -1996,12 +2030,13 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
             const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
             const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
-            // 10s = plus tolérant aux mini-buffers mobile sans masquer un vrai freeze.
-            const FREEZE_THRESHOLD_MS = 10000;
+            // Laisser hls.js absorber les variations réseau ordinaires. À 24s, une reprise
+            // non destructive est tentée ; la reconstruction de source n'arrive qu'après échec.
+            const FREEZE_THRESHOLD_MS = 24000;
             const FREEZE_RECOVERY_COOLDOWN_MS = 10000;
-            const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 10000;
+            const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 12000;
             const FREEZE_VISIBILITY_GRACE_MS = 3000;
-            const MAX_FREEZE_RECOVERIES = 3;
+            const MAX_FREEZE_RECOVERIES = 2;
             let freezeWatchdogInterval = null;
             let stalledAccumulatedMs = 0;
             let lastProgressCurrentTime = 0;
@@ -2065,13 +2100,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 freezeRecoveryOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
             }
 
-            function buildFreezeRecoveryPayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, recovered) {
+            function buildFreezeRecoveryPayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, recovered, strategy) {
                 return {
                     trigger,
                     currentTime_at_freeze: Number.isFinite(currentTimeAtFreeze) ? Math.floor(currentTimeAtFreeze * 100) / 100 : 0,
                     freeze_duration_sec: Number.isFinite(freezeDurationSec) ? Math.max(0, Math.round(freezeDurationSec * 10) / 10) : 0,
                     recovery_attempt_number: recoveryAttemptNumber,
                     recovered: Boolean(recovered),
+                    context: 'live:' + String(strategy || 'unknown'),
                 };
             }
 
@@ -2107,6 +2143,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     meta.freezeDurationSec,
                     meta.recoveryAttemptNumber,
                     recovered,
+                    meta.strategy,
                 );
                 trackFreezeRecoveryPayload(payload);
                 pendingRecoveryValidation = null;
@@ -2116,8 +2153,42 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     setFreezeRecoveryOverlayVisible(false);
                 } else if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
                     setFreezeRecoveryOverlayVisible(true);
+                } else {
+                    // La reprise douce n'a pas suffi : autoriser le dernier recours au tick suivant.
+                    stalledAccumulatedMs = FREEZE_THRESHOLD_MS;
                 }
                 isRecoveringInProgress = false;
+            }
+
+            async function runRecoveryStrategy(trigger, recoveryAttemptNumber, currentTimeAtFreeze) {
+                const canUseSoftHlsRecovery = Boolean(hlsInstance) && recoveryAttemptNumber === 1;
+                if (canUseSoftHlsRecovery) {
+                    let strategy = 'hls_start_load';
+                    if (trigger === 'hls_media_error' && typeof hlsInstance.recoverMediaError === 'function') {
+                        strategy = 'hls_media_recovery';
+                        hlsInstance.recoverMediaError();
+                    } else {
+                        hlsInstance.startLoad();
+                    }
+                    hlsDiagnostics.softRecoveries += 1;
+                    await video.play();
+                    return strategy;
+                }
+
+                if (!hlsInstance && trigger === 'watchdog' && recoveryAttemptNumber === 1) {
+                    hlsDiagnostics.softRecoveries += 1;
+                    await video.play();
+                    return 'native_resume';
+                }
+
+                hlsDiagnostics.hardReloads += 1;
+                reloadVideoSource();
+                if (currentTimeAtFreeze > 0) {
+                    liveSeekInProgress = true;
+                    try { video.currentTime = currentTimeAtFreeze; } catch { /* ignore */ }
+                }
+                await video.play();
+                return 'source_reload';
             }
 
             async function triggerFreezeRecovery(trigger, freezeDurationSec) {
@@ -2139,16 +2210,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
                 const currentTimeAtFreeze = Number.isFinite(video.currentTime) ? video.currentTime : 0;
                 const recoveryAttemptNumber = freezeRecoveryCount;
+                let strategy = 'unknown';
 
                 try {
-                    reloadVideoSource();
-                    // FIX (2026-05-07) : restaurer la position avant le freeze, sinon load() remet à 0
-                    // et l'utilisateur se retrouve au début de la vidéo après chaque récupération.
-                    if (currentTimeAtFreeze > 0) {
-                        liveSeekInProgress = true;
-                        try { video.currentTime = currentTimeAtFreeze; } catch { /* ignore */ }
-                    }
-                    await video.play();
+                    strategy = await runRecoveryStrategy(trigger, recoveryAttemptNumber, currentTimeAtFreeze);
                 } catch {
                     const payload = buildFreezeRecoveryPayload(
                         trigger,
@@ -2156,11 +2221,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                         freezeDurationSec,
                         recoveryAttemptNumber,
                         false,
+                        strategy,
                     );
                     trackFreezeRecoveryPayload(payload);
                     isRecoveringInProgress = false;
                     if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
                         setFreezeRecoveryOverlayVisible(true);
+                    } else {
+                        stalledAccumulatedMs = FREEZE_THRESHOLD_MS;
                     }
                     return;
                 }
@@ -2170,6 +2238,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     currentTimeAtFreeze,
                     freezeDurationSec,
                     recoveryAttemptNumber,
+                    strategy,
                 };
                 recoveryValidationDeadlineMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
                 resetFreezeProgressBaseline();
@@ -2642,14 +2711,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             video.addEventListener('volumechange', syncIcons);
             if (FREEZE_RECOVERY_ENABLED) {
-                // FIX (2026-05-07) : ne PAS déclencher la récupération sur 'waiting' ou 'stalled'.
-                // Ces events sont émis fréquemment par le navigateur lors des bufferisations
-                // normales (surtout sur mobile), provoquant des recoveries en boucle qui
-                // affichent un écran noir toutes les ~10s. Le watchdog reste seul juge :
-                // il déclenche uniquement après FREEZE_THRESHOLD_MS sans progression réelle.
-                // Seul 'error' garde le trigger immédiat (vraie erreur fatale).
+                // Les events 'waiting' et 'stalled' restent informatifs : aucune reconstruction
+                // du lecteur n'est déclenchée par une bufferisation ordinaire.
                 video.addEventListener('error', function () {
-                    void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+                    void triggerFreezeRecovery('native_error', stalledAccumulatedMs / 1000);
                 });
                 document.addEventListener('visibilitychange', freezeVisibilityHandler);
                 if (freezeRecoveryReloadBtn) {
