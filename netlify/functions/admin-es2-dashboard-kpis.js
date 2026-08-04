@@ -1,5 +1,6 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 import { getSupabaseConfig, supabaseHeaders, supabasePatch } from './lib/supabase-rest.mjs';
+import { computeLeadHeat, sortLeadsByHeat } from './lib/webinaire-lead-heat.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 
@@ -487,31 +488,39 @@ async function fetchAllRegistrations() {
     return { ok: false, error: 'Supabase non configuré', data: [] };
   }
 
-  const pageSize = 1000;
-  let offset = 0;
-  const out = [];
+  const legacySelect = 'token,email,prenom,telephone,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,purchased_at,first_payment_amount,refunded,refunded_at,refund_amount,created_at,last_event_at';
+  const intentSelect = ',pdv_seconds,sales_visit_count,sales_max_scroll_pct,sales_pricing_viewed,sales_guarantee_viewed,checkout_clicked,checkout_click_count,checkout_view_count,checkout_engaged,checkout_last_plan,checkout_last_payment_mode,checkout_last_button,checkout_last_route,checkout_last_clicked_at,checkout_last_viewed_at,last_intent_at';
 
-  while (true) {
-    const qs = new URLSearchParams({
-      select: 'token,email,prenom,pays,session_date,statut,attended_live,watch_max_minutes,watch_max_seconds_live,watch_max_seconds_replay,watch_first_second_live,saw_offer,clicked_cta,visited_sales,watched_replay,purchased,purchased_at,first_payment_amount,refunded,refunded_at,refund_amount,created_at,last_event_at',
-      // Ordre déterministe (token unique en tiebreaker) : sinon la pagination
-      // OFFSET sur session_date non-unique renvoie des lignes en double entre pages.
-      order: 'session_date.desc,token.asc',
-      limit: String(pageSize),
-      offset: String(offset),
-    });
-    const res = await fetch(`${url}/rest/v1/webinaire_registrations?${qs.toString()}`, {
-      headers: supabaseHeaders(),
-    });
-    const json = await res.json().catch(() => []);
-    if (!res.ok) {
-      return { ok: false, error: 'Erreur lecture base', data: [] };
+  async function fetchWithSelect(select) {
+    const pageSize = 1000;
+    let offset = 0;
+    const rows = [];
+    while (true) {
+      const qs = new URLSearchParams({
+        select,
+        // Ordre déterministe (token unique en tiebreaker) : sinon la pagination
+        // OFFSET sur session_date non-unique renvoie des lignes en double entre pages.
+        order: 'session_date.desc,token.asc',
+        limit: String(pageSize),
+        offset: String(offset),
+      });
+      const res = await fetch(`${url}/rest/v1/webinaire_registrations?${qs.toString()}`, {
+        headers: supabaseHeaders(),
+      });
+      const json = await res.json().catch(() => []);
+      if (!res.ok) return { ok: false, rows: [] };
+      const batch = Array.isArray(json) ? json : [];
+      rows.push(...batch);
+      if (batch.length < pageSize) break;
+      offset += pageSize;
     }
-    const batch = Array.isArray(json) ? json : [];
-    out.push(...batch);
-    if (batch.length < pageSize) break;
-    offset += pageSize;
+    return { ok: true, rows };
   }
+
+  let fetched = await fetchWithSelect(legacySelect + intentSelect);
+  if (!fetched.ok) fetched = await fetchWithSelect(legacySelect);
+  if (!fetched.ok) return { ok: false, error: 'Erreur lecture base', data: [] };
+  const out = fetched.rows;
 
   // Filet anti-doublon : dédup par token (au cas où une ligne aurait été insérée
   // pendant la pagination).
@@ -583,6 +592,27 @@ export default async (req) => {
     const mlBuyers = { emails: new Set(), error: null, pages: 0 };
 
     const kpis = computeKpis(filteredRows, salesRows);
+    const hotLeads = filteredRows
+      .filter((row) => !toBool(row.purchased))
+      .sort(sortLeadsByHeat)
+      .slice(0, 250)
+      .map((row) => ({
+        token: row.token,
+        prenom: row.prenom || '',
+        email: row.email || '',
+        telephone: row.telephone || '',
+        pays: row.pays || '',
+        sessionDate: row.session_date || null,
+        visitedSales: toBool(row.visited_sales),
+        salesMaxScrollPct: toInt(row.sales_max_scroll_pct),
+        salesActiveSeconds: toInt(row.pdv_seconds),
+        checkoutViews: toInt(row.checkout_view_count),
+        checkoutPlan: row.checkout_last_plan || null,
+        checkoutPaymentMode: row.checkout_last_payment_mode || null,
+        checkoutRoute: row.checkout_last_route || null,
+        lastIntentAt: row.last_intent_at || row.last_event_at || null,
+        ...computeLeadHeat(row),
+      }));
 
     return jsonResponse(200, {
       ok: true,
@@ -600,6 +630,7 @@ export default async (req) => {
       replayActiveNow: kpis.replayActiveNow,
       liveReplay: kpis.liveReplay,
       buyerDetails: kpis.buyerDetails,
+      hotLeads,
       countrySegments: kpis.countrySegments,
       buyers: {
         source: 'supabase_purchased_spiffy',

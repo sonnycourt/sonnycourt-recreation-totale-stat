@@ -207,6 +207,26 @@ const tabs = [
                   </div>
 
                   <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Prospects à rappeler — du plus chaud au moins chaud</p>
+                    <p class="mt-1 text-xs text-slate-500">Score fondé sur la rétention, la lecture de la page de vente, la formule choisie et les visites checkout. Les acheteurs sont exclus.</p>
+                    <div class="mt-3 overflow-x-auto">
+                      <table class="w-full min-w-[980px] border-collapse text-left text-xs text-slate-300">
+                        <thead>
+                          <tr class="border-b border-slate-700 text-slate-500">
+                            <th class="py-2 pr-4 font-medium">Chaleur</th>
+                            <th class="py-2 pr-4 font-medium">Lead</th>
+                            <th class="py-2 pr-4 font-medium">Contact</th>
+                            <th class="py-2 pr-4 font-medium">Page de vente</th>
+                            <th class="py-2 pr-4 font-medium">Checkout visé</th>
+                            <th class="py-2 pr-4 font-medium">Dernière intention</th>
+                          </tr>
+                        </thead>
+                        <tbody id="overview-hot-leads"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                     <p class="text-xs uppercase tracking-wider text-slate-500">Détail acheteurs</p>
                     <p class="mt-1 text-xs text-slate-500">Triés par dernier événement (plus récent en haut).</p>
                     <div class="mt-3 overflow-x-auto">
@@ -1255,6 +1275,60 @@ const tabs = [
         });
       }
 
+      function renderHotLeads(items) {
+        const tbody = document.getElementById('overview-hot-leads');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const list = Array.isArray(items) ? items.slice(0, 100) : [];
+        if (!list.length) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-t border-slate-800';
+          const td = document.createElement('td');
+          td.colSpan = 6;
+          td.className = 'py-3 text-slate-500';
+          td.textContent = 'Aucun prospect chaud pour cette session.';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        const planLabel = { complet: 'Complet', avance: 'Avancé', standard: 'Standard' };
+        list.forEach(function (lead) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-t border-slate-800';
+          const salesMinutes = Math.floor(Number(lead.salesActiveSeconds || 0) / 60);
+          const sales = lead.visitedSales
+            ? [lead.salesMaxScrollPct ? `${lead.salesMaxScrollPct} %` : 'visitée', salesMinutes ? `${salesMinutes} min actives` : ''].filter(Boolean).join(' · ')
+            : 'non visitée';
+          const checkout = lead.checkoutPlan
+            ? `${planLabel[lead.checkoutPlan] || lead.checkoutPlan} · ${String(lead.checkoutPaymentMode) === '1' ? 'comptant' : '12×'}${lead.checkoutViews ? ` · ${lead.checkoutViews} visite${lead.checkoutViews > 1 ? 's' : ''}` : ''}`
+            : '—';
+          const contact = [lead.telephone, lead.email].filter(Boolean).join(' · ') || '—';
+          const lastIntent = lead.lastIntentAt
+            ? new Date(lead.lastIntentAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+            : '—';
+          const cells = [
+            `${lead.heatLabel || lead.heat_label || '—'} · ${lead.heatScore ?? lead.heat_score ?? 0}/100`,
+            `${lead.prenom || '—'} · ${lead.pays || '—'}`,
+            contact,
+            sales,
+            checkout,
+            lastIntent,
+          ];
+          cells.forEach(function (text, index) {
+            const td = document.createElement('td');
+            td.className = index === 0
+              ? 'py-2.5 pr-4 font-semibold text-orange-300'
+              : index === 1
+                ? 'py-2.5 pr-4 font-medium text-slate-200'
+                : 'py-2.5 pr-4 text-slate-300';
+            td.textContent = text;
+            if (index === 0 && lead.heat_reason) td.title = lead.heat_reason;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
       function renderSpiffyWarning(d) {
         const banner = document.getElementById('overview-spiffy-warning');
         if (!banner) return;
@@ -1419,6 +1493,7 @@ const tabs = [
           renderOverviewCountrySegments(d?.countrySegments);
           renderFinancialKpis(d);
           renderLiveReplay(d?.liveReplay);
+          renderHotLeads(d?.hotLeads);
           renderBuyerDetails(d?.buyerDetails);
           renderSpiffyWarning(d);
           const stamp = document.getElementById('overview-updated');

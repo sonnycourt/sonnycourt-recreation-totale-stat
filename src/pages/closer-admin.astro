@@ -718,17 +718,17 @@
                         <div class="pool-grid">
                             <div class="pool-col">
                                 <h3>Inscrits pays riches <span id="pool-all-count" class="pool-badge">0</span></h3>
-                                <div class="pool-list-head"><label><input type="checkbox" id="pool-all-check"> Tout cocher</label><span class="pool-col-note">hors ultra-qualifiés →</span></div>
+                                <div class="pool-list-head"><label><input type="checkbox" id="pool-all-check"> Tout cocher</label><span class="pool-col-note">à nourrir ou intéressés →</span></div>
                                 <div id="pool-all" class="pool-list"></div>
                             </div>
                             <div class="pool-col">
-                                <h3>Ultra-qualifiés · 1h20+ <span id="pool-ultra-count" class="pool-badge">0</span></h3>
+                                <h3>Priorité commerciale · chauds <span id="pool-ultra-count" class="pool-badge">0</span></h3>
                                 <div class="pool-filter" id="ultra-filter">
                                     <button type="button" data-src="all" class="is-active">Tous <span id="uf-all">0</span></button>
                                     <button type="button" data-src="meta">Meta <span id="uf-meta">0</span></button>
                                     <button type="button" data-src="orga">Orga <span id="uf-orga">0</span></button>
                                 </div>
-                                <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">ont suivi jusqu'au CTA</span></div>
+                                <div class="pool-list-head"><label><input type="checkbox" id="pool-ultra-check"> Tout cocher</label><span class="pool-col-note">checkout, forte lecture ou 1h20+</span></div>
                                 <div id="pool-ultra" class="pool-list"></div>
                             </div>
                         </div>
@@ -1807,18 +1807,20 @@
                 var tag = l.purchased
                     ? '<span class="pr-bought">acheté</span>'
                     : (l.assigned_closer_id != null ? '<span class="pr-assigned">→ ' + esc(closerName(l.assigned_closer_id)) + '</span>' : '');
-                var mins = (l.watch_max_minutes != null) ? (l.watch_max_minutes + ' min') : '';
+                var mins = (l.watch_best_minutes != null ? l.watch_best_minutes : l.watch_max_minutes) != null ? ((l.watch_best_minutes != null ? l.watch_best_minutes : l.watch_max_minutes) + ' min') : '';
+                var heat = l.heat_label ? '<span class="pr-mins" title="' + esc(l.heat_reason || '') + '">' + esc(l.heat_label) + ' ' + esc(String(l.heat_score || 0)) + '/100</span>' : '';
+                var intent = l.checkout_last_plan ? '<span class="pr-mins">' + esc(l.checkout_last_plan) + ' ' + (String(l.checkout_last_payment_mode) === '1' ? 'comptant' : '12×') + '</span>' : '';
                 return '<div class="pool-row">' +
                     '<input type="checkbox" class="js-pool-cb" data-token="' + esc(l.token) + '"' + checked + '>' +
                     '<div class="pr-main"><div class="pr-name">' + esc(l.prenom || 'Lead') + '</div><div class="pr-sub">' + sub + '</div></div>' +
                     srcTag(l) +
-                    (mins ? '<span class="pr-mins">' + mins + '</span>' : '') + tag +
+                    heat + intent + (mins ? '<span class="pr-mins">' + mins + '</span>' : '') + tag +
                     '</div>';
             }
 
             function renderPool() {
-                var ultra = POOL.filter(function (l) { return (l.watch_max_minutes || 0) >= 81; });
-                var rest = POOL.filter(function (l) { return (l.watch_max_minutes || 0) < 81; });
+                var ultra = POOL.filter(function (l) { return Number(l.heat_priority || 9) <= 3 || (l.watch_max_minutes || 0) >= 81; });
+                var rest = POOL.filter(function (l) { return !(Number(l.heat_priority || 9) <= 3 || (l.watch_max_minutes || 0) >= 81); });
                 // Compteurs des chips de filtre (sur les ultra)
                 var uMeta = ultra.filter(isMeta).length;
                 document.getElementById('uf-all').textContent = ultra.length;

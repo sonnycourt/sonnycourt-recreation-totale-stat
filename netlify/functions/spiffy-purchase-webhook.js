@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
+import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
 import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
@@ -59,6 +59,18 @@ function findEmail(obj, depth = 0) {
   }
   for (const v of Object.values(obj)) {
     const found = findEmail(v, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findFirstKey(obj, keys, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 6) return null;
+  for (const key of keys) {
+    if (obj[key] != null && String(obj[key]).trim()) return String(obj[key]).trim();
+  }
+  for (const value of Object.values(obj)) {
+    const found = findFirstKey(value, keys, depth + 1);
     if (found) return found;
   }
   return null;
@@ -149,9 +161,14 @@ export default async (req) => {
     const isRefund = eventType.includes('refund');
     const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
 
-    const reg = await supabaseGet(
-      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp&limit=1`,
+    let reg = await supabaseGet(
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route&order=created_at.desc&limit=1`,
     );
+    if (!reg.ok) {
+      reg = await supabaseGet(
+        `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp&order=created_at.desc&limit=1`,
+      );
+    }
     const row = reg.ok && Array.isArray(reg.data) ? reg.data[0] : null;
     if (!row) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
@@ -176,6 +193,33 @@ export default async (req) => {
         ...(amount != null ? { first_payment_amount: amount } : {}),
         ...(affiliate ? { purchase_affiliate_id: affiliate.id, purchase_affiliate_name: affiliate.name } : {}),
       });
+    }
+
+    if (isSale || isRefund) {
+      const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
+      const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+      const eventName = isRefund ? 'refund_completed' : 'purchase_completed';
+      const eventLog = await supabasePost(
+        'rpc/record_webinaire_funnel_event',
+        {
+          p_token: row.token,
+          p_event_name: eventName,
+          p_metadata: {
+            page_path: '/spiffy-webhook',
+            route: row.checkout_last_route || '',
+            plan: row.checkout_last_plan || '',
+            payment_mode: row.checkout_last_payment_mode || '',
+            amount_eur: amount,
+            checkout_id: checkoutId,
+            order_id: orderId,
+          },
+          p_dedupe_key: orderId ? `${eventName}_${orderId}` : null,
+        },
+        { prefer: 'return=representation' },
+      );
+      if (!eventLog.ok) {
+        console.warn('spiffy-webhook funnel log unavailable:', eventLog.status, eventLog.error);
+      }
     }
 
     // --- CAPI TikTok : seulement la VENTE d'un lead TikTok ---

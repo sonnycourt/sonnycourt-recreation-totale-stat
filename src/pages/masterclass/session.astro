@@ -712,6 +712,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .offer-zone.hidden {
             display: none;
         }
+        .offer-countdown-title.hidden,
+        .countdown.hidden,
+        .offer-cta.hidden,
+        .offer-expired-state.hidden {
+            display: none;
+        }
         .diagnostic-guide-zone {
             display: none;
             margin-top: 22px;
@@ -782,6 +788,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         .offer-cta:hover {
             transform: translateY(-1px);
             box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
+        }
+        .offer-cta.is-disabled,
+        .offer-cta.is-disabled:hover {
+            color: rgba(226, 232, 240, 0.72);
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: none;
+            cursor: not-allowed;
+            pointer-events: none;
+            transform: none;
         }
         .offer-expired-state {
             width: 100%;
@@ -911,6 +926,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             text-transform: uppercase;
             text-align: center;
             text-shadow: 0 2px 12px rgba(2, 6, 23, 0.35);
+        }
+        .offer-countdown-highlight {
+            color: #60a5fa;
+            text-shadow: 0 0 14px rgba(96, 165, 250, 0.35);
         }
         .scarcity-card {
             width: 100%;
@@ -1112,9 +1131,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
                 <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
                 <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +20min (cutoff)</button>
-                <button class="dev-time-btn" data-now-preset="cta-m10s" type="button">CTA -10s</button>
-                <button class="dev-time-btn" data-now-preset="cta-now" type="button">CTA exact</button>
-                <button class="dev-time-btn" data-now-preset="session-p46" type="button">Fin vidéo W2 (+86min)</button>
+                <button class="dev-time-btn" data-now-preset="cta-m10s" type="button">Bouton -10s</button>
+                <button class="dev-time-btn" data-now-preset="cta-now" type="button">Bouton grisé (1:20)</button>
+                <button class="dev-time-btn" data-now-preset="cta-mid" type="button">Countdown 0:40</button>
+                <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">Activation -5s</button>
+                <button class="dev-time-btn" data-now-preset="cta-active" type="button">Bouton actif (0:00)</button>
+                <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo -1s (1:31:48)</button>
                 <button class="dev-time-btn" data-now-preset="webinaire-ended" type="button">Webinaire terminé</button>
                 <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire (replay)</button>
                 <button class="dev-time-btn" data-now-preset="expired" type="button">Expiré dim 23h30</button>
@@ -1243,14 +1265,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         </div>
 
         <div id="offer-zone" class="offer-zone hidden">
-            <p class="offer-countdown-title">L'offre expire dans :</p>
+            <p class="offer-countdown-title">L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :</p>
             <div class="countdown">
                 <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
                 <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
                 <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
                 <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
             </div>
-            <div class="scarcity-card" id="scarcity-card" aria-live="polite">
+            <div class="scarcity-card" id="scarcity-card" aria-hidden="true" hidden>
                 <p class="scarcity-kicker">Nombre de places limitées</p>
                 <p class="scarcity-phase1-total hidden">30 places</p>
                 <p class="scarcity-phase2-note hidden">10 nouvelles places à titre exceptionnel</p>
@@ -1266,7 +1288,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     <div class="scarcity-meter__fill"></div>
                 </div>
             </div>
-            <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
+            <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">Découvrir Esprit Subconscient 2.0</a>
             <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
                 <p class="offer-expired-title">L'offre n'est plus disponible</p>
                 <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
@@ -1280,7 +1302,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             <p class="diagnostic-guide-note">Imprime ce PDF avant la diffusion si possible.</p>
         </div>
 
-        <div id="purchase-toast" class="purchase-toast" aria-live="polite">
+        <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
             <div class="purchase-toast__content">
                 <div class="purchase-toast__thumb-wrap">
                     <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
@@ -1328,16 +1350,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
-        const CTA_APPEAR_SECONDS = 89 * 60 + 26; // 89m26s = CTA W2 live (21:14:26 = 89m26 après 19:45)
+        const CTA_APPEAR_SECONDS = 89 * 60 + 10; // bouton grisé à 1h29m10s (21:14:10 après un départ à 19:45)
+        const CTA_ACTIVATE_SECONDS = 90 * 60 + 30; // bouton actif à 1h30m30s (21:15:30 après un départ à 19:45)
         const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
         const FREEZE_RECOVERY_ENABLED = true;
-        const VIDEO_DURATION_FALLBACK_SECONDS = 6085; // fallback si metadata indisponible (W2 live = 1h41m25s)
+        const VIDEO_DURATION_FALLBACK_SECONDS = 5510; // fallback si metadata indisponible (nouveau live = 1h31m49s, arrondi supérieur)
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
         // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
         // le backup instantané via le cockpit (switch_backup).
-        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/6c30a235-f92c-4802-b1e9-968fd0cc201a/playlist.m3u8';
+        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/7a1058fe-ec23-4cdf-8cc6-9b47e3f04744/playlist.m3u8';
         let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
@@ -1731,6 +1754,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         function mountVideoAndOffer(reg) {
             const expiryMs = new Date(reg.offreExpiresAt).getTime();
+            const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
+            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
+            const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
             const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
             const offerCountdownTitleEl = document.querySelector('#offer-zone .offer-countdown-title');
@@ -1740,6 +1766,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const offerExpiredStateEl = document.getElementById('offer-expired-state');
             let isOfferExpired = false;
 
+            function setOfferCtaEnabled(enabled) {
+                if (!offerCtaNode) return;
+                const isEnabled = Boolean(enabled) && !isOfferExpired;
+                offerCtaNode.classList.toggle('is-disabled', !isEnabled);
+                offerCtaNode.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+                offerCtaNode.setAttribute('tabindex', isEnabled ? '0' : '-1');
+                if (offerCountdownTitleEl) {
+                    offerCountdownTitleEl.innerHTML = isEnabled
+                        ? 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible'
+                        : 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :';
+                }
+            }
+
             function setOfferExpiredState(nextExpired) {
                 isOfferExpired = Boolean(nextExpired);
                 if (offerCountdownTitleEl) offerCountdownTitleEl.classList.toggle('hidden', isOfferExpired);
@@ -1747,6 +1786,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
                 if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
+                if (isOfferExpired) setOfferCtaEnabled(false);
             }
 
             function refreshMcPageLock() {
@@ -1788,9 +1828,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 } else {
                     setOfferExpiredState(false);
                     syncMcUnavailableUi(false);
-                    updateCountdown(expiryMs, offerIds);
+                    updateCountdown(ctaActivationMs, offerIds);
                 }
-                updateScarcityAudit();
+                updateCtaAudit();
             };
             let offerInterval = setInterval(tick, 1000);
 
@@ -1862,14 +1902,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
             const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
             const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
-            const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
             const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
                 ? sessionEndsRawMs
                 : (sessionStartMs + (90 * 60 * 1000));
             const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
             const scarcityWindowEndMs = expiryMs;
-            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
 
@@ -1897,30 +1935,41 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     return '--';
                 }
             }
-            let scarcityAuditEl = null;
-            function mountScarcityAudit() {
+            let ctaAuditEl = null;
+            function mountCtaAudit() {
                 if (!isPreviewPage) return;
-                if (scarcityAuditEl) return;
+                if (ctaAuditEl) return;
+                const existing = document.getElementById('dev-cta-audit');
+                if (existing) {
+                    ctaAuditEl = existing;
+                    return;
+                }
                 const el = document.createElement('div');
+                el.id = 'dev-cta-audit';
                 el.style.cssText = 'position:fixed;top:10px;left:10px;z-index:459000;width:min(420px,calc(100vw - 24px));padding:10px 12px;border-radius:12px;border:1px solid rgba(96,165,250,.45);background:rgba(15,23,42,.92);box-shadow:0 12px 30px rgba(2,6,23,.45);color:#dbeafe;font-size:12px;line-height:1.4;white-space:pre-line;pointer-events:none;';
                 document.body.appendChild(el);
-                scarcityAuditEl = el;
+                ctaAuditEl = el;
             }
-            function updateScarcityAudit() {
-                if (!scarcityAuditEl) return;
+            function updateCtaAudit() {
+                if (!ctaAuditEl) return;
                 const nowMs = getNowMs();
-                const bounds = Number.isFinite(scarcityWindowStartMs) && Number.isFinite(scarcityWindowEndMs) && scarcityWindowEndMs > scarcityWindowStartMs
-                    ? { startMs: scarcityWindowStartMs, endMs: scarcityWindowEndMs }
-                    : null;
-                const phase = getPhase(nowMs, bounds);
-                const seatsLeft = getSeatsLeft(nowMs, bounds);
-                scarcityAuditEl.textContent = [
+                const ctaAppearMs = liveStartMs + CTA_APPEAR_SECONDS * 1000;
+                const videoEndMs = liveStartMs + getVideoDurationSeconds() * 1000;
+                const remainingSeconds = Math.max(0, Math.ceil((ctaActivationMs - nowMs) / 1000));
+                const ctaState = nowMs < ctaAppearMs
+                    ? 'caché'
+                    : (nowMs < ctaActivationMs ? 'grisé' : 'actif');
+                const countdownLabel = nowMs < ctaAppearMs
+                    ? '--:--'
+                    : `${pad(Math.floor(remainingSeconds / 60))}:${pad(remainingSeconds % 60)}`;
+                ctaAuditEl.textContent = [
                     `sessionStartsAt : ${formatAuditDate(sessionStartMs)}`,
-                    `windowStartMs : ${formatAuditDate(scarcityWindowStartMs)}`,
-                    `offreExpiresAt : ${formatAuditDate(scarcityWindowEndMs)}`,
-                    `Phase actuelle : ${phase}`,
-                    `soldCount : ${getSoldCount(nowMs, bounds)}`,
-                    `seatsLeft : ${formatDevScarcityLabel(phase, seatsLeft)}`,
+                    `début vidéo : ${formatAuditDate(liveStartMs)}`,
+                    `bouton grisé : ${formatAuditDate(ctaAppearMs)}`,
+                    `bouton actif : ${formatAuditDate(ctaActivationMs)}`,
+                    `fin vidéo : ${formatAuditDate(videoEndMs)}`,
+                    `état CTA : ${ctaState}`,
+                    `countdown : ${countdownLabel}`,
                 ].join('\n');
             }
 
@@ -1971,8 +2020,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             if (endedReplayLinkEl) endedReplayLinkEl.href = '/masterclass/replay?t=' + encodeURIComponent(reg.token);
             let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
             let forceEndedOverlay = window.__mcSessionForceEndedOverlay === true;
-            mountScarcityAudit();
-            updateScarcityAudit();
+            mountCtaAudit();
+            updateCtaAudit();
 
             let didTrackSessionJoined = false;
             function trackSessionJoinedIfEligible() {
@@ -2346,6 +2395,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 updateLiveJumpUi();
                 if (keepOfferVisible) {
                     showOfferZone(reg.token);
+                    updateCountdown(ctaActivationMs, offerIds);
+                    setOfferCtaEnabled(true);
                 } else {
                     hideOfferZone();
                 }
@@ -2504,11 +2555,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
                 if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
-                    if (!didTrackCtaReached) {
+                    const isCtaActive = elapsedSec >= CTA_ACTIVATE_SECONDS;
+                    updateCountdown(ctaActivationMs, offerIds);
+                    setOfferCtaEnabled(isCtaActive);
+                    if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
                         trackWebinaireEvent(reg.token, 'cta_reached');
                     }
                 } else if (elapsedSec < CTA_APPEAR_SECONDS) {
+                    setOfferCtaEnabled(false);
                     hideOfferZone();
                 }
             }
@@ -2632,7 +2687,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             });
             const offerCtaEl = document.getElementById('offer-cta');
             if (offerCtaEl) {
-                offerCtaEl.addEventListener('click', function () {
+                offerCtaEl.addEventListener('click', function (event) {
+                    if (offerCtaEl.getAttribute('aria-disabled') === 'true') {
+                        event.preventDefault();
+                        return;
+                    }
                     trackWebinaireEvent(reg.token, 'cta_clicked');
                 });
             }
@@ -2809,16 +2868,9 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs);
-            const purchaseToasts = initPurchaseToasts(liveStartMs, {
-                setSeatsLeft: setScarcitySeats,
-                windowStartMs: scarcityWindowStartMs,
-                windowEndMs: scarcityWindowEndMs,
-                isEnded: function () {
-                    const now = getNowMs();
-                    if (Number.isFinite(expiryMs) && now >= expiryMs) return true;
-                    return isSessionEnded;
-                },
-            });
+            // Le live reste centré sur le contenu : aucune notification d'achat
+            // et aucun moteur de scarcity visible sur cette page.
+            const purchaseToasts = { recalc: function () {}, destroy: function () {} };
 
             return {
                 recalcFromSimulatedTime: function () {
@@ -2834,7 +2886,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     updateDiagnosticGuideState();
                     hearts.recalc();
                     purchaseToasts.recalc();
-                    updateScarcityAudit();
+                    updateCtaAudit();
                 },
                 sessionStartMs,
                 destroy: function () {
@@ -2925,22 +2977,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
         function devGetState(sessionMs, nowMs) {
             var elapsed = (nowMs - sessionMs) / 1000;
+            var videoElapsed = (nowMs - (sessionMs - LIVE_VIDEO_LEAD_MS)) / 1000;
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
-            if (elapsed < CTA_APPEAR_SECONDS) return 'Live';
-            if (elapsed < getVideoDurationSeconds()) return 'CTA visible';
+            if (videoElapsed < CTA_APPEAR_SECONDS) return 'Live';
+            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'Bouton grisé';
+            if (videoElapsed < getVideoDurationSeconds()) return 'Bouton actif';
             var endMs = sessionMs + getVideoDurationSeconds() * 1000;
             var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
             if (nowMs < sun23) return 'Vidéo terminée / Replay';
             return 'Expiré';
         }
-        function formatDevScarcityLabel(phase, seatsLeft) {
-            if (phase === 'sold_out') return '0 / 30 places (sold out)';
-            var denominator = phase === 'phase2' ? 10 : 30;
-            var seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
-            return seats + ' / ' + denominator + ' places';
-        }
-
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
@@ -2957,7 +3004,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
 
             var currentSessionMs = 0;
-            var currentOfferExpiryMs = 0;
             var currentMounted = null;
 
             function setActiveInsc(key) { inscBtns.forEach(function(b) { b.classList.toggle('is-active', b.getAttribute('data-insc-preset') === key); }); }
@@ -2968,14 +3014,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 sumInsc.textContent = 'Inscrit le : ' + devFormatParis(new Date(inscInput.value).getTime());
                 sumSession.textContent = 'Session : ' + devFormatParis(currentSessionMs);
                 sumNow.textContent = 'Heure simulée : ' + devFormatParis(nowMs);
-                var hasBounds = Number.isFinite(currentSessionMs) && Number.isFinite(currentOfferExpiryMs) && currentOfferExpiryMs > currentSessionMs;
-                var bounds = hasBounds
-                    ? { startMs: currentSessionMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS, endMs: currentOfferExpiryMs }
-                    : null;
-                var scarcityPhase = getPhase(nowMs, bounds);
-                var scarcitySeats = getSeatsLeft(nowMs, bounds);
-                var scarcityLabel = formatDevScarcityLabel(scarcityPhase, scarcitySeats);
-                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span> · Scarcity : <span class="dev-state-val">' + scarcityPhase + ' · ' + scarcityLabel + '</span>';
+                var liveStart = currentSessionMs - LIVE_VIDEO_LEAD_MS;
+                var appearAt = liveStart + CTA_APPEAR_SECONDS * 1000;
+                var activeAt = liveStart + CTA_ACTIVATE_SECONDS * 1000;
+                var remaining = Math.max(0, Math.ceil((activeAt - nowMs) / 1000));
+                var ctaStatus = nowMs < appearAt
+                    ? 'caché'
+                    : (nowMs < activeAt
+                        ? 'grisé · ' + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60)
+                        : 'actif · 00:00');
+                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span> · CTA : <span class="dev-state-val">' + ctaStatus + '</span>';
             }
 
             function remountWithSession(sessionMs, offerMs) {
@@ -2986,7 +3034,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     currentMounted.destroy();
                 }
                 currentSessionMs = sessionMs;
-                currentOfferExpiryMs = offerMs;
                 var reg = {
                     token: 'preview-session',
                     statut: 'present',
@@ -3069,12 +3116,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                 'session-m15':  -15 * 60 * 1000,
                 'session-p2':   2 * 60 * 1000,
                 'session-p15':  20 * 60 * 1000,
-                'session-p46':  86 * 60 * 1000,
             };
             function getNowPresetMs(key) {
                 if (nowPresetOffsets[key] !== undefined) return currentSessionMs + nowPresetOffsets[key];
                 if (key === 'cta-m10s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 - 10000;
                 if (key === 'cta-now') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000;
+                if (key === 'cta-mid') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 40000;
+                if (key === 'cta-active-m5s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 - 5000;
+                if (key === 'cta-active') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000;
+                if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;
                 if (key === 'expired') {
                     var p2 = devParisParts(new Date(currentSessionMs));
                     var sun = devAddDays(p2.year, p2.month, p2.day, 3);

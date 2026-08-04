@@ -428,6 +428,10 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       text-align: center;
       text-shadow: 0 2px 12px rgba(2, 6, 23, 0.35);
     }
+    .offer-countdown-highlight {
+      color: #60a5fa;
+      font-weight: 900;
+    }
     .countdown {
       display: grid;
       grid-template-columns: repeat(4,minmax(0,1fr));
@@ -673,6 +677,15 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       transform: translateY(-1px);
       box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
     }
+    .offer-cta.is-disabled,
+    .offer-cta.is-disabled:hover {
+      color: rgba(226, 232, 240, 0.72);
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      box-shadow: none;
+      cursor: not-allowed;
+      pointer-events: none;
+      transform: none;
+    }
     .offer-expired-state {
       width: 100%;
       max-width: 520px;
@@ -803,10 +816,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       <p class="dev-time-title">Simulation replay (preview uniquement)</p>
       <div class="dev-time-row">
         <button class="dev-time-btn" type="button" data-jump-seconds="0">Replay 00:00</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="4156">CTA -10s</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="4166">CTA exact</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="4196">+30s après CTA</button>
-        <button class="dev-time-btn" type="button" data-jump-seconds="4800">Replay 01:20:00</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4123">Bouton -10s</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4133">Bouton grisé (1:36)</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4181">Countdown 0:48</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4224">Activation -5s</button>
+        <button class="dev-time-btn" type="button" data-jump-seconds="4229">Bouton actif (0:00)</button>
         <button class="dev-time-btn" type="button" data-jump-seconds="-1">Fin vidéo</button>
         <button class="dev-time-btn" type="button" data-offer-state="active">Offre active</button>
         <button class="dev-time-btn" type="button" data-offer-state="expired">Offre expirée</button>
@@ -821,17 +835,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         <button class="dev-time-btn" type="button" data-wallclock-preset="after-end">Après clôture</button>
       </div>
       <p id="dev-now-status" class="dev-time-status">Horloge replay: --</p>
-      <p id="dev-scarcity-status" class="dev-time-status">Scarcity: --</p>
-      <p class="dev-time-title" style="margin-top:10px;">Scarcity (saut moteur)</p>
-      <p id="dev-scarcity-audit" class="dev-time-status" style="white-space:pre-line;">--</p>
-      <div class="dev-scarcity-force">
-        <button class="dev-time-btn" type="button" data-scarcity-jump="66000">Phase1 start</button>
-        <button class="dev-time-btn" type="button" data-scarcity-jump="1266000">Phase1 live</button>
-        <button class="dev-time-btn" type="button" data-scarcity-jump="45662000">Phase1 fin / Phase2 start</button>
-        <button class="dev-time-btn" type="button" data-scarcity-jump="149565000">Phase2 mid</button>
-        <button class="dev-time-btn" type="button" data-scarcity-jump="255729000">Phase2 fin</button>
-        <button class="dev-time-btn" type="button" data-scarcity-jump="">Temps réel</button>
-      </div>
     </div>
 
     <section id="screen-email" class="screen visible">
@@ -904,14 +907,14 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       </div>
 
       <section id="offer-zone" class="offer-zone hidden">
-        <p class="offer-countdown-title">L'offre expire dans :</p>
+        <p class="offer-countdown-title">L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :</p>
         <div class="countdown">
           <div class="card"><span id="offer-days" class="v">00</span><div class="l">Jours</div></div>
           <div class="card"><span id="offer-hours" class="v">00</span><div class="l">Heures</div></div>
           <div class="card"><span id="offer-minutes" class="v">00</span><div class="l">Minutes</div></div>
           <div class="card"><span id="offer-seconds" class="v">00</span><div class="l">Secondes</div></div>
         </div>
-        <div class="scarcity-card" id="scarcity-card" aria-live="polite">
+        <div class="scarcity-card" id="scarcity-card" aria-hidden="true" hidden>
           <p class="scarcity-kicker">Nombre de places limitées</p>
           <div class="scarcity-phase1-total">
             <span class="scarcity-soldout-stamp">Sold out</span>
@@ -934,7 +937,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           </div>
           <div class="scarcity-meter"><div class="scarcity-meter__fill" id="scarcity-meter-fill"></div></div>
         </div>
-        <a id="offer-cta" class="offer-cta" href="#">Découvrir Esprit Subconscient 2.0</a>
+        <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">Découvrir Esprit Subconscient 2.0</a>
         <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
           <p class="offer-expired-title">L'offre n'est plus disponible</p>
           <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
@@ -972,7 +975,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     </div>
   </div>
 
-  <div id="purchase-toast" class="purchase-toast" aria-live="polite">
+  <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
     <div class="purchase-toast__content">
       <div class="purchase-toast__thumb-wrap">
         <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
@@ -990,16 +993,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     const TOKEN_KEY = 'masterclass_es2_token';
     const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000;
     const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
-    const CTA_TRIGGER_SECONDS = 69 * 60 + 26; // 1h09m26s = CTA W2 replay (rollback : voir commentaire URL vidéo ci-dessous)
+    const CTA_APPEAR_SECONDS = 68 * 60 + 53; // 1h08m53s : apparition du bouton grisé
+    const CTA_ACTIVATE_SECONDS = 70 * 60 + 29; // 1h10m29s : bouton actif et cliquable
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
     // ROLLBACK 2026-05-29 : la vidéo W4 (sans les 6 min de countdown) a divisé la rétention par 2
     // (17% atteint CTA vs 37% sur W3 avec la vidéo W2). La transition douce des 6 premières minutes
     // jouait visiblement un rôle de "rampe d'accès" qu'on n'avait pas anticipé.
-    // On revient à la vidéo W2 + CTA 4166s, en gardant les améliorations UX (pause, overlay scarcity,
+    // On revient à la vidéo W2, en gardant les améliorations UX (pause, overlay scarcity,
     // bouton plein écran restylé, PDF qui disparaît au CTA).
     // MIGRATION 2026-07-06 : replay en HLS adaptatif via Bunny Stream (fin des freezes sur
     // connexions faibles). L'ancien MP4 progressif reste le fallback ultime si HLS injouable.
-    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/d23f310f-0ee9-441f-b381-c33323d85d22/playlist.m3u8';
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/5946baaf-6b2c-4195-9cbe-8ab0d5962c32/playlist.m3u8';
     const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20-%20REPLAY%20(compressee).mp4';
     const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
@@ -1303,7 +1307,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const sec = Number(replaySeconds);
         if (!Number.isFinite(sec)) return;
         const scarcityAnchorStartMs = getPreviewScarcityAnchorStartMs();
-        const relativeToCtaMs = Math.floor((sec - CTA_TRIGGER_SECONDS) * 1000);
+        const relativeToCtaMs = Math.floor((sec - CTA_ACTIVATE_SECONDS) * 1000);
         const simulatedNowMs = scarcityAnchorStartMs + relativeToCtaMs;
         const payload = {
           simulatedNowMs,
@@ -1434,9 +1438,35 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         const isExpired = Boolean(expired);
         if (offerCountdownTitle) offerCountdownTitle.classList.toggle('hidden', isExpired);
         if (offerCountdownGrid) offerCountdownGrid.classList.toggle('hidden', isExpired);
-        if (offerScarcityCard) offerScarcityCard.classList.toggle('hidden', isExpired);
+        if (offerScarcityCard) {
+          offerScarcityCard.classList.add('hidden');
+          offerScarcityCard.setAttribute('aria-hidden', 'true');
+        }
         if (offerCta) offerCta.classList.toggle('hidden', isExpired);
         if (offerExpiredState) offerExpiredState.classList.toggle('hidden', !isExpired);
+      }
+      function setOfferCtaEnabled(enabled) {
+        if (!offerCta) return;
+        const isEnabled = Boolean(enabled) && !isOfferExpiredNow();
+        offerCta.classList.toggle('is-disabled', !isEnabled);
+        offerCta.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+        offerCta.setAttribute('tabindex', isEnabled ? '0' : '-1');
+        if (offerCountdownTitle) {
+          offerCountdownTitle.innerHTML = isEnabled
+            ? 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible'
+            : 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :';
+        }
+      }
+      function updateCtaUnlockCountdown() {
+        const total = Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
+        const d = Math.floor(total / 86400);
+        const h = Math.floor((total % 86400) / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        document.getElementById('offer-days').textContent = String(d).padStart(2, '0');
+        document.getElementById('offer-hours').textContent = String(h).padStart(2, '0');
+        document.getElementById('offer-minutes').textContent = String(m).padStart(2, '0');
+        document.getElementById('offer-seconds').textContent = String(s).padStart(2, '0');
       }
       function showToast(purchase, mode, detail) {
         toastQueue.push({ purchase, mode, detail });
@@ -1470,17 +1500,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }, 4000);
       }
       function startScarcityEngineIfNeeded() {
-        if (!ctaActivated || isOfferExpiredNow() || scarcityEngine) return;
-        scarcityEngine = startScarcityEngine({
-          now: () => getMcWallClockMs(),
-          isActive: () => ctaActivated && !isOfferExpiredNow(),
-          windowStartMs: scarcityWindowStartMs,
-          windowEndMs: scarcityWindowEndMs,
-          enableReplay: true,
-          debug: new URLSearchParams(window.location.search).get('scarcity_debug') === '1',
-          onSeatsLeft: setSeatsLeft,
-          onNotification: showToast,
-        });
+        // Désactivé volontairement sur le replay, comme sur le live :
+        // aucune scarcity ni notification d'achat sur cette page.
       }
       function activateOfferAndScarcity() {
         if (ctaActivated) return;
@@ -1489,6 +1510,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           return;
         }
         ctaActivated = true;
+        setOfferCtaEnabled(true);
+        updateCtaUnlockCountdown();
         if (!didTrackCtaReached) {
           didTrackCtaReached = true;
           trackWebinaireEvent(token, 'cta_reached');
@@ -1499,8 +1522,33 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         setOfferExpiredState(isOfferExpiredNow());
         startScarcityEngineIfNeeded();
       }
+      function showLockedOffer() {
+        if (isOfferExpiredNow()) {
+          syncReplayUnavailableLock();
+          return;
+        }
+        ctaActivated = false;
+        if (scarcityEngine) {
+          scarcityEngine.stop();
+          scarcityEngine = null;
+        }
+        toast.classList.remove('show');
+        if (hideToastTimer) clearTimeout(hideToastTimer);
+        if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+        hideToastTimer = null;
+        toastQueueGapTimer = null;
+        toastQueue.length = 0;
+        toastQueueBusy = false;
+        offerZone.classList.remove('hidden');
+        offerZone.classList.add('visible');
+        expiryBanner.classList.add('hidden');
+        setOfferCtaEnabled(false);
+        updateCtaUnlockCountdown();
+        setOfferExpiredState(false);
+      }
       function hideOfferAndScarcity() {
         ctaActivated = false;
+        setOfferCtaEnabled(false);
         offerZone.classList.add('hidden');
         offerZone.classList.remove('visible');
         expiryBanner.classList.remove('hidden');
@@ -1517,18 +1565,20 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         toastQueueBusy = false;
       }
       function updateCtaStateByVideoTime() {
-        if (video.currentTime >= CTA_TRIGGER_SECONDS) {
+        if (video.currentTime >= CTA_ACTIVATE_SECONDS) {
           activateOfferAndScarcity();
           setOfferExpiredState(isOfferExpiredNow());
+        } else if (video.currentTime >= CTA_APPEAR_SECONDS) {
+          showLockedOffer();
         } else {
           hideOfferAndScarcity();
         }
       }
       function ensureOfferVisibleForPreview() {
         if (!isPreviewDev) return;
-        if ((video.currentTime || 0) >= CTA_TRIGGER_SECONDS) return;
+        if ((video.currentTime || 0) >= CTA_ACTIVATE_SECONDS) return;
         allowProgrammaticSeek = true;
-        video.currentTime = CTA_TRIGGER_SECONDS + 30;
+        video.currentTime = CTA_ACTIVATE_SECONDS + 1;
         maxWatched = Math.max(maxWatched, video.currentTime);
       }
       function jumpToSeconds(targetSec) {
@@ -1932,7 +1982,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       }
 
       countdownInterval = setInterval(() => {
-        updateCountdown(offerExpiryMs);
+        if (ctaActivated) {
+          updateCtaUnlockCountdown();
+        } else if ((video.currentTime || 0) >= CTA_APPEAR_SECONDS) {
+          updateCtaUnlockCountdown();
+        }
         updateDiagnosticGuideState();
         syncReplayUnavailableLock();
         startScarcityEngineIfNeeded();
@@ -1943,12 +1997,16 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
           setOfferExpiredState(true);
         }
       }, 1000);
-      updateCountdown(offerExpiryMs);
+      updateCtaUnlockCountdown();
       updateDiagnosticGuideState();
       syncReplayUnavailableLock();
       syncMobileControlsAutoHide();
       offerCta.href = '/invitation?t=' + encodeURIComponent(token);
-      offerCta.addEventListener('click', () => {
+      offerCta.addEventListener('click', (event) => {
+        if (offerCta.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          return;
+        }
         trackWebinaireEvent(token, 'cta_clicked');
       });
 
@@ -2092,4 +2150,3 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
   <script>document.documentElement.classList.add('ready');</script>
 </body>
 </html>
-

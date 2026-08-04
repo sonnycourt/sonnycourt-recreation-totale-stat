@@ -4,6 +4,7 @@ import {
   getCloserCookieValue,
   verifyCloserToken,
 } from './lib/closer-access-crypto.mjs';
+import { computeLeadHeat, sortLeadsByHeat } from './lib/webinaire-lead-heat.mjs';
 
 /**
  * Console closer — chaque closer ne voit/édite QUE ses leads assignés.
@@ -115,14 +116,32 @@ export default async (req) => {
   if (cid === null) return json(401, { error: 'Non authentifié' });
 
   if (req.method === 'GET') {
-    const r = await supabaseGet(
+    const legacySelect =
+      'token,prenom,telephone,email,pays,traffic_source,watch_max_minutes,saw_offer,visited_sales,checkout_clicked,purchased,purchased_at,' +
+      'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log,proposed_offers,rdv_at,rdv_booked_at,rdv_phone,rdv_page_visited_at';
+    const intentSelect =
+      ',watch_max_seconds_live,watch_max_seconds_replay,pdv_seconds,sales_visit_count,sales_max_scroll_pct,' +
+      'sales_pricing_viewed,sales_guarantee_viewed,checkout_click_count,checkout_view_count,checkout_engaged,' +
+      'checkout_last_plan,checkout_last_payment_mode,checkout_last_button,checkout_last_route,' +
+      'checkout_last_clicked_at,checkout_last_viewed_at,last_intent_at,last_event_at';
+    let r = await supabaseGet(
       `webinaire_registrations?assigned_closer_id=eq.${cid}` +
-        '&select=token,prenom,telephone,email,pays,traffic_source,watch_max_minutes,saw_offer,visited_sales,checkout_clicked,purchased,purchased_at,' +
-        'session_date,call_status,next_callback_at,call_notes,call_transcript,call_log,proposed_offers,rdv_at,rdv_booked_at,rdv_phone,rdv_page_visited_at' +
+        `&select=${legacySelect}${intentSelect}` +
         '&order=watch_max_minutes.desc',
     );
+    // Déploiement sûr : si la migration additive n'est pas encore appliquée,
+    // la console continue avec les champs historiques au lieu de tomber.
+    if (!r.ok) {
+      r = await supabaseGet(
+        `webinaire_registrations?assigned_closer_id=eq.${cid}` +
+          `&select=${legacySelect}` +
+          '&order=watch_max_minutes.desc',
+      );
+    }
     if (!r.ok) return json(500, { error: 'Erreur lecture' });
     const leads = Array.isArray(r.data) ? r.data : [];
+    for (const lead of leads) Object.assign(lead, computeLeadHeat(lead));
+    leads.sort(sortLeadsByHeat);
     // Budget déclaré sur /rdv-es2 : stocké en Netlify Blobs (index agrégé), pas en base.
     try {
       const { getStore } = await import('@netlify/blobs');
@@ -134,6 +153,25 @@ export default async (req) => {
     } catch (e) {
       /* budgets indisponibles -> console fonctionne sans */
     }
+    // Historique d'intention attaché à chaque lead, par lots pour éviter le N+1.
+    // Si la migration n'est pas encore jouée, la console reste pleinement utilisable.
+    const historyByToken = new Map();
+    for (let i = 0; i < leads.length; i += 50) {
+      const tokens = leads.slice(i, i + 50).map((lead) => lead.token).filter(Boolean);
+      if (!tokens.length) continue;
+      const historyRes = await supabaseGet(
+        `webinaire_funnel_events?token=in.(${tokens.map(encodeURIComponent).join(',')})` +
+          '&select=token,event_name,occurred_at,metadata' +
+          '&order=occurred_at.desc&limit=2000',
+      );
+      if (!historyRes.ok || !Array.isArray(historyRes.data)) continue;
+      for (const event of historyRes.data) {
+        const list = historyByToken.get(event.token) || [];
+        if (list.length < 30) list.push(event);
+        historyByToken.set(event.token, list);
+      }
+    }
+    for (const lead of leads) lead.funnel_history = historyByToken.get(lead.token) || [];
     // Coordonnées du closer (téléphones + liens checkout) affichées en tête de console.
     let me = null;
     const meRes = await supabaseGet(

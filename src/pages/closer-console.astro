@@ -1850,17 +1850,22 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function statusBadge(l){var s=statusOf(l);if(hasRdv(l))return stPill(s)+'<span class="cc-cbtag cc-rdvtag">&#128197; RDV '+fmt(l.rdv_at)+'</span>'+nextHtml(l);var cb=(s==='A rappeler'&&l.next_callback_at)?'<span class="cc-cbtag">&#128197; '+fmt(l.next_callback_at)+'</span>':'';return stPill(s)+cb+nextHtml(l);}
         function callsCell(log){if(!log||!log.length)return '<span class="cc-calls"><small>aucune tentative</small></span>';var last=log[log.length-1];return '<span class="cc-calls">'+log.length+' tentative'+(log.length>1?'s':'')+'<br><small>dernière '+fmt(last.at)+'</small></span>';}
         function histHtml(log){if(!log||!log.length)return '<div class="cc-hist-empty">Aucune tentative notee.</div>';return log.map(function(e,i){var rap=(CALLBACK_OUTCOMES.indexOf(e.outcome)!==-1&&e.callback)?' <span class="rap">&rarr; rappel '+fmt(e.callback)+'</span>':'';return '<div class="cc-h"><time>'+fmt(e.at)+'</time><em>'+esc(e.outcome||'—')+rap+'</em><button type="button" class="cc-hdel" data-idx="'+i+'" title="Supprimer">&times;</button></div>';}).reverse().join('');}
+        function funnelEventLabel(e){var m=e&&e.metadata&&typeof e.metadata==='object'?e.metadata:{};var plan=m.plan?planLabel(m.plan):'';var pay=m.payment_mode?paymentLabel(m.payment_mode):'';var labels={invitation_visited:'Page de vente visitée',sales_scroll:'Lecture de la page : '+esc(String(m.percent||'?'))+' %',sales_section_viewed:m.section==='pricing'?'Section des formules réellement vue':'Garantie réellement vue',checkout_clicked:'Clic checkout '+esc([plan,pay].filter(Boolean).join(' · ')),checkout_viewed:'Checkout ouvert '+esc([plan,pay].filter(Boolean).join(' · ')),checkout_engaged:'20 secondes actives sur le checkout',cta_reached:'Offre atteinte dans le webinaire',cta_clicked:'CTA cliqué',auto_redirect_to_offer:'Redirection automatique vers la vente',replay_started:'Replay démarré'};return labels[e&&e.event_name]||esc(String(e&&e.event_name||'Événement'));}
+        function funnelHistHtml(events){if(!Array.isArray(events)||!events.length)return '<div class="cc-hist-empty">Pas encore de parcours détaillé pour ce lead.</div>';return events.slice(0,30).map(function(e){return '<div class="cc-h"><time>'+fmt(e.occurred_at)+'</time><em>'+funnelEventLabel(e)+'</em></div>';}).join('');}
         function opts(arr,val){return '<option value="">&mdash;</option>'+arr.map(function(s){return '<option'+(val===s?' selected':'')+'>'+s+'</option>';}).join('');}
 
         function detailHtml(l){
             var m=l.watch_max_minutes||0;
-            var ctaTxt=(l.visited_sales?' &middot; <b>a vu la page de vente</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':''))+(l.checkout_clicked?' &middot; <b style="color:#7c3aed">a cliqué s\'inscrire (page de vente)'+(l.purchased?'':' &#128722; panier abandonné')+'</b>':'');
+            var pdvMin=Math.floor((Number(l.pdv_seconds)||0)/60);
+            var checkoutIntent=(l.checkout_last_plan?planLabel(l.checkout_last_plan)+' '+paymentLabel(l.checkout_last_payment_mode):'checkout');
+            var ctaTxt=(l.visited_sales?' &middot; <b>a vu la page de vente'+(l.sales_max_scroll_pct?' à '+l.sales_max_scroll_pct+' %':'')+(pdvMin?' pendant '+pdvMin+' min':'')+'</b>':((l.saw_offer||m>=81)?' &middot; <b>a vu l\'offre</b>':''))+((l.checkout_view_count||l.checkout_clicked)?' &middot; <b style="color:#7c3aed">'+esc(checkoutIntent)+(l.checkout_view_count?' ouvert '+l.checkout_view_count+' fois':' cliqué')+(l.purchased?'':' &#128722; sans achat')+'</b>':'');
             return '<div class="cc-det-in">'+
               (l._test?'<div class="cc-testnote"><span>&#129514; Lead de test — local, rien n\'est enregistré.</span><button type="button" class="cc-testdel" data-token="'+esc(l.token)+'">&#128465; Supprimer ce lead test</button></div>':'')+
               '<div class="cc-recap">'+
                 '<span>&#9993; '+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'&mdash;')+'</span>'+
                 '<span>'+paysFlag(l.pays)+' <b>'+esc(l.pays||'—')+'</b></span>'+
                 '<span>&#9202; <b>'+m+' min</b>'+ctaTxt+'</span>'+
+                (l.heat_label?'<span>&#128293; <b style="color:#c2410c">'+esc(l.heat_label)+' — '+esc(String(l.heat_score||0))+'/100</b>'+(l.heat_reason?' &middot; '+esc(l.heat_reason):'')+'</span>':'')+
                 (l.rdv_budget_declared?'<span>&#128176; <b style="color:#0e7490">Budget déclaré : '+esc({'500+':'plus de 500 €/mois','200-500':'200 à 500 €/mois','<200':'moins de 200 €/mois'}[l.rdv_budget_declared]||l.rdv_budget_declared)+'</b></span>':'')+
                 (hasRdv(l)?'<span>&#128197; <b style="color:#6d28d9">RDV réservé par le lead : '+fmt(l.rdv_at)+'</b>'+((l.rdv_phone&&l.rdv_phone!==l.telephone)?' &middot; <b style="color:#6d28d9">appeler le '+esc(l.rdv_phone)+'</b>':'')+'</span>':
                  (l.rdv_page_visited_at&&!l.rdv_at?'<span>&#128064; <b style="color:#b45309">A ouvert la page RDV le '+fmt(l.rdv_page_visited_at)+' sans réserver</b></span>':''))+
@@ -1877,6 +1882,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                 '<div class="cc-cbwrap" hidden><div class="cc-f"><label>&#128197; Rappeler le</label><input type="datetime-local" class="cc-in cc-cb"></div></div>'+
                 '<div class="cc-logbtns"><button type="button" class="cc-logvalid">Valider la tentative</button><button type="button" class="cc-logcancel">Annuler</button></div>'+
               '</div>'+
+              '<div class="cc-hist"><div class="cc-hist-t">Parcours digital individuel</div>'+funnelHistHtml(l.funnel_history)+'</div>'+
               '<div class="cc-hist"><div class="cc-hist-t">Historique des tentatives</div>'+histHtml(l.call_log)+'</div>'+
               '<div class="cc-offers"><div class="cc-offers-t">Formations proposées pendant l\'appel</div>'+
                 OFFERS.map(function(o){var on=(l.proposed_offers||[]).indexOf(o.k)!==-1;return '<label class="cc-offer"><input type="checkbox" class="cc-offer-cb" data-offer="'+o.k+'"'+(on?' checked':'')+'> '+esc(o.t)+'</label>';}).join('')+
@@ -1890,6 +1896,10 @@ import GAConsentMode from '../components/GAConsentMode.astro';
             var offer=(l.saw_offer||m>=81)?'<span class="cc-cta">a vu l\'offre</span>':'';
             return '<div class="cc-minw"><span class="cc-min'+(m>=81?' hot':'')+'">'+m+' min</span>'+offer+'</div>';}
         function ynPill(on,hot){return on?'<span class="cc-yn yes'+(hot?' cart':'')+'">Oui</span>':'<span class="cc-yn no">Non</span>';}
+        function planLabel(v){return v==='complet'?'Complet':(v==='avance'?'Avancé':(v==='standard'?'Standard':'—'));}
+        function paymentLabel(v){return String(v)==='1'?'comptant':(String(v)==='12'?'12×':'');}
+        function salesCell(l){if(!l.visited_sales)return ynPill(false);var bits=['Oui'];if(l.sales_max_scroll_pct)bits.push(l.sales_max_scroll_pct+' %');if(Number(l.pdv_seconds)>=60)bits.push(Math.floor(Number(l.pdv_seconds)/60)+' min');return '<span class="cc-yn yes">'+bits.join(' · ')+'</span>';}
+        function checkoutCell(l){var viewed=Number(l.checkout_view_count)||0;var clicked=Number(l.checkout_click_count)||Number(!!l.checkout_clicked);if(!viewed&&!clicked)return ynPill(false);var bits=[];if(l.checkout_last_plan)bits.push(planLabel(l.checkout_last_plan));if(l.checkout_last_payment_mode)bits.push(paymentLabel(l.checkout_last_payment_mode));bits.push(viewed?(viewed+' vue'+(viewed>1?'s':'')):'cliqué');return '<span class="cc-yn yes cart">'+bits.join(' · ')+'</span>';}
         function srcBadge(l){if(l.traffic_source==='meta_ad')return '<span class="cc-src cc-src-meta">Meta</span>';if(l.traffic_source==='tiktok_ad')return '<span class="cc-src cc-src-tt">TikTok</span>';return '<span class="cc-src cc-src-orga">Orga</span>';}
         var REAL_CONTACT={'À rappeler':1,'En réflexion':1,'Dit oui (verbal)':1,'Pas intéressé':1,'Joint':1,'Rappel demande':1,'A dit OUI':1,'Refus':1};
         function contactBeforeBuy(l){var log=l.call_log;if(!Array.isArray(log))return false;var pa=l.purchased_at?new Date(l.purchased_at).getTime():null;for(var i=0;i<log.length;i++){var e=log[i];if(!e||!REAL_CONTACT[e.outcome]||!e.at)continue;var t=new Date(e.at).getTime();if(isNaN(t))continue;if(pa==null||t<pa)return true;}return false;}
@@ -1901,8 +1911,8 @@ import GAConsentMode from '../components/GAConsentMode.astro';
                  '<div class="cc-sub2">'+paysFlag(l.pays)+' '+esc(l.pays||'—')+' '+srcBadge(l)+'</div></td>'+
               '<td><a class="cc-tel" href="tel:'+esc(l.telephone||'')+'" onclick="event.stopPropagation()">'+esc(l.telephone||'aucun')+'</a></td>'+
               '<td>'+minutesCell(l)+'</td>'+
-              '<td class="cc-yncell">'+ynPill(!!l.visited_sales)+'</td>'+
-              '<td class="cc-yncell">'+ynPill(!!(l.checkout_clicked&&!l.purchased),true)+'</td>'+
+              '<td class="cc-yncell">'+salesCell(l)+'</td>'+
+              '<td class="cc-yncell">'+checkoutCell(l)+'</td>'+
               '<td class="cc-stcell">'+statusBadge(l)+'</td>'+
               '<td class="cc-buycell">'+boughtCell(l)+'</td>'+
               '<td class="cc-callscell">'+callsCell(l.call_log)+'</td>'+
@@ -1912,7 +1922,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
         function updateRdvNav(){var el=document.getElementById('cc-nav-rdv-count');if(!el)return;var n=(ALL_LEADS||[]).filter(function(l){return l.rdv_at&&!l.purchased&&new Date(l.rdv_at).getTime()>Date.now();}).length;el.textContent=n;el.hidden=!n;}
         function renderChips(){updateRdvNav();chipsEl.innerHTML=CHIPS.map(function(c){var n=(c.k==='all')?LEADS.length:(c.k==='todo')?LEADS.filter(todoF).length:(c.k==='rdv')?LEADS.filter(hasRdv).length:(c.k==='achete'?LEADS.filter(function(l){return l.purchased;}).length:LEADS.filter(function(l){return !l.purchased&&(l.call_status||'A appeler')===c.k;}).length);return '<button class="cc-chip'+(FILTER===c.k?' on':'')+'" data-f="'+c.k+'">'+c.t+'<small>'+n+'</small></button>';}).join('');}
         function passF(l){if(FILTER==='all')return true;if(FILTER==='todo')return todoF(l);if(FILTER==='rdv')return hasRdv(l);if(FILTER==='achete')return !!l.purchased;if(l.purchased)return false;return (l.call_status||'A appeler')===FILTER;}
-        function heat(l){if(l.checkout_clicked&&!l.purchased)return 2;if(l.visited_sales)return 1;return 0;}
+        function heat(l){if(Number.isFinite(Number(l.heat_score)))return Number(l.heat_score);if(l.checkout_clicked&&!l.purchased)return 70;if(l.visited_sales)return 40;return 0;}
         function srcKey(l){return l.traffic_source==='meta_ad'?'meta':(l.traffic_source==='tiktok_ad'?'tiktok':'orga');}
         // Alterne les sources (Meta/Orga/TikTok) au sein d'un groupe de même chaleur,
         // chaque source gardant ses meilleures minutes d'abord.
