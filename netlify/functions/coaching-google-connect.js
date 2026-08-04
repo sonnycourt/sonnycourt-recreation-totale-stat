@@ -21,6 +21,19 @@ export default async (req) => {
   const stored = await supabasePost('coaching_google_oauth_states', { coach_id: coach.id, token_hash: crypto.createHash('sha256').update(state).digest('hex'), expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() });
   if (!stored.ok) return json(500, { error: 'Connexion Google impossible.' });
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  url.search = new URLSearchParams({ client_id: process.env.GOOGLE_COACHING_CLIENT_ID, redirect_uri: coachingGoogleRedirectUri(), response_type: 'code', access_type: 'offline', prompt: 'consent', scope: 'openid email https://www.googleapis.com/auth/calendar', state }).toString();
+  url.search = new URLSearchParams({
+    client_id: process.env.GOOGLE_COACHING_CLIENT_ID,
+    redirect_uri: coachingGoogleRedirectUri(),
+    response_type: 'code',
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: [
+      'openid',
+      'email',
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/calendar.events.freebusy',
+    ].join(' '),
+    state,
+  }).toString();
   return json(200, { url: url.toString() });
 };
