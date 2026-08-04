@@ -10921,6 +10921,9 @@ const currentYear = new Date().getFullYear();
             }
 
             function setTokenEverywhere(nextToken) {
+                // Le token synthétique de l'aperçu ne doit jamais remplacer un
+                // vrai token webinaire conservé dans le navigateur.
+                if (isPreviewDev && nextToken === 'preview-invitation') return;
                 localStorage.setItem(TOKEN_KEY, nextToken);
             }
             function trackWebinaireEvent(token, eventName, value, meta) {
@@ -10940,7 +10943,11 @@ const currentYear = new Date().getFullYear();
             function propagateTokenToCheckoutLinks(activeToken) {
                 document.querySelectorAll('a[href*="spiffy.co/checkout"], a[href*="/invitation-es2"]').forEach(function (a) {
                     const href = a.getAttribute('href') || '';
-                    a.setAttribute('href', href + (href.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(activeToken));
+                    const separator = href.includes('?') ? '&' : '?';
+                    const accessParam = isPreviewDev
+                        ? 'preview=dev'
+                        : 't=' + encodeURIComponent(activeToken);
+                    a.setAttribute('href', href + separator + accessParam);
                 });
             }
             function bindCheckoutClickTracking(activeToken) {
