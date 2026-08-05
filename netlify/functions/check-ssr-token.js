@@ -2,7 +2,9 @@
 // et récupérer son unique_token_ssr
 // GET /.netlify/functions/check-ssr-token?email=test@example.com
 
-exports.handler = async (event, context) => {
+import { withLambda } from '@netlify/aws-lambda-compat';
+
+const handler = async (event, context) => {
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
         return {
@@ -163,3 +165,5 @@ exports.handler = async (event, context) => {
         };
     }
 };
+
+export default withLambda(handler);

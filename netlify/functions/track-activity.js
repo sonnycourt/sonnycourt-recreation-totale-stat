@@ -2,11 +2,13 @@
 // GET /api/track-activity?email=test@example.com
 // Met à jour l'attribut "last_click" avec la date du jour
 
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 const LISTMONK_URL = process.env.LISTMONK_URL || 'http://168.119.238.147:9000';
 const LISTMONK_USER = process.env.LISTMONK_USER || 'api';
 const LISTMONK_PASS = process.env.LISTMONK_PASS;
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -15,7 +17,7 @@ exports.handler = async (event) => {
   };
 
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
+    return { statusCode: 204, headers, body: null };
   }
 
   if (event.httpMethod !== 'GET') {
@@ -136,3 +138,4 @@ exports.handler = async (event) => {
   }
 };
 
+export default withLambda(handler);

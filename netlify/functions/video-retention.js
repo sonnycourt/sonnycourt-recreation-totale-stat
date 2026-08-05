@@ -1,3 +1,5 @@
+import { withLambda } from "@netlify/aws-lambda-compat";
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -44,7 +46,7 @@ function sanitizeSeconds(seconds) {
   return Array.from(unique).sort((a, b) => a - b);
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return jsonResponse(204, {});
   }
@@ -102,3 +104,5 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "Internal server error" });
   }
 };
+
+export default withLambda(handler);

@@ -1,3 +1,5 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Fonction pour détecter le pays et la ville depuis l'IP côté serveur
 async function detectLocationFromIP(ip) {
     if (!ip) return { country: null, city: null };
@@ -87,7 +89,7 @@ function getClientIP(event) {
     return null;
 }
 
-exports.handler = async (event, context) => {
+const handler = async (event, context) => {
     // Gérer les requêtes OPTIONS pour CORS
     if (event.httpMethod === 'OPTIONS') {
         return {
@@ -469,3 +471,5 @@ exports.handler = async (event, context) => {
         };
     }
 };
+
+export default withLambda(handler);

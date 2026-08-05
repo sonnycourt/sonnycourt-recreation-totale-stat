@@ -1,4 +1,5 @@
-const crypto = require("crypto");
+import crypto from "node:crypto";
+import { withLambda } from "@netlify/aws-lambda-compat";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -80,7 +81,7 @@ function buildRetentionPoints(rows) {
   };
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return jsonResponse(405, { error: "Method not allowed" });
   }
@@ -140,3 +141,5 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "Internal server error" });
   }
 };
+
+export default withLambda(handler);

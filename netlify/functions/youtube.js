@@ -4,7 +4,9 @@
 //  /.netlify/functions/youtube?action=videos&ids=ID1,ID2
 // Optional: &channelId=... (defaults to env YOUTUBE_CHANNEL_ID)
 
-export async function handler(event) {
+import { withLambda } from '@netlify/aws-lambda-compat';
+
+async function handler(event) {
   try {
     const params = event.queryStringParameters || {};
     const action = params.action;
@@ -52,6 +54,8 @@ export async function handler(event) {
   }
 }
 
+export default withLambda(handler);
+
 function json(statusCode, body) {
   return {
     statusCode,
@@ -62,5 +66,4 @@ function json(statusCode, body) {
     body: JSON.stringify(body),
   };
 }
-
 

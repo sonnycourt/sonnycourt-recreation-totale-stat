@@ -40,12 +40,20 @@ function fail(message) {
 }
 
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    ...options,
-  });
+  try {
+    return execFileSync(command, args, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+      ...options,
+    });
+  } catch (error) {
+    if (process.env.SAFE_DEPLOY_DEBUG === '1' && options.capture) {
+      if (error?.stdout) console.error(error.stdout);
+      if (error?.stderr) console.error(error.stderr);
+    }
+    throw error;
+  }
 }
 
 function git(args, capture = true) {
@@ -258,7 +266,6 @@ function deployPreview() {
       '--dir=dist',
       '--functions=netlify/functions',
       '--no-build',
-      '--skip-functions-cache',
       '--json',
       '--message',
       `Safe preview ${git(['rev-parse', '--short', 'HEAD'])}`,
@@ -295,7 +302,6 @@ async function main() {
           '--dir=dist',
           '--functions=netlify/functions',
           '--no-build',
-          '--skip-functions-cache',
           '--json',
           '--message',
           `Safe production ${git(['rev-parse', '--short', 'HEAD'])}`,

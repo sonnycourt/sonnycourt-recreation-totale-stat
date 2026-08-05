@@ -1,7 +1,7 @@
-const fetch = require('node-fetch');
 const crypto = require('crypto');
 
 // Configuration Supabase
+// Colonnes anti-doublon quiz_responses : email_sent (initial), email_24h_sent, email_4h_sent (boolean, default false)
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyamJ4ZHJhb2J2cWtjZGprdmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTM0NTAsImV4cCI6MjA4NDA2OTQ1MH0.RqOx2RfaUf4-JqJpol_TW7h6GD4ExIxJB4Q4jBY5XcQ';
 
@@ -33,18 +33,40 @@ const handler = async (event) => {
         };
     }
 
+    let lockAcquired = false, email, emailType, sentColumn;
+
     try {
-        // PARSER LE BODY ET EXTRAIRE L'EMAIL
+        // LOG INITIAL : Voir ce que MailerLite envoie
+        console.log('📥 Body reçu de MailerLite:', JSON.stringify(event.body ? JSON.parse(event.body) : {}, null, 2));
+        
+        // 1. VÉRIFIER LA SECRET KEY (pour les webhooks MailerLite)
+        const expectedSecret = 'pack-complet-webhook-2026';
+        const signature = event.headers['x-mailerlite-signature'] || event.headers['X-Mailerlite-Signature'] || '';
+        
+        // Si c'est un webhook MailerLite, vérifier la signature
+        if (signature && signature !== expectedSecret) {
+            console.error('❌ Secret key invalide:', signature);
+            return {
+                statusCode: 401,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ error: 'Unauthorized - Invalid secret key' })
+            };
+        }
+        
+        // 2. PARSER LE BODY ET EXTRAIRE L'EMAIL
         const requestBody = JSON.parse(event.body || '{}');
         
-        // Récupérer le paramètre model (query string ou body, défaut: 'sonnet')
+        // Récupérer le paramètre model (query string ou body, défaut: 'deepseek')
         const model = event.queryStringParameters?.model || requestBody.model || 'deepseek';
         
         // Récupérer le paramètre type (initial, 24h, 4h)
-        const emailType = requestBody.type || 'initial';
+        emailType = event.queryStringParameters?.type || requestBody.type || 'initial';
         
-        // Extraire l'email
-        const email = requestBody.email;
+        // Extraire l'email depuis le format MailerLite webhook
+        email = requestBody.events?.[0]?.subscriber?.email || requestBody.email;
 
         if (!email) {
             console.error('❌ Email non trouvé dans la requête');
@@ -59,8 +81,6 @@ const handler = async (event) => {
         }
         
         console.log('✅ Email reçu:', email);
-        console.log('🤖 Modèle LLM sélectionné:', model);
-        console.log('📧 Type d\'email:', emailType);
 
         // Récupérer les données du quiz depuis Supabase via API REST
         console.log(`🔍 Recherche des données du quiz pour l'email: ${email}`);
@@ -110,15 +130,124 @@ const handler = async (event) => {
         }
 
         const quizData = quizDataArray[0];
-        const token = quizData.token || crypto.randomUUID();
 
         console.log('✅ Données du quiz récupérées:', {
             prenom: quizData.prenom,
             objectif: quizData.objectif,
-            situation: quizData.situation
+            situation: quizData.situation,
+            token: quizData.token ? 'présent' : 'absent'
         });
 
-        // Appeler l'API LLM (Claude ou DeepSeek selon le paramètre model)
+        // Anti-doublon atomique : UPDATE seulement si le flag est encore false
+        sentColumn = emailType === 'initial' ? 'email_sent' : (emailType === '24h' ? 'email_24h_sent' : 'email_4h_sent');
+        const atomicUpdateRes = await fetch(
+            `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&${sentColumn}=eq.false`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': supabaseAnonKey,
+                    'Authorization': `Bearer ${supabaseAnonKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ [sentColumn]: true })
+            }
+        );
+        const atomicUpdateBody = await atomicUpdateRes.json();
+        if (!atomicUpdateRes.ok) {
+            console.error('❌ Erreur Supabase atomic update:', atomicUpdateBody);
+            return {
+                statusCode: 500,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Supabase atomic update failed', details: atomicUpdateBody })
+            };
+        }
+        if (!atomicUpdateBody || !Array.isArray(atomicUpdateBody) || atomicUpdateBody.length === 0) {
+            console.log(`⏭️ SKIP: Email ${emailType} déjà en cours/envoyé pour ${email}`);
+            return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ skipped: true, type: emailType })
+            };
+        }
+        lockAcquired = true;
+        console.log(`🔒 Verrou acquis pour ${emailType} - ${email}`);
+
+        // Vérification de l'ordre des emails
+        if (emailType === '24h') {
+            const checkInitial = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=email_sent`,
+                { method: 'GET', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` } }
+            );
+            const checkData = await checkInitial.json();
+            if (!checkData[0]?.email_sent) {
+                console.log('⏳ ATTENTE: Email 24h demandé mais email initial pas encore envoyé pour', email);
+                // Rollback le lock
+                await fetch(
+                    `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                    { method: 'PATCH', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ [sentColumn]: false }) }
+                );
+                return { statusCode: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ retry: true, reason: 'initial_not_sent_yet' }) };
+            }
+        }
+
+        if (emailType === '4h') {
+            const check24h = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}&select=email_24h_sent`,
+                { method: 'GET', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` } }
+            );
+            const checkData = await check24h.json();
+            if (!checkData[0]?.email_24h_sent) {
+                console.log('⏳ ATTENTE: Email 4h demandé mais email 24h pas encore envoyé pour', email);
+                // Rollback le lock
+                await fetch(
+                    `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                    { method: 'PATCH', headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ [sentColumn]: false }) }
+                );
+                return { statusCode: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ retry: true, reason: '24h_not_sent_yet' }) };
+            }
+        }
+
+        console.log('✅ Ordre vérifié, continuation pour', emailType);
+
+        // 2. Utiliser le token depuis Supabase (ou générer un nouveau si absent)
+        let token = quizData.token;
+        
+        if (!token) {
+            // Si pas de token dans Supabase, en générer un nouveau et le mettre à jour
+            token = crypto.randomUUID();
+            console.log('🔑 Token généré (absent dans Supabase):', token);
+            
+            // Mettre à jour le token dans Supabase
+            const updateResponse = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ token: token })
+                }
+            );
+
+            if (!updateResponse.ok) {
+                const errorText = await updateResponse.text();
+                console.error('⚠️ Erreur lors de la mise à jour du token:', errorText);
+                // On continue quand même, ce n'est pas bloquant
+            } else {
+                console.log('✅ Token stocké dans Supabase');
+            }
+        } else {
+            console.log('✅ Token récupéré depuis Supabase:', token);
+        }
+
+        // 3. Appeler l'API LLM (Claude ou DeepSeek selon le paramètre model)
+        console.log('🤖 Modèle LLM sélectionné:', model);
+        console.log('📧 Type d\'email:', emailType);
+        
         // Préparer le prompt selon le type d'email
         let prompt = '';
         
@@ -328,6 +457,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
 
                 const deepseekData = await deepseekResponse.json();
                 console.log('✅ Réponse DeepSeek reçue');
+                console.log('Réponse DeepSeek brute:', JSON.stringify(deepseekData, null, 2));
 
                 // Extraire le contenu de la réponse (format OpenAI)
                 content = deepseekData.choices?.[0]?.message?.content || '';
@@ -391,6 +521,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
                 // 
                 // const anthropicData = await anthropicResponse.json();
                 // console.log('✅ Réponse Anthropic reçue');
+                // console.log('Réponse Anthropic brute:', JSON.stringify(anthropicData, null, 2));
                 // 
                 // // Extraire le contenu de la réponse (format Anthropic)
                 // content = anthropicData.content?.[0]?.text || '';
@@ -455,6 +586,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
 
             const anthropicData = await anthropicResponse.json();
             console.log('✅ Réponse Anthropic reçue');
+            console.log('Réponse Anthropic brute:', JSON.stringify(anthropicData, null, 2));
 
             // Extraire le contenu de la réponse (format Anthropic)
             content = anthropicData.content?.[0]?.text || '';
@@ -463,10 +595,11 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         console.log('🤖 Modèle utilisé:', usedModel);
 
         console.log('📄 Contenu brut extrait:', content);
+        console.log('Contenu brut extrait:', content);
         
-        // Vérifier si SKIP
+        // Vérifier si Claude a décidé de SKIP
         if (content.trim() === 'SKIP' || content.trim().startsWith('SKIP')) {
-            console.log('⚠️ Réponses jugées inexploitables');
+            console.log('⚠️ Réponses jugées inexploitables par Claude');
             return {
                 statusCode: 200,
                 headers: {
@@ -503,7 +636,7 @@ BODY: [corps de l'email incluant le PS à la fin]`;
             body = content.substring(content.indexOf('BODY:') + 5).trim();
             subject = 'Email personnalisé';
         } else {
-            // Fallback
+            // Fallback : si le format n'est pas respecté, utiliser tout le contenu comme body
             body = content.trim();
             subject = 'Un message pour toi';
         }
@@ -519,7 +652,44 @@ BODY: [corps de l'email incluant le PS à la fin]`;
         subject = subject.replace(/\*\*/g, '').replace(/__/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
         
         console.log('Subject extrait:', subject);
-        console.log('Body extrait (premiers 200 caractères):', body.substring(0, 200));
+        console.log('Body extrait:', body);
+        console.log('Body contient HTML:', body.includes('<p>') || body.includes('<div>') || body.includes('<br>'));
+        
+        // Sauvegarder l'email généré dans Supabase avant l'envoi
+        const subjectColumn = emailType === 'initial' ? 'email_initial_subject' : 
+                              emailType === '24h' ? 'email_24h_subject' : 'email_4h_subject';
+        const bodyColumn = emailType === 'initial' ? 'email_initial_body' : 
+                           emailType === '24h' ? 'email_24h_body' : 'email_4h_body';
+        
+        try {
+            const saveEmailRes = await fetch(
+                `${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        [subjectColumn]: subject,
+                        [bodyColumn]: body
+                    })
+                }
+            );
+            
+            if (saveEmailRes.ok) {
+                console.log('💾 Email sauvegardé dans Supabase:', emailType);
+            } else {
+                const errorText = await saveEmailRes.text();
+                console.error('⚠️ Erreur sauvegarde email dans Supabase:', errorText);
+                // On continue quand même, la sauvegarde n'est pas critique
+            }
+        } catch (saveError) {
+            console.error('⚠️ Erreur lors de la sauvegarde de l\'email:', saveError);
+            // On continue quand même, la sauvegarde n'est pas critique
+        }
         
         // S'assurer que le body est bien en HTML
         let htmlBody = body || content.trim();
@@ -543,24 +713,178 @@ BODY: [corps de l'email incluant le PS à la fin]`;
 </p>
 `;
         const bodyWithFooter = htmlBody + footer;
+        
+        const result = {
+            subject: subject || 'Email personnalisé',
+            body: bodyWithFooter,
+            token: token
+        };
+        
+        // 3. ENVOYER L'EMAIL VIA LISTMONK
+        const listmonkUrl = process.env.LISTMONK_URL || 'https://mail.sonnycourt.com';
+        const listmonkUser = process.env.LISTMONK_USER;
+        const listmonkPass = process.env.LISTMONK_PASS;
+        
+        if (!listmonkUser || !listmonkPass) {
+            console.error('❌ LISTMONK_USER ou LISTMONK_PASS non définie');
+            return {
+                statusCode: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    error: 'ListMonk credentials not configured' 
+                })
+            };
+        }
+        
+        try {
+            console.log('📨 Envoi de l\'email via ListMonk...');
+            console.log('🔗 LISTMONK_URL:', listmonkUrl);
+            console.log('👤 LISTMONK_USER présent:', !!listmonkUser);
+            console.log('📧 Email destinataire:', email);
+            console.log('📧 Subject:', result.subject);
+            console.log('👤 Prénom:', quizData.prenom || 'Non spécifié');
+            
+            // Le bodyWithFooter est déjà créé avec le footer de désinscription
+            console.log('📝 Body HTML final (premiers 200 caractères):', result.body.substring(0, 200));
+            
+            // Authentification Basic
+            const authHeader = 'Basic ' + Buffer.from(`${listmonkUser}:${listmonkPass}`).toString('base64');
+            
+            // ÉTAPE 1: Créer ou mettre à jour l'abonné dans ListMonk
+            console.log('👤 Création/mise à jour de l\'abonné dans ListMonk...');
+            const createSubscriber = await fetch(`${listmonkUrl}/api/subscribers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    email: email,
+                    name: quizData.prenom || '',
+                    status: 'enabled',
+                    lists: [1]
+                })
+            });
+            
+            const createSubscriberText = await createSubscriber.text();
+            if (createSubscriber.ok) {
+                console.log('✅ Abonné créé/mis à jour dans ListMonk');
+            } else {
+                console.log('⚠️ Erreur création/mise à jour abonné ListMonk (continuité quand même):', createSubscriber.status, createSubscriberText);
+                // On continue quand même, l'abonné existe peut-être déjà
+            }
+            
+            // ÉTAPE 2: Envoyer l'email via ListMonk API transactionnelle avec template
+            console.log('🚨 ENVOI EMAIL - ' + Date.now() + ' - ' + email + ' - ' + emailType);
+            const listmonkResponse = await fetch(`${listmonkUrl}/api/tx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    subscriber_email: email,
+                    template_id: 11,
+                    data: {
+                        subject: result.subject,
+                        body: result.body
+                    },
+                    from_email: 'Sonny Court <info@sonnycourt.com>',
+                    messenger: 'email'
+                })
+            });
+            
+            const listmonkResponseText = await listmonkResponse.text();
+            
+            if (!listmonkResponse.ok) {
+                console.error('❌ Erreur ListMonk API:', listmonkResponse.status, listmonkResponseText);
+                // Rollback : remettre le flag à false pour permettre un retry
+                if (lockAcquired && sentColumn) {
+                    const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ [sentColumn]: false })
+                    });
+                    if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
+                }
+                return {
+                    statusCode: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ 
+                        error: 'Failed to send email via ListMonk',
+                        details: listmonkResponseText,
+                        status: listmonkResponse.status
+                    })
+                };
+            }
+            
+            console.log('✅ Email envoyé via ListMonk');
+            console.log('📧 Response:', listmonkResponseText);
+            
+        } catch (listmonkError) {
+            console.error('❌ Erreur lors de l\'envoi ListMonk:', listmonkError);
+            console.error('❌ Erreur message:', listmonkError.message);
+            console.error('❌ Erreur stack:', listmonkError.stack);
+            
+            // Rollback : remettre le flag à false pour permettre un retry
+            if (lockAcquired && sentColumn) {
+                const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [sentColumn]: false })
+                });
+                if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
+            }
+            
+            return {
+                statusCode: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    error: 'Failed to send email via ListMonk',
+                    details: listmonkError.message || String(listmonkError),
+                    type: listmonkError.constructor?.name || 'UnknownError'
+                })
+            };
+        }
 
-        // Retourner directement subject, body et model (SANS envoyer d'email)
+        console.log('✅ Traitement terminé avec succès pour:', email);
+
+        // Retourner 200 après tout le traitement
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({ 
-                success: true,
-                subject: subject || 'Email personnalisé',
-                body: bodyWithFooter,
-                model: usedModel
-            })
+            body: JSON.stringify(result)
         };
 
     } catch (error) {
-        console.error('❌ Erreur dans preview-email-pack:', error);
+        console.error('❌ Erreur dans handler (validation):', error);
+        
+        // Rollback : remettre le flag à false si on avait acquis le verrou
+        if (lockAcquired && email && emailType && sentColumn) {
+            try {
+                const rb = await fetch(`${supabaseUrl}/rest/v1/quiz_responses?email=eq.${encodeURIComponent(email)}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [sentColumn]: false })
+                });
+                if (!rb.ok) console.error('⚠️ Rollback Supabase failed', await rb.text());
+            } catch (rbErr) {
+                console.error('⚠️ Rollback error:', rbErr);
+            }
+        }
+        
         return {
             statusCode: 500,
             headers: {

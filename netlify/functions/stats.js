@@ -1,6 +1,8 @@
 // Netlify Function pour afficher les stats de visites ET envois
 // Accès: GET /api/stats
 
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -16,7 +18,7 @@ async function redis(command, ...args) {
   return response.json();
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
@@ -142,3 +144,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default withLambda(handler);

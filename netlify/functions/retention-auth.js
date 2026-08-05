@@ -1,4 +1,5 @@
-const crypto = require("crypto");
+import crypto from "node:crypto";
+import { withLambda } from "@netlify/aws-lambda-compat";
 
 const PASSWORD_ENV = "RETENTION_DASHBOARD_PASSWORD";
 const COOKIE_NAME = "retention_dashboard_auth";
@@ -70,7 +71,7 @@ function buildClearCookie(secure) {
   return attributes.join("; ");
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const configuredPassword = process.env[PASSWORD_ENV];
   if (!configuredPassword) {
     return jsonResponse(500, { error: `${PASSWORD_ENV} is missing` });
@@ -115,3 +116,5 @@ exports.handler = async (event) => {
     return jsonResponse(500, { error: "Internal server error" });
   }
 };
+
+export default withLambda(handler);

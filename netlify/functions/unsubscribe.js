@@ -2,7 +2,9 @@
 // POST /api/unsubscribe avec { "email": "test@example.com" }
 // GET /api/unsubscribe pour debug
 
-exports.handler = async (event) => {
+import { withLambda } from '@netlify/aws-lambda-compat';
+
+const handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
@@ -23,7 +25,7 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
+    return { statusCode: 204, headers, body: null };
   }
 
   if (event.httpMethod !== 'POST') {
@@ -148,3 +150,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default withLambda(handler);
