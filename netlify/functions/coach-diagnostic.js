@@ -34,18 +34,6 @@ async function releaseExpiredHolds() {
   ]).catch(() => {});
 }
 
-function checkoutUrl(base, booking) {
-  const url = new URL(base);
-  url.searchParams.set('email', booking.email);
-  url.searchParams.set('name_first', booking.name);
-  // Le checkout est volontairement sans collecte d'identité visible : le
-  // prénom et l'email viennent de l'étape précédente. Spiffy conserve un nom
-  // de famille technique pour son modèle de contact, sans le redemander.
-  url.searchParams.set('name_last', '-');
-  url.searchParams.set('coach_booking_token', booking.token);
-  return url.toString();
-}
-
 export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { ok: true });
 
@@ -68,15 +56,6 @@ export default async (req) => {
         end: slot.ends_at || null,
         name: row.customer_name,
         email: row.customer_email,
-        checkout_url: checkoutUrl(
-          clean(process.env.SPIFFY_COACH_ROMAIN_CHECKOUT_URL, 500) ||
-            'https://sonnycourt.spiffy.co/checkout/premiere-consultation-romain',
-          {
-            token: bookingToken,
-            email: row.customer_email,
-            name: row.customer_name,
-          },
-        ),
       });
     }
 

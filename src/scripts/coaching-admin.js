@@ -62,6 +62,12 @@ function render(state, live = false) {
       <time>${escapeHtml(item.time)}</time>
     </div>
   `).join('');
+
+  const average = state.reviews?.length ? state.reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / state.reviews.length : 0;
+  document.querySelector('[data-admin-review-average]').textContent = state.reviews?.length ? `${average.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5 · ${state.reviews.length} avis` : 'Aucun avis';
+  document.querySelector('[data-admin-reviews]').innerHTML = state.reviews?.length ? state.reviews.slice(0, 6).map((review) => `
+    <article><header><strong>${Number(review.rating).toLocaleString('fr-FR')},0 / 5</strong><small>${escapeHtml(review.coachName || 'Coach')}</small></header><p>${escapeHtml(review.comment || 'Note transmise sans commentaire.')}</p><footer>${escapeHtml(review.clientName || 'Client')} · ${escapeHtml(review.date || '')}</footer></article>
+  `).join('') : '<article><header><strong>En attente</strong><small>Qualité</small></header><p>Les premiers avis apparaîtront ici après les séances.</p></article>';
 }
 
 function demoState() {
@@ -81,6 +87,11 @@ function demoState() {
       activeMemberships: state.clients.filter((client) => client.membership).length,
       payoutDueCents: 196400,
     },
+    reviews: [
+      { rating: 5, comment: 'J’ai enfin réussi à voir la situation autrement et je repars avec une vraie direction.', clientName: 'Claire', coachName: 'Romain', date: 'Aujourd’hui' },
+      { rating: 5, comment: 'Une séance très concrète qui m’a permis de retrouver immédiatement mon élan.', clientName: 'Thomas', coachName: 'Romain', date: 'Hier' },
+      { rating: 4, comment: 'Je me suis sentie écoutée et guidée vers quelque chose d’actionnable.', clientName: 'Manon', coachName: 'Romain', date: '31 juillet' },
+    ],
   };
 }
 
@@ -89,7 +100,7 @@ async function liveState() {
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult, subscriptionsResult, payoutsResult] = await Promise.all([
+  const [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult, subscriptionsResult, payoutsResult, reviewsResult] = await Promise.all([
     coachingSupabase.from('coaching_coaches').select('id,slug,first_name,last_name,email,avatar_url,status'),
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,status,coach_id'),
     coachingSupabase.from('coaching_engagements').select('id,client_id,offer_id,status,started_at,expires_at').eq('status', 'active').order('started_at', { ascending: false }),
@@ -100,6 +111,7 @@ async function liveState() {
     coachingSupabase.from('coaching_orders').select('amount_cents,status').eq('status', 'paid'),
     coachingSupabase.from('coaching_subscriptions').select('client_id,status').in('status', ['trialing', 'active', 'past_due']),
     coachingSupabase.from('coaching_coach_payout_ledger').select('coach_id,base_amount_cents,bonus_amount_cents,status').in('status', ['pending', 'approved']),
+    coachingSupabase.from('coaching_session_reviews').select('client_id,coach_id,rating,comment,submitted_at').order('submitted_at', { ascending: false }).limit(100),
   ]);
   const error = [coachesResult, clientsResult, engagementsResult, offersResult, creditsResult, sessionsResult, activityResult, ordersResult].find((result) => result.error)?.error;
   if (error) throw error;
@@ -150,11 +162,13 @@ async function liveState() {
   }));
 
   const clientNames = new Map(normalizedClients.map((client) => [client.id, client.name]));
+  const coachNames = new Map(normalizedCoaches.map((coach) => [coach.id, coach.name]));
   const eventLabels = {
     'session.booked': 'Séance réservée',
     'session.cancelled': 'Séance annulée',
     'order.paid': 'Paiement confirmé',
     'form.submitted': 'Préparation complétée',
+    'review.submitted': 'Avis post-séance reçu',
   };
   const activity = (activityResult.data || []).map((item) => ({
     tone: item.event_type.includes('order') ? 'green' : item.event_type.includes('cancel') ? 'amber' : 'blue',
@@ -174,6 +188,13 @@ async function liveState() {
       activeMemberships: activeMembershipClientIds.size,
       payoutDueCents: [...pendingPayoutByCoach.values()].reduce((sum, amount) => sum + amount, 0),
     },
+    reviews: (reviewsResult.error ? [] : reviewsResult.data || []).map((review) => ({
+      rating: Number(review.rating || 0),
+      comment: review.comment,
+      clientName: clientNames.get(review.client_id) || 'Client coaching',
+      coachName: coachNames.get(review.coach_id) || 'Coach',
+      date: dateTime.format(new Date(review.submitted_at)),
+    })),
   };
 }
 

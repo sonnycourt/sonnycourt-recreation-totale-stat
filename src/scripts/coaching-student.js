@@ -2,6 +2,9 @@ import { clearDemoSession, formatDateTime, getDemoState, setDemoSession } from '
 import { coachingUrl } from './coaching-routes.js';
 import { coachingSupabase, requireCoachingRole, signOutCoaching } from './coaching-supabase.js';
 
+let activeStudent = null;
+let selectedReviewRating = 0;
+
 function creditTimeLabel(credits) {
   const minutes = Math.max(Number(credits || 0), 0) * 15;
   if (minutes < 60) return `${minutes} min disponibles`;
@@ -37,6 +40,40 @@ function openContinuationPrompt(student) {
   }, 700);
 }
 
+function closeReviewPrompt({ snooze = true } = {}) {
+  const prompt = document.querySelector('[data-review-prompt]');
+  if (!prompt) return;
+  if (snooze && prompt.dataset.reviewSession) {
+    localStorage.setItem(`coaching-review-snooze-${prompt.dataset.reviewSession}`, new Date().toISOString());
+  }
+  prompt.classList.remove('is-open');
+  prompt.setAttribute('aria-hidden', 'true');
+}
+
+function openReviewPrompt(student) {
+  const prompt = document.querySelector('[data-review-prompt]');
+  if (!prompt || !student.pendingReviewSessionId) return false;
+  const forced = new URLSearchParams(window.location.search).has('avis');
+  const snoozedAt = localStorage.getItem(`coaching-review-snooze-${student.pendingReviewSessionId}`);
+  if (!forced && snoozedAt && Date.now() - new Date(snoozedAt).getTime() < 6 * 60 * 60 * 1000) return false;
+
+  selectedReviewRating = 0;
+  prompt.dataset.reviewSession = student.pendingReviewSessionId;
+  prompt.querySelector('[data-review-coach]').textContent = student.coachName || 'ton coach';
+  prompt.querySelector('[data-review-feedback]').textContent = '';
+  prompt.querySelector('[data-review-form]').reset();
+  prompt.querySelector('.review-submit').disabled = true;
+  prompt.querySelectorAll('[data-review-rating]').forEach((button) => {
+    button.classList.remove('is-active');
+    button.setAttribute('aria-pressed', 'false');
+  });
+  window.setTimeout(() => {
+    prompt.classList.add('is-open');
+    prompt.setAttribute('aria-hidden', 'false');
+  }, 450);
+  return true;
+}
+
 function renderStudent(student) {
   const remaining = Math.max(Number(student.creditsTotal) - Number(student.creditsUsed), 0);
   const ratio = student.creditsTotal ? (remaining / student.creditsTotal) * 100 : 0;
@@ -44,6 +81,7 @@ function renderStudent(student) {
   const initials = fullName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   const coachName = student.coachName || 'Romain';
   const coachAvatar = String(student.coachAvatar || '/media/coachs/romain.webp?v=ai-hd');
+  activeStudent = { ...student, coachName };
 
   document.querySelectorAll('[data-student-first-name]').forEach((node) => { node.textContent = student.firstName; });
   document.querySelectorAll('[data-student-full-name]').forEach((node) => { node.textContent = fullName; });
@@ -97,7 +135,7 @@ function renderStudent(student) {
   document.querySelector('[data-student-history]').innerHTML = rows.map((item) => `
     <div class="timeline-row"><i></i><span><strong>${item.label}</strong><small>${item.duration} · ${item.status}</small></span><time>${item.date}</time></div>
   `).join('');
-  openContinuationPrompt(student);
+  if (!openReviewPrompt(activeStudent)) openContinuationPrompt(activeStudent);
 }
 
 async function getLiveStudent(session) {
@@ -109,12 +147,13 @@ async function getLiveStudent(session) {
   if (clientError) throw clientError;
 
   const nowIso = new Date().toISOString();
-  const [engagementResult, balanceResult, sessionsResult, responsesResult, membershipResult] = await Promise.all([
+  const [engagementResult, balanceResult, sessionsResult, responsesResult, membershipResult, reviewsResult] = await Promise.all([
     coachingSupabase.from('coaching_engagements').select('id,offer_id,started_at,expires_at,coaching_offers(slug,name,sessions_count,duration_minutes,metadata)').eq('client_id', client.id).eq('status', 'active').or(`expires_at.is.null,expires_at.gt.${nowIso}`).order('started_at', { ascending: false }),
     coachingSupabase.rpc('coaching_credit_balance', { p_client_id: client.id }),
     coachingSupabase.from('coaching_sessions').select('id,starts_at,ends_at,status,meet_url,completed_at,credits_cost').eq('client_id', client.id).order('starts_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,status,submitted_at,session_id').eq('client_id', client.id).is('session_id', null).order('created_at', { ascending: false }).limit(1),
     coachingSupabase.from('coaching_subscriptions').select('id,status,current_period_end,coaching_offers(name,sessions_count)').eq('client_id', client.id).in('status', ['trialing', 'active', 'past_due']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    coachingSupabase.from('coaching_session_reviews').select('session_id,rating,comment,submitted_at').eq('client_id', client.id).order('submitted_at', { ascending: false }),
   ]);
   const error = [engagementResult, balanceResult, sessionsResult, responsesResult].find((result) => result.error)?.error;
   if (error) throw error;
@@ -130,8 +169,12 @@ async function getLiveStudent(session) {
   const purchasedCredits = walletEngagements.reduce((sum, item) => sum + Number(item.coaching_offers?.sessions_count || 0), 0);
   const now = Date.now();
   const sessions = sessionsResult.data || [];
+  const reviewedSessionIds = new Set((reviewsResult.error ? [] : reviewsResult.data || []).map((review) => review.session_id));
   const next = sessions.filter((item) => item.status === 'confirmed' && new Date(item.starts_at).getTime() >= now).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0];
   const lastCompleted = sessions.filter((item) => item.status === 'completed').sort((a, b) => new Date(b.completed_at || b.ends_at) - new Date(a.completed_at || a.ends_at))[0];
+  const pendingReview = reviewsResult.error ? null : sessions
+    .filter((item) => ['confirmed', 'completed'].includes(item.status) && new Date(item.ends_at).getTime() <= now - 2 * 60 * 1000 && !reviewedSessionIds.has(item.id))
+    .sort((a, b) => new Date(b.ends_at) - new Date(a.ends_at))[0];
   const history = sessions.filter((item) => item.status === 'completed' || new Date(item.starts_at).getTime() < now).map((item, index) => ({
     date: formatDateTime(item.starts_at),
     label: index === sessions.length - 1 ? 'Première consultation' : 'Séance de suivi',
@@ -158,6 +201,7 @@ async function getLiveStudent(session) {
     history,
     membership: membershipResult.error ? null : membershipResult.data,
     lastCompletedSessionId: lastCompleted?.id || null,
+    pendingReviewSessionId: pendingReview?.id || null,
     showContinuationPrompt: Boolean(lastCompleted && !next && (now - new Date(lastCompleted.completed_at || lastCompleted.ends_at).getTime()) <= 72 * 60 * 60 * 1000),
   };
 }
@@ -167,7 +211,7 @@ async function boot() {
   if (!access) return;
   if (access.mode === 'demo') {
     setDemoSession('student', { name: 'Claire', email: 'claire@exemple.fr' });
-    const demoStudent = { ...getDemoState().student, showContinuationPrompt: true, lastCompletedSessionId: 'demo-last-session' };
+    const demoStudent = { ...getDemoState().student, showContinuationPrompt: true, lastCompletedSessionId: 'demo-last-session', pendingReviewSessionId: 'demo-last-session' };
     renderStudent(demoStudent);
     window.addEventListener('coaching-demo-updated', () => renderStudent(getDemoState().student));
   } else {
@@ -190,5 +234,51 @@ document.querySelectorAll('[data-prompt-close]').forEach((button) => button.addE
   prompt?.classList.remove('is-open');
   prompt?.setAttribute('aria-hidden', 'true');
 }));
+
+document.querySelectorAll('[data-review-rating]').forEach((button) => button.addEventListener('click', () => {
+  selectedReviewRating = Number(button.dataset.reviewRating || 0);
+  document.querySelectorAll('[data-review-rating]').forEach((item) => {
+    const active = Number(item.dataset.reviewRating) <= selectedReviewRating;
+    item.classList.toggle('is-active', active);
+    item.setAttribute('aria-pressed', String(Number(item.dataset.reviewRating) === selectedReviewRating));
+  });
+  document.querySelector('.review-submit').disabled = selectedReviewRating < 1;
+}));
+
+document.querySelectorAll('[data-review-close]').forEach((button) => button.addEventListener('click', () => closeReviewPrompt()));
+
+document.querySelector('[data-review-form]')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!activeStudent?.pendingReviewSessionId || selectedReviewRating < 1) return;
+  const form = event.currentTarget;
+  const submit = form.querySelector('.review-submit');
+  const feedback = form.querySelector('[data-review-feedback]');
+  submit.disabled = true;
+  submit.textContent = 'Envoi en cours...';
+  feedback.textContent = '';
+  try {
+    const access = await requireCoachingRole('client');
+    if (access?.mode !== 'demo') {
+      const { error } = await coachingSupabase.rpc('coaching_submit_session_review', {
+        p_session_id: activeStudent.pendingReviewSessionId,
+        p_rating: selectedReviewRating,
+        p_comment: String(new FormData(form).get('comment') || '').trim() || null,
+      });
+      if (error) throw error;
+    }
+    feedback.textContent = 'Merci. Ton avis a bien été transmis.';
+    submit.textContent = 'Avis envoyé';
+    const studentAfterReview = { ...activeStudent, pendingReviewSessionId: null };
+    window.setTimeout(() => {
+      closeReviewPrompt({ snooze: false });
+      openContinuationPrompt(studentAfterReview);
+    }, 900);
+  } catch (error) {
+    console.error('coaching review submit', error);
+    feedback.textContent = 'L’avis n’a pas pu partir. Réessaie dans un instant.';
+    submit.disabled = false;
+    submit.textContent = 'Envoyer mon avis';
+  }
+});
 
 boot();

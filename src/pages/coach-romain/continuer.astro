@@ -1,10 +1,6 @@
 ---
 import '../../styles/coach-continuation.css';
-const checkoutUrls = {
-  'session-1': import.meta.env.PUBLIC_SPIFFY_COACHING_SESSION_1_URL || '',
-  'pack-3': import.meta.env.PUBLIC_SPIFFY_COACHING_PACK_3_URL || '',
-  'pack-6': import.meta.env.PUBLIC_SPIFFY_COACHING_PACK_6_URL || '',
-};
+const walletUrl = 'https://coaching.sonnycourt.com/credits#recharges';
 ---
 
 <!doctype html>
@@ -73,7 +69,7 @@ const checkoutUrls = {
         <div class="section-heading">
           <p class="eyebrow">Trois manières de continuer</p>
           <h2 id="offers-title">Choisis ton niveau de soutien.</h2>
-          <p>Les séances durent 60 minutes, en visioconférence avec Romain.</p>
+          <p>Les séances durent 45 minutes, en visioconférence avec Romain.</p>
         </div>
 
         <div class="offer-grid">
@@ -86,13 +82,13 @@ const checkoutUrls = {
             <div class="price"><strong>247&nbsp;€</strong><span>paiement unique</span></div>
             <p class="offer-promise">Une nouvelle séance pour clarifier, décider ou débloquer le prochain mouvement.</p>
             <ul>
-              <li><svg><use href="#continue-check"></use></svg>1 séance individuelle de 60 minutes</li>
+              <li><svg><use href="#continue-check"></use></svg>1 séance individuelle de 45 minutes</li>
               <li><svg><use href="#continue-check"></use></svg>À réserver lorsque tu en ressens le besoin</li>
               <li><svg><use href="#continue-check"></use></svg>Idéal pour un sujet bien identifié</li>
             </ul>
-            <button class="offer-button secondary" type="button" data-plan="1 séance" data-total="247 €" data-checkout={checkoutUrls['session-1']}>
+            <a class="offer-button secondary" href={walletUrl}>
               <span>Réserver ma prochaine séance</span><svg><use href="#continue-arrow"></use></svg>
-            </button>
+            </a>
             <small class="validity">Crédit valable 3 mois</small>
           </article>
 
@@ -106,13 +102,13 @@ const checkoutUrls = {
             <div class="saving">Tu économises 150 €</div>
             <p class="offer-promise">Trois points d’appui pour transformer une décision en changement observable.</p>
             <ul>
-              <li><svg><use href="#continue-check"></use></svg>3 séances individuelles de 60 minutes</li>
+              <li><svg><use href="#continue-check"></use></svg>3 séances individuelles de 45 minutes</li>
               <li><svg><use href="#continue-check"></use></svg>Un rythme conseillé sur 6 à 10 semaines</li>
               <li><svg><use href="#continue-check"></use></svg>Assez long pour créer une vraie continuité</li>
             </ul>
-            <button class="offer-button secondary" type="button" data-plan="3 séances" data-total="591 €" data-checkout={checkoutUrls['pack-3']}>
+            <a class="offer-button secondary" href={walletUrl}>
               <span>Choisir les 3 séances</span><svg><use href="#continue-arrow"></use></svg>
-            </button>
+            </a>
             <small class="validity">Crédits valables 4 mois</small>
           </article>
 
@@ -127,14 +123,14 @@ const checkoutUrls = {
             <div class="saving best">Tu économises 600 €</div>
             <p class="offer-promise">Un véritable parcours pour comprendre, expérimenter, ajuster et ancrer.</p>
             <ul>
-              <li><svg><use href="#continue-check"></use></svg>6 séances individuelles de 60 minutes</li>
+              <li><svg><use href="#continue-check"></use></svg>6 séances individuelles de 45 minutes</li>
               <li><svg><use href="#continue-check"></use></svg>Un parcours structuré autour de ton objectif</li>
               <li><svg><use href="#continue-check"></use></svg>Une séance finale dédiée au bilan et à la suite</li>
               <li><svg><use href="#continue-check"></use></svg>Le tarif le plus avantageux</li>
             </ul>
-            <button class="offer-button primary" type="button" data-plan="6 séances" data-total="882 €" data-checkout={checkoutUrls['pack-6']}>
+            <a class="offer-button primary" href={walletUrl}>
               <span>Choisir les 6 séances</span><svg><use href="#continue-arrow"></use></svg>
-            </button>
+            </a>
             <small class="validity">Crédits valables 8 mois</small>
           </article>
         </div>
@@ -174,52 +170,10 @@ const checkoutUrls = {
 
     <footer><span>SONNY COURT · COACHING</span><p>Paiement unique sécurisé · Aucun abonnement</p></footer>
 
-    <div class="plan-modal" id="plan-modal" aria-hidden="true">
-      <button class="modal-backdrop" type="button" data-modal-close aria-label="Fermer"></button>
-      <section class="modal-card liquid-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <button class="modal-close" type="button" data-modal-close aria-label="Fermer">×</button>
-        <span class="modal-icon"><svg><use href="#continue-lock"></use></svg></span>
-        <p class="eyebrow">Étape suivante</p>
-        <h2 id="modal-title">Ton choix est prêt.</h2>
-        <div class="selected-plan"><span id="selected-plan-name">6 séances</span><strong id="selected-plan-total">882 €</strong></div>
-        <p>La checkout Spiffy dédiée sera connectée ici. Aucun paiement n’est déclenché dans cette maquette.</p>
-        <button class="modal-action" type="button" data-modal-close>Revenir à la présentation</button>
-      </section>
-    </div>
-
     <script>
       const query = new URLSearchParams(window.location.search);
       const firstName = (query.get('prenom') || '').trim().slice(0, 40);
-      const email = (query.get('email') || '').trim().slice(0, 254);
       if (firstName) document.getElementById('client-greeting').textContent = firstName + ', tu sais maintenant';
-
-      const modal = document.getElementById('plan-modal');
-      const closeModal = () => {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-      };
-
-      document.querySelectorAll('[data-plan]').forEach((button) => {
-        button.addEventListener('click', () => {
-          if (button.dataset.checkout) {
-            const checkout = new URL(button.dataset.checkout, window.location.origin);
-            if (firstName) checkout.searchParams.set('name_first', firstName);
-            if (email) checkout.searchParams.set('email', email);
-            checkout.searchParams.set('coaching_offer_slug', button.dataset.plan === '1 séance' ? 'session-1' : button.dataset.plan === '3 séances' ? 'pack-3' : 'pack-6');
-            window.location.href = checkout.toString();
-            return;
-          }
-          document.getElementById('selected-plan-name').textContent = button.dataset.plan || '';
-          document.getElementById('selected-plan-total').textContent = button.dataset.total || '';
-          modal.classList.add('is-open');
-          modal.setAttribute('aria-hidden', 'false');
-          document.body.style.overflow = 'hidden';
-        });
-      });
-
-      document.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', closeModal));
-      document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); });
     </script>
   </body>
 </html>

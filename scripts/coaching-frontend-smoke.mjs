@@ -15,6 +15,10 @@ const combinedAuth = [portal, auth, callback, reset, activation].join('\n')
 const netlify = await read('netlify.toml')
 const googleCallback = await read('netlify/functions/coaching-google-callback.js')
 const spiffyWebhook = await read('netlify/functions/coach-spiffy-webhook.js')
+const stripeCheckout = await read('netlify/functions/coaching-stripe-checkout.js')
+const stripePayment = await read('src/scripts/coaching-stripe-payment.js')
+const firstConsultationPayment = await read('src/pages/coach-romain/paiement.astro')
+const diagnostic = await read('src/pages/coach-romain/diagnostic.astro')
 
 assert.match(portal, /signInWithPassword/)
 assert.match(portal, /signInWithOAuth/)
@@ -35,6 +39,7 @@ for (const page of [
   'src/pages/coach-console.astro',
   'src/pages/coaching/eleve.astro',
   'src/pages/coaching/credits.astro',
+  'src/pages/coaching/paiement.astro',
   'src/pages/coaching/compte.astro',
   'src/pages/coaching/preparation.astro',
   'src/pages/coaching/reserver.astro',
@@ -53,13 +58,23 @@ assert.match(wallet, /membership-6|coaching_subscriptions/)
 assert.match(account, /coaching_update_my_profile/)
 assert.match(account, /coaching-avatars/)
 assert.match(student, /data-continuation-prompt|openContinuationPrompt/)
+assert.match(student, /coaching_submit_session_review/)
+assert.match(student, /pendingReviewSessionId/)
+assert.match(wallet, /coaching-stripe-portal/)
+assert.match(wallet, /\/coaching\/paiement\?offer=/)
+assert.match(stripeCheckout, /ui_mode:\s*['"]custom['"]/)
+assert.match(stripePayment, /initCheckout/)
+assert.match(stripePayment, /createPaymentElement/)
+assert.match(stripePayment, /\.confirm\(\)/)
+assert.match(firstConsultationPayment, /js\.stripe\.com\/basil\/stripe\.js/)
+assert.doesNotMatch([firstConsultationPayment, diagnostic].join('\n'), /Spiffy/i)
 assert.equal(isCoachingAppHost('coaching.sonnycourt.com'), true)
 assert.equal(isCoachingAppHost('sonnycourt.com'), false)
 assert.equal(coachingUrl('/coaching', 'coaching.sonnycourt.com'), '/')
 assert.equal(coachingUrl('/coaching/eleve?preview=1', 'coaching.sonnycourt.com'), '/eleve?preview=1')
 assert.equal(coachingUrl('/coach-console#clients', 'coaching.sonnycourt.com'), '/coach#clients')
 assert.equal(coachingUrl('/coaching/eleve', 'localhost'), '/coaching/eleve')
-for (const route of ['admin', 'coach', 'eleve', 'credits', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
+for (const route of ['admin', 'coach', 'eleve', 'credits', 'paiement', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
   assert.ok(netlify.includes(`from = "https://coaching.sonnycourt.com/${route}"`))
 }
 assert.match(netlify, /https:\/\/sonnycourt\.com\/coaching\/\*/)
@@ -73,6 +88,10 @@ for (const endpoint of [
   'netlify/functions/coaching-google-connect.js',
   'netlify/functions/coaching-google-callback.js',
   'netlify/functions/coaching-sync-availability.js',
+  'netlify/functions/coaching-review-reminders.js',
+  'netlify/functions/coaching-stripe-checkout.js',
+  'netlify/functions/coaching-stripe-portal.js',
+  'netlify/functions/coaching-stripe-webhook.js',
   'netlify/functions/coach-spiffy-webhook.js',
 ]) await fs.access(new URL(`../${endpoint}`, import.meta.url))
 
@@ -84,6 +103,6 @@ console.log(JSON.stringify({
   role_routing: ['owner', 'coach', 'client'],
   coach_actions: 'persistent',
   coaching_subdomain: 'ready',
-  portal_pages: 11,
-  server_endpoints: 7,
+  portal_pages: 15,
+  server_endpoints: 11,
 }))

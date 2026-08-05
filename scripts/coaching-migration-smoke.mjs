@@ -34,6 +34,10 @@ const firstConsultationBridge = await fs.readFile(new URL('../sql/coaching_first
 await db.exec(firstConsultationBridge)
 const walletMigration = await fs.readFile(new URL('../sql/coaching_wallet_memberships.sql', import.meta.url), 'utf8')
 await db.exec(walletMigration)
+const reviewsMigration = await fs.readFile(new URL('../sql/coaching_session_reviews.sql', import.meta.url), 'utf8')
+await db.exec(reviewsMigration)
+const stripeMigration = await fs.readFile(new URL('../sql/coaching_stripe.sql', import.meta.url), 'utf8')
+await db.exec(stripeMigration)
 
 const ids = {
   sonny: '00000000-0000-4000-8000-000000000001',
@@ -47,6 +51,7 @@ const ids = {
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0]
 const count = async (sql, params = []) => Number((await one(sql, params)).count)
+assert.equal(await count("select count(*) from public.coaching_offers where stripe_product_id is not null and stripe_price_id is not null"), 7)
 const expectRejected = async (operation, expected) => {
   try {
     await operation()
@@ -227,8 +232,8 @@ const diagnosticRls = await count(`
   where n.nspname = 'public' and c.relname like 'coach_diagnostic_%' and c.relrowsecurity
 `)
 
-assert.equal(Number(tables.rows[0].count), 23)
-assert.equal(Number(rls.rows[0].count), 23)
+assert.equal(Number(tables.rows[0].count), 24)
+assert.equal(Number(rls.rows[0].count), 24)
 assert.equal(diagnosticTables, 2)
 assert.equal(diagnosticRls, 2)
 assert.equal((await one("select has_function_privilege('anon', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, false)
@@ -236,6 +241,11 @@ assert.equal((await one("select has_function_privilege('authenticated', 'public.
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_assign_role_by_email(text,text,text)', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_record_spiffy_order(text,text,text,text,text,integer,integer,text,text,jsonb)', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_refund_spiffy_order(text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_record_stripe_order(text,text,text,text,text,text,text,text,integer,integer,text,text,jsonb)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_refund_stripe_order(text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_upsert_stripe_subscription(text,text,text,uuid,text,text,timestamptz,timestamptz,boolean)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('anon', 'public.coaching_submit_session_review(uuid,smallint,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_submit_session_review(uuid,smallint,text)', 'EXECUTE') as allowed")).allowed, true)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_handle_new_auth_user()', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('anon', 'public.hold_coach_diagnostic_slot(bigint,text,text)', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.hold_coach_diagnostic_slot(bigint,text,text)', 'EXECUTE') as allowed")).allowed, false)
@@ -350,6 +360,23 @@ await asUser(ids.alice, async () => {
   assert.equal(cancelled.credits_remaining, 9)
   assert.equal(await count("select count(*) from public.coaching_availability_slots where id = $1 and status = 'available'", [aliceSlot.id]), 1)
   await expectRejected(() => db.query('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test 2']), 'session_not_cancellable')
+
+  const review = await one('select * from public.coaching_submit_session_review($1, $2::smallint, $3)', [alicePastSession.id, 5, 'Une séance claire et utile.'])
+  assert.equal(review.rating, 5)
+  assert.equal(await count('select count(*) from public.coaching_session_reviews where session_id = $1', [alicePastSession.id]), 1)
+  await expectRejected(
+    () => db.query('select * from public.coaching_submit_session_review($1, $2::smallint, $3)', [alicePastSession.id, 4, 'Doublon']),
+    'review_already_submitted'
+  )
+  await expectRejected(
+    () => db.query('insert into public.coaching_session_reviews(session_id, client_id, coach_id, rating) values ($1, $2, $3, 5)', [aliceToComplete.id, alice.id, romain.id]),
+    'permission denied'
+  )
+})
+
+await asUser(ids.romain, async () => {
+  assert.equal(await count('select count(*) from public.coaching_session_reviews where session_id = $1', [alicePastSession.id]), 1)
+  assert.equal(await count('select count(*) from public.coaching_session_reviews where session_id = $1', [bobPastSession.id]), 0)
 })
 
 const manualFutureSession = await one(`
@@ -401,6 +428,32 @@ assert.equal(repeatRefund.already_processed, true)
 assert.equal(repeatRefund.credits_removed, 0)
 assert.equal(await count("select count(*) from public.coaching_credit_ledger where client_id = $1 and reason = 'refund'", [alice.id]), 1)
 
+const stripeOrder = await asRole('service_role', () => one(`
+  select * from public.coaching_record_stripe_order(
+    'cs_test_wallet_001', 'pi_test_wallet_001', 'cus_test_wallet_001', null,
+    'stripe-client@example.test', 'Stripe', 'Client', 'pack-3',
+    59100, 0, 'EUR', 'FR', '{"event":"checkout.session.completed"}'::jsonb
+  )
+`))
+assert.equal(stripeOrder.already_processed, false)
+assert.equal(stripeOrder.credits_added, 9)
+assert.equal((await one('select stripe_customer_id from public.coaching_clients where id = $1', [stripeOrder.client_id])).stripe_customer_id, 'cus_test_wallet_001')
+const repeatStripeOrder = await asRole('service_role', () => one(`
+  select * from public.coaching_record_stripe_order(
+    'cs_test_wallet_001', 'pi_test_wallet_001', 'cus_test_wallet_001', null,
+    'stripe-client@example.test', 'Stripe', 'Client', 'pack-3',
+    59100, 0, 'EUR', 'FR', '{}'::jsonb
+  )
+`))
+assert.equal(repeatStripeOrder.already_processed, true)
+assert.equal(repeatStripeOrder.credits_added, 0)
+const stripeRefund = await asRole('service_role', () => one("select * from public.coaching_refund_stripe_order('pi_test_wallet_001')"))
+assert.equal(stripeRefund.already_processed, false)
+assert.equal(stripeRefund.credits_removed, 9)
+const repeatStripeRefund = await asRole('service_role', () => one("select * from public.coaching_refund_stripe_order('pi_test_wallet_001')"))
+assert.equal(repeatStripeRefund.already_processed, true)
+assert.equal(repeatStripeRefund.credits_removed, 0)
+
 console.log(JSON.stringify({
   migration: 'ok',
   tables: Number(tables.rows[0].count),
@@ -418,9 +471,11 @@ console.log(JSON.stringify({
   refund_future_sessions: 'ok',
   role_escalation: 'blocked',
   session_completion: 'ok',
+  session_reviews: 'ok',
   preexisting_sso_purchase_link: 'ok',
   first_consultation_bridge: 'ok',
   spiffy_idempotency: 'ok',
+  stripe_idempotency: 'ok',
   refund_idempotency: 'ok'
 }))
 await db.close()

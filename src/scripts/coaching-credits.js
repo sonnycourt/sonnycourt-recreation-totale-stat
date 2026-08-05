@@ -30,6 +30,7 @@ function render(profile) {
     : `${profile.balance * 15} min`;
   document.querySelector('[data-wallet-sessions]').textContent = String(Math.floor(profile.balance / 3));
   document.querySelector('[data-wallet-status]').textContent = profile.membership ? 'Membership actif' : 'Solde synchronisé';
+  document.querySelector('[data-membership-management]')?.toggleAttribute('hidden', !profile.membership);
   renderAvatar(profile.avatarUrl, initials);
 }
 
@@ -66,14 +67,20 @@ function toast(message) {
 document.addEventListener('click', (event) => {
   const button = event.target.closest('[data-offer]');
   if (!button) return;
-  const checkout = button.dataset.checkout;
   if (mode === 'demo') return toast('Aperçu : aucun paiement ne sera déclenché.');
-  if (!checkout) return toast('Cette option est prête dans le portail. Sa checkout Spiffy reste à connecter.');
-  const url = new URL(checkout, window.location.origin);
-  if (student?.firstName) url.searchParams.set('name_first', student.firstName);
-  if (student?.email) url.searchParams.set('email', student.email);
-  url.searchParams.set('coaching_offer_slug', button.dataset.offer);
-  window.location.href = url.toString();
+  window.location.href = coachingUrl(`/coaching/paiement?offer=${encodeURIComponent(button.dataset.offer)}`);
+});
+
+document.querySelector('[data-manage-membership]')?.addEventListener('click', async () => {
+  if (mode === 'demo') return toast('Aperçu : le portail Stripe s’ouvrira ici.');
+  const { data: { session } } = await coachingSupabase.auth.getSession();
+  const response = await fetch('/.netlify/functions/coaching-stripe-portal', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session?.access_token || ''}` },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.url) return toast(data.error || 'Le portail Stripe est indisponible.');
+  window.location.href = data.url;
 });
 
 document.querySelector('[data-logout]')?.addEventListener('click', async (event) => {

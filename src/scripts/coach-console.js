@@ -259,7 +259,7 @@ async function loadLiveCoachData(session) {
   });
   liveCoachId = coach.id;
   liveUserId = session.user.id;
-  const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult] = await Promise.all([
+  const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult, reviewsResult] = await Promise.all([
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,phone,status,objective,created_at').eq('coach_id', coach.id).neq('status', 'archived').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
     coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
@@ -267,6 +267,7 @@ async function loadLiveCoachData(session) {
     coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority,completed_at,updated_at').eq('coach_id', coach.id).in('status', ['open', 'done']).order('updated_at', { ascending: false }).limit(100),
     coachingSupabase.from('coaching_availability_slots').select('id,starts_at,ends_at,status').eq('coach_id', coach.id).eq('status', 'available').gte('starts_at', new Date().toISOString()).order('starts_at').limit(100),
     coachingSupabase.from('coaching_credit_ledger').select('client_id,engagement_id,quantity'),
+    coachingSupabase.from('coaching_session_reviews').select('id,client_id,session_id,rating,comment,submitted_at').eq('coach_id', coach.id).order('submitted_at', { ascending: false }).limit(50),
   ]);
   const failure = [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult].find((result) => result.error)?.error;
   if (failure) throw failure;
@@ -334,7 +335,7 @@ async function loadLiveCoachData(session) {
   }
   document.querySelector('.metric-card.green strong').textContent = String(Object.keys(clients).length);
   document.querySelector('.metric-card.purple strong').textContent = String(actions.filter((item) => item.status === 'open').length);
-  renderLiveWorkspace(sessions, actions, availabilityResult.data || []);
+  renderLiveWorkspace(sessions, actions, availabilityResult.data || [], reviewsResult.error ? [] : reviewsResult.data || []);
   const rulesResult = await coachingSupabase.from('coaching_availability_rules').select('weekday,start_time,end_time,slot_minutes,buffer_minutes').eq('coach_id', coach.id).eq('active', true).order('weekday');
   if (!rulesResult.error && rulesResult.data?.length) {
     const days = new Set(rulesResult.data.map((rule) => String(rule.weekday)));
@@ -349,7 +350,7 @@ async function loadLiveCoachData(session) {
   }
 }
 
-function renderLiveWorkspace(sessions, actions, availableSlots) {
+function renderLiveWorkspace(sessions, actions, availableSlots, reviews = []) {
   const now = Date.now();
   const dueTime = (action) => action.due_at ? new Date(action.due_at).getTime() : Number.POSITIVE_INFINITY;
   const openActions = actions.filter((action) => action.status === 'open').sort((a, b) => dueTime(a) - dueTime(b));
@@ -361,6 +362,24 @@ function renderLiveWorkspace(sessions, actions, availableSlots) {
   const firstClient = firstSession ? clients[firstSession.client_id] : null;
   document.querySelector('.metric-card.blue strong').textContent = String(todaySessions.length);
   document.querySelector('.metric-card.blue p').textContent = `${todaySessions.length} séance${todaySessions.length > 1 ? 's' : ''} confirmée${todaySessions.length > 1 ? 's' : ''}`;
+
+  const satisfactionMetric = document.querySelector('.metric-card.amber');
+  if (satisfactionMetric) {
+    const average = reviews.length ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length : 0;
+    satisfactionMetric.querySelector('strong').textContent = reviews.length ? average.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
+    satisfactionMetric.querySelector('p').textContent = reviews.length ? `${reviews.length} avis reçu${reviews.length > 1 ? 's' : ''}` : 'Aucun avis pour le moment';
+    satisfactionMetric.querySelector('b').textContent = reviews.length && average >= 4.5 ? 'Excellent' : reviews.length ? 'À suivre' : 'Nouveau';
+  }
+
+  const reviewsGrid = document.querySelector('[data-coach-reviews]');
+  if (reviewsGrid) {
+    const recent = reviews.filter((review) => review.comment).slice(0, 3);
+    document.querySelector('[data-review-count]').textContent = `${reviews.length} avis`;
+    reviewsGrid.innerHTML = recent.length ? recent.map((review) => {
+      const client = clients[review.client_id];
+      return `<div><header><strong>${Number(review.rating).toLocaleString('fr-FR')},0 / 5</strong><small>${client?.name || 'Client coaching'}</small></header><p>${escapeHtml(review.comment)}</p></div>`;
+    }).join('') : '<div class="empty-results"><strong>Les premiers retours apparaîtront ici.</strong><small>Chaque avis reste lié à la séance et au client concerné.</small></div>';
+  }
 
   const card = document.querySelector('.next-session');
   if (card && firstClient) {

@@ -9,15 +9,10 @@ const groups = {
     'PUBLIC_SUPABASE_URL',
     'PUBLIC_SUPABASE_PUBLISHABLE_KEY',
   ],
-  spiffy: [
-    'COACHING_SPIFFY_WEBHOOK_TOKEN',
-    'SPIFFY_FIRST_CONSULTATION_IDS',
-    'SPIFFY_COACHING_SESSION_1_IDS',
-    'SPIFFY_COACHING_PACK_3_IDS',
-    'SPIFFY_COACHING_PACK_6_IDS',
-    'PUBLIC_SPIFFY_COACHING_SESSION_1_URL',
-    'PUBLIC_SPIFFY_COACHING_PACK_3_URL',
-    'PUBLIC_SPIFFY_COACHING_PACK_6_URL',
+  stripe: [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_PUBLISHABLE_KEY',
+    'STRIPE_COACHING_WEBHOOK_SECRET',
   ],
   google: [
     'GOOGLE_COACHING_CLIENT_ID',
@@ -52,10 +47,9 @@ if (process.env.SUPABASE_URL && process.env.PUBLIC_SUPABASE_URL) {
 if (process.env.SUPABASE_PUBLISHABLE_KEY && process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
   invalidate('supabase', 'PUBLIC_SUPABASE_PUBLISHABLE_KEY', process.env.SUPABASE_PUBLISHABLE_KEY === process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 }
-invalidate('spiffy', 'COACHING_SPIFFY_WEBHOOK_TOKEN', String(process.env.COACHING_SPIFFY_WEBHOOK_TOKEN || '').length >= 32);
-for (const name of ['PUBLIC_SPIFFY_COACHING_SESSION_1_URL', 'PUBLIC_SPIFFY_COACHING_PACK_3_URL', 'PUBLIC_SPIFFY_COACHING_PACK_6_URL']) {
-  invalidate('spiffy', name, isHttpsUrl(name));
-}
+invalidate('stripe', 'STRIPE_SECRET_KEY', /^sk_(test|live)_/.test(String(process.env.STRIPE_SECRET_KEY || '')));
+invalidate('stripe', 'STRIPE_PUBLISHABLE_KEY', /^pk_(test|live)_/.test(String(process.env.STRIPE_PUBLISHABLE_KEY || '')));
+invalidate('stripe', 'STRIPE_COACHING_WEBHOOK_SECRET', /^whsec_/.test(String(process.env.STRIPE_COACHING_WEBHOOK_SECRET || '')));
 invalidate('google', 'COACHING_TOKEN_ENCRYPTION_KEY', String(process.env.COACHING_TOKEN_ENCRYPTION_KEY || '').length >= 32);
 invalidate('google', 'COACHING_SYNC_SECRET', String(process.env.COACHING_SYNC_SECRET || '').length >= 32);
 invalidate('email', 'COACHING_EMAIL_FROM', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(process.env.COACHING_EMAIL_FROM || '')));
@@ -69,6 +63,7 @@ console.log(JSON.stringify({
   ready: missing.length === 0 && invalid.length === 0,
   groups: report,
   optional: {
+    COACHING_SPIFFY_WEBHOOK_TOKEN: Boolean(process.env.COACHING_SPIFFY_WEBHOOK_TOKEN),
     SPIFFY_SIGNING_SECRET: Boolean(process.env.SPIFFY_SIGNING_SECRET),
     COACHING_EMAIL_FROM_NAME: Boolean(process.env.COACHING_EMAIL_FROM_NAME),
   },

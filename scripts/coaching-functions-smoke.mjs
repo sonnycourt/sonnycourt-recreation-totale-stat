@@ -8,9 +8,13 @@ import googleCallback from '../netlify/functions/coaching-google-callback.js'
 import googleConnect from '../netlify/functions/coaching-google-connect.js'
 import spiffyWebhook from '../netlify/functions/coach-spiffy-webhook.js'
 import syncAvailability from '../netlify/functions/coaching-sync-availability.js'
+import reviewReminders from '../netlify/functions/coaching-review-reminders.js'
+import stripeCheckout from '../netlify/functions/coaching-stripe-checkout.js'
+import stripePortal from '../netlify/functions/coaching-stripe-portal.js'
+import stripeWebhook from '../netlify/functions/coaching-stripe-webhook.js'
 import { decryptCoachingSecret, encryptCoachingSecret } from '../netlify/functions/lib/coaching-google.mjs'
 import { finalizeCoachingBooking } from '../netlify/functions/lib/coaching-integrations.mjs'
-import { coachingAppOrigin, coachingAppUrl } from '../netlify/functions/lib/coaching-origin.mjs'
+import { coachingAppOrigin, coachingAppUrl, coachingMarketingOrigin, coachingMarketingUrl } from '../netlify/functions/lib/coaching-origin.mjs'
 
 const managedEnv = [
   'COACHING_TOKEN_ENCRYPTION_KEY', 'GOOGLE_COACHING_CLIENT_ID',
@@ -20,6 +24,8 @@ const managedEnv = [
   'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS',
   'COACHING_SPIFFY_WEBHOOK_TOKEN', 'GOOGLE_ROMAIN_REFRESH_TOKEN',
   'COACHING_APP_ORIGIN',
+  'COACHING_MARKETING_ORIGIN', 'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY',
+  'STRIPE_COACHING_WEBHOOK_SECRET',
 ]
 for (const key of managedEnv) delete process.env[key]
 
@@ -111,11 +117,39 @@ assert.equal(response.status, 302)
 assert.equal(response.headers.get('location'), 'https://coaching.sonnycourt.com/coach?google=error#settings')
 assert.equal(coachingAppOrigin({}), 'https://coaching.sonnycourt.com')
 assert.equal(coachingAppUrl('/eleve', { COACHING_APP_ORIGIN: 'http://localhost:4321' }), 'http://localhost:4321/eleve')
+assert.equal(coachingMarketingOrigin({}), 'https://sonnycourt.com')
+assert.equal(coachingMarketingUrl('/coach-romain/confirmation', { COACHING_MARKETING_ORIGIN: 'http://localhost:4321' }), 'http://localhost:4321/coach-romain/confirmation')
 
 response = await syncAvailability(request('http://localhost/.netlify/functions/coaching-sync-availability', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
 }))
 assert.equal(response.status, 401)
+
+response = await reviewReminders()
+assert.equal(response.status, 500)
+
+response = await stripeCheckout(request('http://localhost/.netlify/functions/coaching-stripe-checkout', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offer_slug: 'session-1' })
+}))
+assert.equal(response.status, 503)
+
+response = await stripePortal(request('http://localhost/.netlify/functions/coaching-stripe-portal', { method: 'POST' }))
+assert.equal(response.status, 401)
+
+response = await stripeWebhook(request('http://localhost/.netlify/functions/coaching-stripe-webhook', { method: 'POST', body: '{}' }))
+assert.equal(response.status, 503)
+
+process.env.STRIPE_SECRET_KEY = 'sk_test_51TestOnlyKeyForLocalSmokeTest'
+process.env.STRIPE_COACHING_WEBHOOK_SECRET = 'whsec_local_smoke_test'
+const stripeConsoleError = console.error
+console.error = () => {}
+response = await stripeWebhook(request('http://localhost/.netlify/functions/coaching-stripe-webhook', {
+  method: 'POST', headers: { 'stripe-signature': 't=1,v1=invalid' }, body: '{}'
+}))
+console.error = stripeConsoleError
+assert.equal(response.status, 400)
+delete process.env.STRIPE_SECRET_KEY
+delete process.env.STRIPE_COACHING_WEBHOOK_SECRET
 
 response = await coachDiagnostic(request('http://localhost/.netlify/functions/coach-diagnostic', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
@@ -521,7 +555,7 @@ assert.notEqual(encrypted, 'refresh-token-test')
 assert.equal(decryptCoachingSecret(encrypted), 'refresh-token-test')
 
 console.log(JSON.stringify({
-  fail_closed_endpoints: 8,
+  fail_closed_endpoints: 11,
   staff_activation_guard: 'ok',
   preparation_gate: 'ok',
   webhook_signature: 'ok',
@@ -537,6 +571,7 @@ console.log(JSON.stringify({
   booking_integration_idempotency: 'ok',
   refund_calendar_cleanup: 'ok',
   webhook_data_minimization: 'ok',
+  stripe_signature: 'ok',
   token_encryption: 'ok',
   network_calls: 0
 }))

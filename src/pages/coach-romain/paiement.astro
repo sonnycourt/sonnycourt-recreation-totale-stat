@@ -12,19 +12,7 @@ import Layout from '../../layouts/Layout.astro';
   headerVariant="glass"
   footerVariant="compact-glass"
 >
-  <script is:inline>
-    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
-    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."));
-    f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
-    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
-    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
-    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
-    e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t;
-    var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
-    spiffy.SNIPPET_VERSION="1.1.0";
-    spiffy.config({ hideSidebar: true });
-    spiffy.load("sonnycourt");
-  </script>
+  <script is:inline src="https://js.stripe.com/basil/stripe.js"></script>
 
   <main class="payment-page">
     <div class="aurora aurora-one" aria-hidden="true"></div>
@@ -77,7 +65,7 @@ import Layout from '../../layouts/Layout.astro';
           </div>
         </aside>
 
-        <div class="checkout-card glass-card">
+        <div class="checkout-card glass-card" data-stripe-checkout data-offer="first-consultation" data-booking-param="booking">
           <div class="checkout-heading">
             <div>
               <p>PAIEMENT</p>
@@ -93,7 +81,16 @@ import Layout from '../../layouts/Layout.astro';
             <span></span>
             Préparation du paiement sécurisé…
           </div>
-          <div class="checkout-slot" id="checkout-slot" hidden></div>
+          <form class="checkout-slot stripe-payment-form" id="checkout-slot" hidden>
+            <div class="stripe-express" data-stripe-express hidden></div>
+            <div class="stripe-divider" data-stripe-divider hidden><span>ou payer par carte</span></div>
+            <div data-stripe-payment-element></div>
+            <p class="stripe-error" data-stripe-error role="alert"></p>
+            <button class="stripe-submit" type="submit" data-stripe-submit disabled>
+              <span data-stripe-submit-label>Payer 97 € et confirmer</span>
+              <i aria-hidden="true"></i>
+            </button>
+          </form>
           <div class="error-state" id="error-state" hidden>
             <strong>Le paiement n’a pas pu charger.</strong>
             <p>Actualise la page ou reviens choisir ton créneau.</p>
@@ -109,98 +106,7 @@ import Layout from '../../layouts/Layout.astro';
   </main>
 </Layout>
 
-<script>
-  const API = '/.netlify/functions/coach-diagnostic';
-  const params = new URLSearchParams(window.location.search);
-  const booking = params.get('booking') || '';
-  const isPreview = import.meta.env.DEV && params.has('preview');
-  const slot = document.getElementById('checkout-slot');
-  const loading = document.getElementById('loading-state');
-  const error = document.getElementById('error-state');
-  let mounted = false;
-
-  const formatter = new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
-  });
-
-  function setIdentity(data) {
-    document.getElementById('customer-name').textContent = data.name || 'Prénom enregistré';
-    document.getElementById('customer-email').textContent = data.email || 'Email enregistré';
-    if (data.start) document.getElementById('appointment-date').textContent = formatter.format(new Date(data.start));
-  }
-
-  function checkoutUrl(data) {
-    if (data.checkout_url) return data.checkout_url;
-    const url = new URL('https://sonnycourt.spiffy.co/checkout/premiere-consultation-romain');
-    if (data.name) url.searchParams.set('name_first', data.name);
-    url.searchParams.set('name_last', '-');
-    if (data.email) url.searchParams.set('email', data.email);
-    if (booking) url.searchParams.set('coach_booking_token', booking);
-    return url.toString();
-  }
-
-  function mount(data) {
-    if (mounted) return;
-    mounted = true;
-    setIdentity(data);
-    const url = checkoutUrl(data);
-
-    if (window.location.protocol === 'http:') {
-      const previewUrl = new URL(url);
-      previewUrl.searchParams.set('elements', btoa(JSON.stringify({
-        modality: 'inline', uid: 1, from: window.location.href, handles: {}
-      })));
-      const frame = document.createElement('iframe');
-      frame.className = 'checkout-frame';
-      frame.src = previewUrl.toString();
-      frame.title = 'Paiement sécurisé de la première consultation';
-      frame.setAttribute('allow', 'payment');
-      frame.setAttribute('loading', 'eager');
-      frame.setAttribute('scrolling', 'no');
-      slot.appendChild(frame);
-    } else {
-      const checkout = document.createElement('spiffy-checkout');
-      checkout.setAttribute('url', url);
-      slot.appendChild(checkout);
-    }
-
-    loading.hidden = true;
-    error.hidden = true;
-    slot.hidden = false;
-  }
-
-  function fail() {
-    loading.hidden = true;
-    slot.hidden = true;
-    error.hidden = false;
-  }
-
-  async function loadCheckout() {
-    loading.hidden = false;
-    error.hidden = true;
-    if (isPreview) {
-      const start = params.get('start') || new Date(Date.now() + 86400000).toISOString();
-      mount({ name: params.get('name') || 'Sonny', email: params.get('email') || 'sonny@example.com', start });
-      return;
-    }
-    if (!booking) return fail();
-    try {
-      const response = await fetch(API + '?booking=' + encodeURIComponent(booking));
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.checkout_url || !['pending_payment', 'paid'].includes(data.status)) throw new Error();
-      mount(data);
-    } catch {
-      fail();
-    }
-  }
-
-  document.getElementById('retry-button').addEventListener('click', () => {
-    mounted = false;
-    slot.replaceChildren();
-    loadCheckout();
-  });
-  loadCheckout();
-</script>
+<script>import '../../scripts/coaching-stripe-payment.js';</script>
 
 <style>
   :global(body) { background: #02050c; }
@@ -281,7 +187,20 @@ import Layout from '../../layouts/Layout.astro';
   .loading-state span { width:20px; height:20px; border:2px solid rgba(191,219,254,.12); border-top-color:#69b7ff; border-radius:50%; animation:spin 700ms linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   .checkout-slot { overflow:hidden; min-height:390px; border-radius:20px; }
-  :global(.checkout-frame) { display:block; width:100%; height:820px; overflow:hidden; border:0; border-radius:20px; background:transparent; }
+  .stripe-payment-form { display:grid; gap:17px; }
+  .stripe-divider { position:relative; color:rgba(191,219,254,.38); font-size:9px; text-align:center; text-transform:uppercase; }
+  .stripe-divider::before { position:absolute; top:50%; right:0; left:0; height:1px; content:''; background:rgba(191,219,254,.12); }
+  .stripe-divider span { position:relative; padding:0 10px; background:#10284c; }
+  .stripe-error { min-height:17px; margin:0; color:#ff9aa8; font-size:11px; line-height:1.45; }
+  .stripe-submit { min-height:54px; padding:0 20px; display:flex; align-items:center; justify-content:center; gap:10px; color:#fff; border:1px solid rgba(147,197,253,.42); border-radius:16px; background:linear-gradient(135deg,#1580f5,#2867e8); box-shadow:0 14px 34px rgba(20,121,232,.28),inset 0 1px 0 rgba(255,255,255,.25); font:inherit; font-size:13px; font-weight:760; cursor:pointer; }
+  .stripe-submit:disabled { opacity:.55; cursor:wait; }
+  .stripe-submit i { display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin 650ms linear infinite; }
+  .stripe-submit.is-loading i { display:block; }
+  .stripe-preview { padding:5px; display:grid; gap:14px; }
+  .stripe-preview-wallets { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .stripe-preview-wallets span,.stripe-preview-field { min-height:48px; display:flex; align-items:center; padding:0 14px; border:1px solid rgba(191,219,254,.17); border-radius:13px; background:rgba(3,12,29,.28); color:rgba(239,246,255,.72); font-size:11px; }
+  .stripe-preview-wallets span { justify-content:center; color:#fff; font-weight:700; }
+  .stripe-preview-row { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
   .checkout-note { margin:18px 8px 0; color:rgba(191,219,254,.38); font-size:10px; line-height:1.55; text-align:center; }
   .error-state { min-height:330px; padding:30px; text-align:center; }
   .error-state strong { display:block; margin-top:80px; font-size:18px; }

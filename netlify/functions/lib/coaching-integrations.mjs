@@ -208,3 +208,25 @@ export async function sendCoachingActivationEmail({ email, firstName, activation
     text: `Bonjour ${firstName}, ${textCopy} Active ton espace dans les 48 heures : ${activationUrl}`,
   });
 }
+
+export async function sendCoachingReviewRequestOnce(sessionId) {
+  const context = await loadContext(sessionId);
+  const reviewUrl = coachingAppUrl('/eleve?avis=1');
+  const coachName = [context.coach.first_name, context.coach.last_name].filter(Boolean).join(' ') || 'ton coach';
+  const safeFirstName = escapeHtml(context.client.first_name);
+  const safeCoachName = escapeHtml(coachName);
+  const safeReviewUrl = escapeHtml(reviewUrl);
+
+  return sendSessionEmailOnce({
+    context,
+    kind: 'session_review_request_client',
+    recipient: context.client.email,
+    send: () => sendCoachingTransactionalEmail({
+      to: context.client.email,
+      name: context.client.first_name,
+      subject: `Comment s’est passée ta séance avec ${coachName} ?`,
+      html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} vient de se terminer.</p><p>Une note et quelques mots suffisent pour nous aider à préserver la qualité de chaque accompagnement.</p><p><a href="${safeReviewUrl}">Donner mon avis en 10 secondes</a></p>`,
+      text: `Bonjour ${context.client.first_name}, comment s’est passée ta séance avec ${coachName} ? Donne ton avis en 10 secondes : ${reviewUrl}`,
+    }),
+  });
+}
