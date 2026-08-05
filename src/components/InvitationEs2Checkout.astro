@@ -24,6 +24,7 @@ const planConfigs = {
     monthlyPrice: 97,
     singlePrice: 997,
     dailyPrice: '3,19',
+    exitPopupDailyPrice: 3,
     saving: 167,
     items: [
       { icon: '4', title: 'La méthode fondamentale', detail: 'Modules 1 à 4, dans le bon ordre' },
@@ -39,6 +40,7 @@ const planConfigs = {
     monthlyPrice: 197,
     singlePrice: 1997,
     dailyPrice: '6,50',
+    exitPopupDailyPrice: 6,
     saving: 367,
     items: [
       { icon: '5', title: 'Les 5 modules, sans compromis', detail: 'Méthode fondamentale + Accélérateur NeuroIA' },
@@ -54,6 +56,7 @@ const planConfigs = {
     monthlyPrice: 297,
     singlePrice: 2997,
     dailyPrice: '9,76',
+    exitPopupDailyPrice: 9,
     saving: 567,
     items: [
       { icon: 'SC', title: 'Accès illimité à Sonny pendant 30 jours', detail: 'Tes questions, mes réponses personnelles' },
@@ -1303,7 +1306,7 @@ spiffy.load("sonnycourt");
         Tu as tenu plus d'une heure face à toi-même. Une partie de toi a déjà dit oui.
       </p>
       <button type="button" class="exit-popup__cta" id="exit-popup-cta">Je choisis ma nouvelle vie →</button>
-      <p class="exit-popup__reassure">✓ Garantie 30 jours &nbsp;·&nbsp; ✓ environ 6 € par jour</p>
+      <p class="exit-popup__reassure">✓ Garantie 30 jours &nbsp;·&nbsp; ✓ environ {planConfig.exitPopupDailyPrice} € par jour</p>
       <button type="button" class="exit-popup__dismiss" id="exit-popup-dismiss">Non merci, je préfère avancer seul</button>
     </div>
   </div>
@@ -1642,11 +1645,7 @@ spiffy.load("sonnycourt");
           const t = urlToken || token || '';
           window.location.href = '/invitation/' + (t ? '?t=' + encodeURIComponent(t) : '');
         });
-        document.getElementById('exit-popup-cta').addEventListener('click', function () {
-          closePopup();
-          const target = document.getElementById('checkout-slot');
-          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+        document.getElementById('exit-popup-cta').addEventListener('click', closePopup);
       })();
 
       // --- Preuve sociale checkout : contrôleur indépendant de la scarcity ---
