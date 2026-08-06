@@ -144,6 +144,11 @@ function coachingProviderOrderId(body, orderId, offerSlug) {
   return subscriptionId ? `es2-subscription:${subscriptionId}` : orderId;
 }
 
+function shouldDeferActivationEmail(offerSlug) {
+  if (offerSlug !== 'es2-complete-coaching') return false;
+  return String(process.env.COACHING_ES2_ACTIVATION_EMAILS_ENABLED || '').trim().toLowerCase() !== 'true';
+}
+
 function isFirstConsultationCheckout(body) {
   const checkoutId = findValue(body, ['checkout_id', 'checkout_uuid']);
   if (!checkoutId) return false;
@@ -257,6 +262,11 @@ async function activatePurchasedCoaching(body, data, orderId, email, offerSlug, 
   if (!client) throw new Error('coaching_client_missing');
   const identifiers = { order_id: row.order_id, client_id: row.client_id, engagement_id: row.engagement_id };
   if (client.auth_user_id) return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'existing_account', subscription, ...identifiers };
+  // Les achats ES2 préparent immédiatement le compte et les crédits, mais Sonny
+  // choisit lui-même le moment où les élèves découvrent et activent l'espace.
+  if (shouldDeferActivationEmail(offerSlug)) {
+    return { ok: true, type: 'coaching_order', already_processed: Boolean(row.already_processed), credits_added: row.credits_added, activation: 'deferred_by_owner', subscription, ...identifiers };
+  }
   const deliveredResult = await supabaseGet(`coaching_email_deliveries?order_id=eq.${row.order_id}&kind=eq.account_activation&recipient_email=eq.${encodeURIComponent(client.email)}&status=eq.sent&select=id&limit=1`);
   if (!deliveredResult.ok) throw new Error(`coaching_activation_delivery_check_${deliveredResult.status}`);
   if (Array.isArray(deliveredResult.data) && deliveredResult.data[0]) {

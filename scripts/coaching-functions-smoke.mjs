@@ -419,6 +419,33 @@ assert.equal(response.status, 200)
 assert.equal((await body(response)).activation, 'already_sent')
 assert.equal(mailerSendCalls, 1)
 
+activationDeliveryAlreadySent = false
+const es2CompletePayload = JSON.stringify({
+  order_id: 'spiffy-es2-complete-001',
+  checkout_id: '39500',
+  order_total: '1997.00',
+  currency: 'EUR',
+  email: 'camille@example.test',
+  name_first: 'Camille'
+})
+const es2CompleteSignature = crypto.createHmac('sha256', signatureSecretBytes).update(`${webhookId}.${timestamp}.${es2CompletePayload}`).digest('base64')
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase&offer=es2-complete-coaching', {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    'webhook-id': webhookId,
+    'webhook-timestamp': timestamp,
+    'webhook-signature': `v1,${es2CompleteSignature}`
+  },
+  body: es2CompletePayload
+}))
+const es2CompleteBody = await body(response)
+assert.equal(response.status, 200)
+assert.equal(es2CompleteBody.type, 'coaching_order')
+assert.equal(es2CompleteBody.activation, 'deferred_by_owner')
+assert.equal(recordedOrderPayload.p_offer_slug, 'es2-complete-coaching')
+assert.equal(mailerSendCalls, 1)
+
 const refundPayload = JSON.stringify({
   event: 'order.refunded',
   order_id: 'spiffy-order-247',
