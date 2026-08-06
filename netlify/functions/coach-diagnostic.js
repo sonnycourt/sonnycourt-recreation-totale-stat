@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
+import { loadCoachingCoachContact } from './lib/coaching-contacts.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -31,6 +32,11 @@ async function releaseExpiredHolds() {
       'status=eq.held&held_until=lt.' + encodeURIComponent(now),
       { status: 'available', held_until: null },
     ),
+    supabasePatch(
+      'coaching_availability_slots',
+      'status=eq.held&held_until=lt.' + encodeURIComponent(now),
+      { status: 'available', held_until: null },
+    ),
   ]).catch(() => {});
 }
 
@@ -49,6 +55,13 @@ export default async (req) => {
       const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
       if (!row) return json(404, { error: 'Réservation introuvable' });
       const slot = row.coach_diagnostic_slots || {};
+      const clientResult = await supabaseGet(
+        'coaching_clients?email=eq.' + encodeURIComponent(row.customer_email) + '&select=auth_user_id&limit=1',
+      );
+      const client = clientResult.ok && Array.isArray(clientResult.data) ? clientResult.data[0] : null;
+      const coachContact = row.status === 'paid'
+        ? await loadCoachingCoachContact('romain').catch(() => null)
+        : null;
       return json(200, {
         status: row.status,
         expires_at: row.expires_at,
@@ -56,6 +69,9 @@ export default async (req) => {
         end: slot.ends_at || null,
         name: row.customer_name,
         email: row.customer_email,
+        account_active: Boolean(client?.auth_user_id),
+        coach_phone: coachContact?.phone || null,
+        coach_whatsapp_url: coachContact?.whatsapp_url || null,
       });
     }
 
@@ -64,11 +80,35 @@ export default async (req) => {
     const result = await supabaseGet(
       'coach_diagnostic_slots?coach_slug=eq.romain&status=eq.available' +
       '&starts_at=gte.' + encodeURIComponent(minStart) +
-      '&select=id,starts_at,ends_at&order=starts_at.asc&limit=24',
+      '&select=id,starts_at,ends_at&order=starts_at.asc&limit=96',
     );
     if (!result.ok) return json(500, { error: 'Impossible de lire les disponibilités' });
+    let slots = Array.isArray(result.data) ? result.data : [];
+    if (slots.length) {
+      const coachResult = await supabaseGet('coaching_coaches?slug=eq.romain&status=eq.active&select=id&limit=1');
+      const coach = coachResult.ok && Array.isArray(coachResult.data) ? coachResult.data[0] : null;
+      if (coach?.id) {
+        const maxEnd = slots.reduce((latest, slot) => Math.max(latest, new Date(slot.ends_at).getTime()), 0);
+        const atomsResult = await supabaseGet(
+          `coaching_availability_slots?coach_id=eq.${coach.id}&status=eq.available` +
+          '&starts_at=gte.' + encodeURIComponent(slots[0].starts_at) +
+          '&starts_at=lt.' + encodeURIComponent(new Date(maxEnd).toISOString()) +
+          '&select=starts_at,ends_at&order=starts_at.asc',
+        );
+        const atoms = atomsResult.ok && Array.isArray(atomsResult.data) ? atomsResult.data : [];
+        if (atoms.length) {
+          const atomicStarts = new Set(atoms
+            .filter((atom) => new Date(atom.ends_at).getTime() - new Date(atom.starts_at).getTime() === 15 * 60000)
+            .map((atom) => new Date(atom.starts_at).toISOString()));
+          slots = slots.filter((slot) => {
+            const start = new Date(slot.starts_at).getTime();
+            return [0, 15, 30].every((offset) => atomicStarts.has(new Date(start + offset * 60000).toISOString()));
+          });
+        }
+      }
+    }
     return json(200, {
-      slots: (Array.isArray(result.data) ? result.data : []).map((slot) => ({
+      slots: slots.slice(0, 24).map((slot) => ({
         id: slot.id,
         start: slot.starts_at,
         end: slot.ends_at,

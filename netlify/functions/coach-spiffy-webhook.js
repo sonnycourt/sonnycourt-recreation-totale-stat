@@ -96,13 +96,30 @@ function amountCents(obj, fallback = null) {
   return fallback;
 }
 
-function coachingOfferSlug(body) {
-  const explicit = findValue(body, ['coaching_offer_slug', 'offer_slug']);
-  if (['session-1', 'pack-3', 'pack-6', 'membership-3', 'membership-6', 'membership-12'].includes(explicit)) return explicit;
-  const payloadIds = ['checkout_id', 'product_id', 'offer_id', 'checkout_uuid']
+const COACHING_OFFER_SLUGS = new Set([
+  'session-1',
+  'pack-3',
+  'pack-6',
+  'membership-3',
+  'membership-6',
+  'membership-12',
+  'es2-complete-coaching',
+]);
+
+function coachingOfferSlug(req, body) {
+  const requestUrl = new URL(req.url);
+  const explicit = requestUrl.searchParams.get('offer')
+    || requestUrl.searchParams.get('offer_slug')
+    || findValue(body, ['coaching_offer_slug', 'offer_slug']);
+  if (COACHING_OFFER_SLUGS.has(explicit)) return explicit;
+  const payloadIds = ['checkout_id', 'product_id', 'offer_id', 'checkout_uuid', 'checkout_slug', 'product_slug', 'checkout_url']
     .map((key) => findValue(body, [key]))
     .filter(Boolean)
-    .map((value) => value.toLowerCase());
+    .flatMap((value) => {
+      const normalized = value.toLowerCase();
+      const pathPart = normalized.split(/[/?#]/).filter(Boolean).pop();
+      return pathPart && pathPart !== normalized ? [normalized, pathPart] : [normalized];
+    });
   const configured = {
     'session-1': String(process.env.SP_SESSION || process.env.SPIFFY_COACHING_SESSION_1_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'pack-3': String(process.env.SP_PACK3 || process.env.SPIFFY_COACHING_PACK_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
@@ -110,8 +127,21 @@ function coachingOfferSlug(body) {
     'membership-3': String(process.env.SPIFFY_COACHING_MEMBERSHIP_3_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'membership-6': String(process.env.SPIFFY_COACHING_MEMBERSHIP_6_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
     'membership-12': String(process.env.SPIFFY_COACHING_MEMBERSHIP_12_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    'es2-complete-coaching': [
+      'esprit-subconscient-2-0-39',
+      'esprit-subconscient-2-0-36',
+      ...String(process.env.SPIFFY_ES2_COMPLETE_IDS || '').split(',').map((id) => id.trim().toLowerCase()).filter(Boolean),
+    ],
   };
   return Object.entries(configured).find(([, ids]) => ids.some((id) => payloadIds.includes(id)))?.[0] || null;
+}
+
+function coachingProviderOrderId(body, orderId, offerSlug) {
+  if (offerSlug !== 'es2-complete-coaching') return orderId;
+  const subscriptionId = findValue(body, ['subscription_id', 'subscriptionId', 'recurring_id']);
+  // Une formule ES2 en 12 fois peut émettre un événement à chaque échéance.
+  // La clé stable de souscription empêche de recréditer 12 crédits chaque mois.
+  return subscriptionId ? `es2-subscription:${subscriptionId}` : orderId;
 }
 
 function isFirstConsultationCheckout(body) {
@@ -308,8 +338,9 @@ export default async (req) => {
 
     const token = findValue(body, ['coach_booking_token', 'booking_token']);
     const email = (findEmail(body) || '').trim().toLowerCase();
-    const orderId = findValue(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
-    const offerSlug = coachingOfferSlug(body);
+    const rawOrderId = findValue(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
+    const offerSlug = coachingOfferSlug(req, body);
+    const orderId = coachingProviderOrderId(body, rawOrderId, offerSlug);
     const firstConsultation = isFirstConsultationCheckout(body);
     let coachingRefund = null;
 

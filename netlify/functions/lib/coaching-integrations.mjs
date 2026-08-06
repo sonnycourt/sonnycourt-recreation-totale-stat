@@ -1,6 +1,7 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { googleAccessTokenForCoach } from './coaching-google.mjs';
 import { coachingAppUrl } from './coaching-origin.mjs';
+import { loadCoachingCoachContact } from './coaching-contacts.mjs';
 
 async function googleAccessToken() {
   const refreshToken = process.env.GOOGLE_ROMAIN_REFRESH_TOKEN;
@@ -108,7 +109,7 @@ export async function sendCoachingTransactionalEmail({ to, name, subject, html, 
 
 async function loadContext(sessionId) {
   const result = await supabaseGet(
-    `coaching_sessions?id=eq.${encodeURIComponent(sessionId)}&select=id,starts_at,ends_at,timezone,google_event_id,meet_url,coaching_clients(id,first_name,last_name,email),coaching_coaches(id,slug,first_name,last_name,email,google_calendar_id)&limit=1`,
+    `coaching_sessions?id=eq.${encodeURIComponent(sessionId)}&select=id,starts_at,ends_at,timezone,google_event_id,meet_url,coaching_clients(id,first_name,last_name,email),coaching_coaches(id,slug,first_name,last_name,email,phone,country,google_calendar_id)&limit=1`,
   );
   const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
   if (!row) throw new Error('session_context_missing');
@@ -151,9 +152,18 @@ export async function finalizeCoachingBooking(sessionId) {
   const coachName = [context.coach.first_name, context.coach.last_name].filter(Boolean).join(' ') || 'ton coach';
   const safeCoachName = escapeHtml(coachName);
   const safeMeetUrl = escapeHtml(context.session.meet_url);
+  const coachContact = await loadCoachingCoachContact(context.coach.slug, context.coach).catch(() => null);
+  const safeCoachPhone = escapeHtml(coachContact?.phone);
+  const safeWhatsappUrl = escapeHtml(coachContact?.whatsapp_url);
   const studentSpaceUrl = coachingAppUrl('/eleve');
   const coachSpaceUrl = coachingAppUrl('/coach');
   const meetLine = context.session.meet_url ? `<p><a href="${safeMeetUrl}">Rejoindre Google Meet</a></p>` : '<p>Le lien Google Meet apparaîtra dans ton espace.</p>';
+  const whatsappLine = coachContact
+    ? `<p>Une question ou un empêchement avant la séance ? <a href="${safeWhatsappUrl}">Écris directement à ${safeCoachName} sur WhatsApp</a> au ${safeCoachPhone}.</p>`
+    : '';
+  const whatsappText = coachContact
+    ? ` Question ou empêchement : WhatsApp ${coachContact.phone} (${coachContact.whatsapp_url}).`
+    : '';
   try {
     results.client_email = await sendSessionEmailOnce({
       context,
@@ -163,8 +173,8 @@ export async function finalizeCoachingBooking(sessionId) {
         to: context.client.email,
         name: context.client.first_name,
         subject: `Ta séance avec ${coachName} est confirmée`,
-        html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} est confirmée pour le <strong>${when}</strong>.</p>${meetLine}<p><a href="${studentSpaceUrl}">Ouvrir mon espace coaching</a></p>`,
-        text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'} Espace coaching : ${studentSpaceUrl}`,
+        html: `<p>Bonjour ${safeFirstName},</p><p>Ta séance avec ${safeCoachName} est confirmée pour le <strong>${when}</strong>.</p>${meetLine}${whatsappLine}<p><a href="${studentSpaceUrl}">Ouvrir mon espace coaching</a></p>`,
+        text: `Bonjour ${context.client.first_name}, ta séance est confirmée pour le ${when}. ${context.session.meet_url || 'Le lien Google Meet apparaîtra dans ton espace.'}${whatsappText} Espace coaching : ${studentSpaceUrl}`,
       }),
     });
   } catch (error) {
@@ -193,19 +203,20 @@ export async function finalizeCoachingBooking(sessionId) {
 
 export async function sendCoachingActivationEmail({ email, firstName, activationUrl, credits, firstConsultation = false }) {
   const safeName = escapeHtml(firstName);
+  const safeEmail = escapeHtml(email);
   const safeUrl = escapeHtml(activationUrl);
   const purchaseCopy = firstConsultation
-    ? '<p>Ton paiement est confirmé. Active ton espace coaching pour retrouver ta première consultation et transmettre ta préparation à Romain.</p>'
+    ? '<p>Ta première consultation avec Romain est confirmée. Ton espace coaching est déjà préparé.</p>'
     : `<p>Ton achat est confirmé et <strong>${Number(credits) || 0} crédit(s)</strong> sont disponibles.</p>`;
   const textCopy = firstConsultation
-    ? 'Ton paiement est confirmé. Active ton espace coaching pour retrouver ta première consultation.'
+    ? 'Ta première consultation avec Romain est confirmée. Ton espace coaching est déjà préparé.'
     : `Ton achat est confirmé et ${Number(credits) || 0} crédit(s) sont disponibles.`;
   return sendCoachingTransactionalEmail({
     to: email,
     name: firstName,
-    subject: 'Active ton espace coaching',
-    html: `<p>Bonjour ${safeName},</p>${purchaseCopy}<p><a href="${safeUrl}">Choisir mon mot de passe et ouvrir mon espace</a></p><p>Ce lien personnel expire dans 48 heures.</p>`,
-    text: `Bonjour ${firstName}, ${textCopy} Active ton espace dans les 48 heures : ${activationUrl}`,
+    subject: 'Crée ton mot de passe pour accéder à ton espace coaching',
+    html: `<p>Bonjour ${safeName},</p>${purchaseCopy}<p>Ton accès est lié à l’adresse <strong>${safeEmail}</strong>. Il ne te reste qu’à choisir ton mot de passe.</p><p><a href="${safeUrl}">Créer mon mot de passe et ouvrir mon espace</a></p><p>Ce lien personnel expire dans 48 heures. Tu pourras en demander un nouveau depuis la page de connexion.</p>`,
+    text: `Bonjour ${firstName}, ${textCopy} Ton accès est lié à ${email}. Crée ton mot de passe dans les 48 heures : ${activationUrl}`,
   });
 }
 

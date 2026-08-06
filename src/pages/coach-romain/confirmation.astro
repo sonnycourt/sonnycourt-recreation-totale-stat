@@ -56,6 +56,40 @@ import Layout from '../../layouts/Layout.astro';
         <button class="secondary-button" type="button" id="download-ics">Télécharger le calendrier</button>
       </div>
 
+      <aside class="whatsapp-box" id="whatsapp-box" hidden>
+        <span class="whatsapp-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M20.4 11.8a8.4 8.4 0 0 1-12.5 7.3L4 20.2l1.1-3.8a8.4 8.4 0 1 1 15.3-4.6Z" />
+            <path d="M9 8.2c.2-.4.4-.4.7-.4h.5c.2 0 .4 0 .5.4l.8 1.8c.1.3.1.5-.1.7l-.6.7c-.2.2-.2.4-.1.6.5 1 1.3 1.8 2.3 2.3.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.1l1.8.8c.3.1.4.3.4.5 0 .4-.2 1.4-1 2-.7.6-1.6.9-2.5.6-1.3-.4-2.7-1.1-4-2.3-1.1-1-2-2.3-2.4-3.5-.4-1.1 0-2.2.4-2.7.4-.4.8-.4 1.2-.3Z" />
+          </svg>
+        </span>
+        <div>
+          <p class="eyebrow">Romain reste joignable</p>
+          <h2>Une question ou un empêchement&nbsp;?</h2>
+          <p>Écris-lui directement sur WhatsApp. Pour une annulation, préviens-le dès que possible.</p>
+        </div>
+        <a class="whatsapp-button" id="whatsapp-link" href="#" target="_blank" rel="noopener">
+          <span>Écrire à Romain</span>
+          <small id="whatsapp-phone"></small>
+        </a>
+      </aside>
+
+      <section class="access-box" aria-labelledby="access-title">
+        <span class="access-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2m-9 0h8a2 2 0 0 1 2 2v7H6v-7a2 2 0 0 1 2-2Z" /><path d="M12 14v2" /></svg>
+        </span>
+        <div>
+          <p class="eyebrow">Ton espace coaching</p>
+          <h2 id="access-title">Crée maintenant ton accès.</h2>
+          <p id="access-copy">Nous venons d’envoyer un lien à <strong id="activation-email">ton adresse email</strong>. Choisis ton mot de passe depuis cet email, puis ton espace s’ouvrira automatiquement.</p>
+        </div>
+        <div class="access-actions">
+          <a class="primary-button" id="access-link" href="https://coaching.sonnycourt.com/">J’ai créé mon mot de passe</a>
+          <button class="activation-resend" type="button" id="resend-activation">Renvoyer l’email d’activation</button>
+          <span id="activation-status" role="status"></span>
+        </div>
+      </section>
+
       <section class="preparation-box" aria-labelledby="preparation-title">
         <div class="preparation-heading">
           <div>
@@ -111,7 +145,7 @@ import Layout from '../../layouts/Layout.astro';
         </article>
       </div>
 
-      <p class="support-note">
+      <p class="support-note" id="support-note">
         Un empêchement&nbsp;? Réponds simplement à l’email de confirmation au moins 24&nbsp;h avant.
       </p>
     </section>
@@ -137,6 +171,18 @@ import Layout from '../../layouts/Layout.astro';
   const preparationStatus = document.getElementById('preparation-status');
   const preparationSaved = document.getElementById('preparation-saved');
   const preparationSubmit = document.getElementById('preparation-submit');
+  const activationEmail = document.getElementById('activation-email');
+  const accessTitle = document.getElementById('access-title');
+  const accessCopy = document.getElementById('access-copy');
+  const accessLink = document.getElementById('access-link');
+  const resendActivation = document.getElementById('resend-activation');
+  const activationStatus = document.getElementById('activation-status');
+  const whatsappBox = document.getElementById('whatsapp-box');
+  const whatsappLink = document.getElementById('whatsapp-link');
+  const whatsappPhone = document.getElementById('whatsapp-phone');
+  const supportNote = document.getElementById('support-note');
+  let customerEmail = '';
+  if (IS_PREVIEW) accessLink.href = '/coaching?live=1';
 
   const formatter = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long',
@@ -168,6 +214,49 @@ import Layout from '../../layouts/Layout.astro';
     google.searchParams.set('details', 'Première consultation individuelle de 45 minutes avec Romain. Le lien de visioconférence est envoyé par email.');
     document.getElementById('google-calendar').href = google.toString();
   }
+
+  function setupAccount(data) {
+    customerEmail = String(data.email || '').trim().toLowerCase();
+    activationEmail.textContent = customerEmail || 'l’adresse utilisée lors de ta réservation';
+    if (data.account_active) {
+      accessTitle.textContent = 'Ton espace est déjà prêt.';
+      accessCopy.innerHTML = 'Connecte-toi avec l’adresse <strong></strong> pour retrouver ta consultation.';
+      accessCopy.querySelector('strong').textContent = customerEmail;
+      accessLink.textContent = 'Accéder à mon espace';
+      resendActivation.hidden = true;
+    }
+  }
+
+  function setupWhatsapp(data) {
+    const phone = String(data.coach_phone || '').trim();
+    const url = String(data.coach_whatsapp_url || '').trim();
+    if (!phone || !url.startsWith('https://wa.me/')) return;
+    whatsappPhone.textContent = phone;
+    whatsappLink.href = url + '?text=' + encodeURIComponent('Bonjour Romain, je te contacte au sujet de ma première consultation.');
+    whatsappBox.hidden = false;
+    supportNote.textContent = 'Un empêchement ? Préviens Romain sur WhatsApp au moins 24 h avant lorsque c’est possible.';
+  }
+
+  resendActivation.addEventListener('click', async () => {
+    if (!customerEmail) return;
+    resendActivation.disabled = true;
+    activationStatus.textContent = 'Envoi…';
+    try {
+      if (!IS_PREVIEW) {
+        const response = await fetch('/.netlify/functions/coaching-resend-activation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: customerEmail })
+        });
+        if (!response.ok) throw new Error();
+      }
+      activationStatus.textContent = 'Un nouveau lien vient d’être envoyé.';
+    } catch {
+      activationStatus.textContent = 'Impossible de renvoyer le lien maintenant.';
+    } finally {
+      resendActivation.disabled = false;
+    }
+  });
 
   document.getElementById('download-ics').addEventListener('click', () => {
     if (!appointmentStart) return;
@@ -229,6 +318,10 @@ import Layout from '../../layouts/Layout.astro';
       fallback.setDate(fallback.getDate() + 2);
       fallback.setHours(10, 0, 0, 0);
       setupCalendar(query.get('start') || fallback.toISOString());
+      setupAccount({ email: query.get('email') || 'sonny@example.com', account_active: query.has('account') });
+      const previewPhone = query.get('whatsapp') || '+33 7 56 82 41 90';
+      const previewDigits = previewPhone.replace(/\D/g, '').replace(/^00/, '');
+      setupWhatsapp({ coach_phone: previewPhone, coach_whatsapp_url: previewDigits ? 'https://wa.me/' + previewDigits : '' });
       show('success');
       return;
     }
@@ -243,6 +336,8 @@ import Layout from '../../layouts/Layout.astro';
       if (data.status === 'paid') {
         clearTimeout(refreshTimer);
         setupCalendar(data.start);
+        setupAccount(data);
+        setupWhatsapp(data);
         show('success');
       } else if (data.status === 'pending_payment') {
         show('pending');
@@ -486,6 +581,99 @@ import Layout from '../../layouts/Layout.astro';
     grid-template-columns: 1fr 1fr;
     gap: 9px;
   }
+
+  .access-box {
+    margin-top: 24px;
+    padding: 22px;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 17px;
+    text-align: left;
+    border: 1px solid rgba(125, 192, 255, 0.2);
+    border-radius: 22px;
+    background: radial-gradient(circle at 100% 0%, rgba(42, 137, 255, 0.17), transparent 46%), rgba(20, 121, 232, 0.07);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.075);
+  }
+
+  .whatsapp-box {
+    margin-top: 18px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    border: 1px solid rgba(69, 255, 157, 0.18);
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(37, 211, 102, 0.12), transparent 44%),
+      rgba(37, 211, 102, 0.04);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .whatsapp-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    color: #69eda0;
+    border: 1px solid rgba(69, 255, 157, 0.2);
+    border-radius: 15px;
+    background: rgba(37, 211, 102, 0.09);
+  }
+
+  .whatsapp-icon svg {
+    width: 25px;
+    height: 25px;
+    stroke: currentColor;
+    stroke-width: 1.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .whatsapp-box .eyebrow { margin-bottom: 6px; color: rgba(105, 237, 160, 0.7); }
+  .whatsapp-box h2 { margin: 0; font-size: 17px; letter-spacing: -0.03em; }
+  .whatsapp-box > div > p:last-child { margin: 6px 0 0; color: rgba(219, 234, 254, 0.48); font-size: 9px; line-height: 1.5; }
+
+  .whatsapp-button {
+    min-width: 170px;
+    padding: 11px 14px;
+    display: grid;
+    gap: 3px;
+    color: #effff5;
+    border: 1px solid rgba(69, 255, 157, 0.22);
+    border-radius: 13px;
+    background: linear-gradient(135deg, rgba(37, 211, 102, 0.25), rgba(18, 142, 69, 0.17));
+    text-align: center;
+    text-decoration: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .whatsapp-button span { font-size: 9px; font-weight: 720; }
+  .whatsapp-button small { color: rgba(201, 255, 222, 0.56); font-size: 8px; }
+
+  .access-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(125, 192, 255, 0.2);
+    border-radius: 15px;
+    color: #82c5ff;
+    background: rgba(48, 139, 255, 0.11);
+  }
+
+  .access-icon svg { width: 23px; height: 23px; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+  .access-box .eyebrow { margin-bottom: 7px; }
+  .access-box h2 { margin: 0; font-size: 20px; letter-spacing: -0.035em; }
+  .access-box > div > p:last-child { margin: 7px 0 0; color: rgba(219, 234, 254, 0.52); font-size: 10px; line-height: 1.55; }
+  .access-box > div > p strong { color: rgba(239, 247, 255, 0.85); font-weight: 650; }
+  .access-actions { min-width: 190px; display: grid; gap: 8px; }
+  .access-actions .primary-button { min-height: 43px; }
+  .activation-resend { border: 0; padding: 2px; color: rgba(145, 201, 255, 0.7); background: transparent; font: inherit; font-size: 8px; cursor: pointer; }
+  .activation-resend:disabled { opacity: .5; cursor: wait; }
+  #activation-status { min-height: 12px; color: rgba(112, 239, 193, 0.65); font-size: 8px; text-align: center; }
 
   .preparation-box {
     margin-top: 34px;
@@ -746,6 +934,14 @@ import Layout from '../../layouts/Layout.astro';
     .preparation-options {
       grid-template-columns: 1fr;
     }
+
+    .access-box { grid-template-columns: 42px minmax(0, 1fr); align-items: start; padding: 18px 16px; }
+    .access-icon { width: 42px; height: 42px; border-radius: 13px; }
+    .access-actions { min-width: 0; grid-column: 1 / -1; }
+
+    .whatsapp-box { grid-template-columns: 42px minmax(0, 1fr); align-items: start; padding: 17px 15px; }
+    .whatsapp-icon { width: 42px; height: 42px; border-radius: 13px; }
+    .whatsapp-button { min-width: 0; grid-column: 1 / -1; }
 
     .preparation-box {
       padding: 21px 16px;

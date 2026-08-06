@@ -10,7 +10,7 @@ Le système fonctionne en deux modes sans toucher aux funnels existants :
 Les pages publiques d'acquisition restent sur `sonnycourt.com`. L'application
 privée est servie depuis `https://coaching.sonnycourt.com` :
 
-- `/` : connexion email + mot de passe, Google SSO et récupération ;
+- `/` : connexion email + mot de passe et récupération ;
 - `/admin` : supervision propriétaire ;
 - `/coach` : espace isolé du coach ;
 - `/eleve` : espace du client ;
@@ -50,10 +50,7 @@ Garanties importantes :
   créneaux et supprime leurs événements Google Calendar ;
 - jetons Google chiffrés en AES-256-GCM côté serveur ;
 - liens d'activation stockés uniquement sous forme de hash et valables 48 heures.
-- aucun visiteur Google SSO ne reçoit de rôle ni ne crée de dossier si son
-  email ne correspond pas déjà à un achat ou une invitation.
-- si ce visiteur achète ensuite, la commande rattache automatiquement son
-  compte Google existant au dossier client sans générer de lien inutilisable ;
+- aucun visiteur ne peut créer un dossier sans achat ou invitation préalable ;
 - l’identité affichée dans les espaces coach et élève provient du coach assigné
   (`nom` et `avatar_url`) : le socle n’est pas limité à Romain.
 
@@ -71,13 +68,17 @@ accès en écriture à celui des autres.
 `sql/coach_diagnostic.sql` reste séparé pour le tunnel historique de première
 consultation à 97 €. Rien n'est supprimé pendant la transition.
 
+`sql/coaching_unified_availability.sql` unifie l'agenda sur des unités internes
+de 15 minutes. La première consultation reste fixe à 45 minutes ; les suivis
+peuvent durer 30, 45, 60 ou 90 minutes sans risque de chevauchement.
+
 ## Paiement et compte client
 
 Le webhook `coach-spiffy-webhook` :
 
 1. refuse tout appel non authentifié (signature ou token privé) ;
 2. conserve la logique de la première consultation existante ;
-3. reconnaît les recharges de 3, 9 et 18 crédits ainsi que les trois memberships ;
+3. reconnaît les recharges de 3, 9 et 18 crédits, les trois memberships et la formule ES2 Complet ;
 4. crée ou rattache le client ;
 5. ajoute les crédits une seule fois ;
 6. envoie, pour un nouveau client, un lien d'activation du mot de passe ;
@@ -100,6 +101,7 @@ Les identifiants reconnus par le webhook sont configurés avec :
 - `SPIFFY_COACHING_MEMBERSHIP_3_IDS` (à renseigner)
 - `SPIFFY_COACHING_MEMBERSHIP_6_IDS` (à renseigner)
 - `SPIFFY_COACHING_MEMBERSHIP_12_IDS` (à renseigner)
+- `SPIFFY_ES2_COMPLETE_IDS` (identifiants Spiffy des checkouts ES2 Complet comptant et 12 fois)
 - `SPIFFY_FIRST_CONSULTATION_IDS` (`39602` pour la checkout actuelle)
 - `COACHING_SPIFFY_WEBHOOK_TOKEN` (secret aléatoire long, distinct des autres)
 
@@ -115,9 +117,10 @@ Variables Supabase nécessaires aux fonctions serveur :
 ## Google Calendar et Meet
 
 Le coach clique sur « Connecter Google » dans sa configuration. L'OAuth stocke
-ses jetons chiffrés. « Synchroniser » transforme ses règles de disponibilité
-en créneaux, en retirant les périodes occupées dans Google Calendar. Après une
-réservation, l'événement et le lien Meet sont créés puis envoyés aux participants.
+ses jetons chiffrés. « Enregistrer et publier » transforme ses plages libres
+en créneaux, en retirant les périodes occupées dans Google Calendar. La
+synchronisation est ensuite rejouée automatiquement toutes les 15 minutes.
+Après une réservation, l'événement et le lien Meet sont créés puis envoyés aux participants.
 L'identifiant Google de l'événement est déterministe : une relance ne crée pas
 de doublon. Les emails client et coach sont également dédupliqués par séance.
 
@@ -126,15 +129,13 @@ Variables :
 - `GOOGLE_COACHING_CLIENT_ID`
 - `GOOGLE_COACHING_CLIENT_SECRET`
 - `COACHING_TOKEN_ENCRYPTION_KEY` (secret long et stable)
-- `COACHING_SYNC_SECRET` (pour une future synchronisation planifiée)
+- `COACHING_SYNC_SECRET` (synchronisation planifiée)
 
 L'URI OAuth Google Calendar autorisée est :
 
 `https://coaching.sonnycourt.com/.netlify/functions/coaching-google-callback`
 
-Google SSO pour la connexion des utilisateurs est un réglage séparé dans
-Supabase Auth. Le `Site URL` doit être `https://coaching.sonnycourt.com`. Ajouter
-`https://coaching.sonnycourt.com/auth/callback` et
+Le `Site URL` Supabase Auth doit être `https://coaching.sonnycourt.com`. Ajouter
 `https://coaching.sonnycourt.com/reset-password` aux redirects autorisés, tout
 en conservant temporairement les URLs localhost pour les tests.
 
@@ -155,16 +156,16 @@ données personnelles et des liens Meet à MailerSend.
 
 Ces commandes ne contactent aucun client et n'écrivent dans aucun service réel :
 
-- `npm run test:coaching-db` installe les quatre migrations métier dans un PostgreSQL
+- `npm run test:coaching-db` installe les migrations métier dans un PostgreSQL
   isolé et teste les rôles, les accès croisés interdits, la première
   consultation, les crédits, les réservations, annulations, achats et
-  remboursements idempotents, ainsi que le cas Google SSO avant achat ;
+  remboursements idempotents et les durées variables ;
 - `npm run test:coaching-functions` vérifie que les fonctions refusent les
   appels non configurés/non authentifiés, la signature Spiffy, sa limite de
   fraîcheur et le chiffrement des jetons Google ;
 - `npm run test:coaching-frontend` garantit la présence des trois routages de
-  rôle, de l'email/mot de passe, de Google SSO et de la récupération, ainsi que
-  l'absence de magic links ;
+  rôle, de l'email/mot de passe et de la récupération, ainsi que l'absence de
+  Google SSO et de magic links ;
 - `npm run build` construit les 273 pages.
 - `npm run check:coaching-readiness` vérifie la présence, la cohérence et le
   format de chaque variable externe sans jamais afficher sa valeur.
@@ -185,7 +186,9 @@ critiques sans validation explicite de Sonny.
    `sql/coach_diagnostic.sql`, `sql/coaching_platform.sql`,
    `sql/coaching_first_consultation_bridge.sql`,
    `sql/coaching_wallet_memberships.sql`, puis
-   `sql/coaching_profile_storage.sql`.
+   `sql/coaching_session_reviews.sql`, `sql/coaching_stripe.sql`,
+   `sql/coaching_profile_storage.sql` et enfin
+   `sql/coaching_unified_availability.sql`.
 5. Créer les comptes Sonny et Romain dans Supabase Auth.
 6. Attribuer les rôles avec la fonction serveur :
    - `coaching_assign_role_by_email('email-sonny', 'owner', null)`
@@ -206,6 +209,12 @@ Webhooks Spiffy à renseigner dans les automatisations correspondantes :
 
 - achat : `https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook?event=purchase&token=SECRET`
 - remboursement : `https://sonnycourt.com/.netlify/functions/coach-spiffy-webhook?event=refund&token=SECRET`
+
+Pour les deux checkouts de la formule ES2 Complet, utiliser les mêmes URLs en
+ajoutant `&offer=es2-complete-coaching`. Le paiement crée ou rattache le compte,
+ajoute exactement 12 crédits et marque leur origine « ES2 Complet ». Lorsqu'un
+identifiant de souscription est présent, il sert de clé stable afin qu'une
+échéance du paiement en 12 fois ne recrédite jamais le client.
 
 Le paramètre est volontaire : les Custom Webhooks Spiffy héritent du contexte
 de l’automatisation mais ne fournissent pas toujours un nom d’événement dans le

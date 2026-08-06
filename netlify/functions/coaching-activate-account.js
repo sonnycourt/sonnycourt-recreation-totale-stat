@@ -63,5 +63,5 @@ export default async (req) => {
     await supabasePatch('coaching_account_activations', `id=eq.${activation.id}`, { used_at: null });
     return json(500, { error: 'Ton compte existe, mais son accès coaching doit encore être finalisé.' });
   }
-  return json(200, { ok: true });
+  return json(200, { ok: true, email: client.email });
 };

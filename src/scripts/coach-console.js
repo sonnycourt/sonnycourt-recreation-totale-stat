@@ -215,6 +215,20 @@ function safeAvatar(value) {
   return avatar.startsWith('/') || /^https:\/\//i.test(avatar) ? avatar : '/favicon.svg';
 }
 
+function sessionOriginLabel(origin) {
+  if (origin === 'es2_complete') return 'ES2 Complet';
+  if (origin === 'first_consultation') return 'Première consultation';
+  if (origin === 'mixed') return 'ES2 + coaching direct';
+  return 'Coaching direct';
+}
+
+function engagementOrigin(engagement) {
+  const offer = engagement?.coaching_offers;
+  if (offer?.slug === 'es2-complete-coaching' || offer?.metadata?.origin === 'es2_complete') return 'es2_complete';
+  if (offer?.slug === 'first-consultation') return 'first_consultation';
+  return 'direct';
+}
+
 function updateStorageLabels() {
   const live = consoleMode === 'live';
   const drawerState = document.querySelector('#client-drawer .save-state');
@@ -261,8 +275,8 @@ async function loadLiveCoachData(session) {
   liveUserId = session.user.id;
   const [clientResult, sessionsResult, engagementsResult, responsesResult, actionsResult, availabilityResult, creditsResult, reviewsResult] = await Promise.all([
     coachingSupabase.from('coaching_clients').select('id,first_name,last_name,email,phone,status,objective,created_at').eq('coach_id', coach.id).neq('status', 'archived').order('created_at', { ascending: false }),
-    coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
-    coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(name,sessions_count)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
+    coachingSupabase.from('coaching_sessions').select('id,client_id,starts_at,ends_at,status,meet_url,booking_origin').eq('coach_id', coach.id).order('starts_at', { ascending: false }),
+    coachingSupabase.from('coaching_engagements').select('id,client_id,status,started_at,expires_at,coaching_offers(slug,name,sessions_count,metadata)').eq('coach_id', coach.id).order('started_at', { ascending: false }),
     coachingSupabase.from('coaching_form_responses').select('id,client_id,status,answers,submitted_at').order('created_at', { ascending: false }),
     coachingSupabase.from('coaching_actions').select('id,client_id,title,status,due_at,priority,completed_at,updated_at').eq('coach_id', coach.id).in('status', ['open', 'done']).order('updated_at', { ascending: false }).limit(100),
     coachingSupabase.from('coaching_availability_slots').select('id,starts_at,ends_at,status').eq('coach_id', coach.id).eq('status', 'available').gte('starts_at', new Date().toISOString()).order('starts_at').limit(100),
@@ -288,9 +302,21 @@ async function loadLiveCoachData(session) {
     const activeEngagements = engagements.filter((item) => item.client_id === row.id && item.status === 'active' && (!item.expires_at || new Date(item.expires_at).getTime() > Date.now()));
     const engagement = activeEngagements[0] || engagements.find((item) => item.client_id === row.id);
     const offer = engagement?.coaching_offers;
+    const clientEngagements = engagements.filter((item) => item.client_id === row.id);
+    const origins = new Set(clientEngagements.map(engagementOrigin));
+    const clientOrigin = origins.has('es2_complete') && origins.has('direct')
+      ? 'mixed'
+      : origins.has('es2_complete')
+        ? 'es2_complete'
+        : origins.has('direct')
+          ? 'direct'
+          : origins.has('first_consultation')
+            ? 'first_consultation'
+            : 'direct';
     const prep = responses.find((item) => item.client_id === row.id && item.status === 'submitted');
     const completed = clientSessions.filter((item) => item.status === 'completed').length;
     const total = Number(activeEngagements.reduce((sum, item) => sum + Number(item.coaching_offers?.sessions_count || 0), 0) || offer?.sessions_count || Math.max(completed + (future ? 1 : 0), 1));
+    const credits = Math.max(creditBalance.get(row.id) || 0, 0);
     const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ');
     const initials = fullName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
     clients[row.id] = {
@@ -301,7 +327,7 @@ async function loadLiveCoachData(session) {
       name: escapeHtml(fullName),
       email: escapeHtml(row.email),
       phone: escapeHtml(row.phone || 'Téléphone non renseigné'),
-      type: escapeHtml(offer?.name || 'Première consultation'),
+      type: escapeHtml(sessionOriginLabel(future?.booking_origin || clientOrigin)),
       filter: row.status === 'paused' ? 'pause' : total > 1 ? 'premium' : 'consultation',
       status: prep ? 'Préparation reçue' : 'Préparation attendue',
       next: future ? escapeHtml(formatDateTime(future.starts_at)) : 'Non planifiée',
@@ -315,11 +341,11 @@ async function loadLiveCoachData(session) {
       context: escapeHtml([prep?.answers?.progress, prep?.answers?.obstacle, prep?.answers?.context].filter(Boolean).join(' ') || 'Aucun contexte supplémentaire transmis.'),
       preparation: escapeHtml(prep?.answers?.subject || 'Préparation en attente.'),
       focus: escapeHtml(prep?.answers?.outcome || 'Clarifier le prochain pas'),
-      journey: `${completed}/${total} séance${total > 1 ? 's' : ''}`,
+      journey: `${completed} séance${completed > 1 ? 's' : ''} · ${credits} crédit${credits > 1 ? 's' : ''}`,
       progress: Math.min(Math.round((completed / total) * 100), 100),
-      sessions: clientSessions.map((item) => ({ title: 'Séance de coaching', date: escapeHtml(formatDateTime(item.starts_at)), status: item.status === 'completed' ? 'Terminée' : item.status === 'cancelled' ? 'Annulée' : 'À venir' })),
+      sessions: clientSessions.map((item) => ({ title: sessionOriginLabel(item.booking_origin), date: escapeHtml(formatDateTime(item.starts_at)), status: item.status === 'completed' ? 'Terminée' : item.status === 'cancelled' ? 'Annulée' : 'À venir' })),
       commitments: actions.filter((item) => item.client_id === row.id && item.status === 'open').map((item) => escapeHtml(item.title)),
-      credits: Math.max(creditBalance.get(row.id) || 0, 0),
+      credits,
     };
   }
   renderLiveClientRows();
@@ -336,7 +362,7 @@ async function loadLiveCoachData(session) {
   document.querySelector('.metric-card.green strong').textContent = String(Object.keys(clients).length);
   document.querySelector('.metric-card.purple strong').textContent = String(actions.filter((item) => item.status === 'open').length);
   renderLiveWorkspace(sessions, actions, availabilityResult.data || [], reviewsResult.error ? [] : reviewsResult.data || []);
-  const rulesResult = await coachingSupabase.from('coaching_availability_rules').select('weekday,start_time,end_time,slot_minutes,buffer_minutes').eq('coach_id', coach.id).eq('active', true).order('weekday');
+  const rulesResult = await coachingSupabase.from('coaching_availability_rules').select('weekday,start_time,end_time').eq('coach_id', coach.id).eq('active', true).order('weekday');
   if (!rulesResult.error && rulesResult.data?.length) {
     const days = new Set(rulesResult.data.map((rule) => String(rule.weekday)));
     document.querySelectorAll('[data-availability-day]').forEach((input) => { input.checked = days.has(input.value); });
@@ -344,8 +370,6 @@ async function loadLiveCoachData(session) {
     const availabilityForm = document.querySelector('[data-availability-form]');
     availabilityForm.elements.namedItem('start').value = String(firstRule.start_time).slice(0, 5);
     availabilityForm.elements.namedItem('end').value = String(firstRule.end_time).slice(0, 5);
-    availabilityForm.elements.namedItem('duration').value = String(firstRule.slot_minutes);
-    availabilityForm.elements.namedItem('buffer').value = String(firstRule.buffer_minutes);
     document.querySelector('[data-availability-feedback]').textContent = `${rulesResult.data.length} jour(s) ouvert(s) enregistré(s).`;
   }
 }
@@ -842,17 +866,28 @@ document.querySelector('[data-connect-google]')?.addEventListener('click', async
   window.location.href = payload.url;
 });
 
-document.querySelector('[data-sync-google]')?.addEventListener('click', async () => {
-  if (consoleMode === 'demo') return showToast('La synchronisation sera active en mode réel.');
+async function syncGoogleAvailability() {
+  if (consoleMode === 'demo') {
+    showToast('La synchronisation sera active en mode réel.');
+    return null;
+  }
   const { data: { session } } = await coachingSupabase.auth.getSession();
   const response = await fetch('/.netlify/functions/coaching-sync-availability', { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token || ''}`, 'Content-Type': 'application/json' }, body: '{}' });
   const payload = await response.json().catch(() => ({}));
   showToast(response.ok ? `${payload.available} créneau(x) disponible(s) synchronisé(s).` : payload.error || 'Synchronisation impossible.');
+  return response.ok ? payload : null;
+}
+
+document.querySelector('[data-sync-google]')?.addEventListener('click', async () => {
+  await syncGoogleAvailability();
 });
 
 document.querySelector('[data-availability-form]')?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (consoleMode === 'demo') return showToast('Plages test enregistrées dans la maquette.');
+  if (consoleMode === 'demo') {
+    document.querySelector('[data-availability-feedback]').textContent = 'Plages test publiées dans la maquette.';
+    return showToast('Plages test enregistrées.');
+  }
   const form = event.currentTarget;
   const days = [...form.querySelectorAll('[data-availability-day]:checked')].map((input) => Number(input.value));
   const start = form.elements.namedItem('start').value;
@@ -861,8 +896,17 @@ document.querySelector('[data-availability-form]')?.addEventListener('submit', a
   if (!days.length || !start || !end || start >= end) return void (feedback.textContent = 'Choisis au moins un jour et une plage horaire valide.');
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
-  const saved = await coachingSupabase.rpc('coaching_replace_my_availability_rules', { p_weekdays: days, p_start_time: start, p_end_time: end, p_slot_minutes: Number(form.elements.namedItem('duration').value), p_buffer_minutes: Number(form.elements.namedItem('buffer').value), p_timezone: 'Europe/Zurich' });
-  feedback.textContent = saved.error ? 'Enregistrement impossible pour le moment.' : `${Number(saved.data || days.length)} jour(s) enregistré(s). Lance maintenant la synchronisation Google.`;
+  feedback.textContent = 'Enregistrement et synchronisation en cours…';
+  const saved = await coachingSupabase.rpc('coaching_replace_my_availability_windows', { p_weekdays: days, p_start_time: start, p_end_time: end, p_timezone: 'Europe/Zurich' });
+  if (saved.error) {
+    feedback.textContent = 'Enregistrement impossible pour le moment.';
+    button.disabled = false;
+    return;
+  }
+  const synced = await syncGoogleAvailability();
+  feedback.textContent = synced
+    ? `${Number(saved.data || days.length)} jour(s) publiés. Les premières consultations et les suivis sont à jour.`
+    : 'Plages enregistrées. La synchronisation Google reste à relancer.';
   button.disabled = false;
 });
 

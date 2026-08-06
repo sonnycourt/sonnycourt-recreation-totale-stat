@@ -19,18 +19,21 @@ export default async (req) => {
 
   const body = await req.json().catch(() => ({}));
   if (!/^[0-9a-f-]{36}$/i.test(String(body.slot_id || ''))) return json(400, { error: 'Créneau invalide.' });
+  const duration = Number(body.duration_minutes);
+  if (![30, 45, 60, 90].includes(duration)) return json(400, { error: 'Choisis une durée valide.' });
+  const credits = duration / 15;
   const response = await fetch(`${url}/rest/v1/rpc/coaching_book_session`, {
     method: 'POST',
     headers: { apikey: key, Authorization: authorization, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_slot_id: body.slot_id, p_timezone: String(body.timezone || 'Europe/Zurich').slice(0, 80) }),
+    body: JSON.stringify({ p_slot_id: body.slot_id, p_duration_minutes: duration, p_timezone: String(body.timezone || 'Europe/Zurich').slice(0, 80) }),
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = String(payload?.message || payload?.error || '');
-    const conflict = detail.includes('slot_unavailable');
+    const conflict = detail.includes('slot_unavailable') || detail.includes('slot_too_short') || detail.includes('session_overlap');
     const noCredit = detail.includes('no_credit') || detail.includes('insufficient_credits');
     const preparationRequired = detail.includes('preparation_required');
-    return json(conflict || preparationRequired ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? 'Il faut 3 crédits pour réserver cette séance de 45 minutes.' : preparationRequired ? 'Complète d’abord ta préparation avant de choisir un créneau.' : 'La réservation n’a pas pu être confirmée.' });
+    return json(conflict || preparationRequired ? 409 : noCredit ? 402 : response.status, { error: conflict ? 'Ce créneau vient d’être pris. Choisis-en un autre.' : noCredit ? `Il faut ${credits} crédits pour réserver cette séance de ${duration} minutes.` : preparationRequired ? 'Complète d’abord ta préparation avant de choisir un créneau.' : 'La réservation n’a pas pu être confirmée.' });
   }
   const row = Array.isArray(payload) ? payload[0] : payload;
   if (!row?.session_id) return json(500, { error: 'Réservation incomplète.' });

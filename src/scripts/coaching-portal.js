@@ -74,19 +74,33 @@ form?.addEventListener('submit', async (event) => {
   }
 });
 
-document.querySelector('[data-google-login]')?.addEventListener('click', async () => {
-  if (demoMode) {
-    showFeedback('En local, utilise les profils de démonstration. Ajoute ?live=1 pour tester Google réellement.', false);
+document.querySelector('[data-resend-activation]')?.addEventListener('click', async (event) => {
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email) {
+    showFeedback('Entre d’abord l’adresse email utilisée lors de ta réservation.', true);
+    emailInput.focus();
     return;
   }
-  const { error } = await coachingSupabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}${coachingUrl('/coaching/auth/callback')}`,
-      queryParams: { prompt: 'select_account' },
-    },
-  });
-  if (error) showFeedback(friendlyAuthError(error), true);
+  const button = event.currentTarget;
+  button.disabled = true;
+  showFeedback('Envoi du lien d’activation…');
+  try {
+    if (demoMode) {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    } else {
+      const response = await fetch('/.netlify/functions/coaching-resend-activation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) throw new Error('resend_failed');
+    }
+    showFeedback('Si cette adresse correspond à une réservation, un nouveau lien vient d’être envoyé.');
+  } catch {
+    showFeedback('Le lien ne peut pas être renvoyé pour le moment. Réessaie dans quelques minutes.', true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.querySelector('[data-forgot-password]')?.addEventListener('click', async () => {

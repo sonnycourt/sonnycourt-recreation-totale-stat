@@ -38,6 +38,10 @@ const reviewsMigration = await fs.readFile(new URL('../sql/coaching_session_revi
 await db.exec(reviewsMigration)
 const stripeMigration = await fs.readFile(new URL('../sql/coaching_stripe.sql', import.meta.url), 'utf8')
 await db.exec(stripeMigration)
+const unifiedAvailabilityMigration = await fs.readFile(new URL('../sql/coaching_unified_availability.sql', import.meta.url), 'utf8')
+await db.exec(unifiedAvailabilityMigration)
+const es2CompleteBridge = await fs.readFile(new URL('../sql/coaching_es2_complete_bridge.sql', import.meta.url), 'utf8')
+await db.exec(es2CompleteBridge)
 
 const ids = {
   sonny: '00000000-0000-4000-8000-000000000001',
@@ -46,7 +50,8 @@ const ids = {
   lea: '00000000-0000-4000-8000-000000000004',
   bob: '00000000-0000-4000-8000-000000000005',
   stranger: '00000000-0000-4000-8000-000000000006',
-  preexisting: '00000000-0000-4000-8000-000000000007'
+  preexisting: '00000000-0000-4000-8000-000000000007',
+  es2: '00000000-0000-4000-8000-000000000008'
 }
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0]
@@ -159,6 +164,7 @@ await db.exec(`
   insert into auth.users(id, email, raw_user_meta_data) values
     ('${ids.alice}', 'alice@example.test', '{"first_name":"Alice"}'),
     ('${ids.bob}', 'bob@example.test', '{"first_name":"Bob"}'),
+    ('${ids.es2}', 'es2@example.test', '{"first_name":"Élodie"}'),
     ('${ids.stranger}', 'stranger@example.test', '{"first_name":"Inconnu"}');
 `)
 assert.equal(await count('select count(*) from public.coaching_memberships where user_id = $1', [ids.stranger]), 0)
@@ -167,19 +173,41 @@ await expectRejected(
   () => asRole('service_role', () => db.query("select public.coaching_assign_role_by_email($1, 'client', null)", ['stranger@example.test'])),
   'client_profile_not_found'
 )
+const es2Order = await asRole('service_role', () => one(`
+  select * from public.coaching_record_spiffy_order(
+    'es2-subscription:test-001', 'es2@example.test', 'Élodie', '', 'es2-complete-coaching',
+    299700, 0, 'EUR', 'FR', '{"event":"order.paid"}'::jsonb
+  )
+`))
+const repeatedEs2Order = await asRole('service_role', () => one(`
+  select * from public.coaching_record_spiffy_order(
+    'es2-subscription:test-001', 'es2@example.test', 'Élodie', '', 'es2-complete-coaching',
+    299700, 0, 'EUR', 'FR', '{}'::jsonb
+  )
+`))
+const es2Client = { id: es2Order.client_id }
+assert.equal(es2Order.credits_added, 12)
+assert.equal(repeatedEs2Order.already_processed, true)
+assert.equal(repeatedEs2Order.credits_added, 0)
+assert.equal(Number((await asUser(ids.es2, () => one('select public.coaching_credit_balance($1) as balance', [es2Client.id]))).balance), 12)
+assert.equal(await count('select count(*) from public.coaching_clients where id = $1 and auth_user_id = $2', [es2Client.id, ids.es2]), 1)
 await db.query('update public.coaching_clients set coach_id = $1 where id = $2', [lea.id, bob.id])
 await db.query('update public.coaching_engagements set coach_id = $1 where id = $2', [lea.id, bobOrder.engagement_id])
 
-const aliceSlot = await one(`
+const aliceSlots = (await db.query(`
   insert into public.coaching_availability_slots(coach_id, starts_at, ends_at, status, source)
-  values ($1, now() + interval '3 days', now() + interval '3 days 1 hour', 'available', 'manual')
-  returning id
-`, [romain.id])
+  select $1, base.starts_at + piece * interval '15 minutes', base.starts_at + (piece + 1) * interval '15 minutes', 'available', 'manual'
+  from (select date_trunc('minute', now()) + interval '3 days' as starts_at) base
+  cross join generate_series(0, 3) piece
+  returning id, starts_at, ends_at
+`, [romain.id])).rows
+const aliceSlot = aliceSlots[0]
 await db.query(`
   insert into public.coaching_availability_slots(coach_id, starts_at, ends_at, status, source)
   values
     ($1, now() + interval '4 days', now() + interval '4 days 1 hour', 'blocked', 'manual'),
-    ($2, now() + interval '3 days', now() + interval '3 days 1 hour', 'available', 'manual')
+    ($2, now() + interval '3 days', now() + interval '3 days 15 minutes', 'available', 'manual'),
+    ($2, now() + interval '3 days 15 minutes', now() + interval '3 days 30 minutes', 'available', 'manual')
 `, [romain.id, lea.id])
 const bobSlot = await one("select id from public.coaching_availability_slots where coach_id = $1 and status = 'available'", [lea.id])
 
@@ -237,7 +265,8 @@ assert.equal(Number(rls.rows[0].count), 24)
 assert.equal(diagnosticTables, 2)
 assert.equal(diagnosticRls, 2)
 assert.equal((await one("select has_function_privilege('anon', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, false)
-assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, true)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_book_session(uuid,text)', 'EXECUTE') as allowed")).allowed, false)
+assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_book_session(uuid,integer,text)', 'EXECUTE') as allowed")).allowed, true)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_assign_role_by_email(text,text,text)', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_record_spiffy_order(text,text,text,text,text,integer,integer,text,text,jsonb)', 'EXECUTE') as allowed")).allowed, false)
 assert.equal((await one("select has_function_privilege('authenticated', 'public.coaching_refund_spiffy_order(text)', 'EXECUTE') as allowed")).allowed, false)
@@ -253,9 +282,14 @@ assert.equal((await one("select has_function_privilege('service_role', 'public.h
 
 const diagnosticSlot = await one(`
   insert into public.coach_diagnostic_slots(starts_at, ends_at)
-  values (now() + interval '5 days', now() + interval '5 days 45 minutes')
-  returning id
+  values (date_trunc('minute', now()) + interval '5 days', date_trunc('minute', now()) + interval '5 days 45 minutes')
+  returning id, starts_at, ends_at
 `)
+await db.query(`
+  insert into public.coaching_availability_slots(coach_id, starts_at, ends_at, status, source)
+  select $1, $2::timestamptz + piece * interval '15 minutes', $2::timestamptz + (piece + 1) * interval '15 minutes', 'available', 'google'
+  from generate_series(0, 2) piece
+`, [romain.id, diagnosticSlot.starts_at])
 const diagnosticBooking = await asRole('service_role', () => one(
   'select * from public.hold_coach_diagnostic_slot($1, $2, $3)',
   [diagnosticSlot.id, 'Camille', 'camille@example.test']
@@ -268,7 +302,7 @@ await expectRejected(
 )
 
 await asRole('anon', async () => {
-  assert.equal(await count('select count(*) from public.coaching_offers'), 7)
+  assert.equal(await count('select count(*) from public.coaching_offers'), 8)
   await expectRejected(() => db.query('select * from public.coaching_clients'), 'permission denied')
 })
 
@@ -284,7 +318,8 @@ await asUser(ids.romain, async () => {
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [alice.id]), 1)
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [bob.id]), 0)
   assert.equal(await count('select count(*) from public.coaching_session_notes'), 1)
-  assert.equal((await one('select public.coaching_replace_my_availability_rules(array[1,3]::smallint[], $1::time, $2::time, 60, 15, $3) as count', ['09:00', '17:00', 'Europe/Zurich'])).count, 2)
+  assert.equal((await one('select public.coaching_replace_my_availability_windows(array[1,3]::smallint[], $1::time, $2::time, $3) as count', ['09:00', '17:00', 'Europe/Zurich'])).count, 2)
+  assert.equal(await count('select count(*) from public.coaching_availability_rules where coach_id = $1 and slot_minutes = 15 and buffer_minutes = 0', [romain.id]), 2)
   aliceActionId = (await one(`
     insert into public.coaching_actions(client_id, coach_id, title, priority, visibility, origin)
     values ($1, $2, 'Préparer le bilan Alice', 'high', 'coach', 'manual')
@@ -300,7 +335,7 @@ await asUser(ids.romain, async () => {
     'row-level security'
   )
   await expectRejected(
-    () => db.query(`insert into public.coaching_sessions(client_id, coach_id, starts_at, ends_at) values ($1, $2, now() + interval '10 days', now() + interval '10 days 1 hour')`, [bob.id, romain.id]),
+    () => db.query(`insert into public.coaching_sessions(client_id, coach_id, starts_at, ends_at) values ($1, $2, now() + interval '11 days', now() + interval '11 days 1 hour')`, [bob.id, romain.id]),
     'row-level security'
   )
   await expectRejected(
@@ -325,7 +360,7 @@ await asUser(ids.lea, async () => {
 
 await asUser(ids.bob, async () => {
   assert.equal((await one('select public.coaching_credit_balance($1) as balance', [bob.id])).balance, 3)
-  await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [bobSlot.id, 'Europe/Zurich']), 'preparation_required')
+  await expectRejected(() => db.query('select * from public.coaching_book_session($1, 30, $2)', [bobSlot.id, 'Europe/Zurich']), 'preparation_required')
 })
 
 await db.query(`
@@ -335,7 +370,7 @@ await db.query(`
 await db.query("update public.coaching_engagements set expires_at = now() - interval '1 minute' where id = $1", [bobOrder.engagement_id])
 await asUser(ids.bob, async () => {
   assert.equal((await one('select public.coaching_credit_balance($1) as balance', [bob.id])).balance, 0)
-  await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [bobSlot.id, 'Europe/Zurich']), 'engagement_missing')
+  await expectRejected(() => db.query('select * from public.coaching_book_session($1, 30, $2)', [bobSlot.id, 'Europe/Zurich']), 'insufficient_credits')
   assert.equal((await db.query("update public.coaching_memberships set role = 'owner' where user_id = $1", [ids.bob])).affectedRows, 0)
 })
 
@@ -344,21 +379,22 @@ await asUser(ids.alice, async () => {
   assert.equal((await one('select public.coaching_current_role() as role')).role, 'client')
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [alice.id]), 1)
   assert.equal(await count('select count(*) from public.coaching_clients where id = $1', [bob.id]), 0)
-  assert.equal(await count("select count(*) from public.coaching_availability_slots where status = 'available'"), 1)
+  assert.equal(await count('select count(*) from public.coaching_availability_slots where id = any($1::uuid[]) and status = \'available\'', [aliceSlots.map((slot) => slot.id)]), 4)
   assert.equal(await count('select count(*) from public.coaching_session_notes'), 0)
   assert.equal((await one('select public.coaching_credit_balance($1) as balance', [alice.id])).balance, 9)
   await db.query("update public.coaching_form_responses set answers = '{\"focus\":\"nouveau\"}'::jsonb where id = $1", [aliceResponse.id])
   await expectRejected(() => db.query('select raw_payload from public.coaching_orders'), 'permission denied')
 
-  booked = await one('select * from public.coaching_book_session($1, $2)', [aliceSlot.id, 'Europe/Zurich'])
+  booked = await one('select * from public.coaching_book_session($1, 45, $2)', [aliceSlot.id, 'Europe/Zurich'])
   assert.equal(booked.credits_remaining, 6)
+  assert.equal(await count('select count(*) from public.coaching_availability_slots where id = any($1::uuid[]) and status = \'available\'', [aliceSlots.map((slot) => slot.id)]), 1)
   assert.equal(await count('select count(*) from public.coaching_form_responses where id = $1 and session_id = $2', [aliceResponse.id, booked.session_id]), 1)
   assert.equal((await db.query("update public.coaching_form_responses set answers = '{\"focus\":\"interdit\"}'::jsonb where id = $1", [aliceResponse.id])).affectedRows, 0)
-  await expectRejected(() => db.query('select * from public.coaching_book_session($1, $2)', [aliceSlot.id, 'Europe/Zurich']), 'slot_unavailable')
+  await expectRejected(() => db.query('select * from public.coaching_book_session($1, 45, $2)', [aliceSlot.id, 'Europe/Zurich']), 'slot_unavailable')
 
   const cancelled = await one('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test'])
   assert.equal(cancelled.credits_remaining, 9)
-  assert.equal(await count("select count(*) from public.coaching_availability_slots where id = $1 and status = 'available'", [aliceSlot.id]), 1)
+  assert.equal(await count('select count(*) from public.coaching_availability_slots where id = any($1::uuid[]) and status = \'available\'', [aliceSlots.map((slot) => slot.id)]), 4)
   await expectRejected(() => db.query('select * from public.coaching_cancel_session($1, $2)', [booked.session_id, 'Test 2']), 'session_not_cancellable')
 
   const review = await one('select * from public.coaching_submit_session_review($1, $2::smallint, $3)', [alicePastSession.id, 5, 'Une séance claire et utile.'])
@@ -378,6 +414,53 @@ await asUser(ids.romain, async () => {
   assert.equal(await count('select count(*) from public.coaching_session_reviews where session_id = $1', [alicePastSession.id]), 1)
   assert.equal(await count('select count(*) from public.coaching_session_reviews where session_id = $1', [bobPastSession.id]), 0)
 })
+
+const es2Durations = [30, 60, 90]
+const es2ExpectedPayouts = [6667, 13333, 20000]
+for (let index = 0; index < es2Durations.length; index += 1) {
+  const duration = es2Durations[index]
+  await db.query(`
+    insert into public.coaching_form_responses(template_id, client_id, submitted_by, status, answers, submitted_at)
+    values ($1, $2, $3, 'submitted', jsonb_build_object('subject', 'Préparation ES2'), now())
+  `, [template.id, es2Client.id, ids.es2])
+  const es2Slots = (await db.query(`
+    insert into public.coaching_availability_slots(coach_id, starts_at, ends_at, status, source)
+    select
+      $1,
+      base.starts_at + piece * interval '15 minutes',
+      base.starts_at + (piece + 1) * interval '15 minutes',
+      'available',
+      'manual'
+    from (select date_trunc('minute', now()) + make_interval(days => 40 + $2::integer) as starts_at) base
+    cross join generate_series(0, ($3::integer / 15) - 1) piece
+    returning id, starts_at
+  `, [romain.id, index, duration])).rows
+  const bookedEs2 = await asUser(ids.es2, () => one(
+    'select * from public.coaching_book_session($1, $2, $3)',
+    [es2Slots[0].id, duration, 'Europe/Zurich']
+  ))
+  assert.equal((await one('select booking_origin from public.coaching_sessions where id = $1', [bookedEs2.session_id])).booking_origin, 'es2_complete')
+  await db.query(`
+    update public.coaching_sessions
+    set starts_at = now() - make_interval(days => 10 - $2::integer),
+        ends_at = now() - make_interval(days => 10 - $2::integer) + make_interval(mins => $3::integer)
+    where id = $1
+  `, [bookedEs2.session_id, index, duration])
+  await asUser(ids.romain, () => one('select public.coaching_complete_session($1) as id', [bookedEs2.session_id]))
+  const payout = await one(
+    'select base_amount_cents, note from public.coaching_coach_payout_ledger where session_id = $1',
+    [bookedEs2.session_id]
+  )
+  assert.equal(payout.base_amount_cents, es2ExpectedPayouts[index])
+  assert.equal(payout.note, 'Crédits ES2 Complet')
+}
+assert.equal(Number((await asUser(ids.es2, () => one('select public.coaching_credit_balance($1) as balance', [es2Client.id]))).balance), 0)
+assert.equal(Number((await one(`
+  select coalesce(sum(base_amount_cents), 0) as amount
+  from public.coaching_coach_payout_ledger payout
+  join public.coaching_sessions session on session.id = payout.session_id
+  where session.client_id = $1
+`, [es2Client.id])).amount), 40000)
 
 const manualFutureSession = await one(`
   insert into public.coaching_sessions(client_id, coach_id, engagement_id, starts_at, ends_at, status, source)
@@ -474,6 +557,8 @@ console.log(JSON.stringify({
   session_reviews: 'ok',
   preexisting_sso_purchase_link: 'ok',
   first_consultation_bridge: 'ok',
+  es2_complete_bridge: 'ok',
+  es2_payout_exact: 'ok',
   spiffy_idempotency: 'ok',
   stripe_idempotency: 'ok',
   refund_idempotency: 'ok'

@@ -3,6 +3,52 @@ import { coachingAppUrl } from './coaching-origin.mjs';
 import { sendCoachingActivationEmail } from './coaching-integrations.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 
+export async function issueCoachingAccountActivation({
+  client,
+  orderId,
+  credits = 0,
+  firstConsultation = false,
+  deliveryKind = 'account_activation',
+}) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const activation = await supabasePost('coaching_account_activations', {
+    client_id: client.id,
+    order_id: orderId,
+    token_hash: tokenHash,
+    expires_at: expiresAt,
+  });
+  if (!activation.ok) throw new Error(`coaching_activation_${activation.status}`);
+  const activationRow = Array.isArray(activation.data) ? activation.data[0] : activation.data;
+  if (!activationRow?.id) throw new Error('coaching_activation_missing');
+
+  const delivery = await sendCoachingActivationEmail({
+    email: client.email,
+    firstName: client.first_name,
+    activationUrl: coachingAppUrl(`/activer?token=${encodeURIComponent(token)}`),
+    credits,
+    firstConsultation,
+  });
+  if (delivery.status !== 'sent') throw new Error(`coaching_activation_email_${delivery.status}`);
+  const closed = await supabasePatch(
+    'coaching_account_activations',
+    `client_id=eq.${encodeURIComponent(client.id)}&used_at=is.null&id=neq.${encodeURIComponent(activationRow.id)}`,
+    { used_at: new Date().toISOString() },
+  );
+  if (!closed.ok) console.error(`coaching_activation_close_${closed.status}`);
+  const logged = await supabasePost('coaching_email_deliveries', {
+    order_id: orderId,
+    client_id: client.id,
+    kind: deliveryKind,
+    recipient_email: client.email,
+    provider: 'mailersend',
+    status: 'sent',
+  });
+  if (!logged.ok && logged.status !== 409) throw new Error(`coaching_activation_delivery_log_${logged.status}`);
+  return { status: 'sent', expires_at: expiresAt };
+}
+
 export async function deliverCoachingPurchaseActivation({ purchase, offerSlug }) {
   const clientResult = await supabaseGet(
     `coaching_clients?id=eq.${encodeURIComponent(purchase.client_id)}&select=id,email,first_name,auth_user_id&limit=1`,
@@ -28,39 +74,10 @@ export async function deliverCoachingPurchaseActivation({ purchase, offerSlug })
     credits = Number(order?.coaching_offers?.sessions_count || 0);
   }
 
-  const token = crypto.randomBytes(32).toString('base64url');
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-  const closed = await supabasePatch(
-    'coaching_account_activations',
-    `client_id=eq.${encodeURIComponent(client.id)}&used_at=is.null`,
-    { used_at: new Date().toISOString() },
-  );
-  if (!closed.ok) throw new Error(`coaching_activation_close_${closed.status}`);
-  const activation = await supabasePost('coaching_account_activations', {
-    client_id: client.id,
-    order_id: purchase.order_id,
-    token_hash: tokenHash,
-    expires_at: expiresAt,
-  });
-  if (!activation.ok) throw new Error(`coaching_activation_${activation.status}`);
-
-  const delivery = await sendCoachingActivationEmail({
-    email: client.email,
-    firstName: client.first_name,
-    activationUrl: coachingAppUrl(`/activer?token=${encodeURIComponent(token)}`),
+  return issueCoachingAccountActivation({
+    client,
+    orderId: purchase.order_id,
     credits,
     firstConsultation: offerSlug === 'first-consultation',
   });
-  if (delivery.status !== 'sent') throw new Error(`coaching_activation_email_${delivery.status}`);
-  const logged = await supabasePost('coaching_email_deliveries', {
-    order_id: purchase.order_id,
-    client_id: client.id,
-    kind: 'account_activation',
-    recipient_email: client.email,
-    provider: 'mailersend',
-    status: 'sent',
-  });
-  if (!logged.ok && logged.status !== 409) throw new Error(`coaching_activation_delivery_log_${logged.status}`);
-  return { status: 'sent' };
 }

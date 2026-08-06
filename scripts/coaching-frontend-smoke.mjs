@@ -6,12 +6,11 @@ const { coachingUrl, isCoachingAppHost } = await import('../src/scripts/coaching
 
 const portal = await read('src/scripts/coaching-portal.js')
 const auth = await read('src/scripts/coaching-supabase.js')
-const callback = await read('src/scripts/coaching-auth-callback.js')
 const reset = await read('src/scripts/coaching-reset-password.js')
 const activation = await read('src/scripts/coaching-activate-account.js')
 const coachConsole = await read('src/scripts/coach-console.js')
 const coachConsolePage = await read('src/pages/coach-console.astro')
-const combinedAuth = [portal, auth, callback, reset, activation].join('\n')
+const combinedAuth = [portal, auth, reset, activation].join('\n')
 const netlify = await read('netlify.toml')
 const googleCallback = await read('netlify/functions/coaching-google-callback.js')
 const spiffyWebhook = await read('netlify/functions/coach-spiffy-webhook.js')
@@ -21,16 +20,18 @@ const firstConsultationPayment = await read('src/pages/coach-romain/paiement.ast
 const diagnostic = await read('src/pages/coach-romain/diagnostic.astro')
 
 assert.match(portal, /signInWithPassword/)
-assert.match(portal, /signInWithOAuth/)
-assert.match(portal, /provider:\s*['"]google['"]/)
+assert.doesNotMatch(portal, /signInWithOAuth|provider:\s*['"]google['"]/)
+assert.match(portal, /coaching-resend-activation/)
 assert.match(portal, /resetPasswordForEmail/)
-assert.match(callback, /exchangeCodeForSession/)
 assert.match(reset, /updateUser\(\{ password \}\)/)
+assert.match(activation, /signInWithPassword/)
 assert.doesNotMatch(combinedAuth, /signInWithOtp|magic.?link/i)
 assert.match(coachConsolePage, /data-new-action/)
 assert.match(coachConsolePage, /id="action-form"/)
 assert.match(coachConsole, /from\(['"]coaching_actions['"]\)\.insert/)
 assert.match(coachConsole, /from\(['"]coaching_actions['"]\)\.update/)
+assert.match(coachConsole, /booking_origin/)
+assert.match(coachConsole, /ES2 Complet/)
 
 for (const role of ['owner', 'coach', 'client']) assert.match(auth, new RegExp(`${role}:`))
 for (const page of [
@@ -47,7 +48,6 @@ for (const page of [
   'src/pages/coaching/achat-confirme.astro',
   'src/pages/coaching/activer.astro',
   'src/pages/coaching/reset-password.astro',
-  'src/pages/coaching/auth/callback.astro',
 ]) await fs.access(new URL(`../${page}`, import.meta.url))
 
 const wallet = await read('src/scripts/coaching-credits.js')
@@ -74,12 +74,13 @@ assert.equal(coachingUrl('/coaching', 'coaching.sonnycourt.com'), '/')
 assert.equal(coachingUrl('/coaching/eleve?preview=1', 'coaching.sonnycourt.com'), '/eleve?preview=1')
 assert.equal(coachingUrl('/coach-console#clients', 'coaching.sonnycourt.com'), '/coach#clients')
 assert.equal(coachingUrl('/coaching/eleve', 'localhost'), '/coaching/eleve')
-for (const route of ['admin', 'coach', 'eleve', 'credits', 'paiement', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password', 'auth/callback']) {
+for (const route of ['admin', 'coach', 'eleve', 'credits', 'paiement', 'compte', 'preparation', 'reserver', 'confirmation', 'achat-confirme', 'activer', 'reset-password']) {
   assert.ok(netlify.includes(`from = "https://coaching.sonnycourt.com/${route}"`))
 }
 assert.match(netlify, /https:\/\/sonnycourt\.com\/coaching\/\*/)
 assert.match(googleCallback, /coachingAppUrl\(`\/coach/)
 assert.match(spiffyWebhook, /coachingAppUrl\(`\/activer/)
+assert.match(spiffyWebhook, /es2-complete-coaching/)
 
 for (const endpoint of [
   'netlify/functions/coaching-activate-account.js',
@@ -88,7 +89,9 @@ for (const endpoint of [
   'netlify/functions/coaching-google-connect.js',
   'netlify/functions/coaching-google-callback.js',
   'netlify/functions/coaching-sync-availability.js',
+  'netlify/functions/coaching-sync-scheduled.js',
   'netlify/functions/coaching-review-reminders.js',
+  'netlify/functions/coaching-resend-activation.js',
   'netlify/functions/coaching-stripe-checkout.js',
   'netlify/functions/coaching-stripe-portal.js',
   'netlify/functions/coaching-stripe-webhook.js',
@@ -97,12 +100,12 @@ for (const endpoint of [
 
 console.log(JSON.stringify({
   password_auth: 'ok',
-  google_sso: 'ok',
+  google_sso: 'absent',
   password_recovery: 'ok',
   magic_links: 'absent',
   role_routing: ['owner', 'coach', 'client'],
   coach_actions: 'persistent',
   coaching_subdomain: 'ready',
-  portal_pages: 15,
-  server_endpoints: 11,
+  portal_pages: 14,
+  server_endpoints: 13,
 }))

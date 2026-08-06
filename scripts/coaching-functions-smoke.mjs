@@ -8,7 +8,9 @@ import googleCallback from '../netlify/functions/coaching-google-callback.js'
 import googleConnect from '../netlify/functions/coaching-google-connect.js'
 import spiffyWebhook from '../netlify/functions/coach-spiffy-webhook.js'
 import syncAvailability from '../netlify/functions/coaching-sync-availability.js'
+import syncScheduled from '../netlify/functions/coaching-sync-scheduled.js'
 import reviewReminders from '../netlify/functions/coaching-review-reminders.js'
+import resendActivation from '../netlify/functions/coaching-resend-activation.js'
 import stripeCheckout from '../netlify/functions/coaching-stripe-checkout.js'
 import stripePortal from '../netlify/functions/coaching-stripe-portal.js'
 import stripeWebhook from '../netlify/functions/coaching-stripe-webhook.js'
@@ -22,6 +24,7 @@ const managedEnv = [
   'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL',
   'PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'URL', 'DEPLOY_PRIME_URL',
   'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS',
+  'SPIFFY_ES2_COMPLETE_IDS',
   'COACHING_SPIFFY_WEBHOOK_TOKEN', 'GOOGLE_ROMAIN_REFRESH_TOKEN',
   'COACHING_APP_ORIGIN',
   'COACHING_MARKETING_ORIGIN', 'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY',
@@ -82,6 +85,13 @@ response = await spiffyWebhook(request('http://localhost/.netlify/functions/coac
 }))
 assert.equal(response.status, 200)
 assert.equal((await body(response)).skipped, 'checkout')
+response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase&token=private-coaching-webhook-token-test', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ checkout_slug: 'esprit-subconscient-2-0-39' })
+}))
+assert.equal(response.status, 200)
+assert.equal((await body(response)).skipped, 'coaching_identity')
 response = await spiffyWebhook(request('http://localhost/.netlify/functions/coach-spiffy-webhook?event=purchase&token=wrong-token', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
 }))
@@ -96,7 +106,7 @@ globalThis.fetch = async () => new Response(JSON.stringify({ message: 'preparati
 response = await bookSession(request('http://localhost/.netlify/functions/coaching-book-session', {
   method: 'POST',
   headers: { authorization: 'Bearer user-access-token', 'content-type': 'application/json' },
-  body: JSON.stringify({ slot_id: '00000000-0000-4000-8000-000000000099' })
+  body: JSON.stringify({ slot_id: '00000000-0000-4000-8000-000000000099', duration_minutes: 45 })
 }))
 assert.equal(response.status, 409)
 assert.ok((await body(response)).error.includes('préparation'))
@@ -124,9 +134,23 @@ response = await syncAvailability(request('http://localhost/.netlify/functions/c
   method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
 }))
 assert.equal(response.status, 401)
+response = await syncScheduled()
+assert.equal(response.status, 503)
 
 response = await reviewReminders()
 assert.equal(response.status, 500)
+
+response = await resendActivation(request('http://localhost/.netlify/functions/coaching-resend-activation', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'invalide' })
+}))
+assert.equal(response.status, 400)
+const resendConsoleError = console.error
+console.error = () => {}
+response = await resendActivation(request('http://localhost/.netlify/functions/coaching-resend-activation', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'client@example.test' })
+}))
+console.error = resendConsoleError
+assert.equal(response.status, 200)
 
 response = await stripeCheckout(request('http://localhost/.netlify/functions/coaching-stripe-checkout', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offer_slug: 'session-1' })
@@ -471,7 +495,7 @@ assert.equal(diagnosticSlotStatus, 'booked')
 assert.equal(firstConsultationImportCalls, 2)
 assert.equal(mailerSendCalls, 4)
 
-for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS', 'SPIFFY_FIRST_CONSULTATION_IDS', 'URL']) delete process.env[key]
+for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MAILERSEND_API_KEY', 'COACHING_EMAIL_FROM', 'SPIFFY_COACHING_SESSION_1_IDS', 'SPIFFY_ES2_COMPLETE_IDS', 'SPIFFY_FIRST_CONSULTATION_IDS', 'URL']) delete process.env[key]
 globalThis.fetch = async () => {
   throw new Error('Aucun appel réseau ne doit partir pendant ces tests')
 }
@@ -487,6 +511,7 @@ const integrationSessionId = '20000000-0000-4000-8000-000000000001'
 let integrationFinalized = false
 let calendarCreates = 0
 let integrationEmails = 0
+const integrationEmailPayloads = []
 const deliveredKinds = new Set()
 globalThis.fetch = async (url, options = {}) => {
   const target = String(url)
@@ -503,7 +528,7 @@ globalThis.fetch = async (url, options = {}) => {
       google_event_id: integrationFinalized ? `c${integrationSessionId.replaceAll('-', '')}` : null,
       meet_url: integrationFinalized ? 'https://meet.google.com/test-room' : null,
       coaching_clients: { id: '20000000-0000-4000-8000-000000000002', first_name: 'Camille', last_name: 'Test', email: 'camille@example.test' },
-      coaching_coaches: { id: '20000000-0000-4000-8000-000000000003', slug: 'romain', first_name: 'Romain', last_name: 'Coach', email: 'romain@example.test', google_calendar_id: 'primary' }
+      coaching_coaches: { id: '20000000-0000-4000-8000-000000000003', slug: 'romain', first_name: 'Romain', last_name: 'Coach', email: 'romain@example.test', phone: '+33 6 12 34 56 78', country: 'FR', google_calendar_id: 'primary' }
     }]), { status: 200, headers: { 'content-type': 'application/json' } })
   }
   if (target.includes('/rest/v1/coaching_google_connections?')) {
@@ -524,6 +549,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (target === 'https://api.mailersend.com/v1/email') {
     integrationEmails += 1
+    integrationEmailPayloads.push(JSON.parse(options.body))
     return new Response('', { status: 202 })
   }
   if (target.endsWith('/rest/v1/coaching_email_deliveries') && options.method === 'POST') {
@@ -537,6 +563,8 @@ const firstFinalization = await finalizeCoachingBooking(integrationSessionId)
 assert.equal(firstFinalization.calendar.status, 'created')
 assert.equal(calendarCreates, 1)
 assert.equal(integrationEmails, 2)
+assert.ok(integrationEmailPayloads.find((payload) => payload.to?.[0]?.email === 'camille@example.test')?.html.includes('https://wa.me/33612345678'))
+assert.ok(integrationEmailPayloads.find((payload) => payload.to?.[0]?.email === 'camille@example.test')?.text.includes('+33 6 12 34 56 78'))
 const repeatedFinalization = await finalizeCoachingBooking(integrationSessionId)
 assert.equal(repeatedFinalization.calendar.status, 'already_created')
 assert.equal(repeatedFinalization.client_email.status, 'already_sent')
@@ -555,7 +583,7 @@ assert.notEqual(encrypted, 'refresh-token-test')
 assert.equal(decryptCoachingSecret(encrypted), 'refresh-token-test')
 
 console.log(JSON.stringify({
-  fail_closed_endpoints: 11,
+  fail_closed_endpoints: 13,
   staff_activation_guard: 'ok',
   preparation_gate: 'ok',
   webhook_signature: 'ok',

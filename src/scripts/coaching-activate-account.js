@@ -1,4 +1,5 @@
 import { coachingUrl } from './coaching-routes.js';
+import { coachingSupabase, routeAuthenticatedUser } from './coaching-supabase.js';
 
 const form = document.querySelector('[data-activation-form]');
 const feedback = document.querySelector('[data-activation-feedback]');
@@ -26,6 +27,14 @@ form.addEventListener('submit', async (event) => {
     return;
   }
   feedback.style.color = 'var(--cp-green)';
-  feedback.textContent = 'Ton espace est activé. Ouverture de la connexion…';
-  window.setTimeout(() => { window.location.href = coachingUrl('/coaching'); }, 900);
+  feedback.textContent = 'Ton espace est activé. Connexion en cours…';
+  const { data, error } = await coachingSupabase.auth.signInWithPassword({ email: payload.email, password });
+  if (!error && data.session) {
+    try {
+      await routeAuthenticatedUser(data.session);
+      return;
+    } catch {}
+  }
+  feedback.textContent = 'Ton espace est activé. Tu peux maintenant te connecter.';
+  window.setTimeout(() => { window.location.href = coachingUrl('/coaching'); }, 1200);
 });

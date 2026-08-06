@@ -40,7 +40,8 @@ async function boot() {
     setDemoSession('student', { name: 'Claire', email: 'claire@exemple.fr' });
     const state = getDemoState();
     if (!state.student.nextSession) return window.location.replace(coachingUrl('/coaching/eleve'));
-    render({ starts_at: state.student.nextSession, ends_at: new Date(new Date(state.student.nextSession).getTime() + 3600000).toISOString(), meet_url: null }, Math.max(state.student.creditsTotal - state.student.creditsUsed, 0), false);
+    const duration = Number(state.student.nextSessionDuration || 45);
+    render({ starts_at: state.student.nextSession, ends_at: new Date(new Date(state.student.nextSession).getTime() + duration * 60000).toISOString(), meet_url: null }, Math.max(state.student.creditsTotal - state.student.creditsUsed, 0), false);
     return;
   }
   try {
@@ -73,7 +74,7 @@ document.querySelector('[data-download-calendar]')?.addEventListener('click', ()
 });
 
 document.querySelector('[data-cancel-session]')?.addEventListener('click', async (event) => {
-  if (!appointment || !window.confirm('Cette séance sera annulée, ton crédit sera rendu et tu pourras choisir un autre créneau. Continuer ?')) return;
+  if (!appointment || !window.confirm('Cette séance sera annulée, tes crédits seront rendus et tu pourras choisir un autre créneau. Continuer ?')) return;
   const button = event.currentTarget;
   button.disabled = true;
   button.textContent = 'Annulation…';
