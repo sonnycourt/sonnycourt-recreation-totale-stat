@@ -479,7 +479,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     controlsList="nodownload noremoteplayback"
                     disablepictureinpicture
                     disableremoteplayback
-                    src="https://sonnycourt-videos-public.b-cdn.net/Felicitations%20-%20Achat%20(V2).mp4"
+                    data-src="https://vz-601d6eb4-a9a.b-cdn.net/1161208b-9f9a-485c-a090-aa632ba8cec3/playlist.m3u8"
                 >
                     Votre navigateur ne prend pas en charge la lecture vidéo.
                 </video>
@@ -560,6 +560,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         </section>
     </main>
     <script>
+        import Hls from 'hls.js';
+
         (function () {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -659,6 +661,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const iconMuted = document.getElementById('vp-icon-muted');
             const volumeSlider = document.getElementById('vp-volume');
             if (!player || !video || !overlay || !controls) return;
+
+            const videoSource = video.dataset.src || '';
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoSource;
+            } else if (Hls.isSupported()) {
+                const hls = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 60 });
+                hls.loadSource(videoSource);
+                hls.attachMedia(video);
+            } else {
+                video.src = videoSource;
+            }
 
             video.controls = false;
             video.addEventListener('contextmenu', function (e) { e.preventDefault(); });
