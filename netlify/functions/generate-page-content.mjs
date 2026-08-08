@@ -1,4 +1,5 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
+import { withLambda } from '@netlify/aws-lambda-compat';
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -256,4 +257,4 @@ Si objectif = argent, rêve = "liberté financière et voyager", souffrance = "j
     }
 };
 
-module.exports = { handler };
+export default withLambda(handler);

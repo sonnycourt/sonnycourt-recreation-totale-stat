@@ -1,8 +1,10 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function pour désinscrire un email de MailerLite
 // POST /api/unsubscribe avec { "email": "test@example.com" }
 // GET /api/unsubscribe pour debug
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
@@ -148,3 +150,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default withLambda(handler);

@@ -3,6 +3,7 @@
 // Cherche les réponses passées les plus proches, génère un brouillon dans le style perso.
 // Protégé par mot de passe. N'envoie rien à personne : retourne juste le brouillon.
 
+import { withLambda } from '@netlify/aws-lambda-compat';
 import { checkPassword, embedQuestion, generateDraft } from './lib/oracle-es2-shared.mjs';
 import { supabasePost } from './lib/supabase-rest.mjs';
 import { clientIpFromEvent, checkRateLimit, recordFailure, clearRateLimit } from './lib/oracle-es2-rate-limit.mjs';
@@ -42,7 +43,7 @@ const json = (statusCode, body, extraHeaders = {}) => ({
 const tooMany = (retryAfterSec) =>
   json(429, { error: 'Trop de tentatives. Réessaie dans quelques minutes.' }, { 'Retry-After': String(retryAfterSec || 900) });
 
-export const handler = async (event) => {
+const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method not allowed' });
   }
@@ -109,3 +110,5 @@ export const handler = async (event) => {
     return json(500, { error: err.message || 'Erreur interne' });
   }
 };
+
+export default withLambda(handler);

@@ -1,3 +1,5 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function pour tracker les envois d'emails
 // POST /api/track-send avec { "template": "CC-Jour-1" }
 
@@ -16,7 +18,7 @@ async function redis(command, ...args) {
   return response.json();
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -71,3 +73,4 @@ exports.handler = async (event) => {
   }
 };
 
+export default withLambda(handler);

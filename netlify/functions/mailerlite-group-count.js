@@ -1,7 +1,9 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function: return MailerLite group member count (active)
 // GET /api/mailerlite-group-count
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
@@ -90,3 +92,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default withLambda(handler);

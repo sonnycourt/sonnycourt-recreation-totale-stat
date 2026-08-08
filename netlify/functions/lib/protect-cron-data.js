@@ -43,4 +43,3 @@ export function safeUpdateHistory(history, dateKey, newData, isCronJob = false) 
     history[dateKey] = { ...newData, from_cron: false };
     return history;
 }
-

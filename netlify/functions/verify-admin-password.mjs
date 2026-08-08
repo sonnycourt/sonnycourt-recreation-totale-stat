@@ -1,3 +1,5 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function pour vérifier le mot de passe admin monitoring
 // POST avec { password: "..." }
 
@@ -67,4 +69,4 @@ const handler = async (event) => {
   }
 };
 
-module.exports = { handler };
+export default withLambda(handler);

@@ -2,7 +2,7 @@
 // Protège les entrées créées par les cron jobs contre les écrasements manuels
 
 import { getStore } from '@netlify/blobs';
-import { safeUpdateHistory } from './protect-cron-data.js';
+import { safeUpdateHistory } from './lib/protect-cron-data.js';
 
 const STORE_NAME = 'stats-data';
 const VIEWS_HISTORY_KEY = 'views-history';
@@ -132,4 +132,3 @@ export default async (req) => {
         });
     }
 };
-

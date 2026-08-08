@@ -1,3 +1,5 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function: YouTube proxy (keeps API key server-side)
 // Usage:
 //  /.netlify/functions/youtube?action=search&maxResults=50
@@ -63,4 +65,4 @@ function json(statusCode, body) {
   };
 }
 
-
+export default withLambda(handler);

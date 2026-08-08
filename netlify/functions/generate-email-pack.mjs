@@ -1,5 +1,6 @@
-const fetch = require('node-fetch');
-const crypto = require('crypto');
+import fetch from 'node-fetch';
+import crypto from 'node:crypto';
+import { withLambda } from '@netlify/aws-lambda-compat';
 
 // Configuration Supabase
 // Colonnes anti-doublon quiz_responses : email_sent (initial), email_24h_sent, email_4h_sent (boolean, default false)
@@ -900,4 +901,4 @@ BODY: [corps de l'email incluant le PS à la fin]`;
     }
 };
 
-module.exports = { handler };
+export default withLambda(handler);

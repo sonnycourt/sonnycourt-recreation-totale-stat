@@ -1,5 +1,6 @@
-const fetch = require('node-fetch');
-const crypto = require('crypto');
+import fetch from 'node-fetch';
+import crypto from 'node:crypto';
+import { withLambda } from '@netlify/aws-lambda-compat';
 
 // Configuration Supabase
 const supabaseUrl = 'https://grjbxdraobvqkcdjkvhm.supabase.co';
@@ -575,4 +576,4 @@ BODY: [corps de l'email incluant le PS à la fin]`;
     }
 };
 
-module.exports = { handler };
+export default withLambda(handler);

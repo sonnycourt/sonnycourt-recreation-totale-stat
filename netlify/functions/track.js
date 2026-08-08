@@ -1,3 +1,5 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Netlify Function pour tracker les visites des pages /cc/
 // Utilise Upstash Redis (gratuit) pour stocker les compteurs
 
@@ -16,7 +18,7 @@ async function redis(command, ...args) {
   return response.json();
 }
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -73,3 +75,4 @@ exports.handler = async (event) => {
   }
 };
 
+export default withLambda(handler);

@@ -1,7 +1,9 @@
+import { withLambda } from '@netlify/aws-lambda-compat';
+
 // Fonction Netlify pour mettre à jour le téléphone d'un subscriber Listmonk
 // Variables d'environnement requises: LISTMONK_API_URL, LISTMONK_USERNAME, LISTMONK_PASSWORD
 
-exports.handler = async (event) => {
+const handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -132,3 +134,5 @@ exports.handler = async (event) => {
     };
   }
 };
+
+export default withLambda(handler);
