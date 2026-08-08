@@ -30,6 +30,31 @@ create table if not exists public.pay_sync_cursors (
   primary key (provider, resource)
 );
 
+-- Registre minimal des événements du webhook universel. Le corps brut n'est
+-- jamais conservé : seul son hash sert à l'audit et à la déduplication.
+create table if not exists public.pay_webhook_events (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('stripe', 'paypal')),
+  event_id text not null,
+  event_type text not null,
+  object_type text,
+  object_id text,
+  livemode boolean not null default true,
+  source_created_at timestamptz,
+  source_updated_at timestamptz,
+  received_at timestamptz not null default now(),
+  processed_at timestamptz,
+  payload_hash text not null check (payload_hash ~ '^[a-f0-9]{64}$'),
+  status text not null default 'received' check (status in ('received', 'processing', 'completed', 'skipped', 'failed')),
+  attempts integer not null default 0 check (attempts >= 0),
+  routing jsonb not null default '{}'::jsonb,
+  error_code text,
+  unique (provider, event_id)
+);
+
+create index if not exists pay_webhook_events_pending_idx
+  on public.pay_webhook_events(status, received_at);
+
 create table if not exists public.pay_customers (
   id uuid primary key default gen_random_uuid(),
   provider text not null check (provider in ('stripe', 'paypal', 'spiffy', 'internal')),
@@ -337,6 +362,7 @@ create index if not exists pay_notes_entity_idx
 
 alter table public.pay_sync_runs enable row level security;
 alter table public.pay_sync_cursors enable row level security;
+alter table public.pay_webhook_events enable row level security;
 alter table public.pay_customers enable row level security;
 alter table public.pay_products enable row level security;
 alter table public.pay_prices enable row level security;
@@ -353,6 +379,7 @@ alter table public.pay_report_definitions enable row level security;
 alter table public.pay_notes enable row level security;
 
 revoke all on table public.pay_sync_runs, public.pay_sync_cursors,
+  public.pay_webhook_events,
   public.pay_customers, public.pay_products, public.pay_prices,
   public.pay_checkouts, public.pay_orders, public.pay_order_items,
   public.pay_payments, public.pay_refunds, public.pay_payment_plans,
@@ -361,7 +388,8 @@ revoke all on table public.pay_sync_runs, public.pay_sync_cursors,
 from public, anon, authenticated, service_role;
 
 grant select, insert, update on table public.pay_sync_runs,
-  public.pay_sync_cursors, public.pay_customers, public.pay_products,
+  public.pay_sync_cursors, public.pay_webhook_events,
+  public.pay_customers, public.pay_products,
   public.pay_prices, public.pay_checkouts, public.pay_orders,
   public.pay_order_items, public.pay_payments, public.pay_refunds,
   public.pay_payment_plans, public.pay_installments,

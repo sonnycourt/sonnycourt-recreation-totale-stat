@@ -46,6 +46,8 @@ est découpée en fenêtres de 31 jours, puis paginée.
 ## Règles de synchronisation
 
 - Chaque ligne a une clé unique `(provider, external_id)`.
+- Chaque événement du webhook universel a une clé unique
+  `(provider, event_id)` ; un second envoi du fournisseur est donc idempotent.
 - Les imports et webhooks utilisent des upserts idempotents.
 - Une donnée plus ancienne ne peut pas écraser une version plus récente.
 - Les montants sont stockés en unités mineures entières avec leur devise.
@@ -53,6 +55,9 @@ est découpée en fenêtres de 31 jours, puis paginée.
 - Aucun secret, client secret Stripe, jeton PayPal ou donnée carte complète
   n'est stocké.
 - Chaque exécution conserve son origine, ses compteurs et son horodatage.
+- Le registre `pay_webhook_events` ne conserve jamais le corps brut : uniquement
+  son empreinte SHA-256, le type, l'objet, le statut et les clés de routage
+  métier explicitement autorisées.
 - Les exports Spiffy sont d'abord validés à blanc et réconciliés avant écriture.
 
 ## Contrat non destructif Supabase
@@ -69,6 +74,24 @@ La migration `sql/pay_core.sql` est strictement additive :
 
 Les actions financières restent une couche séparée, désactivée par défaut et
 protégée par une confirmation en deux étapes.
+
+## Contrat du webhook universel
+
+`netlify/functions/lib/pay-webhook-contract.mjs` est le contrat partagé par le
+futur point d'entrée unique Stripe + PayPal. Il ne reçoit aucune fonction
+d'écriture et ne crée aucun webhook concurrent. Pour chaque événement signé,
+il produit une enveloppe minimale avec :
+
+- la clé de déduplication `provider:event_id` ;
+- l'empreinte du corps reçu, sans en conserver le contenu ;
+- l'horodatage fournisseur utilisé pour refuser une mise à jour obsolète ;
+- la cible centrale `pay`, puis les routes optionnelles dérivées uniquement de
+  `pay_route`, `checkout_id`, `offer_slug` et `funnel` ;
+- les références de plan de paiement sans email, secret ou donnée carte.
+
+Les consommateurs métier comme MC2 pourront recevoir une notification dérivée
+après la projection Pay, mais ne devront ni créer un webhook Stripe distinct ni
+tenir une seconde logique de facturation.
 
 ## Ordre de reprise historique
 
