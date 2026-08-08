@@ -1,0 +1,529 @@
+---
+import '../../styles/seo-division.css';
+
+const agents = [
+  {
+    id: 'alya',
+    name: 'Alya',
+    role: 'Directrice SEO & Visibilité organique',
+    shortRole: 'Direction SEO',
+    division: 'Direction',
+    task: 'Arbitre les priorités entre potentiel de trafic, autorité et valeur commerciale.',
+    state: 'ready',
+    stateLabel: '3 arbitrages à préparer',
+    progress: 78,
+    color: 'turquoise',
+    spriteGroup: 'direction',
+    spriteIndex: 0,
+  },
+  {
+    id: 'milo',
+    name: 'Milo',
+    role: 'Performance, veille & Content Refresh',
+    shortRole: 'Veille & refresh',
+    division: 'Pilotage',
+    task: 'Surveille la performance, les changements des moteurs et les contenus qui vieillissent.',
+    state: 'watch',
+    stateLabel: 'Baseline à connecter',
+    progress: 24,
+    color: 'blue',
+    spriteGroup: 'direction',
+    spriteIndex: 1,
+  },
+  {
+    id: 'kiro',
+    name: 'Kiro',
+    role: 'Analyste Mots-clés & Intentions',
+    shortRole: 'Keywords & intentions',
+    division: 'Intelligence & marché',
+    task: 'Détecte les opportunités short tail et long tail françaises, puis les regroupe par intention.',
+    state: 'working',
+    stateLabel: 'Carte sémantique à lancer',
+    progress: 35,
+    color: 'cyan',
+    spriteGroup: 'intelligence',
+    spriteIndex: 0,
+  },
+  {
+    id: 'eli',
+    name: 'Eli',
+    role: 'Responsable Offres & Conversion',
+    shortRole: 'Offres & conversion',
+    division: 'Intelligence & marché',
+    task: 'Relie chaque intention au bon produit, au bon parcours et au CTA le plus cohérent.',
+    state: 'review',
+    stateLabel: 'Catalogue produit à cadrer',
+    progress: 42,
+    color: 'violet',
+    spriteGroup: 'product',
+    spriteIndex: 0,
+  },
+  {
+    id: 'alma',
+    name: 'Alma',
+    role: 'Rédactrice en chef SEO',
+    shortRole: 'Rédaction en chef',
+    division: 'Production éditoriale',
+    task: 'Transforme les opportunités validées en briefs et articles utiles dans la voix de Sonny.',
+    state: 'ready',
+    stateLabel: 'Brief éditorial en attente',
+    progress: 18,
+    color: 'aqua',
+    spriteGroup: 'editorial',
+    spriteIndex: 0,
+  },
+  {
+    id: 'iris',
+    name: 'Iris',
+    role: 'Éditrice & Fact-checker',
+    shortRole: 'Édition & fiabilité',
+    division: 'Production éditoriale',
+    task: 'Vérifie les faits, les sources, l’originalité, la lisibilité et la crédibilité éditoriale.',
+    state: 'clear',
+    stateLabel: 'Contrôles prêts',
+    progress: 12,
+    color: 'violet',
+    spriteGroup: 'editorial',
+    spriteIndex: 2,
+  },
+  {
+    id: 'tao',
+    name: 'Tao',
+    role: 'Architecte SEO technique & On-page',
+    shortRole: 'SEO technique',
+    division: 'Architecture & autorité',
+    task: 'Contrôle indexation, structure, métadonnées, maillage interne, données structurées et performance.',
+    state: 'watch',
+    stateLabel: 'Audit technique à lancer',
+    progress: 29,
+    color: 'blue',
+    spriteGroup: 'intelligence',
+    spriteIndex: 3,
+  },
+  {
+    id: 'vega',
+    name: 'Vega',
+    role: 'Autorité & Visibilité IA',
+    shortRole: 'Autorité & IA',
+    division: 'Architecture & autorité',
+    task: 'Renforce les mentions, citations et signaux qui rendent Sonny recommandable par les moteurs IA.',
+    state: 'working',
+    stateLabel: 'Protocole de mesure à définir',
+    progress: 31,
+    color: 'turquoise',
+    spriteGroup: 'lifecycle',
+    spriteIndex: 1,
+  },
+];
+
+const decisions = [
+  { title: 'Lancer la cartographie sémantique', meta: 'Kiro · aucune publication', target: 'missionRoom' },
+  { title: 'Valider le catalogue produits', meta: 'Eli · nécessaire avant les CTA', target: 'missionRoom' },
+  { title: 'Choisir le premier cluster', meta: 'Alya · arbitrage business', target: 'articlePipeline' },
+];
+
+const pipeline = [
+  ['01', 'Opportunité', 'Kiro', 'current'],
+  ['02', 'Brief', 'Alma', 'waiting'],
+  ['03', 'Rédaction', 'Alma', 'waiting'],
+  ['04', 'Édition', 'Iris', 'waiting'],
+  ['05', 'SEO', 'Tao', 'waiting'],
+  ['06', 'Autorité IA', 'Vega', 'waiting'],
+  ['07', 'Arbitrage', 'Alya', 'waiting'],
+  ['08', 'Publication', 'Sonny', 'locked'],
+];
+
+const missions = [
+  {
+    priority: 'P1',
+    owner: 'Kiro',
+    state: 'Prête à démarrer',
+    title: 'Construire la première carte de mots-clés',
+    description: 'Identifier les requêtes françaises liées à la manifestation, au subconscient et à la transformation personnelle.',
+    evidence: 'Short tail + long tail + intentions + difficulté + valeur business',
+  },
+  {
+    priority: 'P1',
+    owner: 'Eli',
+    state: 'À cadrer',
+    title: 'Cartographier les offres et les parcours',
+    description: 'Associer produits, pages, promesses, audiences et CTA avant toute production éditoriale.',
+    evidence: 'Une source de vérité commerciale pour tous les agents',
+  },
+  {
+    priority: 'P2',
+    owner: 'Tao',
+    state: 'En attente',
+    title: 'Établir la baseline technique SEO',
+    description: 'Auditer indexation, canonicals, sitemap, données structurées, vitesse et maillage interne.',
+    evidence: 'Aucune correction appliquée sans validation',
+  },
+  {
+    priority: 'P2',
+    owner: 'Vega + Milo',
+    state: 'À concevoir',
+    title: 'Mesurer la visibilité dans les moteurs IA',
+    description: 'Créer un panel de questions réelles et suivre citations, mentions de marque et pages recommandées.',
+    evidence: 'ChatGPT, Gemini, Claude, Copilot et Google AI',
+  },
+];
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#051119" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>SEO Division — Sonny Court</title>
+    <meta name="description" content="Cockpit interne de la division SEO et visibilité IA de Sonny Court." />
+  </head>
+  <body>
+    <div class="seo-ambient seo-ambient--one" aria-hidden="true"></div>
+    <div class="seo-ambient seo-ambient--two" aria-hidden="true"></div>
+
+    <div class="seo-shell">
+      <header class="seo-topbar">
+        <a class="seo-brand" href="/seo" aria-label="Accueil SEO Division">
+          <span class="seo-brand-mark" aria-hidden="true">✦</span>
+          <span><strong>SEO Division</strong><small>Sonny Court · Search &amp; AI</small></span>
+        </a>
+        <nav class="seo-topbar-actions" aria-label="Navigation du cockpit">
+          <span class="prototype-pill"><i></i> Mode prototype</span>
+          <button class="ghost-button" id="validatorModeButton" type="button">Mode validateur</button>
+          <a class="ghost-button" href="/hub">← Hub</a>
+        </nav>
+      </header>
+
+      <div class="safety-banner">
+        <span class="safety-icon" aria-hidden="true">⌾</span>
+        <p><strong>Publication verrouillée.</strong> Les agents peuvent analyser, proposer et préparer. Aucun article, lien ou changement technique ne sera publié automatiquement.</p>
+        <small>Prototype · aucune donnée connectée</small>
+      </div>
+
+      <main>
+        <section class="validator-home" id="validatorView" aria-labelledby="validatorTitle">
+          <div class="validator-welcome">
+            <div>
+              <div class="section-kicker"><span class="live-dot"></span> Mode validateur</div>
+              <h1 id="validatorTitle">Bonjour Sonny.</h1>
+              <p><strong>3 décisions structurantes t’attendent.</strong> Environ 8 minutes pour lancer la division.</p>
+            </div>
+            <button class="outline-button" id="openDepartmentButton" type="button">Voir tout le département <span>→</span></button>
+          </div>
+
+          <div class="validator-layout">
+            <article class="validator-primary-card" id="validatorPrimaryCard" data-state="ready">
+              <div class="validator-card-topline">
+                <span>Premier cycle SEO</span>
+                <span class="safe-label">Sous ton contrôle</span>
+              </div>
+              <div class="validator-primary-copy">
+                <h2 id="validatorPrimaryHeading">Construisons la carte des opportunités.</h2>
+                <p id="validatorPrimaryText">Kiro analysera les intentions françaises, Eli les reliera aux offres, puis Alya préparera un premier arbitrage éditorial.</p>
+                <div class="validator-reason" id="validatorPrimaryReason">Le lancement produit uniquement un dossier interne. Aucun article ne sera publié.</div>
+              </div>
+              <div class="validator-primary-footer">
+                <span><small>Temps estimé</small><strong>3 min</strong></span>
+                <button class="primary-button" id="launchSeoCycle" type="button">Faire travailler les agents</button>
+              </div>
+            </article>
+
+            <aside class="validator-side">
+              <section class="validator-decisions" aria-labelledby="decisionsTitle">
+                <div class="section-heading">
+                  <div><span>Aujourd’hui</span><h2 id="decisionsTitle">Tes décisions</h2></div>
+                  <strong id="decisionCount">3</strong>
+                </div>
+                <div class="decision-list">
+                  {decisions.map((decision) => (
+                    <article class="decision-item">
+                      <i aria-hidden="true"></i>
+                      <span><strong>{decision.title}</strong><small>{decision.meta}</small></span>
+                      <button type="button" data-open-target={decision.target}>Ouvrir</button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section class="validator-team-status" aria-labelledby="teamStatusTitle">
+                <div>
+                  <span>Équipe en arrière-plan</span>
+                  <h2 id="teamStatusTitle">Alya coordonne la division</h2>
+                  <p id="teamStatusText">Les 8 agents sont prêts pour leur premier cycle.</p>
+                </div>
+                <div class="validator-agent-strip" aria-label="Agents actifs">
+                  {agents.slice(0, 5).map((agent) => (
+                    <span
+                      class="mini-agent"
+                      data-sprite-group={agent.spriteGroup}
+                      data-sprite-index={agent.spriteIndex}
+                      title={`${agent.name} · ${agent.shortRole}`}
+                    ><i></i></span>
+                  ))}
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <footer class="validator-signal">
+            <span aria-hidden="true">◎</span>
+            <p><strong>Actif SEO inexploité</strong><small>Le site possède déjà des produits, des pages et une expertise forte : la première priorité est de cartographier les opportunités avant de produire.</small></p>
+          </footer>
+        </section>
+
+        <section class="department-view" id="departmentView" hidden aria-labelledby="departmentTitle">
+          <div class="department-view-heading">
+            <div>
+              <div class="section-kicker">Salle de contrôle approfondie</div>
+              <h1 id="departmentTitle">Tout le département</h1>
+              <p>Équipe, opportunités, production, autorité, veille et décisions.</p>
+            </div>
+            <button class="outline-button" id="backToValidatorButton" type="button"><span>←</span> Revenir au mode validateur</button>
+          </div>
+
+          <section class="panel team-panel" aria-labelledby="teamMapTitle">
+            <div class="eyebrow"><span class="live-dot"></span> Carte de l’équipe · 8 agents en service</div>
+            <div class="hero-heading">
+              <h2 id="teamMapTitle">Ton équipe SEO<br /><span>travaille sous tes yeux.</span></h2>
+              <p>Une petite équipe, des responsabilités nettes. Sélectionne un agent pour suivre sa mission du moment.</p>
+            </div>
+
+            <div class="team-map" aria-label="Carte hiérarchique de la division SEO">
+              <div class="team-grid" aria-hidden="true">
+                <div class="team-zone team-zone--direction"></div>
+                <div class="team-zone team-zone--market"></div>
+                <div class="team-zone team-zone--editorial"></div>
+                <div class="team-zone team-zone--authority"></div>
+              </div>
+              <span class="team-label team-label--direction">Direction &amp; pilotage</span>
+              <span class="team-label team-label--market">Intelligence &amp; marché</span>
+              <span class="team-label team-label--editorial">Production éditoriale</span>
+              <span class="team-label team-label--authority">Architecture &amp; autorité</span>
+
+              <div class="agent-layer">
+                {agents.map((agent, index) => (
+                  <button
+                    class="agent-card"
+                    type="button"
+                    data-agent={agent.id}
+                    data-color={agent.color}
+                    data-state={agent.state}
+                    data-sprite-group={agent.spriteGroup}
+                    data-sprite-index={agent.spriteIndex}
+                    data-name={agent.name}
+                    data-role={agent.role}
+                    data-division={agent.division}
+                    data-task={agent.task}
+                    data-state-label={agent.stateLabel}
+                    data-progress={agent.progress}
+                    style={`--agent-delay: -${(index * .17).toFixed(2)}s`}
+                    aria-label={`${agent.name}, ${agent.role}. ${agent.stateLabel}.`}
+                    aria-pressed={index === 0 ? 'true' : 'false'}
+                  >
+                    <span class="agent-avatar" aria-hidden="true"><i class="agent-pulse"></i></span>
+                    <span class="agent-info"><strong>{agent.name}</strong><small>{agent.shortRole}</small></span>
+                  </button>
+                ))}
+              </div>
+              <div class="map-sign" aria-hidden="true">SEO DIVISION · SEARCH &amp; AI TEAM</div>
+            </div>
+
+            <div class="agent-focus" id="agentFocus" data-color="turquoise" aria-live="polite">
+              <div class="agent-focus-identity">
+                <span id="focusDivision">Direction</span>
+                <h3><strong id="focusName">Alya</strong><small id="focusRole">Directrice SEO &amp; Visibilité organique</small></h3>
+              </div>
+              <div class="agent-focus-mission">
+                <span id="focusState">3 arbitrages à préparer</span>
+                <p id="focusTask">Arbitre les priorités entre potentiel de trafic, autorité et valeur commerciale.</p>
+              </div>
+              <div class="agent-focus-progress">
+                <span><small>Progression</small><strong id="focusProgressValue">78 %</strong></span>
+                <div><i id="focusProgressBar" style="width: 78%"></i></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="metrics-grid" aria-label="Indicateurs du prototype">
+            <article><small>Agents opérationnels</small><strong>8</strong><span>Responsabilités définies</span></article>
+            <article><small>Requêtes suivies</small><strong>0</strong><span>Search Console à connecter</span></article>
+            <article><small>Articles en production</small><strong>0</strong><span>Pipeline prêt</span></article>
+            <article><small>Citations IA mesurées</small><strong>0</strong><span>Baseline à créer</span></article>
+            <article><small>Publications automatiques</small><strong>0</strong><span>Verrou permanent</span></article>
+          </section>
+
+          <section class="panel autonomy-panel" aria-labelledby="autonomyTitle">
+            <div class="autonomy-heading">
+              <div>
+                <div class="section-kicker"><span class="live-dot"></span> Moteur autonome · MVP</div>
+                <h2 id="autonomyTitle">Le travail commence avant ton arrivée.</h2>
+                <p>À terme, la division scannera les opportunités, préparera les dossiers et signalera les contenus à mettre à jour sans attendre un prompt.</p>
+              </div>
+              <span class="autonomy-state">Simulation active</span>
+            </div>
+            <div class="autonomy-grid">
+              <article><small>Zone verte</small><strong>Analyser &amp; préparer</strong><span>Automatique, sans effet externe</span></article>
+              <article><small>Zone orange</small><strong>Modifier le site</strong><span>Validation humaine requise</span></article>
+              <article><small>Zone rouge</small><strong>Publier</strong><span>Double confirmation de Sonny</span></article>
+              <article><small>Budget IA</small><strong>Non connecté</strong><span>Plafond à définir avant activation</span></article>
+            </div>
+          </section>
+
+          <section class="panel pipeline-panel" id="articlePipeline" aria-labelledby="pipelineTitle">
+            <div class="panel-heading">
+              <div>
+                <div class="section-kicker">Premier vol · Article SEO</div>
+                <h2 id="pipelineTitle">Un article, huit contrôles visibles.</h2>
+                <p>Chaque étape possède un responsable et une sortie vérifiable. La publication reste la dernière décision humaine.</p>
+              </div>
+              <span class="state-pill">Prêt à démarrer</span>
+            </div>
+            <div class="pipeline-track" id="pipelineTrack">
+              {pipeline.map(([number, title, owner, state]) => (
+                <article data-stage-state={state}>
+                  <span>{number}</span>
+                  <strong>{title}</strong>
+                  <small>{owner}</small>
+                </article>
+              ))}
+            </div>
+            <div class="pipeline-brief">
+              <article><small>Entrée</small><strong>Opportunité sémantique validée</strong><span>Intention, potentiel, difficulté et lien commercial.</span></article>
+              <article><small>Sortie</small><strong>Article utile, fiable et distribuable</strong><span>Optimisé pour les humains, Google et les moteurs de réponse.</span></article>
+              <article><small>Dernier verrou</small><strong>Validation de Sonny</strong><span>Publication impossible sans action explicite.</span></article>
+            </div>
+          </section>
+
+          <section class="panel mission-panel" id="missionRoom" aria-labelledby="missionTitle">
+            <div class="panel-heading">
+              <div>
+                <div class="section-kicker">Salle des missions</div>
+                <h2 id="missionTitle">Le premier backlog de la division.</h2>
+                <p>Des missions concrètes, ordonnées par dépendances et valeur potentielle.</p>
+              </div>
+              <span class="state-pill">4 missions</span>
+            </div>
+            <div class="mission-grid">
+              {missions.map((mission) => (
+                <article class="mission-card">
+                  <div class="mission-topline"><span>{mission.priority}</span><small>{mission.state}</small></div>
+                  <p>Mission pilotée par <strong>{mission.owner}</strong></p>
+                  <h3>{mission.title}</h3>
+                  <p>{mission.description}</p>
+                  <div class="mission-output"><small>Livrable attendu</small><strong>{mission.evidence}</strong></div>
+                  <button type="button" data-demo-mission>Préparer le dossier <span>→</span></button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section class="department-bottom-grid">
+            <article class="panel compact-panel">
+              <div class="section-kicker">Visibilité IA</div>
+              <h2>Être cité avant d’être vendu.</h2>
+              <p>Vega suivra un panel de questions, les marques citées, les sources utilisées et les pages de Sonny recommandées.</p>
+              <ul>
+                <li><span>ChatGPT</span><strong>À connecter</strong></li>
+                <li><span>Gemini &amp; Google AI</span><strong>À connecter</strong></li>
+                <li><span>Claude &amp; Copilot</span><strong>À connecter</strong></li>
+              </ul>
+            </article>
+            <article class="panel compact-panel">
+              <div class="section-kicker">Journal de bord</div>
+              <h2>Chaque décision reste traçable.</h2>
+              <div class="activity-list">
+                <p><i>AL</i><span><strong>Alya a structuré l’équipe</strong><small>8 responsabilités sans doublon.</small></span><time>maintenant</time></p>
+                <p><i>KI</i><span><strong>Kiro attend la première source</strong><small>Search Console ou outil de mots-clés.</small></span><time>-1 min</time></p>
+                <p><i>VE</i><span><strong>Vega prépare la baseline IA</strong><small>Aucune mesure inventée.</small></span><time>-2 min</time></p>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="seo-toast" id="seoToast" role="status" aria-live="polite"></div>
+
+    <script>
+      const validatorView = document.getElementById('validatorView');
+      const departmentView = document.getElementById('departmentView');
+      const toast = document.getElementById('seoToast');
+
+      function showValidator() {
+        validatorView.hidden = false;
+        departmentView.hidden = true;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function showDepartment(targetId) {
+        validatorView.hidden = true;
+        departmentView.hidden = false;
+        requestAnimationFrame(() => {
+          const target = targetId ? document.getElementById(targetId) : departmentView;
+          target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+
+      function notify(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        window.clearTimeout(window.seoToastTimer);
+        window.seoToastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 2600);
+      }
+
+      document.getElementById('openDepartmentButton')?.addEventListener('click', () => showDepartment());
+      document.getElementById('backToValidatorButton')?.addEventListener('click', showValidator);
+      document.getElementById('validatorModeButton')?.addEventListener('click', showValidator);
+
+      document.querySelectorAll('[data-open-target]').forEach((button) => {
+        button.addEventListener('click', () => showDepartment(button.dataset.openTarget));
+      });
+
+      document.querySelectorAll('.agent-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.agent-card').forEach((candidate) => {
+            candidate.setAttribute('aria-pressed', String(candidate === card));
+          });
+          const focus = document.getElementById('agentFocus');
+          focus.dataset.color = card.dataset.color;
+          document.getElementById('focusDivision').textContent = card.dataset.division;
+          document.getElementById('focusName').textContent = card.dataset.name;
+          document.getElementById('focusRole').textContent = card.dataset.role;
+          document.getElementById('focusState').textContent = card.dataset.stateLabel;
+          document.getElementById('focusTask').textContent = card.dataset.task;
+          const progress = Math.max(0, Math.min(100, Number(card.dataset.progress) || 0));
+          document.getElementById('focusProgressValue').textContent = `${progress} %`;
+          document.getElementById('focusProgressBar').style.width = `${progress}%`;
+        });
+      });
+
+      document.getElementById('launchSeoCycle')?.addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        if (button.dataset.started === 'true') {
+          showDepartment('missionRoom');
+          return;
+        }
+        button.dataset.started = 'true';
+        button.textContent = 'Ouvrir le dossier préparé';
+        document.getElementById('validatorPrimaryCard').dataset.state = 'working';
+        document.getElementById('validatorPrimaryHeading').textContent = 'Le premier cycle est prêt à être cadré.';
+        document.getElementById('validatorPrimaryText').textContent = 'Kiro, Eli et Alya disposent maintenant d’un dossier de départ. Les connexions aux vraies données restent volontairement désactivées.';
+        document.getElementById('validatorPrimaryReason').textContent = 'Simulation terminée : zéro publication, zéro modification du site et zéro coût API.';
+        document.getElementById('teamStatusText').textContent = 'Kiro prépare la carte sémantique du premier cycle.';
+        notify('Cycle simulé : le dossier interne est prêt.');
+      });
+
+      document.querySelectorAll('[data-demo-mission]').forEach((button) => {
+        button.addEventListener('click', () => {
+          button.textContent = 'Dossier simulé prêt ✓';
+          button.disabled = true;
+          notify('Dossier préparé localement — aucune action externe.');
+        });
+      });
+    </script>
+  </body>
+</html>
