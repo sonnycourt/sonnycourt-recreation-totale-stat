@@ -1,21 +1,16 @@
 ---
 import PayAppShell from '../../components/PayAppShell.astro';
 
-const transactions = [
-  { client: 'Amélie Martin', checkout: 'ES2.0 · Standard', date: 'Aujourd’hui · 14:32', provider: 'Stripe', amount: '98,17 €', status: 'Réussi' },
-  { client: 'Julien Laurent', checkout: 'Coaching · Première consultation', date: 'Aujourd’hui · 11:08', provider: 'PayPal', amount: '97,00 €', status: 'Réussi' },
-  { client: 'Chloé Morel', checkout: 'Formation Manifest', date: 'Hier · 18:47', provider: 'Stripe', amount: '197,00 €', status: 'En attente' },
-  { client: 'Léa Roux', checkout: 'ES2.0 · Standard', date: 'Hier · 09:21', provider: 'Stripe', amount: '98,17 €', status: 'Remboursé' },
-];
+const transactions = [];
 ---
 
 <PayAppShell active="transactions" eyebrow="Ventes" title="Transactions" description="Retrouve les paiements, remboursements et statuts au même endroit.">
   <button slot="actions" class="pay-button pay-button--ghost" type="button" data-demo-disabled>↓ Exporter</button>
 
   <section class="transaction-summary">
-    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong id="transactionRevenue">3 122,35 €</strong><span id="transactionSuccessCount">27 transactions</span></article>
-    <article class="pay-panel"><small>Remboursé</small><strong id="transactionRefunded">98,17 €</strong><span id="transactionRefundCount">1 transaction</span></article>
-    <article class="pay-panel"><small>En attente</small><strong id="transactionPending">197,00 €</strong><span id="transactionPendingCount">1 transaction</span></article>
+    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong id="transactionRevenue">—</strong><span id="transactionSuccessCount">En attente de Stripe</span></article>
+    <article class="pay-panel"><small>Remboursé</small><strong id="transactionRefunded">—</strong><span id="transactionRefundCount">En attente de Stripe</span></article>
+    <article class="pay-panel"><small>En attente</small><strong id="transactionPending">—</strong><span id="transactionPendingCount">En attente de Stripe</span></article>
   </section>
 
   <section class="pay-panel transaction-panel">
@@ -30,7 +25,12 @@ const transactions = [
           <strong>{item.amount}</strong><span>—</span>
         </div>
       ))}
+      <div class="transaction-empty">Aucune donnée fictive affichée. L’historique apparaîtra dès que Stripe répond.</div>
     </div>
+    <footer class="transaction-history-footer" id="transactionHistoryFooter" hidden>
+      <span id="transactionHistoryState">Chargement de l’historique Stripe…</span>
+      <button class="pay-button" id="transactionLoadMore" type="button" hidden>Charger 100 de plus</button>
+    </footer>
   </section>
 
   <dialog class="refund-dialog pay-glass" id="refundDialog" aria-labelledby="refundTitle">
@@ -65,7 +65,12 @@ const transactions = [
 
 <script>
   const REFUND_API = '/.netlify/functions/pay-stripe-refund';
+  const STRIPE_DATA_API = '/.netlify/functions/pay-stripe-data';
   let stripeTransactionsData = null;
+  let fullHistoryItems = [];
+  let fullHistoryCursor = '';
+  let fullHistoryLoading = false;
+  let fullHistoryInitialized = false;
   let refundItem = null;
   let refundIdempotencyKey = null;
 
@@ -97,6 +102,89 @@ const transactions = [
     return `<button class="refund-button" type="button" data-refund-intent="${escapeTransactionText(item.id)}">Rembourser</button>`;
   }
 
+  function normalizedIntentStatus(intent, refunded, refundable) {
+    if (refunded > 0) return refundable > 0 ? 'Partiel' : 'Remboursé';
+    if (intent.status === 'succeeded') return 'Réussi';
+    if (intent.status === 'processing' || intent.status === 'requires_capture') return 'En attente';
+    if (intent.status === 'canceled') return 'Annulé';
+    if (intent.status === 'requires_action') return 'Action requise';
+    return 'Incomplet';
+  }
+
+  function normalizePaymentIntent(intent) {
+    const charge = intent.latest_charge && typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
+    const billing = charge?.billing_details || {};
+    const metadata = intent.metadata || {};
+    const card = charge?.payment_method_details?.card;
+    const amount = Number(intent.amount_received || intent.amount || 0);
+    const refunded = Number(charge?.amount_refunded || 0);
+    const refundable = Math.max(0, amount - refunded);
+    const customer = billing.name || metadata.customer_name || metadata.customer_first_name || billing.email || intent.receipt_email || metadata.customer_email || 'Client Stripe';
+    return {
+      id: intent.id,
+      created: intent.created,
+      amount,
+      refunded,
+      refundable,
+      can_refund: intent.status === 'succeeded' && refundable > 0,
+      currency: intent.currency || 'eur',
+      status: normalizedIntentStatus(intent, refunded, refundable),
+      description: intent.description || metadata.offer_name || metadata.offer_slug || 'Paiement Stripe',
+      customer,
+      email: billing.email || intent.receipt_email || metadata.customer_email || '',
+      payment_method: card ? `${card.brand || 'carte'} •••• ${card.last4 || ''}` : charge?.payment_method_details?.type || 'Stripe',
+    };
+  }
+
+  function renderTransactionTable(items, emptyText = 'Aucune transaction Stripe.') {
+    const table = document.getElementById('stripeTransactionTable');
+    const head = '<div class="transaction-row transaction-head"><span>Client</span><span>Description</span><span>Date</span><span>Moyen</span><span>Statut</span><span>Montant</span><span>Action</span></div>';
+    if (!items.length) {
+      table.innerHTML = `${head}<div class="transaction-empty">${escapeTransactionText(emptyText)}</div>`;
+      return;
+    }
+    table.innerHTML = head + items.map((item) => {
+      const customer = item.customer || item.email || 'Client Stripe';
+      const initials = customer.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S';
+      return `<div class="transaction-row"><span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></span><span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong>${refundAction(item)}</div>`;
+    }).join('');
+  }
+
+  async function loadFullStripeHistory(reset = false) {
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname) || fullHistoryLoading) return;
+    if (reset && fullHistoryInitialized) return;
+    fullHistoryLoading = true;
+    const footer = document.getElementById('transactionHistoryFooter');
+    const state = document.getElementById('transactionHistoryState');
+    const button = document.getElementById('transactionLoadMore');
+    footer.hidden = false;
+    button.disabled = true;
+    state.textContent = reset ? 'Chargement de l’historique Stripe complet…' : 'Chargement de 100 transactions supplémentaires…';
+    try {
+      const parameters = new URLSearchParams({ resource: 'payment_intents', limit: '100' });
+      if (!reset && fullHistoryCursor) parameters.set('starting_after', fullHistoryCursor);
+      const response = await fetch(`${STRIPE_DATA_API}?${parameters.toString()}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const page = await response.json().catch(() => ({}));
+      if (!response.ok || !page.connected) throw new Error(page.error || 'stripe_history_failed');
+      const nextItems = (Array.isArray(page.data) ? page.data : []).map(normalizePaymentIntent);
+      fullHistoryItems = reset ? nextItems : [...fullHistoryItems, ...nextItems];
+      fullHistoryCursor = page.next_cursor || '';
+      fullHistoryInitialized = true;
+      stripeTransactionsData = { ...stripeTransactionsData, transactions: fullHistoryItems };
+      renderTransactionTable(fullHistoryItems, 'Aucune transaction dans l’historique Stripe.');
+      document.getElementById('transactionDescription').textContent = `Historique Stripe · ${fullHistoryItems.length} transaction${fullHistoryItems.length === 1 ? '' : 's'} chargée${fullHistoryItems.length === 1 ? '' : 's'}`;
+      state.textContent = page.has_more ? `${fullHistoryItems.length} transactions chargées · historique disponible par pages de 100` : `Historique complet · ${fullHistoryItems.length} transactions`;
+      button.hidden = !page.has_more;
+    } catch (error) {
+      console.error('Pay Stripe history:', error);
+      state.textContent = 'L’historique complet n’a pas pu être chargé. L’aperçu reste disponible.';
+      button.hidden = true;
+    } finally {
+      fullHistoryLoading = false;
+      button.disabled = false;
+    }
+  }
+
   function renderStripeTransactions(data) {
     if (!data?.connected) return;
     stripeTransactionsData = data;
@@ -113,17 +201,8 @@ const transactions = [
     mode.textContent = data.mode === 'live' ? (data.writes_enabled ? 'Stripe réel · actions actives' : 'Stripe réel · actions verrouillées') : 'Stripe test';
     mode.className = `pay-badge ${data.writes_enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
 
-    const table = document.getElementById('stripeTransactionTable');
-    const head = '<div class="transaction-row transaction-head"><span>Client</span><span>Description</span><span>Date</span><span>Moyen</span><span>Statut</span><span>Montant</span><span>Action</span></div>';
-    if (!items.length) {
-      table.innerHTML = `${head}<div class="transaction-empty">Aucune transaction Stripe sur les 30 derniers jours.</div>`;
-      return;
-    }
-    table.innerHTML = head + items.map((item) => {
-      const customer = item.customer || item.email || 'Client Stripe';
-      const initials = customer.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S';
-      return `<div class="transaction-row"><span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></span><span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong>${refundAction(item)}</div>`;
-    }).join('');
+    renderTransactionTable(items, 'Aucune transaction Stripe sur les 30 derniers jours.');
+    loadFullStripeHistory(true);
   }
 
   function validateRefundForm() {
@@ -170,6 +249,7 @@ const transactions = [
   document.getElementById('refundClose')?.addEventListener('click', closeRefundDialog);
   document.getElementById('refundCancel')?.addEventListener('click', closeRefundDialog);
   document.getElementById('refundForm')?.addEventListener('submit', (event) => event.preventDefault());
+  document.getElementById('transactionLoadMore')?.addEventListener('click', () => loadFullStripeHistory(false));
 
   document.getElementById('refundSubmit')?.addEventListener('click', async () => {
     const amount = validateRefundForm();
@@ -233,6 +313,9 @@ const transactions = [
   .transaction-client strong, .transaction-client small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .transaction-client small { max-width: 150px; margin-top: 3px; color: var(--pay-muted); font-size: 7px; }
   .transaction-empty { padding: 40px 20px; color: var(--pay-muted); font-size: 10px; text-align: center; }
+  .transaction-history-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 20px; border-top: 1px solid rgba(169,216,255,.075); }
+  .transaction-history-footer span { color: var(--pay-muted); font-size: 8px; }
+  .transaction-history-footer .pay-button { min-height: 34px; font-size: 9px; }
   .refund-button { min-height: 32px; padding: 0 11px; border: 1px solid rgba(255,128,148,.24); border-radius: 10px; color: #ffb3bf; background: rgba(255,128,148,.065); font-size: 8px; font-weight: 750; cursor: pointer; }
   .refund-button:hover { border-color: rgba(255,128,148,.45); background: rgba(255,128,148,.12); }
   .refund-complete { color: var(--pay-muted); font-size: 8px; }

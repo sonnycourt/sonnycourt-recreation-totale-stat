@@ -10,57 +10,95 @@ import PayAppShell from '../../components/PayAppShell.astro';
 >
   <a slot="actions" class="pay-button pay-button--primary" data-pay-route="/checkouts/new" href="/pay/checkouts/new">＋ Créer un checkout</a>
 
-  <section class="dashboard-kpis" aria-label="Indicateurs principaux">
+  <section class="pay-panel analytics-panel" aria-labelledby="analyticsTitle">
+    <header class="analytics-header">
+      <div>
+        <p class="analytics-kicker">Performance</p>
+        <h2 id="analyticsTitle">Évolution des paiements</h2>
+        <p id="analyticsRangeCaption">En attente de Stripe · 7 derniers jours</p>
+      </div>
+
+      <div class="analytics-range-wrap">
+        <button class="analytics-range-button" id="analyticsRangeButton" type="button" aria-haspopup="dialog" aria-expanded="false">
+          <span id="analyticsRangeLabel">7 derniers jours</span><span aria-hidden="true">⌄</span>
+        </button>
+
+        <div class="analytics-calendar" id="analyticsCalendar" role="dialog" aria-label="Choisir une période" hidden>
+          <div class="analytics-presets" aria-label="Périodes rapides">
+            <button type="button" data-range="today">Aujourd’hui</button>
+            <button type="button" data-range="yesterday">Hier</button>
+            <button class="is-active" type="button" data-range="past7">7 derniers jours</button>
+            <button type="button" data-range="past30">30 derniers jours</button>
+            <button type="button" data-range="past90">90 derniers jours</button>
+            <button type="button" data-range="thisMonth">Ce mois</button>
+            <button type="button" data-range="thisYear">Cette année</button>
+            <button type="button" data-range="lastMonth">Mois dernier</button>
+            <button type="button" data-range="lastYear">Année dernière</button>
+          </div>
+
+          <div class="calendar-pane">
+            <div class="calendar-nav">
+              <button id="calendarPrevious" type="button" aria-label="Mois précédent">‹</button>
+              <strong id="calendarMonthLabel">Août 2026</strong>
+              <button id="calendarNext" type="button" aria-label="Mois suivant">›</button>
+            </div>
+            <div class="calendar-weekdays" aria-hidden="true"><span>Lu</span><span>Ma</span><span>Me</span><span>Je</span><span>Ve</span><span>Sa</span><span>Di</span></div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-footer">
+              <span id="calendarSelection">Choisis une date de début</span>
+              <button id="calendarApply" type="button" disabled>Appliquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="analytics-toolbar" aria-label="Séries du graphique">
+      <button class="analytics-legend" type="button" data-series="revenue" aria-pressed="true"><span class="legend-dot legend-dot--revenue"></span>Revenu total</button>
+      <button class="analytics-legend" type="button" data-series="refunds" aria-pressed="true"><span class="legend-dot legend-dot--refunds"></span>Remboursements</button>
+      <button class="analytics-legend" type="button" data-series="orders" aria-pressed="true"><span class="legend-dot legend-dot--orders"></span>Commandes</button>
+      <button class="analytics-legend" type="button" data-series="plans" aria-pressed="true"><span class="legend-dot legend-dot--plans"></span>Échéances des plans</button>
+    </div>
+
+    <div class="analytics-chart-shell" id="analyticsChartShell">
+      <canvas id="payAnalyticsChart" role="img" aria-label="Courbes du revenu total, des remboursements, des commandes et des revenus issus des plans de paiement"></canvas>
+    </div>
+  </section>
+
+  <section class="dashboard-kpis" aria-label="Récapitulatif des paiements">
     <article class="metric-card pay-panel metric-card--primary">
-      <div class="metric-top"><span>Chiffre d’affaires</span><span class="metric-chip">30 jours</span></div>
-      <strong id="stripeRevenue">3 122,35 €</strong>
-      <div class="metric-foot"><span class="metric-trend" id="stripeRevenueState">Données démo</span><small>paiements réussis</small></div>
+      <div class="metric-top"><span id="paySalesLabel">Ventes</span><span class="metric-icon metric-icon--sales">↗</span></div>
+      <strong id="paySalesValue">—</strong>
+      <div class="metric-foot"><span class="metric-trend" id="paySalesTrend">Stripe</span><small id="paySalesFoot">En attente</small></div>
     </article>
     <article class="metric-card pay-panel">
-      <div class="metric-top"><span>Transactions</span><span class="metric-icon">↗</span></div>
-      <strong id="stripeTransactionCount">27</strong>
-      <div class="metric-foot"><span id="stripeSuccessfulCount">24 réussies</span><small id="stripePendingCount">3 en attente</small></div>
+      <div class="metric-top"><span id="payRefundLabel">Remboursements</span><span class="metric-icon metric-icon--refund">↩</span></div>
+      <strong id="payRefundValue">—</strong>
+      <div class="metric-foot"><span id="payRefundFoot">En attente de Stripe</span><small>sur la période</small></div>
     </article>
     <article class="metric-card pay-panel">
-      <div class="metric-top"><span>Checkouts actifs</span><span class="metric-icon">▣</span></div>
-      <strong id="dashboardCheckoutCount">4</strong>
-      <div class="metric-foot"><span>3 publiés</span><small id="dashboardDraftCount">1 brouillon</small></div>
+      <div class="metric-top"><span>Cash flow</span><span class="metric-icon metric-icon--cashflow">≋</span></div>
+      <strong id="payCashflowValue">—</strong>
+      <div class="cashflow-switch" aria-label="Période du cash flow">
+        <button class="is-active" type="button" data-cashflow="current">Ce mois</button>
+        <button type="button" data-cashflow="next">Mois prochain</button>
+      </div>
     </article>
     <article class="metric-card pay-panel">
-      <div class="metric-top"><span>Solde disponible</span><span class="metric-icon">◎</span></div>
-      <strong id="stripeAvailableBalance">—</strong>
-      <div class="metric-foot"><span id="stripeBalanceMode">Connexion Stripe</span><small id="stripePendingBalance">vérification…</small></div>
+      <div class="metric-top"><span>Plans en retard</span><span class="metric-icon metric-icon--pastdue">!</span></div>
+      <strong id="payPastDueValue">—</strong>
+      <div class="metric-foot"><span id="payPastDueFoot">En attente de Stripe</span><small>plans de paiement</small></div>
     </article>
   </section>
 
   <section class="dashboard-layout">
     <article class="pay-panel activity-panel">
       <div class="pay-panel-header">
-        <div><h2>Activité récente</h2><p id="stripeActivityDescription">Les derniers paiements de la démo</p></div>
+        <div><h2>Activité récente</h2><p id="stripeActivityDescription">En attente des données Stripe</p></div>
         <a class="panel-link" data-pay-route="/transactions" href="/pay/transactions">Tout voir →</a>
       </div>
       <div class="activity-list" id="stripeActivityList">
-        <div class="activity-row">
-          <span class="activity-avatar">AM</span>
-          <span class="activity-customer"><strong>Amélie Martin</strong><small>ES2.0 · Standard</small></span>
-          <span class="activity-date">Aujourd’hui, 14:32</span>
-          <span class="pay-badge pay-badge--success">Réussi</span>
-          <strong class="activity-amount">98,17 €</strong>
-        </div>
-        <div class="activity-row">
-          <span class="activity-avatar activity-avatar--violet">JL</span>
-          <span class="activity-customer"><strong>Julien Laurent</strong><small>Coaching · Première consultation</small></span>
-          <span class="activity-date">Aujourd’hui, 11:08</span>
-          <span class="pay-badge pay-badge--success">Réussi</span>
-          <strong class="activity-amount">97,00 €</strong>
-        </div>
-        <div class="activity-row">
-          <span class="activity-avatar activity-avatar--gold">CM</span>
-          <span class="activity-customer"><strong>Chloé Morel</strong><small>Formation Manifest</small></span>
-          <span class="activity-date">Hier, 18:47</span>
-          <span class="pay-badge pay-badge--warning">En attente</span>
-          <strong class="activity-amount">197,00 €</strong>
-        </div>
+        <div class="activity-empty">Aucune donnée fictive affichée. Les transactions apparaîtront dès que Stripe répond.</div>
       </div>
     </article>
 
@@ -76,6 +114,208 @@ import PayAppShell from '../../components/PayAppShell.astro';
 </PayAppShell>
 
 <script>
+  import Chart from 'chart.js/auto';
+
+  const DAY = 86_400_000;
+  const moneyFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const preciseMoneyFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const shortDateFormatter = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+  const longDateFormatter = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const monthFormatter = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+  const visibleSeries = new Set(['revenue', 'refunds', 'orders', 'plans']);
+  const seriesMeta = {
+    revenue: { label: 'Revenu total', tooltipLabel: 'Revenu total', color: '#70e7ff', unit: 'money' },
+    refunds: { label: 'Remboursements', tooltipLabel: 'Remboursements', color: '#ff8094', unit: 'money' },
+    orders: { label: 'Commandes', tooltipLabel: 'Nombre de commandes', color: '#ffd47a', unit: 'count' },
+    plans: { label: 'Échéances des plans', tooltipLabel: 'Plans dus ce jour', color: '#a997ff', unit: 'money' },
+  };
+
+  const hoverGuidePlugin = {
+    id: 'payHoverGuide',
+    afterDatasetsDraw(chart) {
+      const active = chart.tooltip?.getActiveElements?.() || [];
+      if (!active.length) return;
+      const x = active[0].element.x;
+      const { ctx, chartArea } = chart;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, chartArea.top);
+      ctx.lineTo(x, chartArea.bottom);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(190, 227, 255, .28)';
+      ctx.setLineDash([3, 4]);
+      ctx.stroke();
+      ctx.restore();
+    },
+  };
+
+  let currentRange;
+  let calendarMonth;
+  let pendingStart = null;
+  let pendingEnd = null;
+  let currentData = [];
+  let stripeTransactions = null;
+  let stripeOverview = null;
+  const stripeRangeCache = new Map();
+  let stripeRangeRequest = 0;
+  let cashflowPeriod = 'current';
+  let analyticsChart = null;
+
+  function atMidnight(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function addDays(date, amount) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + amount);
+    return atMidnight(next);
+  }
+
+  function sameDay(first, second) {
+    return Boolean(first && second) && first.getFullYear() === second.getFullYear() && first.getMonth() === second.getMonth() && first.getDate() === second.getDate();
+  }
+
+  function dateKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function daysBetween(start, end) {
+    return Math.max(1, Math.round((atMidnight(end) - atMidnight(start)) / DAY) + 1);
+  }
+
+  function rangeText(start, end) {
+    if (sameDay(start, end)) return longDateFormatter.format(start);
+    return `${shortDateFormatter.format(start)} – ${longDateFormatter.format(end)}`;
+  }
+
+  function seeded(date, salt = 0) {
+    const value = Math.sin(Number(dateKey(date).replaceAll('-', '')) * 0.173 + salt * 19.17) * 43758.5453;
+    return value - Math.floor(value);
+  }
+
+  function demoDataForRange(start, end) {
+    const count = Math.min(daysBetween(start, end), 366);
+    return Array.from({ length: count }, (_, index) => {
+      const date = addDays(start, index);
+      return { date, revenue: 0, refunds: 0, orders: 0, plans: 0, refundCount: 0, pastDue: 0 };
+    });
+  }
+
+  function stripeObjectId(value) {
+    return typeof value === 'string' ? value : value?.id || '';
+  }
+
+  function stripeDataForRange(start, end) {
+    const count = Math.min(daysBetween(start, end), 366);
+    const byDay = new Map(Array.from({ length: count }, (_, index) => {
+      const date = addDays(start, index);
+      return [dateKey(date), { date, revenue: 0, refunds: 0, orders: 0, plans: 0, refundCount: 0, pastDue: 0 }];
+    }));
+
+    const fullRange = stripeRangeCache.get(`${dateKey(start)}:${dateKey(end)}`);
+    const payments = fullRange?.payment_intents || stripeTransactions || [];
+    const invoicePaymentIds = new Set((fullRange?.invoices || []).map((invoice) => stripeObjectId(invoice.payment_intent)).filter(Boolean));
+
+    payments.forEach((item) => {
+      const date = atMidnight(new Date(Number(item.created || 0) * 1000));
+      const row = byDay.get(dateKey(date));
+      if (!row) return;
+      const isRawIntent = item.object === 'payment_intent';
+      const amount = Number(isRawIntent ? item.amount_received || item.amount : item.amount || 0) / 100;
+      const refunded = Number(isRawIntent ? 0 : item.refunded || 0) / 100;
+      const successful = isRawIntent ? item.status === 'succeeded' : ['Réussi', 'Partiel', 'Remboursé'].includes(item.status);
+      if (successful) {
+        row.revenue += amount;
+        row.orders += 1;
+      }
+      row.refunds += refunded;
+      row.refundCount += refunded > 0 ? 1 : 0;
+      if (/payment plan|plan de paiement|mensualit/i.test(String(item.description || '')) && !invoicePaymentIds.has(item.id)) row.plans += amount;
+      if (/action requise|incomplet/i.test(String(item.status || '')) && /payment plan|plan de paiement|mensualit/i.test(String(item.description || ''))) row.pastDue += 1;
+    });
+
+    (fullRange?.refunds || []).forEach((refund) => {
+      const date = atMidnight(new Date(Number(refund.created || 0) * 1000));
+      const row = byDay.get(dateKey(date));
+      if (!row || refund.status === 'failed' || refund.status === 'canceled') return;
+      row.refunds += Number(refund.amount || 0) / 100;
+      row.refundCount += 1;
+    });
+
+    (fullRange?.invoices || []).forEach((invoice) => {
+      const subscriptionId = stripeObjectId(invoice.subscription) || stripeObjectId(invoice.parent?.subscription_details?.subscription);
+      const isPlan = Boolean(subscriptionId) || String(invoice.billing_reason || '').startsWith('subscription');
+      if (!isPlan) return;
+      const dueTimestamp = Number(invoice.due_date || invoice.period_end || invoice.created || 0);
+      const date = atMidnight(new Date(dueTimestamp * 1000));
+      const row = byDay.get(dateKey(date));
+      if (!row) return;
+      row.plans += Number(invoice.amount_due || invoice.total || 0) / 100;
+      if (invoice.status === 'open' && Number(invoice.amount_remaining || 0) > 0 && date < atMidnight(new Date())) row.pastDue += 1;
+    });
+    return Array.from(byDay.values());
+  }
+
+  function analyticsData(start, end) {
+    return Array.isArray(stripeTransactions) ? stripeDataForRange(start, end) : demoDataForRange(start, end);
+  }
+
+  async function fetchAllStripePages(resource, start, end, requestId) {
+    const rows = [];
+    let cursor = '';
+    let hasMore = true;
+    const createdGte = Math.floor(atMidnight(start).getTime() / 1000);
+    const createdLte = Math.floor(addDays(end, 1).getTime() / 1000) - 1;
+    while (hasMore) {
+      if (requestId !== stripeRangeRequest) throw new Error('stripe_range_cancelled');
+      const parameters = new URLSearchParams({
+        resource,
+        limit: '100',
+        created_gte: String(createdGte),
+        created_lte: String(createdLte),
+      });
+      if (cursor) parameters.set('starting_after', cursor);
+      const response = await fetch(`/.netlify/functions/pay-stripe-data?${parameters.toString()}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const page = await response.json().catch(() => ({}));
+      if (!response.ok || !page.connected) throw new Error(page.error || `stripe_${resource}_failed`);
+      rows.push(...(Array.isArray(page.data) ? page.data : []));
+      hasMore = Boolean(page.has_more && page.next_cursor);
+      cursor = page.next_cursor || '';
+    }
+    return rows;
+  }
+
+  async function loadCompleteStripeRange() {
+    if (!Array.isArray(stripeTransactions)) return;
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+    const cacheKey = `${dateKey(currentRange.start)}:${dateKey(currentRange.end)}`;
+    if (stripeRangeCache.has(cacheKey)) return refreshAnalytics();
+    const requestId = ++stripeRangeRequest;
+    document.getElementById('analyticsRangeCaption').textContent = `Chargement Stripe complet · ${rangeText(currentRange.start, currentRange.end)}`;
+    try {
+      const [paymentIntents, refunds, invoices] = await Promise.all([
+        fetchAllStripePages('payment_intents', currentRange.start, currentRange.end, requestId),
+        fetchAllStripePages('refunds', currentRange.start, currentRange.end, requestId),
+        fetchAllStripePages('invoices', currentRange.start, currentRange.end, requestId),
+      ]);
+      if (requestId !== stripeRangeRequest) return;
+      stripeRangeCache.set(cacheKey, { payment_intents: paymentIntents, refunds, invoices });
+      refreshAnalytics();
+    } catch (error) {
+      if (String(error?.message) === 'stripe_range_cancelled') return;
+      console.error('Pay Stripe range:', error);
+      document.getElementById('analyticsRangeCaption').textContent = `Aperçu Stripe · ${rangeText(currentRange.start, currentRange.end)}`;
+    }
+  }
+
+  function compactMoney(value) {
+    if (Math.abs(value) >= 1000) return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value / 1000)} k€`;
+    return moneyFormatter.format(value);
+  }
+
   function escapeStripeText(value) {
     return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   }
@@ -88,26 +328,270 @@ import PayAppShell from '../../components/PayAppShell.astro';
     return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(Number(timestamp || 0) * 1000));
   }
 
+  function drawChart() {
+    const canvas = document.getElementById('payAnalyticsChart');
+    if (!canvas || !currentData.length) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    analyticsChart?.destroy();
+
+    const revenueFill = context.createLinearGradient(0, 0, 0, 340);
+    revenueFill.addColorStop(0, 'rgba(112, 231, 255, .18)');
+    revenueFill.addColorStop(1, 'rgba(112, 231, 255, 0)');
+    const showPoints = currentData.length <= 31;
+
+    analyticsChart = new Chart(context, {
+      type: 'line',
+      data: {
+        labels: currentData.map((row) => row.date),
+        datasets: Object.entries(seriesMeta)
+          .filter(([key]) => visibleSeries.has(key))
+          .map(([key, meta]) => ({
+            label: meta.label,
+            seriesKey: key,
+            data: currentData.map((row) => row[key]),
+            yAxisID: meta.unit === 'count' ? 'orders' : 'money',
+            borderColor: meta.color,
+            backgroundColor: key === 'revenue' ? revenueFill : meta.color,
+            borderWidth: key === 'revenue' ? 3 : 2.25,
+            fill: key === 'revenue',
+            tension: .28,
+            cubicInterpolationMode: 'monotone',
+            pointRadius: showPoints ? (key === 'revenue' ? 3.5 : 3) : 0,
+            pointHoverRadius: 5,
+            pointHitRadius: 12,
+            pointBackgroundColor: '#071526',
+            pointBorderColor: meta.color,
+            pointBorderWidth: 2,
+          })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        normalized: true,
+        animation: { duration: 260 },
+        interaction: { mode: 'index', axis: 'x', intersect: false },
+        layout: { padding: { top: 12, right: 4, bottom: 2, left: 4 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(6, 20, 36, .97)',
+            borderColor: 'rgba(154, 222, 255, .24)',
+            borderWidth: 1,
+            cornerRadius: 13,
+            padding: 12,
+            titleColor: '#fff',
+            bodyColor: 'rgba(223, 239, 255, .74)',
+            displayColors: true,
+            usePointStyle: true,
+            boxWidth: 7,
+            boxHeight: 7,
+            bodySpacing: 7,
+            titleMarginBottom: 9,
+            caretPadding: 10,
+            callbacks: {
+              title: (items) => items.length ? longDateFormatter.format(currentData[items[0].dataIndex].date) : '',
+              label: (item) => {
+                const meta = seriesMeta[item.dataset.seriesKey];
+                const value = meta?.unit === 'money' ? preciseMoneyFormatter.format(item.parsed.y) : String(Math.round(item.parsed.y));
+                return ` ${meta?.tooltipLabel || item.dataset.label} : ${value}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'category',
+            offset: false,
+            border: { display: false },
+            grid: { display: false },
+            ticks: {
+              color: 'rgba(206, 228, 249, .46)',
+              autoSkip: true,
+              maxTicksLimit: 7,
+              maxRotation: 0,
+              padding: 10,
+              font: { size: 9, weight: 500 },
+              callback: (_, index) => shortDateFormatter.format(currentData[index].date),
+            },
+          },
+          money: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            grace: '10%',
+            border: { display: false },
+            grid: { color: 'rgba(169, 216, 255, .09)', drawTicks: false },
+            ticks: {
+              color: 'rgba(206, 228, 249, .42)',
+              maxTicksLimit: 5,
+              padding: 10,
+              font: { size: 9 },
+              callback: (value) => compactMoney(Number(value)),
+            },
+          },
+          orders: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            grace: '10%',
+            border: { display: false },
+            grid: { drawOnChartArea: false, drawTicks: false },
+            ticks: {
+              color: 'rgba(206, 228, 249, .42)',
+              precision: 0,
+              maxTicksLimit: 5,
+              padding: 10,
+              font: { size: 9 },
+            },
+          },
+        },
+      },
+      plugins: [hoverGuidePlugin],
+    });
+  }
+
+  function updateSummary() {
+    if (!stripeOverview) {
+      document.getElementById('paySalesLabel').textContent = 'Ventes';
+      document.getElementById('paySalesValue').textContent = '—';
+      document.getElementById('paySalesTrend').textContent = 'Stripe';
+      document.getElementById('paySalesFoot').textContent = 'En attente';
+      document.getElementById('payRefundLabel').textContent = 'Remboursements';
+      document.getElementById('payRefundValue').textContent = '—';
+      document.getElementById('payRefundFoot').textContent = 'En attente de Stripe';
+      document.getElementById('payCashflowValue').textContent = '—';
+      document.getElementById('payPastDueValue').textContent = '—';
+      document.getElementById('payPastDueFoot').textContent = 'En attente de Stripe';
+      return;
+    }
+    const totals = currentData.reduce((sum, row) => ({
+      revenue: sum.revenue + row.revenue,
+      refunds: sum.refunds + row.refunds,
+      orders: sum.orders + row.orders,
+      plans: sum.plans + row.plans,
+      refundCount: sum.refundCount + row.refundCount,
+      pastDue: sum.pastDue + row.pastDue,
+    }), { revenue: 0, refunds: 0, orders: 0, plans: 0, refundCount: 0, pastDue: 0 });
+
+    document.getElementById('paySalesLabel').textContent = `Ventes (${totals.orders})`;
+    document.getElementById('paySalesValue').textContent = moneyFormatter.format(totals.revenue);
+    document.getElementById('paySalesTrend').textContent = 'Données Stripe';
+    document.getElementById('paySalesFoot').textContent = `${totals.orders} commande${totals.orders === 1 ? '' : 's'}`;
+    document.getElementById('payRefundLabel').textContent = `Remboursements (${totals.refundCount})`;
+    document.getElementById('payRefundValue').textContent = moneyFormatter.format(totals.refunds);
+    document.getElementById('payRefundFoot').textContent = `${totals.refundCount} remboursement${totals.refundCount === 1 ? '' : 's'}`;
+    document.getElementById('payPastDueValue').textContent = String(totals.pastDue);
+    document.getElementById('payPastDueFoot').textContent = totals.pastDue ? 'Échéances à relancer' : 'Aucune relance urgente';
+
+    const connectedCurrency = stripeOverview?.account?.currency || 'eur';
+    let cashflowCurrent = totals.revenue + totals.plans - totals.refunds;
+    let cashflowNext = totals.plans * 1.18;
+    if (stripeOverview?.connected) {
+      const available = Number(stripeOverview.balance?.available?.[connectedCurrency] || 0) / 100;
+      const pending = Number(stripeOverview.balance?.pending?.[connectedCurrency] || 0) / 100;
+      cashflowCurrent = available + pending + totals.plans;
+      cashflowNext = Math.max(totals.plans * 1.18, pending);
+    }
+    document.getElementById('payCashflowValue').textContent = moneyFormatter.format(cashflowPeriod === 'next' ? cashflowNext : cashflowCurrent);
+  }
+
+  function refreshAnalytics() {
+    currentData = analyticsData(currentRange.start, currentRange.end);
+    document.getElementById('analyticsRangeLabel').textContent = currentRange.label;
+    const cacheKey = `${dateKey(currentRange.start)}:${dateKey(currentRange.end)}`;
+    const sourceLabel = stripeRangeCache.has(cacheKey) ? 'Données Stripe complètes' : Array.isArray(stripeTransactions) ? 'Aperçu Stripe' : 'En attente de Stripe';
+    document.getElementById('analyticsRangeCaption').textContent = `${sourceLabel} · ${rangeText(currentRange.start, currentRange.end)}`;
+    document.querySelectorAll('[data-range]').forEach((button) => button.classList.toggle('is-active', button.dataset.range === currentRange.key));
+    updateSummary();
+    drawChart();
+  }
+
+  function presetRange(key) {
+    const today = atMidnight(new Date());
+    if (key === 'today') return { start: today, end: today, label: 'Aujourd’hui', key };
+    if (key === 'yesterday') { const day = addDays(today, -1); return { start: day, end: day, label: 'Hier', key }; }
+    if (key === 'past30') return { start: addDays(today, -29), end: today, label: '30 derniers jours', key };
+    if (key === 'past90') return { start: addDays(today, -89), end: today, label: '90 derniers jours', key };
+    if (key === 'thisMonth') return { start: new Date(today.getFullYear(), today.getMonth(), 1), end: today, label: 'Ce mois', key };
+    if (key === 'thisYear') return { start: new Date(today.getFullYear(), 0, 1), end: today, label: 'Cette année', key };
+    if (key === 'lastMonth') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      return { start, end: new Date(today.getFullYear(), today.getMonth(), 0), label: 'Mois dernier', key };
+    }
+    if (key === 'lastYear') return { start: new Date(today.getFullYear() - 1, 0, 1), end: new Date(today.getFullYear() - 1, 11, 31), label: 'Année dernière', key };
+    return { start: addDays(today, -6), end: today, label: '7 derniers jours', key: 'past7' };
+  }
+
+  function closeCalendar() {
+    document.getElementById('analyticsCalendar').hidden = true;
+    document.getElementById('analyticsRangeButton').setAttribute('aria-expanded', 'false');
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+    const leading = (monthStart.getDay() + 6) % 7;
+    document.getElementById('calendarMonthLabel').textContent = monthFormatter.format(calendarMonth);
+    grid.innerHTML = '';
+
+    for (let offset = 0; offset < 42; offset += 1) {
+      const date = addDays(monthStart, offset - leading);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = String(date.getDate());
+      button.dataset.date = dateKey(date);
+      button.setAttribute('aria-label', longDateFormatter.format(date));
+      if (date.getMonth() !== calendarMonth.getMonth()) button.classList.add('is-outside');
+      if (sameDay(date, atMidnight(new Date()))) button.classList.add('is-today');
+      const rangeStart = pendingStart || currentRange.start;
+      const rangeEnd = pendingStart ? pendingEnd : currentRange.end;
+      if (sameDay(date, rangeStart)) button.classList.add('is-range-start');
+      if (sameDay(date, rangeEnd)) button.classList.add('is-range-end');
+      if (rangeStart && rangeEnd && date > rangeStart && date < rangeEnd) button.classList.add('is-in-range');
+      button.addEventListener('click', () => selectCalendarDate(date));
+      grid.appendChild(button);
+    }
+
+    const selection = document.getElementById('calendarSelection');
+    const apply = document.getElementById('calendarApply');
+    if (!pendingStart) {
+      selection.textContent = rangeText(currentRange.start, currentRange.end);
+      apply.disabled = true;
+    } else if (!pendingEnd) {
+      selection.textContent = `${shortDateFormatter.format(pendingStart)} → choisis la fin`;
+      apply.disabled = false;
+    } else {
+      selection.textContent = rangeText(pendingStart, pendingEnd);
+      apply.disabled = false;
+    }
+  }
+
+  function selectCalendarDate(date) {
+    if (!pendingStart || pendingEnd) {
+      pendingStart = date;
+      pendingEnd = null;
+    } else if (date < pendingStart) {
+      pendingEnd = pendingStart;
+      pendingStart = date;
+    } else {
+      pendingEnd = date;
+    }
+    renderCalendar();
+  }
+
   function renderStripeDashboard(data) {
     if (!data?.connected) return;
-    const currency = data.account?.currency || 'eur';
-    const revenue = data.metrics?.revenue?.[currency] || 0;
-    const available = data.balance?.available?.[currency] || 0;
-    const pendingBalance = data.balance?.pending?.[currency] || 0;
-    const transactions = Array.isArray(data.transactions) ? data.transactions : [];
-    document.getElementById('stripeRevenue').textContent = stripeMoney(revenue, currency);
-    document.getElementById('stripeRevenueState').textContent = data.mode === 'live' ? 'Stripe réel' : 'Stripe test';
-    document.getElementById('stripeTransactionCount').textContent = String(data.metrics?.total || transactions.length);
-    document.getElementById('stripeSuccessfulCount').textContent = `${data.metrics?.successful || 0} réussie${data.metrics?.successful === 1 ? '' : 's'}`;
-    document.getElementById('stripePendingCount').textContent = `${data.metrics?.pending || 0} en attente`;
-    document.getElementById('stripeAvailableBalance').textContent = stripeMoney(available, currency);
-    document.getElementById('stripeBalanceMode').textContent = data.mode === 'live' ? 'Mode réel' : 'Mode test';
-    document.getElementById('stripePendingBalance').textContent = `${stripeMoney(pendingBalance, currency)} à venir`;
-    document.getElementById('stripeActivityDescription').textContent = 'Données Stripe réelles · 30 derniers jours';
+    stripeOverview = data;
+    stripeTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+    refreshAnalytics();
+    loadCompleteStripeRange();
+    document.getElementById('stripeActivityDescription').textContent = 'Données Stripe réelles · activité récente';
 
     const list = document.getElementById('stripeActivityList');
-    if (transactions.length) {
-      list.innerHTML = transactions.slice(0, 5).map((item, index) => {
+    if (stripeTransactions.length) {
+      list.innerHTML = stripeTransactions.slice(0, 5).map((item, index) => {
         const name = item.customer || item.email || 'Client Stripe';
         const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
         const success = item.status === 'Réussi';
@@ -119,32 +603,139 @@ import PayAppShell from '../../components/PayAppShell.astro';
 
     const note = document.getElementById('stripeDashboardNote');
     note.classList.add('is-connected');
-    note.innerHTML = `<span>✓</span><p><strong>Stripe est connecté en mode ${data.mode === 'live' ? 'réel' : 'test'}.</strong> Le tableau de bord affiche maintenant les données du compte ${escapeStripeText(data.account?.name || '')}.</p>`;
+    note.innerHTML = `<span>✓</span><p><strong>Stripe est connecté en mode ${data.mode === 'live' ? 'réel' : 'test'}.</strong> Le tableau de bord affiche les données du compte ${escapeStripeText(data.account?.name || '')}.</p>`;
   }
+
+  currentRange = presetRange('past7');
+  calendarMonth = new Date(currentRange.end.getFullYear(), currentRange.end.getMonth(), 1);
+  refreshAnalytics();
+  renderCalendar();
+
+  document.getElementById('analyticsRangeButton').addEventListener('click', () => {
+    const calendar = document.getElementById('analyticsCalendar');
+    const opening = calendar.hidden;
+    calendar.hidden = !opening;
+    document.getElementById('analyticsRangeButton').setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      pendingStart = null;
+      pendingEnd = null;
+      calendarMonth = new Date(currentRange.end.getFullYear(), currentRange.end.getMonth(), 1);
+      renderCalendar();
+    }
+  });
+
+  document.querySelectorAll('[data-range]').forEach((button) => button.addEventListener('click', () => {
+    currentRange = presetRange(button.dataset.range);
+    calendarMonth = new Date(currentRange.end.getFullYear(), currentRange.end.getMonth(), 1);
+    pendingStart = null;
+    pendingEnd = null;
+    refreshAnalytics();
+    loadCompleteStripeRange();
+    renderCalendar();
+    closeCalendar();
+  }));
+
+  document.getElementById('calendarPrevious').addEventListener('click', () => {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  document.getElementById('calendarNext').addEventListener('click', () => {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+    renderCalendar();
+  });
+  document.getElementById('calendarApply').addEventListener('click', () => {
+    if (!pendingStart) return;
+    currentRange = { start: pendingStart, end: pendingEnd || pendingStart, label: 'Période personnalisée', key: 'custom' };
+    refreshAnalytics();
+    loadCompleteStripeRange();
+    closeCalendar();
+  });
+
+  document.querySelectorAll('[data-series]').forEach((button) => button.addEventListener('click', () => {
+    const key = button.dataset.series;
+    if (visibleSeries.has(key) && visibleSeries.size === 1) return;
+    visibleSeries.has(key) ? visibleSeries.delete(key) : visibleSeries.add(key);
+    button.setAttribute('aria-pressed', String(visibleSeries.has(key)));
+    button.classList.toggle('is-muted', !visibleSeries.has(key));
+    drawChart();
+  }));
+
+  document.querySelectorAll('[data-cashflow]').forEach((button) => button.addEventListener('click', () => {
+    cashflowPeriod = button.dataset.cashflow;
+    document.querySelectorAll('[data-cashflow]').forEach((item) => item.classList.toggle('is-active', item === button));
+    updateSummary();
+  }));
+
+  document.addEventListener('click', (event) => {
+    const wrap = document.querySelector('.analytics-range-wrap');
+    if (!wrap.contains(event.target)) closeCalendar();
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeCalendar(); });
 
   document.addEventListener('pay:stripe', (event) => renderStripeDashboard(event.detail));
   const stripeDashboardPromise = window.getPayStripeOverview?.();
   stripeDashboardPromise?.then(renderStripeDashboard);
-
-  try {
-    const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
-    document.getElementById('dashboardCheckoutCount').textContent = String(4 + drafts.length);
-    document.getElementById('dashboardDraftCount').textContent = `${1 + drafts.length} brouillon${drafts.length ? 's' : ''}`;
-  } catch {}
 </script>
 
 <style is:global>
-  .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
-  .metric-card { min-height: 160px; padding: 19px; }
+  .analytics-panel { position: relative; overflow: visible; }
+  .analytics-header { min-height: 92px; display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px 22px; border-bottom: 1px solid rgba(169, 216, 255, .1); }
+  .analytics-kicker { margin: 0 0 6px; color: var(--pay-cyan); font-size: 8px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+  .analytics-header h2 { margin: 0; font-size: 16px; letter-spacing: -.025em; }
+  .analytics-header p:not(.analytics-kicker) { margin: 6px 0 0; color: var(--pay-muted); font-size: 9px; }
+  .analytics-range-wrap { position: relative; z-index: 20; }
+  .analytics-range-button { min-width: 158px; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 14px; border: 1px solid var(--pay-line-strong); border-radius: 13px; color: var(--pay-text); background: rgba(255,255,255,.055); box-shadow: inset 0 1px rgba(255,255,255,.08); font-size: 10px; font-weight: 720; cursor: pointer; }
+  .analytics-calendar { width: min(640px, calc(100vw - 42px)); position: absolute; z-index: 40; top: calc(100% + 10px); right: 0; display: grid; grid-template-columns: 178px minmax(0, 1fr); border: 1px solid rgba(154, 222, 255, .25); border-radius: 20px; overflow: hidden; background: rgba(7, 22, 39, .98); box-shadow: 0 30px 85px rgba(0, 3, 13, .62), inset 0 1px rgba(255,255,255,.09); backdrop-filter: blur(30px); }
+  .analytics-presets { display: grid; align-content: start; gap: 3px; padding: 14px; border-right: 1px solid rgba(169, 216, 255, .1); }
+  .analytics-presets button { min-height: 35px; padding: 0 11px; border: 1px solid transparent; border-radius: 10px; color: var(--pay-soft); background: transparent; text-align: left; font-size: 10px; cursor: pointer; }
+  .analytics-presets button:hover, .analytics-presets button.is-active { border-color: rgba(112,231,255,.2); color: #fff; background: rgba(112,231,255,.08); }
+  .calendar-pane { min-width: 0; padding: 16px; }
+  .calendar-nav { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 10px; margin-bottom: 13px; }
+  .calendar-nav strong { text-align: center; text-transform: capitalize; font-size: 11px; }
+  .calendar-nav button { width: 34px; height: 34px; border: 1px solid var(--pay-line); border-radius: 10px; color: #fff; background: rgba(255,255,255,.04); cursor: pointer; }
+  .calendar-weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .calendar-weekdays span { padding: 5px 0 8px; color: var(--pay-muted); font-size: 8px; font-weight: 760; text-align: center; }
+  .calendar-grid button { min-width: 0; height: 34px; position: relative; border: 0; color: var(--pay-soft); background: transparent; font-size: 9px; cursor: pointer; }
+  .calendar-grid button:hover { color: #fff; background: rgba(112,231,255,.08); }
+  .calendar-grid button.is-outside { color: rgba(206,228,249,.2); }
+  .calendar-grid button.is-today::after { content: ''; width: 3px; height: 3px; position: absolute; bottom: 4px; left: 50%; border-radius: 50%; background: var(--pay-cyan); }
+  .calendar-grid button.is-in-range { color: #fff; background: rgba(33, 154, 238, .17); }
+  .calendar-grid button.is-range-start, .calendar-grid button.is-range-end { color: #031323; background: linear-gradient(135deg, #70e7ff, #4eb5ff); font-weight: 850; }
+  .calendar-grid button.is-range-start { border-radius: 10px 3px 3px 10px; }
+  .calendar-grid button.is-range-end { border-radius: 3px 10px 10px 3px; }
+  .calendar-grid button.is-range-start.is-range-end { border-radius: 10px; }
+  .calendar-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 13px; border-top: 1px solid rgba(169,216,255,.1); }
+  .calendar-footer span { min-width: 0; color: var(--pay-muted); font-size: 8px; line-height: 1.35; }
+  .calendar-footer button { min-height: 34px; padding: 0 12px; border: 1px solid rgba(112,231,255,.3); border-radius: 10px; color: #031323; background: var(--pay-cyan); font-size: 9px; font-weight: 800; cursor: pointer; }
+  .calendar-footer button:disabled { opacity: .35; cursor: default; }
+  .analytics-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 15px 22px 2px; }
+  .analytics-legend { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 10px; border: 1px solid rgba(169,216,255,.1); border-radius: 999px; color: var(--pay-soft); background: rgba(255,255,255,.025); font-size: 8px; cursor: pointer; transition: opacity .18s, background .18s; }
+  .analytics-legend:hover { color: #fff; background: rgba(255,255,255,.05); }
+  .analytics-legend.is-muted { opacity: .35; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 9px currentColor; }
+  .legend-dot--revenue { color: #70e7ff; background: #70e7ff; }
+  .legend-dot--refunds { color: #ff8094; background: #ff8094; }
+  .legend-dot--orders { color: #ffd47a; background: #ffd47a; }
+  .legend-dot--plans { color: #a997ff; background: #a997ff; }
+  .analytics-chart-shell { height: 350px; position: relative; padding: 0 12px 8px; overflow: hidden; }
+  #payAnalyticsChart { width: 100% !important; height: 100% !important; display: block; cursor: crosshair; }
+
+  .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-top: 13px; }
+  .metric-card { min-height: 148px; padding: 18px; }
   .metric-card--primary { border-color: rgba(105, 215, 255, .28); background: radial-gradient(circle at 12% 0%, rgba(112,231,255,.16), transparent 38%), linear-gradient(145deg, rgba(24, 72, 106, .75), rgba(8, 25, 43, .62)); }
   .metric-top, .metric-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .metric-top { color: var(--pay-soft); font-size: 10px; font-weight: 690; }
-  .metric-chip { padding: 5px 7px; border: 1px solid var(--pay-line); border-radius: 999px; color: var(--pay-muted); font-size: 8px; }
-  .metric-icon { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.15); border-radius: 9px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
-  .metric-card > strong { display: block; margin: 24px 0 21px; font-size: clamp(27px, 3vw, 36px); line-height: 1; letter-spacing: -.05em; }
+  .metric-icon { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.15); border-radius: 9px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 12px; }
+  .metric-icon--refund { color: var(--pay-red); border-color: rgba(255,128,148,.16); background: rgba(255,128,148,.055); }
+  .metric-icon--cashflow { color: #62c4ff; }
+  .metric-icon--pastdue { color: #ffd47a; border-color: rgba(255,212,122,.16); background: rgba(255,212,122,.055); }
+  .metric-card > strong { display: block; margin: 22px 0 18px; font-size: clamp(25px, 2.8vw, 34px); line-height: 1; letter-spacing: -.05em; }
   .metric-foot { color: var(--pay-soft); font-size: 9px; }
   .metric-foot small { color: var(--pay-muted); font-size: 8px; }
   .metric-trend { color: var(--pay-green); }
+  .cashflow-switch { display: inline-flex; padding: 3px; border: 1px solid rgba(169,216,255,.11); border-radius: 9px; background: rgba(3,12,24,.34); }
+  .cashflow-switch button { min-height: 24px; padding: 0 8px; border: 0; border-radius: 6px; color: var(--pay-muted); background: transparent; font-size: 7px; cursor: pointer; }
+  .cashflow-switch button.is-active { color: #061422; background: var(--pay-cyan); font-weight: 820; }
   .dashboard-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(270px, .8fr); gap: 13px; margin-top: 13px; }
   .panel-link { color: var(--pay-cyan); font-size: 9px; text-decoration: none; }
   .activity-list { display: grid; }
@@ -172,6 +763,25 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .prototype-note strong { color: rgba(243,249,255,.72); }
   .prototype-note.is-connected { border-color: rgba(101,229,170,.18); background: rgba(101,229,170,.04); }
   .prototype-note.is-connected > span { color: var(--pay-green); background: rgba(101,229,170,.1); }
-  @media (max-width: 1050px) { .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-layout { grid-template-columns: 1fr; } }
-  @media (max-width: 680px) { .dashboard-kpis { grid-template-columns: 1fr; } .activity-row { grid-template-columns: 34px 1fr auto; } .activity-date, .activity-row .pay-badge { display: none; } }
+
+  @media (max-width: 1050px) {
+    .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 760px) {
+    .analytics-header { align-items: stretch; flex-direction: column; }
+    .analytics-range-wrap, .analytics-range-button { width: 100%; }
+    .analytics-calendar { position: fixed; top: 74px; right: 12px; left: 12px; width: auto; max-height: calc(100vh - 92px); grid-template-columns: 140px minmax(0, 1fr); overflow-y: auto; }
+    .analytics-chart-shell { height: 300px; padding-inline: 0; }
+  }
+  @media (max-width: 680px) {
+    .dashboard-kpis { grid-template-columns: 1fr; }
+    .activity-row { grid-template-columns: 34px 1fr auto; }
+    .activity-date, .activity-row .pay-badge { display: none; }
+    .analytics-calendar { grid-template-columns: 1fr; }
+    .analytics-presets { grid-template-columns: repeat(3, minmax(0, 1fr)); border-right: 0; border-bottom: 1px solid rgba(169,216,255,.1); }
+    .analytics-presets button { padding: 0 7px; text-align: center; font-size: 8px; }
+    .analytics-toolbar { padding-inline: 14px; }
+    .analytics-legend { padding-inline: 8px; }
+  }
 </style>
