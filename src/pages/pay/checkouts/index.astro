@@ -1,0 +1,132 @@
+---
+import PayAppShell from '../../../components/PayAppShell.astro';
+
+const checkouts = [
+  { name: 'ES2.0 · Standard', slug: 'es2-standard', price: '98,17 € / mois', status: 'Actif', sales: '2 441 €', customers: '24' },
+  { name: 'Coaching · Première consultation', slug: 'coaching-premiere-consultation', price: '97 €', status: 'Actif', sales: '388 €', customers: '4' },
+  { name: 'Formation Manifest', slug: 'formation-manifest', price: '197 €', status: 'Actif', sales: '197 €', customers: '1' },
+  { name: 'Coaching · Pack 3 séances', slug: 'coaching-pack-3', price: '591 €', status: 'Brouillon', sales: '0 €', customers: '0' },
+];
+---
+
+<PayAppShell
+  active="checkouts"
+  eyebrow="Conversion"
+  title="Checkouts"
+  description="Crée, publie et retrouve toutes tes pages de paiement."
+>
+  <a slot="actions" class="pay-button pay-button--primary" data-pay-route="/checkouts/new" href="/pay/checkouts/new">＋ Nouveau checkout</a>
+
+  <section class="checkout-toolbar pay-panel">
+    <label class="checkout-search"><span aria-hidden="true">⌕</span><input id="checkoutSearch" type="search" placeholder="Rechercher un checkout…" /></label>
+    <select id="checkoutStatus" class="pay-select" aria-label="Filtrer par statut">
+      <option value="all">Tous les statuts</option>
+      <option value="actif">Actifs</option>
+      <option value="brouillon">Brouillons</option>
+    </select>
+    <span class="checkout-count" id="checkoutCount">4 checkouts</span>
+  </section>
+
+  <section class="checkout-list" id="checkoutList" aria-live="polite">
+    {checkouts.map((checkout) => (
+      <article class="checkout-card pay-panel" data-checkout-card data-name={checkout.name.toLowerCase()} data-status={checkout.status.toLowerCase()}>
+        <div class="checkout-main">
+          <span class="checkout-symbol">▣</span>
+          <div><div class="checkout-title-line"><h2>{checkout.name}</h2><span class:list={['pay-badge', checkout.status === 'Actif' ? 'pay-badge--success' : 'pay-badge--draft']}>{checkout.status}</span></div><p>pay.sonnycourt.com/c/{checkout.slug}</p></div>
+        </div>
+        <div class="checkout-stat"><small>Prix</small><strong>{checkout.price}</strong></div>
+        <div class="checkout-stat"><small>Ventes · 30 j</small><strong>{checkout.sales}</strong></div>
+        <div class="checkout-stat"><small>Clients</small><strong>{checkout.customers}</strong></div>
+        <div class="checkout-actions">
+          <button class="icon-button" type="button" data-copy={`https://pay.sonnycourt.com/c/${checkout.slug}`} aria-label={`Copier le lien de ${checkout.name}`}>⌘</button>
+          <button class="icon-button" type="button" data-demo-disabled aria-label={`Modifier ${checkout.name}`}>•••</button>
+        </div>
+      </article>
+    ))}
+  </section>
+
+  <div class="checkout-no-result pay-panel" id="checkoutNoResult" hidden>
+    <div class="pay-empty"><div><div class="pay-empty-icon">⌕</div><h2>Aucun checkout trouvé</h2><p>Essaie un autre nom ou retire le filtre actif.</p></div></div>
+  </div>
+</PayAppShell>
+
+<script>
+  const list = document.getElementById('checkoutList');
+  const search = document.getElementById('checkoutSearch');
+  const status = document.getElementById('checkoutStatus');
+  const count = document.getElementById('checkoutCount');
+  const empty = document.getElementById('checkoutNoResult');
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  try {
+    const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
+    drafts.forEach((draft) => {
+      const card = document.createElement('article');
+      card.className = 'checkout-card pay-panel';
+      card.dataset.checkoutCard = '';
+      card.dataset.name = String(draft.name || '').toLowerCase();
+      card.dataset.status = 'brouillon';
+      const price = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: draft.currency || 'EUR' }).format(Number(draft.amount || 0));
+      card.innerHTML = `<div class="checkout-main"><span class="checkout-symbol">▣</span><div><div class="checkout-title-line"><h2>${escapeHtml(draft.name || 'Nouveau checkout')}</h2><span class="pay-badge pay-badge--draft">Brouillon</span></div><p>pay.sonnycourt.com/c/${escapeHtml(draft.slug || 'nouveau-checkout')}</p></div></div><div class="checkout-stat"><small>Prix</small><strong>${escapeHtml(price)}${draft.billing === 'subscription' ? ' / mois' : ''}</strong></div><div class="checkout-stat"><small>Ventes · 30 j</small><strong>0 €</strong></div><div class="checkout-stat"><small>Clients</small><strong>0</strong></div><div class="checkout-actions"><button class="icon-button" type="button" data-copy="https://pay.sonnycourt.com/c/${escapeHtml(draft.slug || '')}" aria-label="Copier le lien">⌘</button><button class="icon-button" type="button" data-demo-disabled aria-label="Modifier">•••</button></div>`;
+      list.prepend(card);
+    });
+  } catch {}
+
+  function filterCheckouts() {
+    const query = search.value.trim().toLowerCase();
+    const selected = status.value;
+    let visible = 0;
+    document.querySelectorAll('[data-checkout-card]').forEach((card) => {
+      const matchesName = !query || card.dataset.name.includes(query);
+      const matchesStatus = selected === 'all' || card.dataset.status === selected;
+      card.hidden = !(matchesName && matchesStatus);
+      if (!card.hidden) visible += 1;
+    });
+    count.textContent = `${visible} checkout${visible === 1 ? '' : 's'}`;
+    empty.hidden = visible !== 0;
+  }
+
+  search.addEventListener('input', filterCheckouts);
+  status.addEventListener('change', filterCheckouts);
+  filterCheckouts();
+
+  document.addEventListener('click', async (event) => {
+    const copy = event.target.closest('[data-copy]');
+    if (copy) {
+      await navigator.clipboard.writeText(copy.dataset.copy).catch(() => {});
+      window.payToast('Lien du checkout copié.');
+    }
+    if (event.target.closest('[data-demo-disabled]')) window.payToast('L’édition complète arrive dans la deuxième tranche.');
+  });
+
+  if (new URLSearchParams(window.location.search).has('created')) window.payToast('Brouillon ajouté à tes checkouts.');
+</script>
+
+<style>
+  .checkout-toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) 170px auto; align-items: center; gap: 11px; margin-bottom: 13px; padding: 12px; border-radius: 19px; }
+  .checkout-search { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--pay-line); border-radius: 13px; color: var(--pay-muted); background: rgba(3,12,24,.4); }
+  .checkout-search input { width: 100%; border: 0; outline: 0; color: #fff; background: transparent; font-size: 10px; }
+  .checkout-search input::placeholder { color: var(--pay-muted); }
+  .pay-select { height: 42px; padding: 0 12px; font-size: 9px; }
+  .checkout-count { padding: 0 8px; color: var(--pay-muted); font-size: 9px; white-space: nowrap; }
+  .checkout-list { display: grid; gap: 10px; }
+  .checkout-card { display: grid; grid-template-columns: minmax(250px, 1.8fr) minmax(95px, .7fr) minmax(90px, .65fr) 62px auto; align-items: center; gap: 17px; min-height: 96px; padding: 14px 16px; border-radius: 20px; transition: transform .18s, border-color .18s, background .18s; }
+  .checkout-card:hover { transform: translateY(-1px); border-color: var(--pay-line-strong); background: radial-gradient(circle at 9% 0%, rgba(255,255,255,.1), transparent 28%), linear-gradient(145deg, rgba(22,49,78,.78), rgba(8,22,39,.58)); }
+  .checkout-main { min-width: 0; display: flex; align-items: center; gap: 13px; }
+  .checkout-symbol { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.18); border-radius: 13px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 17px; }
+  .checkout-title-line { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .checkout-main h2 { overflow: hidden; margin: 0; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  .checkout-main p { overflow: hidden; margin: 6px 0 0; color: var(--pay-muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+  .checkout-stat small, .checkout-stat strong { display: block; }
+  .checkout-stat small { margin-bottom: 6px; color: var(--pay-muted); font-size: 8px; }
+  .checkout-stat strong { font-size: 10px; }
+  .checkout-actions { display: flex; gap: 6px; }
+  .icon-button { width: 34px; height: 34px; border: 1px solid var(--pay-line); border-radius: 11px; color: var(--pay-soft); background: rgba(255,255,255,.035); font-size: 10px; cursor: pointer; }
+  .icon-button:hover { color: #fff; border-color: var(--pay-line-strong); background: rgba(255,255,255,.07); }
+  .checkout-no-result { margin-top: 10px; }
+  @media (max-width: 1000px) { .checkout-card { grid-template-columns: minmax(220px, 1fr) 90px 60px auto; } .checkout-stat:nth-of-type(3) { display: none; } }
+  @media (max-width: 720px) { .checkout-toolbar { grid-template-columns: 1fr; } .checkout-card { grid-template-columns: 1fr auto; } .checkout-stat { display: none !important; } .checkout-main { min-width: 0; } }
+</style>

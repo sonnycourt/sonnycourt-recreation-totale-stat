@@ -1,0 +1,214 @@
+---
+import PayAppShell from '../../../components/PayAppShell.astro';
+---
+
+<PayAppShell
+  active="checkouts"
+  eyebrow="Nouveau checkout"
+  title="Crée une page qui encaisse."
+  description="Trois étapes, uniquement les réglages qui comptent pour commencer."
+>
+  <a slot="actions" class="pay-button pay-button--ghost" data-pay-route="/checkouts" href="/pay/checkouts">← Annuler</a>
+
+  <form class="checkout-builder" id="checkoutBuilder">
+    <aside class="builder-steps pay-panel" aria-label="Étapes de création">
+      <button class="builder-step is-active" type="button" data-step-button="1"><span>1</span><span><strong>Informations</strong><small>Nom et adresse</small></span></button>
+      <button class="builder-step" type="button" data-step-button="2"><span>2</span><span><strong>Tarification</strong><small>Prix et fréquence</small></span></button>
+      <button class="builder-step" type="button" data-step-button="3"><span>3</span><span><strong>Confirmation</strong><small>Vérifier et créer</small></span></button>
+      <div class="builder-tip"><span>✦</span><p><strong>MVP volontairement simple.</strong> Les upsells, coupons et automatisations viendront après le premier paiement réussi.</p></div>
+    </aside>
+
+    <section class="builder-content pay-panel">
+      <div class="builder-pane is-active" data-step-pane="1">
+        <div class="builder-heading"><span class="builder-heading-icon">01</span><div><h2>Informations du checkout</h2><p>Ces informations servent à le reconnaître et à générer son lien.</p></div></div>
+        <div class="form-grid">
+          <label class="form-field form-field--wide"><span>Nom interne</span><input class="pay-input" id="checkoutName" name="name" type="text" placeholder="Ex. Coaching · Première consultation" autocomplete="off" required /><small>Visible uniquement dans ton espace Pay.</small></label>
+          <label class="form-field form-field--wide"><span>Adresse de la page</span><div class="slug-field"><span>pay.sonnycourt.com/c/</span><input class="pay-input" id="checkoutSlug" name="slug" type="text" placeholder="coaching-premiere-consultation" pattern="[a-z0-9-]+" required /></div><small>Lettres minuscules, chiffres et tirets uniquement.</small></label>
+          <label class="form-field form-field--wide"><span>Description courte</span><textarea class="pay-textarea" id="checkoutDescription" name="description" rows="4" placeholder="Décris en une phrase ce que le client achète."></textarea></label>
+        </div>
+      </div>
+
+      <div class="builder-pane" data-step-pane="2" hidden>
+        <div class="builder-heading"><span class="builder-heading-icon">02</span><div><h2>Tarification</h2><p>Choisis une vente unique ou un abonnement mensuel.</p></div></div>
+        <div class="billing-options" role="radiogroup" aria-label="Type de paiement">
+          <label class="billing-card is-selected"><input type="radio" name="billing" value="one-time" checked /><span class="billing-radio"></span><span><strong>Paiement unique</strong><small>Le client paie une seule fois.</small></span><b>01</b></label>
+          <label class="billing-card"><input type="radio" name="billing" value="subscription" /><span class="billing-radio"></span><span><strong>Abonnement</strong><small>Prélèvement automatique mensuel.</small></span><b>↻</b></label>
+        </div>
+        <div class="form-grid price-grid">
+          <label class="form-field"><span>Montant</span><div class="amount-field"><input class="pay-input" id="checkoutAmount" name="amount" type="number" min="0" step="0.01" placeholder="97.00" required /><span>€</span></div></label>
+          <label class="form-field"><span>Devise</span><select class="pay-select" id="checkoutCurrency" name="currency"><option value="EUR">EUR · Euro</option><option value="CHF">CHF · Franc suisse</option><option value="USD">USD · Dollar</option></select></label>
+          <label class="form-field form-field--wide"><span>Texte sous le prix</span><input class="pay-input" id="checkoutPriceNote" name="priceNote" type="text" placeholder="Ex. Accès immédiat après paiement" /></label>
+        </div>
+      </div>
+
+      <div class="builder-pane" data-step-pane="3" hidden>
+        <div class="builder-heading"><span class="builder-heading-icon">03</span><div><h2>Prêt à créer ton checkout</h2><p>Vérifie les éléments essentiels avant de sauvegarder le brouillon.</p></div></div>
+        <div class="checkout-summary">
+          <div class="summary-hero"><span class="summary-logo">P</span><div><p>Aperçu du checkout</p><h3 id="summaryName">Nouveau checkout</h3><small id="summaryUrl">pay.sonnycourt.com/c/mon-checkout</small></div><strong id="summaryPrice">0,00 €</strong></div>
+          <div class="summary-grid">
+            <div><small>Type de paiement</small><strong id="summaryBilling">Paiement unique</strong></div>
+            <div><small>Devise</small><strong id="summaryCurrency">EUR</strong></div>
+            <div><small>Statut initial</small><strong><span class="pay-badge pay-badge--draft">Brouillon</span></strong></div>
+          </div>
+        </div>
+        <label class="ready-check"><input id="readyCheck" type="checkbox" required /><span>Je confirme que le nom, le lien et le prix sont corrects.</span></label>
+      </div>
+
+      <footer class="builder-footer">
+        <button class="pay-button pay-button--ghost" id="previousStep" type="button" hidden>← Précédent</button>
+        <span class="builder-progress"><i id="builderProgress"></i></span>
+        <button class="pay-button pay-button--primary" id="nextStep" type="button">Continuer →</button>
+        <button class="pay-button pay-button--primary" id="saveCheckout" type="submit" hidden>Créer le brouillon ✓</button>
+      </footer>
+    </section>
+  </form>
+</PayAppShell>
+
+<script>
+  const form = document.getElementById('checkoutBuilder');
+  const nameInput = document.getElementById('checkoutName');
+  const slugInput = document.getElementById('checkoutSlug');
+  const amountInput = document.getElementById('checkoutAmount');
+  const currencyInput = document.getElementById('checkoutCurrency');
+  const previous = document.getElementById('previousStep');
+  const next = document.getElementById('nextStep');
+  const save = document.getElementById('saveCheckout');
+  const progress = document.getElementById('builderProgress');
+  let currentStep = 1;
+  let slugTouched = false;
+
+  function slugify(value) {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  nameInput.addEventListener('input', () => {
+    if (!slugTouched) slugInput.value = slugify(nameInput.value);
+  });
+  slugInput.addEventListener('input', () => {
+    slugTouched = true;
+    slugInput.value = slugify(slugInput.value);
+  });
+
+  document.querySelectorAll('input[name="billing"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.billing-card').forEach((card) => card.classList.toggle('is-selected', card.contains(radio) && radio.checked));
+    });
+  });
+
+  function validateStep() {
+    const pane = document.querySelector(`[data-step-pane="${currentStep}"]`);
+    const fields = [...pane.querySelectorAll('input[required], select[required], textarea[required]')];
+    const invalid = fields.find((field) => !field.checkValidity());
+    if (invalid) { invalid.reportValidity(); return false; }
+    return true;
+  }
+
+  function updateSummary() {
+    const billing = form.querySelector('input[name="billing"]:checked').value;
+    const amount = Number(amountInput.value || 0);
+    const currency = currencyInput.value;
+    document.getElementById('summaryName').textContent = nameInput.value || 'Nouveau checkout';
+    document.getElementById('summaryUrl').textContent = `pay.sonnycourt.com/c/${slugInput.value || 'mon-checkout'}`;
+    document.getElementById('summaryPrice').textContent = `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency === 'EUR' ? '€' : currency}` + (billing === 'subscription' ? ' / mois' : '');
+    document.getElementById('summaryBilling').textContent = billing === 'subscription' ? 'Abonnement mensuel' : 'Paiement unique';
+    document.getElementById('summaryCurrency').textContent = currency;
+  }
+
+  function showStep(step) {
+    currentStep = Math.max(1, Math.min(3, step));
+    document.querySelectorAll('[data-step-pane]').forEach((pane) => { pane.hidden = Number(pane.dataset.stepPane) !== currentStep; pane.classList.toggle('is-active', Number(pane.dataset.stepPane) === currentStep); });
+    document.querySelectorAll('[data-step-button]').forEach((button) => button.classList.toggle('is-active', Number(button.dataset.stepButton) === currentStep));
+    previous.hidden = currentStep === 1;
+    next.hidden = currentStep === 3;
+    save.hidden = currentStep !== 3;
+    progress.style.width = `${currentStep * 33.333}%`;
+    if (currentStep === 3) updateSummary();
+  }
+
+  next.addEventListener('click', () => { if (validateStep()) showStep(currentStep + 1); });
+  previous.addEventListener('click', () => showStep(currentStep - 1));
+  document.querySelectorAll('[data-step-button]').forEach((button) => button.addEventListener('click', () => {
+    const target = Number(button.dataset.stepButton);
+    if (target < currentStep || validateStep()) showStep(target);
+  }));
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!validateStep()) return;
+    const billing = form.querySelector('input[name="billing"]:checked').value;
+    const draft = { id: Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(), billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), status: 'draft' };
+    const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
+    drafts.unshift(draft);
+    localStorage.setItem('pay_checkout_drafts', JSON.stringify(drafts.slice(0, 20)));
+    window.payToast('Checkout enregistré en brouillon.');
+    const preview = new URLSearchParams(window.location.search).has('preview') ? '?created=1&preview=1' : '?created=1';
+    window.setTimeout(() => { window.location.href = `${window.location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/checkouts${preview}`; }, 650);
+  });
+
+  showStep(1);
+</script>
+
+<style>
+  .checkout-builder { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 13px; align-items: start; }
+  .builder-steps { position: sticky; top: 102px; display: grid; gap: 7px; padding: 12px; border-radius: 21px; }
+  .builder-step { min-height: 62px; display: grid; grid-template-columns: 32px 1fr; align-items: center; gap: 10px; padding: 0 10px; border: 1px solid transparent; border-radius: 14px; color: var(--pay-muted); background: transparent; text-align: left; cursor: pointer; }
+  .builder-step > span:first-child { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--pay-line); border-radius: 10px; font-size: 9px; }
+  .builder-step strong, .builder-step small { display: block; }
+  .builder-step strong { color: var(--pay-soft); font-size: 10px; }
+  .builder-step small { margin-top: 4px; font-size: 8px; }
+  .builder-step.is-active { border-color: rgba(112,231,255,.18); background: rgba(112,231,255,.055); }
+  .builder-step.is-active > span:first-child { color: var(--pay-cyan); border-color: rgba(112,231,255,.3); background: rgba(112,231,255,.06); }
+  .builder-step.is-active strong { color: #fff; }
+  .builder-tip { display: flex; gap: 9px; margin-top: 8px; padding: 12px; border: 1px solid rgba(112,231,255,.09); border-radius: 14px; background: rgba(112,231,255,.025); }
+  .builder-tip > span { color: var(--pay-cyan); }
+  .builder-tip p { margin: 0; color: var(--pay-muted); font-size: 8px; line-height: 1.45; }
+  .builder-tip strong { color: var(--pay-soft); }
+  .builder-content { overflow: hidden; border-radius: 23px; }
+  .builder-pane { min-height: 480px; padding: 27px; }
+  .builder-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+  .builder-heading-icon { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.2); border-radius: 14px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 10px; font-weight: 800; }
+  .builder-heading h2 { margin: 0; font-size: 17px; letter-spacing: -.03em; }
+  .builder-heading p { margin: 6px 0 0; color: var(--pay-muted); font-size: 9px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; }
+  .form-field { display: grid; gap: 8px; color: var(--pay-soft); font-size: 10px; font-weight: 680; }
+  .form-field--wide { grid-column: 1 / -1; }
+  .form-field small { color: var(--pay-muted); font-size: 8px; font-weight: 450; }
+  .pay-input, .pay-select { height: 48px; padding: 0 14px; font-size: 11px; }
+  .pay-textarea { min-height: 105px; padding: 13px 14px; resize: vertical; font-size: 11px; }
+  .slug-field { display: flex; align-items: center; border: 1px solid var(--pay-line); border-radius: 15px; background: rgba(3,12,24,.48); overflow: hidden; }
+  .slug-field > span { padding-left: 14px; color: var(--pay-muted); font-size: 10px; white-space: nowrap; }
+  .slug-field .pay-input { border: 0; background: transparent; }
+  .billing-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .billing-card { min-height: 105px; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 12px; padding: 17px; border: 1px solid var(--pay-line); border-radius: 18px; background: rgba(3,12,24,.32); cursor: pointer; transition: .18s; }
+  .billing-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .billing-card.is-selected { border-color: rgba(112,231,255,.38); background: rgba(68,177,231,.075); box-shadow: inset 0 1px rgba(255,255,255,.07); }
+  .billing-radio { width: 20px; height: 20px; border: 1px solid var(--pay-line-strong); border-radius: 50%; box-shadow: inset 0 0 0 5px rgba(4,13,24,1); background: transparent; }
+  .billing-card.is-selected .billing-radio { background: var(--pay-cyan); }
+  .billing-card strong, .billing-card small { display: block; }
+  .billing-card strong { font-size: 11px; }
+  .billing-card small { margin-top: 6px; color: var(--pay-muted); font-size: 8px; }
+  .billing-card b { color: var(--pay-cyan); font-size: 16px; }
+  .amount-field { display: flex; align-items: center; border: 1px solid var(--pay-line); border-radius: 15px; background: rgba(3,12,24,.48); overflow: hidden; }
+  .amount-field .pay-input { border: 0; background: transparent; }
+  .amount-field span { padding-right: 14px; color: var(--pay-cyan); }
+  .checkout-summary { overflow: hidden; border: 1px solid rgba(112,231,255,.16); border-radius: 21px; background: radial-gradient(circle at 5% 0%, rgba(112,231,255,.11), transparent 30%), rgba(3,12,24,.3); }
+  .summary-hero { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 22px; border-bottom: 1px solid var(--pay-line); }
+  .summary-logo { width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.25); border-radius: 14px; color: var(--pay-cyan); background: rgba(112,231,255,.06); font-weight: 820; }
+  .summary-hero p { margin: 0 0 5px; color: var(--pay-muted); font-size: 8px; }
+  .summary-hero h3 { margin: 0; font-size: 14px; }
+  .summary-hero small { display: block; margin-top: 6px; color: var(--pay-muted); font-size: 8px; }
+  .summary-hero > strong { font-size: 18px; letter-spacing: -.03em; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .summary-grid > div { padding: 17px 20px; border-right: 1px solid var(--pay-line); }
+  .summary-grid > div:last-child { border: 0; }
+  .summary-grid small, .summary-grid strong { display: block; }
+  .summary-grid small { margin-bottom: 8px; color: var(--pay-muted); font-size: 8px; }
+  .summary-grid strong { font-size: 10px; }
+  .ready-check { display: flex; align-items: center; gap: 10px; margin-top: 18px; color: var(--pay-soft); font-size: 9px; cursor: pointer; }
+  .ready-check input { accent-color: #4bccea; }
+  .builder-footer { min-height: 70px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--pay-line); background: rgba(2,10,20,.22); }
+  .builder-progress { height: 3px; flex: 1; margin: 0 10px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+  .builder-progress i { display: block; width: 33%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pay-blue), var(--pay-cyan)); transition: width .25s ease; }
+  @media (max-width: 850px) { .checkout-builder { grid-template-columns: 1fr; } .builder-steps { position: static; grid-template-columns: repeat(3, 1fr); } .builder-tip { display: none; } .builder-step { grid-template-columns: 28px 1fr; padding: 0 6px; } }
+  @media (max-width: 600px) { .builder-steps { grid-template-columns: 1fr; } .builder-step:not(.is-active) { display: none; } .builder-pane { min-height: 540px; padding: 20px 15px; } .form-grid, .billing-options, .summary-grid { grid-template-columns: 1fr; } .summary-hero { grid-template-columns: 42px 1fr; } .summary-hero > strong { grid-column: 2; } .summary-grid > div { border-right: 0; border-bottom: 1px solid var(--pay-line); } .slug-field { align-items: stretch; flex-direction: column; } .slug-field > span { padding: 10px 13px 0; } .builder-footer { flex-wrap: wrap; } .builder-progress { order: -1; flex-basis: 100%; } }
+</style>

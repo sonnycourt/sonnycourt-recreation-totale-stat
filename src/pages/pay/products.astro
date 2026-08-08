@@ -1,0 +1,45 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+
+const products = [
+  { name: 'ES2.0 · Standard', type: 'Abonnement', price: '98,17 € / mois', offers: '1 checkout', accent: 'cyan' },
+  { name: 'Coaching · Première consultation', type: 'Paiement unique', price: '97,00 €', offers: '1 checkout', accent: 'violet' },
+  { name: 'Formation Manifest', type: 'Paiement unique', price: '197,00 €', offers: '1 checkout', accent: 'gold' },
+];
+---
+
+<PayAppShell active="products" eyebrow="Catalogue" title="Produits" description="Définis une fois tes offres et réutilise-les dans tes checkouts.">
+  <button slot="actions" class="pay-button pay-button--primary" type="button" data-demo-disabled>＋ Nouveau produit</button>
+
+  <section class="product-grid">
+    {products.map((product) => (
+      <article class:list={['product-card', 'pay-panel', `product-card--${product.accent}`]}>
+        <div class="product-icon">◇</div><span class="pay-badge pay-badge--success">Actif</span>
+        <p>{product.type}</p><h2>{product.name}</h2><strong>{product.price}</strong>
+        <footer><span>{product.offers}</span><button type="button" data-demo-disabled>Gérer →</button></footer>
+      </article>
+    ))}
+    <button class="product-new pay-panel" type="button" data-demo-disabled><span>＋</span><strong>Créer un produit</strong><small>Paiement unique ou abonnement</small></button>
+  </section>
+</PayAppShell>
+
+<style>
+  .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+  .product-card { min-height: 250px; position: relative; padding: 20px; }
+  .product-card > .pay-badge { position: absolute; top: 20px; right: 20px; }
+  .product-icon { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.18); border-radius: 14px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 18px; }
+  .product-card--violet .product-icon { color: #c6a7ff; border-color: rgba(198,167,255,.18); background: rgba(198,167,255,.05); }
+  .product-card--gold .product-icon { color: #ffd47a; border-color: rgba(255,212,122,.18); background: rgba(255,212,122,.05); }
+  .product-card > p { margin: 26px 0 7px; color: var(--pay-muted); font-size: 8px; text-transform: uppercase; letter-spacing: .1em; }
+  .product-card h2 { min-height: 34px; margin: 0; font-size: 14px; letter-spacing: -.025em; }
+  .product-card > strong { display: block; margin-top: 17px; font-size: 20px; letter-spacing: -.04em; }
+  .product-card footer { display: flex; align-items: center; justify-content: space-between; margin: 27px -20px -20px; padding: 14px 20px; border-top: 1px solid var(--pay-line); }
+  .product-card footer span { color: var(--pay-muted); font-size: 8px; }
+  .product-card footer button { border: 0; color: var(--pay-cyan); background: transparent; font-size: 9px; cursor: pointer; }
+  .product-new { min-height: 250px; display: grid; place-items: center; align-content: center; gap: 8px; border-style: dashed; color: var(--pay-soft); cursor: pointer; }
+  .product-new > span { width: 45px; height: 45px; display: grid; place-items: center; margin-bottom: 7px; border: 1px solid var(--pay-line); border-radius: 14px; color: var(--pay-cyan); background: rgba(255,255,255,.03); font-size: 19px; }
+  .product-new strong { font-size: 11px; }
+  .product-new small { color: var(--pay-muted); font-size: 8px; }
+  @media (max-width: 980px) { .product-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 600px) { .product-grid { grid-template-columns: 1fr; } }
+</style>

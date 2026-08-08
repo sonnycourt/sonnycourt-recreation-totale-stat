@@ -1,0 +1,53 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+
+const transactions = [
+  { client: 'Amélie Martin', checkout: 'ES2.0 · Standard', date: 'Aujourd’hui · 14:32', provider: 'Stripe', amount: '98,17 €', status: 'Réussi' },
+  { client: 'Julien Laurent', checkout: 'Coaching · Première consultation', date: 'Aujourd’hui · 11:08', provider: 'PayPal', amount: '97,00 €', status: 'Réussi' },
+  { client: 'Chloé Morel', checkout: 'Formation Manifest', date: 'Hier · 18:47', provider: 'Stripe', amount: '197,00 €', status: 'En attente' },
+  { client: 'Léa Roux', checkout: 'ES2.0 · Standard', date: 'Hier · 09:21', provider: 'Stripe', amount: '98,17 €', status: 'Remboursé' },
+];
+---
+
+<PayAppShell active="transactions" eyebrow="Ventes" title="Transactions" description="Retrouve les paiements, remboursements et statuts au même endroit.">
+  <button slot="actions" class="pay-button pay-button--ghost" type="button" data-demo-disabled>↓ Exporter</button>
+
+  <section class="transaction-summary">
+    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong>3 122,35 €</strong><span>27 transactions</span></article>
+    <article class="pay-panel"><small>Remboursé</small><strong>98,17 €</strong><span>1 transaction</span></article>
+    <article class="pay-panel"><small>En attente</small><strong>197,00 €</strong><span>1 transaction</span></article>
+  </section>
+
+  <section class="pay-panel transaction-panel">
+    <div class="pay-panel-header"><div><h2>Historique</h2><p>Données de démonstration avant connexion aux passerelles</p></div><span class="pay-badge">Prototype</span></div>
+    <div class="transaction-table">
+      <div class="transaction-row transaction-head"><span>Client</span><span>Checkout</span><span>Date</span><span>Passerelle</span><span>Statut</span><span>Montant</span></div>
+      {transactions.map((item) => (
+        <div class="transaction-row">
+          <span class="transaction-client"><i>{item.client.split(' ').map((part) => part[0]).join('')}</i><strong>{item.client}</strong></span>
+          <span>{item.checkout}</span><span>{item.date}</span><span>{item.provider}</span>
+          <span><b class:list={['pay-badge', item.status === 'Réussi' ? 'pay-badge--success' : item.status === 'En attente' ? 'pay-badge--warning' : 'pay-badge--draft']}>{item.status}</b></span>
+          <strong>{item.amount}</strong>
+        </div>
+      ))}
+    </div>
+  </section>
+</PayAppShell>
+
+<style>
+  .transaction-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+  .transaction-summary article { padding: 18px; }
+  .transaction-summary small, .transaction-summary strong, .transaction-summary span { display: block; }
+  .transaction-summary small { color: var(--pay-muted); font-size: 8px; }
+  .transaction-summary strong { margin: 15px 0 8px; font-size: 24px; letter-spacing: -.04em; }
+  .transaction-summary span { color: var(--pay-soft); font-size: 8px; }
+  .transaction-panel { overflow: hidden; }
+  .transaction-table { overflow-x: auto; }
+  .transaction-row { min-width: 850px; display: grid; grid-template-columns: 1.1fr 1.4fr .8fr .6fr .65fr .65fr; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(169,216,255,.075); color: var(--pay-soft); font-size: 9px; }
+  .transaction-row:last-child { border-bottom: 0; }
+  .transaction-head { color: var(--pay-muted); background: rgba(2,10,20,.18); font-size: 8px; font-weight: 700; }
+  .transaction-row > strong:last-child { color: #fff; text-align: right; }
+  .transaction-client { display: flex; align-items: center; gap: 9px; color: #fff; }
+  .transaction-client i { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 10px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 8px; font-style: normal; font-weight: 800; }
+  @media (max-width: 700px) { .transaction-summary { grid-template-columns: 1fr; } }
+</style>
