@@ -65,13 +65,17 @@ function paymentSource(intent) {
 function transaction(intent) {
   const charge = intent.latest_charge && typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
   const refunded = Number(charge?.amount_refunded || 0);
+  const amount = Number(intent.amount_received || intent.amount || 0);
+  const refundable = Math.max(0, amount - refunded);
   return {
     id: intent.id,
     created: intent.created,
-    amount: Number(intent.amount_received || intent.amount || 0),
+    amount,
     refunded,
+    refundable,
+    can_refund: intent.status === 'succeeded' && refundable > 0,
     currency: clean(intent.currency, 8).toLowerCase() || 'eur',
-    status: refunded > 0 ? 'Remboursé' : statusLabel(intent.status),
+    status: refunded > 0 ? (refundable > 0 ? 'Partiel' : 'Remboursé') : statusLabel(intent.status),
     description: clean(intent.description || intent.metadata?.offer_name || intent.metadata?.offer_slug || '', 160) || 'Paiement Stripe',
     ...paymentSource(intent),
   };
@@ -114,6 +118,7 @@ export default async (req) => {
     return json(200, {
       connected: true,
       mode: balance.livemode ? 'live' : 'test',
+      writes_enabled: !balance.livemode || process.env.PAY_STRIPE_LIVE_WRITES_ENABLED === 'true',
       account: {
         name: accountName,
         country: clean(account.country, 4).toUpperCase(),

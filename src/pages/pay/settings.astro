@@ -9,6 +9,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <div class="pay-panel-header"><div><h2>Passerelles de paiement</h2><p>État des connexions utilisées par Pay.</p></div><span class="pay-badge pay-badge--warning" id="gatewayGlobalStatus">Vérification</span></div>
         <div class="gateway-list">
           <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
+          <div class="gateway-row gateway-row--safety"><span class="gateway-logo gateway-logo--safety">✓</span><span><strong>Actions financières</strong><small id="stripeActionsDescription">Vérification du garde-fou des remboursements</small></span><span class="gateway-state" id="stripeActionsState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/transactions" href="/pay/transactions">Gérer</a></div>
           <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small>PayPal Express et paiements par compte</small></span><span class="gateway-state"><i></i>Non connecté</span><button class="pay-button" type="button" data-demo-disabled>Connecter PayPal</button></div>
         </div>
       </article>
@@ -18,7 +19,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <footer><button class="pay-button" type="button" data-demo-disabled>Enregistrer les réglages</button></footer>
       </article>
     </div>
-    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie la connexion Stripe déjà utilisée par le site. Aucun produit ni paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Lecture sécurisée du compte</li><li><span>2</span>Checkouts Stripe en mode test</li><li><span>3</span>PayPal Express</li></ol></aside>
+    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie la connexion Stripe déjà utilisée par le site. Aucun produit ni paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Lecture sécurisée du compte</li><li><span>2</span>Remboursements dans Pay</li><li><span>3</span>Checkouts Stripe en mode test</li><li><span>4</span>PayPal Express</li></ol></aside>
   </section>
 </PayAppShell>
 
@@ -38,9 +39,22 @@ import PayAppShell from '../../components/PayAppShell.astro';
     dashboard.hidden = false;
     document.getElementById('stripeCompanyName').value = data.account?.name || 'Sonny Court';
     document.getElementById('stripeCompanyCurrency').value = data.account?.currency || 'eur';
+    const actionsState = document.getElementById('stripeActionsState');
+    const actionsDescription = document.getElementById('stripeActionsDescription');
+    if (data.writes_enabled) {
+      actionsState.classList.add('gateway-state--connected');
+      actionsState.innerHTML = '<i></i>Actives';
+      actionsDescription.textContent = 'Remboursements totaux et partiels disponibles dans Transactions';
+    } else {
+      actionsState.classList.add('gateway-state--locked');
+      actionsState.innerHTML = '<i></i>Verrouillées';
+      actionsDescription.textContent = 'Le garde-fou du compte réel doit encore être activé';
+    }
     document.getElementById('stripeRoadmapKicker').textContent = 'Stripe connecté';
-    document.getElementById('stripeRoadmapTitle').textContent = 'La donnée réelle est branchée.';
-    document.getElementById('stripeRoadmapDescription').textContent = `Pay lit désormais les paiements du compte Stripe en mode ${mode}. Prochaine étape : créer un checkout test de bout en bout avant d’autoriser la vente réelle.`;
+    document.getElementById('stripeRoadmapTitle').textContent = 'Le cockpit devient opérationnel.';
+    document.getElementById('stripeRoadmapDescription').textContent = data.writes_enabled
+      ? `Pay lit les paiements et pilote les remboursements Stripe en mode ${mode}. Prochaine étape : créer les checkouts directement ici.`
+      : `Pay lit les paiements en mode ${mode}. Les remboursements sont prêts, mais le garde-fou du compte réel est encore verrouillé.`;
   }
 
   document.addEventListener('pay:stripe', (event) => renderStripeSettings(event.detail));
@@ -57,6 +71,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .gateway-logo { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; font-weight: 840; }
   .gateway-logo--stripe { color: #cfcaff; border: 1px solid rgba(151,140,255,.2); background: rgba(105,92,255,.1); }
   .gateway-logo--paypal { color: #78c4ff; border: 1px solid rgba(75,169,255,.2); background: rgba(75,169,255,.08); }
+  .gateway-logo--safety { color: var(--pay-green); border: 1px solid rgba(101,229,170,.2); background: rgba(101,229,170,.07); }
+  .gateway-row--safety { background: rgba(101,229,170,.015); }
   .gateway-row strong, .gateway-row small { display: block; }
   .gateway-row strong { font-size: 11px; }
   .gateway-row small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
@@ -64,6 +80,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .gateway-state i { width: 7px; height: 7px; border-radius: 50%; background: var(--pay-red); box-shadow: 0 0 0 4px rgba(255,128,148,.06); }
   .gateway-state--connected { color: var(--pay-green); }
   .gateway-state--connected i { background: var(--pay-green); box-shadow: 0 0 0 4px rgba(101,229,170,.08), 0 0 12px rgba(101,229,170,.35); }
+  .gateway-state--locked { color: #ffd49f; }
+  .gateway-state--locked i { background: #ffbd68; box-shadow: 0 0 0 4px rgba(255,189,104,.07); }
   .company-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 20px; }
   .company-grid label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; }
   .company-grid .pay-input, .company-grid .pay-select { height: 44px; padding: 0 12px; font-size: 10px; }

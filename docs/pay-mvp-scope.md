@@ -11,7 +11,8 @@
 ## Ce qu'on garde dans le premier MVP
 
 - Un shell d'application interne, responsive et protégé par l'accès administrateur existant.
-- Un tableau de bord clair, relié en lecture seule aux chiffres et transactions Stripe.
+- Un tableau de bord clair, relié aux chiffres et transactions Stripe.
+- Les remboursements Stripe totaux ou partiels, réservés à l’administrateur et confirmés explicitement.
 - Une liste de checkouts avec recherche, filtre, copie du lien et brouillons locaux.
 - Un parcours de création en trois étapes : informations, tarification, confirmation.
 - Des pages cohérentes pour transactions, produits et réglages.
@@ -22,12 +23,13 @@
 - Affiliation, rapports avancés, coupons et champs personnalisés.
 - Upsells, order bumps, portail client et automatisations.
 - Équipe, API publique et notifications avancées.
-- Toute écriture financière réelle avant validation du flux Stripe en mode test.
+- La création de paiements, produits ou abonnements réels avant validation du flux Stripe en mode test.
 
 ## Deuxième tranche
 
 1. ✅ Connecter Stripe en lecture seule : compte, solde et transactions réelles.
-2. Ajouter une clé Stripe dédiée au mode test pour créer produits et checkouts sans toucher au catalogue réel.
-3. Enregistrer les webhooks et persister produits, checkouts, clients et transactions.
-4. Faire passer un premier paiement de bout en bout.
-5. Ajouter PayPal Express après validation du flux Stripe.
+2. ✅ Piloter les remboursements totaux et partiels depuis Pay avec garde-fou pour le mode réel.
+3. Ajouter une clé Stripe dédiée au mode test pour créer produits et checkouts sans toucher au catalogue réel.
+4. Enregistrer les webhooks et persister produits, checkouts, clients et transactions.
+5. Faire passer un premier paiement de bout en bout.
+6. Ajouter PayPal Express après validation du flux Stripe.
