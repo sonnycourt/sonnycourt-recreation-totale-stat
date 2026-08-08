@@ -5,6 +5,69 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const EDITORIAL_BROADCAST_MIN_RECIPIENTS = 10_000;
 
+const AGENT_PROFILES = Object.freeze({
+  nova: {
+    summary: 'Elle coordonne toute la division et transforme le travail des spécialistes en décisions simples à valider.',
+    responsibilities: ['Ordonner les priorités du jour.', 'Distribuer les missions aux bons spécialistes.', 'Arbitrer les recommandations contradictoires.', 'Te soumettre les décisions importantes avant toute action.'],
+  },
+  eli: {
+    summary: 'Il relie chaque email au bon produit, au bon parcours et aux bonnes règles d’éligibilité.',
+    responsibilities: ['Cartographier les offres et leurs audiences autorisées.', 'Empêcher une promotion auprès d’un client non éligible.', 'Recommander un CTA, une destination ou aucun lien.', 'Intégrer les événements commerciaux au calendrier.'],
+  },
+  milo: {
+    summary: 'Il construit la mémoire durable du département pour éviter de réapprendre deux fois la même chose.',
+    responsibilities: ['Archiver les décisions, tests et résultats.', 'Distinguer faits observés, hypothèses et intuitions.', 'Conserver l’historique des processus et de leurs versions.', 'Restituer les apprentissages utiles aux prochains cycles.'],
+  },
+  alma: {
+    summary: 'Elle décide de la direction éditoriale et maintient une cadence utile pour l’audience.',
+    responsibilities: ['Construire le calendrier éditorial.', 'Choisir l’angle et la valeur promise par chaque email.', 'Équilibrer contenu de valeur et messages promotionnels.', 'Préparer un brief clair pour le copywriter.'],
+  },
+  leo: {
+    summary: 'Il transforme le brief validé en un email humain, lisible et fidèle à la voix de Sonny.',
+    responsibilities: ['Rédiger objets, préheader et corps de l’email.', 'Produire des variantes sans inventer de faits.', 'Respecter la voix, le rythme et le niveau de pression décidé.', 'Appliquer précisément tes demandes de correction.'],
+  },
+  iris: {
+    summary: 'Elle écoute les signaux de l’audience et pilote la veille internationale sans jamais confondre inspiration et preuve.',
+    responsibilities: ['Cartographier les thèmes et objections de l’audience.', 'Repérer les sujets qui ouvrent de nouvelles pistes éditoriales.', 'Piloter le radar de newsletters américaines approuvées.', 'Limiter la veille à cinq enseignements actionnables par semaine.'],
+  },
+  nino: {
+    summary: 'Il sécurise la production technique de chaque broadcast avant qu’il puisse arriver devant le bouton rouge.',
+    responsibilities: ['Vérifier expéditeur, audience, liens et tracking.', 'Contrôler la checklist de préflight.', 'Préparer un brouillon MailerLite seulement après autorisation.', 'Maintenir l’envoi réel verrouillé jusqu’à ta validation finale.'],
+  },
+  sacha: {
+    summary: 'Il transforme les performances passées en signaux compréhensibles pour toute l’équipe.',
+    responsibilities: ['Analyser ouvertures, clics et désinscriptions.', 'Comparer les résultats par angle et format.', 'Détecter les anomalies et signaux faibles.', 'Formuler des constats sans surinterpréter les chiffres.'],
+  },
+  ada: {
+    summary: 'Elle convertit les intuitions de l’équipe en expériences mesurables et réellement apprenantes.',
+    responsibilities: ['Formuler une hypothèse précise avant chaque test.', 'Définir variantes, métrique principale et seuil de décision.', 'Éviter de tester plusieurs variables à la fois.', 'Documenter ce que le résultat permet réellement de conclure.'],
+  },
+  enzo: {
+    summary: 'Il relie les clics email aux ventes pour rendre la rentabilité du département visible.',
+    responsibilities: ['Définir les conventions UTM.', 'Rapprocher campagnes, clics et revenus disponibles.', 'Mesurer la contribution des offres et des parcours.', 'Signaler les trous d’attribution avant toute conclusion de ROI.'],
+  },
+  tao: {
+    summary: 'Il audite les automatisations existantes en lecture seule et propose les améliorations à reprendre manuellement.',
+    responsibilities: ['Examiner message, délai et logique des workflows.', 'Identifier les étapes faibles ou incohérentes.', 'Proposer des corrections argumentées.', 'Ne jamais modifier directement une automation.'],
+  },
+  maya: {
+    summary: 'Elle protège la réputation d’envoi et surveille les premiers signes de fatigue de la base.',
+    responsibilities: ['Surveiller désinscriptions, plaintes et pression d’envoi.', 'Détecter les risques de délivrabilité.', 'Recommander des ralentissements ou contrôles préventifs.', 'Donner un feu vert ou une alerte avant campagne.'],
+  },
+  ines: {
+    summary: 'Elle maintient une vision propre des audiences actives, fragiles et inactives sans déplacer personne seule.',
+    responsibilities: ['Définir les règles de segmentation par activité.', 'Repérer doublons, incohérences et contacts inactifs.', 'Proposer les cohortes à conserver, réactiver ou archiver.', 'Soumettre toute opération de masse à ta validation.'],
+  },
+  sol: {
+    summary: 'Il conçoit les stratégies de reconquête pour réengager proprement les abonnés qui décrochent.',
+    responsibilities: ['Définir une petite cohorte de réactivation.', 'Proposer plusieurs angles de reconquête.', 'Fixer critères d’arrêt, de succès et de sortie.', 'Préserver une expérience limitée et réversible.'],
+  },
+  june: {
+    summary: 'Elle représente le dernier contrôle qualité et peut bloquer un dossier qui présente un risque.',
+    responsibilities: ['Vérifier consentement, clarté et conformité.', 'Contrôler promesses, pression et cohérence des liens.', 'Détecter les informations inventées ou insuffisamment prouvées.', 'Bloquer le passage à l’étape suivante si nécessaire.'],
+  },
+});
+
 // This function is intentionally read-only. Keep the allowlist limited to
 // collection endpoints and never accept an upstream path from the browser.
 const READ_ONLY_RESOURCES = Object.freeze({
@@ -402,7 +465,10 @@ function buildOverview(raw, now = new Date()) {
       stateLabel: warningCount ? `${warningCount} alerte${warningCount > 1 ? 's' : ''} à vérifier` : 'Contrôles au vert',
       task: 'Vérifie lisibilité, consentement et garde-fous avant validation', progress: warningCount ? 74 : 100,
     },
-  ];
+  ].map((agent) => ({
+    ...agent,
+    profile: AGENT_PROFILES[agent.id] || { summary: agent.task, responsibilities: [agent.task] },
+  }));
 
   const bestOpenCampaign = [...last90Days].sort((a, b) => b.openRate - a.openRate)[0] || null;
   const bestClickCampaign = [...last90Days].sort((a, b) => b.clickRate - a.clickRate)[0] || null;

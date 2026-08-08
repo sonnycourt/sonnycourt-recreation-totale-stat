@@ -395,6 +395,42 @@ import '../../styles/email-marketing-workspace.css';
       </div>
     </dialog>
 
+    <dialog class="agent-profile-dialog" id="agentProfileDialog" aria-labelledby="agentProfileName">
+      <div class="agent-profile-shell">
+        <div class="dialog-owner agent-profile-owner">
+          <span><i aria-hidden="true"></i> Fiche membre · Email Marketing Division</span>
+          <button class="dialog-close" id="agentProfileClose" type="button" aria-label="Fermer la fiche de l’agent">×</button>
+        </div>
+
+        <div class="agent-profile-hero">
+          <div class="agent-profile-portrait" aria-hidden="true">
+            <span class="agent-profile-avatar"></span>
+            <small>Agent IA · En service</small>
+          </div>
+          <div class="agent-profile-identity">
+            <span class="agent-profile-division" id="agentProfileDivision">Direction</span>
+            <h2 id="agentProfileName">Nova</h2>
+            <strong id="agentProfileRole">Directrice de division</strong>
+            <p id="agentProfileSummary"></p>
+            <div class="agent-profile-status"><i aria-hidden="true"></i><span id="agentProfileState">En service</span></div>
+          </div>
+        </div>
+
+        <section class="agent-profile-responsibilities">
+          <div class="agent-profile-section-title"><span>Compétences</span><strong>Ce que fait cet agent concrètement</strong></div>
+          <ul id="agentProfileResponsibilities"></ul>
+        </section>
+
+        <footer class="agent-profile-mission">
+          <div><span>Mission actuelle</span><strong id="agentProfileTask">—</strong></div>
+          <div class="agent-profile-progress">
+            <span><small>Progression</small><strong id="agentProfileProgressValue">0 %</strong></span>
+            <div class="progress-track"><span class="progress-bar" id="agentProfileProgressBar"></span></div>
+          </div>
+        </footer>
+      </div>
+    </dialog>
+
     <dialog class="mission-dialog" id="missionDialog">
       <div class="mission-dialog-inner">
         <div class="dialog-owner">
@@ -644,6 +680,7 @@ import '../../styles/email-marketing-workspace.css';
       const refreshButton = document.getElementById('refreshButton');
       const toast = document.getElementById('toast');
       const reviewDialog = document.getElementById('reviewDialog');
+      const agentProfileDialog = document.getElementById('agentProfileDialog');
       const missionDialog = document.getElementById('missionDialog');
       const emailStudioDialog = document.getElementById('emailStudioDialog');
       const testConfirmationDialog = document.getElementById('testConfirmationDialog');
@@ -1882,6 +1919,40 @@ import '../../styles/email-marketing-workspace.css';
         byId('focusProgressBar').style.width = `${progress}%`;
       }
 
+      function openAgentProfile(agent) {
+        if (!agent) return;
+        agentProfileDialog.dataset.agent = agent.id;
+        agentProfileDialog.dataset.color = agent.color;
+        agentProfileDialog.dataset.spriteGroup = agent.spriteGroup;
+        agentProfileDialog.dataset.spriteIndex = String(agent.spriteIndex);
+        byId('agentProfileDivision').textContent = agent.division;
+        byId('agentProfileName').textContent = agent.name;
+        byId('agentProfileRole').textContent = agent.role;
+        byId('agentProfileSummary').textContent = agent.profile?.summary || agent.task;
+        byId('agentProfileState').textContent = agent.stateLabel;
+        byId('agentProfileTask').textContent = agent.task;
+
+        const responsibilities = byId('agentProfileResponsibilities');
+        responsibilities.replaceChildren();
+        const items = Array.isArray(agent.profile?.responsibilities) && agent.profile.responsibilities.length
+          ? agent.profile.responsibilities
+          : [agent.task];
+        items.forEach((responsibility, index) => {
+          const item = document.createElement('li');
+          const number = document.createElement('span');
+          number.textContent = String(index + 1).padStart(2, '0');
+          const copy = document.createElement('p');
+          copy.textContent = responsibility;
+          item.append(number, copy);
+          responsibilities.append(item);
+        });
+
+        const progress = Math.max(0, Math.min(100, Number(agent.progress) || 0));
+        byId('agentProfileProgressValue').textContent = `${progress} %`;
+        byId('agentProfileProgressBar').style.width = `${progress}%`;
+        if (!agentProfileDialog.open) agentProfileDialog.showModal();
+      }
+
       function renderAgents(agents) {
         currentAgents = Array.isArray(agents) ? agents : [];
         const floor = byId('agentFloor');
@@ -1898,6 +1969,8 @@ import '../../styles/email-marketing-workspace.css';
           card.dataset.spriteIndex = String(agent.spriteIndex);
           card.style.setProperty('--agent-delay', `${-(index * .17)}s`);
           card.setAttribute('aria-label', `${agent.name}, ${agent.role}. ${agent.stateLabel}.`);
+          card.setAttribute('aria-haspopup', 'dialog');
+          card.setAttribute('aria-controls', 'agentProfileDialog');
           card.setAttribute('aria-pressed', 'false');
 
           const avatar = document.createElement('span');
@@ -1917,7 +1990,10 @@ import '../../styles/email-marketing-workspace.css';
           role.textContent = agent.role;
           label.append(name, role);
           card.append(avatar, label);
-          card.addEventListener('click', () => showAgentFocus(agent));
+          card.addEventListener('click', () => {
+            showAgentFocus(agent);
+            openAgentProfile(agent);
+          });
           floor.append(card);
         });
 
@@ -2303,6 +2379,10 @@ import '../../styles/email-marketing-workspace.css';
       byId('dialogClose').addEventListener('click', () => reviewDialog.close());
       reviewDialog.addEventListener('click', (event) => {
         if (event.target === reviewDialog) reviewDialog.close();
+      });
+      byId('agentProfileClose').addEventListener('click', () => agentProfileDialog.close());
+      agentProfileDialog.addEventListener('click', (event) => {
+        if (event.target === agentProfileDialog) agentProfileDialog.close();
       });
       byId('missionDialogClose').addEventListener('click', () => missionDialog.close());
       byId('approveMission').addEventListener('click', () => saveMissionDecision('approved'));
