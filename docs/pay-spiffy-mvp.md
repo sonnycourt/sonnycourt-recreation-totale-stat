@@ -93,6 +93,14 @@ Les consommateurs métier comme MC2 pourront recevoir une notification dérivée
 après la projection Pay, mais ne devront ni créer un webhook Stripe distinct ni
 tenir une seconde logique de facturation.
 
+La projection fournisseur est définie séparément dans
+`netlify/functions/lib/pay-provider-projection.mjs`. Cette bibliothèque pure
+normalise clients, produits, prix, checkouts, commandes, paiements,
+remboursements, abonnements, plans et remises vers les tables `pay_*`. Elle ne
+contient ni accès réseau ni écriture Supabase ; les relations sont conservées
+par identifiants externes jusqu'à leur résolution transactionnelle par le
+moteur central.
+
 ## Ordre de reprise historique
 
 1. Importer à blanc les exports Spiffy.
