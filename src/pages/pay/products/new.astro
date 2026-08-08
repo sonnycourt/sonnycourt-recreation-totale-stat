@@ -30,10 +30,15 @@ import PayAppShell from '../../../components/PayAppShell.astro';
 </PayAppShell>
 
 <script>
+  import { findPayDraft, upsertPayDraft } from '../../../scripts/pay-draft-store.js';
+
   const form = document.getElementById('productBuilder');
   const recurring = document.getElementById('productRecurring');
   const currency = document.getElementById('productCurrency');
   const dialog = document.getElementById('productConfirm');
+  const editingId = new URLSearchParams(location.search).get('draft');
+  let editingDraft = null;
+  try { editingDraft = editingId ? findPayDraft(localStorage, 'products', editingId) : null; } catch {}
 
   function selectedType() { return form.querySelector('input[name="productType"]:checked').value; }
   function updateType() {
@@ -44,17 +49,30 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   }
   document.querySelectorAll('input[name="productType"]').forEach((radio) => radio.addEventListener('change', updateType));
   currency.addEventListener('change', () => { document.getElementById('productCurrencyUnit').textContent = currency.value.toUpperCase(); });
-  updateType();
-
   function draft() {
     return {
-      id: Date.now(), name: document.getElementById('productName').value.trim(), description: document.getElementById('productDescription').value.trim(),
+      id: editingDraft?.id || Date.now(), name: document.getElementById('productName').value.trim(), description: document.getElementById('productDescription').value.trim(),
       billingType: selectedType(), amount: Number(document.getElementById('productAmount').value), currency: currency.value,
       intervalUnit: selectedType() === 'recurring' ? document.getElementById('productInterval').value : null,
       intervalCount: selectedType() === 'recurring' ? Number(document.getElementById('productIntervalCount').value) || 1 : null,
-      status: 'draft', createdAt: new Date().toISOString(),
+      status: 'draft', createdAt: editingDraft?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
   }
+
+  if (editingDraft) {
+    const selected = form.querySelector(`input[name="productType"][value="${editingDraft.billingType === 'recurring' ? 'recurring' : 'one_time'}"]`);
+    if (selected) selected.checked = true;
+    document.getElementById('productName').value = editingDraft.name || '';
+    document.getElementById('productDescription').value = editingDraft.description || '';
+    document.getElementById('productAmount').value = editingDraft.amount ?? '';
+    currency.value = editingDraft.currency || 'eur';
+    document.getElementById('productCurrencyUnit').textContent = currency.value.toUpperCase();
+    document.getElementById('productInterval').value = editingDraft.intervalUnit || 'month';
+    document.getElementById('productIntervalCount').value = editingDraft.intervalCount || 1;
+    document.getElementById('productSave').textContent = 'Enregistrer les modifications ✓';
+    document.getElementById('productConfirmTitle').textContent = 'Mettre à jour ce produit ?';
+  }
+  updateType();
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -70,12 +88,10 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   document.getElementById('productAcknowledgement').addEventListener('change', (event) => { document.getElementById('productSave').disabled = !event.target.checked; });
   document.getElementById('productBack').addEventListener('click', () => dialog.close());
   document.getElementById('productSave').addEventListener('click', () => {
-    let items = [];
-    try { items = JSON.parse(localStorage.getItem('pay_product_drafts') || '[]'); } catch {}
-    items.unshift(draft());
-    localStorage.setItem('pay_product_drafts', JSON.stringify(items.slice(0, 50)));
-    window.payToast?.('Produit enregistré en brouillon.');
-    const preview = new URLSearchParams(location.search).has('preview') ? '?preview=1&created=1' : '?created=1';
+    upsertPayDraft(localStorage, 'products', draft());
+    window.payToast?.(editingDraft ? 'Produit mis à jour en brouillon.' : 'Produit enregistré en brouillon.');
+    const outcome = editingDraft ? 'updated=1' : 'created=1';
+    const preview = new URLSearchParams(location.search).has('preview') ? `?preview=1&${outcome}` : `?${outcome}`;
     setTimeout(() => { location.href = `${location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/products${preview}`; }, 450);
   });
 </script>

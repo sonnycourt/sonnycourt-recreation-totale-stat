@@ -53,7 +53,13 @@ const {
       <div class="resource-notes-list" data-resource-notes-list></div>
       <div class="resource-note-compose"><textarea class="pay-textarea" rows="3" maxlength="600" data-resource-note-input placeholder="Ajouter un contexte utile à l’équipe…"></textarea><button class="pay-button pay-button--primary" type="button" data-resource-note-add>Ajouter la note</button></div>
     </section>
-    <footer><button class="pay-button pay-button--ghost" type="button" data-resource-dialog-close>Fermer</button></footer>
+    <footer>
+      <div class="resource-dialog-actions" data-resource-dialog-actions hidden>
+        <a class="pay-button pay-button--ghost" data-resource-dialog-edit href="#">Modifier le brouillon</a>
+        <button class="pay-button resource-dialog-delete" type="button" data-resource-dialog-delete>Supprimer</button>
+      </div>
+      <button class="pay-button pay-button--ghost" type="button" data-resource-dialog-close>Fermer</button>
+    </footer>
   </dialog>
 
   <dialog class="resource-dialog resource-filter-dialog pay-panel" data-resource-filter-dialog aria-labelledby="resourceFilterTitle">
@@ -145,7 +151,11 @@ const {
   .resource-notes-empty { padding: 13px; border: 1px dashed var(--pay-line); border-radius: 12px; color: var(--pay-muted); text-align: center; font-size: 8px; }
   .resource-note-compose { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; margin-top: 10px; }
   .resource-note-compose .pay-textarea { min-height: 72px; padding: 11px 12px; resize: vertical; font-size: 9px; }
-  .resource-dialog > footer { display: flex; justify-content: flex-end; padding: 14px 22px 20px; border-top: 1px solid var(--pay-line); }
+  .resource-dialog > footer { display: flex; justify-content: space-between; gap: 12px; padding: 14px 22px 20px; border-top: 1px solid var(--pay-line); }
+  .resource-dialog-actions { display: flex; gap: 8px; }
+  .resource-dialog-actions[hidden] { display: none; }
+  .resource-dialog-delete { border-color: rgba(255,128,148,.24); color: #ff9bad; background: rgba(255,128,148,.055); }
+  .resource-dialog-delete[data-resource-dialog-delete-confirm='true'] { border-color: rgba(255,128,148,.55); color: #fff; background: rgba(255,94,124,.24); }
   .resource-filter-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; }
   .resource-filter-form label, .resource-view-save label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; font-weight: 700; }
   .resource-filter-form .resource-filter-value { grid-column: 1 / -1; }
@@ -159,7 +169,7 @@ const {
   .resource-view-row button[data-resource-view-delete-confirm='true'] { border-color: rgba(255,108,137,.45); color: #ff91a8; }
   .resource-views-empty { padding: 22px 12px; color: var(--pay-muted); text-align: center; font-size: 9px; }
   .resource-view-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 18px 22px; border-top: 1px solid var(--pay-line); }
-  @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } .resource-note-compose { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } .resource-note-compose { grid-template-columns: 1fr; } .resource-dialog > footer, .resource-dialog-actions { align-items: stretch; flex-direction: column; } }
   @media (max-width: 1100px) { .resource-toolbar { grid-template-columns: minmax(200px, 1fr) 145px 145px; } .resource-count { justify-self: end; } }
   @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } }
   @media (max-width: 560px) { .resource-filter-form { grid-template-columns: 1fr; } .resource-filter-form .resource-filter-value { grid-column: auto; } .resource-view-row { grid-template-columns: 1fr auto; } .resource-view-row button:last-child { grid-column: 1 / -1; } }

@@ -43,7 +43,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
         <div class="plan-fields" id="checkoutPlanFields" hidden>
           <div class="plan-intro"><span>≋</span><div><strong>Échéancier personnalisé</strong><small>La dernière ligne se répète chaque mois après les deux premières étapes.</small></div></div>
           <div class="form-grid">
-            <label class="form-field"><span>Acompte immédiat</span><div class="amount-field"><input class="pay-input" id="checkoutDeposit" type="number" min="0" step="0.01" placeholder="47.00" disabled /><span>€</span></div></label>
+            <label class="form-field"><span>Acompte immédiat</span><div class="amount-field"><input class="pay-input" id="checkoutDeposit" type="number" min="0.01" step="0.01" placeholder="47.00" disabled required /><span>€</span></div></label>
             <label class="form-field"><span>Palier différé</span><div class="amount-field"><input class="pay-input" id="checkoutBridgeAmount" type="number" min="0" step="0.01" placeholder="150.00" disabled /><span>€</span></div></label>
             <label class="form-field"><span>Délai du palier</span><div class="amount-field"><input class="pay-input" id="checkoutBridgeDelay" type="number" min="1" max="365" step="1" placeholder="14" disabled /><span>jours</span></div></label>
             <label class="form-field"><span>Nombre de mensualités</span><input class="pay-input" id="checkoutInstallments" type="number" min="1" max="60" step="1" placeholder="11" disabled required /></label>
@@ -77,6 +77,8 @@ import PayAppShell from '../../../components/PayAppShell.astro';
 </PayAppShell>
 
 <script>
+  import { findPayDraft, upsertPayDraft } from '../../../scripts/pay-draft-store.js';
+
   const form = document.getElementById('checkoutBuilder');
   const nameInput = document.getElementById('checkoutName');
   const slugInput = document.getElementById('checkoutSlug');
@@ -87,6 +89,9 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   const save = document.getElementById('saveCheckout');
   const progress = document.getElementById('builderProgress');
   const planFields = document.getElementById('checkoutPlanFields');
+  const editingId = new URLSearchParams(location.search).get('draft');
+  let editingDraft = null;
+  try { editingDraft = editingId ? findPayDraft(localStorage, 'checkouts', editingId) : null; } catch {}
   let currentStep = 1;
   let slugTouched = false;
 
@@ -102,14 +107,14 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     slugInput.value = slugify(slugInput.value);
   });
 
-  document.querySelectorAll('input[name="billing"]').forEach((radio) => {
-    radio.addEventListener('change', () => {
-      document.querySelectorAll('.billing-card').forEach((card) => card.classList.toggle('is-selected', card.contains(radio) && radio.checked));
-      const isPlan = form.querySelector('input[name="billing"]:checked').value === 'payment-plan';
-      planFields.hidden = !isPlan;
-      planFields.querySelectorAll('input').forEach((input) => { input.disabled = !isPlan; });
-    });
-  });
+  function updateBilling() {
+    const selected = form.querySelector('input[name="billing"]:checked');
+    document.querySelectorAll('.billing-card').forEach((card) => card.classList.toggle('is-selected', card.contains(selected)));
+    const isPlan = selected?.value === 'payment-plan';
+    planFields.hidden = !isPlan;
+    planFields.querySelectorAll('input').forEach((input) => { input.disabled = !isPlan; });
+  }
+  document.querySelectorAll('input[name="billing"]').forEach((radio) => radio.addEventListener('change', updateBilling));
 
   function validateStep() {
     const pane = document.querySelector(`[data-step-pane="${currentStep}"]`);
@@ -148,6 +153,39 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     if (currentStep === 3) updateSummary();
   }
 
+  function checkoutDraft() {
+    const billing = form.querySelector('input[name="billing"]:checked').value;
+    const plan = billing === 'payment-plan' ? {
+      deposit: Number(document.getElementById('checkoutDeposit').value || 0), bridgeAmount: Number(document.getElementById('checkoutBridgeAmount').value || 0),
+      bridgeDelayDays: Number(document.getElementById('checkoutBridgeDelay').value || 0), installments: Number(document.getElementById('checkoutInstallments').value || 0), interval: 'month',
+    } : null;
+    return {
+      id: editingDraft?.id || Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(),
+      billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), plan, status: 'draft',
+      createdAt: editingDraft?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
+    };
+  }
+
+  if (editingDraft) {
+    nameInput.value = editingDraft.name || '';
+    slugInput.value = editingDraft.slug || '';
+    slugTouched = true;
+    document.getElementById('checkoutDescription').value = editingDraft.description || '';
+    const billing = ['one-time', 'subscription', 'payment-plan'].includes(editingDraft.billing) ? editingDraft.billing : 'one-time';
+    const selected = form.querySelector(`input[name="billing"][value="${billing}"]`);
+    if (selected) selected.checked = true;
+    amountInput.value = editingDraft.amount ?? '';
+    currencyInput.value = editingDraft.currency || 'EUR';
+    document.getElementById('checkoutPriceNote').value = editingDraft.priceNote || '';
+    document.getElementById('checkoutDeposit').value = editingDraft.plan?.deposit ?? '';
+    document.getElementById('checkoutBridgeAmount').value = editingDraft.plan?.bridgeAmount ?? '';
+    document.getElementById('checkoutBridgeDelay').value = editingDraft.plan?.bridgeDelayDays ?? '';
+    document.getElementById('checkoutInstallments').value = editingDraft.plan?.installments ?? '';
+    save.textContent = 'Enregistrer les modifications ✓';
+    document.querySelector('[data-step-pane="3"] .builder-heading h2').textContent = 'Prêt à mettre à jour ton checkout';
+  }
+  updateBilling();
+
   next.addEventListener('click', () => { if (validateStep()) showStep(currentStep + 1); });
   previous.addEventListener('click', () => showStep(currentStep - 1));
   document.querySelectorAll('[data-step-button]').forEach((button) => button.addEventListener('click', () => {
@@ -158,18 +196,10 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     if (!validateStep()) return;
-    const billing = form.querySelector('input[name="billing"]:checked').value;
-    const plan = billing === 'payment-plan' ? {
-      deposit: Number(document.getElementById('checkoutDeposit').value || 0), bridgeAmount: Number(document.getElementById('checkoutBridgeAmount').value || 0),
-      bridgeDelayDays: Number(document.getElementById('checkoutBridgeDelay').value || 0), installments: Number(document.getElementById('checkoutInstallments').value || 0), interval: 'month',
-    } : null;
-    const draft = { id: Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(), billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), plan, status: 'draft' };
-    let drafts = [];
-    try { drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]'); } catch {}
-    drafts.unshift(draft);
-    localStorage.setItem('pay_checkout_drafts', JSON.stringify(drafts.slice(0, 20)));
-    window.payToast('Checkout enregistré en brouillon.');
-    const preview = new URLSearchParams(window.location.search).has('preview') ? '?created=1&preview=1' : '?created=1';
+    upsertPayDraft(localStorage, 'checkouts', checkoutDraft());
+    window.payToast(editingDraft ? 'Checkout mis à jour en brouillon.' : 'Checkout enregistré en brouillon.');
+    const outcome = editingDraft ? 'updated=1' : 'created=1';
+    const preview = new URLSearchParams(window.location.search).has('preview') ? `?${outcome}&preview=1` : `?${outcome}`;
     window.setTimeout(() => { window.location.href = `${window.location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/checkouts${preview}`; }, 650);
   });
 

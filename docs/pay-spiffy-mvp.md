@@ -174,6 +174,9 @@ Discounts. L'affiliation, Fields et AI/MCP restent volontairement hors du MVP.
 - les fiches commande, client et plan acceptent des notes internes locales ;
   elles restent limitées à la session et seront projetées dans `pay_notes`
   uniquement après l'autorisation d'écriture Supabase.
+- les brouillons de checkout, produit et réduction peuvent être rouverts sans
+  changer d'identifiant, modifiés puis supprimés uniquement après un second
+  clic explicite ; ces opérations restent confinées au navigateur.
 
 Les créations de produit et de commande restent des interfaces de brouillon tant
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement
@@ -295,10 +298,10 @@ pages suivantes ; le garde-fou en deux étapes reste inchangé et verrouillé.
 | Dashboard et calendrier | Graphique Stripe + PayPal, sémantique Spiffy validée, 4 séries, infobulles et périodes personnalisées | prêt avant import |
 | Commandes, clients, paiements | Historique unifié, données live prioritaires, recherche, filtres, CSV et fiches détaillées | prêt avant import |
 | Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
-| Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |
-| Produits | Catalogue et prix Stripe réels | lecture prête |
+| Checkouts | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication en attente du moteur Stripe central |
+| Produits | Catalogue et prix Stripe réels + brouillons modifiables | lecture prête, publication verrouillée |
 | Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs et taxes par pays/passerelle, archive + live dédupliqués | prêt avant import |
-| Réductions | Liste Stripe et constructeur de brouillon en deux étapes | publication verrouillée |
+| Réductions | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication verrouillée |
 | Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
 | Affiliés et MCP | Hors périmètre volontairement | exclu |
 

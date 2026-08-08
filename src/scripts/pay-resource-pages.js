@@ -2,6 +2,7 @@ import { collectPaySources, requirePaySource } from './pay-source-results.js';
 import { matchesResourceFilter, normalizeResourceFilter, normalizeResourceView, normalizeSavedResourceViews } from './pay-resource-filters.js';
 import { addPayNote, normalizePayNotesStore, payNotesEntityKey, removePayNote } from './pay-resource-notes.js';
 import { payOrderPlainValues } from './pay-resource-rows.js';
+import { payDraftEditUrl, removePayDraft } from './pay-draft-store.js';
 
 const screen = document.querySelector('[data-pay-resource-page]');
 
@@ -21,6 +22,9 @@ if (screen) {
   const detailDialog = screen.querySelector('[data-resource-dialog]');
   const detailTitle = screen.querySelector('[data-resource-dialog-title]');
   const detailContent = screen.querySelector('[data-resource-dialog-content]');
+  const detailActions = screen.querySelector('[data-resource-dialog-actions]');
+  const detailEdit = screen.querySelector('[data-resource-dialog-edit]');
+  const detailDelete = screen.querySelector('[data-resource-dialog-delete]');
   const notesSection = screen.querySelector('[data-resource-notes]');
   const notesList = screen.querySelector('[data-resource-notes-list]');
   const noteInput = screen.querySelector('[data-resource-note-input]');
@@ -42,6 +46,7 @@ if (screen) {
   let activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
   let savedViews = readSavedViews();
   let activeNoteEntityKey = '';
+  let activeDetailItem = null;
   let noteStore = readNoteStore();
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
@@ -95,7 +100,7 @@ if (screen) {
     return `<span class="pay-badge ${success ? 'pay-badge--success' : warning ? 'pay-badge--warning' : 'pay-badge--draft'}">${escapeHtml(label || 'Inconnu')}</span>`;
   }
 
-  function row(values, plain, provider, status, sortTime = 0, externalId = '') {
+  function row(values, plain, provider, status, sortTime = 0, externalId = '', options = {}) {
     return {
       values,
       plain: plain.map((value) => String(value ?? '')),
@@ -104,6 +109,7 @@ if (screen) {
       search: plain.join(' ').toLowerCase(),
       sortTime: Number(sortTime || 0),
       externalId: clean(String(externalId || '')),
+      ...options,
     };
   }
 
@@ -349,7 +355,7 @@ if (screen) {
       const status = 'Brouillon';
       return row([
         `<strong>${escapeHtml(draft.name || 'Produit sans nom')}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), escapeHtml(billing), `<strong>${money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'eur')}</strong>`, badge(status),
-      ], [draft.name || 'Produit sans nom', 'Pay', billing, money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'eur'), status], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+      ], [draft.name || 'Produit sans nom', 'Pay', billing, money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'eur'), status], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000), String(draft.id), { draftKind: 'products' });
     }) : [];
     const history = await fetchHistory('products');
     if (history) {
@@ -389,7 +395,7 @@ if (screen) {
       const status = 'Brouillon';
       return row([
         `<strong>${escapeHtml(draft.name || 'Checkout sans nom')}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR')}</strong>`, badge(status), 'Non publié',
-      ], [draft.name || 'Checkout sans nom', 'Pay', money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR'), status, 'Non publié'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+      ], [draft.name || 'Checkout sans nom', 'Pay', money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR'), status, 'Non publié'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000), String(draft.id), { draftKind: 'checkouts' });
     }) : [];
     const history = await fetchHistory('checkouts');
     if (history) {
@@ -432,7 +438,7 @@ if (screen) {
       const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
       return row([
         `<strong>${escapeHtml(draft.code)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${escapeHtml(value)}</strong>`, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', '0', badge('Brouillon'),
-      ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+      ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000), String(draft.id), { draftKind: 'discounts' });
     });
     if (history) {
       sourceLabels = drafts.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
@@ -662,12 +668,44 @@ if (screen) {
     const headers = [...screen.querySelectorAll('.resource-head > span')].map((element) => element.textContent.trim());
     detailTitle.textContent = item.plain[0] || 'Détail';
     detailContent.innerHTML = headers.map((header, index) => `<div><small>${escapeHtml(header)}</small><strong>${escapeHtml(item.plain[index] || '—')}</strong></div>`).join('');
+    activeDetailItem = item;
+    const editableDraft = item.provider === 'internal' && item.draftKind && item.externalId;
+    if (detailActions) detailActions.hidden = !editableDraft;
+    if (detailEdit && editableDraft) detailEdit.href = payDraftEditUrl(item.draftKind, item.externalId, { preview: new URLSearchParams(location.search).has('preview') });
+    if (detailDelete) {
+      delete detailDelete.dataset.resourceDialogDeleteConfirm;
+      detailDelete.textContent = 'Supprimer';
+    }
     activeNoteEntityKey = notesEnabled ? payNotesEntityKey(screen.dataset.payResourcePage, item.provider, item.externalId ? [item.externalId] : item.plain) : '';
     if (notesSection) notesSection.hidden = !notesEnabled;
     if (noteInput) noteInput.value = '';
     renderNotes();
     detailDialog.showModal();
   }
+
+  detailDelete?.addEventListener('click', () => {
+    const item = activeDetailItem;
+    if (!item?.draftKind || item.provider !== 'internal' || !item.externalId) return;
+    if (detailDelete.dataset.resourceDialogDeleteConfirm !== 'true') {
+      detailDelete.dataset.resourceDialogDeleteConfirm = 'true';
+      detailDelete.textContent = 'Confirmer la suppression';
+      return;
+    }
+    const result = removePayDraft(localStorage, item.draftKind, item.externalId);
+    if (!result.removed) {
+      window.payToast?.('Ce brouillon n’existe plus.');
+      detailDialog?.close();
+      return;
+    }
+    rows = rows.filter((candidate) => candidate !== item);
+    const selectedStatus = statusFilter.value;
+    populateStatuses();
+    if ([...statusFilter.options].some((option) => option.value === selectedStatus)) statusFilter.value = selectedStatus;
+    render();
+    activeDetailItem = null;
+    detailDialog?.close();
+    window.payToast?.('Brouillon supprimé après confirmation.');
+  });
 
   function renderNotes() {
     if (!notesEnabled || !notesList || !activeNoteEntityKey) return;

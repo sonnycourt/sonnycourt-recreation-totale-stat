@@ -8,7 +8,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   <form class="discount-builder pay-panel" id="discountBuilder">
     <header><div><p class="pay-kicker">Étape 1 sur 2</p><h2>Paramètres de la réduction</h2><p>Le brouillon reste dans Pay tant que la publication Stripe n’est pas activée.</p></div><span class="pay-badge pay-badge--draft">Brouillon</span></header>
     <div class="discount-grid">
-      <label class="field field--wide"><span>Code</span><input class="pay-input" id="discountCode" type="text" placeholder="OFFRE50POURCENT" pattern="[A-Z0-9_-]+" maxlength="40" autocomplete="off" required /><small>Le code est automatiquement converti en majuscules.</small></label>
+      <label class="field field--wide"><span>Code</span><input class="pay-input" id="discountCode" type="text" placeholder="OFFRE50POURCENT" pattern="[A-Z0-9-]+" maxlength="40" autocomplete="off" required /><small>Le code est automatiquement converti en majuscules.</small></label>
       <fieldset class="field field--wide"><legend>Type de réduction</legend><div class="type-options"><label><input type="radio" name="discountType" value="percentage" checked /><span><strong>Pourcentage</strong><small>Ex. 30 %</small></span></label><label><input type="radio" name="discountType" value="fixed" /><span><strong>Montant fixe</strong><small>Ex. 50 €</small></span></label></div></fieldset>
       <label class="field"><span>Valeur</span><div class="amount-wrap"><input class="pay-input" id="discountValue" type="number" min="0.01" max="100" step="0.01" required /><b id="discountUnit">%</b></div></label>
       <label class="field"><span>Devise</span><select class="pay-select" id="discountCurrency" disabled><option value="eur">EUR · Euro</option><option value="chf">CHF · Franc suisse</option><option value="usd">USD · Dollar</option></select></label>
@@ -25,31 +25,53 @@ import PayAppShell from '../../../components/PayAppShell.astro';
 </PayAppShell>
 
 <script>
+  import { findPayDraft, upsertPayDraft } from '../../../scripts/pay-draft-store.js';
+
   const form = document.getElementById('discountBuilder');
   const code = document.getElementById('discountCode');
   const value = document.getElementById('discountValue');
   const currency = document.getElementById('discountCurrency');
   const unit = document.getElementById('discountUnit');
   const dialog = document.getElementById('discountConfirm');
+  const editingId = new URLSearchParams(location.search).get('draft');
+  let editingDraft = null;
+  try { editingDraft = editingId ? findPayDraft(localStorage, 'discounts', editingId) : null; } catch {}
 
-  code.addEventListener('input', () => { code.value = code.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); });
-  document.querySelectorAll('input[name="discountType"]').forEach((radio) => radio.addEventListener('change', () => {
-    const fixed = radio.checked && radio.value === 'fixed';
+  code.addEventListener('input', () => { code.value = code.value.toUpperCase().replace(/[^A-Z0-9-]/g, '-').replace(/-+/g, '-'); });
+  function updateType() {
+    const fixed = form.querySelector('input[name="discountType"]:checked')?.value === 'fixed';
     currency.disabled = !fixed;
     unit.textContent = fixed ? currency.value.toUpperCase() : '%';
     value.max = fixed ? '999999' : '100';
-  }));
+  }
+  document.querySelectorAll('input[name="discountType"]').forEach((radio) => radio.addEventListener('change', updateType));
   currency.addEventListener('change', () => { unit.textContent = currency.value.toUpperCase(); });
 
   function draft() {
     return {
-      id: Date.now(), code: code.value.trim(), type: form.querySelector('input[name="discountType"]:checked').value,
+      id: editingDraft?.id || Date.now(), code: code.value.trim(), type: form.querySelector('input[name="discountType"]:checked').value,
       value: Number(value.value), currency: currency.value, appliesOneTime: document.getElementById('discountOneTime').checked,
       appliesRecurring: document.getElementById('discountRecurring').checked, oncePerCustomer: document.getElementById('discountOnce').checked,
       expiresAt: document.getElementById('discountExpiry').value || null, maxRedemptions: Number(document.getElementById('discountMaximum').value) || null,
-      status: 'draft', createdAt: new Date().toISOString(),
+      status: 'draft', createdAt: editingDraft?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
   }
+
+  if (editingDraft) {
+    code.value = String(editingDraft.code || '').replace(/_/g, '-');
+    const selected = form.querySelector(`input[name="discountType"][value="${editingDraft.type === 'fixed' ? 'fixed' : 'percentage'}"]`);
+    if (selected) selected.checked = true;
+    value.value = editingDraft.value ?? '';
+    currency.value = editingDraft.currency || 'eur';
+    document.getElementById('discountOneTime').checked = editingDraft.appliesOneTime !== false;
+    document.getElementById('discountRecurring').checked = Boolean(editingDraft.appliesRecurring);
+    document.getElementById('discountOnce').checked = Boolean(editingDraft.oncePerCustomer);
+    document.getElementById('discountExpiry').value = editingDraft.expiresAt ? String(editingDraft.expiresAt).slice(0, 16) : '';
+    document.getElementById('discountMaximum').value = editingDraft.maxRedemptions || '';
+    document.getElementById('discountConfirmTitle').textContent = 'Mettre à jour ce brouillon ?';
+    document.getElementById('discountSave').textContent = 'Enregistrer les modifications ✓';
+  }
+  updateType();
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -64,11 +86,10 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   document.getElementById('discountAcknowledgement').addEventListener('change', (event) => { document.getElementById('discountSave').disabled = !event.target.checked; });
   document.getElementById('discountBack').addEventListener('click', () => dialog.close());
   document.getElementById('discountSave').addEventListener('click', () => {
-    const items = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
-    items.unshift(draft());
-    localStorage.setItem('pay_discount_drafts', JSON.stringify(items.slice(0, 50)));
-    window.payToast?.('Réduction enregistrée en brouillon.');
-    const preview = new URLSearchParams(location.search).has('preview') ? '?preview=1&created=1' : '?created=1';
+    upsertPayDraft(localStorage, 'discounts', draft());
+    window.payToast?.(editingDraft ? 'Réduction mise à jour en brouillon.' : 'Réduction enregistrée en brouillon.');
+    const outcome = editingDraft ? 'updated=1' : 'created=1';
+    const preview = new URLSearchParams(location.search).has('preview') ? `?preview=1&${outcome}` : `?${outcome}`;
     setTimeout(() => { location.href = `${location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/discounts${preview}`; }, 500);
   });
 </script>
