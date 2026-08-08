@@ -155,6 +155,9 @@ Discounts. L'affiliation, Fields et AI/MCP restent volontairement hors du MVP.
   checkout et plans de paiement ; Pay ajoute cash-flow, échecs et taxes ;
 - les réductions couvrent vente unique, abonnement, expiration, utilisation
   maximale et limite par client.
+- les fiches commande, client et plan acceptent des notes internes locales ;
+  elles restent limitées à la session et seront projetées dans `pay_notes`
+  uniquement après l'autorisation d'écriture Supabase.
 
 Les créations de produit et de commande restent des interfaces de brouillon tant
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement

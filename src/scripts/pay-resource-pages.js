@@ -1,5 +1,7 @@
 import { collectPaySources, requirePaySource } from './pay-source-results.js';
 import { matchesResourceFilter, normalizeResourceFilter, normalizeResourceView, normalizeSavedResourceViews } from './pay-resource-filters.js';
+import { addPayNote, normalizePayNotesStore, payNotesEntityKey, removePayNote } from './pay-resource-notes.js';
+import { payOrderPlainValues } from './pay-resource-rows.js';
 
 const screen = document.querySelector('[data-pay-resource-page]');
 
@@ -19,6 +21,11 @@ if (screen) {
   const detailDialog = screen.querySelector('[data-resource-dialog]');
   const detailTitle = screen.querySelector('[data-resource-dialog-title]');
   const detailContent = screen.querySelector('[data-resource-dialog-content]');
+  const notesSection = screen.querySelector('[data-resource-notes]');
+  const notesList = screen.querySelector('[data-resource-notes-list]');
+  const noteInput = screen.querySelector('[data-resource-note-input]');
+  const notesStorageKey = 'pay_resource_notes_v1';
+  const notesEnabled = ['orders', 'customers', 'payment-plans'].includes(screen.dataset.payResourcePage);
   const advancedDialog = screen.querySelector('[data-resource-filter-dialog]');
   const advancedColumn = screen.querySelector('[data-resource-filter-column]');
   const advancedOperator = screen.querySelector('[data-resource-filter-operator]');
@@ -34,6 +41,8 @@ if (screen) {
   let sourceLabels = [];
   let activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
   let savedViews = readSavedViews();
+  let activeNoteEntityKey = '';
+  let noteStore = readNoteStore();
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const clean = (value) => typeof value === 'string' ? value.trim() : '';
@@ -46,6 +55,15 @@ if (screen) {
 
   function writeSavedViews() {
     localStorage.setItem(viewsStorageKey, JSON.stringify(savedViews));
+  }
+
+  function readNoteStore() {
+    try { return normalizePayNotesStore(JSON.parse(sessionStorage.getItem(notesStorageKey) || '{}')); }
+    catch { return {}; }
+  }
+
+  function writeNoteStore() {
+    sessionStorage.setItem(notesStorageKey, JSON.stringify(noteStore));
   }
 
   function currencyDigits(currency = 'eur') {
@@ -77,7 +95,7 @@ if (screen) {
     return `<span class="pay-badge ${success ? 'pay-badge--success' : warning ? 'pay-badge--warning' : 'pay-badge--draft'}">${escapeHtml(label || 'Inconnu')}</span>`;
   }
 
-  function row(values, plain, provider, status, sortTime = 0) {
+  function row(values, plain, provider, status, sortTime = 0, externalId = '') {
     return {
       values,
       plain: plain.map((value) => String(value ?? '')),
@@ -85,6 +103,7 @@ if (screen) {
       status: clean(status).toLowerCase() || 'inconnu',
       search: plain.join(' ').toLowerCase(),
       sortTime: Number(sortTime || 0),
+      externalId: clean(String(externalId || '')),
     };
   }
 
@@ -166,7 +185,7 @@ if (screen) {
         `<strong>${escapeHtml(description)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`,
         `<strong>${escapeHtml(customer)}</strong><small>${escapeHtml(draft.customerEmail || '')}</small>`,
         created, providerCell('internal'), badge(status), `<strong>${amount}</strong>`,
-      ], [description, customer, draft.customerEmail || '', created, 'Pay', status, amount], 'internal', 'brouillon', Math.floor(new Date(draft.createdAt || Number(draft.id || 0)).getTime() / 1_000));
+      ], payOrderPlainValues({ description, customer, email: draft.customerEmail, created, provider: 'Pay', status, total: amount }), 'internal', 'brouillon', Math.floor(new Date(draft.createdAt || Number(draft.id || 0)).getTime() / 1_000), `brouillon-${draft.id}`);
     }) : [];
     const history = await fetchHistory('orders');
     if (history) {
@@ -178,7 +197,7 @@ if (screen) {
           `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
           `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
           created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
-        ], [item.description, item.customer, item.email, created, item.provider, status, money(item.amount, item.currency)], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+        ], payOrderPlainValues({ description: item.description, customer: item.customer, email: item.email, created, provider: item.provider, status, total: money(item.amount, item.currency) }), item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000), item.id);
       });
       return [...draftRows, ...historyRows].sort((a, b) => b.sortTime - a.sortTime);
     }
@@ -200,13 +219,13 @@ if (screen) {
         `<strong>${escapeHtml(description)}</strong><small>#${escapeHtml(intent.id)}</small>`,
         `<strong>${escapeHtml(customer.name)}</strong><small>${escapeHtml(customer.email)}</small>`,
         date(intent.created), providerCell('stripe'), badge(status), `<strong>${money(amount, intent.currency)}</strong>`,
-      ], [description, customer.name, customer.email, date(intent.created), 'Stripe', status, money(amount, intent.currency)], 'stripe', status, intent.created);
+      ], payOrderPlainValues({ description, customer: customer.name, email: customer.email, created: date(intent.created), provider: 'Stripe', status, total: money(amount, intent.currency) }), 'stripe', status, intent.created, intent.id);
     });
     const paypalRows = paypal.filter((item) => ['sale', 'payment_plan'].includes(item.kind)).map((item) => row([
       `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
       `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
       date(item.created), providerCell('paypal'), badge(item.status), `<strong>${money(item.amount, item.currency)}</strong>`,
-    ], [item.description, item.customer, item.email, date(item.created), 'PayPal', item.status, money(item.amount, item.currency)], 'paypal', item.status, item.created));
+    ], payOrderPlainValues({ description: item.description, customer: item.customer, email: item.email, created: date(item.created), provider: 'PayPal', status: item.status, total: money(item.amount, item.currency) }), 'paypal', item.status, item.created, item.id));
     return [...draftRows, ...stripeRows, ...paypalRows].sort((a, b) => b.sortTime - a.sortTime);
   }
 
@@ -218,7 +237,7 @@ if (screen) {
         const status = 'Actif';
         return row([
           `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider), String(customer.order_count), `<strong>${money(customer.lifetime_value, customer.currency)}</strong>`, badge(status),
-        ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000));
+        ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000), customer.id);
       });
     }
     const sources = requirePaySource(await collectPaySources({
@@ -252,7 +271,7 @@ if (screen) {
       const status = customer.delinquent ? 'En retard' : 'Actif';
       return row([
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(email || '—'), providerCell('stripe'), String(aggregate.orders), `<strong>${money(aggregate.value, aggregate.currency)}</strong>`, badge(status),
-      ], [name, email, 'Stripe', aggregate.orders, money(aggregate.value, aggregate.currency), status], 'stripe', status);
+      ], [name, email, 'Stripe', aggregate.orders, money(aggregate.value, aggregate.currency), status], 'stripe', status, 0, customer.id || email);
     });
     const paypalMap = new Map();
     paypal.filter((item) => item.email).forEach((item) => {
@@ -262,7 +281,7 @@ if (screen) {
     });
     const paypalRows = [...paypalMap.values()].map((customer) => row([
       `<strong>${escapeHtml(customer.name)}</strong><small>${escapeHtml(customer.email)}</small>`, escapeHtml(customer.email), providerCell('paypal'), String(customer.orders), `<strong>${money(customer.value, customer.currency)}</strong>`, badge(customer.status),
-    ], [customer.name, customer.email, 'PayPal', customer.orders, money(customer.value, customer.currency), customer.status], 'paypal', customer.status));
+    ], [customer.name, customer.email, 'PayPal', customer.orders, money(customer.value, customer.currency), customer.status], 'paypal', customer.status, 0, customer.email));
     return [...stripeRows, ...paypalRows];
   }
 
@@ -283,7 +302,7 @@ if (screen) {
           `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), badge(status),
         ] : [
           `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, date(item.current_period_end, true), badge(status),
-        ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+        ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000), item.id);
       });
     }
     const sources = requirePaySource(await collectPaySources({
@@ -304,7 +323,7 @@ if (screen) {
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(subscription.id)}</small>`, providerCell('stripe'), `<strong>${money(pricing.amount, pricing.currency)} / ${escapeHtml(pricing.interval)}</strong>`, total ? `${paid}/${total}` : 'Récurrent', date(subscription.current_period_end, true), badge(status),
       ] : [
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(subscription.id)}</small>`, providerCell('stripe'), `<strong>${money(pricing.amount, pricing.currency)} / ${escapeHtml(pricing.interval)}</strong>`, date(subscription.current_period_end, true), badge(status),
-      ], paymentPlansOnly ? [name, 'Stripe', money(pricing.amount, pricing.currency), total ? `${paid}/${total}` : 'Récurrent', date(subscription.current_period_end, true), status] : [name, 'Stripe', money(pricing.amount, pricing.currency), date(subscription.current_period_end, true), status], 'stripe', status);
+      ], paymentPlansOnly ? [name, 'Stripe', money(pricing.amount, pricing.currency), total ? `${paid}/${total}` : 'Récurrent', date(subscription.current_period_end, true), status] : [name, 'Stripe', money(pricing.amount, pricing.currency), date(subscription.current_period_end, true), status], 'stripe', status, 0, subscription.id);
     });
     const paypalGroups = new Map();
     paypal.filter((item) => item.is_plan_payment && item.reference_id).forEach((item) => {
@@ -318,7 +337,7 @@ if (screen) {
       `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, `${plan.count} encaissée${plan.count === 1 ? '' : 's'}`, 'Selon plan PayPal', badge(plan.status),
     ] : [
       `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, 'Selon plan PayPal', badge(plan.status),
-    ], paymentPlansOnly ? [plan.customer, 'PayPal', money(plan.amount, plan.currency), plan.count, 'Selon plan PayPal', plan.status] : [plan.customer, 'PayPal', money(plan.amount, plan.currency), 'Selon plan PayPal', plan.status], 'paypal', plan.status));
+    ], paymentPlansOnly ? [plan.customer, 'PayPal', money(plan.amount, plan.currency), plan.count, 'Selon plan PayPal', plan.status] : [plan.customer, 'PayPal', money(plan.amount, plan.currency), 'Selon plan PayPal', plan.status], 'paypal', plan.status, 0, plan.id));
     return [...stripeRows, ...paypalRows];
   }
 
@@ -406,7 +425,9 @@ if (screen) {
 
   async function loadDiscounts() {
     const history = await fetchHistory('discounts');
-    const drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
+    let drafts = [];
+    try { drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]'); } catch {}
+    if (!Array.isArray(drafts)) drafts = [];
     const draftRows = drafts.map((draft) => {
       const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
       return row([
@@ -641,8 +662,58 @@ if (screen) {
     const headers = [...screen.querySelectorAll('.resource-head > span')].map((element) => element.textContent.trim());
     detailTitle.textContent = item.plain[0] || 'Détail';
     detailContent.innerHTML = headers.map((header, index) => `<div><small>${escapeHtml(header)}</small><strong>${escapeHtml(item.plain[index] || '—')}</strong></div>`).join('');
+    activeNoteEntityKey = notesEnabled ? payNotesEntityKey(screen.dataset.payResourcePage, item.provider, item.externalId ? [item.externalId] : item.plain) : '';
+    if (notesSection) notesSection.hidden = !notesEnabled;
+    if (noteInput) noteInput.value = '';
+    renderNotes();
     detailDialog.showModal();
   }
+
+  function renderNotes() {
+    if (!notesEnabled || !notesList || !activeNoteEntityKey) return;
+    const notes = noteStore[activeNoteEntityKey] || [];
+    notesList.innerHTML = notes.length ? notes.map((note) => `
+      <article class="resource-note" data-resource-note-id="${escapeHtml(note.id)}">
+        <div><p>${escapeHtml(note.body)}</p><small>${escapeHtml(date(note.createdAt))}</small></div>
+        <button type="button" data-resource-note-delete>Supprimer</button>
+      </article>`).join('') : '<div class="resource-notes-empty">Aucune note pour cette fiche.</div>';
+  }
+
+  function saveNote() {
+    const body = clean(noteInput?.value);
+    if (!body || !activeNoteEntityKey) {
+      window.payToast?.('Écris une note avant de l’ajouter.');
+      noteInput?.focus();
+      return;
+    }
+    noteStore = addPayNote(noteStore, activeNoteEntityKey, body);
+    try { writeNoteStore(); }
+    catch { window.payToast?.('Impossible de conserver cette note dans la session.'); return; }
+    noteInput.value = '';
+    renderNotes();
+    window.payToast?.('Note ajoutée à cette session.');
+  }
+
+  screen.querySelector('[data-resource-note-add]')?.addEventListener('click', saveNote);
+  noteInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
+    event.preventDefault();
+    saveNote();
+  });
+  notesList?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-resource-note-delete]');
+    const host = event.target.closest('[data-resource-note-id]');
+    if (!button || !host || !activeNoteEntityKey) return;
+    if (button.dataset.resourceNoteDeleteConfirm !== 'true') {
+      button.dataset.resourceNoteDeleteConfirm = 'true';
+      button.textContent = 'Confirmer la suppression';
+      return;
+    }
+    noteStore = removePayNote(noteStore, activeNoteEntityKey, host.dataset.resourceNoteId);
+    try { writeNoteStore(); } catch {}
+    renderNotes();
+    window.payToast?.('Note supprimée de cette session.');
+  });
 
   rowsHost.addEventListener('click', (event) => {
     if (event.target.closest('a,button')) return;
