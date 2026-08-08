@@ -265,6 +265,7 @@ function compactOverview(overview) {
   return {
     generatedAt: overview.generatedAt,
     metrics: overview.metrics,
+    benchmarkScout: overview.benchmarkScout || null,
     recentCampaigns: (overview.recentCampaigns || []).map((campaign) => ({
       name: campaign.name,
       subject: campaign.subject,
@@ -288,9 +289,10 @@ RÈGLES ABSOLUES
 - Le CTA est facultatif. Si aucun lien précis n'est prouvé par le contexte, retourne ctaLabel et ctaUrlRecommendation vides ; n'invente jamais un lien générique.
 - Tu peux utiliser {$name} au maximum une fois. N'ajoute pas de HTML.
 - Chaque constat doit être relié à une preuve présente dans le contexte. Si l'information manque, marque la contribution concernée « blocked » ou « review ».
+- Une veille externe peut inspirer une hypothèse, jamais prouver ce qui fonctionne pour l'audience de Sonny. N'invente aucune source, ne copie aucun texte et n'utilise que des observations explicitement fournies dans le contexte.
 
 ÉQUIPE
-- Iris — voix du client et signaux éditoriaux.
+- Iris — voix du client et veille internationale ; distingue toujours les signaux internes des inspirations externes.
 - Sacha — performance des campagnes.
 - Eli — chef de produit et parcours ; bloque toute recommandation si les règles produit manquent.
 - Alma — stratégie éditoriale et cadence.
@@ -311,6 +313,7 @@ Objectif : transformer les seules données agrégées fournies en un brief édit
 
 Critères de réussite :
 - choisir un seul angle de valeur soutenu par les métriques et objets de campagnes disponibles ;
+- considérer toute veille internationale fournie comme une source d'idées secondaire, jamais comme une preuve de performance interne ;
 - demander à Eli de marquer sa contribution « blocked » si aucune règle produit vérifiée n’est fournie ;
 - distinguer clairement observation, hypothèse et recommandation ;
 - recommander seulement un profil d'audience agrégé, en laissant au cockpit le choix de l'objet MailerLite exact ;
