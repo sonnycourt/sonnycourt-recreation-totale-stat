@@ -76,9 +76,9 @@ const navigation = [
         </nav>
 
         <div class="pay-sidebar-foot">
-          <div class="pay-connection-mini">
+          <div class="pay-connection-mini" id="payStripeMini">
             <span class="pay-connection-dot"></span>
-            <div><strong>Mode prototype</strong><small>Données de démonstration</small></div>
+            <div><strong>Connexion Stripe</strong><small>Vérification en cours…</small></div>
           </div>
           <a class="pay-hub-link" href="https://sonnycourt.com/hub">← Revenir au Hub</a>
         </div>
@@ -87,7 +87,7 @@ const navigation = [
       <main class="pay-main">
         <header class="pay-topbar pay-glass">
           <button class="pay-menu-button" id="payMenuButton" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
-          <div class="pay-topbar-title"><span class="pay-live-dot"></span> Pay fonctionne en mode prototype</div>
+          <div class="pay-topbar-title" id="payTopbarStatus"><span class="pay-live-dot"></span> Connexion Stripe en cours…</div>
           <div class="pay-profile"><span class="pay-avatar">SC</span><span><strong>Sonny Court</strong><small>Administrateur</small></span></div>
         </header>
 
@@ -111,6 +111,7 @@ const navigation = [
     <script>
       const SESSION_API = '/.netlify/functions/admin-es2-session';
       const LOGIN_API = '/.netlify/functions/admin-es2-login';
+      const STRIPE_API = '/.netlify/functions/pay-stripe-overview';
       const previewHosts = new Set(['localhost', '127.0.0.1']);
       const params = new URLSearchParams(window.location.search);
       const canPreview = params.has('preview') && (previewHosts.has(window.location.hostname) || window.location.hostname.endsWith('.netlify.app'));
@@ -121,7 +122,47 @@ const navigation = [
       function showPay() {
         login.hidden = true;
         app.hidden = false;
+        window.getPayStripeOverview?.();
       }
+
+      function updateStripeChrome(data) {
+        if (!data?.connected) return;
+        const mode = data.mode === 'live' ? 'réel' : 'test';
+        const mini = document.getElementById('payStripeMini');
+        const topbar = document.getElementById('payTopbarStatus');
+        mini?.classList.add('is-connected');
+        if (mini) mini.querySelector('strong').textContent = 'Stripe connecté';
+        if (mini) mini.querySelector('small').textContent = `${data.account?.name || 'Compte Stripe'} · mode ${mode}`;
+        if (topbar) {
+          topbar.replaceChildren();
+          const dot = document.createElement('span');
+          dot.className = 'pay-live-dot';
+          topbar.append(dot, document.createTextNode(`Stripe connecté · mode ${mode}`));
+        }
+      }
+
+      window.getPayStripeOverview = () => {
+        if (window.payStripeData) return Promise.resolve(window.payStripeData);
+        if (window.payStripeOverviewPromise) return window.payStripeOverviewPromise;
+        window.payStripeOverviewPromise = fetch(STRIPE_API, { credentials: 'same-origin' })
+          .then(async (response) => {
+            if (!response.ok) throw new Error(`stripe_${response.status}`);
+            const data = await response.json();
+            window.payStripeData = data;
+            updateStripeChrome(data);
+            document.dispatchEvent(new CustomEvent('pay:stripe', { detail: data }));
+            return data;
+          })
+          .catch(() => {
+            window.payStripeOverviewPromise = null;
+            const mini = document.getElementById('payStripeMini');
+            const topbar = document.getElementById('payTopbarStatus');
+            if (mini) mini.querySelector('small').textContent = 'Données de démonstration';
+            if (topbar) topbar.lastChild.textContent = ' Pay fonctionne en mode prototype';
+            return null;
+          });
+        return window.payStripeOverviewPromise;
+      };
 
       async function checkPaySession() {
         if (canPreview) return showPay();
@@ -244,6 +285,7 @@ const navigation = [
   .pay-nav-icon { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(167, 218, 255, .12); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--pay-cyan); font-size: 14px; }
   .pay-sidebar-foot { display: grid; gap: 14px; margin-top: auto; }
   .pay-connection-mini { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid rgba(101, 229, 170, .13); border-radius: 15px; background: rgba(101, 229, 170, .035); }
+  .pay-connection-mini.is-connected { border-color: rgba(101, 229, 170, .25); background: rgba(101, 229, 170, .065); }
   .pay-connection-mini strong, .pay-connection-mini small { display: block; }
   .pay-connection-mini strong { color: rgba(239, 252, 255, .8); font-size: 10px; }
   .pay-connection-mini small { margin-top: 3px; color: var(--pay-muted); font-size: 8px; }

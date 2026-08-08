@@ -6,21 +6,47 @@ import PayAppShell from '../../components/PayAppShell.astro';
   <section class="settings-layout">
     <div class="settings-main">
       <article class="pay-panel gateway-panel">
-        <div class="pay-panel-header"><div><h2>Passerelles de paiement</h2><p>Les connexions réelles constituent la deuxième tranche du MVP.</p></div><span class="pay-badge pay-badge--warning">À connecter</span></div>
+        <div class="pay-panel-header"><div><h2>Passerelles de paiement</h2><p>État des connexions utilisées par Pay.</p></div><span class="pay-badge pay-badge--warning" id="gatewayGlobalStatus">Vérification</span></div>
         <div class="gateway-list">
-          <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small>Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state"><i></i>Non connecté</span><button class="pay-button pay-button--primary" type="button" data-demo-disabled>Connecter Stripe</button></div>
+          <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
           <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small>PayPal Express et paiements par compte</small></span><span class="gateway-state"><i></i>Non connecté</span><button class="pay-button" type="button" data-demo-disabled>Connecter PayPal</button></div>
         </div>
       </article>
       <article class="pay-panel company-panel">
         <div class="pay-panel-header"><div><h2>Entreprise</h2><p>Informations affichées sur les reçus et checkouts</p></div></div>
-        <div class="company-grid"><label><span>Nom commercial</span><input class="pay-input" value="Sonny Court" /></label><label><span>Devise par défaut</span><select class="pay-select"><option>EUR · Euro</option><option>CHF · Franc suisse</option></select></label><label class="company-wide"><span>Email support</span><input class="pay-input" value="info@sonnycourt.com" /></label></div>
+        <div class="company-grid"><label><span>Nom commercial</span><input class="pay-input" id="stripeCompanyName" value="Sonny Court" /></label><label><span>Devise Stripe</span><select class="pay-select" id="stripeCompanyCurrency"><option value="eur">EUR · Euro</option><option value="chf">CHF · Franc suisse</option><option value="usd">USD · Dollar</option></select></label><label class="company-wide"><span>Email support</span><input class="pay-input" value="info@sonnycourt.com" /></label></div>
         <footer><button class="pay-button" type="button" data-demo-disabled>Enregistrer les réglages</button></footer>
       </article>
     </div>
-    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker">Deuxième tranche</p><h2>Connecter le vrai argent.</h2><p>Une fois l’interface validée, on branche Stripe en mode test, puis PayPal. Les ventes, clients et remboursements deviendront alors réels.</p><ol><li><span>1</span>Stripe test + webhooks</li><li><span>2</span>Premier checkout réel</li><li><span>3</span>PayPal Express</li></ol></aside>
+    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie la connexion Stripe déjà utilisée par le site. Aucun produit ni paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Lecture sécurisée du compte</li><li><span>2</span>Checkouts Stripe en mode test</li><li><span>3</span>PayPal Express</li></ol></aside>
   </section>
 </PayAppShell>
+
+<script>
+  function renderStripeSettings(data) {
+    if (!data?.connected) return;
+    const mode = data.mode === 'live' ? 'réel' : 'test';
+    const state = document.getElementById('stripeGatewayState');
+    state.classList.add('gateway-state--connected');
+    state.innerHTML = '<i></i>Connecté';
+    document.getElementById('stripeGatewayDescription').textContent = `${data.account?.name || 'Compte Stripe'} · ${data.account?.country || '—'} · mode ${mode}`;
+    const globalStatus = document.getElementById('gatewayGlobalStatus');
+    globalStatus.textContent = 'Stripe connecté';
+    globalStatus.className = 'pay-badge pay-badge--success';
+    const dashboard = document.getElementById('stripeDashboardLink');
+    dashboard.href = data.mode === 'live' ? 'https://dashboard.stripe.com' : 'https://dashboard.stripe.com/test/dashboard';
+    dashboard.hidden = false;
+    document.getElementById('stripeCompanyName').value = data.account?.name || 'Sonny Court';
+    document.getElementById('stripeCompanyCurrency').value = data.account?.currency || 'eur';
+    document.getElementById('stripeRoadmapKicker').textContent = 'Stripe connecté';
+    document.getElementById('stripeRoadmapTitle').textContent = 'La donnée réelle est branchée.';
+    document.getElementById('stripeRoadmapDescription').textContent = `Pay lit désormais les paiements du compte Stripe en mode ${mode}. Prochaine étape : créer un checkout test de bout en bout avant d’autoriser la vente réelle.`;
+  }
+
+  document.addEventListener('pay:stripe', (event) => renderStripeSettings(event.detail));
+  const stripeSettingsPromise = window.getPayStripeOverview?.();
+  stripeSettingsPromise?.then(renderStripeSettings);
+</script>
 
 <style>
   .settings-layout { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(270px,.7fr); gap: 13px; }
@@ -36,6 +62,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .gateway-row small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
   .gateway-state { display: flex; align-items: center; gap: 7px; color: var(--pay-muted); font-size: 8px; }
   .gateway-state i { width: 7px; height: 7px; border-radius: 50%; background: var(--pay-red); box-shadow: 0 0 0 4px rgba(255,128,148,.06); }
+  .gateway-state--connected { color: var(--pay-green); }
+  .gateway-state--connected i { background: var(--pay-green); box-shadow: 0 0 0 4px rgba(101,229,170,.08), 0 0 12px rgba(101,229,170,.35); }
   .company-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 20px; }
   .company-grid label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; }
   .company-grid .pay-input, .company-grid .pay-select { height: 44px; padding: 0 12px; font-size: 10px; }

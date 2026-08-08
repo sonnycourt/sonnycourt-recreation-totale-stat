@@ -13,14 +13,14 @@ const transactions = [
   <button slot="actions" class="pay-button pay-button--ghost" type="button" data-demo-disabled>↓ Exporter</button>
 
   <section class="transaction-summary">
-    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong>3 122,35 €</strong><span>27 transactions</span></article>
-    <article class="pay-panel"><small>Remboursé</small><strong>98,17 €</strong><span>1 transaction</span></article>
-    <article class="pay-panel"><small>En attente</small><strong>197,00 €</strong><span>1 transaction</span></article>
+    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong id="transactionRevenue">3 122,35 €</strong><span id="transactionSuccessCount">27 transactions</span></article>
+    <article class="pay-panel"><small>Remboursé</small><strong id="transactionRefunded">98,17 €</strong><span id="transactionRefundCount">1 transaction</span></article>
+    <article class="pay-panel"><small>En attente</small><strong id="transactionPending">197,00 €</strong><span id="transactionPendingCount">1 transaction</span></article>
   </section>
 
   <section class="pay-panel transaction-panel">
-    <div class="pay-panel-header"><div><h2>Historique</h2><p>Données de démonstration avant connexion aux passerelles</p></div><span class="pay-badge">Prototype</span></div>
-    <div class="transaction-table">
+    <div class="pay-panel-header"><div><h2>Historique</h2><p id="transactionDescription">Connexion à Stripe en cours…</p></div><span class="pay-badge" id="transactionMode">Prototype</span></div>
+    <div class="transaction-table" id="stripeTransactionTable">
       <div class="transaction-row transaction-head"><span>Client</span><span>Checkout</span><span>Date</span><span>Passerelle</span><span>Statut</span><span>Montant</span></div>
       {transactions.map((item) => (
         <div class="transaction-row">
@@ -33,6 +33,58 @@ const transactions = [
     </div>
   </section>
 </PayAppShell>
+
+<script>
+  function escapeTransactionText(value) {
+    return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  function transactionMoney(cents, currency = 'eur') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency).toUpperCase() }).format(Number(cents || 0) / 100);
+  }
+
+  function transactionDate(timestamp) {
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(Number(timestamp || 0) * 1000));
+  }
+
+  function transactionBadge(status) {
+    if (status === 'Réussi') return 'pay-badge--success';
+    if (status === 'En attente' || status === 'Action requise') return 'pay-badge--warning';
+    return 'pay-badge--draft';
+  }
+
+  function renderStripeTransactions(data) {
+    if (!data?.connected) return;
+    const currency = data.account?.currency || 'eur';
+    const items = Array.isArray(data.transactions) ? data.transactions : [];
+    document.getElementById('transactionRevenue').textContent = transactionMoney(data.metrics?.revenue?.[currency] || 0, currency);
+    document.getElementById('transactionSuccessCount').textContent = `${data.metrics?.successful || 0} paiement${data.metrics?.successful === 1 ? '' : 's'} réussi${data.metrics?.successful === 1 ? '' : 's'}`;
+    document.getElementById('transactionRefunded').textContent = transactionMoney(data.metrics?.refunded_amount?.[currency] || 0, currency);
+    document.getElementById('transactionRefundCount').textContent = `${data.metrics?.refunded || 0} remboursement${data.metrics?.refunded === 1 ? '' : 's'}`;
+    document.getElementById('transactionPending').textContent = transactionMoney(data.metrics?.pending_amount?.[currency] || 0, currency);
+    document.getElementById('transactionPendingCount').textContent = `${data.metrics?.pending || 0} paiement${data.metrics?.pending === 1 ? '' : 's'}`;
+    document.getElementById('transactionDescription').textContent = 'Données Stripe · 30 derniers jours';
+    const mode = document.getElementById('transactionMode');
+    mode.textContent = data.mode === 'live' ? 'Stripe réel' : 'Stripe test';
+    mode.className = 'pay-badge pay-badge--success';
+
+    const table = document.getElementById('stripeTransactionTable');
+    const head = '<div class="transaction-row transaction-head"><span>Client</span><span>Description</span><span>Date</span><span>Moyen</span><span>Statut</span><span>Montant</span></div>';
+    if (!items.length) {
+      table.innerHTML = `${head}<div class="transaction-empty">Aucune transaction Stripe sur les 30 derniers jours.</div>`;
+      return;
+    }
+    table.innerHTML = head + items.map((item) => {
+      const customer = item.customer || item.email || 'Client Stripe';
+      const initials = customer.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S';
+      return `<div class="transaction-row"><span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></span><span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong></div>`;
+    }).join('');
+  }
+
+  document.addEventListener('pay:stripe', (event) => renderStripeTransactions(event.detail));
+  const stripeTransactionsPromise = window.getPayStripeOverview?.();
+  stripeTransactionsPromise?.then(renderStripeTransactions);
+</script>
 
 <style>
   .transaction-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
@@ -48,6 +100,10 @@ const transactions = [
   .transaction-head { color: var(--pay-muted); background: rgba(2,10,20,.18); font-size: 8px; font-weight: 700; }
   .transaction-row > strong:last-child { color: #fff; text-align: right; }
   .transaction-client { display: flex; align-items: center; gap: 9px; color: #fff; }
-  .transaction-client i { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 10px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 8px; font-style: normal; font-weight: 800; }
+  .transaction-client i { width: 30px; height: 30px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 10px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 8px; font-style: normal; font-weight: 800; }
+  .transaction-client span { min-width: 0; }
+  .transaction-client strong, .transaction-client small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .transaction-client small { max-width: 150px; margin-top: 3px; color: var(--pay-muted); font-size: 7px; }
+  .transaction-empty { padding: 40px 20px; color: var(--pay-muted); font-size: 10px; text-align: center; }
   @media (max-width: 700px) { .transaction-summary { grid-template-columns: 1fr; } }
 </style>

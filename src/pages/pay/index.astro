@@ -13,13 +13,13 @@ import PayAppShell from '../../components/PayAppShell.astro';
   <section class="dashboard-kpis" aria-label="Indicateurs principaux">
     <article class="metric-card pay-panel metric-card--primary">
       <div class="metric-top"><span>Chiffre d’affaires</span><span class="metric-chip">30 jours</span></div>
-      <strong>3 122,35 €</strong>
-      <div class="metric-foot"><span class="metric-trend">↗ 12,4 %</span><small>vs période précédente</small></div>
+      <strong id="stripeRevenue">3 122,35 €</strong>
+      <div class="metric-foot"><span class="metric-trend" id="stripeRevenueState">Données démo</span><small>paiements réussis</small></div>
     </article>
     <article class="metric-card pay-panel">
       <div class="metric-top"><span>Transactions</span><span class="metric-icon">↗</span></div>
-      <strong>27</strong>
-      <div class="metric-foot"><span>24 réussies</span><small>3 en attente</small></div>
+      <strong id="stripeTransactionCount">27</strong>
+      <div class="metric-foot"><span id="stripeSuccessfulCount">24 réussies</span><small id="stripePendingCount">3 en attente</small></div>
     </article>
     <article class="metric-card pay-panel">
       <div class="metric-top"><span>Checkouts actifs</span><span class="metric-icon">▣</span></div>
@@ -27,19 +27,19 @@ import PayAppShell from '../../components/PayAppShell.astro';
       <div class="metric-foot"><span>3 publiés</span><small id="dashboardDraftCount">1 brouillon</small></div>
     </article>
     <article class="metric-card pay-panel">
-      <div class="metric-top"><span>Taux de conversion</span><span class="metric-icon">◎</span></div>
-      <strong>8,7 %</strong>
-      <div class="metric-foot"><span class="metric-trend">↗ 1,8 pt</span><small>sur 310 visites</small></div>
+      <div class="metric-top"><span>Solde disponible</span><span class="metric-icon">◎</span></div>
+      <strong id="stripeAvailableBalance">—</strong>
+      <div class="metric-foot"><span id="stripeBalanceMode">Connexion Stripe</span><small id="stripePendingBalance">vérification…</small></div>
     </article>
   </section>
 
   <section class="dashboard-layout">
     <article class="pay-panel activity-panel">
       <div class="pay-panel-header">
-        <div><h2>Activité récente</h2><p>Les derniers paiements de la démo</p></div>
+        <div><h2>Activité récente</h2><p id="stripeActivityDescription">Les derniers paiements de la démo</p></div>
         <a class="panel-link" data-pay-route="/transactions" href="/pay/transactions">Tout voir →</a>
       </div>
-      <div class="activity-list">
+      <div class="activity-list" id="stripeActivityList">
         <div class="activity-row">
           <span class="activity-avatar">AM</span>
           <span class="activity-customer"><strong>Amélie Martin</strong><small>ES2.0 · Standard</small></span>
@@ -70,12 +70,62 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <a data-pay-route="/checkouts/new" href="/pay/checkouts/new"><span class="quick-icon">＋</span><span><strong>Nouveau checkout</strong><small>Créer une page de paiement</small></span><b>→</b></a>
         <a data-pay-route="/settings" href="/pay/settings"><span class="quick-icon">⚡</span><span><strong>Connecter les paiements</strong><small>Préparer Stripe et PayPal</small></span><b>→</b></a>
       </div>
-      <div class="prototype-note"><span>i</span><p><strong>Tu regardes des données de démonstration.</strong> Les vraies données arriveront avec la connexion Stripe.</p></div>
+      <div class="prototype-note" id="stripeDashboardNote"><span>i</span><p><strong>Connexion à Stripe en cours.</strong> Les données de démonstration seront remplacées dès que le compte répond.</p></div>
     </aside>
   </section>
 </PayAppShell>
 
 <script>
+  function escapeStripeText(value) {
+    return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  function stripeMoney(cents, currency = 'eur') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency).toUpperCase() }).format(Number(cents || 0) / 100);
+  }
+
+  function stripeDate(timestamp) {
+    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(Number(timestamp || 0) * 1000));
+  }
+
+  function renderStripeDashboard(data) {
+    if (!data?.connected) return;
+    const currency = data.account?.currency || 'eur';
+    const revenue = data.metrics?.revenue?.[currency] || 0;
+    const available = data.balance?.available?.[currency] || 0;
+    const pendingBalance = data.balance?.pending?.[currency] || 0;
+    const transactions = Array.isArray(data.transactions) ? data.transactions : [];
+    document.getElementById('stripeRevenue').textContent = stripeMoney(revenue, currency);
+    document.getElementById('stripeRevenueState').textContent = data.mode === 'live' ? 'Stripe réel' : 'Stripe test';
+    document.getElementById('stripeTransactionCount').textContent = String(data.metrics?.total || transactions.length);
+    document.getElementById('stripeSuccessfulCount').textContent = `${data.metrics?.successful || 0} réussie${data.metrics?.successful === 1 ? '' : 's'}`;
+    document.getElementById('stripePendingCount').textContent = `${data.metrics?.pending || 0} en attente`;
+    document.getElementById('stripeAvailableBalance').textContent = stripeMoney(available, currency);
+    document.getElementById('stripeBalanceMode').textContent = data.mode === 'live' ? 'Mode réel' : 'Mode test';
+    document.getElementById('stripePendingBalance').textContent = `${stripeMoney(pendingBalance, currency)} à venir`;
+    document.getElementById('stripeActivityDescription').textContent = 'Données Stripe réelles · 30 derniers jours';
+
+    const list = document.getElementById('stripeActivityList');
+    if (transactions.length) {
+      list.innerHTML = transactions.slice(0, 5).map((item, index) => {
+        const name = item.customer || item.email || 'Client Stripe';
+        const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+        const success = item.status === 'Réussi';
+        return `<div class="activity-row"><span class="activity-avatar${index % 3 === 1 ? ' activity-avatar--violet' : index % 3 === 2 ? ' activity-avatar--gold' : ''}">${escapeStripeText(initials || 'S')}</span><span class="activity-customer"><strong>${escapeStripeText(name)}</strong><small>${escapeStripeText(item.description)}</small></span><span class="activity-date">${escapeStripeText(stripeDate(item.created))}</span><span class="pay-badge ${success ? 'pay-badge--success' : 'pay-badge--warning'}">${escapeStripeText(item.status)}</span><strong class="activity-amount">${escapeStripeText(stripeMoney(item.amount, item.currency))}</strong></div>`;
+      }).join('');
+    } else {
+      list.innerHTML = '<div class="activity-empty">Aucune transaction Stripe sur les 30 derniers jours.</div>';
+    }
+
+    const note = document.getElementById('stripeDashboardNote');
+    note.classList.add('is-connected');
+    note.innerHTML = `<span>✓</span><p><strong>Stripe est connecté en mode ${data.mode === 'live' ? 'réel' : 'test'}.</strong> Le tableau de bord affiche maintenant les données du compte ${escapeStripeText(data.account?.name || '')}.</p>`;
+  }
+
+  document.addEventListener('pay:stripe', (event) => renderStripeDashboard(event.detail));
+  const stripeDashboardPromise = window.getPayStripeOverview?.();
+  stripeDashboardPromise?.then(renderStripeDashboard);
+
   try {
     const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
     document.getElementById('dashboardCheckoutCount').textContent = String(4 + drafts.length);
@@ -100,6 +150,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .activity-list { display: grid; }
   .activity-row { display: grid; grid-template-columns: 36px minmax(160px, 1fr) minmax(110px, .5fr) 72px 78px; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid rgba(169,216,255,.075); }
   .activity-row:last-child { border-bottom: 0; }
+  .activity-empty { padding: 34px 20px; color: var(--pay-muted); font-size: 10px; text-align: center; }
   .activity-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.18); border-radius: 11px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 9px; font-weight: 800; }
   .activity-avatar--violet { color: #c6a7ff; border-color: rgba(198,167,255,.18); background: rgba(198,167,255,.055); }
   .activity-avatar--gold { color: #ffd47a; border-color: rgba(255,212,122,.18); background: rgba(255,212,122,.055); }
@@ -119,6 +170,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .prototype-note > span { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #ffd47a; background: rgba(255,212,122,.1); font-size: 9px; font-weight: 800; }
   .prototype-note p { margin: 0; color: var(--pay-muted); font-size: 8px; line-height: 1.45; }
   .prototype-note strong { color: rgba(243,249,255,.72); }
+  .prototype-note.is-connected { border-color: rgba(101,229,170,.18); background: rgba(101,229,170,.04); }
+  .prototype-note.is-connected > span { color: var(--pay-green); background: rgba(101,229,170,.1); }
   @media (max-width: 1050px) { .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-layout { grid-template-columns: 1fr; } }
   @media (max-width: 680px) { .dashboard-kpis { grid-template-columns: 1fr; } .activity-row { grid-template-columns: 34px 1fr auto; } .activity-date, .activity-row .pay-badge { display: none; } }
 </style>
