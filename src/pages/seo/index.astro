@@ -49,8 +49,8 @@ const agents = [
     division: 'Intelligence & marché',
     task: 'Relie chaque intention au bon produit, au bon parcours et au CTA le plus cohérent.',
     state: 'review',
-    stateLabel: 'Catalogue produit à cadrer',
-    progress: 42,
+    stateLabel: '2 offres à valider',
+    progress: 64,
     color: 'amber',
     image: '/media/seo/agents/agent-numa-v1.png',
   },
@@ -108,9 +108,30 @@ const agents = [
   },
 ];
 
+const offers = [
+  {
+    id: 'esprit-subconscient-2',
+    number: '01',
+    name: 'Esprit Subconscient 2.0',
+    type: 'Webinaire',
+    action: 'Rejoindre le webinaire',
+    url: 'https://sonnycourt.com/masterclass',
+    path: '/masterclass',
+  },
+  {
+    id: 'service-coaching',
+    number: '02',
+    name: 'Service Coaching',
+    type: 'Service',
+    action: 'Découvrir le coaching',
+    url: 'https://sonnycourt.com/coach',
+    path: '/coach',
+  },
+];
+
 const decisions = [
   { title: 'Lancer la cartographie sémantique', meta: 'Basile · aucune publication', target: 'missionRoom' },
-  { title: 'Valider le catalogue produits', meta: 'Numa · nécessaire avant les CTA', target: 'missionRoom' },
+  { title: 'Valider le catalogue produits', meta: 'Numa · 2 offres à confirmer', target: 'productCatalog' },
   { title: 'Choisir le premier cluster', meta: 'Olympe · arbitrage business', target: 'articlePipeline' },
 ];
 
@@ -139,8 +160,8 @@ const missions = [
     owner: 'Numa',
     state: 'À cadrer',
     title: 'Cartographier les offres et les parcours',
-    description: 'Associer produits, pages, promesses, audiences et CTA avant toute production éditoriale.',
-    evidence: 'Une source de vérité commerciale pour tous les agents',
+    description: 'Cadrer les deux parcours MVP : le webinaire Esprit Subconscient 2.0 et le service Coaching.',
+    evidence: '/masterclass + /coach comme source de vérité initiale',
   },
   {
     priority: 'P2',
@@ -344,6 +365,46 @@ const missions = [
             <article><small>Publications automatiques</small><strong>0</strong><span>Verrou permanent</span></article>
           </section>
 
+          <section class="panel catalog-panel" id="productCatalog" aria-labelledby="catalogTitle">
+            <div class="catalog-heading">
+              <div>
+                <div class="section-kicker">Source de vérité commerciale · MVP</div>
+                <h2 id="catalogTitle">Le catalogue de Numa tient en deux offres.</h2>
+                <p>Ce référentiel empêchera les agents d’inventer une offre ou d’envoyer un lecteur vers un parcours qui n’existe pas.</p>
+              </div>
+              <div class="catalog-owner">
+                <span class="catalog-owner-avatar" aria-hidden="true"></span>
+                <span><small>Responsable du catalogue</small><strong>Numa</strong><em>Offres &amp; conversion</em></span>
+              </div>
+            </div>
+
+            <div class="offer-grid">
+              {offers.map((offer) => (
+                <article class="offer-card" data-offer-state="draft">
+                  <div class="offer-topline">
+                    <span>{offer.number}</span>
+                    <small data-catalog-status>À valider</small>
+                  </div>
+                  <div class="offer-identity">
+                    <span>{offer.type}</span>
+                    <h3>{offer.name}</h3>
+                    <p>{offer.action}</p>
+                  </div>
+                  <dl>
+                    <div><dt>URL canonique</dt><dd><a href={offer.url} target="_blank" rel="noreferrer">{offer.path}<span aria-hidden="true">↗</span></a></dd></div>
+                    <div><dt>Audience</dt><dd>À définir plus tard</dd></div>
+                    <div><dt>Promesse</dt><dd>À définir plus tard</dd></div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+
+            <footer class="catalog-validation" id="catalogValidation" data-state="draft">
+              <p><strong id="catalogState">Catalogue non validé</strong><span>Numa connaît les deux destinations, mais aucune association mot-clé → offre ne sera activée pour l’instant.</span></p>
+              <button id="validateProductCatalog" type="button">Valider ces 2 offres pour le MVP <span>→</span></button>
+            </footer>
+          </section>
+
           <section class="panel autonomy-panel" aria-labelledby="autonomyTitle">
             <div class="autonomy-heading">
               <div>
@@ -504,6 +565,21 @@ const missions = [
         document.getElementById('validatorPrimaryReason').textContent = 'Simulation terminée : zéro publication, zéro modification du site et zéro coût API.';
         document.getElementById('teamStatusText').textContent = 'Basile prépare la carte sémantique du premier cycle.';
         notify('Cycle simulé : le dossier interne est prêt.');
+      });
+
+      document.getElementById('validateProductCatalog')?.addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        document.getElementById('catalogValidation').dataset.state = 'validated';
+        document.getElementById('catalogState').textContent = 'Catalogue MVP validé';
+        document.querySelectorAll('[data-catalog-status]').forEach((status) => {
+          status.textContent = 'Validée dans le MVP';
+        });
+        document.querySelectorAll('.offer-card').forEach((card) => {
+          card.dataset.offerState = 'validated';
+        });
+        button.textContent = 'Catalogue MVP validé ✓';
+        button.disabled = true;
+        notify('Numa dispose maintenant de 2 offres validées dans ce prototype.');
       });
 
       document.querySelectorAll('[data-demo-mission]').forEach((button) => {
