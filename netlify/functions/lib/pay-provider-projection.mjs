@@ -51,6 +51,19 @@ function currency(value) {
   return /^[a-z]{3}$/.test(code) ? code : 'eur';
 }
 
+function amountToMinor(value, currencyCode = 'eur') {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return 0;
+  let digits = 2;
+  try {
+    digits = new Intl.NumberFormat('en', { style: 'currency', currency: currency(currencyCode).toUpperCase() })
+      .resolvedOptions().maximumFractionDigits;
+  } catch {
+    digits = 2;
+  }
+  return Math.max(0, Math.round(Math.abs(amount) * (10 ** digits)));
+}
+
 function iso(value) {
   const date = typeof value === 'number' ? new Date(value * 1_000) : new Date(String(value || ''));
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
@@ -109,6 +122,16 @@ function stripePrice(subscription) {
 
 function stripeCoupon(object) {
   return object?.promotion?.coupon || object?.coupon || object;
+}
+
+function canonicalPayPalStatus(value, kind = 'sale') {
+  const status = clean(value, 80).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (['reussi', 'completed', 'complete', 'succeeded', 'paid'].includes(status)) return 'succeeded';
+  if (['refund', 'sale', 'payment_plan'].includes(kind) && ['rembourse', 'refunded', 'partiel', 'partial'].includes(status)) return 'succeeded';
+  if (['en attente', 'pending', 'processing', 'approval pending', 'approval_pending'].includes(status)) return 'pending';
+  if (['refuse', 'denied', 'declined', 'failed', 'echec'].includes(status)) return 'failed';
+  if (['annule', 'cancelled', 'canceled', 'voided', 'reversed'].includes(status)) return 'cancelled';
+  return status.replace(/\s+/g, '_') || 'unknown';
 }
 
 function projectStripeCustomer(object) {
@@ -303,6 +326,7 @@ export function projectPayPalTransaction(transaction) {
   const sourceCreatedAt = iso(Number(transaction.created || 0));
   const sourceUpdatedAt = iso(transaction.updated) || sourceCreatedAt;
   const transactionCurrency = currency(transaction.currency);
+  const transactionStatus = canonicalPayPalStatus(transaction.status, transaction.kind);
   const customerId = clean(transaction.email, 200).toLowerCase();
   const operations = [];
   if (customerId) {
@@ -317,7 +341,7 @@ export function projectPayPalTransaction(transaction) {
   }
   if (transaction.kind === 'refund') {
     operations.push(operation('pay_refunds', {
-      provider: providerName, external_id: externalId, status: clean(transaction.status, 60) || 'unknown',
+      provider: providerName, external_id: externalId, status: transactionStatus,
       currency: transactionCurrency, amount_minor: nonNegative(transaction.refunded || transaction.amount), reason: null,
       refunded_at: sourceCreatedAt, source_created_at: sourceCreatedAt, source_updated_at: sourceUpdatedAt,
       metadata: safeMetadata({}, { payment_external_id: transaction.reference_id, event_code: transaction.event_code }),
@@ -326,12 +350,12 @@ export function projectPayPalTransaction(transaction) {
   }
   if (['sale', 'payment_plan'].includes(transaction.kind)) {
     operations.push(operation('pay_payments', {
-      provider: providerName, external_id: externalId, status: clean(transaction.status, 60) || 'unknown',
+      provider: providerName, external_id: externalId, status: transactionStatus,
       currency: transactionCurrency, amount_minor: nonNegative(transaction.amount), refunded_minor: nonNegative(transaction.refunded),
       fee_minor: nonNegative(transaction.fee), net_minor: integer(transaction.signed_amount, null),
       payment_method_type: 'paypal', payment_method_brand: null, payment_method_last4: null,
       description: clean(transaction.description, 500) || 'Paiement PayPal',
-      paid_at: transaction.status === 'Réussi' ? sourceCreatedAt : null,
+      paid_at: transactionStatus === 'succeeded' ? sourceCreatedAt : null,
       source_created_at: sourceCreatedAt, source_updated_at: sourceUpdatedAt,
       metadata: safeMetadata({}, {
         customer_external_id: customerId, customer_email: customerId,
@@ -340,6 +364,43 @@ export function projectPayPalTransaction(transaction) {
       }),
     }));
   }
+  return operations;
+}
+
+export function projectPayPalSubscription(subscription) {
+  if (!subscription || typeof subscription !== 'object' || Array.isArray(subscription)) throw new Error('pay_projection_object_invalid');
+  const externalId = id(subscription);
+  if (!externalId) throw new Error('pay_projection_identity_missing');
+  const subscriber = subscription.subscriber || {};
+  const subscriberEmail = clean(subscriber.email_address, 200).toLowerCase();
+  const subscriberName = clean([subscriber.name?.given_name, subscriber.name?.surname].filter(Boolean).join(' '), 200);
+  const amount = subscription.billing_info?.last_payment?.amount || subscription.billing_info?.outstanding_balance || {};
+  const subscriptionCurrency = currency(amount.currency_code || subscription.currency_code);
+  const operations = [];
+  if (subscriberEmail) {
+    const parsed = names(subscriberName || subscriberEmail);
+    operations.push(operation('pay_customers', {
+      provider: 'paypal', external_id: subscriberEmail, email: subscriberEmail, email_normalized: subscriberEmail,
+      first_name: parsed.first || null, last_name: parsed.last || null, display_name: parsed.display || subscriberEmail,
+      phone: null, country: clean(subscriber.shipping_address?.address?.country_code, 2).toUpperCase() || null,
+      currency: subscriptionCurrency, source_created_at: iso(subscription.create_time),
+      source_updated_at: iso(subscription.update_time || subscription.create_time), metadata: {},
+    }));
+  }
+  operations.push(operation('pay_subscriptions', {
+    provider: 'paypal', external_id: externalId, status: canonicalPayPalStatus(subscription.status || 'pending'),
+    currency: subscriptionCurrency, amount_minor: amountToMinor(amount.value, subscriptionCurrency),
+    interval_unit: null, interval_count: null, quantity: Math.max(1, integer(subscription.quantity, 1)),
+    started_at: iso(subscription.start_time || subscription.create_time), current_period_start: null,
+    current_period_end: iso(subscription.billing_info?.next_billing_time), cancel_at: null,
+    cancelled_at: /cancel/i.test(String(subscription.status || '')) ? iso(subscription.update_time) : null,
+    source_created_at: iso(subscription.create_time), source_updated_at: iso(subscription.update_time || subscription.create_time),
+    metadata: safeMetadata({}, {
+      customer_external_id: subscriberEmail, customer_email: subscriberEmail, customer_name: subscriberName,
+      product_external_id: subscription.plan_id, price_external_id: subscription.plan_id,
+      paypal_custom_id: subscription.custom_id,
+    }),
+  }));
   return operations;
 }
 

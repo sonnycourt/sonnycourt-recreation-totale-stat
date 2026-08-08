@@ -101,6 +101,14 @@ contient ni accès réseau ni écriture Supabase ; les relations sont conservée
 par identifiants externes jusqu'à leur résolution transactionnelle par le
 moteur central.
 
+`netlify/functions/lib/pay-webhook-projection.mjs` relie ce contrat aux vrais
+objets fournisseur en mode `dry_run`. Chaque événement reçoit une décision
+explicite (`projected` ou `ignored`), une liste d'upserts proposés et, pour les
+factures Stripe, un effet d'échéance à résoudre. Le résumé d'audit ne contient
+ni email, ni nom, ni payload brut. Les captures, remboursements et abonnements
+PayPal ainsi que les objets cœur Stripe sont couverts ; les événements hors MVP
+sont ignorés avec un motif au lieu de créer une donnée approximative.
+
 ## Ordre de reprise historique
 
 1. Importer à blanc les exports Spiffy.
