@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import payHistoryHandler from '../netlify/functions/pay-history.js';
-import { buildPayHistoryDashboard, getPayHistoryDashboard, paySupabaseSelect, projectPaymentPlan } from '../netlify/functions/lib/pay-history.mjs';
+import { buildPayHistoryDashboard, getPayHistoryDashboard, getPayHistoryResource, paySupabaseSelect, projectPaymentPlan } from '../netlify/functions/lib/pay-history.mjs';
 
 const plans = [
   { external_id: 'active_1', status: 'active', currency: 'eur', installment_amount_minor: 10_000, installment_count: 4, installments_paid: 1, remaining_minor: 30_000, interval_unit: 'month', interval_count: 1, next_payment_at: '2026-08-10T10:00:00Z' },
@@ -61,6 +61,37 @@ await paySupabaseSelect('pay_orders', { select: 'external_id' }, {
 assert.equal(requests.length, 1);
 assert.equal(requests[0].options.method, 'GET');
 await assert.rejects(() => paySupabaseSelect('orders', {}, { supabaseUrl: 'https://example.supabase.co', serviceKey: 'service-test', fetchImpl: async () => new Response('[]') }), /pay_history_table_invalid/);
+
+const historyOrders = await getPayHistoryResource('orders', {
+  select: async () => [{
+    provider: 'spiffy', external_id: '2475427', status: 'succeeded', currency: 'eur', total_minor: 116_400,
+    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com', 'name first': 'Client', product_name: 'ES2.0' },
+  }],
+});
+assert.equal(historyOrders.ready, true);
+assert.equal(historyOrders.rows[0].id, '2475427');
+assert.equal(historyOrders.rows[0].customer, 'Client');
+assert.equal(historyOrders.rows[0].description, 'ES2.0');
+
+const historyPayments = await getPayHistoryResource('payments', {
+  select: async () => [{
+    provider: 'paypal', external_id: 'capture_1', status: 'succeeded', currency: 'eur', amount_minor: 19_700,
+    refunded_minor: 0, payment_method_type: 'paypal', description: 'Échéance ES2.0', paid_at: '2026-08-07T07:26:24Z',
+    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com' },
+  }],
+});
+assert.equal(historyPayments.rows[0].provider, 'paypal');
+assert.equal(historyPayments.rows[0].amount, 19_700);
+assert.equal(historyPayments.rows[0].payment_method, 'paypal');
+
+const historyProducts = await getPayHistoryResource('products', {
+  select: async (table) => table === 'pay_products'
+    ? [{ id: 'product_uuid', provider: 'stripe', external_id: 'prod_1', name: 'ES2.0', active: true, source_created_at: '2026-08-07T07:26:24Z' }]
+    : [{ product_id: 'product_uuid', provider: 'stripe', external_id: 'price_1', currency: 'eur', unit_amount_minor: 19_700, billing_type: 'recurring', interval_unit: 'month', interval_count: 1, active: true }],
+});
+assert.equal(historyProducts.rows[0].prices[0].id, 'price_1');
+assert.equal(historyProducts.rows[0].prices[0].amount, 19_700);
+await assert.rejects(() => getPayHistoryResource('unknown', { select: async () => [] }), /pay_history_resource_invalid/);
 
 const unauthenticated = await payHistoryHandler(new Request('https://pay.sonnycourt.com/.netlify/functions/pay-history'));
 assert.equal(unauthenticated.status, 401);

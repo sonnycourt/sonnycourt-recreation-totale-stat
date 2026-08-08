@@ -3,6 +3,7 @@ const screen = document.querySelector('[data-pay-resource-page]');
 if (screen) {
   const API_STRIPE = '/.netlify/functions/pay-stripe-data';
   const API_PAYPAL = '/.netlify/functions/pay-paypal-data';
+  const API_HISTORY = '/.netlify/functions/pay-history';
   const DAY = 86_400_000;
   const search = screen.querySelector('[data-resource-search]');
   const providerFilter = screen.querySelector('[data-resource-provider]');
@@ -87,9 +88,24 @@ if (screen) {
     return Array.isArray(payload.transactions) ? payload.transactions : [];
   }
 
+  async function fetchHistory(resource) {
+    try {
+      const response = await fetch(`${API_HISTORY}?${new URLSearchParams({ resource })}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ready || !Array.isArray(payload.rows) || payload.rows.length === 0) return null;
+      return payload.rows;
+    } catch {
+      return null;
+    }
+  }
+
   function stripeStatus(value) {
-    if (['succeeded', 'paid', 'complete', 'active', 'trialing'].includes(value)) return 'Réussi';
-    if (['processing', 'open', 'pending', 'incomplete', 'past_due', 'unpaid'].includes(value)) return value === 'past_due' ? 'En retard' : 'En attente';
+    if (value === 'refunded') return 'Remboursé';
+    if (value === 'completed') return 'Terminé';
+    if (value === 'unpaid') return 'Impayé';
+    if (['active', 'trialing'].includes(value)) return 'Actif';
+    if (['succeeded', 'paid', 'complete'].includes(value)) return 'Réussi';
+    if (['processing', 'open', 'pending', 'incomplete', 'past_due'].includes(value)) return value === 'past_due' ? 'En retard' : 'En attente';
     if (['canceled', 'cancelled', 'expired'].includes(value)) return 'Annulé';
     return value || 'Inconnu';
   }
@@ -103,6 +119,16 @@ if (screen) {
   }
 
   async function loadOrders() {
+    const history = await fetchHistory('orders');
+    if (history) return history.map((item) => {
+      const status = stripeStatus(item.status);
+      const created = date(item.created_at);
+      return row([
+        `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
+        `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
+        created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
+      ], [item.description, item.customer, item.email, created, item.provider, status, money(item.amount, item.currency)], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+    });
     const [intents, paypal] = await Promise.all([fetchStripeAll('payment_intents', 20), fetchPayPal(366).catch(() => [])]);
     const stripeRows = intents.map((intent) => {
       const customer = stripeCustomer(intent);
@@ -124,6 +150,13 @@ if (screen) {
   }
 
   async function loadCustomers() {
+    const history = await fetchHistory('customers');
+    if (history) return history.map((customer) => {
+      const status = 'Actif';
+      return row([
+        `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider), String(customer.order_count), `<strong>${money(customer.lifetime_value, customer.currency)}</strong>`, badge(status),
+      ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000));
+    });
     const [customers, intents, paypal] = await Promise.all([
       fetchStripeAll('customers', 20),
       fetchStripeAll('payment_intents', 20).catch(() => []),
@@ -165,6 +198,17 @@ if (screen) {
   }
 
   async function loadSubscriptions(paymentPlansOnly = false) {
+    const history = await fetchHistory(paymentPlansOnly ? 'payment_plans' : 'subscriptions');
+    if (history) return history.map((item) => {
+      const status = stripeStatus(item.status);
+      const interval = item.interval_count > 1 ? `${item.interval_count} ${item.interval_unit}` : item.interval_unit;
+      const name = item.customer || item.email || `Client ${item.provider}`;
+      return row(paymentPlansOnly ? [
+        `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), badge(status),
+      ] : [
+        `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, date(item.current_period_end, true), badge(status),
+      ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+    });
     const [subscriptions, paypal] = await Promise.all([fetchStripeAll('subscriptions', 20), fetchPayPal(366).catch(() => [])]);
     const stripeRows = subscriptions.map((subscription) => {
       const pricing = subscriptionAmount(subscription);
@@ -196,6 +240,17 @@ if (screen) {
   }
 
   async function loadProducts() {
+    const history = await fetchHistory('products');
+    if (history) return history.flatMap((product) => {
+      const prices = product.prices?.length ? product.prices : [{ id: product.id, provider: product.provider, amount: 0, currency: 'eur', billing_type: 'unknown', active: product.active }];
+      return prices.map((price) => {
+        const billing = price.billing_type === 'recurring' ? `Tous les ${price.interval_count || 1} ${price.interval_unit || 'mois'}` : price.billing_type === 'installment' ? `${price.installment_count || '—'} échéances` : price.billing_type === 'one_time' ? 'Paiement unique' : 'Prix non renseigné';
+        const status = product.active && price.active ? 'Actif' : 'Archivé';
+        return row([
+          `<strong>${escapeHtml(product.name)}</strong><small>#${escapeHtml(price.id)}</small>`, providerCell(product.provider), escapeHtml(billing), `<strong>${price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency)}</strong>`, badge(status),
+        ], [product.name, product.provider, billing, price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency), status], product.provider, status, Math.floor(new Date(product.created_at).getTime() / 1_000));
+      });
+    });
     const prices = await fetchStripeAll('prices', 20);
     return prices.map((price) => {
       const product = typeof price.product === 'object' ? price.product : null;
@@ -209,6 +264,14 @@ if (screen) {
   }
 
   async function loadCheckouts() {
+    const history = await fetchHistory('checkouts');
+    if (history) return history.map((item) => {
+      const status = stripeStatus(item.status);
+      const linkHtml = item.public_url ? `<a href="${escapeHtml(item.public_url)}" target="_blank" rel="noreferrer">Ouvrir ↗</a>` : '—';
+      return row([
+        `<strong>${escapeHtml(item.name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), '—', badge(status), linkHtml,
+      ], [item.name, item.provider, '—', status, item.public_url || ''], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+    });
     const links = await fetchStripeAll('payment_links', 20);
     return links.map((link) => {
       const line = link.line_items?.data?.[0];
@@ -226,6 +289,24 @@ if (screen) {
   }
 
   async function loadDiscounts() {
+    const history = await fetchHistory('discounts');
+    const drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
+    const draftRows = drafts.map((draft) => {
+      const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
+      return row([
+        `<strong>${escapeHtml(draft.code)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${escapeHtml(value)}</strong>`, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', '0', badge('Brouillon'),
+      ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+    });
+    if (history) {
+      const historyRows = history.map((discount) => {
+        const value = discount.type === 'percentage' ? `${discount.percent_off || 0} %` : money(discount.amount || 0, discount.currency || 'eur');
+        const status = stripeStatus(discount.status);
+        return row([
+          `<strong>${escapeHtml(discount.code)}</strong><small>#${escapeHtml(discount.id)}</small>`, providerCell(discount.provider), `<strong>${escapeHtml(value)}</strong>`, discount.expires_at ? date(discount.expires_at, true) : 'Sans expiration', `${discount.redeemed_count || 0}${discount.max_redemptions ? ` / ${discount.max_redemptions}` : ''}`, badge(status),
+        ], [discount.code, discount.provider, value, discount.expires_at ? date(discount.expires_at, true) : 'Sans expiration', discount.redeemed_count || 0, status], discount.provider, status, Math.floor(new Date(discount.created_at).getTime() / 1_000));
+      });
+      return [...draftRows, ...historyRows];
+    }
     const [coupons, promotionCodes] = await Promise.all([fetchStripeAll('coupons', 10).catch(() => []), fetchStripeAll('promotion_codes', 10).catch(() => [])]);
     const couponById = new Map(coupons.map((coupon) => [coupon.id, coupon]));
     const stripeRows = promotionCodes.map((promotion) => {
@@ -235,13 +316,6 @@ if (screen) {
       return row([
         `<strong>${escapeHtml(promotion.code || promotion.id)}</strong><small>#${escapeHtml(promotion.id)}</small>`, providerCell('stripe'), `<strong>${escapeHtml(value)}</strong>`, promotion.expires_at ? date(promotion.expires_at, true) : 'Sans expiration', `${promotion.times_redeemed || 0}${promotion.max_redemptions ? ` / ${promotion.max_redemptions}` : ''}`, badge(status),
       ], [promotion.code || promotion.id, 'Stripe', value, promotion.expires_at ? date(promotion.expires_at, true) : 'Sans expiration', promotion.times_redeemed || 0, status], 'stripe', status);
-    });
-    const drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
-    const draftRows = drafts.map((draft) => {
-      const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
-      return row([
-        `<strong>${escapeHtml(draft.code)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${escapeHtml(value)}</strong>`, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', '0', badge('Brouillon'),
-      ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
     });
     return [...draftRows, ...stripeRows];
   }

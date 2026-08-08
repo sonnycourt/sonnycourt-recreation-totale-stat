@@ -25,8 +25,8 @@ assert.match(orders.checksum, /^[a-f0-9]{64}$/);
 
 const plans = normalizeSpiffyExport(`Payment Plan ID,Customer Email,Product,Start Date,Next Payment Date,Status,Payment Amount,Number of Payments,Payments Made,Remaining Balance
 plan_1,julie@example.com,ES2.0,2026-01-01,2026-09-01,Active,€197.00,12,8,€788.00
-plan_2,marie@example.com,ES2.0,2026-01-01,2026-08-01,past_due,€197.00,12,4,€1,576.00
-plan_3,lea@example.com,ES2.0,2026-01-01,2026-08-01,unpaid,€197.00,12,2,€1,970.00`);
+plan_2,marie@example.com,ES2.0,2026-01-01,2026-08-01,past_due,€197.00,12,4,157600
+plan_3,lea@example.com,ES2.0,2026-01-01,2026-08-01,unpaid,€197.00,12,2,197000`);
 assert.equal(plans.type, 'payment_plans');
 assert.equal(plans.normalized[0].row.installment_count, 12);
 assert.equal(plans.normalized[0].row.remaining_minor, 78800);

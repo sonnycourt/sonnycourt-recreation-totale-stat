@@ -1,8 +1,53 @@
 const ALLOWED_TABLES = new Set([
+  'pay_checkouts',
+  'pay_customers',
+  'pay_discounts',
   'pay_orders',
   'pay_payment_plans',
+  'pay_payments',
+  'pay_prices',
+  'pay_products',
+  'pay_subscriptions',
   'pay_sync_runs',
 ]);
+
+const HISTORY_RESOURCES = Object.freeze({
+  orders: {
+    table: 'pay_orders',
+    select: 'provider,external_id,status,currency,total_minor,refunded_minor,promo_code,source_created_at,source_updated_at,metadata',
+    order: 'source_created_at.desc.nullslast',
+  },
+  customers: {
+    table: 'pay_customers',
+    select: 'provider,external_id,email,first_name,last_name,display_name,currency,lifetime_value_minor,order_count,source_created_at,source_updated_at',
+    order: 'source_created_at.desc.nullslast',
+  },
+  payment_plans: {
+    table: 'pay_payment_plans',
+    select: 'provider,external_id,status,currency,installment_amount_minor,installment_count,installments_paid,remaining_minor,interval_unit,interval_count,started_at,next_payment_at,source_created_at,source_updated_at,metadata',
+    order: 'source_created_at.desc.nullslast',
+  },
+  payments: {
+    table: 'pay_payments',
+    select: 'provider,external_id,status,currency,amount_minor,refunded_minor,fee_minor,net_minor,payment_method_type,payment_method_brand,payment_method_last4,description,paid_at,due_at,source_created_at,source_updated_at,metadata',
+    order: 'paid_at.desc.nullslast',
+  },
+  subscriptions: {
+    table: 'pay_subscriptions',
+    select: 'provider,external_id,status,currency,amount_minor,interval_unit,interval_count,quantity,started_at,current_period_start,current_period_end,cancel_at,cancelled_at,source_created_at,source_updated_at,metadata',
+    order: 'source_created_at.desc.nullslast',
+  },
+  checkouts: {
+    table: 'pay_checkouts',
+    select: 'provider,external_id,name,slug,public_url,status,sales_minor_30d,customer_count_30d,source_created_at,source_updated_at,metadata',
+    order: 'source_created_at.desc.nullslast',
+  },
+  discounts: {
+    table: 'pay_discounts',
+    select: 'provider,external_id,code,status,discount_type,amount_minor,percent_off,currency,applies_to_one_time,applies_to_recurring,once_per_customer,max_redemptions,redeemed_count,expires_at,source_created_at,source_updated_at',
+    order: 'source_created_at.desc.nullslast',
+  },
+});
 
 const MAX_ROWS = 20_000;
 const PAGE_SIZE = 1_000;
@@ -148,6 +193,197 @@ function addCurrencyAmount(target, currency, amount) {
 
 function successfulOrder(status) {
   return ['succeeded', 'paid', 'complete', 'completed', 'refunded', 'active'].includes(clean(status, 40).toLowerCase());
+}
+
+function metadataValue(metadata, ...keys) {
+  if (!metadata || typeof metadata !== 'object') return '';
+  for (const key of keys) {
+    const value = metadata[key];
+    if (value !== undefined && value !== null && String(value).trim()) return clean(String(value), 500);
+  }
+  return '';
+}
+
+function historyCustomer(metadata = {}) {
+  const email = metadataValue(metadata, 'customer_email', 'email').toLowerCase();
+  const first = metadataValue(metadata, 'name first', 'first name', 'customer first name');
+  const last = metadataValue(metadata, 'name last', 'last name', 'customer last name');
+  const name = metadataValue(metadata, 'customer name', 'name') || [first, last].filter(Boolean).join(' ') || email || 'Client';
+  return { name, email };
+}
+
+function resourceRow(resource, row) {
+  if (resource === 'orders') {
+    const customer = historyCustomer(row.metadata);
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(),
+      amount: Number(row.total_minor || 0),
+      refunded: Number(row.refunded_minor || 0),
+      description: metadataValue(row.metadata, 'product_name', 'product', 'offer name') || 'Commande',
+      customer: customer.name,
+      email: customer.email,
+      promo_code: row.promo_code || null,
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'customers') {
+    const name = clean(row.display_name, 200) || [clean(row.first_name, 100), clean(row.last_name, 100)].filter(Boolean).join(' ') || clean(row.email, 180) || 'Client';
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      email: clean(row.email, 180).toLowerCase(),
+      name,
+      currency: currencyCode(row.currency).toLowerCase(),
+      lifetime_value: Number(row.lifetime_value_minor || 0),
+      order_count: Number(row.order_count || 0),
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'payment_plans') {
+    const customer = historyCustomer(row.metadata);
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(),
+      amount: Number(row.installment_amount_minor || 0),
+      remaining: Number(row.remaining_minor || 0),
+      installment_count: Number(row.installment_count || 0),
+      installments_paid: Number(row.installments_paid || 0),
+      interval_unit: row.interval_unit || 'month',
+      interval_count: Number(row.interval_count || 1),
+      next_payment_at: row.next_payment_at,
+      started_at: row.started_at,
+      product: metadataValue(row.metadata, 'product_name', 'product', 'offer name') || 'Plan de paiement',
+      customer: customer.name,
+      email: customer.email,
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'payments') {
+    const customer = historyCustomer(row.metadata);
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(),
+      amount: Number(row.amount_minor || 0),
+      refunded: Number(row.refunded_minor || 0),
+      fee: row.fee_minor == null ? null : Number(row.fee_minor),
+      net: row.net_minor == null ? null : Number(row.net_minor),
+      description: clean(row.description, 300) || metadataValue(row.metadata, 'product_name', 'product', 'offer name') || 'Paiement',
+      customer: customer.name,
+      email: customer.email,
+      payment_method: [clean(row.payment_method_brand, 60), clean(row.payment_method_last4, 8) ? `•••• ${clean(row.payment_method_last4, 8)}` : ''].filter(Boolean).join(' ') || clean(row.payment_method_type, 80),
+      paid_at: row.paid_at || row.source_created_at,
+      due_at: row.due_at,
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'subscriptions') {
+    const customer = historyCustomer(row.metadata);
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(),
+      amount: Number(row.amount_minor || 0),
+      interval_unit: row.interval_unit || 'month',
+      interval_count: Number(row.interval_count || 1),
+      quantity: Number(row.quantity || 1),
+      customer: customer.name,
+      email: customer.email,
+      current_period_end: row.current_period_end,
+      cancel_at: row.cancel_at,
+      cancelled_at: row.cancelled_at,
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'checkouts') {
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      name: row.name,
+      slug: row.slug,
+      public_url: row.public_url,
+      status: row.status,
+      sales_30d: Number(row.sales_minor_30d || 0),
+      customer_count_30d: Number(row.customer_count_30d || 0),
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'discounts') {
+    return {
+      id: row.external_id,
+      provider: row.provider,
+      code: row.code,
+      status: row.status,
+      type: row.discount_type,
+      amount: row.amount_minor == null ? null : Number(row.amount_minor),
+      percent_off: row.percent_off == null ? null : Number(row.percent_off),
+      currency: row.currency ? currencyCode(row.currency).toLowerCase() : null,
+      applies_to_one_time: Boolean(row.applies_to_one_time),
+      applies_to_recurring: Boolean(row.applies_to_recurring),
+      once_per_customer: Boolean(row.once_per_customer),
+      max_redemptions: row.max_redemptions == null ? null : Number(row.max_redemptions),
+      redeemed_count: Number(row.redeemed_count || 0),
+      expires_at: row.expires_at,
+      created_at: row.source_created_at,
+      updated_at: row.source_updated_at,
+    };
+  }
+  return null;
+}
+
+export async function getPayHistoryResource(resource, options = {}) {
+  const config = HISTORY_RESOURCES[resource];
+  if (!config && resource !== 'products') throw historyError('pay_history_resource_invalid', 400);
+  const select = options.select || paySupabaseSelect;
+  if (resource === 'products') {
+    const [products, prices] = await Promise.all([
+      select('pay_products', { select: 'id,provider,external_id,name,description,active,source_created_at,source_updated_at', order: 'source_created_at.desc.nullslast' }, options),
+      select('pay_prices', { select: 'product_id,provider,external_id,label,currency,unit_amount_minor,billing_type,interval_unit,interval_count,installment_count,active,source_created_at,source_updated_at', order: 'source_created_at.desc.nullslast' }, options),
+    ]);
+    const pricesByProduct = new Map();
+    for (const price of prices) {
+      if (!price.product_id) continue;
+      const list = pricesByProduct.get(price.product_id) || [];
+      list.push({
+        id: price.external_id,
+        provider: price.provider,
+        label: price.label,
+        currency: currencyCode(price.currency).toLowerCase(),
+        amount: Number(price.unit_amount_minor || 0),
+        billing_type: price.billing_type,
+        interval_unit: price.interval_unit,
+        interval_count: Number(price.interval_count || 1),
+        installment_count: price.installment_count == null ? null : Number(price.installment_count),
+        active: Boolean(price.active),
+      });
+      pricesByProduct.set(price.product_id, list);
+    }
+    return { ready: true, resource, rows: products.map((product) => ({
+      id: product.external_id,
+      provider: product.provider,
+      name: product.name,
+      description: product.description,
+      active: Boolean(product.active),
+      prices: pricesByProduct.get(product.id) || [],
+      created_at: product.source_created_at,
+      updated_at: product.source_updated_at,
+    })) };
+  }
+  const rows = await select(config.table, { select: config.select, order: config.order }, options);
+  return { ready: true, resource, rows: rows.map((row) => resourceRow(resource, row)).filter(Boolean) };
 }
 
 export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [] } = {}, options = {}) {

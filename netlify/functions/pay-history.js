@@ -1,5 +1,5 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
-import { getPayHistoryDashboard } from './lib/pay-history.mjs';
+import { getPayHistoryDashboard, getPayHistoryResource } from './lib/pay-history.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -13,6 +13,8 @@ export default async (req) => {
   if (!getSessionFromRequest(req)) return json(401, { error: 'Non autorisé' });
   const url = new URL(req.url);
   try {
+    const resource = String(url.searchParams.get('resource') || '').trim();
+    if (resource) return json(200, await getPayHistoryResource(resource));
     const dashboard = await getPayHistoryDashboard({
       rangeStart: url.searchParams.get('range_start'),
       rangeEnd: url.searchParams.get('range_end'),

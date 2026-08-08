@@ -147,12 +147,19 @@ La fonction `pay-history` est strictement en lecture seule. Elle prépare les
 agrégats à partir des tables `pay_*`, exige la session administrateur et renvoie
 `ready: false` tant que la migration n'a pas été autorisée et appliquée.
 
+Après initialisation, la même fonction alimente automatiquement les listes de
+commandes, clients, paiements, abonnements, plans, produits, checkouts et
+réductions. En l'absence d'historique, ces écrans continuent à lire directement
+Stripe et PayPal. Sur la page Paiements, les objets live ont priorité sur une
+ligne d'archive portant le même identifiant ; eux seuls peuvent proposer une
+action de remboursement.
+
 ## État de parité du MVP
 
 | Zone Spiffy | Pay | État |
 | --- | --- | --- |
 | Dashboard et calendrier | Graphique Stripe + PayPal, sémantique Spiffy validée, 4 séries, infobulles et périodes personnalisées | prêt avant import |
-| Commandes, clients, paiements | Listes réelles, recherche, filtres, CSV et fiches détaillées | prêt |
+| Commandes, clients, paiements | Historique unifié, données live prioritaires, recherche, filtres, CSV et fiches détaillées | prêt avant import |
 | Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
 | Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |
 | Produits | Catalogue et prix Stripe réels | lecture prête |

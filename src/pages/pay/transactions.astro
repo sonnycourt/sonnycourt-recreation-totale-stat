@@ -68,9 +68,12 @@ const transactions = [];
   const PAYPAL_REFUND_API = '/.netlify/functions/pay-paypal-refund';
   const STRIPE_DATA_API = '/.netlify/functions/pay-stripe-data';
   const PAYPAL_DATA_API = '/.netlify/functions/pay-paypal-data';
+  const HISTORY_API = '/.netlify/functions/pay-history';
   let stripeTransactionsData = null;
   let recentStripeItems = [];
   let paypalTransactionsData = [];
+  let storedHistoryItems = [];
+  let storedHistoryReady = false;
   let paypalWritesEnabled = false;
   let fullHistoryItems = [];
   let fullHistoryCursor = '';
@@ -142,15 +145,55 @@ const transactions = [];
     };
   }
 
+  function normalizedHistoryStatus(payment) {
+    const status = String(payment.status || '').toLowerCase();
+    const refunded = Number(payment.refunded || 0);
+    if (refunded > 0) return refunded < Number(payment.amount || 0) ? 'Partiel' : 'Remboursé';
+    if (['succeeded', 'paid', 'complete', 'completed'].includes(status)) return 'Réussi';
+    if (['processing', 'pending', 'open'].includes(status)) return 'En attente';
+    if (['requires_action', 'action_required'].includes(status)) return 'Action requise';
+    if (['cancelled', 'canceled', 'expired'].includes(status)) return 'Annulé';
+    if (status === 'refunded') return 'Remboursé';
+    return 'Incomplet';
+  }
+
+  function normalizeHistoryPayment(payment) {
+    const paidAt = new Date(payment.paid_at || payment.created_at || 0);
+    const provider = ['stripe', 'paypal'].includes(payment.provider) ? payment.provider : 'spiffy';
+    const amount = Number(payment.amount || 0);
+    const refunded = Number(payment.refunded || 0);
+    return {
+      id: String(payment.id || ''),
+      provider,
+      created: Number.isFinite(paidAt.getTime()) ? Math.floor(paidAt.getTime() / 1_000) : 0,
+      amount,
+      refunded,
+      refundable: Math.max(0, amount - refunded),
+      can_refund: false,
+      currency: payment.currency || 'eur',
+      status: normalizedHistoryStatus(payment),
+      description: payment.description || 'Paiement historique',
+      customer: payment.customer || payment.email || 'Client',
+      email: payment.email || '',
+      payment_method: payment.payment_method || (provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Spiffy'),
+      historical: true,
+    };
+  }
+
   function combinedItems(stripeItems = recentStripeItems) {
-    return [...stripeItems, ...paypalTransactionsData].sort((first, second) => Number(second.created || 0) - Number(first.created || 0));
+    const itemsById = new Map();
+    for (const item of storedHistoryItems) itemsById.set(`${item.provider}:${item.id}`, item);
+    for (const item of stripeItems) itemsById.set(`stripe:${item.id}`, item);
+    for (const item of paypalTransactionsData) itemsById.set(`paypal:${item.id}`, item);
+    return [...itemsById.values()].sort((first, second) => Number(second.created || 0) - Number(first.created || 0));
   }
 
   function renderCombinedSummary() {
-    const items = combinedItems(recentStripeItems);
+    const cutoff = Math.floor((Date.now() - 30 * 86_400_000) / 1_000);
+    const items = combinedItems(recentStripeItems).filter((item) => Number(item.created || 0) >= cutoff);
     const currency = stripeTransactionsData?.account?.currency || items[0]?.currency || 'eur';
     const successful = items.filter((item) => item.status === 'Réussi' && item.kind !== 'refund');
-    const refunds = items.filter((item) => Number(item.refunded || 0) > 0 || item.kind === 'refund');
+    const refunds = items.filter((item) => Number(item.refunded || 0) > 0 || item.kind === 'refund' || item.status === 'Remboursé');
     const pending = items.filter((item) => ['En attente', 'Action requise', 'Incomplet'].includes(item.status));
     const revenue = successful.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.signed_amount ?? item.amount ?? 0), 0);
     const refunded = refunds.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.refunded || 0), 0);
@@ -161,6 +204,35 @@ const transactions = [];
     document.getElementById('transactionRefundCount').textContent = `${refunds.length} remboursement${refunds.length === 1 ? '' : 's'}`;
     document.getElementById('transactionPending').textContent = transactionMoney(pendingAmount, currency);
     document.getElementById('transactionPendingCount').textContent = `${pending.length} paiement${pending.length === 1 ? '' : 's'}`;
+  }
+
+  function renderStoredHistory() {
+    renderCombinedSummary();
+    renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
+    const description = document.getElementById('transactionDescription');
+    description.textContent = storedHistoryReady
+      ? `Historique unifié · ${storedHistoryItems.length} paiement${storedHistoryItems.length === 1 ? '' : 's'} archivé${storedHistoryItems.length === 1 ? '' : 's'} + données live`
+      : 'Stripe + PayPal · 30 derniers jours';
+    const footer = document.getElementById('transactionHistoryFooter');
+    const state = document.getElementById('transactionHistoryState');
+    if (storedHistoryReady) {
+      footer.hidden = false;
+      state.textContent = `Archive Spiffy disponible · ${storedHistoryItems.length} paiement${storedHistoryItems.length === 1 ? '' : 's'}`;
+      document.getElementById('transactionLoadMore').hidden = true;
+    }
+  }
+
+  async function loadStoredHistory() {
+    try {
+      const response = await fetch(`${HISTORY_API}?resource=payments`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ready || !Array.isArray(data.rows) || data.rows.length === 0) return;
+      storedHistoryItems = data.rows.map(normalizeHistoryPayment).filter((item) => item.id && item.created > 0);
+      storedHistoryReady = storedHistoryItems.length > 0;
+      renderStoredHistory();
+    } catch (error) {
+      console.error('Pay history:', error);
+    }
   }
 
   function renderTransactionTable(items, emptyText = 'Aucune transaction Stripe.') {
@@ -179,6 +251,10 @@ const transactions = [];
 
   async function loadFullStripeHistory(reset = false) {
     if (['localhost', '127.0.0.1'].includes(window.location.hostname) || fullHistoryLoading) return;
+    if (storedHistoryReady) {
+      renderStoredHistory();
+      return;
+    }
     if (reset && fullHistoryInitialized) return;
     fullHistoryLoading = true;
     const footer = document.getElementById('transactionHistoryFooter');
@@ -198,7 +274,7 @@ const transactions = [];
       fullHistoryCursor = page.next_cursor || '';
       fullHistoryInitialized = true;
       stripeTransactionsData = { ...stripeTransactionsData, transactions: fullHistoryItems };
-      renderTransactionTable(combinedItems(fullHistoryItems), 'Aucune transaction Stripe ou PayPal.');
+      renderTransactionTable(combinedItems(fullHistoryItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
       document.getElementById('transactionDescription').textContent = `Historique Stripe · ${fullHistoryItems.length} transaction${fullHistoryItems.length === 1 ? '' : 's'} chargée${fullHistoryItems.length === 1 ? '' : 's'}`;
       state.textContent = page.has_more ? `${fullHistoryItems.length} transactions chargées · historique disponible par pages de 100` : `Historique complet · ${fullHistoryItems.length} transactions`;
       button.hidden = !page.has_more;
@@ -224,7 +300,7 @@ const transactions = [];
     mode.className = `pay-badge ${data.writes_enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
 
     renderCombinedSummary();
-    renderTransactionTable(combinedItems(), 'Aucune transaction Stripe ou PayPal sur les 30 derniers jours.');
+    renderTransactionTable(combinedItems(), 'Aucune transaction Stripe, PayPal ou Spiffy sur les 30 derniers jours.');
     loadFullStripeHistory(true);
   }
 
@@ -238,7 +314,7 @@ const transactions = [];
       paypalWritesEnabled = Boolean(data.writes_enabled);
       paypalTransactionsData = (Array.isArray(data.transactions) ? data.transactions : []).map((item) => ({ ...item, provider: 'paypal', payment_method: 'PayPal' }));
       renderCombinedSummary();
-      renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe ou PayPal.');
+      renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
     } catch (error) {
       console.error('PayPal transactions:', error);
     }
@@ -353,7 +429,11 @@ const transactions = [];
   document.addEventListener('pay:stripe', (event) => renderStripeTransactions(event.detail));
   const stripeTransactionsPromise = window.getPayStripeOverview?.();
   stripeTransactionsPromise?.then(renderStripeTransactions);
-  document.addEventListener('pay:authenticated', loadPayPalTransactions, { once: true });
+  document.addEventListener('pay:authenticated', () => {
+    loadStoredHistory();
+    loadPayPalTransactions();
+  }, { once: true });
+  loadStoredHistory();
   loadPayPalTransactions();
 </script>
 
