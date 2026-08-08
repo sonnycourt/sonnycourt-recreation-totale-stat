@@ -10,7 +10,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <div class="gateway-list">
           <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
           <div class="gateway-row gateway-row--safety"><span class="gateway-logo gateway-logo--safety">✓</span><span><strong>Actions financières</strong><small id="stripeActionsDescription">Vérification du garde-fou des remboursements</small></span><span class="gateway-state" id="stripeActionsState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/transactions" href="/pay/transactions">Gérer</a></div>
-          <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small>PayPal Express et paiements par compte</small></span><span class="gateway-state"><i></i>Non connecté</span><button class="pay-button" type="button" data-demo-disabled>Connecter PayPal</button></div>
+          <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small id="paypalGatewayDescription">Transactions, abonnements, litiges et factures</small></span><span class="gateway-state" id="paypalGatewayState"><i></i>Vérification…</span><a class="pay-button" id="paypalDashboardLink" href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noopener" hidden>Ouvrir PayPal ↗</a></div>
         </div>
       </article>
       <article class="pay-panel company-panel">
@@ -24,16 +24,32 @@ import PayAppShell from '../../components/PayAppShell.astro';
 </PayAppShell>
 
 <script>
+  let stripeConnected = false;
+  let paypalConnected = false;
+
+  function renderGatewayGlobalStatus() {
+    const globalStatus = document.getElementById('gatewayGlobalStatus');
+    if (stripeConnected && paypalConnected) {
+      globalStatus.textContent = 'Stripe + PayPal connectés';
+      globalStatus.className = 'pay-badge pay-badge--success';
+    } else if (stripeConnected) {
+      globalStatus.textContent = 'Stripe connecté';
+      globalStatus.className = 'pay-badge pay-badge--success';
+    } else if (paypalConnected) {
+      globalStatus.textContent = 'PayPal connecté';
+      globalStatus.className = 'pay-badge pay-badge--success';
+    }
+  }
+
   function renderStripeSettings(data) {
     if (!data?.connected) return;
+    stripeConnected = true;
     const mode = data.mode === 'live' ? 'réel' : 'test';
     const state = document.getElementById('stripeGatewayState');
     state.classList.add('gateway-state--connected');
     state.innerHTML = '<i></i>Connecté';
     document.getElementById('stripeGatewayDescription').textContent = `${data.account?.name || 'Compte Stripe'} · ${data.account?.country || '—'} · mode ${mode}`;
-    const globalStatus = document.getElementById('gatewayGlobalStatus');
-    globalStatus.textContent = 'Stripe connecté';
-    globalStatus.className = 'pay-badge pay-badge--success';
+    renderGatewayGlobalStatus();
     const dashboard = document.getElementById('stripeDashboardLink');
     dashboard.href = data.mode === 'live' ? 'https://dashboard.stripe.com' : 'https://dashboard.stripe.com/test/dashboard';
     dashboard.hidden = false;
@@ -57,9 +73,62 @@ import PayAppShell from '../../components/PayAppShell.astro';
       : `Pay lit les paiements en mode ${mode}. Les remboursements sont prêts, mais le garde-fou du compte réel est encore verrouillé.`;
   }
 
+  function renderPayPalSettings(data) {
+    const state = document.getElementById('paypalGatewayState');
+    const description = document.getElementById('paypalGatewayDescription');
+    if (!data?.connected) {
+      state.classList.remove('gateway-state--connected');
+      state.classList.add('gateway-state--locked');
+      state.innerHTML = '<i></i>À configurer';
+      description.textContent = 'Identifiants PayPal Live absents ou indisponibles';
+      return;
+    }
+
+    paypalConnected = true;
+    state.classList.remove('gateway-state--locked');
+    state.classList.add('gateway-state--connected');
+    state.innerHTML = '<i></i>Connecté';
+    const transactionAccess = data.capabilities?.transaction_search ? 'transactions accessibles' : 'transactions à autoriser';
+    description.textContent = `Compte PayPal · mode ${data.mode === 'live' ? 'réel' : 'sandbox'} · ${transactionAccess}`;
+    document.getElementById('paypalDashboardLink').hidden = false;
+    renderGatewayGlobalStatus();
+
+    if (stripeConnected) {
+      document.getElementById('stripeRoadmapKicker').textContent = 'Stripe + PayPal connectés';
+      document.getElementById('stripeRoadmapTitle').textContent = 'Les deux comptes sont prêts.';
+      document.getElementById('stripeRoadmapDescription').textContent = 'Pay dispose désormais des accès de lecture Stripe et PayPal. Les actions financières restent protégées par confirmation en deux étapes.';
+    }
+  }
+
+  window.getPayPayPalOverview = () => {
+    if (window.payPayPalData) return Promise.resolve(window.payPayPalData);
+    if (window.payPayPalOverviewPromise) return window.payPayPalOverviewPromise;
+    window.payPayPalOverviewPromise = fetch('/.netlify/functions/pay-paypal-overview', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({ connected: false }));
+        if (!response.ok && response.status !== 503) throw new Error(`paypal_${response.status}`);
+        window.payPayPalData = data;
+        renderPayPalSettings(data);
+        document.dispatchEvent(new CustomEvent('pay:paypal', { detail: data }));
+        return data;
+      })
+      .catch(() => {
+        window.payPayPalOverviewPromise = null;
+        renderPayPalSettings({ connected: false });
+        return null;
+      });
+    return window.payPayPalOverviewPromise;
+  };
+
   document.addEventListener('pay:stripe', (event) => renderStripeSettings(event.detail));
   const stripeSettingsPromise = window.getPayStripeOverview?.();
   stripeSettingsPromise?.then(renderStripeSettings);
+  const paypalSettingsPromise = window.getPayPayPalOverview?.();
+  paypalSettingsPromise?.then(renderPayPalSettings);
+  document.addEventListener('pay:authenticated', () => window.getPayPayPalOverview?.(), { once: true });
 </script>
 
 <style>
