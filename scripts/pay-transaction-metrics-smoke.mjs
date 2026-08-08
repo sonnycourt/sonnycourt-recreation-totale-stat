@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { payTransactionMetrics, payTransactionProviderLabel } from '../src/scripts/pay-transaction-metrics.js';
+import { mergePayTransactions, payTransactionMetrics, payTransactionProviderLabel } from '../src/scripts/pay-transaction-metrics.js';
 
 const rows = [
   { id: 'sale_pp', provider: 'paypal', kind: 'sale', status: 'Réussi', amount: 10_000, signed_amount: 10_000, refunded: 4_000, currency: 'eur', created: 100 },
@@ -25,10 +25,27 @@ assert.equal(payTransactionProviderLabel('paypal'), 'PayPal');
 assert.equal(payTransactionProviderLabel('spiffy'), 'Historique Spiffy');
 assert.equal(payTransactionProviderLabel('internal'), 'Pay');
 
+const merged = mergePayTransactions({
+  history: [
+    { id: 'pi_same', provider: 'stripe', created: 100, can_refund: false, description: 'Archive' },
+    { id: 'PP-SAME', provider: 'paypal', created: 90, status: 'Ancien' },
+  ],
+  stripeArchive: [
+    { id: 'pi_same', provider: 'stripe', created: 100, can_refund: false, description: 'Page paginée' },
+    { id: 'pi_old', provider: 'stripe', created: 80, can_refund: false },
+  ],
+  stripeLive: [{ id: 'pi_same', provider: 'stripe', created: 100, can_refund: true, refundable: 9_700, description: 'Live enrichi' }],
+  paypalLive: [{ id: 'PP-SAME', provider: 'paypal', created: 110, status: 'Réussi' }],
+});
+assert.deepEqual(merged.map((item) => `${item.provider}:${item.id}`), ['paypal:PP-SAME', 'stripe:pi_same', 'stripe:pi_old']);
+assert.equal(merged.find((item) => item.id === 'pi_same').can_refund, true);
+assert.equal(merged.find((item) => item.id === 'pi_same').description, 'Live enrichi');
+assert.equal(merged.find((item) => item.id === 'PP-SAME').status, 'Réussi');
+
 console.log(JSON.stringify({
   paypal_refund_deduplication: 'ok',
   currency_isolation: 'ok',
   period_filter: 'ok',
   provider_labels: 'ok',
+  live_action_priority: 'ok',
 }, null, 2));
-

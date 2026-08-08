@@ -15,6 +15,25 @@ export function payTransactionProviderLabel(value) {
   return 'Stripe';
 }
 
+export function mergePayTransactions({ history = [], stripeArchive = [], stripeLive = [], paypalLive = [] } = {}) {
+  const rows = new Map();
+  const add = (items, fallbackProvider) => {
+    for (const item of Array.isArray(items) ? items : []) {
+      const id = String(item?.id || '').trim();
+      if (!id) continue;
+      const itemProvider = provider(item.provider || fallbackProvider);
+      rows.set(`${itemProvider}:${id}`, { ...item, provider: itemProvider });
+    }
+  };
+  add(history, 'spiffy');
+  add(stripeArchive, 'stripe');
+  // Les objets récents enrichis gardent la priorité : eux seuls contiennent
+  // parfois la charge et le montant remboursable nécessaires à l'action.
+  add(stripeLive, 'stripe');
+  add(paypalLive, 'paypal');
+  return [...rows.values()].sort((first, second) => amount(second.created) - amount(first.created));
+}
+
 export function payTransactionMetrics(items = [], options = {}) {
   const currency = String(options.currency || 'eur').trim().toLowerCase();
   const cutoff = Number(options.cutoff || 0);
@@ -46,4 +65,3 @@ export function payTransactionMetrics(items = [], options = {}) {
 function providerCurrency(item) {
   return String(item?.currency || 'eur').trim().toLowerCase();
 }
-

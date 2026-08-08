@@ -64,7 +64,7 @@ const transactions = [];
 </PayAppShell>
 
 <script>
-  import { payTransactionMetrics, payTransactionProviderLabel } from '../../scripts/pay-transaction-metrics.js';
+  import { mergePayTransactions, payTransactionMetrics, payTransactionProviderLabel } from '../../scripts/pay-transaction-metrics.js';
 
   const REFUND_API = '/.netlify/functions/pay-stripe-refund';
   const PAYPAL_REFUND_API = '/.netlify/functions/pay-paypal-refund';
@@ -183,11 +183,12 @@ const transactions = [];
   }
 
   function combinedItems(stripeItems = recentStripeItems) {
-    const itemsById = new Map();
-    for (const item of storedHistoryItems) itemsById.set(`${item.provider}:${item.id}`, item);
-    for (const item of stripeItems) itemsById.set(`stripe:${item.id}`, item);
-    for (const item of paypalTransactionsData) itemsById.set(`paypal:${item.id}`, item);
-    return [...itemsById.values()].sort((first, second) => Number(second.created || 0) - Number(first.created || 0));
+    return mergePayTransactions({
+      history: storedHistoryItems,
+      stripeArchive: stripeItems,
+      stripeLive: recentStripeItems,
+      paypalLive: paypalTransactionsData,
+    });
   }
 
   function renderCombinedSummary() {

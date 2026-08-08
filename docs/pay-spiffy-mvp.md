@@ -179,6 +179,23 @@ Les créations de produit et de commande restent des interfaces de brouillon tan
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement
 autorisés. Aucun de ces parcours ne doit créer de charge pendant la recette.
 
+## Backfill fournisseur à blanc
+
+Le backfill complet est exécutable sans écriture avec une borne de départ
+obligatoire :
+
+```bash
+npm run pay:backfill:dry-run -- --provider both --from 2024-01-01T00:00:00Z
+```
+
+Stripe est paginé ressource par ressource au-delà de la rétention des Events.
+PayPal est découpé en segments de 360 jours, eux-mêmes recherchés par fenêtres
+de 31 jours par le client existant. Les opérations sont dédupliquées selon
+`(table, provider, external_id)` et la version fournisseur la plus récente
+gagne. Le rapport ne contient que les volumes, anomalies et un checksum ; il
+n'affiche aucun email ni identifiant client. Les options `--write` et `--apply`
+sont refusées.
+
 ## Réconciliation du 8 août 2026
 
 Les quatre exports complets ont été validés à blanc :
@@ -251,6 +268,11 @@ La synthèse de la page Transactions déduplique aussi les remboursements PayPal
 lorsqu'un événement de remboursement explicite existe, le montant déjà reflété
 sur le paiement parent n'est pas additionné une seconde fois.
 
+Lorsqu'une pagination Stripe complète remplace l'aperçu initial, les objets
+récents enrichis gardent la priorité sur leur doublon d'archive. La charge et
+le montant remboursable ne disparaissent donc plus après le chargement des
+pages suivantes ; le garde-fou en deux étapes reste inchangé et verrouillé.
+
 ## État de parité du MVP
 
 | Zone Spiffy | Pay | État |
@@ -268,3 +290,20 @@ sur le paiement parent n'est pas additionné une seconde fois.
 Les mentions « prêt » décrivent le code et l'interface. L'historique Supabase et
 les actions Live ne sont pas activés tant que leur autorisation distincte n'a
 pas été donnée.
+
+## Recette Live en lecture seule du 9 août 2026
+
+La version déjà déployée a confirmé que Stripe et PayPal répondent tous les
+deux en mode réel, tandis que les actions financières restent verrouillées.
+La pagination manuelle a parcouru les 3 647 intentions Stripe, du 12 novembre
+2024 au 8 août 2026 : 2 060 réussies, 92 totalement remboursées, 3
+partiellement remboursées, 1 017 incomplètes, 100 nécessitant une action et 375
+annulées. Ces objets techniques ne doivent pas être comparés directement aux
+385 paiements exportés par Spiffy, qui appliquent une sémantique métier plus
+restrictive.
+
+L'audit a aussi reproduit un défaut de l'ancienne version en ligne : après le
+chargement paginé, l'archive remplaçait les objets récents enrichis et faisait
+disparaître les actions disponibles. La priorité des objets live est corrigée
+et testée dans cette branche. La preuve agrégée, sans donnée personnelle, est
+conservée dans `docs/pay-live-read-audit-2026-08-09.json`.
