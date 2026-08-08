@@ -61,6 +61,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     </div>
 
     <div class="analytics-chart-shell" id="analyticsChartShell">
+      <div class="analytics-empty" id="analyticsEmpty"><span>⌁</span><strong>Données en attente</strong><small>Aucune valeur approximative n’est affichée.</small></div>
       <canvas id="payAnalyticsChart" role="img" aria-label="Courbes du revenu total, des remboursements, des commandes et des revenus issus des plans de paiement"></canvas>
     </div>
   </section>
@@ -115,6 +116,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
 
 <script>
   import Chart from 'chart.js/auto';
+  import { canUseStripePreview, createDashboardDay } from '../../scripts/pay-dashboard-source.js';
 
   const DAY = 86_400_000;
   const HISTORY_API = '/.netlify/functions/pay-history';
@@ -160,6 +162,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   let paypalOverview = null;
   const stripeRangeCache = new Map();
   let stripeRangeRequest = 0;
+  let analyticsRangeState = 'waiting';
   let cashflowPeriod = 'current';
   let analyticsChart = null;
 
@@ -190,22 +193,16 @@ import PayAppShell from '../../components/PayAppShell.astro';
     return `${shortDateFormatter.format(start)} – ${longDateFormatter.format(end)}`;
   }
 
-  function demoDataForRange(start, end) {
-    const count = Math.min(daysBetween(start, end), 366);
-    return Array.from({ length: count }, (_, index) => {
-      const date = addDays(start, index);
-      return { date, revenue: 0, refunds: 0, orders: 0, plans: 0, refundCount: 0, pastDue: 0 };
-    });
-  }
-
   function stripeDataForRange(start, end) {
     const count = Math.min(daysBetween(start, end), 366);
+    const fullRange = stripeRangeCache.get(`${dateKey(start)}:${dateKey(end)}`);
+    const liveReady = fullRange ? Boolean(fullRange.stripe_ready || fullRange.paypal_ready) : true;
+    const historyReady = Boolean(fullRange?.history?.ready);
     const byDay = new Map(Array.from({ length: count }, (_, index) => {
       const date = addDays(start, index);
-      return [dateKey(date), { date, revenue: 0, refunds: 0, orders: 0, plans: 0, refundCount: 0, pastDue: 0 }];
+      return [dateKey(date), createDashboardDay(date, { liveReady, historyReady })];
     }));
 
-    const fullRange = stripeRangeCache.get(`${dateKey(start)}:${dateKey(end)}`);
     const payments = fullRange?.payment_intents || stripeTransactions || [];
     payments.forEach((item) => {
       const date = atMidnight(new Date(Number(item.created || 0) * 1000));
@@ -254,7 +251,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
 
   function analyticsData(start, end) {
     const cacheKey = `${dateKey(start)}:${dateKey(end)}`;
-    return Array.isArray(stripeTransactions) || stripeRangeCache.has(cacheKey) ? stripeDataForRange(start, end) : demoDataForRange(start, end);
+    if (stripeRangeCache.has(cacheKey)) return stripeDataForRange(start, end);
+    return !paypalOverview?.connected && canUseStripePreview(stripeOverview, stripeTransactions, start, end) ? stripeDataForRange(start, end) : [];
   }
 
   async function fetchAllStripePages(resource, start, end, requestId) {
@@ -316,6 +314,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const paypalConnected = Boolean(paypalOverview?.connected);
     if (cached && (!stripeConnected || cached.stripe_ready) && (!paypalConnected || cached.paypal_ready)) return refreshAnalytics();
     const requestId = ++stripeRangeRequest;
+    analyticsRangeState = 'loading';
     document.getElementById('analyticsRangeCaption').textContent = `Chargement complet des passerelles · ${rangeText(currentRange.start, currentRange.end)}`;
     try {
       const results = await Promise.allSettled([
@@ -336,12 +335,14 @@ import PayAppShell from '../../components/PayAppShell.astro';
         stripe_ready: stripeReady, paypal_ready: paypalReady,
       };
       stripeRangeCache.set(cacheKey, completeRange);
+      analyticsRangeState = 'ready';
       refreshAnalytics();
       renderCombinedActivity(completeRange);
     } catch (error) {
       if (String(error?.message) === 'stripe_range_cancelled') return;
       console.error('Pay Stripe range:', error);
-      document.getElementById('analyticsRangeCaption').textContent = `Aperçu des passerelles · ${rangeText(currentRange.start, currentRange.end)}`;
+      analyticsRangeState = 'error';
+      refreshAnalytics();
     }
   }
 
@@ -364,10 +365,22 @@ import PayAppShell from '../../components/PayAppShell.astro';
 
   function drawChart() {
     const canvas = document.getElementById('payAnalyticsChart');
-    if (!canvas || !currentData.length) return;
+    const empty = document.getElementById('analyticsEmpty');
+    analyticsChart?.destroy();
+    analyticsChart = null;
+    if (!canvas || !currentData.length) {
+      if (canvas) canvas.hidden = true;
+      if (empty) {
+        empty.hidden = false;
+        empty.querySelector('strong').textContent = analyticsRangeState === 'loading' ? 'Chargement de la période' : analyticsRangeState === 'error' ? 'Données indisponibles' : 'Données en attente';
+        empty.querySelector('small').textContent = analyticsRangeState === 'error' ? 'Les passerelles n’ont pas répondu. Aucun faux zéro n’est affiché.' : 'Aucune valeur approximative n’est affichée.';
+      }
+      return;
+    }
+    canvas.hidden = false;
+    if (empty) empty.hidden = true;
     const context = canvas.getContext('2d');
     if (!context) return;
-    analyticsChart?.destroy();
 
     const revenueFill = context.createLinearGradient(0, 0, 0, 340);
     revenueFill.addColorStop(0, 'rgba(112, 231, 255, .18)');
@@ -489,14 +502,14 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const completeRange = stripeRangeCache.get(`${dateKey(currentRange.start)}:${dateKey(currentRange.end)}`);
     const history = completeRange?.history;
     const historyReady = Boolean(history?.ready);
-    if (!stripeOverview?.connected && !paypalOverview?.connected && !historyReady) {
+    if (!currentData.length) {
       document.getElementById('paySalesLabel').textContent = 'Ventes';
       document.getElementById('paySalesValue').textContent = '—';
       document.getElementById('paySalesTrend').textContent = 'Stripe + PayPal';
-      document.getElementById('paySalesFoot').textContent = 'En attente';
+      document.getElementById('paySalesFoot').textContent = analyticsRangeState === 'error' ? 'Sources indisponibles' : 'En attente';
       document.getElementById('payRefundLabel').textContent = 'Remboursements';
       document.getElementById('payRefundValue').textContent = '—';
-      document.getElementById('payRefundFoot').textContent = 'En attente des passerelles';
+      document.getElementById('payRefundFoot').textContent = analyticsRangeState === 'error' ? 'Sources indisponibles' : 'En attente des passerelles';
       document.getElementById('payCashflowValue').textContent = '—';
       document.getElementById('payPastDueValue').textContent = '—';
       document.getElementById('payPastDueFoot').textContent = 'En attente de l’historique';
@@ -536,7 +549,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const cacheKey = `${dateKey(currentRange.start)}:${dateKey(currentRange.end)}`;
     const completeRange = stripeRangeCache.get(cacheKey);
     const completeSources = completeRange ? [completeRange.stripe_ready ? 'Stripe' : '', completeRange.paypal_ready ? 'PayPal' : '', completeRange.history?.ready ? 'historique Pay' : ''].filter(Boolean) : [];
-    const sourceLabel = completeSources.length ? completeSources.join(' + ') : Array.isArray(stripeTransactions) ? 'Aperçu Stripe' : 'En attente des passerelles';
+    const previewReady = !paypalOverview?.connected && canUseStripePreview(stripeOverview, stripeTransactions, currentRange.start, currentRange.end);
+    const sourceLabel = completeSources.length ? completeSources.join(' + ') : previewReady ? 'Aperçu Stripe exact' : analyticsRangeState === 'loading' ? 'Chargement des passerelles' : analyticsRangeState === 'error' ? 'Données indisponibles' : 'En attente des passerelles';
     document.getElementById('analyticsRangeCaption').textContent = `${sourceLabel} · ${rangeText(currentRange.start, currentRange.end)}`;
     document.querySelectorAll('[data-range]').forEach((button) => button.classList.toggle('is-active', button.dataset.range === currentRange.key));
     updateSummary();
@@ -795,6 +809,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .legend-dot--orders { color: #ffd47a; background: #ffd47a; }
   .legend-dot--plans { color: #a997ff; background: #a997ff; }
   .analytics-chart-shell { height: 350px; position: relative; padding: 0 12px 8px; overflow: hidden; }
+  .analytics-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 7px; color: var(--pay-muted); text-align: center; }
+  .analytics-empty[hidden] { display: none; }
+  .analytics-empty > span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--pay-line); border-radius: 11px; color: var(--pay-cyan); background: rgba(112,231,255,.045); }
+  .analytics-empty strong { color: var(--pay-soft); font-size: 10px; }
+  .analytics-empty small { font-size: 8px; }
   #payAnalyticsChart { width: 100% !important; height: 100% !important; display: block; cursor: crosshair; }
 
   .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-top: 13px; }

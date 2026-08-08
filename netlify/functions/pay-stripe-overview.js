@@ -89,7 +89,8 @@ export default async (req) => {
   if (!secretKey) return json(503, { connected: false, error: 'stripe_secret_missing' });
 
   try {
-    const since = Math.floor(Date.now() / 1000) - THIRTY_DAYS_SECONDS;
+    const until = Math.floor(Date.now() / 1000);
+    const since = until - THIRTY_DAYS_SECONDS;
     const [account, balance, paymentIntents, products] = await Promise.all([
       stripeGet(secretKey, 'account'),
       stripeGet(secretKey, 'balance'),
@@ -141,7 +142,12 @@ export default async (req) => {
         products: (products.data || []).length,
         truncated: Boolean(paymentIntents.has_more || products.has_more),
       },
-      transactions: transactionRows.slice(0, 50),
+      transaction_window: {
+        since,
+        until,
+        truncated: Boolean(paymentIntents.has_more),
+      },
+      transactions: transactionRows,
     });
   } catch (error) {
     console.error('pay-stripe-overview:', error);

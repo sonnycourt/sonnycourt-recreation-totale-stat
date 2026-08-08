@@ -255,6 +255,12 @@ Stripe et PayPal sont chargés indépendamment : si une passerelle ne répond pa
 l'autre et la projection historique restent utilisables sans afficher de faux
 zéros pour la source indisponible.
 
+L'aperçu Stripe expose aussi sa fenêtre exacte et son éventuelle troncature. Il
+n'est utilisé par la courbe que si toute la période demandée est couverte et si
+aucune consolidation PayPal n'est encore attendue. Une série non disponible
+vaut `null`, jamais zéro ; Pay affiche alors un état d'attente ou d'erreur sans
+fabriquer de courbe ni de KPI.
+
 Cette tolérance aux pannes s'applique aussi aux listes de ressources avant
 l'initialisation de Supabase : commandes, clients, abonnements et plans peuvent
 continuer à afficher la passerelle disponible si Stripe ou PayPal échoue. Dès
