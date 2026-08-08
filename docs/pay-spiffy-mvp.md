@@ -179,6 +179,15 @@ Les créations de produit et de commande restent des interfaces de brouillon tan
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement
 autorisés. Aucun de ces parcours ne doit créer de charge pendant la recette.
 
+La publication du catalogue est désormais décrite par le contrat pur
+`netlify/functions/lib/pay-catalog-command.mjs`. Produits, liens de paiement et
+codes promotionnels sont validés, associés à une clé d'idempotence et exigent
+une confirmation textuelle distincte. Le contrat MC2 conserve exactement les
+trois phases 47 € maintenant, 150 € à J+14 puis 11 × 197 €, dont la continuation
+est réservée au webhook Pay universel. Le résultat reste `dry_run`, avec
+`executable: false` ; aucune opération Stripe n'est encore envoyée et le futur
+exécuteur exigera `PAY_STRIPE_CATALOG_WRITES_ENABLED=true`.
+
 ## Backfill fournisseur à blanc
 
 Le backfill complet est exécutable sans écriture avec une borne de départ
