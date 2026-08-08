@@ -1,7 +1,7 @@
-import Stripe from 'stripe';
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
+const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -15,6 +15,21 @@ function json(status, body) {
 
 function clean(value, max = 160) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+async function stripeGet(secretKey, path, parameters = []) {
+  const search = new URLSearchParams();
+  for (const [key, value] of parameters) search.append(key, String(value));
+  const suffix = search.size ? `?${search.toString()}` : '';
+  const response = await fetch(`${STRIPE_API_BASE}/${path}${suffix}`, {
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      Accept: 'application/json',
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`stripe_http_${response.status}:${clean(data?.error?.type, 60)}`);
+  return data;
 }
 
 function amountByCurrency(rows, field) {
@@ -70,17 +85,19 @@ export default async (req) => {
   if (!secretKey) return json(503, { connected: false, error: 'stripe_secret_missing' });
 
   try {
-    const stripe = new Stripe(secretKey, { maxNetworkRetries: 2 });
     const since = Math.floor(Date.now() / 1000) - THIRTY_DAYS_SECONDS;
     const [account, balance, paymentIntents, products] = await Promise.all([
-      stripe.accounts.retrieve(),
-      stripe.balance.retrieve(),
-      stripe.paymentIntents.list({
-        created: { gte: since },
-        limit: 100,
-        expand: ['data.latest_charge'],
-      }),
-      stripe.products.list({ active: true, limit: 100 }),
+      stripeGet(secretKey, 'account'),
+      stripeGet(secretKey, 'balance'),
+      stripeGet(secretKey, 'payment_intents', [
+        ['created[gte]', since],
+        ['limit', 100],
+        ['expand[]', 'data.latest_charge'],
+      ]),
+      stripeGet(secretKey, 'products', [
+        ['active', true],
+        ['limit', 100],
+      ]),
     ]);
 
     const intents = paymentIntents.data || [];
