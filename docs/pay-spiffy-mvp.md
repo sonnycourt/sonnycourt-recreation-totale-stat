@@ -101,3 +101,37 @@ et vérifie les liens entre paiements, plans, commandes et clients :
 npm run pay:spiffy:reconcile -- --orders orders.csv --customers customers.csv \
   --plans paymentplans.csv --payments payments.csv
 ```
+
+## Réconciliation du 8 août 2026
+
+Les quatre exports complets ont été validés à blanc :
+
+- 1 841 / 1 841 commandes valides, du 12 novembre 2024 au 7 août 2026 ;
+- 1 557 / 1 557 clients valides ;
+- 552 / 552 plans valides : 56 actifs, 177 en retard et 319 terminés ;
+- 385 / 385 paiements valides : 330 Stripe et 55 PayPal ;
+- 385 paiements sur 385 reliés à une commande et un client ;
+- 552 plans sur 552 reliés à une commande et un client ;
+- aucun identifiant manquant, doublon ou lien orphelin.
+
+L'export des abonnements est vide, ce qui correspond à l'écran Spiffy actuel.
+Quinze réductions ont été repérées dans Spiffy ; leur reprise restera un import
+séparé afin de ne pas activer par erreur un ancien code expiré.
+
+## État de parité du MVP
+
+| Zone Spiffy | Pay | État |
+| --- | --- | --- |
+| Dashboard et calendrier | Graphique Stripe + PayPal, 4 séries, infobulles et périodes personnalisées | prêt |
+| Commandes, clients, paiements | Listes réelles, recherche, filtres, CSV et fiches détaillées | prêt |
+| Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
+| Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |
+| Produits | Catalogue et prix Stripe réels | lecture prête |
+| Rapports | Produit, LTV, cash flow, plans, performance checkout, échecs | prêt |
+| Réductions | Liste Stripe et constructeur de brouillon en deux étapes | publication verrouillée |
+| Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
+| Affiliés et MCP | Hors périmètre volontairement | exclu |
+
+Les mentions « prêt » décrivent le code et l'interface. L'historique Supabase et
+les actions Live ne sont pas activés tant que leur autorisation distincte n'a
+pas été donnée.

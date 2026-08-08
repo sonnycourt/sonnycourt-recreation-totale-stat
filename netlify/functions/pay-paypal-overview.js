@@ -16,7 +16,8 @@ export default async (req) => {
   if (!getSessionFromRequest(req)) return json(401, { error: 'Non autorisé' });
 
   try {
-    return json(200, await getPayPalConnectionOverview());
+    const overview = await getPayPalConnectionOverview();
+    return json(200, { ...overview, writes_enabled: overview.mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
   } catch (error) {
     console.error('pay-paypal-overview:', cleanPayPalValue(error?.message, 120));
     const status = Number(error?.status) >= 400 && Number(error?.status) < 600 ? Number(error.status) : 502;

@@ -1,0 +1,104 @@
+---
+import PayAppShell from '../../../components/PayAppShell.astro';
+---
+
+<PayAppShell active="discounts" eyebrow="Nouvelle réduction" title="Crée un code promotionnel." description="Les mêmes réglages utiles que dans Spiffy, avec une confirmation avant publication.">
+  <a slot="actions" class="pay-button pay-button--ghost" data-pay-route="/discounts" href="/pay/discounts">← Annuler</a>
+
+  <form class="discount-builder pay-panel" id="discountBuilder">
+    <header><div><p class="pay-kicker">Étape 1 sur 2</p><h2>Paramètres de la réduction</h2><p>Le brouillon reste dans Pay tant que la publication Stripe n’est pas activée.</p></div><span class="pay-badge pay-badge--draft">Brouillon</span></header>
+    <div class="discount-grid">
+      <label class="field field--wide"><span>Code</span><input class="pay-input" id="discountCode" type="text" placeholder="OFFRE50POURCENT" pattern="[A-Z0-9_-]+" maxlength="40" autocomplete="off" required /><small>Le code est automatiquement converti en majuscules.</small></label>
+      <fieldset class="field field--wide"><legend>Type de réduction</legend><div class="type-options"><label><input type="radio" name="discountType" value="percentage" checked /><span><strong>Pourcentage</strong><small>Ex. 30 %</small></span></label><label><input type="radio" name="discountType" value="fixed" /><span><strong>Montant fixe</strong><small>Ex. 50 €</small></span></label></div></fieldset>
+      <label class="field"><span>Valeur</span><div class="amount-wrap"><input class="pay-input" id="discountValue" type="number" min="0.01" max="100" step="0.01" required /><b id="discountUnit">%</b></div></label>
+      <label class="field"><span>Devise</span><select class="pay-select" id="discountCurrency" disabled><option value="eur">EUR · Euro</option><option value="chf">CHF · Franc suisse</option><option value="usd">USD · Dollar</option></select></label>
+      <fieldset class="field field--wide"><legend>Application</legend><div class="checks"><label><input id="discountOneTime" type="checkbox" checked /><span>Paiements uniques</span></label><label><input id="discountRecurring" type="checkbox" /><span>Abonnements</span></label><label><input id="discountOnce" type="checkbox" /><span>Une commande par client</span></label></div></fieldset>
+      <label class="field"><span>Expiration</span><input class="pay-input" id="discountExpiry" type="datetime-local" /></label>
+      <label class="field"><span>Nombre maximal d’utilisations</span><input class="pay-input" id="discountMaximum" type="number" min="1" step="1" placeholder="Illimité" /></label>
+    </div>
+    <footer><p>Aucune modification Stripe n’est envoyée depuis cet écran.</p><button class="pay-button pay-button--primary" type="submit">Vérifier le brouillon →</button></footer>
+  </form>
+
+  <dialog class="discount-confirm pay-panel" id="discountConfirm" aria-labelledby="discountConfirmTitle">
+    <div><p class="pay-kicker">Confirmation · étape 2 sur 2</p><h2 id="discountConfirmTitle">Enregistrer ce brouillon ?</h2><div class="confirm-summary" id="discountSummary"></div><label class="confirm-check"><input id="discountAcknowledgement" type="checkbox" /><span>Je confirme que le code et la valeur sont corrects.</span></label><div class="confirm-actions"><button class="pay-button pay-button--ghost" id="discountBack" type="button">Retour</button><button class="pay-button pay-button--primary" id="discountSave" type="button" disabled>Créer le brouillon ✓</button></div></div>
+  </dialog>
+</PayAppShell>
+
+<script>
+  const form = document.getElementById('discountBuilder');
+  const code = document.getElementById('discountCode');
+  const value = document.getElementById('discountValue');
+  const currency = document.getElementById('discountCurrency');
+  const unit = document.getElementById('discountUnit');
+  const dialog = document.getElementById('discountConfirm');
+
+  code.addEventListener('input', () => { code.value = code.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); });
+  document.querySelectorAll('input[name="discountType"]').forEach((radio) => radio.addEventListener('change', () => {
+    const fixed = radio.checked && radio.value === 'fixed';
+    currency.disabled = !fixed;
+    unit.textContent = fixed ? currency.value.toUpperCase() : '%';
+    value.max = fixed ? '999999' : '100';
+  }));
+  currency.addEventListener('change', () => { unit.textContent = currency.value.toUpperCase(); });
+
+  function draft() {
+    return {
+      id: Date.now(), code: code.value.trim(), type: form.querySelector('input[name="discountType"]:checked').value,
+      value: Number(value.value), currency: currency.value, appliesOneTime: document.getElementById('discountOneTime').checked,
+      appliesRecurring: document.getElementById('discountRecurring').checked, oncePerCustomer: document.getElementById('discountOnce').checked,
+      expiresAt: document.getElementById('discountExpiry').value || null, maxRedemptions: Number(document.getElementById('discountMaximum').value) || null,
+      status: 'draft', createdAt: new Date().toISOString(),
+    };
+  }
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const item = draft();
+    const formatted = item.type === 'percentage' ? `${item.value} %` : `${item.value.toFixed(2)} ${item.currency.toUpperCase()}`;
+    document.getElementById('discountSummary').innerHTML = `<span><small>Code</small><strong>${item.code}</strong></span><span><small>Réduction</small><strong>${formatted}</strong></span><span><small>Application</small><strong>${item.appliesOneTime ? 'Unique' : ''}${item.appliesOneTime && item.appliesRecurring ? ' + ' : ''}${item.appliesRecurring ? 'Abonnement' : ''}</strong></span><span><small>Expiration</small><strong>${item.expiresAt ? new Date(item.expiresAt).toLocaleString('fr-FR') : 'Aucune'}</strong></span>`;
+    document.getElementById('discountAcknowledgement').checked = false;
+    document.getElementById('discountSave').disabled = true;
+    dialog.showModal();
+  });
+  document.getElementById('discountAcknowledgement').addEventListener('change', (event) => { document.getElementById('discountSave').disabled = !event.target.checked; });
+  document.getElementById('discountBack').addEventListener('click', () => dialog.close());
+  document.getElementById('discountSave').addEventListener('click', () => {
+    const items = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
+    items.unshift(draft());
+    localStorage.setItem('pay_discount_drafts', JSON.stringify(items.slice(0, 50)));
+    window.payToast?.('Réduction enregistrée en brouillon.');
+    const preview = new URLSearchParams(location.search).has('preview') ? '?preview=1&created=1' : '?created=1';
+    setTimeout(() => { location.href = `${location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/discounts${preview}`; }, 500);
+  });
+</script>
+
+<style>
+  .discount-builder { overflow: hidden; }
+  .discount-builder > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 22px; border-bottom: 1px solid var(--pay-line); }
+  .discount-builder h2, .discount-confirm h2 { margin: 6px 0 0; font-size: 21px; letter-spacing: -.035em; }
+  .discount-builder header p:not(.pay-kicker) { margin: 7px 0 0; color: var(--pay-muted); font-size: 9px; }
+  .discount-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 17px; padding: 25px; }
+  .field { min-width: 0; display: grid; gap: 8px; margin: 0; padding: 0; border: 0; color: var(--pay-soft); font-size: 9px; }
+  .field--wide { grid-column: 1 / -1; }
+  .field small { color: var(--pay-muted); font-size: 8px; }
+  .field .pay-input, .field .pay-select { height: 47px; padding: 0 13px; font-size: 10px; }
+  .type-options, .checks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .type-options label, .checks label { display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 12px; border: 1px solid var(--pay-line); border-radius: 14px; background: rgba(2,12,24,.25); cursor: pointer; }
+  .type-options strong, .type-options small { display: block; } .type-options small { margin-top: 4px; }
+  .type-options input, .checks input, .confirm-check input { accent-color: var(--pay-cyan); }
+  .checks { grid-template-columns: repeat(3, 1fr); }
+  .amount-wrap { display: flex; align-items: center; border: 1px solid var(--pay-line); border-radius: 15px; overflow: hidden; background: rgba(3,12,24,.48); }
+  .amount-wrap .pay-input { border: 0; background: transparent; } .amount-wrap b { padding-right: 13px; color: var(--pay-cyan); font-size: 10px; }
+  .discount-builder > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 22px; border-top: 1px solid var(--pay-line); }
+  .discount-builder footer p { color: var(--pay-muted); font-size: 8px; }
+  .discount-confirm { width: min(590px, calc(100% - 28px)); padding: 0; border-radius: 25px; color: var(--pay-text); }
+  .discount-confirm::backdrop { background: rgba(0,5,14,.78); backdrop-filter: blur(10px); }
+  .discount-confirm > div { padding: 24px; }
+  .confirm-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 20px 0; }
+  .confirm-summary span { padding: 13px; border: 1px solid var(--pay-line); border-radius: 13px; background: rgba(2,12,24,.28); }
+  .confirm-summary small, .confirm-summary strong { display: block; } .confirm-summary small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; } .confirm-summary strong { font-size: 10px; }
+  .confirm-check { display: flex; align-items: center; gap: 9px; color: var(--pay-soft); font-size: 9px; }
+  .confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--pay-line); }
+  @media (max-width: 650px) { .discount-grid, .type-options, .checks, .confirm-summary { grid-template-columns: 1fr; } .field--wide { grid-column: auto; } .discount-builder > footer { align-items: stretch; flex-direction: column; } }
+</style>

@@ -112,7 +112,7 @@ const utilityNavigation = [
         <div class="pay-sidebar-foot">
           <div class="pay-connection-mini" id="payStripeMini">
             <span class="pay-connection-dot"></span>
-            <div><strong>Connexion Stripe</strong><small>Vérification en cours…</small></div>
+            <div><strong>Passerelles</strong><small>Vérification Stripe + PayPal…</small></div>
           </div>
           <a class="pay-hub-link" href="https://sonnycourt.com/hub">← Revenir au Hub</a>
         </div>
@@ -121,7 +121,7 @@ const utilityNavigation = [
       <main class="pay-main">
         <header class="pay-topbar pay-glass">
           <button class="pay-menu-button" id="payMenuButton" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
-          <div class="pay-topbar-title" id="payTopbarStatus"><span class="pay-live-dot"></span> Connexion Stripe en cours…</div>
+          <div class="pay-topbar-title" id="payTopbarStatus"><span class="pay-live-dot"></span> Connexion Stripe + PayPal en cours…</div>
           <div class="pay-profile"><span class="pay-avatar">SC</span><span><strong>Sonny Court</strong><small>Administrateur</small></span></div>
         </header>
 
@@ -146,12 +146,14 @@ const utilityNavigation = [
       const SESSION_API = '/.netlify/functions/admin-es2-session';
       const LOGIN_API = '/.netlify/functions/admin-es2-login';
       const STRIPE_API = '/.netlify/functions/pay-stripe-overview';
+      const PAYPAL_API = '/.netlify/functions/pay-paypal-overview';
       const previewHosts = new Set(['localhost', '127.0.0.1']);
       const params = new URLSearchParams(window.location.search);
       const canPreview = params.has('preview') && (previewHosts.has(window.location.hostname) || window.location.hostname.endsWith('.netlify.app'));
 
       const app = document.getElementById('payApp');
       const login = document.getElementById('payLogin');
+      const gatewayState = { stripe: null, paypal: null };
 
       function revealPayAuth() {
         document.body.classList.remove('pay-auth-pending');
@@ -172,20 +174,34 @@ const utilityNavigation = [
         revealPayAuth();
       }
 
-      function updateStripeChrome(data) {
-        if (!data?.connected) return;
-        const mode = data.mode === 'live' ? 'réel' : 'test';
+      function updateGatewayChrome() {
         const mini = document.getElementById('payStripeMini');
         const topbar = document.getElementById('payTopbarStatus');
+        const stripe = gatewayState.stripe;
+        const paypal = gatewayState.paypal;
+        const connected = [stripe, paypal].filter((item) => item?.connected);
+        if (!connected.length) return;
         mini?.classList.add('is-connected');
-        if (mini) mini.querySelector('strong').textContent = 'Stripe connecté';
-        if (mini) mini.querySelector('small').textContent = `${data.account?.name || 'Compte Stripe'} · mode ${mode}`;
+        if (mini) mini.querySelector('strong').textContent = connected.length === 2 ? 'Stripe + PayPal connectés' : `${stripe?.connected ? 'Stripe' : 'PayPal'} connecté`;
+        if (mini) mini.querySelector('small').textContent = connected.length === 2 ? 'Données combinées · comptes réels' : 'Une passerelle disponible';
         if (topbar) {
           topbar.replaceChildren();
           const dot = document.createElement('span');
           dot.className = 'pay-live-dot';
-          topbar.append(dot, document.createTextNode(`Stripe connecté · mode ${mode}`));
+          topbar.append(dot, document.createTextNode(connected.length === 2 ? 'Stripe + PayPal connectés · mode réel' : `${stripe?.connected ? 'Stripe' : 'PayPal'} connecté`));
         }
+      }
+
+      function updateStripeChrome(data) {
+        if (!data?.connected) return;
+        gatewayState.stripe = data;
+        updateGatewayChrome();
+      }
+
+      function updatePayPalChrome(data) {
+        if (!data?.connected) return;
+        gatewayState.paypal = data;
+        updateGatewayChrome();
       }
 
       window.getPayStripeOverview = () => {
@@ -215,6 +231,25 @@ const utilityNavigation = [
         window.payStripeData = null;
         window.payStripeOverviewPromise = null;
         return window.getPayStripeOverview();
+      };
+
+      window.getPayPayPalOverview = () => {
+        if (window.payPayPalData) return Promise.resolve(window.payPayPalData);
+        if (window.payPayPalOverviewPromise) return window.payPayPalOverviewPromise;
+        window.payPayPalOverviewPromise = fetch(PAYPAL_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(async (response) => {
+            const data = await response.json().catch(() => ({ connected: false }));
+            if (!response.ok && response.status !== 503) throw new Error(`paypal_${response.status}`);
+            window.payPayPalData = data;
+            updatePayPalChrome(data);
+            document.dispatchEvent(new CustomEvent('pay:paypal', { detail: data }));
+            return data;
+          })
+          .catch(() => {
+            window.payPayPalOverviewPromise = null;
+            return null;
+          });
+        return window.payPayPalOverviewPromise;
       };
 
       async function checkPaySession() {

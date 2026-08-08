@@ -39,7 +39,7 @@ if (screen) {
   }
 
   function providerCell(provider) {
-    const label = provider === 'paypal' ? 'PayPal' : provider === 'spiffy' ? 'Spiffy' : 'Stripe';
+    const label = provider === 'paypal' ? 'PayPal' : provider === 'spiffy' ? 'Spiffy' : provider === 'internal' ? 'Pay' : 'Stripe';
     return `<span class="resource-provider resource-provider--${escapeHtml(provider)}">${label}</span>`;
   }
 
@@ -226,9 +226,9 @@ if (screen) {
   }
 
   async function loadDiscounts() {
-    const [coupons, promotionCodes] = await Promise.all([fetchStripeAll('coupons', 10), fetchStripeAll('promotion_codes', 10)]);
+    const [coupons, promotionCodes] = await Promise.all([fetchStripeAll('coupons', 10).catch(() => []), fetchStripeAll('promotion_codes', 10).catch(() => [])]);
     const couponById = new Map(coupons.map((coupon) => [coupon.id, coupon]));
-    return promotionCodes.map((promotion) => {
+    const stripeRows = promotionCodes.map((promotion) => {
       const coupon = promotion.coupon || promotion.promotion?.coupon || couponById.get(stripeId(promotion.coupon)) || {};
       const value = coupon.percent_off != null ? `${coupon.percent_off} %` : money(coupon.amount_off || 0, coupon.currency || 'eur');
       const status = promotion.active && (!promotion.expires_at || promotion.expires_at * 1_000 > Date.now()) ? 'Actif' : 'Expiré';
@@ -236,6 +236,14 @@ if (screen) {
         `<strong>${escapeHtml(promotion.code || promotion.id)}</strong><small>#${escapeHtml(promotion.id)}</small>`, providerCell('stripe'), `<strong>${escapeHtml(value)}</strong>`, promotion.expires_at ? date(promotion.expires_at, true) : 'Sans expiration', `${promotion.times_redeemed || 0}${promotion.max_redemptions ? ` / ${promotion.max_redemptions}` : ''}`, badge(status),
       ], [promotion.code || promotion.id, 'Stripe', value, promotion.expires_at ? date(promotion.expires_at, true) : 'Sans expiration', promotion.times_redeemed || 0, status], 'stripe', status);
     });
+    const drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]');
+    const draftRows = drafts.map((draft) => {
+      const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
+      return row([
+        `<strong>${escapeHtml(draft.code)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${escapeHtml(value)}</strong>`, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', '0', badge('Brouillon'),
+      ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+    });
+    return [...draftRows, ...stripeRows];
   }
 
   const loaders = {

@@ -95,7 +95,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     state.classList.add('gateway-state--connected');
     state.innerHTML = '<i></i>Connecté';
     const transactionAccess = data.capabilities?.transaction_search ? 'transactions accessibles' : 'transactions à autoriser';
-    description.textContent = `Compte PayPal · mode ${data.mode === 'live' ? 'réel' : 'sandbox'} · ${transactionAccess}`;
+    description.textContent = `Compte PayPal · mode ${data.mode === 'live' ? 'réel' : 'sandbox'} · ${transactionAccess} · actions ${data.writes_enabled ? 'actives' : 'verrouillées'}`;
     document.getElementById('paypalDashboardLink').hidden = false;
     renderGatewayGlobalStatus();
 
@@ -106,30 +106,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
     }
   }
 
-  window.getPayPayPalOverview = () => {
-    if (window.payPayPalData) return Promise.resolve(window.payPayPalData);
-    if (window.payPayPalOverviewPromise) return window.payPayPalOverviewPromise;
-    window.payPayPalOverviewPromise = fetch('/.netlify/functions/pay-paypal-overview', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-      .then(async (response) => {
-        const data = await response.json().catch(() => ({ connected: false }));
-        if (!response.ok && response.status !== 503) throw new Error(`paypal_${response.status}`);
-        window.payPayPalData = data;
-        renderPayPalSettings(data);
-        document.dispatchEvent(new CustomEvent('pay:paypal', { detail: data }));
-        return data;
-      })
-      .catch(() => {
-        window.payPayPalOverviewPromise = null;
-        renderPayPalSettings({ connected: false });
-        return null;
-      });
-    return window.payPayPalOverviewPromise;
-  };
-
   document.addEventListener('pay:stripe', (event) => renderStripeSettings(event.detail));
+  document.addEventListener('pay:paypal', (event) => renderPayPalSettings(event.detail));
   const stripeSettingsPromise = window.getPayStripeOverview?.();
   stripeSettingsPromise?.then(renderStripeSettings);
   const paypalSettingsPromise = window.getPayPayPalOverview?.();
