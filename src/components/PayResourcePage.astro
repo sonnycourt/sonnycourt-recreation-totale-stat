@@ -8,7 +8,7 @@ const {
 } = Astro.props;
 ---
 
-<div class="resource-screen" data-pay-resource-page={screen} data-empty-title={emptyTitle} data-empty-text={emptyText}>
+<div class="resource-screen" data-pay-resource-page={screen} data-resource-columns={JSON.stringify(columns)} data-empty-title={emptyTitle} data-empty-text={emptyText}>
   <section class="resource-toolbar pay-panel">
     <label class="resource-search"><span aria-hidden="true">⌕</span><input type="search" data-resource-search placeholder={searchPlaceholder} /></label>
     <select class="pay-select" data-resource-provider aria-label="Filtrer par passerelle">
@@ -21,7 +21,14 @@ const {
     <select class="pay-select" data-resource-status aria-label="Filtrer par statut">
       <option value="all">Tous les statuts</option>
     </select>
+    <button class="pay-button pay-button--ghost resource-filter-button" type="button" data-resource-more-filters>＋ Plus de filtres</button>
+    <button class="pay-button pay-button--ghost resource-filter-button" type="button" data-resource-saved-filters>☆ Vues enregistrées</button>
     <span class="resource-count" data-resource-count>Chargement…</span>
+  </section>
+
+  <section class="resource-filter-summary pay-panel" data-resource-filter-summary hidden>
+    <span data-resource-filter-summary-text></span>
+    <button type="button" data-resource-filter-clear>Effacer les filtres</button>
   </section>
 
   <section class="resource-table-panel pay-panel">
@@ -43,16 +50,40 @@ const {
     <div class="resource-dialog-grid" data-resource-dialog-content></div>
     <footer><button class="pay-button pay-button--ghost" type="button" data-resource-dialog-close>Fermer</button></footer>
   </dialog>
+
+  <dialog class="resource-dialog resource-filter-dialog pay-panel" data-resource-filter-dialog aria-labelledby="resourceFilterTitle">
+    <header><div><p class="pay-kicker">Filtre personnalisé</p><h2 id="resourceFilterTitle">Affiner cette liste</h2></div><button type="button" data-resource-filter-close aria-label="Fermer">×</button></header>
+    <div class="resource-filter-form">
+      <label><span>Colonne</span><select class="pay-select" data-resource-filter-column>{columns.map((column, index) => <option value={index}>{column}</option>)}</select></label>
+      <label><span>Condition</span><select class="pay-select" data-resource-filter-operator><option value="contains">Contient</option><option value="equals">Est exactement</option><option value="starts_with">Commence par</option><option value="ends_with">Se termine par</option><option value="not_contains">Ne contient pas</option></select></label>
+      <label class="resource-filter-value"><span>Valeur</span><input class="pay-input" type="text" data-resource-filter-value placeholder="Saisir une valeur…" /></label>
+    </div>
+    <footer><button class="pay-button pay-button--ghost" type="button" data-resource-filter-close>Annuler</button><button class="pay-button pay-button--primary" type="button" data-resource-filter-apply>Appliquer le filtre</button></footer>
+  </dialog>
+
+  <dialog class="resource-dialog resource-views-dialog pay-panel" data-resource-views-dialog aria-labelledby="resourceViewsTitle">
+    <header><div><p class="pay-kicker">Vues enregistrées</p><h2 id="resourceViewsTitle">Retrouver tes filtres</h2></div><button type="button" data-resource-views-close aria-label="Fermer">×</button></header>
+    <div class="resource-views-list" data-resource-views-list></div>
+    <div class="resource-view-save">
+      <label><span>Nom de la vue actuelle</span><input class="pay-input" type="text" maxlength="60" data-resource-view-name placeholder="Ex. Plans Stripe en retard" /></label>
+      <button class="pay-button pay-button--primary" type="button" data-resource-view-save>Enregistrer la vue</button>
+    </div>
+    <footer><button class="pay-button pay-button--ghost" type="button" data-resource-views-close>Fermer</button></footer>
+  </dialog>
 </div>
 
 <style is:global>
   .resource-screen { display: grid; gap: 13px; }
-  .resource-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 165px 165px auto; align-items: center; gap: 10px; padding: 12px; border-radius: 19px; }
+  .resource-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 150px 150px auto auto auto; align-items: center; gap: 10px; padding: 12px; border-radius: 19px; }
   .resource-search { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--pay-line); border-radius: 13px; color: var(--pay-muted); background: rgba(3,12,24,.4); }
   .resource-search input { width: 100%; border: 0; outline: 0; color: #fff; background: transparent; font-size: 10px; }
   .resource-search input::placeholder { color: var(--pay-muted); }
   .resource-toolbar .pay-select { min-width: 0; height: 42px; padding: 0 11px; font-size: 9px; }
   .resource-count { padding: 0 7px; color: var(--pay-muted); font-size: 9px; white-space: nowrap; }
+  .resource-filter-button { min-height: 42px; padding: 0 12px; white-space: nowrap; }
+  .resource-filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 13px; border-radius: 15px; color: var(--pay-soft); font-size: 9px; }
+  .resource-filter-summary[hidden] { display: none; }
+  .resource-filter-summary button { border: 0; color: var(--pay-cyan); background: transparent; font: inherit; cursor: pointer; }
   .resource-table-panel { overflow: hidden; min-height: 300px; border-radius: 22px; }
   .resource-sync-state { min-height: 300px; display: flex; align-items: center; justify-content: center; gap: 13px; color: var(--pay-soft); }
   .resource-sync-state strong, .resource-sync-state small { display: block; }
@@ -94,6 +125,21 @@ const {
   .resource-dialog-grid small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; text-transform: uppercase; }
   .resource-dialog-grid strong { color: #fff; font-size: 10px; line-height: 1.5; }
   .resource-dialog > footer { display: flex; justify-content: flex-end; padding: 14px 22px 20px; border-top: 1px solid var(--pay-line); }
+  .resource-filter-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; }
+  .resource-filter-form label, .resource-view-save label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; font-weight: 700; }
+  .resource-filter-form .resource-filter-value { grid-column: 1 / -1; }
+  .resource-filter-form .pay-select, .resource-filter-form .pay-input, .resource-view-save .pay-input { width: 100%; min-height: 44px; }
+  .resource-views-list { display: grid; gap: 8px; max-height: 320px; overflow: auto; padding: 20px 22px; }
+  .resource-view-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 9px; padding: 11px 12px; border: 1px solid var(--pay-line); border-radius: 13px; background: rgba(1,10,21,.28); }
+  .resource-view-row strong, .resource-view-row small { display: block; }
+  .resource-view-row strong { color: #fff; font-size: 10px; }
+  .resource-view-row small { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .resource-view-row button { border: 1px solid var(--pay-line); border-radius: 9px; padding: 7px 9px; color: var(--pay-soft); background: rgba(255,255,255,.035); font-size: 8px; cursor: pointer; }
+  .resource-view-row button[data-resource-view-delete-confirm='true'] { border-color: rgba(255,108,137,.45); color: #ff91a8; }
+  .resource-views-empty { padding: 22px 12px; color: var(--pay-muted); text-align: center; font-size: 9px; }
+  .resource-view-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 18px 22px; border-top: 1px solid var(--pay-line); }
   @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-table-panel { overflow-x: auto; } }
+  @media (max-width: 1100px) { .resource-toolbar { grid-template-columns: minmax(200px, 1fr) 145px 145px; } .resource-count { justify-self: end; } }
+  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .resource-filter-form { grid-template-columns: 1fr; } .resource-filter-form .resource-filter-value { grid-column: auto; } .resource-view-row { grid-template-columns: 1fr auto; } .resource-view-row button:last-child { grid-column: 1 / -1; } }
 </style>

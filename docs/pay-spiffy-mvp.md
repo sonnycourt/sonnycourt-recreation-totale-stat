@@ -114,6 +114,29 @@ npm run pay:spiffy:parity -- --snapshot docs/pay-spiffy-snapshot-2026-08-08.json
   --payments payments.csv
 ```
 
+## Audit fonctionnel Spiffy du 9 août 2026
+
+La session réelle a confirmé le noyau à reproduire : Dashboard, Checkouts,
+Products, Orders, Customers, Subscriptions, Payment Plans, Payments, Reports et
+Discounts. L'affiliation, Fields et AI/MCP restent volontairement hors du MVP.
+
+- les cinq listes de vente proposent recherche, export, filtres avancés et vues
+  enregistrées ; Pay offre désormais ces mêmes contrôles sur toutes ses listes ;
+- le dashboard propose l'intervalle calendrier, les quatre séries et les quatre
+  indicateurs déjà vérifiés par le contrôleur de parité ;
+- la création d'un checkout commence par un nom interne avant l'éditeur ; le
+  constructeur Pay en trois étapes couvre déjà le nom, l'URL et la tarification ;
+- un nouveau produit commence par le choix paiement unique ou abonnement ;
+- une commande manuelle commence par le choix d'un checkout existant ;
+- les rapports observés couvrent ventes par produit, valeur client, performance
+  checkout et plans de paiement ; Pay ajoute cash-flow, échecs et taxes ;
+- les réductions couvrent vente unique, abonnement, expiration, utilisation
+  maximale et limite par client.
+
+Les créations de produit et de commande restent des interfaces de brouillon tant
+que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement
+autorisés. Aucun de ces parcours ne doit créer de charge pendant la recette.
+
 ## Réconciliation du 8 août 2026
 
 Les quatre exports complets ont été validés à blanc :

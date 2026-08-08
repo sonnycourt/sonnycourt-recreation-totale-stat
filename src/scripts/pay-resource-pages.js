@@ -1,4 +1,5 @@
 import { collectPaySources, requirePaySource } from './pay-source-results.js';
+import { matchesResourceFilter, normalizeResourceFilter, normalizeResourceView, normalizeSavedResourceViews } from './pay-resource-filters.js';
 
 const screen = document.querySelector('[data-pay-resource-page]');
 
@@ -18,12 +19,34 @@ if (screen) {
   const detailDialog = screen.querySelector('[data-resource-dialog]');
   const detailTitle = screen.querySelector('[data-resource-dialog-title]');
   const detailContent = screen.querySelector('[data-resource-dialog-content]');
+  const advancedDialog = screen.querySelector('[data-resource-filter-dialog]');
+  const advancedColumn = screen.querySelector('[data-resource-filter-column]');
+  const advancedOperator = screen.querySelector('[data-resource-filter-operator]');
+  const advancedValue = screen.querySelector('[data-resource-filter-value]');
+  const filterSummary = screen.querySelector('[data-resource-filter-summary]');
+  const filterSummaryText = screen.querySelector('[data-resource-filter-summary-text]');
+  const viewsDialog = screen.querySelector('[data-resource-views-dialog]');
+  const viewsList = screen.querySelector('[data-resource-views-list]');
+  const viewName = screen.querySelector('[data-resource-view-name]');
+  const columns = JSON.parse(screen.dataset.resourceColumns || '[]');
+  const viewsStorageKey = `pay_resource_views_${screen.dataset.payResourcePage}`;
   let rows = [];
   let sourceLabels = [];
+  let activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
+  let savedViews = readSavedViews();
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const clean = (value) => typeof value === 'string' ? value.trim() : '';
   const stripeId = (value) => typeof value === 'string' ? value : value?.id || '';
+
+  function readSavedViews() {
+    try { return normalizeSavedResourceViews(JSON.parse(localStorage.getItem(viewsStorageKey) || '[]'), columns.length); }
+    catch { return []; }
+  }
+
+  function writeSavedViews() {
+    localStorage.setItem(viewsStorageKey, JSON.stringify(savedViews));
+  }
 
   function currencyDigits(currency = 'eur') {
     try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).resolvedOptions().maximumFractionDigits; }
@@ -395,16 +418,50 @@ if (screen) {
     statusFilter.innerHTML = '<option value="all">Tous les statuts</option>' + statuses.map((status) => `<option value="${escapeHtml(status)}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</option>`).join('');
   }
 
+  function currentView(name = '', id = '') {
+    return normalizeResourceView({
+      id,
+      name,
+      query: search.value,
+      provider: providerFilter.value,
+      status: statusFilter.value,
+      advanced: activeAdvancedFilter,
+    }, columns.length);
+  }
+
+  function visibleRows() {
+    const view = currentView();
+    const query = clean(view.query).toLowerCase();
+    return rows.filter((item) => (!query || item.search.includes(query))
+      && (view.provider === 'all' || item.provider === view.provider)
+      && (view.status === 'all' || item.status === view.status)
+      && matchesResourceFilter(item, view.advanced, columns.length));
+  }
+
+  function filterLabel(filter = activeAdvancedFilter) {
+    if (!filter.value) return '';
+    const operators = { contains: 'contient', equals: 'est', starts_with: 'commence par', ends_with: 'se termine par', not_contains: 'ne contient pas' };
+    return `${columns[filter.column] || 'Colonne'} ${operators[filter.operator] || 'contient'} « ${filter.value} »`;
+  }
+
+  function renderFilterSummary() {
+    const parts = [];
+    if (clean(search.value)) parts.push(`Recherche « ${clean(search.value)} »`);
+    if (providerFilter.value !== 'all') parts.push(providerFilter.options[providerFilter.selectedIndex]?.text || providerFilter.value);
+    if (statusFilter.value !== 'all') parts.push(statusFilter.options[statusFilter.selectedIndex]?.text || statusFilter.value);
+    if (activeAdvancedFilter.value) parts.push(filterLabel());
+    filterSummary.hidden = parts.length === 0;
+    filterSummaryText.textContent = parts.length ? `Filtres actifs · ${parts.join(' · ')}` : '';
+  }
+
   function render() {
-    const query = clean(search.value).toLowerCase();
-    const provider = providerFilter.value;
-    const status = statusFilter.value;
-    const visible = rows.filter((item) => (!query || item.search.includes(query)) && (provider === 'all' || item.provider === provider) && (status === 'all' || item.status === status));
+    const visible = visibleRows();
     rowsHost.innerHTML = visible.map((item) => `<div class="resource-row" role="button" tabindex="0" data-resource-index="${rows.indexOf(item)}" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
     const sourceSuffix = sourceLabels.length ? ` · ${sourceLabels.join(' + ')}` : '';
     count.textContent = `${visible.length} résultat${visible.length === 1 ? '' : 's'}${sourceSuffix}`;
     table.hidden = visible.length === 0;
     empty.hidden = visible.length !== 0;
+    renderFilterSummary();
   }
 
   function csvValue(value) {
@@ -414,11 +471,8 @@ if (screen) {
 
   function exportCsv() {
     const headers = [...screen.querySelectorAll('.resource-head > span')].map((item) => item.textContent.trim());
-    const visibleRows = rows.filter((item) => {
-      const query = clean(search.value).toLowerCase();
-      return (!query || item.search.includes(query)) && (providerFilter.value === 'all' || item.provider === providerFilter.value) && (statusFilter.value === 'all' || item.status === statusFilter.value);
-    });
-    const content = [headers, ...visibleRows.map((item) => item.plain)].map((line) => line.map(csvValue).join(';')).join('\n');
+    const exportedRows = visibleRows();
+    const content = [headers, ...exportedRows.map((item) => item.plain)].map((line) => line.map(csvValue).join(';')).join('\n');
     const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -433,6 +487,112 @@ if (screen) {
   providerFilter.addEventListener('change', render);
   statusFilter.addEventListener('change', render);
   document.querySelector('[data-resource-export]')?.addEventListener('click', exportCsv);
+
+  function openAdvancedFilters() {
+    advancedColumn.value = String(activeAdvancedFilter.column);
+    advancedOperator.value = activeAdvancedFilter.operator;
+    advancedValue.value = activeAdvancedFilter.value;
+    advancedDialog?.showModal();
+  }
+
+  function clearFilters() {
+    search.value = '';
+    providerFilter.value = 'all';
+    statusFilter.value = 'all';
+    activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
+    render();
+    window.payToast?.('Filtres effacés.');
+  }
+
+  function savedViewDescription(view) {
+    const parts = [];
+    if (view.query) parts.push(`« ${view.query} »`);
+    if (view.provider !== 'all') parts.push(view.provider === 'internal' ? 'Pay' : view.provider.charAt(0).toUpperCase() + view.provider.slice(1));
+    if (view.status !== 'all') parts.push(view.status);
+    if (view.advanced.value) parts.push(filterLabel(view.advanced));
+    return parts.length ? parts.join(' · ') : 'Tous les résultats';
+  }
+
+  function renderSavedViews() {
+    viewsList.innerHTML = savedViews.length ? savedViews.map((view) => `
+      <div class="resource-view-row" data-resource-view-id="${escapeHtml(view.id)}">
+        <span><strong>${escapeHtml(view.name)}</strong><small>${escapeHtml(savedViewDescription(view))}</small></span>
+        <button type="button" data-resource-view-use>Utiliser</button>
+        <button type="button" data-resource-view-delete>Supprimer</button>
+      </div>`).join('') : '<div class="resource-views-empty">Aucune vue enregistrée pour cette page.</div>';
+  }
+
+  function openSavedViews() {
+    renderSavedViews();
+    viewName.value = '';
+    viewsDialog?.showModal();
+  }
+
+  function applySavedView(view) {
+    search.value = view.query;
+    providerFilter.value = view.provider;
+    statusFilter.value = [...statusFilter.options].some((option) => option.value === view.status) ? view.status : 'all';
+    activeAdvancedFilter = normalizeResourceFilter(view.advanced, columns.length);
+    render();
+    viewsDialog?.close();
+    window.payToast?.(`Vue « ${view.name} » appliquée.`);
+  }
+
+  screen.querySelector('[data-resource-more-filters]')?.addEventListener('click', openAdvancedFilters);
+  screen.querySelector('[data-resource-saved-filters]')?.addEventListener('click', openSavedViews);
+  screen.querySelector('[data-resource-filter-clear]')?.addEventListener('click', clearFilters);
+  screen.querySelector('[data-resource-filter-apply]')?.addEventListener('click', () => {
+    activeAdvancedFilter = normalizeResourceFilter({ column: advancedColumn.value, operator: advancedOperator.value, value: advancedValue.value }, columns.length);
+    advancedDialog?.close();
+    render();
+    window.payToast?.(activeAdvancedFilter.value ? 'Filtre personnalisé appliqué.' : 'Filtre personnalisé effacé.');
+  });
+  advancedValue?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    screen.querySelector('[data-resource-filter-apply]')?.click();
+  });
+  screen.querySelectorAll('[data-resource-filter-close]').forEach((button) => button.addEventListener('click', () => advancedDialog?.close()));
+  advancedDialog?.addEventListener('click', (event) => { if (event.target === advancedDialog) advancedDialog.close(); });
+
+  screen.querySelector('[data-resource-view-save]')?.addEventListener('click', () => {
+    const name = clean(viewName.value);
+    if (!name) {
+      window.payToast?.('Donne un nom à cette vue.');
+      viewName.focus();
+      return;
+    }
+    const view = currentView(name, `${Date.now()}`);
+    savedViews = [view, ...savedViews.filter((item) => item.name.toLowerCase() !== name.toLowerCase())].slice(0, 30);
+    try { writeSavedViews(); }
+    catch { window.payToast?.('Impossible d’enregistrer cette vue dans ce navigateur.'); return; }
+    viewName.value = '';
+    renderSavedViews();
+    window.payToast?.(`Vue « ${view.name} » enregistrée.`);
+  });
+  viewsList?.addEventListener('click', (event) => {
+    const host = event.target.closest('[data-resource-view-id]');
+    if (!host) return;
+    const view = savedViews.find((item) => item.id === host.dataset.resourceViewId);
+    if (!view) return;
+    if (event.target.closest('[data-resource-view-use]')) {
+      applySavedView(view);
+      return;
+    }
+    const deleteButton = event.target.closest('[data-resource-view-delete]');
+    if (!deleteButton) return;
+    if (deleteButton.dataset.resourceViewDeleteConfirm !== 'true') {
+      deleteButton.dataset.resourceViewDeleteConfirm = 'true';
+      deleteButton.textContent = 'Confirmer la suppression';
+      return;
+    }
+    savedViews = savedViews.filter((item) => item.id !== view.id);
+    try { writeSavedViews(); } catch {}
+    renderSavedViews();
+    window.payToast?.(`Vue « ${view.name} » supprimée.`);
+  });
+  screen.querySelectorAll('[data-resource-views-close]').forEach((button) => button.addEventListener('click', () => viewsDialog?.close()));
+  viewsDialog?.addEventListener('click', (event) => { if (event.target === viewsDialog) viewsDialog.close(); });
 
   function openDetails(item) {
     if (!item || !detailDialog) return;
