@@ -64,6 +64,8 @@ const transactions = [];
 </PayAppShell>
 
 <script>
+  import { payTransactionMetrics, payTransactionProviderLabel } from '../../scripts/pay-transaction-metrics.js';
+
   const REFUND_API = '/.netlify/functions/pay-stripe-refund';
   const PAYPAL_REFUND_API = '/.netlify/functions/pay-paypal-refund';
   const STRIPE_DATA_API = '/.netlify/functions/pay-stripe-data';
@@ -192,18 +194,13 @@ const transactions = [];
     const cutoff = Math.floor((Date.now() - 30 * 86_400_000) / 1_000);
     const items = combinedItems(recentStripeItems).filter((item) => Number(item.created || 0) >= cutoff);
     const currency = stripeTransactionsData?.account?.currency || items[0]?.currency || 'eur';
-    const successful = items.filter((item) => item.status === 'Réussi' && item.kind !== 'refund');
-    const refunds = items.filter((item) => Number(item.refunded || 0) > 0 || item.kind === 'refund' || item.status === 'Remboursé');
-    const pending = items.filter((item) => ['En attente', 'Action requise', 'Incomplet'].includes(item.status));
-    const revenue = successful.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.signed_amount ?? item.amount ?? 0), 0);
-    const refunded = refunds.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.refunded || 0), 0);
-    const pendingAmount = pending.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    document.getElementById('transactionRevenue').textContent = transactionMoney(revenue, currency);
-    document.getElementById('transactionSuccessCount').textContent = `${successful.length} paiement${successful.length === 1 ? '' : 's'} réussi${successful.length === 1 ? '' : 's'}`;
-    document.getElementById('transactionRefunded').textContent = transactionMoney(refunded, currency);
-    document.getElementById('transactionRefundCount').textContent = `${refunds.length} remboursement${refunds.length === 1 ? '' : 's'}`;
-    document.getElementById('transactionPending').textContent = transactionMoney(pendingAmount, currency);
-    document.getElementById('transactionPendingCount').textContent = `${pending.length} paiement${pending.length === 1 ? '' : 's'}`;
+    const metrics = payTransactionMetrics(items, { currency, cutoff });
+    document.getElementById('transactionRevenue').textContent = transactionMoney(metrics.revenue, currency);
+    document.getElementById('transactionSuccessCount').textContent = `${metrics.successfulCount} paiement${metrics.successfulCount === 1 ? '' : 's'} réussi${metrics.successfulCount === 1 ? '' : 's'}`;
+    document.getElementById('transactionRefunded').textContent = transactionMoney(metrics.refunded, currency);
+    document.getElementById('transactionRefundCount').textContent = `${metrics.refundCount} remboursement${metrics.refundCount === 1 ? '' : 's'}`;
+    document.getElementById('transactionPending').textContent = transactionMoney(metrics.pending, currency);
+    document.getElementById('transactionPendingCount').textContent = `${metrics.pendingCount} paiement${metrics.pendingCount === 1 ? '' : 's'}`;
   }
 
   function renderStoredHistory() {
@@ -322,7 +319,7 @@ const transactions = [];
 
   function exportTransactions() {
     const items = combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems);
-    const rows = [['Client', 'Email', 'Description', 'Date', 'Passerelle', 'Statut', 'Montant', 'Devise'], ...items.map((item) => [item.customer, item.email, item.description, transactionDate(item.created), item.provider === 'paypal' ? 'PayPal' : 'Stripe', item.status, String(Number(item.amount || 0) / currencyDivisor(item.currency)), String(item.currency || 'eur').toUpperCase()])];
+    const rows = [['Client', 'Email', 'Description', 'Date', 'Passerelle', 'Statut', 'Montant', 'Devise'], ...items.map((item) => [item.customer, item.email, item.description, transactionDate(item.created), payTransactionProviderLabel(item.provider), item.status, String(Number(item.amount || 0) / currencyDivisor(item.currency)), String(item.currency || 'eur').toUpperCase()])];
     const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const csv = rows.map((line) => line.map(quote).join(';')).join('\n');
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));

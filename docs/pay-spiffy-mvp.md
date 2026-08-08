@@ -231,6 +231,10 @@ Stripe et PayPal. Sur la page Paiements, les objets live ont priorité sur une
 ligne d'archive portant le même identifiant ; eux seuls peuvent proposer une
 action de remboursement.
 
+La synthèse de la page Transactions déduplique aussi les remboursements PayPal :
+lorsqu'un événement de remboursement explicite existe, le montant déjà reflété
+sur le paiement parent n'est pas additionné une seconde fois.
+
 ## État de parité du MVP
 
 | Zone Spiffy | Pay | État |
