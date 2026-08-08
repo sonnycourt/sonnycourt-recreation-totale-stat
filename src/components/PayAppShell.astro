@@ -1,0 +1,356 @@
+---
+const {
+  active = 'dashboard',
+  eyebrow = 'Vue d’ensemble',
+  title = 'Tableau de bord',
+  description = 'Pilote tes paiements depuis un seul endroit.',
+} = Astro.props;
+
+const navigation = [
+  { id: 'dashboard', label: 'Tableau de bord', route: '/', icon: '⌂' },
+  { id: 'checkouts', label: 'Checkouts', route: '/checkouts', icon: '▣' },
+  { id: 'transactions', label: 'Transactions', route: '/transactions', icon: '↗' },
+  { id: 'products', label: 'Produits', route: '/products', icon: '◇' },
+  { id: 'settings', label: 'Réglages', route: '/settings', icon: '⚙' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#071223" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} · Pay Sonny Court</title>
+  </head>
+  <body>
+    <section class="pay-login" id="payLogin" aria-labelledby="payLoginTitle">
+      <div class="pay-login-glow"></div>
+      <div class="pay-login-card pay-glass">
+        <div class="pay-brand pay-brand--login"><span class="pay-brand-mark">P</span><span>PAY</span></div>
+        <p class="pay-kicker">Sonny Court · espace privé</p>
+        <h1 id="payLoginTitle">Ton cockpit de paiement.</h1>
+        <p>Connecte-toi avec le même accès que le Hub pour ouvrir Pay.</p>
+        <form id="payLoginForm" class="pay-login-form">
+          <label>
+            <span>Email</span>
+            <input id="payEmail" type="email" autocomplete="username" placeholder="ton@email.com" required />
+          </label>
+          <label>
+            <span>Mot de passe</span>
+            <input id="payPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="pay-button pay-button--primary" type="submit">Entrer dans Pay <span>→</span></button>
+          <p class="pay-form-error" id="payLoginError" role="alert"></p>
+        </form>
+        <a class="pay-back-link" href="https://sonnycourt.com/hub">← Retour au Hub</a>
+      </div>
+    </section>
+
+    <div class="pay-app" id="payApp" hidden>
+      <div class="pay-ambient pay-ambient--one"></div>
+      <div class="pay-ambient pay-ambient--two"></div>
+
+      <aside class="pay-sidebar pay-glass" id="paySidebar">
+        <a class="pay-brand" data-pay-route="/" href="/pay">
+          <span class="pay-brand-mark">P</span>
+          <span>PAY</span>
+          <span class="pay-brand-status">MVP</span>
+        </a>
+
+        <nav class="pay-nav" aria-label="Navigation Pay">
+          <p class="pay-nav-label">Espace de travail</p>
+          {navigation.map((item) => (
+            <a
+              class:list={['pay-nav-link', { 'is-active': active === item.id }]}
+              data-pay-route={item.route}
+              href={`/pay${item.route === '/' ? '' : item.route}`}
+              aria-current={active === item.id ? 'page' : undefined}
+            >
+              <span class="pay-nav-icon" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+          ))}
+        </nav>
+
+        <div class="pay-sidebar-foot">
+          <div class="pay-connection-mini" id="payStripeMini">
+            <span class="pay-connection-dot"></span>
+            <div><strong>Connexion Stripe</strong><small>Vérification en cours…</small></div>
+          </div>
+          <a class="pay-hub-link" href="https://sonnycourt.com/hub">← Revenir au Hub</a>
+        </div>
+      </aside>
+
+      <main class="pay-main">
+        <header class="pay-topbar pay-glass">
+          <button class="pay-menu-button" id="payMenuButton" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
+          <div class="pay-topbar-title" id="payTopbarStatus"><span class="pay-live-dot"></span> Connexion Stripe en cours…</div>
+          <div class="pay-profile"><span class="pay-avatar">SC</span><span><strong>Sonny Court</strong><small>Administrateur</small></span></div>
+        </header>
+
+        <div class="pay-page">
+          <header class="pay-page-header">
+            <div>
+              <p class="pay-kicker">{eyebrow}</p>
+              <h1>{title}</h1>
+              <p class="pay-page-description">{description}</p>
+            </div>
+            <div class="pay-page-actions"><slot name="actions" /></div>
+          </header>
+
+          <slot />
+        </div>
+      </main>
+    </div>
+
+    <div class="pay-toast" id="payToast" role="status" aria-live="polite"></div>
+
+    <script>
+      const SESSION_API = '/.netlify/functions/admin-es2-session';
+      const LOGIN_API = '/.netlify/functions/admin-es2-login';
+      const STRIPE_API = '/.netlify/functions/pay-stripe-overview';
+      const previewHosts = new Set(['localhost', '127.0.0.1']);
+      const params = new URLSearchParams(window.location.search);
+      const canPreview = params.has('preview') && (previewHosts.has(window.location.hostname) || window.location.hostname.endsWith('.netlify.app'));
+
+      const app = document.getElementById('payApp');
+      const login = document.getElementById('payLogin');
+
+      function showPay() {
+        login.hidden = true;
+        app.hidden = false;
+        window.getPayStripeOverview?.();
+      }
+
+      function updateStripeChrome(data) {
+        if (!data?.connected) return;
+        const mode = data.mode === 'live' ? 'réel' : 'test';
+        const mini = document.getElementById('payStripeMini');
+        const topbar = document.getElementById('payTopbarStatus');
+        mini?.classList.add('is-connected');
+        if (mini) mini.querySelector('strong').textContent = 'Stripe connecté';
+        if (mini) mini.querySelector('small').textContent = `${data.account?.name || 'Compte Stripe'} · mode ${mode}`;
+        if (topbar) {
+          topbar.replaceChildren();
+          const dot = document.createElement('span');
+          dot.className = 'pay-live-dot';
+          topbar.append(dot, document.createTextNode(`Stripe connecté · mode ${mode}`));
+        }
+      }
+
+      window.getPayStripeOverview = () => {
+        if (window.payStripeData) return Promise.resolve(window.payStripeData);
+        if (window.payStripeOverviewPromise) return window.payStripeOverviewPromise;
+        window.payStripeOverviewPromise = fetch(STRIPE_API, { credentials: 'same-origin' })
+          .then(async (response) => {
+            if (!response.ok) throw new Error(`stripe_${response.status}`);
+            const data = await response.json();
+            window.payStripeData = data;
+            updateStripeChrome(data);
+            document.dispatchEvent(new CustomEvent('pay:stripe', { detail: data }));
+            return data;
+          })
+          .catch(() => {
+            window.payStripeOverviewPromise = null;
+            const mini = document.getElementById('payStripeMini');
+            const topbar = document.getElementById('payTopbarStatus');
+            if (mini) mini.querySelector('small').textContent = 'Données de démonstration';
+            if (topbar) topbar.lastChild.textContent = ' Pay fonctionne en mode prototype';
+            return null;
+          });
+        return window.payStripeOverviewPromise;
+      };
+
+      window.refreshPayStripeOverview = () => {
+        window.payStripeData = null;
+        window.payStripeOverviewPromise = null;
+        return window.getPayStripeOverview();
+      };
+
+      async function checkPaySession() {
+        if (canPreview) return showPay();
+        const response = await fetch(SESSION_API, { credentials: 'same-origin' }).catch(() => null);
+        if (response?.ok) showPay();
+      }
+
+      document.getElementById('payLoginForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const error = document.getElementById('payLoginError');
+        error.textContent = '';
+        const response = await fetch(LOGIN_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            email: document.getElementById('payEmail').value,
+            password: document.getElementById('payPassword').value,
+          }),
+        }).catch(() => null);
+
+        document.getElementById('payPassword').value = '';
+        if (response?.ok) showPay();
+        else error.textContent = response?.status === 429 ? 'Trop de tentatives. Réessaie dans quelques minutes.' : 'Email ou mot de passe incorrect.';
+      });
+
+      const localBase = window.location.hostname === 'pay.sonnycourt.com' ? '' : '/pay';
+      document.querySelectorAll('[data-pay-route]').forEach((link) => {
+        const route = link.getAttribute('data-pay-route') || '/';
+        const previewSuffix = params.has('preview') ? '?preview=1' : '';
+        link.setAttribute('href', `${`${localBase}${route === '/' ? '' : route}` || '/'}${previewSuffix}`);
+      });
+
+      const menuButton = document.getElementById('payMenuButton');
+      const sidebar = document.getElementById('paySidebar');
+      menuButton?.addEventListener('click', () => {
+        const open = sidebar.classList.toggle('is-open');
+        menuButton.setAttribute('aria-expanded', String(open));
+      });
+
+      window.payToast = (message) => {
+        const toast = document.getElementById('payToast');
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        window.clearTimeout(window.payToastTimer);
+        window.payToastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 2600);
+      };
+
+      document.querySelectorAll('[data-demo-disabled]').forEach((button) => {
+        button.addEventListener('click', () => window.payToast('Cette action sera activée dans la deuxième tranche.'));
+      });
+
+      checkPaySession();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: dark;
+    --pay-bg: #050b16;
+    --pay-panel: rgba(15, 31, 51, 0.68);
+    --pay-panel-strong: rgba(18, 39, 64, 0.88);
+    --pay-line: rgba(169, 216, 255, 0.14);
+    --pay-line-strong: rgba(157, 222, 255, 0.26);
+    --pay-text: #f7fbff;
+    --pay-soft: rgba(223, 239, 255, 0.65);
+    --pay-muted: rgba(206, 228, 249, 0.43);
+    --pay-blue: #55b8ff;
+    --pay-cyan: #70e7ff;
+    --pay-green: #65e5aa;
+    --pay-red: #ff8094;
+    --pay-shadow: 0 28px 70px rgba(0, 4, 14, 0.38);
+  }
+
+  * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--pay-bg); }
+  body { min-height: 100vh; margin: 0; color: var(--pay-text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif; -webkit-font-smoothing: antialiased; background: radial-gradient(circle at 74% -8%, rgba(35, 149, 255, 0.23), transparent 31rem), radial-gradient(circle at 8% 90%, rgba(0, 202, 255, 0.12), transparent 29rem), linear-gradient(145deg, #040812 0%, #08162a 54%, #0b2b4e 100%); }
+  button, input, select, textarea { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+
+  .pay-glass { border: 1px solid var(--pay-line); background: radial-gradient(circle at 12% 0%, rgba(255,255,255,.11), transparent 28%), linear-gradient(145deg, rgba(23, 49, 78, .78), rgba(8, 20, 36, .58)); box-shadow: var(--pay-shadow), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter: blur(30px) saturate(145%); -webkit-backdrop-filter: blur(30px) saturate(145%); }
+
+  .pay-login { min-height: 100vh; display: grid; place-items: center; padding: 28px; position: relative; overflow: hidden; }
+  .pay-login-glow { position: absolute; width: 420px; height: 420px; border-radius: 50%; background: rgba(46, 169, 255, .18); filter: blur(90px); }
+  .pay-login-card { width: min(455px, 100%); position: relative; padding: 42px; border-radius: 34px; }
+  .pay-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font-size: 16px; font-weight: 820; letter-spacing: .12em; text-decoration: none; }
+  .pay-brand--login { margin-bottom: 38px; }
+  .pay-brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(126, 220, 255, .38); border-radius: 13px; background: linear-gradient(145deg, rgba(95, 203, 255, .32), rgba(20, 119, 224, .15)); box-shadow: inset 0 1px rgba(255,255,255,.24), 0 10px 28px rgba(0, 129, 255, .18); font-size: 17px; letter-spacing: 0; }
+  .pay-brand-status { padding: 4px 7px; border: 1px solid rgba(112, 231, 255, .25); border-radius: 999px; color: var(--pay-cyan); background: rgba(112, 231, 255, .08); font-size: 8px; letter-spacing: .12em; }
+  .pay-login h1 { margin: 8px 0 12px; font-size: clamp(32px, 7vw, 47px); line-height: .98; letter-spacing: -.055em; }
+  .pay-login-card > p:not(.pay-kicker) { margin: 0 0 28px; color: var(--pay-soft); font-size: 14px; line-height: 1.55; }
+  .pay-kicker { margin: 0; color: var(--pay-cyan); font-size: 10px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+  .pay-login-form { display: grid; gap: 15px; }
+  .pay-login-form label { display: grid; gap: 7px; color: var(--pay-soft); font-size: 11px; font-weight: 700; }
+  .pay-login-form input, .pay-input, .pay-select, .pay-textarea { width: 100%; border: 1px solid var(--pay-line); border-radius: 15px; outline: none; color: var(--pay-text); background: rgba(3, 12, 24, .48); transition: border-color .18s, box-shadow .18s, background .18s; }
+  .pay-login-form input { height: 50px; padding: 0 15px; }
+  .pay-login-form input:focus, .pay-input:focus, .pay-select:focus, .pay-textarea:focus { border-color: rgba(112, 231, 255, .56); background: rgba(7, 23, 41, .72); box-shadow: 0 0 0 4px rgba(85, 184, 255, .09); }
+  .pay-form-error { min-height: 18px; margin: 0; color: #ff9cac; font-size: 12px; }
+  .pay-back-link { display: inline-block; margin-top: 22px; color: var(--pay-muted); font-size: 12px; text-decoration: none; }
+
+  .pay-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 16px; border: 1px solid var(--pay-line); border-radius: 14px; color: var(--pay-text); background: rgba(255,255,255,.055); box-shadow: inset 0 1px rgba(255,255,255,.08); font-size: 12px; font-weight: 750; text-decoration: none; cursor: pointer; transition: transform .18s, border-color .18s, background .18s, box-shadow .18s; }
+  .pay-button:hover { transform: translateY(-1px); border-color: var(--pay-line-strong); background: rgba(255,255,255,.08); }
+  .pay-button--primary { border-color: rgba(82, 182, 255, .48); background: linear-gradient(135deg, #168bea, #20b7dd); box-shadow: 0 13px 30px rgba(0, 126, 225, .24), inset 0 1px rgba(255,255,255,.22); }
+  .pay-button--primary:hover { background: linear-gradient(135deg, #269af4, #2dc8eb); box-shadow: 0 16px 34px rgba(0, 126, 225, .31); }
+  .pay-button--ghost { color: var(--pay-soft); }
+
+  .pay-app { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 16px; padding: 16px; position: relative; isolation: isolate; }
+  .pay-ambient { position: fixed; z-index: -1; border-radius: 50%; filter: blur(85px); pointer-events: none; }
+  .pay-ambient--one { width: 380px; height: 380px; top: -170px; right: 10%; background: rgba(32, 151, 255, .18); }
+  .pay-ambient--two { width: 340px; height: 340px; bottom: -180px; left: 12%; background: rgba(46, 214, 235, .11); }
+  .pay-sidebar { min-height: calc(100vh - 32px); position: sticky; top: 16px; display: flex; flex-direction: column; align-self: start; padding: 22px 16px 17px; border-radius: 26px; }
+  .pay-sidebar .pay-brand { padding: 0 8px 21px; border-bottom: 1px solid rgba(172, 219, 255, .1); }
+  .pay-nav { display: grid; gap: 7px; margin-top: 25px; }
+  .pay-nav-label { margin: 0 10px 8px; color: var(--pay-muted); font-size: 9px; font-weight: 780; letter-spacing: .14em; text-transform: uppercase; }
+  .pay-nav-link { min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border: 1px solid transparent; border-radius: 14px; color: rgba(220, 237, 255, .58); font-size: 12px; font-weight: 670; text-decoration: none; transition: .18s ease; }
+  .pay-nav-link:hover { color: #fff; background: rgba(255,255,255,.05); }
+  .pay-nav-link.is-active { color: #fff; border-color: rgba(104, 213, 255, .2); background: linear-gradient(135deg, rgba(60, 166, 246, .18), rgba(53, 216, 235, .08)); box-shadow: inset 0 1px rgba(255,255,255,.08), 0 9px 25px rgba(0, 118, 214, .08); }
+  .pay-nav-icon { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(167, 218, 255, .12); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--pay-cyan); font-size: 14px; }
+  .pay-sidebar-foot { display: grid; gap: 14px; margin-top: auto; }
+  .pay-connection-mini { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid rgba(101, 229, 170, .13); border-radius: 15px; background: rgba(101, 229, 170, .035); }
+  .pay-connection-mini.is-connected { border-color: rgba(101, 229, 170, .25); background: rgba(101, 229, 170, .065); }
+  .pay-connection-mini strong, .pay-connection-mini small { display: block; }
+  .pay-connection-mini strong { color: rgba(239, 252, 255, .8); font-size: 10px; }
+  .pay-connection-mini small { margin-top: 3px; color: var(--pay-muted); font-size: 8px; }
+  .pay-connection-dot, .pay-live-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--pay-green); box-shadow: 0 0 0 4px rgba(101, 229, 170, .08), 0 0 14px rgba(101, 229, 170, .5); }
+  .pay-hub-link { padding: 0 6px; color: var(--pay-muted); font-size: 10px; text-decoration: none; }
+
+  .pay-main { min-width: 0; }
+  .pay-topbar { min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 20px; border-radius: 22px; }
+  .pay-topbar-title { display: flex; align-items: center; gap: 10px; color: var(--pay-soft); font-size: 11px; font-weight: 660; }
+  .pay-profile { display: flex; align-items: center; gap: 10px; }
+  .pay-profile strong, .pay-profile small { display: block; text-align: right; }
+  .pay-profile strong { font-size: 10px; }
+  .pay-profile small { margin-top: 3px; color: var(--pay-muted); font-size: 8px; }
+  .pay-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(116, 221, 255, .25); border-radius: 11px; background: linear-gradient(145deg, rgba(71, 178, 255, .24), rgba(28, 93, 171, .1)); color: #dff7ff; font-size: 10px; font-weight: 800; }
+  .pay-menu-button { display: none; width: 40px; height: 40px; border: 1px solid var(--pay-line); border-radius: 12px; color: #fff; background: rgba(255,255,255,.05); }
+  .pay-page { width: min(1320px, 100%); margin: 0 auto; padding: 40px 24px 68px; }
+  .pay-page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 27px; }
+  .pay-page-header h1 { margin: 7px 0 0; font-size: clamp(31px, 4vw, 48px); line-height: 1; letter-spacing: -.052em; }
+  .pay-page-description { margin: 11px 0 0; color: var(--pay-soft); font-size: 13px; }
+  .pay-page-actions { display: flex; gap: 10px; }
+
+  .pay-panel { border: 1px solid var(--pay-line); border-radius: 24px; background: radial-gradient(circle at 9% 0%, rgba(255,255,255,.08), transparent 28%), linear-gradient(145deg, rgba(20, 42, 67, .7), rgba(7, 19, 34, .52)); box-shadow: 0 25px 60px rgba(0, 5, 15, .22), inset 0 1px rgba(255,255,255,.1); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
+  .pay-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 19px 20px; border-bottom: 1px solid rgba(169, 216, 255, .1); }
+  .pay-panel-header h2 { margin: 0; font-size: 13px; letter-spacing: -.01em; }
+  .pay-panel-header p { margin: 5px 0 0; color: var(--pay-muted); font-size: 10px; }
+  .pay-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid rgba(112, 231, 255, .18); border-radius: 999px; color: var(--pay-cyan); background: rgba(112, 231, 255, .06); font-size: 8px; font-weight: 780; letter-spacing: .08em; text-transform: uppercase; }
+  .pay-badge--success { border-color: rgba(101,229,170,.18); color: var(--pay-green); background: rgba(101,229,170,.06); }
+  .pay-badge--draft { color: var(--pay-muted); border-color: var(--pay-line); background: rgba(255,255,255,.03); }
+  .pay-badge--warning { color: #ffd47a; border-color: rgba(255, 204, 97, .18); background: rgba(255, 204, 97, .06); }
+
+  .pay-empty { min-height: 270px; display: grid; place-items: center; padding: 38px; text-align: center; }
+  .pay-empty-icon { width: 62px; height: 62px; display: grid; place-items: center; margin: 0 auto 17px; border: 1px solid rgba(112, 231, 255, .22); border-radius: 20px; color: var(--pay-cyan); background: rgba(112, 231, 255, .06); font-size: 26px; }
+  .pay-empty h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+  .pay-empty p { max-width: 470px; margin: 9px auto 20px; color: var(--pay-soft); font-size: 12px; line-height: 1.55; }
+
+  .pay-toast { position: fixed; z-index: 50; right: 24px; bottom: 24px; max-width: 360px; padding: 13px 16px; border: 1px solid rgba(112, 231, 255, .26); border-radius: 14px; color: #fff; background: rgba(7, 24, 42, .94); box-shadow: var(--pay-shadow); font-size: 11px; opacity: 0; transform: translateY(12px); pointer-events: none; transition: .22s ease; }
+  .pay-toast.is-visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 900px) {
+    .pay-app { grid-template-columns: 1fr; padding: 10px; }
+    .pay-sidebar { width: min(280px, calc(100vw - 28px)); min-height: calc(100vh - 20px); position: fixed; z-index: 30; top: 10px; left: 10px; transform: translateX(calc(-100% - 24px)); transition: transform .22s ease; }
+    .pay-sidebar.is-open { transform: translateX(0); }
+    .pay-menu-button { display: grid; place-items: center; }
+    .pay-topbar { min-height: 62px; }
+    .pay-topbar-title { margin-right: auto; }
+    .pay-page { padding: 30px 10px 54px; }
+  }
+
+  @media (max-width: 620px) {
+    .pay-login { padding: 12px; }
+    .pay-login-card { padding: 30px 20px; border-radius: 26px; }
+    .pay-profile > span:not(.pay-avatar) { display: none; }
+    .pay-topbar-title { font-size: 9px; }
+    .pay-page-header { align-items: stretch; flex-direction: column; }
+    .pay-page-actions, .pay-page-actions > * { width: 100%; }
+    .pay-button { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+</style>

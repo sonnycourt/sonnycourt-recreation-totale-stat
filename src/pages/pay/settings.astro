@@ -1,0 +1,99 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+---
+
+<PayAppShell active="settings" eyebrow="Configuration" title="Réglages" description="Connecte les services indispensables. Rien de plus pour le MVP.">
+  <section class="settings-layout">
+    <div class="settings-main">
+      <article class="pay-panel gateway-panel">
+        <div class="pay-panel-header"><div><h2>Passerelles de paiement</h2><p>État des connexions utilisées par Pay.</p></div><span class="pay-badge pay-badge--warning" id="gatewayGlobalStatus">Vérification</span></div>
+        <div class="gateway-list">
+          <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
+          <div class="gateway-row gateway-row--safety"><span class="gateway-logo gateway-logo--safety">✓</span><span><strong>Actions financières</strong><small id="stripeActionsDescription">Vérification du garde-fou des remboursements</small></span><span class="gateway-state" id="stripeActionsState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/transactions" href="/pay/transactions">Gérer</a></div>
+          <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small>PayPal Express et paiements par compte</small></span><span class="gateway-state"><i></i>Non connecté</span><button class="pay-button" type="button" data-demo-disabled>Connecter PayPal</button></div>
+        </div>
+      </article>
+      <article class="pay-panel company-panel">
+        <div class="pay-panel-header"><div><h2>Entreprise</h2><p>Informations affichées sur les reçus et checkouts</p></div></div>
+        <div class="company-grid"><label><span>Nom commercial</span><input class="pay-input" id="stripeCompanyName" value="Sonny Court" /></label><label><span>Devise Stripe</span><select class="pay-select" id="stripeCompanyCurrency"><option value="eur">EUR · Euro</option><option value="chf">CHF · Franc suisse</option><option value="usd">USD · Dollar</option></select></label><label class="company-wide"><span>Email support</span><input class="pay-input" value="info@sonnycourt.com" /></label></div>
+        <footer><button class="pay-button" type="button" data-demo-disabled>Enregistrer les réglages</button></footer>
+      </article>
+    </div>
+    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie la connexion Stripe déjà utilisée par le site. Aucun produit ni paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Lecture sécurisée du compte</li><li><span>2</span>Remboursements dans Pay</li><li><span>3</span>Checkouts Stripe en mode test</li><li><span>4</span>PayPal Express</li></ol></aside>
+  </section>
+</PayAppShell>
+
+<script>
+  function renderStripeSettings(data) {
+    if (!data?.connected) return;
+    const mode = data.mode === 'live' ? 'réel' : 'test';
+    const state = document.getElementById('stripeGatewayState');
+    state.classList.add('gateway-state--connected');
+    state.innerHTML = '<i></i>Connecté';
+    document.getElementById('stripeGatewayDescription').textContent = `${data.account?.name || 'Compte Stripe'} · ${data.account?.country || '—'} · mode ${mode}`;
+    const globalStatus = document.getElementById('gatewayGlobalStatus');
+    globalStatus.textContent = 'Stripe connecté';
+    globalStatus.className = 'pay-badge pay-badge--success';
+    const dashboard = document.getElementById('stripeDashboardLink');
+    dashboard.href = data.mode === 'live' ? 'https://dashboard.stripe.com' : 'https://dashboard.stripe.com/test/dashboard';
+    dashboard.hidden = false;
+    document.getElementById('stripeCompanyName').value = data.account?.name || 'Sonny Court';
+    document.getElementById('stripeCompanyCurrency').value = data.account?.currency || 'eur';
+    const actionsState = document.getElementById('stripeActionsState');
+    const actionsDescription = document.getElementById('stripeActionsDescription');
+    if (data.writes_enabled) {
+      actionsState.classList.add('gateway-state--connected');
+      actionsState.innerHTML = '<i></i>Actives';
+      actionsDescription.textContent = 'Remboursements totaux et partiels disponibles dans Transactions';
+    } else {
+      actionsState.classList.add('gateway-state--locked');
+      actionsState.innerHTML = '<i></i>Verrouillées';
+      actionsDescription.textContent = 'Le garde-fou du compte réel doit encore être activé';
+    }
+    document.getElementById('stripeRoadmapKicker').textContent = 'Stripe connecté';
+    document.getElementById('stripeRoadmapTitle').textContent = 'Le cockpit devient opérationnel.';
+    document.getElementById('stripeRoadmapDescription').textContent = data.writes_enabled
+      ? `Pay lit les paiements et pilote les remboursements Stripe en mode ${mode}. Prochaine étape : créer les checkouts directement ici.`
+      : `Pay lit les paiements en mode ${mode}. Les remboursements sont prêts, mais le garde-fou du compte réel est encore verrouillé.`;
+  }
+
+  document.addEventListener('pay:stripe', (event) => renderStripeSettings(event.detail));
+  const stripeSettingsPromise = window.getPayStripeOverview?.();
+  stripeSettingsPromise?.then(renderStripeSettings);
+</script>
+
+<style>
+  .settings-layout { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(270px,.7fr); gap: 13px; }
+  .settings-main { display: grid; gap: 13px; }
+  .gateway-list { display: grid; }
+  .gateway-row { display: grid; grid-template-columns: 46px minmax(180px,1fr) 105px auto; align-items: center; gap: 14px; padding: 18px 20px; border-bottom: 1px solid var(--pay-line); }
+  .gateway-row:last-child { border: 0; }
+  .gateway-logo { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; font-weight: 840; }
+  .gateway-logo--stripe { color: #cfcaff; border: 1px solid rgba(151,140,255,.2); background: rgba(105,92,255,.1); }
+  .gateway-logo--paypal { color: #78c4ff; border: 1px solid rgba(75,169,255,.2); background: rgba(75,169,255,.08); }
+  .gateway-logo--safety { color: var(--pay-green); border: 1px solid rgba(101,229,170,.2); background: rgba(101,229,170,.07); }
+  .gateway-row--safety { background: rgba(101,229,170,.015); }
+  .gateway-row strong, .gateway-row small { display: block; }
+  .gateway-row strong { font-size: 11px; }
+  .gateway-row small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
+  .gateway-state { display: flex; align-items: center; gap: 7px; color: var(--pay-muted); font-size: 8px; }
+  .gateway-state i { width: 7px; height: 7px; border-radius: 50%; background: var(--pay-red); box-shadow: 0 0 0 4px rgba(255,128,148,.06); }
+  .gateway-state--connected { color: var(--pay-green); }
+  .gateway-state--connected i { background: var(--pay-green); box-shadow: 0 0 0 4px rgba(101,229,170,.08), 0 0 12px rgba(101,229,170,.35); }
+  .gateway-state--locked { color: #ffd49f; }
+  .gateway-state--locked i { background: #ffbd68; box-shadow: 0 0 0 4px rgba(255,189,104,.07); }
+  .company-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 20px; }
+  .company-grid label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; }
+  .company-grid .pay-input, .company-grid .pay-select { height: 44px; padding: 0 12px; font-size: 10px; }
+  .company-wide { grid-column: 1 / -1; }
+  .company-panel footer { display: flex; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid var(--pay-line); }
+  .roadmap-panel { align-self: start; padding: 23px; }
+  .roadmap-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 24px; border: 1px solid rgba(112,231,255,.2); border-radius: 15px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 20px; }
+  .roadmap-panel h2 { margin: 8px 0 11px; font-size: 23px; line-height: 1.05; letter-spacing: -.045em; }
+  .roadmap-panel > p:not(.pay-kicker) { color: var(--pay-soft); font-size: 10px; line-height: 1.55; }
+  .roadmap-panel ol { display: grid; gap: 9px; margin: 22px 0 0; padding: 0; list-style: none; }
+  .roadmap-panel li { display: flex; align-items: center; gap: 10px; color: var(--pay-soft); font-size: 9px; }
+  .roadmap-panel li span { width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid var(--pay-line); border-radius: 8px; color: var(--pay-cyan); background: rgba(255,255,255,.025); font-size: 8px; }
+  @media (max-width: 980px) { .settings-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { .gateway-row { grid-template-columns: 44px 1fr; } .gateway-state { grid-column: 2; } .gateway-row .pay-button { grid-column: 1 / -1; } .company-grid { grid-template-columns: 1fr; } .company-wide { grid-column: auto; } }
+</style>

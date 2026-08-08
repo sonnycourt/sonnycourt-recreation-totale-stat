@@ -1,0 +1,267 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+
+const transactions = [
+  { client: 'Amélie Martin', checkout: 'ES2.0 · Standard', date: 'Aujourd’hui · 14:32', provider: 'Stripe', amount: '98,17 €', status: 'Réussi' },
+  { client: 'Julien Laurent', checkout: 'Coaching · Première consultation', date: 'Aujourd’hui · 11:08', provider: 'PayPal', amount: '97,00 €', status: 'Réussi' },
+  { client: 'Chloé Morel', checkout: 'Formation Manifest', date: 'Hier · 18:47', provider: 'Stripe', amount: '197,00 €', status: 'En attente' },
+  { client: 'Léa Roux', checkout: 'ES2.0 · Standard', date: 'Hier · 09:21', provider: 'Stripe', amount: '98,17 €', status: 'Remboursé' },
+];
+---
+
+<PayAppShell active="transactions" eyebrow="Ventes" title="Transactions" description="Retrouve les paiements, remboursements et statuts au même endroit.">
+  <button slot="actions" class="pay-button pay-button--ghost" type="button" data-demo-disabled>↓ Exporter</button>
+
+  <section class="transaction-summary">
+    <article class="pay-panel"><small>Encaissé · 30 jours</small><strong id="transactionRevenue">3 122,35 €</strong><span id="transactionSuccessCount">27 transactions</span></article>
+    <article class="pay-panel"><small>Remboursé</small><strong id="transactionRefunded">98,17 €</strong><span id="transactionRefundCount">1 transaction</span></article>
+    <article class="pay-panel"><small>En attente</small><strong id="transactionPending">197,00 €</strong><span id="transactionPendingCount">1 transaction</span></article>
+  </section>
+
+  <section class="pay-panel transaction-panel">
+    <div class="pay-panel-header"><div><h2>Historique</h2><p id="transactionDescription">Connexion à Stripe en cours…</p></div><span class="pay-badge" id="transactionMode">Prototype</span></div>
+    <div class="transaction-table" id="stripeTransactionTable">
+      <div class="transaction-row transaction-head"><span>Client</span><span>Checkout</span><span>Date</span><span>Passerelle</span><span>Statut</span><span>Montant</span><span>Action</span></div>
+      {transactions.map((item) => (
+        <div class="transaction-row">
+          <span class="transaction-client"><i>{item.client.split(' ').map((part) => part[0]).join('')}</i><strong>{item.client}</strong></span>
+          <span>{item.checkout}</span><span>{item.date}</span><span>{item.provider}</span>
+          <span><b class:list={['pay-badge', item.status === 'Réussi' ? 'pay-badge--success' : item.status === 'En attente' ? 'pay-badge--warning' : 'pay-badge--draft']}>{item.status}</b></span>
+          <strong>{item.amount}</strong><span>—</span>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <dialog class="refund-dialog pay-glass" id="refundDialog" aria-labelledby="refundTitle">
+    <form id="refundForm">
+      <header class="refund-header">
+        <div><p class="pay-kicker">Action financière</p><h2 id="refundTitle">Rembourser ce paiement</h2></div>
+        <button class="refund-close" id="refundClose" type="button" aria-label="Fermer">×</button>
+      </header>
+
+      <div class="refund-transaction">
+        <span><small>Client</small><strong id="refundCustomer">—</strong></span>
+        <span><small>Paiement</small><strong id="refundPaymentAmount">—</strong></span>
+        <span><small>Remboursable</small><strong id="refundRemaining">—</strong></span>
+      </div>
+
+      <div class="refund-fields">
+        <label><span>Montant à rembourser</span><input class="pay-input" id="refundAmount" type="number" inputmode="decimal" min="0.01" step="0.01" required /></label>
+        <label><span>Motif Stripe</span><select class="pay-select" id="refundReason"><option value="requested_by_customer">Demandé par le client</option><option value="duplicate">Paiement en double</option><option value="fraudulent">Paiement frauduleux</option></select></label>
+      </div>
+
+      <div class="refund-lock" id="refundLock" hidden><strong>Remboursements réels verrouillés</strong><span>Le garde-fou du compte live doit être activé une seule fois avant utilisation.</span></div>
+      <p class="refund-note">Cette opération envoie immédiatement la demande à Stripe. Pour confirmer, écris <strong>REMBOURSER</strong>.</p>
+      <label class="refund-confirm"><span>Confirmation</span><input class="pay-input" id="refundConfirmation" autocomplete="off" placeholder="REMBOURSER" required /></label>
+      <p class="refund-error" id="refundError" role="alert"></p>
+
+      <footer class="refund-actions">
+        <button class="pay-button" id="refundCancel" type="button">Annuler</button>
+        <button class="pay-button refund-submit" id="refundSubmit" type="submit" disabled>Confirmer le remboursement</button>
+      </footer>
+    </form>
+  </dialog>
+</PayAppShell>
+
+<script>
+  const REFUND_API = '/.netlify/functions/pay-stripe-refund';
+  let stripeTransactionsData = null;
+  let refundItem = null;
+  let refundIdempotencyKey = null;
+
+  function escapeTransactionText(value) {
+    return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  function currencyDivisor(currency = 'eur') {
+    const digits = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency).toUpperCase() }).resolvedOptions().maximumFractionDigits;
+    return 10 ** digits;
+  }
+
+  function transactionMoney(minorUnits, currency = 'eur') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency).toUpperCase() }).format(Number(minorUnits || 0) / currencyDivisor(currency));
+  }
+
+  function transactionDate(timestamp) {
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(Number(timestamp || 0) * 1000));
+  }
+
+  function transactionBadge(status) {
+    if (status === 'Réussi') return 'pay-badge--success';
+    if (status === 'En attente' || status === 'Action requise' || status === 'Partiel') return 'pay-badge--warning';
+    return 'pay-badge--draft';
+  }
+
+  function refundAction(item) {
+    if (!item.can_refund) return item.refundable === 0 && item.refunded > 0 ? '<span class="refund-complete">Terminé</span>' : '<span>—</span>';
+    return `<button class="refund-button" type="button" data-refund-intent="${escapeTransactionText(item.id)}">Rembourser</button>`;
+  }
+
+  function renderStripeTransactions(data) {
+    if (!data?.connected) return;
+    stripeTransactionsData = data;
+    const currency = data.account?.currency || 'eur';
+    const items = Array.isArray(data.transactions) ? data.transactions : [];
+    document.getElementById('transactionRevenue').textContent = transactionMoney(data.metrics?.revenue?.[currency] || 0, currency);
+    document.getElementById('transactionSuccessCount').textContent = `${data.metrics?.successful || 0} paiement${data.metrics?.successful === 1 ? '' : 's'} réussi${data.metrics?.successful === 1 ? '' : 's'}`;
+    document.getElementById('transactionRefunded').textContent = transactionMoney(data.metrics?.refunded_amount?.[currency] || 0, currency);
+    document.getElementById('transactionRefundCount').textContent = `${data.metrics?.refunded || 0} remboursement${data.metrics?.refunded === 1 ? '' : 's'}`;
+    document.getElementById('transactionPending').textContent = transactionMoney(data.metrics?.pending_amount?.[currency] || 0, currency);
+    document.getElementById('transactionPendingCount').textContent = `${data.metrics?.pending || 0} paiement${data.metrics?.pending === 1 ? '' : 's'}`;
+    document.getElementById('transactionDescription').textContent = 'Données Stripe · 30 derniers jours';
+    const mode = document.getElementById('transactionMode');
+    mode.textContent = data.mode === 'live' ? (data.writes_enabled ? 'Stripe réel · actions actives' : 'Stripe réel · actions verrouillées') : 'Stripe test';
+    mode.className = `pay-badge ${data.writes_enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
+
+    const table = document.getElementById('stripeTransactionTable');
+    const head = '<div class="transaction-row transaction-head"><span>Client</span><span>Description</span><span>Date</span><span>Moyen</span><span>Statut</span><span>Montant</span><span>Action</span></div>';
+    if (!items.length) {
+      table.innerHTML = `${head}<div class="transaction-empty">Aucune transaction Stripe sur les 30 derniers jours.</div>`;
+      return;
+    }
+    table.innerHTML = head + items.map((item) => {
+      const customer = item.customer || item.email || 'Client Stripe';
+      const initials = customer.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S';
+      return `<div class="transaction-row"><span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></span><span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong>${refundAction(item)}</div>`;
+    }).join('');
+  }
+
+  function validateRefundForm() {
+    const amount = Number(document.getElementById('refundAmount').value);
+    const divisor = currencyDivisor(refundItem?.currency || 'eur');
+    const amountMinor = Math.round(amount * divisor);
+    const confirmed = document.getElementById('refundConfirmation').value.trim() === 'REMBOURSER';
+    const validAmount = refundItem && Number.isSafeInteger(amountMinor) && amountMinor > 0 && amountMinor <= refundItem.refundable;
+    document.getElementById('refundSubmit').disabled = !confirmed || !validAmount || !stripeTransactionsData?.writes_enabled;
+    return validAmount ? amountMinor : null;
+  }
+
+  function openRefundDialog(item) {
+    refundItem = item;
+    refundIdempotencyKey = crypto.randomUUID();
+    const divisor = currencyDivisor(item.currency);
+    const input = document.getElementById('refundAmount');
+    input.value = String(item.refundable / divisor);
+    input.max = String(item.refundable / divisor);
+    input.step = String(1 / divisor);
+    document.getElementById('refundCustomer').textContent = item.customer || item.email || 'Client Stripe';
+    document.getElementById('refundPaymentAmount').textContent = transactionMoney(item.amount, item.currency);
+    document.getElementById('refundRemaining').textContent = transactionMoney(item.refundable, item.currency);
+    document.getElementById('refundConfirmation').value = '';
+    document.getElementById('refundReason').value = 'requested_by_customer';
+    document.getElementById('refundError').textContent = '';
+    document.getElementById('refundLock').hidden = Boolean(stripeTransactionsData?.writes_enabled);
+    validateRefundForm();
+    document.getElementById('refundDialog').showModal();
+  }
+
+  function closeRefundDialog() {
+    document.getElementById('refundDialog').close();
+    refundItem = null;
+    refundIdempotencyKey = null;
+  }
+
+  document.getElementById('stripeTransactionTable')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-refund-intent]');
+    if (!button || !stripeTransactionsData) return;
+    const item = stripeTransactionsData.transactions.find((transaction) => transaction.id === button.dataset.refundIntent);
+    if (item) openRefundDialog(item);
+  });
+
+  document.getElementById('refundAmount')?.addEventListener('input', validateRefundForm);
+  document.getElementById('refundConfirmation')?.addEventListener('input', validateRefundForm);
+  document.getElementById('refundClose')?.addEventListener('click', closeRefundDialog);
+  document.getElementById('refundCancel')?.addEventListener('click', closeRefundDialog);
+
+  document.getElementById('refundForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const amount = validateRefundForm();
+    if (!refundItem || !amount) return;
+    const submit = document.getElementById('refundSubmit');
+    const error = document.getElementById('refundError');
+    submit.disabled = true;
+    submit.textContent = 'Remboursement en cours…';
+    error.textContent = '';
+
+    const response = await fetch(REFUND_API, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        payment_intent: refundItem.id,
+        amount,
+        reason: document.getElementById('refundReason').value,
+        confirmation: document.getElementById('refundConfirmation').value.trim(),
+        idempotency_key: refundIdempotencyKey,
+      }),
+    }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+
+    if (!response?.ok) {
+      error.textContent = result?.error === 'stripe_writes_disabled'
+        ? 'Les remboursements réels sont encore verrouillés par le garde-fou de sécurité.'
+        : result?.error || 'Stripe n’a pas pu effectuer ce remboursement.';
+      submit.textContent = 'Confirmer le remboursement';
+      validateRefundForm();
+      return;
+    }
+
+    closeRefundDialog();
+    window.payToast?.(`Remboursement de ${transactionMoney(result.refund.amount, result.refund.currency)} envoyé à Stripe.`);
+    submit.textContent = 'Confirmer le remboursement';
+    await window.refreshPayStripeOverview?.();
+  });
+
+  document.addEventListener('pay:stripe', (event) => renderStripeTransactions(event.detail));
+  const stripeTransactionsPromise = window.getPayStripeOverview?.();
+  stripeTransactionsPromise?.then(renderStripeTransactions);
+</script>
+
+<style>
+  .transaction-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
+  .transaction-summary article { padding: 18px; }
+  .transaction-summary small, .transaction-summary strong, .transaction-summary span { display: block; }
+  .transaction-summary small { color: var(--pay-muted); font-size: 8px; }
+  .transaction-summary strong { margin: 15px 0 8px; font-size: 24px; letter-spacing: -.04em; }
+  .transaction-summary span { color: var(--pay-soft); font-size: 8px; }
+  .transaction-panel { overflow: hidden; }
+  .transaction-table { overflow-x: auto; }
+  .transaction-row { min-width: 980px; display: grid; grid-template-columns: 1.1fr 1.3fr .85fr .7fr .65fr .65fr .7fr; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(169,216,255,.075); color: var(--pay-soft); font-size: 9px; }
+  .transaction-row:last-child { border-bottom: 0; }
+  .transaction-head { color: var(--pay-muted); background: rgba(2,10,20,.18); font-size: 8px; font-weight: 700; }
+  .transaction-row > strong:nth-last-child(2) { color: #fff; text-align: right; }
+  .transaction-client { display: flex; align-items: center; gap: 9px; color: #fff; }
+  .transaction-client i { width: 30px; height: 30px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 10px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 8px; font-style: normal; font-weight: 800; }
+  .transaction-client span { min-width: 0; }
+  .transaction-client strong, .transaction-client small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .transaction-client small { max-width: 150px; margin-top: 3px; color: var(--pay-muted); font-size: 7px; }
+  .transaction-empty { padding: 40px 20px; color: var(--pay-muted); font-size: 10px; text-align: center; }
+  .refund-button { min-height: 32px; padding: 0 11px; border: 1px solid rgba(255,128,148,.24); border-radius: 10px; color: #ffb3bf; background: rgba(255,128,148,.065); font-size: 8px; font-weight: 750; cursor: pointer; }
+  .refund-button:hover { border-color: rgba(255,128,148,.45); background: rgba(255,128,148,.12); }
+  .refund-complete { color: var(--pay-muted); font-size: 8px; }
+  .refund-dialog { width: min(590px, calc(100% - 28px)); padding: 0; border-radius: 26px; color: var(--pay-text); }
+  .refund-dialog::backdrop { background: rgba(0,5,14,.78); backdrop-filter: blur(10px); }
+  .refund-dialog form { padding: 25px; }
+  .refund-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  .refund-header h2 { margin: 7px 0 0; font-size: 25px; letter-spacing: -.04em; }
+  .refund-close { width: 38px; height: 38px; border: 1px solid var(--pay-line); border-radius: 12px; color: var(--pay-soft); background: rgba(255,255,255,.04); font-size: 22px; cursor: pointer; }
+  .refund-transaction { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; margin: 22px 0; }
+  .refund-transaction span { padding: 13px; border: 1px solid var(--pay-line); border-radius: 13px; background: rgba(1,10,21,.32); }
+  .refund-transaction small, .refund-transaction strong { display: block; }
+  .refund-transaction small { margin-bottom: 6px; color: var(--pay-muted); font-size: 8px; }
+  .refund-transaction strong { font-size: 10px; }
+  .refund-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .refund-fields label, .refund-confirm { display: grid; gap: 7px; color: var(--pay-soft); font-size: 9px; }
+  .refund-fields .pay-input, .refund-fields .pay-select, .refund-confirm .pay-input { height: 45px; padding: 0 12px; font-size: 10px; }
+  .refund-lock { display: grid; gap: 5px; margin-top: 14px; padding: 13px; border: 1px solid rgba(255,192,112,.2); border-radius: 13px; color: #ffd49f; background: rgba(255,177,77,.07); }
+  .refund-lock strong { font-size: 9px; }
+  .refund-lock span { color: rgba(255,220,178,.67); font-size: 8px; line-height: 1.5; }
+  .refund-note { margin: 16px 0 12px; color: var(--pay-soft); font-size: 9px; line-height: 1.55; }
+  .refund-note strong { color: #fff; letter-spacing: .06em; }
+  .refund-error { min-height: 18px; margin: 10px 0 0; color: #ff9cac; font-size: 9px; }
+  .refund-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 9px; padding-top: 17px; border-top: 1px solid var(--pay-line); }
+  .refund-submit { border-color: rgba(255,128,148,.35); color: #fff; background: linear-gradient(135deg, #d83e5a, #ee6576); }
+  .refund-submit:disabled { opacity: .38; cursor: not-allowed; transform: none; }
+  @media (max-width: 700px) { .transaction-summary { grid-template-columns: 1fr; } .refund-dialog form { padding: 19px; } .refund-transaction, .refund-fields { grid-template-columns: 1fr; } .refund-actions { flex-direction: column-reverse; } }
+</style>

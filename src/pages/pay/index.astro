@@ -1,0 +1,177 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+---
+
+<PayAppShell
+  active="dashboard"
+  eyebrow="Vue d’ensemble"
+  title="Bonjour Sonny."
+  description="Tout ce qui compte pour encaisser, sans le bruit autour."
+>
+  <a slot="actions" class="pay-button pay-button--primary" data-pay-route="/checkouts/new" href="/pay/checkouts/new">＋ Créer un checkout</a>
+
+  <section class="dashboard-kpis" aria-label="Indicateurs principaux">
+    <article class="metric-card pay-panel metric-card--primary">
+      <div class="metric-top"><span>Chiffre d’affaires</span><span class="metric-chip">30 jours</span></div>
+      <strong id="stripeRevenue">3 122,35 €</strong>
+      <div class="metric-foot"><span class="metric-trend" id="stripeRevenueState">Données démo</span><small>paiements réussis</small></div>
+    </article>
+    <article class="metric-card pay-panel">
+      <div class="metric-top"><span>Transactions</span><span class="metric-icon">↗</span></div>
+      <strong id="stripeTransactionCount">27</strong>
+      <div class="metric-foot"><span id="stripeSuccessfulCount">24 réussies</span><small id="stripePendingCount">3 en attente</small></div>
+    </article>
+    <article class="metric-card pay-panel">
+      <div class="metric-top"><span>Checkouts actifs</span><span class="metric-icon">▣</span></div>
+      <strong id="dashboardCheckoutCount">4</strong>
+      <div class="metric-foot"><span>3 publiés</span><small id="dashboardDraftCount">1 brouillon</small></div>
+    </article>
+    <article class="metric-card pay-panel">
+      <div class="metric-top"><span>Solde disponible</span><span class="metric-icon">◎</span></div>
+      <strong id="stripeAvailableBalance">—</strong>
+      <div class="metric-foot"><span id="stripeBalanceMode">Connexion Stripe</span><small id="stripePendingBalance">vérification…</small></div>
+    </article>
+  </section>
+
+  <section class="dashboard-layout">
+    <article class="pay-panel activity-panel">
+      <div class="pay-panel-header">
+        <div><h2>Activité récente</h2><p id="stripeActivityDescription">Les derniers paiements de la démo</p></div>
+        <a class="panel-link" data-pay-route="/transactions" href="/pay/transactions">Tout voir →</a>
+      </div>
+      <div class="activity-list" id="stripeActivityList">
+        <div class="activity-row">
+          <span class="activity-avatar">AM</span>
+          <span class="activity-customer"><strong>Amélie Martin</strong><small>ES2.0 · Standard</small></span>
+          <span class="activity-date">Aujourd’hui, 14:32</span>
+          <span class="pay-badge pay-badge--success">Réussi</span>
+          <strong class="activity-amount">98,17 €</strong>
+        </div>
+        <div class="activity-row">
+          <span class="activity-avatar activity-avatar--violet">JL</span>
+          <span class="activity-customer"><strong>Julien Laurent</strong><small>Coaching · Première consultation</small></span>
+          <span class="activity-date">Aujourd’hui, 11:08</span>
+          <span class="pay-badge pay-badge--success">Réussi</span>
+          <strong class="activity-amount">97,00 €</strong>
+        </div>
+        <div class="activity-row">
+          <span class="activity-avatar activity-avatar--gold">CM</span>
+          <span class="activity-customer"><strong>Chloé Morel</strong><small>Formation Manifest</small></span>
+          <span class="activity-date">Hier, 18:47</span>
+          <span class="pay-badge pay-badge--warning">En attente</span>
+          <strong class="activity-amount">197,00 €</strong>
+        </div>
+      </div>
+    </article>
+
+    <aside class="pay-panel quick-panel">
+      <div class="pay-panel-header"><div><h2>À faire maintenant</h2><p>Les deux prochaines actions utiles</p></div></div>
+      <div class="quick-list">
+        <a data-pay-route="/checkouts/new" href="/pay/checkouts/new"><span class="quick-icon">＋</span><span><strong>Nouveau checkout</strong><small>Créer une page de paiement</small></span><b>→</b></a>
+        <a data-pay-route="/settings" href="/pay/settings"><span class="quick-icon">⚡</span><span><strong>Connecter les paiements</strong><small>Préparer Stripe et PayPal</small></span><b>→</b></a>
+      </div>
+      <div class="prototype-note" id="stripeDashboardNote"><span>i</span><p><strong>Connexion à Stripe en cours.</strong> Les données de démonstration seront remplacées dès que le compte répond.</p></div>
+    </aside>
+  </section>
+</PayAppShell>
+
+<script>
+  function escapeStripeText(value) {
+    return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  function stripeMoney(cents, currency = 'eur') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency).toUpperCase() }).format(Number(cents || 0) / 100);
+  }
+
+  function stripeDate(timestamp) {
+    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(Number(timestamp || 0) * 1000));
+  }
+
+  function renderStripeDashboard(data) {
+    if (!data?.connected) return;
+    const currency = data.account?.currency || 'eur';
+    const revenue = data.metrics?.revenue?.[currency] || 0;
+    const available = data.balance?.available?.[currency] || 0;
+    const pendingBalance = data.balance?.pending?.[currency] || 0;
+    const transactions = Array.isArray(data.transactions) ? data.transactions : [];
+    document.getElementById('stripeRevenue').textContent = stripeMoney(revenue, currency);
+    document.getElementById('stripeRevenueState').textContent = data.mode === 'live' ? 'Stripe réel' : 'Stripe test';
+    document.getElementById('stripeTransactionCount').textContent = String(data.metrics?.total || transactions.length);
+    document.getElementById('stripeSuccessfulCount').textContent = `${data.metrics?.successful || 0} réussie${data.metrics?.successful === 1 ? '' : 's'}`;
+    document.getElementById('stripePendingCount').textContent = `${data.metrics?.pending || 0} en attente`;
+    document.getElementById('stripeAvailableBalance').textContent = stripeMoney(available, currency);
+    document.getElementById('stripeBalanceMode').textContent = data.mode === 'live' ? 'Mode réel' : 'Mode test';
+    document.getElementById('stripePendingBalance').textContent = `${stripeMoney(pendingBalance, currency)} à venir`;
+    document.getElementById('stripeActivityDescription').textContent = 'Données Stripe réelles · 30 derniers jours';
+
+    const list = document.getElementById('stripeActivityList');
+    if (transactions.length) {
+      list.innerHTML = transactions.slice(0, 5).map((item, index) => {
+        const name = item.customer || item.email || 'Client Stripe';
+        const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+        const success = item.status === 'Réussi';
+        return `<div class="activity-row"><span class="activity-avatar${index % 3 === 1 ? ' activity-avatar--violet' : index % 3 === 2 ? ' activity-avatar--gold' : ''}">${escapeStripeText(initials || 'S')}</span><span class="activity-customer"><strong>${escapeStripeText(name)}</strong><small>${escapeStripeText(item.description)}</small></span><span class="activity-date">${escapeStripeText(stripeDate(item.created))}</span><span class="pay-badge ${success ? 'pay-badge--success' : 'pay-badge--warning'}">${escapeStripeText(item.status)}</span><strong class="activity-amount">${escapeStripeText(stripeMoney(item.amount, item.currency))}</strong></div>`;
+      }).join('');
+    } else {
+      list.innerHTML = '<div class="activity-empty">Aucune transaction Stripe sur les 30 derniers jours.</div>';
+    }
+
+    const note = document.getElementById('stripeDashboardNote');
+    note.classList.add('is-connected');
+    note.innerHTML = `<span>✓</span><p><strong>Stripe est connecté en mode ${data.mode === 'live' ? 'réel' : 'test'}.</strong> Le tableau de bord affiche maintenant les données du compte ${escapeStripeText(data.account?.name || '')}.</p>`;
+  }
+
+  document.addEventListener('pay:stripe', (event) => renderStripeDashboard(event.detail));
+  const stripeDashboardPromise = window.getPayStripeOverview?.();
+  stripeDashboardPromise?.then(renderStripeDashboard);
+
+  try {
+    const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
+    document.getElementById('dashboardCheckoutCount').textContent = String(4 + drafts.length);
+    document.getElementById('dashboardDraftCount').textContent = `${1 + drafts.length} brouillon${drafts.length ? 's' : ''}`;
+  } catch {}
+</script>
+
+<style>
+  .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+  .metric-card { min-height: 160px; padding: 19px; }
+  .metric-card--primary { border-color: rgba(105, 215, 255, .28); background: radial-gradient(circle at 12% 0%, rgba(112,231,255,.16), transparent 38%), linear-gradient(145deg, rgba(24, 72, 106, .75), rgba(8, 25, 43, .62)); }
+  .metric-top, .metric-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .metric-top { color: var(--pay-soft); font-size: 10px; font-weight: 690; }
+  .metric-chip { padding: 5px 7px; border: 1px solid var(--pay-line); border-radius: 999px; color: var(--pay-muted); font-size: 8px; }
+  .metric-icon { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.15); border-radius: 9px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
+  .metric-card > strong { display: block; margin: 24px 0 21px; font-size: clamp(27px, 3vw, 36px); line-height: 1; letter-spacing: -.05em; }
+  .metric-foot { color: var(--pay-soft); font-size: 9px; }
+  .metric-foot small { color: var(--pay-muted); font-size: 8px; }
+  .metric-trend { color: var(--pay-green); }
+  .dashboard-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(270px, .8fr); gap: 13px; margin-top: 13px; }
+  .panel-link { color: var(--pay-cyan); font-size: 9px; text-decoration: none; }
+  .activity-list { display: grid; }
+  .activity-row { display: grid; grid-template-columns: 36px minmax(160px, 1fr) minmax(110px, .5fr) 72px 78px; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid rgba(169,216,255,.075); }
+  .activity-row:last-child { border-bottom: 0; }
+  .activity-empty { padding: 34px 20px; color: var(--pay-muted); font-size: 10px; text-align: center; }
+  .activity-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.18); border-radius: 11px; color: var(--pay-cyan); background: rgba(112,231,255,.055); font-size: 9px; font-weight: 800; }
+  .activity-avatar--violet { color: #c6a7ff; border-color: rgba(198,167,255,.18); background: rgba(198,167,255,.055); }
+  .activity-avatar--gold { color: #ffd47a; border-color: rgba(255,212,122,.18); background: rgba(255,212,122,.055); }
+  .activity-customer strong, .activity-customer small { display: block; }
+  .activity-customer strong { font-size: 10px; }
+  .activity-customer small, .activity-date { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .activity-amount { text-align: right; font-size: 10px; }
+  .quick-list { display: grid; padding: 9px; }
+  .quick-list a { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; padding: 13px 11px; border: 1px solid transparent; border-radius: 15px; color: #fff; text-decoration: none; transition: .18s; }
+  .quick-list a:hover { border-color: var(--pay-line); background: rgba(255,255,255,.04); }
+  .quick-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 11px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
+  .quick-list strong, .quick-list small { display: block; }
+  .quick-list strong { font-size: 10px; }
+  .quick-list small { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .quick-list b { color: var(--pay-muted); font-size: 12px; }
+  .prototype-note { display: flex; gap: 10px; margin: 0 16px 16px; padding: 12px; border: 1px solid rgba(255,212,122,.12); border-radius: 14px; background: rgba(255,212,122,.035); }
+  .prototype-note > span { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #ffd47a; background: rgba(255,212,122,.1); font-size: 9px; font-weight: 800; }
+  .prototype-note p { margin: 0; color: var(--pay-muted); font-size: 8px; line-height: 1.45; }
+  .prototype-note strong { color: rgba(243,249,255,.72); }
+  .prototype-note.is-connected { border-color: rgba(101,229,170,.18); background: rgba(101,229,170,.04); }
+  .prototype-note.is-connected > span { color: var(--pay-green); background: rgba(101,229,170,.1); }
+  @media (max-width: 1050px) { .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 680px) { .dashboard-kpis { grid-template-columns: 1fr; } .activity-row { grid-template-columns: 34px 1fr auto; } .activity-date, .activity-row .pay-badge { display: none; } }
+</style>
