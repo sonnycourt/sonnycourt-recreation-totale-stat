@@ -164,7 +164,8 @@ import PayAppShell from '../../../components/PayAppShell.astro';
       bridgeDelayDays: Number(document.getElementById('checkoutBridgeDelay').value || 0), installments: Number(document.getElementById('checkoutInstallments').value || 0), interval: 'month',
     } : null;
     const draft = { id: Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(), billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), plan, status: 'draft' };
-    const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
+    let drafts = [];
+    try { drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]'); } catch {}
     drafts.unshift(draft);
     localStorage.setItem('pay_checkout_drafts', JSON.stringify(drafts.slice(0, 20)));
     window.payToast('Checkout enregistré en brouillon.');

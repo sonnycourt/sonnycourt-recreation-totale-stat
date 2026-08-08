@@ -154,10 +154,24 @@ if (screen) {
   }
 
   async function loadOrders() {
+    let drafts = [];
+    try { drafts = JSON.parse(sessionStorage.getItem('pay_order_drafts') || '[]'); } catch {}
+    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+      const status = 'Brouillon';
+      const created = date(draft.createdAt);
+      const amount = money(Math.round(Number(draft.checkoutAmount || 0) * 100), draft.currency || 'EUR');
+      const description = draft.checkoutName || 'Commande manuelle';
+      const customer = draft.customerName || 'Client';
+      return row([
+        `<strong>${escapeHtml(description)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`,
+        `<strong>${escapeHtml(customer)}</strong><small>${escapeHtml(draft.customerEmail || '')}</small>`,
+        created, providerCell('internal'), badge(status), `<strong>${amount}</strong>`,
+      ], [description, customer, draft.customerEmail || '', created, 'Pay', status, amount], 'internal', 'brouillon', Math.floor(new Date(draft.createdAt || Number(draft.id || 0)).getTime() / 1_000));
+    }) : [];
     const history = await fetchHistory('orders');
     if (history) {
-      useHistorySource();
-      return history.map((item) => {
+      sourceLabels = draftRows.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
+      const historyRows = history.map((item) => {
         const status = stripeStatus(item.status);
         const created = date(item.created_at);
         return row([
@@ -166,12 +180,15 @@ if (screen) {
           created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
         ], [item.description, item.customer, item.email, created, item.provider, status, money(item.amount, item.currency)], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
       });
+      return [...draftRows, ...historyRows].sort((a, b) => b.sortTime - a.sortTime);
     }
-    const sources = requirePaySource(await collectPaySources({
+    const sources = await collectPaySources({
       stripe: fetchStripeAll('payment_intents', 20),
       paypal: fetchPayPal(366),
-    }), 'pay_order_sources_unavailable');
+    });
+    if (!draftRows.length) requirePaySource(sources, 'pay_order_sources_unavailable');
     const values = sourcesFrom(sources, { stripe: 'Stripe', paypal: 'PayPal' });
+    sourceLabels = [...new Set([...(draftRows.length ? ['Pay'] : []), ...sourceLabels])];
     const intents = values.stripe || [];
     const paypal = values.paypal || [];
     const stripeRows = intents.map((intent) => {
@@ -190,7 +207,7 @@ if (screen) {
       `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
       date(item.created), providerCell('paypal'), badge(item.status), `<strong>${money(item.amount, item.currency)}</strong>`,
     ], [item.description, item.customer, item.email, date(item.created), 'PayPal', item.status, money(item.amount, item.currency)], 'paypal', item.status, item.created));
-    return [...stripeRows, ...paypalRows].sort((a, b) => b.sortTime - a.sortTime);
+    return [...draftRows, ...stripeRows, ...paypalRows].sort((a, b) => b.sortTime - a.sortTime);
   }
 
   async function loadCustomers() {
@@ -347,20 +364,31 @@ if (screen) {
   }
 
   async function loadCheckouts() {
+    let drafts = [];
+    try { drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]'); } catch {}
+    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+      const status = 'Brouillon';
+      return row([
+        `<strong>${escapeHtml(draft.name || 'Checkout sans nom')}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR')}</strong>`, badge(status), 'Non publié',
+      ], [draft.name || 'Checkout sans nom', 'Pay', money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR'), status, 'Non publié'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+    }) : [];
     const history = await fetchHistory('checkouts');
     if (history) {
-      useHistorySource();
-      return history.map((item) => {
+      sourceLabels = draftRows.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
+      const historyRows = history.map((item) => {
         const status = stripeStatus(item.status);
         const linkHtml = item.public_url ? `<a href="${escapeHtml(item.public_url)}" target="_blank" rel="noreferrer">Ouvrir ↗</a>` : '—';
         return row([
           `<strong>${escapeHtml(item.name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), '—', badge(status), linkHtml,
         ], [item.name, item.provider, '—', status, item.public_url || ''], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
       });
+      return [...draftRows, ...historyRows];
     }
-    const links = await fetchStripeAll('payment_links', 20);
-    sourceLabels = ['Stripe'];
-    return links.map((link) => {
+    const sources = await collectPaySources({ stripe: fetchStripeAll('payment_links', 20) });
+    if (!draftRows.length) requirePaySource(sources, 'pay_checkout_sources_unavailable');
+    const values = sourcesFrom(sources, { stripe: 'Stripe' });
+    sourceLabels = [...new Set([...(draftRows.length ? ['Pay'] : []), ...sourceLabels])];
+    const stripeRows = (values.stripe || []).map((link) => {
       const line = link.line_items?.data?.[0];
       const price = line?.price;
       const product = typeof price?.product === 'object' ? price.product : null;
@@ -373,6 +401,7 @@ if (screen) {
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(link.id)}</small>`, providerCell('stripe'), `<strong>${escapeHtml(priceText)}</strong>`, badge(status), linkHtml,
       ], [name, 'Stripe', priceText, status, link.url || ''], 'stripe', status);
     });
+    return [...draftRows, ...stripeRows];
   }
 
   async function loadDiscounts() {

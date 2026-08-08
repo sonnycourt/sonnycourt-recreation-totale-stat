@@ -1,0 +1,129 @@
+---
+import PayAppShell from '../../../components/PayAppShell.astro';
+---
+
+<PayAppShell active="orders" eyebrow="Nouvelle commande" title="Prépare une commande manuelle." description="Sélectionne un checkout existant, puis vérifie le client. Aucun paiement n’est déclenché.">
+  <a slot="actions" class="pay-button pay-button--ghost" data-pay-route="/orders" href="/pay/orders">← Annuler</a>
+
+  <form class="order-builder pay-panel" id="orderBuilder">
+    <header><div><p class="pay-kicker">Étape 1 sur 2</p><h2>Sélection du checkout</h2><p>Le même point de départ que Spiffy, sans création de charge pendant la recette.</p></div><span class="pay-badge pay-badge--draft">Brouillon</span></header>
+    <div class="order-grid">
+      <label class="order-field order-field--wide"><span>Checkout</span><select class="pay-select" id="orderCheckout" required><option value="">Chargement des checkouts…</option></select><small id="orderCheckoutState">Lecture de Pay et Stripe.</small></label>
+      <label class="order-field"><span>Nom du client</span><input class="pay-input" id="orderCustomerName" type="text" maxlength="120" autocomplete="name" placeholder="Prénom et nom" required /></label>
+      <label class="order-field"><span>Email du client</span><input class="pay-input" id="orderCustomerEmail" type="email" maxlength="200" autocomplete="email" placeholder="client@email.com" required /></label>
+      <label class="order-field order-field--wide"><span>Note interne</span><textarea class="pay-textarea" id="orderNote" rows="4" maxlength="600" placeholder="Contexte utile pour l’équipe, jamais envoyé au client."></textarea></label>
+      <div class="order-safety order-field--wide"><span>✓</span><div><strong>Zéro action financière</strong><small>Cette étape ne facture pas le client, n’envoie aucun email et ne crée aucune session Stripe ou PayPal.</small></div></div>
+    </div>
+    <footer><p>Les coordonnées restent dans cette session de navigateur tant que Supabase n’est pas autorisé.</p><button class="pay-button pay-button--primary" type="submit">Vérifier la commande →</button></footer>
+  </form>
+
+  <dialog class="order-confirm pay-panel" id="orderConfirm" aria-labelledby="orderConfirmTitle">
+    <div><p class="pay-kicker">Confirmation · étape 2 sur 2</p><h2 id="orderConfirmTitle">Enregistrer ce brouillon ?</h2><div class="order-summary"><span><small>Checkout</small><strong id="orderSummaryCheckout"></strong></span><span><small>Client</small><strong id="orderSummaryCustomer"></strong></span><span><small>Email</small><strong id="orderSummaryEmail"></strong></span><span><small>Action</small><strong>Aucune facturation</strong></span></div><label class="order-check"><input id="orderAcknowledgement" type="checkbox" /><span>Je confirme que le checkout et le client sont corrects.</span></label><div class="order-actions"><button class="pay-button pay-button--ghost" id="orderBack" type="button">Retour</button><button class="pay-button pay-button--primary" id="orderSave" type="button" disabled>Créer le brouillon ✓</button></div></div>
+  </dialog>
+</PayAppShell>
+
+<script>
+  const form = document.getElementById('orderBuilder');
+  const checkoutSelect = document.getElementById('orderCheckout');
+  const checkoutState = document.getElementById('orderCheckoutState');
+  const dialog = document.getElementById('orderConfirm');
+  let checkouts = [];
+
+  function localCheckouts() {
+    try {
+      const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
+      return Array.isArray(drafts) ? drafts.map((item) => ({ id: `draft:${item.id}`, name: item.name || 'Checkout Pay', provider: 'Pay', amount: Number(item.amount || 0), currency: item.currency || 'EUR' })) : [];
+    } catch { return []; }
+  }
+
+  async function json(url) {
+    const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'checkout_source_failed');
+    return payload;
+  }
+
+  function stripeCheckout(item) {
+    const line = item.line_items?.data?.[0];
+    const price = line?.price;
+    const product = typeof price?.product === 'object' ? price.product : null;
+    return { id: item.id, name: item.metadata?.checkout_name || product?.name || `Checkout ${item.id.slice(-8)}`, provider: 'Stripe', amount: Number(price?.unit_amount || 0) / 100, currency: String(price?.currency || 'eur').toUpperCase() };
+  }
+
+  async function loadCheckouts() {
+    const local = localCheckouts();
+    const [historyResult, stripeResult] = await Promise.allSettled([
+      json('/.netlify/functions/pay-history?resource=checkouts'),
+      json('/.netlify/functions/pay-stripe-data?resource=payment_links&limit=100'),
+    ]);
+    const history = historyResult.status === 'fulfilled' && historyResult.value.ready ? (historyResult.value.rows || []).map((item) => ({ id: item.id, name: item.name || `Checkout ${item.id}`, provider: item.provider || 'Historique Pay', amount: 0, currency: 'EUR' })) : [];
+    const stripe = stripeResult.status === 'fulfilled' && stripeResult.value.connected ? (stripeResult.value.data || []).map(stripeCheckout) : [];
+    checkouts = [...new Map([...local, ...history, ...stripe].map((item) => [item.id, item])).values()];
+    checkoutSelect.innerHTML = '';
+    checkoutSelect.append(new Option(checkouts.length ? 'Choisir un checkout…' : 'Aucun checkout disponible', ''));
+    checkouts.forEach((item) => checkoutSelect.append(new Option(`${item.name} · ${item.provider}`, item.id)));
+    checkoutSelect.disabled = checkouts.length === 0;
+    checkoutState.textContent = checkouts.length ? `${checkouts.length} checkout${checkouts.length === 1 ? '' : 's'} disponible${checkouts.length === 1 ? '' : 's'}.` : 'Crée d’abord un checkout dans Pay.';
+  }
+
+  function currentCheckout() { return checkouts.find((item) => item.id === checkoutSelect.value); }
+  function draft() {
+    const checkout = currentCheckout();
+    return {
+      id: Date.now(), checkoutId: checkout?.id || '', checkoutName: checkout?.name || '', checkoutProvider: checkout?.provider || '', checkoutAmount: checkout?.amount || 0, currency: checkout?.currency || 'EUR',
+      customerName: document.getElementById('orderCustomerName').value.trim(), customerEmail: document.getElementById('orderCustomerEmail').value.trim().toLowerCase(), note: document.getElementById('orderNote').value.trim(),
+      status: 'draft', createdAt: new Date().toISOString(), financialAction: false,
+    };
+  }
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!form.reportValidity() || !currentCheckout()) return;
+    const item = draft();
+    document.getElementById('orderSummaryCheckout').textContent = item.checkoutName;
+    document.getElementById('orderSummaryCustomer').textContent = item.customerName;
+    document.getElementById('orderSummaryEmail').textContent = item.customerEmail;
+    document.getElementById('orderAcknowledgement').checked = false;
+    document.getElementById('orderSave').disabled = true;
+    dialog.showModal();
+  });
+  document.getElementById('orderAcknowledgement').addEventListener('change', (event) => { document.getElementById('orderSave').disabled = !event.target.checked; });
+  document.getElementById('orderBack').addEventListener('click', () => dialog.close());
+  document.getElementById('orderSave').addEventListener('click', () => {
+    let items = [];
+    try { items = JSON.parse(sessionStorage.getItem('pay_order_drafts') || '[]'); } catch {}
+    items.unshift(draft());
+    sessionStorage.setItem('pay_order_drafts', JSON.stringify(items.slice(0, 25)));
+    window.payToast?.('Commande enregistrée en brouillon, sans facturation.');
+    const preview = new URLSearchParams(location.search).has('preview') ? '?preview=1&created=1' : '?created=1';
+    setTimeout(() => { location.href = `${location.hostname === 'pay.sonnycourt.com' ? '' : '/pay'}/orders${preview}`; }, 450);
+  });
+  loadCheckouts();
+</script>
+
+<style>
+  .order-builder { overflow: hidden; }
+  .order-builder > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 22px; border-bottom: 1px solid var(--pay-line); }
+  .order-builder h2, .order-confirm h2 { margin: 6px 0 0; font-size: 21px; letter-spacing: -.035em; }
+  .order-builder header p:not(.pay-kicker) { margin: 7px 0 0; color: var(--pay-muted); font-size: 9px; }
+  .order-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 17px; padding: 25px; }
+  .order-field { min-width: 0; display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; }
+  .order-field--wide { grid-column: 1 / -1; }
+  .order-field small { color: var(--pay-muted); font-size: 8px; line-height: 1.5; }
+  .order-field .pay-input, .order-field .pay-select { min-height: 47px; padding: 0 13px; font-size: 10px; }
+  .order-field .pay-textarea { min-height: 96px; padding: 13px; resize: vertical; }
+  .order-safety { grid-template-columns: 34px 1fr; align-items: center; padding: 14px; border: 1px solid rgba(101,229,170,.22); border-radius: 15px; background: rgba(101,229,170,.04); }
+  .order-safety > span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; color: var(--pay-green); background: rgba(101,229,170,.08); }
+  .order-safety strong, .order-safety small { display: block; } .order-safety strong { color: #fff; font-size: 10px; }
+  .order-builder > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 22px; border-top: 1px solid var(--pay-line); }
+  .order-builder footer p { color: var(--pay-muted); font-size: 8px; }
+  .order-confirm { width: min(590px, calc(100% - 28px)); padding: 0; border-radius: 25px; color: var(--pay-text); }
+  .order-confirm::backdrop { background: rgba(0,5,14,.78); backdrop-filter: blur(10px); }
+  .order-confirm > div { padding: 24px; }
+  .order-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 20px 0; }
+  .order-summary span { min-width: 0; padding: 13px; border: 1px solid var(--pay-line); border-radius: 13px; background: rgba(2,12,24,.28); }
+  .order-summary small, .order-summary strong { display: block; } .order-summary small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; } .order-summary strong { overflow-wrap: anywhere; font-size: 10px; }
+  .order-check { display: flex; align-items: center; gap: 9px; color: var(--pay-soft); font-size: 9px; } .order-check input { accent-color: var(--pay-cyan); }
+  .order-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--pay-line); }
+  @media (max-width: 650px) { .order-grid, .order-summary { grid-template-columns: 1fr; } .order-field--wide { grid-column: auto; } .order-builder > footer { align-items: stretch; flex-direction: column; } }
+</style>
