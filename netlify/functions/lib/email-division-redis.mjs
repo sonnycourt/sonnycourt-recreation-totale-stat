@@ -9,6 +9,9 @@ const AUTONOMY_PULSE_HISTORY_KEY = 'email-division:autonomy:pulses:history';
 const AUTONOMY_PULSE_PREFIX = 'email-division:autonomy:pulse:';
 const AUTONOMY_LOCK_KEY = 'email-division:autonomy:lock:v1';
 const TEST_PROOF_LOCK_PREFIX = 'email-division:test-proof:lock:';
+const DIRECT_MISSION_PREFIX = 'email-division:direct-mission:';
+const DIRECT_MISSION_HISTORY_KEY = 'email-division:direct-missions:history:v1';
+const DIRECT_MISSION_LOCK_PREFIX = 'email-division:direct-mission:lock:';
 
 function credentials() {
   const url = String(process.env.UPSTASH_REDIS_REST_URL || '').trim();
@@ -135,4 +138,36 @@ export async function acquireTestProofLock(snapshotHash, ttlSeconds = 86_400) {
 export async function releaseTestProofLock(snapshotHash) {
   const safeHash = String(snapshotHash || '').replace(/[^a-f0-9]/gi, '').slice(0, 64);
   if (safeHash.length === 64) await redis('DEL', `${TEST_PROOF_LOCK_PREFIX}${safeHash}`);
+}
+
+export async function getDirectMission(id) {
+  if (!id) return null;
+  return parseJson(await redis('GET', `${DIRECT_MISSION_PREFIX}${id}`));
+}
+
+export async function getDirectMissionHistory(limit = 40) {
+  const safeLimit = Math.max(1, Math.min(100, Math.round(Number(limit) || 40)));
+  const ids = await redis('LRANGE', DIRECT_MISSION_HISTORY_KEY, 0, safeLimit - 1);
+  if (!Array.isArray(ids) || !ids.length) return [];
+  const rows = await redis('MGET', ...ids.map((id) => `${DIRECT_MISSION_PREFIX}${id}`));
+  return (Array.isArray(rows) ? rows : []).map(parseJson).filter(Boolean);
+}
+
+export async function saveDirectMission(mission) {
+  if (!mission?.id) throw new Error('direct_mission_id_required');
+  await redis('SET', `${DIRECT_MISSION_PREFIX}${mission.id}`, JSON.stringify(mission), 'EX', 60 * 60 * 24 * 180);
+  await redis('LREM', DIRECT_MISSION_HISTORY_KEY, 0, mission.id);
+  await redis('LPUSH', DIRECT_MISSION_HISTORY_KEY, mission.id);
+  await redis('LTRIM', DIRECT_MISSION_HISTORY_KEY, 0, 99);
+  return mission;
+}
+
+export async function acquireDirectMissionLock(id, token, ttlSeconds = 300) {
+  const result = await redis('SET', `${DIRECT_MISSION_LOCK_PREFIX}${id}`, token, 'NX', 'EX', ttlSeconds);
+  return result === 'OK';
+}
+
+export async function releaseDirectMissionLock(id, token) {
+  const script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+  await redis('EVAL', script, 1, `${DIRECT_MISSION_LOCK_PREFIX}${id}`, token);
 }

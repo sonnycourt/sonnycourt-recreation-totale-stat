@@ -421,6 +421,20 @@ import '../../styles/email-marketing-workspace.css';
           <ul id="agentProfileResponsibilities"></ul>
         </section>
 
+        <section class="agent-profile-command">
+          <div>
+            <span>Commande directe</span>
+            <strong>Une idée précise ? Mets cet agent en mission.</strong>
+            <p>Son rapport reviendra dans ta file de validation. Aucune action externe ne sera exécutée.</p>
+          </div>
+          <button class="agent-command-button" id="openAgentMissionComposer" type="button"><span aria-hidden="true">▶</span> Confier une mission</button>
+        </section>
+
+        <section class="agent-profile-mission-history" id="agentProfileMissionHistory" hidden>
+          <div class="agent-profile-section-title"><span>Commandes récentes</span><strong>Missions confiées à cet agent</strong></div>
+          <div id="agentProfileMissionList"></div>
+        </section>
+
         <footer class="agent-profile-mission">
           <div><span>Mission actuelle</span><strong id="agentProfileTask">—</strong></div>
           <div class="agent-profile-progress">
@@ -428,6 +442,100 @@ import '../../styles/email-marketing-workspace.css';
             <div class="progress-track"><span class="progress-bar" id="agentProfileProgressBar"></span></div>
           </div>
         </footer>
+      </div>
+    </dialog>
+
+    <dialog class="agent-command-dialog" id="agentCommandDialog" aria-labelledby="agentCommandTitle">
+      <div class="agent-command-shell">
+        <div class="dialog-owner agent-command-owner">
+          <span><i aria-hidden="true"></i> Nouvelle mission ponctuelle</span>
+          <button class="dialog-close" id="agentCommandClose" type="button" aria-label="Fermer la commande">×</button>
+        </div>
+
+        <header class="agent-command-hero">
+          <span class="agent-command-avatar" aria-hidden="true"></span>
+          <div>
+            <small>Agent sélectionné</small>
+            <h2 id="agentCommandTitle">Confier une mission à Iris</h2>
+            <strong id="agentCommandRole">Chercheuse Voix du Client</strong>
+          </div>
+        </header>
+
+        <form id="agentCommandForm">
+          <label class="agent-command-field" for="agentCommandObjective">
+            <span>Que veux-tu lui confier ?</span>
+            <textarea id="agentCommandObjective" rows="5" maxlength="1500" required placeholder="Exemple : propose-moi trois newsletters américaines pertinentes à suivre et explique pourquoi."></textarea>
+            <small><span id="agentCommandCharacters">0</span>/1500 · Une consigne concrète suffit.</small>
+          </label>
+
+          <div class="agent-command-options">
+            <label for="agentCommandDeliverable">
+              <span>Livrable attendu</span>
+              <select id="agentCommandDeliverable">
+                <option value="recommendations">Recommandations argumentées</option>
+                <option value="analysis">Analyse et diagnostic</option>
+                <option value="plan">Plan d’action</option>
+                <option value="ideas">Idées à comparer</option>
+                <option value="draft">Brouillon interne</option>
+              </select>
+            </label>
+            <label class="agent-command-check">
+              <input type="checkbox" id="agentCommandWebSearch" />
+              <span><strong>Recherche web autorisée</strong><small>Lecture seule avec sources. Aucun formulaire ni abonnement.</small></span>
+            </label>
+          </div>
+
+          <div class="agent-command-safety"><span aria-hidden="true">⛨</span><p><strong>Zone verte :</strong> l’agent peut rechercher, analyser et proposer. Il ne peut ni envoyer, ni s’inscrire, ni modifier MailerLite ou un autre service.</p></div>
+          <button class="agent-command-submit" id="agentCommandSubmit" type="submit"><span aria-hidden="true">▶</span> Lancer la mission</button>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog class="direct-mission-dialog" id="directMissionDialog" aria-labelledby="directMissionTitle">
+      <div class="direct-mission-shell">
+        <div class="dialog-owner direct-mission-owner">
+          <span id="directMissionOwner">Rapport de mission</span>
+          <button class="dialog-close" id="directMissionClose" type="button" aria-label="Fermer le rapport">×</button>
+        </div>
+
+        <header class="direct-mission-heading">
+          <div class="direct-mission-agent">
+            <span class="direct-mission-avatar" aria-hidden="true"></span>
+            <div><small id="directMissionAgentRole">Agent</small><strong id="directMissionAgentName">Iris</strong></div>
+          </div>
+          <span class="direct-mission-status" id="directMissionStatus">En cours</span>
+        </header>
+
+        <section class="direct-mission-brief">
+          <span>Mission confiée par Sonny</span>
+          <h2 id="directMissionTitle">—</h2>
+          <p id="directMissionObjective">—</p>
+        </section>
+
+        <section class="direct-mission-loading" id="directMissionLoading">
+          <div class="direct-mission-loader" aria-hidden="true"></div>
+          <strong id="directMissionLoadingTitle">L’agent travaille sur ton dossier…</strong>
+          <p id="directMissionLoadingDetail">Recherche, analyse et synthèse en cours. Tu peux fermer cette fenêtre : la mission continue en arrière-plan.</p>
+        </section>
+
+        <div class="direct-mission-report" id="directMissionReport" hidden>
+          <section class="direct-mission-summary"><span>Synthèse exécutive</span><p id="directMissionSummary"></p></section>
+          <section><div class="direct-mission-section-title"><span>01</span><strong>Constats et recommandations</strong></div><div class="direct-mission-findings" id="directMissionFindings"></div></section>
+          <section id="directMissionSourcesSection"><div class="direct-mission-section-title"><span>02</span><strong>Sources vérifiables</strong></div><div class="direct-mission-sources" id="directMissionSources"></div></section>
+          <section><div class="direct-mission-section-title"><span>03</span><strong>Prochaines actions proposées</strong></div><ul class="direct-mission-next" id="directMissionNextActions"></ul></section>
+          <div class="direct-mission-external" id="directMissionExternal" hidden><span aria-hidden="true">⛨</span><p><strong>Action externe proposée — non exécutée</strong><span id="directMissionExternalCopy"></span></p></div>
+        </div>
+
+        <section class="direct-mission-decision" id="directMissionDecision" hidden>
+          <div><span>Ta décision</span><strong>Ce rapport reste interne jusqu’à ta validation.</strong></div>
+          <label for="directMissionDecisionNote">Commentaire ou correction demandée</label>
+          <textarea id="directMissionDecisionNote" rows="3" maxlength="1500" placeholder="Exemple : remplace la troisième recommandation par une newsletter davantage centrée sur le subconscient."></textarea>
+          <div class="direct-mission-actions">
+            <button class="mission-secondary-button direct-mission-abandon" id="abandonDirectMission" type="button">Abandonner</button>
+            <button class="mission-secondary-button" id="reviseDirectMission" type="button">Demander une correction</button>
+            <button class="mission-primary-button" id="approveDirectMission" type="button">Valider le rapport</button>
+          </div>
+        </section>
       </div>
     </dialog>
 
@@ -674,6 +782,7 @@ import '../../styles/email-marketing-workspace.css';
       const ACTIONS_API = '/.netlify/functions/admin-email-marketing-actions';
       const AGENT_RUNS_API = '/.netlify/functions/admin-email-marketing-agent-runs';
       const AUTONOMY_API = '/.netlify/functions/admin-email-marketing-autonomy';
+      const DIRECT_MISSIONS_API = '/.netlify/functions/admin-email-marketing-agent-missions';
       const workspace = document.getElementById('workspace');
       const loadingScreen = document.getElementById('loadingScreen');
       const lockedScreen = document.getElementById('lockedScreen');
@@ -681,6 +790,8 @@ import '../../styles/email-marketing-workspace.css';
       const toast = document.getElementById('toast');
       const reviewDialog = document.getElementById('reviewDialog');
       const agentProfileDialog = document.getElementById('agentProfileDialog');
+      const agentCommandDialog = document.getElementById('agentCommandDialog');
+      const directMissionDialog = document.getElementById('directMissionDialog');
       const missionDialog = document.getElementById('missionDialog');
       const emailStudioDialog = document.getElementById('emailStudioDialog');
       const testConfirmationDialog = document.getElementById('testConfirmationDialog');
@@ -699,6 +810,9 @@ import '../../styles/email-marketing-workspace.css';
       let currentAutonomy = null;
       let autonomyBusy = false;
       let firstFlightBusy = false;
+      let directMissions = [];
+      let activeDirectMissionId = null;
+      let directMissionPollTimer = null;
 
       const MISSION_DECISION_KEY = 'sonnycourt.emailDivision.missionDecisions.v1';
       const EMAIL_STUDIO_KEY = 'sonnycourt.emailDivision.broadcastStudio.v1';
@@ -787,6 +901,7 @@ import '../../styles/email-marketing-workspace.css';
         const action = byId('validatorPrimaryAction');
         const agentsReady = currentAgentRun?.status === 'completed' && Boolean(currentAgentRun?.artifact);
         const agentsRunning = firstFlightBusy || currentAgentRun?.status === 'running';
+        const directAgentsRunning = directMissions.some((mission) => ['queued', 'running'].includes(mission.status));
         const stage = emailStudioState?.draft ? emailStageState() : {
           dossierApproved: dossierIsApproved(), contentApproved: false, testProofSent: false, draftSynced: false,
         };
@@ -869,6 +984,15 @@ import '../../styles/email-marketing-workspace.css';
           else if (!stage.contentApproved) decisions.push({ title: 'Version de l’email', meta: 'Corriger puis approuver', label: 'Ouvrir', action: openStudioFromValidator });
           else if (!stage.testProofSent) decisions.push({ title: 'Épreuve personnelle', meta: '1 seule adresse autorisée', label: 'Contrôler', action: openStudioFromValidator });
         }
+        directMissions
+          .filter((mission) => mission.status === 'review')
+          .slice(0, Math.max(0, 3 - decisions.length))
+          .forEach((mission) => decisions.push({
+            title: mission.result?.title || mission.objective,
+            meta: `${mission.agent?.name || 'Agent'} · mission ponctuelle`,
+            label: 'Examiner',
+            action: () => openDirectMission(mission.id),
+          }));
         currentMissions
           .map(effectiveMission)
           .filter((mission) => mission.id !== 'broadcast-value' && mission.effectiveStatus === 'review')
@@ -899,7 +1023,10 @@ import '../../styles/email-marketing-workspace.css';
         byId('validatorDecisionCount').textContent = count === 0 ? 'Aucune décision ne t’attend.' : `${count} décision${count > 1 ? 's' : ''} t’attend${count > 1 ? 'ent' : ''}.`;
         byId('validatorTimeEstimate').textContent = count === 0 ? 'Tu peux laisser la division travailler.' : `Environ ${minutes} minutes pour tout traiter.`;
 
-        const status = agentsRunning ? 'Nova coordonne la production en ce moment.' : agentsReady ? 'Le dossier collectif est prêt et mémorisé.' : 'Les agents sont prêts pour leur prochain cycle.';
+        const status = directAgentsRunning
+          ? `${directMissions.filter((mission) => ['queued', 'running'].includes(mission.status)).length} mission(s) ponctuelle(s) en cours.`
+          : agentsRunning ? 'Nova coordonne la production en ce moment.'
+            : agentsReady ? 'Le dossier collectif est prêt et mémorisé.' : 'Les agents sont prêts pour leur prochain cycle.';
         byId('validatorTeamStatus').textContent = status;
         renderValidatorAgents();
 
@@ -1950,7 +2077,281 @@ import '../../styles/email-marketing-workspace.css';
         const progress = Math.max(0, Math.min(100, Number(agent.progress) || 0));
         byId('agentProfileProgressValue').textContent = `${progress} %`;
         byId('agentProfileProgressBar').style.width = `${progress}%`;
+        renderAgentMissionHistory(agent.id);
         if (!agentProfileDialog.open) agentProfileDialog.showModal();
+      }
+
+      function directMissionStatusLabel(status) {
+        const labels = {
+          queued: 'En attente', running: 'En mission', review: 'À valider', done: 'Validée',
+          archived: 'Abandonnée', failed: 'Arrêtée en sécurité',
+        };
+        return labels[status] || status || 'En attente';
+      }
+
+      function agentById(agentId) {
+        return currentAgents.find((agent) => agent.id === agentId) || null;
+      }
+
+      function applyAgentSprite(target, agent) {
+        if (!target || !agent) return;
+        target.dataset.agent = agent.id;
+        target.dataset.color = agent.color;
+        target.dataset.spriteGroup = agent.spriteGroup;
+        target.dataset.spriteIndex = String(agent.spriteIndex);
+      }
+
+      function renderAgentMissionHistory(agentId) {
+        const section = byId('agentProfileMissionHistory');
+        const list = byId('agentProfileMissionList');
+        if (!section || !list) return;
+        const missions = directMissions.filter((mission) => mission.agentId === agentId).slice(0, 3);
+        section.hidden = !missions.length;
+        list.replaceChildren();
+        missions.forEach((mission) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'agent-profile-mission-row';
+          const copy = document.createElement('span');
+          const title = document.createElement('strong');
+          title.textContent = mission.result?.title || mission.objective;
+          const meta = document.createElement('small');
+          meta.textContent = `${directMissionStatusLabel(mission.status)} · ${mission.deliverableLabel || 'Rapport interne'}`;
+          copy.append(title, meta);
+          const arrow = document.createElement('i');
+          arrow.textContent = '→';
+          button.append(copy, arrow);
+          button.addEventListener('click', () => {
+            agentProfileDialog.close();
+            openDirectMission(mission.id);
+          });
+          list.append(button);
+        });
+      }
+
+      function openAgentMissionComposer(agent) {
+        if (!agent) return;
+        applyAgentSprite(agentCommandDialog, agent);
+        byId('agentCommandTitle').textContent = `Confier une mission à ${agent.name}`;
+        byId('agentCommandRole').textContent = agent.role;
+        const objective = byId('agentCommandObjective');
+        objective.value = '';
+        objective.placeholder = agent.id === 'iris'
+          ? 'Exemple : propose-moi trois newsletters américaines pertinentes à suivre et explique pourquoi.'
+          : `Décris précisément ce que tu veux que ${agent.name} analyse ou prépare.`;
+        byId('agentCommandCharacters').textContent = '0';
+        byId('agentCommandDeliverable').value = 'recommendations';
+        byId('agentCommandWebSearch').checked = ['iris', 'alma', 'sacha', 'ada', 'eli', 'milo'].includes(agent.id);
+        byId('agentCommandSubmit').disabled = false;
+        byId('agentCommandSubmit').innerHTML = '<span aria-hidden="true">▶</span> Lancer la mission';
+        if (agentProfileDialog.open) agentProfileDialog.close();
+        if (!agentCommandDialog.open) agentCommandDialog.showModal();
+        window.setTimeout(() => objective.focus(), 50);
+      }
+
+      async function loadDirectMissions() {
+        try {
+          const response = await fetch(`${DIRECT_MISSIONS_API}?limit=40`, {
+            method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) return null;
+          const data = await response.json();
+          directMissions = Array.isArray(data.missions) ? data.missions : [];
+          if (agentProfileDialog.open) renderAgentMissionHistory(agentProfileDialog.dataset.agent);
+          renderValidatorHome();
+          return directMissions;
+        } catch {
+          return null;
+        }
+      }
+
+      function replaceDirectMission(mission) {
+        directMissions = [mission, ...directMissions.filter((item) => item.id !== mission.id)]
+          .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+      }
+
+      async function submitDirectMission(event) {
+        event.preventDefault();
+        const agentId = agentCommandDialog.dataset.agent;
+        const objective = byId('agentCommandObjective').value.trim();
+        if (objective.length < 12) {
+          showToast('Décris la mission en une phrase un peu plus précise.');
+          byId('agentCommandObjective').focus();
+          return;
+        }
+        const button = byId('agentCommandSubmit');
+        button.disabled = true;
+        button.textContent = 'Mission transmise…';
+        try {
+          const response = await fetch(DIRECT_MISSIONS_API, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              operation: 'start', agentId, objective,
+              deliverable: byId('agentCommandDeliverable').value,
+              webSearchAllowed: byId('agentCommandWebSearch').checked,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `direct_mission_${response.status}`);
+          replaceDirectMission(data.mission);
+          agentCommandDialog.close();
+          showToast(`${data.mission.agent.name} est parti en mission. Aucune action externe ne sera exécutée.`);
+          openDirectMission(data.mission.id);
+          renderValidatorHome();
+        } catch (error) {
+          const message = String(error?.message || '');
+          showToast(message === 'too_many_active_missions'
+            ? 'Trois missions travaillent déjà. Attends qu’une d’elles revienne avant d’en lancer une autre.'
+            : 'La mission n’a pas pu démarrer. Aucun outil externe n’a été modifié.');
+          button.disabled = false;
+          button.innerHTML = '<span aria-hidden="true">▶</span> Lancer la mission';
+        }
+      }
+
+      function renderDirectMission(mission) {
+        if (!mission) return;
+        const agent = agentById(mission.agentId);
+        activeDirectMissionId = mission.id;
+        applyAgentSprite(directMissionDialog, agent);
+        byId('directMissionOwner').textContent = `Dossier ${mission.id.slice(0, 8)} · ${mission.agent?.name || agent?.name || 'Agent'}`;
+        byId('directMissionAgentName').textContent = mission.agent?.name || agent?.name || 'Agent';
+        byId('directMissionAgentRole').textContent = mission.agent?.role || agent?.role || 'Email Marketing Division';
+        byId('directMissionStatus').textContent = directMissionStatusLabel(mission.status);
+        byId('directMissionStatus').dataset.status = mission.status;
+        byId('directMissionTitle').textContent = mission.result?.title || `${mission.agent?.name || 'L’agent'} travaille sur ta demande`;
+        byId('directMissionObjective').textContent = mission.objective;
+
+        const loading = byId('directMissionLoading');
+        const report = byId('directMissionReport');
+        const decision = byId('directMissionDecision');
+        const isWorking = ['queued', 'running'].includes(mission.status);
+        loading.hidden = !isWorking && mission.status !== 'failed';
+        report.hidden = !mission.result;
+        decision.hidden = mission.status !== 'review';
+        byId('directMissionDecisionNote').value = '';
+
+        if (mission.status === 'failed') {
+          loading.hidden = false;
+          byId('directMissionLoadingTitle').textContent = 'La mission s’est arrêtée en sécurité.';
+          byId('directMissionLoadingDetail').textContent = 'Aucune action externe n’a été exécutée. Tu peux fermer puis relancer une nouvelle mission.';
+        } else {
+          byId('directMissionLoadingTitle').textContent = mission.status === 'queued' ? 'La mission rejoint la file de travail…' : `${mission.agent?.name || 'L’agent'} travaille sur ton dossier…`;
+          byId('directMissionLoadingDetail').textContent = mission.webSearchAllowed
+            ? 'Recherche web en lecture seule, analyse et synthèse en cours. Tu peux fermer : le travail continue.'
+            : 'Analyse et synthèse internes en cours. Tu peux fermer : le travail continue.';
+        }
+
+        if (mission.result) {
+          byId('directMissionSummary').textContent = mission.result.executiveSummary || 'Rapport prêt pour ta validation.';
+          const findings = byId('directMissionFindings');
+          findings.replaceChildren();
+          (mission.result.findings || []).forEach((finding, index) => {
+            const card = document.createElement('article');
+            const number = document.createElement('span'); number.textContent = String(index + 1).padStart(2, '0');
+            const content = document.createElement('div');
+            const title = document.createElement('h3'); title.textContent = finding.title;
+            const detail = document.createElement('p'); detail.textContent = finding.detail;
+            content.append(title, detail);
+            if (finding.evidence?.length) {
+              const evidence = document.createElement('ul');
+              finding.evidence.forEach((proof) => { const item = document.createElement('li'); item.textContent = proof; evidence.append(item); });
+              content.append(evidence);
+            }
+            const recommendation = document.createElement('strong'); recommendation.textContent = finding.recommendation;
+            content.append(recommendation);
+            card.append(number, content);
+            findings.append(card);
+          });
+
+          const sources = byId('directMissionSources');
+          sources.replaceChildren();
+          const sourceItems = mission.result.sources || [];
+          byId('directMissionSourcesSection').hidden = !sourceItems.length;
+          sourceItems.forEach((source) => {
+            const link = document.createElement('a');
+            link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+            const copy = document.createElement('span');
+            const title = document.createElement('strong'); title.textContent = source.title;
+            const reason = document.createElement('small'); reason.textContent = source.whyRelevant;
+            copy.append(title, reason);
+            const arrow = document.createElement('i'); arrow.textContent = '↗';
+            link.append(copy, arrow); sources.append(link);
+          });
+
+          const next = byId('directMissionNextActions');
+          next.replaceChildren();
+          (mission.result.nextActions || []).forEach((action) => { const item = document.createElement('li'); item.textContent = action; next.append(item); });
+          const external = byId('directMissionExternal');
+          external.hidden = !mission.result.requiresExternalAction;
+          byId('directMissionExternalCopy').textContent = mission.result.externalActionProposal || '';
+        }
+      }
+
+      async function pollDirectMission(id) {
+        window.clearTimeout(directMissionPollTimer);
+        if (!id || !directMissionDialog.open || activeDirectMissionId !== id) return;
+        try {
+          const response = await fetch(`${DIRECT_MISSIONS_API}?id=${encodeURIComponent(id)}`, {
+            method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error(`direct_mission_${response.status}`);
+          const data = await response.json();
+          replaceDirectMission(data.mission);
+          renderDirectMission(data.mission);
+          renderValidatorHome();
+          if (['queued', 'running'].includes(data.mission.status)) {
+            directMissionPollTimer = window.setTimeout(() => pollDirectMission(id), 2_500);
+          } else if (data.mission.status === 'review') {
+            showToast(`${data.mission.agent.name} a terminé sa mission. Ton rapport est prêt à valider.`);
+          }
+        } catch {
+          directMissionPollTimer = window.setTimeout(() => pollDirectMission(id), 5_000);
+        }
+      }
+
+      function openDirectMission(id) {
+        const mission = directMissions.find((item) => item.id === id);
+        if (!mission) return;
+        renderDirectMission(mission);
+        if (!directMissionDialog.open) directMissionDialog.showModal();
+        if (['queued', 'running'].includes(mission.status)) pollDirectMission(id);
+      }
+
+      async function decideDirectMission(decision) {
+        const mission = directMissions.find((item) => item.id === activeDirectMissionId);
+        if (!mission) return;
+        const note = byId('directMissionDecisionNote').value.trim();
+        if (decision === 'revision' && note.length < 3) {
+          showToast('Indique la correction attendue pour que l’agent puisse reprendre son travail.');
+          byId('directMissionDecisionNote').focus();
+          return;
+        }
+        const buttons = [byId('approveDirectMission'), byId('reviseDirectMission'), byId('abandonDirectMission')];
+        buttons.forEach((button) => { button.disabled = true; });
+        try {
+          const response = await fetch(DIRECT_MISSIONS_API, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ operation: 'decide', id: mission.id, decision, note }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `direct_mission_decision_${response.status}`);
+          replaceDirectMission(data.mission);
+          renderDirectMission(data.mission);
+          renderValidatorHome();
+          if (decision === 'revision') {
+            showToast(`${mission.agent.name} reprend le rapport avec ta correction.`);
+            pollDirectMission(mission.id);
+          } else {
+            showToast(decision === 'approved' ? 'Rapport validé et conservé dans la mémoire de la division.' : 'Mission abandonnée sans aucune action externe.');
+          }
+        } catch {
+          showToast('Ta décision n’a pas pu être enregistrée. Aucune action externe n’a été exécutée.');
+        } finally {
+          buttons.forEach((button) => { button.disabled = false; });
+        }
       }
 
       function renderAgents(agents) {
@@ -2359,7 +2760,7 @@ import '../../styles/email-marketing-workspace.css';
           if (!response.ok) throw new Error(`overview_${response.status}`);
           const data = await response.json();
           renderOverview(data);
-          await Promise.all([loadActionCapabilities(), loadAgentWorkspace(), loadAutonomy()]);
+          await Promise.all([loadActionCapabilities(), loadAgentWorkspace(), loadAutonomy(), loadDirectMissions()]);
           workspace.setAttribute('aria-busy', 'false');
           loadingScreen.hidden = true;
           lockedScreen.hidden = true;
@@ -2384,6 +2785,26 @@ import '../../styles/email-marketing-workspace.css';
       agentProfileDialog.addEventListener('click', (event) => {
         if (event.target === agentProfileDialog) agentProfileDialog.close();
       });
+      byId('openAgentMissionComposer').addEventListener('click', () => openAgentMissionComposer(agentById(agentProfileDialog.dataset.agent)));
+      byId('agentCommandClose').addEventListener('click', () => agentCommandDialog.close());
+      agentCommandDialog.addEventListener('click', (event) => {
+        if (event.target === agentCommandDialog) agentCommandDialog.close();
+      });
+      byId('agentCommandObjective').addEventListener('input', (event) => {
+        byId('agentCommandCharacters').textContent = String(event.currentTarget.value.length);
+      });
+      byId('agentCommandForm').addEventListener('submit', submitDirectMission);
+      byId('directMissionClose').addEventListener('click', () => directMissionDialog.close());
+      directMissionDialog.addEventListener('close', () => {
+        window.clearTimeout(directMissionPollTimer);
+        activeDirectMissionId = null;
+      });
+      directMissionDialog.addEventListener('click', (event) => {
+        if (event.target === directMissionDialog) directMissionDialog.close();
+      });
+      byId('approveDirectMission').addEventListener('click', () => decideDirectMission('approved'));
+      byId('reviseDirectMission').addEventListener('click', () => decideDirectMission('revision'));
+      byId('abandonDirectMission').addEventListener('click', () => decideDirectMission('abandoned'));
       byId('missionDialogClose').addEventListener('click', () => missionDialog.close());
       byId('approveMission').addEventListener('click', () => saveMissionDecision('approved'));
       byId('requestMissionRevision').addEventListener('click', () => saveMissionDecision('revision'));
