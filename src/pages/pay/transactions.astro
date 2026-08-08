@@ -48,11 +48,11 @@ const transactions = [];
 
       <div class="refund-fields">
         <label><span>Montant à rembourser</span><input class="pay-input" id="refundAmount" type="number" inputmode="decimal" min="0.01" step="0.01" required /></label>
-        <label><span>Motif Stripe</span><select class="pay-select" id="refundReason"><option value="requested_by_customer">Demandé par le client</option><option value="duplicate">Paiement en double</option><option value="fraudulent">Paiement frauduleux</option></select></label>
+        <label><span>Motif</span><select class="pay-select" id="refundReason"><option value="requested_by_customer">Demandé par le client</option><option value="duplicate">Paiement en double</option><option value="fraudulent">Paiement frauduleux</option></select></label>
       </div>
 
       <div class="refund-lock" id="refundLock" hidden><strong>Remboursements réels verrouillés</strong><span>Le garde-fou du compte live doit être activé une seule fois avant utilisation.</span></div>
-      <p class="refund-note">Relis le montant et le motif. Seul un clic explicite sur le bouton de confirmation enverra la demande à Stripe.</p>
+      <p class="refund-note" id="refundNote">Relis le montant et le motif. Seul un clic explicite sur le bouton de confirmation enverra la demande à la passerelle.</p>
       <p class="refund-error" id="refundError" role="alert"></p>
 
       <footer class="refund-actions">
@@ -65,11 +65,13 @@ const transactions = [];
 
 <script>
   const REFUND_API = '/.netlify/functions/pay-stripe-refund';
+  const PAYPAL_REFUND_API = '/.netlify/functions/pay-paypal-refund';
   const STRIPE_DATA_API = '/.netlify/functions/pay-stripe-data';
   const PAYPAL_DATA_API = '/.netlify/functions/pay-paypal-data';
   let stripeTransactionsData = null;
   let recentStripeItems = [];
   let paypalTransactionsData = [];
+  let paypalWritesEnabled = false;
   let fullHistoryItems = [];
   let fullHistoryCursor = '';
   let fullHistoryLoading = false;
@@ -102,7 +104,7 @@ const transactions = [];
 
   function refundAction(item) {
     if (!item.can_refund) return item.refundable === 0 && item.refunded > 0 ? '<span class="refund-complete">Terminé</span>' : '<span>—</span>';
-    return `<button class="refund-button" type="button" data-refund-intent="${escapeTransactionText(item.id)}">Rembourser</button>`;
+    return `<button class="refund-button" type="button" data-refund-id="${escapeTransactionText(item.id)}" data-refund-provider="${escapeTransactionText(item.provider || 'stripe')}">Rembourser</button>`;
   }
 
   function normalizedIntentStatus(intent, refunded, refundable) {
@@ -233,6 +235,7 @@ const transactions = [];
       const response = await fetch(`${PAYPAL_DATA_API}?${new URLSearchParams({ start: start.toISOString(), end: end.toISOString() })}`, { credentials: 'same-origin' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.connected) throw new Error(data.error || 'paypal_data_failed');
+      paypalWritesEnabled = Boolean(data.writes_enabled);
       paypalTransactionsData = (Array.isArray(data.transactions) ? data.transactions : []).map((item) => ({ ...item, provider: 'paypal', payment_method: 'PayPal' }));
       renderCombinedSummary();
       renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe ou PayPal.');
@@ -260,7 +263,8 @@ const transactions = [];
     const divisor = currencyDivisor(refundItem?.currency || 'eur');
     const amountMinor = Math.round(amount * divisor);
     const validAmount = refundItem && Number.isSafeInteger(amountMinor) && amountMinor > 0 && amountMinor <= refundItem.refundable;
-    document.getElementById('refundSubmit').disabled = !validAmount || !stripeTransactionsData?.writes_enabled;
+    const writesEnabled = refundItem?.provider === 'paypal' ? paypalWritesEnabled : stripeTransactionsData?.writes_enabled;
+    document.getElementById('refundSubmit').disabled = !validAmount || !writesEnabled;
     return validAmount ? amountMinor : null;
   }
 
@@ -272,12 +276,16 @@ const transactions = [];
     input.value = String(item.refundable / divisor);
     input.max = String(item.refundable / divisor);
     input.step = String(1 / divisor);
-    document.getElementById('refundCustomer').textContent = item.customer || item.email || 'Client Stripe';
+    const providerLabel = item.provider === 'paypal' ? 'PayPal' : 'Stripe';
+    document.getElementById('refundCustomer').textContent = item.customer || item.email || `Client ${providerLabel}`;
     document.getElementById('refundPaymentAmount').textContent = transactionMoney(item.amount, item.currency);
     document.getElementById('refundRemaining').textContent = transactionMoney(item.refundable, item.currency);
     document.getElementById('refundReason').value = 'requested_by_customer';
     document.getElementById('refundError').textContent = '';
-    document.getElementById('refundLock').hidden = Boolean(stripeTransactionsData?.writes_enabled);
+    const writesEnabled = item.provider === 'paypal' ? paypalWritesEnabled : stripeTransactionsData?.writes_enabled;
+    document.getElementById('refundLock').hidden = Boolean(writesEnabled);
+    document.getElementById('refundLock').querySelector('span').textContent = `Le garde-fou ${providerLabel} Live doit être activé une seule fois avant utilisation.`;
+    document.getElementById('refundNote').textContent = `Relis le montant et le motif. Seul un clic explicite sur le bouton de confirmation enverra la demande à ${providerLabel}.`;
     validateRefundForm();
     document.getElementById('refundDialog').showModal();
   }
@@ -289,9 +297,9 @@ const transactions = [];
   }
 
   document.getElementById('stripeTransactionTable')?.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-refund-intent]');
-    if (!button || !stripeTransactionsData) return;
-    const item = [...fullHistoryItems, ...recentStripeItems].find((transaction) => transaction.id === button.dataset.refundIntent);
+    const button = event.target.closest('[data-refund-id]');
+    if (!button) return;
+    const item = combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems).find((transaction) => transaction.id === button.dataset.refundId && transaction.provider === button.dataset.refundProvider);
     if (item) openRefundDialog(item);
   });
 
@@ -311,33 +319,35 @@ const transactions = [];
     submit.textContent = 'Remboursement en cours…';
     error.textContent = '';
 
-    const response = await fetch(REFUND_API, {
+    const isPayPal = refundItem.provider === 'paypal';
+    const response = await fetch(isPayPal ? PAYPAL_REFUND_API : REFUND_API, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        payment_intent: refundItem.id,
-        amount,
-        reason: document.getElementById('refundReason').value,
-        confirmation: 'REMBOURSER',
-        idempotency_key: refundIdempotencyKey,
+      body: JSON.stringify(isPayPal ? {
+        capture_id: refundItem.id, amount, currency: String(refundItem.currency || 'eur').toUpperCase(),
+        confirmation: 'REMBOURSER PAYPAL', idempotency_key: refundIdempotencyKey,
+      } : {
+        payment_intent: refundItem.id, amount, reason: document.getElementById('refundReason').value,
+        confirmation: 'REMBOURSER', idempotency_key: refundIdempotencyKey,
       }),
     }).catch(() => null);
     const result = await response?.json().catch(() => ({}));
 
     if (!response?.ok) {
-      error.textContent = result?.error === 'stripe_writes_disabled'
+      error.textContent = ['stripe_writes_disabled', 'paypal_writes_disabled'].includes(result?.error)
         ? 'Les remboursements réels sont encore verrouillés par le garde-fou de sécurité.'
-        : result?.error || 'Stripe n’a pas pu effectuer ce remboursement.';
+        : result?.error || `${isPayPal ? 'PayPal' : 'Stripe'} n’a pas pu effectuer ce remboursement.`;
       submit.textContent = 'Confirmer le remboursement';
       validateRefundForm();
       return;
     }
 
     closeRefundDialog();
-    window.payToast?.(`Remboursement de ${transactionMoney(result.refund.amount, result.refund.currency)} envoyé à Stripe.`);
+    window.payToast?.(`Remboursement de ${transactionMoney(result.refund.amount, result.refund.currency)} envoyé à ${isPayPal ? 'PayPal' : 'Stripe'}.`);
     submit.textContent = 'Confirmer le remboursement';
-    await window.refreshPayStripeOverview?.();
+    if (isPayPal) await loadPayPalTransactions();
+    else await window.refreshPayStripeOverview?.();
   });
 
   document.addEventListener('pay:stripe', (event) => renderStripeTransactions(event.detail));

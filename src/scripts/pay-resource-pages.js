@@ -12,6 +12,9 @@ if (screen) {
   const table = screen.querySelector('[data-resource-table]');
   const rowsHost = screen.querySelector('[data-resource-rows]');
   const empty = screen.querySelector('[data-resource-empty]');
+  const detailDialog = screen.querySelector('[data-resource-dialog]');
+  const detailTitle = screen.querySelector('[data-resource-dialog-title]');
+  const detailContent = screen.querySelector('[data-resource-dialog-content]');
   let rows = [];
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
@@ -255,7 +258,7 @@ if (screen) {
     const provider = providerFilter.value;
     const status = statusFilter.value;
     const visible = rows.filter((item) => (!query || item.search.includes(query)) && (provider === 'all' || item.provider === provider) && (status === 'all' || item.status === status));
-    rowsHost.innerHTML = visible.map((item) => `<div class="resource-row" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
+    rowsHost.innerHTML = visible.map((item) => `<div class="resource-row" role="button" tabindex="0" data-resource-index="${rows.indexOf(item)}" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
     count.textContent = `${visible.length} résultat${visible.length === 1 ? '' : 's'}`;
     table.hidden = visible.length === 0;
     empty.hidden = visible.length !== 0;
@@ -287,6 +290,29 @@ if (screen) {
   providerFilter.addEventListener('change', render);
   statusFilter.addEventListener('change', render);
   document.querySelector('[data-resource-export]')?.addEventListener('click', exportCsv);
+
+  function openDetails(item) {
+    if (!item || !detailDialog) return;
+    const headers = [...screen.querySelectorAll('.resource-head > span')].map((element) => element.textContent.trim());
+    detailTitle.textContent = item.plain[0] || 'Détail';
+    detailContent.innerHTML = headers.map((header, index) => `<div><small>${escapeHtml(header)}</small><strong>${escapeHtml(item.plain[index] || '—')}</strong></div>`).join('');
+    detailDialog.showModal();
+  }
+
+  rowsHost.addEventListener('click', (event) => {
+    if (event.target.closest('a,button')) return;
+    const target = event.target.closest('[data-resource-index]');
+    if (target) openDetails(rows[Number(target.dataset.resourceIndex)]);
+  });
+  rowsHost.addEventListener('keydown', (event) => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    const target = event.target.closest('[data-resource-index]');
+    if (!target) return;
+    event.preventDefault();
+    openDetails(rows[Number(target.dataset.resourceIndex)]);
+  });
+  screen.querySelectorAll('[data-resource-dialog-close]').forEach((button) => button.addEventListener('click', () => detailDialog?.close()));
+  detailDialog?.addEventListener('click', (event) => { if (event.target === detailDialog) detailDialog.close(); });
 
   const loader = loaders[screen.dataset.payResourcePage];
   Promise.resolve(loader?.())

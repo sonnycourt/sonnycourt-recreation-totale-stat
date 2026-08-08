@@ -1,5 +1,5 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
-import { cleanPayPalValue } from './lib/pay-paypal.mjs';
+import { cleanPayPalValue, getPayPalConfig } from './lib/pay-paypal.mjs';
 import { getPayPalTransactions } from './lib/pay-paypal-data.mjs';
 
 function json(status, body) {
@@ -18,7 +18,8 @@ export default async (req) => {
       start: cleanPayPalValue(url.searchParams.get('start'), 40),
       end: cleanPayPalValue(url.searchParams.get('end'), 40),
     });
-    return json(200, data);
+    const mode = getPayPalConfig().mode;
+    return json(200, { ...data, mode, writes_enabled: mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
   } catch (error) {
     console.error('pay-paypal-data:', cleanPayPalValue(error?.message, 120));
     const invalid = String(error?.message || '').startsWith('paypal_range_');

@@ -36,6 +36,12 @@ const {
     </div>
     <div class="resource-empty" data-resource-empty hidden><span>◇</span><h2>{emptyTitle}</h2><p>{emptyText}</p></div>
   </section>
+
+  <dialog class="resource-dialog pay-panel" data-resource-dialog aria-labelledby="resourceDialogTitle">
+    <header><div><p class="pay-kicker">Fiche détaillée</p><h2 id="resourceDialogTitle" data-resource-dialog-title>Élément</h2></div><button type="button" data-resource-dialog-close aria-label="Fermer">×</button></header>
+    <div class="resource-dialog-grid" data-resource-dialog-content></div>
+    <footer><button class="pay-button pay-button--ghost" type="button" data-resource-dialog-close>Fermer</button></footer>
+  </dialog>
 </div>
 
 <style is:global>
@@ -55,6 +61,8 @@ const {
   @keyframes resource-spin { to { transform: rotate(360deg); } }
   .resource-table { min-width: 860px; }
   .resource-row { display: grid; grid-template-columns: var(--resource-columns, minmax(210px, 1.5fr) repeat(5, minmax(90px, .7fr))); align-items: center; min-height: 65px; border-bottom: 1px solid var(--pay-line); }
+  .resource-row:not(.resource-head) { cursor: pointer; transition: background .16s ease; }
+  .resource-row:not(.resource-head):hover, .resource-row:not(.resource-head):focus-visible { outline: none; background: rgba(112,231,255,.035); }
   .resource-row:last-child { border-bottom: 0; }
   .resource-row > span { min-width: 0; padding: 12px 15px; overflow: hidden; color: var(--pay-soft); font-size: 9px; line-height: 1.4; text-overflow: ellipsis; }
   .resource-row > span:first-child { color: #fff; }
@@ -73,5 +81,17 @@ const {
   .resource-empty > span { width: 46px; height: 46px; display: grid; place-items: center; margin-bottom: 13px; border: 1px solid var(--pay-line); border-radius: 14px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
   .resource-empty h2 { margin: 0 0 7px; font-size: 14px; }
   .resource-empty p { max-width: 420px; margin: 0; color: var(--pay-muted); font-size: 9px; line-height: 1.6; }
+  .resource-dialog { width: min(620px, calc(100% - 28px)); padding: 0; border-radius: 25px; color: var(--pay-text); background: linear-gradient(150deg, rgba(18,43,70,.98), rgba(5,19,35,.99)); }
+  .resource-dialog::backdrop { background: rgba(0,5,14,.78); backdrop-filter: blur(10px); }
+  .resource-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 23px; border-bottom: 1px solid var(--pay-line); }
+  .resource-dialog h2 { margin: 7px 0 0; font-size: 21px; letter-spacing: -.035em; }
+  .resource-dialog header button { width: 38px; height: 38px; border: 1px solid var(--pay-line); border-radius: 12px; color: var(--pay-soft); background: rgba(255,255,255,.04); font-size: 21px; cursor: pointer; }
+  .resource-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 22px; }
+  .resource-dialog-grid > div { min-height: 66px; padding: 13px; border: 1px solid var(--pay-line); border-radius: 13px; background: rgba(1,10,21,.28); }
+  .resource-dialog-grid small, .resource-dialog-grid strong { display: block; overflow-wrap: anywhere; }
+  .resource-dialog-grid small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; text-transform: uppercase; }
+  .resource-dialog-grid strong { color: #fff; font-size: 10px; line-height: 1.5; }
+  .resource-dialog > footer { display: flex; justify-content: flex-end; padding: 14px 22px 20px; border-top: 1px solid var(--pay-line); }
+  @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } }
   @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-table-panel { overflow-x: auto; } }
 </style>

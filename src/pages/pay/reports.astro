@@ -10,6 +10,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
     <button class="report-type pay-panel" type="button" data-report="ltv"><span>◉</span><strong>Valeur client</strong><small>Achats et valeur cumulée</small></button>
     <button class="report-type pay-panel" type="button" data-report="cashflow"><span>≋</span><strong>Cash flow</strong><small>Encaissements, remboursements et net</small></button>
     <button class="report-type pay-panel" type="button" data-report="plans"><span>!</span><strong>Plans de paiement</strong><small>Échéances et paiements en retard</small></button>
+    <button class="report-type pay-panel" type="button" data-report="checkouts"><span>⌁</span><strong>Performance checkouts</strong><small>Sessions, paiements et conversion</small></button>
+    <button class="report-type pay-panel" type="button" data-report="failures"><span>×</span><strong>Paiements échoués</strong><small>Échecs, actions requises et relances</small></button>
   </section>
 
   <section class="report-panel pay-panel">
@@ -72,7 +74,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     };
   }
 
-  function reportData(type, intents, refunds, invoices, paypalRows) {
+  function reportData(type, intents, refunds, invoices, checkoutSessions, paypalRows) {
     const succeeded = intents.filter((item) => item.status === 'succeeded').map((item) => ({
       provider: 'Stripe', id: item.id, created: item.created, amount: Number(item.amount_received || item.amount || 0), currency: item.currency || 'eur',
       description: item.description || item.metadata?.offer_name || item.metadata?.offer_slug || 'Paiement Stripe', customer: customerOfStripe(item), plan: false,
@@ -108,6 +110,32 @@ import PayAppShell from '../../components/PayAppShell.astro';
       paypalSales.filter((sale) => sale.plan).forEach((sale) => planRows.push([sale.customer.name, 'PayPal', money(sale.amount, sale.currency), humanDate(dayKey(sale.created)), 'Payé']));
       return planRows;
     }
+    if (type === 'checkouts') {
+      const groups = new Map();
+      checkoutSessions.forEach((session) => {
+        const key = session.payment_link || session.metadata?.checkout_id || session.metadata?.checkout_slug || 'Checkout Stripe';
+        const current = groups.get(key) || { sessions: 0, paid: 0, revenue: 0, currency: session.currency || 'eur' };
+        current.sessions += 1;
+        if (session.payment_status === 'paid') {
+          current.paid += 1;
+          current.revenue += Number(session.amount_total || 0);
+        }
+        groups.set(key, current);
+      });
+      return [...groups.entries()].sort(([, first], [, second]) => second.revenue - first.revenue).map(([label, item]) => [
+        label, item.sessions, item.paid, `${item.sessions ? Math.round(item.paid / item.sessions * 100) : 0} %`, money(item.revenue, item.currency),
+      ]);
+    }
+    if (type === 'failures') {
+      const rows = intents.filter((item) => item.status !== 'succeeded').map((item) => {
+        const customer = customerOfStripe(item);
+        return [humanDate(dayKey(item.created)), customer.name, customer.email || '—', 'Stripe', money(item.amount || 0, item.currency || 'eur'), item.last_payment_error?.message || item.status];
+      });
+      paypalRows.filter((item) => ['Refusé', 'En attente'].includes(item.status)).forEach((item) => rows.push([
+        humanDate(dayKey(item.created)), item.customer, item.email || '—', 'PayPal', money(item.amount || 0, item.currency || 'eur'), item.status,
+      ]));
+      return rows;
+    }
     const groups = new Map();
     sales.forEach((sale) => { const key = sale.description; const current = groups.get(key) || { count: 0, amount: 0, currency: sale.currency, provider: new Set() }; current.count += 1; current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current); });
     return [...groups.entries()].sort(([, a], [, b]) => b.amount - a.amount).map(([label, item]) => [label, [...item.provider].join(' + '), item.count, money(item.amount, item.currency), money(item.count ? item.amount / item.count : 0, item.currency)]);
@@ -118,6 +146,8 @@ import PayAppShell from '../../components/PayAppShell.astro';
     ltv: { title: 'Valeur client', headers: ['Client', 'Email', 'Passerelle', 'Commandes', 'Valeur cumulée'] },
     cashflow: { title: 'Cash flow', headers: ['Date', 'Encaissé', 'Remboursé', 'Net'] },
     plans: { title: 'Plans de paiement', headers: ['Client', 'Passerelle', 'Échéance', 'Date', 'Statut'] },
+    checkouts: { title: 'Performance checkouts', headers: ['Checkout', 'Sessions', 'Paiements', 'Conversion', 'Revenu'] },
+    failures: { title: 'Paiements échoués', headers: ['Date', 'Client', 'Email', 'Passerelle', 'Montant', 'Motif / statut'] },
   };
 
   function renderReport() {
@@ -139,11 +169,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
     document.getElementById('reportState').hidden = false;
     document.getElementById('reportTable').hidden = true;
     try {
-      const [intents, refunds, invoices, paypalRows] = await Promise.all([
-        stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), paypal(days),
+      const [intents, refunds, invoices, checkoutSessions, paypalRows] = await Promise.all([
+        stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), stripe('checkout_sessions', days), paypal(days),
       ]);
       if (request !== reportRequest) return;
-      reportRows = reportData(reportType, intents, refunds, invoices, paypalRows);
+      reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows);
       document.getElementById('reportCaption').textContent = `Stripe + PayPal · ${days} derniers jours · PayPal peut avoir jusqu’à 3 h de délai`;
       document.getElementById('reportState').hidden = true;
       renderReport();
@@ -170,7 +200,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
 </script>
 
 <style is:global>
-  .report-types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 13px; }
+  .report-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 13px; }
   .report-type { min-height: 112px; display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; gap: 4px 10px; padding: 16px; color: var(--pay-soft); text-align: left; cursor: pointer; }
   .report-type > span { width: 28px; height: 28px; grid-row: 1 / 3; display: grid; place-items: center; border: 1px solid var(--pay-line); border-radius: 9px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
   .report-type strong { align-self: end; color: #fff; font-size: 10px; }

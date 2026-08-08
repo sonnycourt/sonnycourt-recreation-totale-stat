@@ -86,6 +86,21 @@ export async function paypalGet(path, parameters = [], options = {}) {
   }, options.fetchImpl || fetch);
 }
 
+export async function paypalRequest(path, request = {}, options = {}) {
+  const token = await getPayPalAccessToken(options);
+  const url = new URL(path, `${token.config.apiBase}/`);
+  return paypalFetch(url, {
+    method: request.method || 'GET',
+    headers: {
+      Authorization: `Bearer ${token.accessToken}`,
+      Accept: 'application/json',
+      ...(request.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(request.requestId ? { 'PayPal-Request-Id': cleanPayPalValue(request.requestId, 100) } : {}),
+    },
+    ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
+  }, options.fetchImpl || fetch);
+}
+
 export async function getPayPalConnectionOverview(options = {}) {
   const token = await getPayPalAccessToken(options);
   const nowValue = typeof options.now === 'function' ? options.now() : Date.now();

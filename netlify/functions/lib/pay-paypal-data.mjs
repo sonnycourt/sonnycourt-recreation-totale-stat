@@ -158,6 +158,17 @@ export async function getPayPalTransactions(options = {}) {
     if (row.id) byId.set(row.id, row);
   }
   const transactions = [...byId.values()].sort((first, second) => second.created - first.created);
+  const refundedByReference = new Map();
+  for (const item of transactions) {
+    if (item.kind !== 'refund' || !item.reference_id) continue;
+    refundedByReference.set(item.reference_id, (refundedByReference.get(item.reference_id) || 0) + item.refunded);
+  }
+  for (const item of transactions) {
+    if (!['sale', 'payment_plan'].includes(item.kind) || item.status !== 'Réussi') continue;
+    item.refunded = Math.min(item.amount, refundedByReference.get(item.id) || 0);
+    item.refundable = Math.max(0, item.amount - item.refunded);
+    item.can_refund = item.refundable > 0;
+  }
   return {
     connected: true,
     provider: 'paypal',

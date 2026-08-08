@@ -80,3 +80,24 @@ protégée par une confirmation en deux étapes.
 5. Écrire uniquement les correspondances sûres ; placer les ambiguïtés dans un
    rapport de contrôle.
 6. Basculer ensuite sur les webhooks universels et une réconciliation planifiée.
+
+## Import Spiffy à blanc
+
+L'importeur local ne contient volontairement aucun chemin d'écriture Supabase :
+
+```bash
+npm run pay:spiffy:dry-run -- /chemin/orders.csv --type orders
+```
+
+Types acceptés : `orders`, `customers`, `payments`, `payment_plans` et
+`checkouts`. L'outil détecte les séparateurs, normalise les montants et dates,
+rejette les identifiants manquants ou dupliqués, puis produit un checksum et un
+rapport d'anomalies. Les options `--apply` et `--write` sont bloquées.
+
+La réconciliation croisée produit uniquement des agrégats, sans email ni nom,
+et vérifie les liens entre paiements, plans, commandes et clients :
+
+```bash
+npm run pay:spiffy:reconcile -- --orders orders.csv --customers customers.csv \
+  --plans paymentplans.csv --payments payments.csv
+```

@@ -3,6 +3,7 @@ import {
   getPayPalAccessToken,
   getPayPalConfig,
   getPayPalConnectionOverview,
+  paypalRequest,
   resetPayPalTokenCache,
 } from '../netlify/functions/lib/pay-paypal.mjs';
 import {
@@ -57,6 +58,12 @@ const fetchImpl = async (input, init = {}) => {
     assert.equal(init.headers.Authorization, 'Bearer access-token-for-smoke-test');
     return Response.json({ webhooks: [{ id: 'WH-TEST' }] });
   }
+  if (url.endsWith('/v2/payments/captures/TESTCAPTURE/refund')) {
+    assert.equal(init.method, 'POST');
+    assert.equal(init.headers['PayPal-Request-Id'], 'refund-test-1');
+    assert.deepEqual(JSON.parse(init.body), { amount: { value: '12.50', currency_code: 'EUR' } });
+    return Response.json({ id: 'REFUND-TEST', status: 'COMPLETED' });
+  }
   throw new Error(`Unexpected PayPal call: ${url}`);
 };
 
@@ -71,6 +78,11 @@ assert.deepEqual(overview.probes, { transaction_count: 42, webhook_count: 1 });
 assert.equal(calls.filter((call) => call.url.endsWith('/v1/oauth2/token')).length, 1);
 assert.ok(!JSON.stringify(overview).includes(env.PAYPAL_CLIENT_SECRET));
 assert.ok(!JSON.stringify(overview).includes(token.accessToken));
+
+const refundProbe = await paypalRequest('/v2/payments/captures/TESTCAPTURE/refund', {
+  method: 'POST', requestId: 'refund-test-1', body: { amount: { value: '12.50', currency_code: 'EUR' } },
+}, { env, fetchImpl, now: () => 1_800_000_000_000 });
+assert.equal(refundProbe.id, 'REFUND-TEST');
 
 assert.equal(classifyPayPalTransaction('T1107', -5000), 'refund');
 assert.equal(classifyPayPalTransaction('T0002', 9700), 'payment_plan');
@@ -95,6 +107,8 @@ const transactions = await getPayPalTransactions({
 });
 assert.equal(transactions.transactions.length, 1);
 assert.equal(transactions.transactions[0].is_plan_payment, true);
+assert.equal(transactions.transactions[0].can_refund, true);
+assert.equal(transactions.transactions[0].refundable, 9700);
 assert.equal(transactions.metrics.revenue.eur, 9700);
 
 console.log('✅ PayPal connection smoke tests passed');

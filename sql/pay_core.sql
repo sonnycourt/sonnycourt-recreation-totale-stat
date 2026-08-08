@@ -234,6 +234,34 @@ $$;
 create index if not exists pay_payment_plans_next_idx
   on public.pay_payment_plans(status, next_payment_at);
 
+create table if not exists public.pay_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('stripe', 'paypal', 'spiffy', 'internal')),
+  external_id text not null,
+  customer_id uuid references public.pay_customers(id) on delete restrict,
+  product_id uuid references public.pay_products(id) on delete restrict,
+  price_id uuid references public.pay_prices(id) on delete restrict,
+  status text not null,
+  currency text not null,
+  amount_minor bigint not null default 0,
+  interval_unit text,
+  interval_count integer,
+  quantity integer not null default 1 check (quantity > 0),
+  started_at timestamptz,
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  cancel_at timestamptz,
+  cancelled_at timestamptz,
+  source_created_at timestamptz,
+  source_updated_at timestamptz,
+  synced_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb,
+  unique (provider, external_id)
+);
+
+create index if not exists pay_subscriptions_status_idx
+  on public.pay_subscriptions(status, current_period_end);
+
 create table if not exists public.pay_installments (
   id uuid primary key default gen_random_uuid(),
   provider text not null check (provider in ('stripe', 'paypal', 'spiffy', 'internal')),
@@ -316,6 +344,7 @@ alter table public.pay_order_items enable row level security;
 alter table public.pay_payments enable row level security;
 alter table public.pay_refunds enable row level security;
 alter table public.pay_payment_plans enable row level security;
+alter table public.pay_subscriptions enable row level security;
 alter table public.pay_installments enable row level security;
 alter table public.pay_discounts enable row level security;
 alter table public.pay_report_definitions enable row level security;
@@ -325,7 +354,7 @@ revoke all on table public.pay_sync_runs, public.pay_sync_cursors,
   public.pay_customers, public.pay_products, public.pay_prices,
   public.pay_checkouts, public.pay_orders, public.pay_order_items,
   public.pay_payments, public.pay_refunds, public.pay_payment_plans,
-  public.pay_installments, public.pay_discounts,
+  public.pay_subscriptions, public.pay_installments, public.pay_discounts,
   public.pay_report_definitions, public.pay_notes
 from public, anon, authenticated, service_role;
 
@@ -334,5 +363,5 @@ grant select, insert, update on table public.pay_sync_runs,
   public.pay_prices, public.pay_checkouts, public.pay_orders,
   public.pay_order_items, public.pay_payments, public.pay_refunds,
   public.pay_payment_plans, public.pay_installments,
-  public.pay_discounts, public.pay_report_definitions, public.pay_notes
+  public.pay_subscriptions, public.pay_discounts, public.pay_report_definitions, public.pay_notes
 to service_role;
