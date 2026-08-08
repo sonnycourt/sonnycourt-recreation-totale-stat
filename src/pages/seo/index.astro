@@ -14,6 +14,8 @@ const agents = [
     progress: 78,
     color: 'blue',
     image: '/media/seo/agents/agent-olympe-v1.png',
+    reasoning: 'Élevé',
+    liveResearch: false,
   },
   {
     id: 'orso',
@@ -27,6 +29,8 @@ const agents = [
     progress: 24,
     color: 'lime',
     image: '/media/seo/agents/agent-orso-v1.png',
+    reasoning: 'Standard',
+    liveResearch: true,
   },
   {
     id: 'basile',
@@ -40,6 +44,8 @@ const agents = [
     progress: 35,
     color: 'cyan',
     image: '/media/seo/agents/agent-basile-v1.png',
+    reasoning: 'Élevé',
+    liveResearch: true,
   },
   {
     id: 'numa',
@@ -53,6 +59,8 @@ const agents = [
     progress: 64,
     color: 'amber',
     image: '/media/seo/agents/agent-numa-v1.png',
+    reasoning: 'Standard',
+    liveResearch: false,
   },
   {
     id: 'romy',
@@ -66,6 +74,8 @@ const agents = [
     progress: 18,
     color: 'coral',
     image: '/media/seo/agents/agent-romy-v1.png',
+    reasoning: 'Standard',
+    liveResearch: false,
   },
   {
     id: 'thea',
@@ -79,6 +89,8 @@ const agents = [
     progress: 12,
     color: 'jade',
     image: '/media/seo/agents/agent-thea-v1.png',
+    reasoning: 'Élevé',
+    liveResearch: true,
   },
   {
     id: 'come',
@@ -92,6 +104,8 @@ const agents = [
     progress: 29,
     color: 'cobalt',
     image: '/media/seo/agents/agent-come-v1.png',
+    reasoning: 'Élevé',
+    liveResearch: true,
   },
   {
     id: 'lyra',
@@ -105,6 +119,8 @@ const agents = [
     progress: 31,
     color: 'indigo',
     image: '/media/seo/agents/agent-lyra-v1.png',
+    reasoning: 'Élevé',
+    liveResearch: true,
   },
 ];
 
@@ -130,7 +146,7 @@ const offers = [
 ];
 
 const decisions = [
-  { title: 'Lancer la cartographie sémantique', meta: 'Basile · aucune publication', target: 'missionRoom' },
+  { title: 'Confier la première mission à l’IA', meta: 'GPT-5.6 Sol · sous contrôle', target: 'aiStudio' },
   { title: 'Valider le catalogue produits', meta: 'Numa · 2 offres à confirmer', target: 'productCatalog' },
   { title: 'Choisir le premier cluster', meta: 'Olympe · arbitrage business', target: 'articlePipeline' },
 ];
@@ -148,6 +164,7 @@ const pipeline = [
 
 const missions = [
   {
+    agentId: 'basile',
     priority: 'P1',
     owner: 'Basile',
     state: 'Prête à démarrer',
@@ -156,6 +173,7 @@ const missions = [
     evidence: 'Short tail + long tail + intentions + difficulté + valeur business',
   },
   {
+    agentId: 'numa',
     priority: 'P1',
     owner: 'Numa',
     state: 'À cadrer',
@@ -164,6 +182,7 @@ const missions = [
     evidence: '/masterclass + /coach comme source de vérité initiale',
   },
   {
+    agentId: 'come',
     priority: 'P2',
     owner: 'Côme',
     state: 'En attente',
@@ -172,6 +191,7 @@ const missions = [
     evidence: 'Aucune correction appliquée sans validation',
   },
   {
+    agentId: 'lyra',
     priority: 'P2',
     owner: 'Lyra + Orso',
     state: 'À concevoir',
@@ -204,7 +224,7 @@ const missions = [
           <span><strong>SEO Division</strong><small>Sonny Court · Search &amp; AI</small></span>
         </a>
         <nav class="seo-topbar-actions" aria-label="Navigation du cockpit">
-          <span class="prototype-pill"><i></i> Mode prototype</span>
+          <span class="prototype-pill" id="openAiTopStatus"><i></i> GPT-5.6 Sol · vérification</span>
           <button class="ghost-button" id="validatorModeButton" type="button">Mode validateur</button>
           <a class="ghost-button" href="/hub">← Hub</a>
         </nav>
@@ -213,7 +233,7 @@ const missions = [
       <div class="safety-banner">
         <span class="safety-icon" aria-hidden="true">⌾</span>
         <p><strong>Publication verrouillée.</strong> Les agents peuvent analyser, proposer et préparer. Aucun article, lien ou changement technique ne sera publié automatiquement.</p>
-        <small>Prototype · aucune donnée connectée</small>
+        <small>GPT-5.6 Sol · publication désactivée</small>
       </div>
 
       <main>
@@ -234,13 +254,13 @@ const missions = [
                 <span class="safe-label">Sous ton contrôle</span>
               </div>
               <div class="validator-primary-copy">
-                <h2 id="validatorPrimaryHeading">Construisons la carte des opportunités.</h2>
-                <p id="validatorPrimaryText">Basile analysera les intentions françaises, Numa les reliera aux offres, puis Olympe préparera un premier arbitrage éditorial.</p>
-                <div class="validator-reason" id="validatorPrimaryReason">Le lancement produit uniquement un dossier interne. Aucun article ne sera publié.</div>
+                <h2 id="validatorPrimaryHeading">GPT-5.6 Sol est le cerveau de la division.</h2>
+                <p id="validatorPrimaryText">Un seul moteur OpenAI pilote les huit spécialistes. Chacun possède son mandat, son niveau de raisonnement et ses outils autorisés.</p>
+                <div class="validator-reason" id="validatorPrimaryReason">Les agents peuvent rechercher, analyser et rédiger. La publication et les modifications du site restent interdites.</div>
               </div>
               <div class="validator-primary-footer">
                 <span><small>Temps estimé</small><strong>3 min</strong></span>
-                <button class="primary-button" id="launchSeoCycle" type="button">Faire travailler les agents</button>
+                <button class="primary-button" id="launchSeoCycle" type="button">Ouvrir le studio IA</button>
               </div>
             </article>
 
@@ -365,6 +385,83 @@ const missions = [
             <article><small>Publications automatiques</small><strong>0</strong><span>Verrou permanent</span></article>
           </section>
 
+          <section class="panel ai-studio-panel" id="aiStudio" aria-labelledby="aiStudioTitle">
+            <div class="ai-studio-heading">
+              <div>
+                <div class="section-kicker"><span class="live-dot"></span> Moteur central OpenAI</div>
+                <h2 id="aiStudioTitle">Un cerveau. Huit expertises.</h2>
+                <p>Choisis l’agent, donne-lui une mission précise et récupère un livrable interne. Aucune réponse ne peut publier ou modifier le site.</p>
+              </div>
+              <div class="ai-model-card" id="aiModelCard" data-state="checking">
+                <span class="ai-model-mark" aria-hidden="true">AI</span>
+                <span><small>Modèle unique</small><strong>GPT-5.6 Sol</strong><em id="aiConnectionLabel">Connexion en cours…</em></span>
+              </div>
+            </div>
+
+            <div class="ai-roster" aria-label="Configuration IA des agents">
+              {agents.map((agent) => (
+                <button
+                  type="button"
+                  class="ai-roster-agent"
+                  data-ai-agent={agent.id}
+                  data-agent-name={agent.name}
+                  data-agent-role={agent.role}
+                  data-agent-reasoning={agent.reasoning}
+                  data-agent-research={String(agent.liveResearch)}
+                  aria-pressed={agent.id === 'olympe' ? 'true' : 'false'}
+                >
+                  <span style={`--agent-image: url('${agent.image}')`}></span>
+                  <strong>{agent.name}</strong>
+                  <small>{agent.reasoning} · {agent.liveResearch ? 'Web actif' : 'Sources internes'}</small>
+                </button>
+              ))}
+            </div>
+
+            <div class="ai-workbench">
+              <form class="ai-mission-form" id="aiMissionForm">
+                <div class="ai-selected-agent">
+                  <span class="ai-selected-avatar" id="aiSelectedAvatar" style="--agent-image: url('/media/seo/agents/agent-olympe-v1.png')"></span>
+                  <span><small>Agent sélectionné</small><strong id="aiSelectedName">Olympe</strong><em id="aiSelectedRole">Directrice SEO &amp; Visibilité organique</em></span>
+                  <span class="ai-tool-state" id="aiToolState">Raisonnement élevé · Sources internes</span>
+                </div>
+                <label for="aiMission">Mission</label>
+                <textarea id="aiMission" name="mission" rows="5" maxlength="10000" placeholder="Ex. Construis le plan de la première cartographie sémantique française autour du subconscient…" required></textarea>
+                <details class="ai-context-details">
+                  <summary>Ajouter du contexte <span>facultatif</span></summary>
+                  <label for="aiContext">Notes, brief, extrait ou contraintes à analyser</label>
+                  <textarea id="aiContext" name="context" rows="4" maxlength="20000" placeholder="Colle ici les informations que l’agent doit traiter comme source de travail."></textarea>
+                </details>
+                <div class="ai-form-footer">
+                  <p><span aria-hidden="true">⌾</span> Réponse privée · publication impossible</p>
+                  <button class="primary-button" id="runAiMission" type="submit" disabled>Lancer la mission</button>
+                </div>
+              </form>
+
+              <aside class="ai-output" id="aiOutput" data-state="empty" aria-live="polite">
+                <div class="ai-output-empty" id="aiOutputEmpty">
+                  <span aria-hidden="true">✦</span>
+                  <h3>Le livrable apparaîtra ici.</h3>
+                  <p>GPT-5.6 Sol suivra uniquement le mandat de l’agent sélectionné.</p>
+                </div>
+                <div class="ai-output-result" id="aiOutputResult" hidden>
+                  <header><span><small id="aiOutputAgent">Olympe</small><strong>Livrable interne</strong></span><em id="aiOutputMeta">GPT-5.6 Sol</em></header>
+                  <div class="ai-output-text" id="aiOutputText"></div>
+                  <div class="ai-output-sources" id="aiOutputSources" hidden><strong>Sources consultées</strong><ul></ul></div>
+                </div>
+              </aside>
+            </div>
+
+            <div class="ai-auth-card" id="aiAuthCard" hidden>
+              <div><span aria-hidden="true">⌁</span><p><strong>Connexion administrateur requise</strong><small>La clé OpenAI reste côté serveur. Connecte-toi pour autoriser les appels privés.</small></p></div>
+              <form id="aiLoginForm">
+                <label for="aiAdminPassword">Mot de passe administrateur</label>
+                <input id="aiAdminPassword" name="password" type="password" autocomplete="current-password" required />
+                <button type="submit">Connecter le studio IA</button>
+              </form>
+              <p class="ai-auth-error" id="aiAuthError" role="alert"></p>
+            </div>
+          </section>
+
           <section class="panel catalog-panel" id="productCatalog" aria-labelledby="catalogTitle">
             <div class="catalog-heading">
               <div>
@@ -412,13 +509,13 @@ const missions = [
                 <h2 id="autonomyTitle">Le travail commence avant ton arrivée.</h2>
                 <p>À terme, la division scannera les opportunités, préparera les dossiers et signalera les contenus à mettre à jour sans attendre un prompt.</p>
               </div>
-              <span class="autonomy-state">Simulation active</span>
+              <span class="autonomy-state">IA assistée · sous contrôle</span>
             </div>
             <div class="autonomy-grid">
               <article><small>Zone verte</small><strong>Analyser &amp; préparer</strong><span>Automatique, sans effet externe</span></article>
               <article><small>Zone orange</small><strong>Modifier le site</strong><span>Validation humaine requise</span></article>
               <article><small>Zone rouge</small><strong>Publier</strong><span>Double confirmation de Sonny</span></article>
-              <article><small>Budget IA</small><strong>Non connecté</strong><span>Plafond à définir avant activation</span></article>
+              <article><small>Budget IA</small><strong>Garde-fou actif</strong><span>20 missions maximum par heure et par accès</span></article>
             </div>
           </section>
 
@@ -464,7 +561,7 @@ const missions = [
                   <h3>{mission.title}</h3>
                   <p>{mission.description}</p>
                   <div class="mission-output"><small>Livrable attendu</small><strong>{mission.evidence}</strong></div>
-                  <button type="button" data-demo-mission>Préparer le dossier <span>→</span></button>
+                  <button type="button" data-ai-mission={mission.title} data-ai-agent-id={mission.agentId}>Confier à {mission.owner} <span>→</span></button>
                 </article>
               ))}
             </div>
@@ -486,8 +583,8 @@ const missions = [
               <h2>Chaque décision reste traçable.</h2>
               <div class="activity-list">
                 <p><i>OL</i><span><strong>Olympe a structuré l’équipe</strong><small>8 responsabilités sans doublon.</small></span><time>maintenant</time></p>
-                <p><i>BA</i><span><strong>Basile attend la première source</strong><small>Search Console ou outil de mots-clés.</small></span><time>-1 min</time></p>
-                <p><i>LY</i><span><strong>Lyra prépare la baseline IA</strong><small>Aucune mesure inventée.</small></span><time>-2 min</time></p>
+                <p><i>BA</i><span><strong>Basile a accès à la recherche web</strong><small>Les volumes propriétaires restent à connecter.</small></span><time>-1 min</time></p>
+                <p><i>AI</i><span><strong>GPT-5.6 Sol est le moteur unique</strong><small>8 mandats spécialisés, aucune publication.</small></span><time>-2 min</time></p>
               </div>
             </article>
           </section>
@@ -501,6 +598,10 @@ const missions = [
       const validatorView = document.getElementById('validatorView');
       const departmentView = document.getElementById('departmentView');
       const toast = document.getElementById('seoToast');
+      const SEO_AGENT_API = '/.netlify/functions/seo-agent';
+      const ADMIN_LOGIN_API = '/.netlify/functions/admin-es2-login';
+      let activeAiAgentId = 'olympe';
+      let aiReady = false;
 
       function showValidator() {
         validatorView.hidden = false;
@@ -548,23 +649,188 @@ const missions = [
           const progress = Math.max(0, Math.min(100, Number(card.dataset.progress) || 0));
           document.getElementById('focusProgressValue').textContent = `${progress} %`;
           document.getElementById('focusProgressBar').style.width = `${progress}%`;
+          selectAiAgent(card.dataset.agent);
         });
       });
 
-      document.getElementById('launchSeoCycle')?.addEventListener('click', (event) => {
-        const button = event.currentTarget;
-        if (button.dataset.started === 'true') {
-          showDepartment('missionRoom');
+      function setAiConnectionState(state, label) {
+        const card = document.getElementById('aiModelCard');
+        const topStatus = document.getElementById('openAiTopStatus');
+        card.dataset.state = state;
+        document.getElementById('aiConnectionLabel').textContent = label;
+        const dot = document.createElement('i');
+        topStatus.replaceChildren(dot, document.createTextNode(`GPT-5.6 Sol · ${state === 'ready' ? 'connecté' : label}`));
+        aiReady = state === 'ready';
+        document.getElementById('runAiMission').disabled = !aiReady;
+      }
+
+      function selectAiAgent(agentId) {
+        const button = document.querySelector(`[data-ai-agent="${agentId}"]`);
+        if (!button) return;
+        activeAiAgentId = agentId;
+        document.querySelectorAll('[data-ai-agent]').forEach((candidate) => {
+          candidate.setAttribute('aria-pressed', String(candidate === button));
+        });
+        document.getElementById('aiSelectedName').textContent = button.dataset.agentName;
+        document.getElementById('aiSelectedRole').textContent = button.dataset.agentRole;
+        document.getElementById('aiOutputAgent').textContent = button.dataset.agentName;
+        document.getElementById('aiToolState').textContent = `Raisonnement ${button.dataset.agentReasoning.toLowerCase()} · ${button.dataset.agentResearch === 'true' ? 'Recherche web autorisée' : 'Sources internes'}`;
+        const imageValue = button.querySelector('span')?.style.getPropertyValue('--agent-image');
+        if (imageValue) document.getElementById('aiSelectedAvatar').style.setProperty('--agent-image', imageValue);
+      }
+
+      function showAiAuth(message = '') {
+        document.getElementById('aiAuthCard').hidden = false;
+        document.getElementById('aiAuthError').textContent = message;
+        setAiConnectionState('locked', 'connexion requise');
+      }
+
+      async function checkAiConnection() {
+        setAiConnectionState('checking', 'vérification…');
+        try {
+          const response = await fetch(SEO_AGENT_API, { credentials: 'same-origin' });
+          const data = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            showAiAuth();
+            return;
+          }
+          if (!response.ok || !data.ready) {
+            document.getElementById('aiAuthCard').hidden = true;
+            setAiConnectionState('error', data.error || 'indisponible');
+            return;
+          }
+          document.getElementById('aiAuthCard').hidden = true;
+          setAiConnectionState('ready', 'connecté · 8 agents prêts');
+        } catch {
+          document.getElementById('aiAuthCard').hidden = true;
+          setAiConnectionState('local', 'preview Netlify requise');
+        }
+      }
+
+      function renderAiResult(data) {
+        const sourcesBox = document.getElementById('aiOutputSources');
+        const sourcesList = sourcesBox.querySelector('ul');
+        document.getElementById('aiOutput').dataset.state = 'complete';
+        document.getElementById('aiOutputEmpty').hidden = true;
+        document.getElementById('aiOutputResult').hidden = false;
+        document.getElementById('aiOutputAgent').textContent = data.agent?.name || 'Agent SEO';
+        document.getElementById('aiOutputText').textContent = data.answer || '';
+        const totalTokens = Number(data.usage?.totalTokens || 0);
+        document.getElementById('aiOutputMeta').textContent = `${data.model || 'GPT-5.6 Sol'}${totalTokens ? ` · ${totalTokens.toLocaleString('fr-FR')} tokens` : ''}`;
+        sourcesList.replaceChildren();
+        (data.sources || []).forEach((source) => {
+          try {
+            const url = new URL(source.url);
+            if (!['http:', 'https:'].includes(url.protocol)) return;
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = url.href;
+            link.target = '_blank';
+            link.rel = 'noreferrer';
+            link.textContent = source.title || url.hostname;
+            item.append(link);
+            sourcesList.append(item);
+          } catch {}
+        });
+        sourcesBox.hidden = !sourcesList.children.length;
+      }
+
+      function renderAiError(message) {
+        document.getElementById('aiOutput').dataset.state = 'error';
+        document.getElementById('aiOutputEmpty').hidden = true;
+        document.getElementById('aiOutputResult').hidden = false;
+        document.getElementById('aiOutputAgent').textContent = 'Mission interrompue';
+        document.getElementById('aiOutputMeta').textContent = 'Aucun contenu publié';
+        document.getElementById('aiOutputText').textContent = message;
+        document.getElementById('aiOutputSources').hidden = true;
+      }
+
+      document.querySelectorAll('[data-ai-agent]').forEach((button) => {
+        button.addEventListener('click', () => selectAiAgent(button.dataset.aiAgent));
+      });
+
+      document.getElementById('launchSeoCycle')?.addEventListener('click', () => {
+        selectAiAgent('basile');
+        document.getElementById('aiMission').value = 'Construis le plan de la première cartographie sémantique française autour du subconscient, de la manifestation et de la transformation personnelle. Commence par définir la méthode, les familles d’intentions et les preuves nécessaires. N’invente aucun volume de recherche.';
+        showDepartment('aiStudio');
+        window.setTimeout(() => document.getElementById('aiMission').focus(), 500);
+      });
+
+      document.querySelectorAll('[data-ai-mission]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectAiAgent(button.dataset.aiAgentId);
+          document.getElementById('aiMission').value = button.dataset.aiMission;
+          showDepartment('aiStudio');
+          window.setTimeout(() => document.getElementById('aiMission').focus(), 500);
+        });
+      });
+
+      document.getElementById('aiLoginForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const button = form.querySelector('button');
+        const password = document.getElementById('aiAdminPassword').value;
+        document.getElementById('aiAuthError').textContent = '';
+        button.disabled = true;
+        button.textContent = 'Connexion…';
+        try {
+          const response = await fetch(ADMIN_LOGIN_API, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || 'Connexion refusée');
+          document.getElementById('aiAdminPassword').value = '';
+          await checkAiConnection();
+          notify('Studio GPT-5.6 Sol connecté.');
+        } catch (error) {
+          document.getElementById('aiAuthError').textContent = error.message || 'Connexion impossible';
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Connecter le studio IA';
+        }
+      });
+
+      document.getElementById('aiMissionForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!aiReady) {
+          showAiAuth('Connecte-toi avant de lancer une mission.');
           return;
         }
-        button.dataset.started = 'true';
-        button.textContent = 'Ouvrir le dossier préparé';
-        document.getElementById('validatorPrimaryCard').dataset.state = 'working';
-        document.getElementById('validatorPrimaryHeading').textContent = 'Le premier cycle est prêt à être cadré.';
-        document.getElementById('validatorPrimaryText').textContent = 'Basile, Numa et Olympe disposent maintenant d’un dossier de départ. Les connexions aux vraies données restent volontairement désactivées.';
-        document.getElementById('validatorPrimaryReason').textContent = 'Simulation terminée : zéro publication, zéro modification du site et zéro coût API.';
-        document.getElementById('teamStatusText').textContent = 'Basile prépare la carte sémantique du premier cycle.';
-        notify('Cycle simulé : le dossier interne est prêt.');
+        const mission = document.getElementById('aiMission').value.trim();
+        const context = document.getElementById('aiContext').value.trim();
+        if (!mission) return;
+        const button = document.getElementById('runAiMission');
+        button.disabled = true;
+        button.textContent = 'GPT-5.6 Sol travaille…';
+        document.getElementById('aiOutput').dataset.state = 'loading';
+        document.getElementById('aiOutputEmpty').hidden = false;
+        document.getElementById('aiOutputEmpty').querySelector('h3').textContent = 'Mission en cours…';
+        document.getElementById('aiOutputEmpty').querySelector('p').textContent = 'L’agent analyse la demande et prépare un livrable vérifiable.';
+        document.getElementById('aiOutputResult').hidden = true;
+        try {
+          const response = await fetch(SEO_AGENT_API, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agentId: activeAiAgentId, mission, context }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            showAiAuth('Ta session a expiré. Reconnecte-toi.');
+            throw new Error('Connexion administrateur requise.');
+          }
+          if (!response.ok) throw new Error(data.error || 'La mission a échoué.');
+          renderAiResult(data);
+          notify(`${data.agent?.name || 'L’agent'} a terminé son livrable.`);
+        } catch (error) {
+          renderAiError(error.message || 'La mission n’a pas pu être terminée.');
+        } finally {
+          button.disabled = !aiReady;
+          button.textContent = 'Lancer la mission';
+        }
       });
 
       document.getElementById('validateProductCatalog')?.addEventListener('click', (event) => {
@@ -582,13 +848,8 @@ const missions = [
         notify('Numa dispose maintenant de 2 offres validées dans ce prototype.');
       });
 
-      document.querySelectorAll('[data-demo-mission]').forEach((button) => {
-        button.addEventListener('click', () => {
-          button.textContent = 'Dossier simulé prêt ✓';
-          button.disabled = true;
-          notify('Dossier préparé localement — aucune action externe.');
-        });
-      });
+      selectAiAgent('olympe');
+      checkAiConnection();
     </script>
   </body>
 </html>
