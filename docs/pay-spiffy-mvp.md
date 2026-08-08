@@ -153,6 +153,13 @@ Stripe et PayPal sont chargés indépendamment : si une passerelle ne répond pa
 l'autre et la projection historique restent utilisables sans afficher de faux
 zéros pour la source indisponible.
 
+Cette tolérance aux pannes s'applique aussi aux listes de ressources avant
+l'initialisation de Supabase : commandes, clients, abonnements et plans peuvent
+continuer à afficher la passerelle disponible si Stripe ou PayPal échoue. Dès
+que l'historique normalisé est prêt, il reste la source autoritaire des objets
+métier ; la page Paiements conserve en plus la priorité des objets live exacts
+pour les statuts récents et les actions autorisées.
+
 La fonction `pay-history` est strictement en lecture seule. Elle prépare les
 agrégats à partir des tables `pay_*`, exige la session administrateur et renvoie
 `ready: false` tant que la migration n'a pas été autorisée et appliquée.

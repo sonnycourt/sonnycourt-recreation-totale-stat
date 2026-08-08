@@ -1,3 +1,5 @@
+import { collectPaySources, requirePaySource } from './pay-source-results.js';
+
 const screen = document.querySelector('[data-pay-resource-page]');
 
 if (screen) {
@@ -17,6 +19,7 @@ if (screen) {
   const detailTitle = screen.querySelector('[data-resource-dialog-title]');
   const detailContent = screen.querySelector('[data-resource-dialog-content]');
   let rows = [];
+  let sourceLabels = [];
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const clean = (value) => typeof value === 'string' ? value.trim() : '';
@@ -60,6 +63,15 @@ if (screen) {
       search: plain.join(' ').toLowerCase(),
       sortTime: Number(sortTime || 0),
     };
+  }
+
+  function sourcesFrom(result, labels = {}) {
+    sourceLabels = result.available.map((source) => labels[source] || source);
+    return result.values;
+  }
+
+  function useHistorySource() {
+    sourceLabels = ['Historique Pay'];
   }
 
   async function fetchStripeAll(resource, maxPages = 8) {
@@ -120,16 +132,25 @@ if (screen) {
 
   async function loadOrders() {
     const history = await fetchHistory('orders');
-    if (history) return history.map((item) => {
-      const status = stripeStatus(item.status);
-      const created = date(item.created_at);
-      return row([
-        `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
-        `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
-        created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
-      ], [item.description, item.customer, item.email, created, item.provider, status, money(item.amount, item.currency)], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
-    });
-    const [intents, paypal] = await Promise.all([fetchStripeAll('payment_intents', 20), fetchPayPal(366).catch(() => [])]);
+    if (history) {
+      useHistorySource();
+      return history.map((item) => {
+        const status = stripeStatus(item.status);
+        const created = date(item.created_at);
+        return row([
+          `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
+          `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
+          created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
+        ], [item.description, item.customer, item.email, created, item.provider, status, money(item.amount, item.currency)], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+      });
+    }
+    const sources = requirePaySource(await collectPaySources({
+      stripe: fetchStripeAll('payment_intents', 20),
+      paypal: fetchPayPal(366),
+    }), 'pay_order_sources_unavailable');
+    const values = sourcesFrom(sources, { stripe: 'Stripe', paypal: 'PayPal' });
+    const intents = values.stripe || [];
+    const paypal = values.paypal || [];
     const stripeRows = intents.map((intent) => {
       const customer = stripeCustomer(intent);
       const amount = Number(intent.amount_received || intent.amount || 0);
@@ -151,17 +172,25 @@ if (screen) {
 
   async function loadCustomers() {
     const history = await fetchHistory('customers');
-    if (history) return history.map((customer) => {
-      const status = 'Actif';
-      return row([
-        `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider), String(customer.order_count), `<strong>${money(customer.lifetime_value, customer.currency)}</strong>`, badge(status),
-      ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000));
-    });
-    const [customers, intents, paypal] = await Promise.all([
-      fetchStripeAll('customers', 20),
-      fetchStripeAll('payment_intents', 20).catch(() => []),
-      fetchPayPal(366).catch(() => []),
-    ]);
+    if (history) {
+      useHistorySource();
+      return history.map((customer) => {
+        const status = 'Actif';
+        return row([
+          `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider), String(customer.order_count), `<strong>${money(customer.lifetime_value, customer.currency)}</strong>`, badge(status),
+        ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000));
+      });
+    }
+    const sources = requirePaySource(await collectPaySources({
+      stripeCustomers: fetchStripeAll('customers', 20),
+      stripePayments: fetchStripeAll('payment_intents', 20),
+      paypal: fetchPayPal(366),
+    }), 'pay_customer_sources_unavailable');
+    const values = sourcesFrom(sources, { stripeCustomers: 'Stripe', stripePayments: 'Stripe', paypal: 'PayPal' });
+    sourceLabels = [...new Set(sourceLabels)];
+    const customers = values.stripeCustomers || [];
+    const intents = values.stripePayments || [];
+    const paypal = values.paypal || [];
     const valueByCustomer = new Map();
     intents.filter((item) => item.status === 'succeeded').forEach((item) => {
       const id = stripeId(item.customer) || stripeCustomer(item).email;
@@ -171,7 +200,12 @@ if (screen) {
       current.orders += 1;
       valueByCustomer.set(id, current);
     });
-    const stripeRows = customers.map((customer) => {
+    const knownStripeCustomers = customers.length ? customers : [...new Map(intents.map((intent) => {
+      const details = stripeCustomer(intent);
+      const id = stripeId(intent.customer) || details.email;
+      return id ? [id, { id, name: details.name, email: details.email, currency: intent.currency || 'eur', created: intent.created }] : null;
+    }).filter(Boolean)).values()];
+    const stripeRows = knownStripeCustomers.map((customer) => {
       const email = clean(customer.email).toLowerCase();
       const aggregate = valueByCustomer.get(customer.id) || valueByCustomer.get(email) || { value: 0, orders: 0, currency: customer.currency || 'eur' };
       const name = clean(customer.name) || email || 'Client Stripe';
@@ -199,17 +233,26 @@ if (screen) {
 
   async function loadSubscriptions(paymentPlansOnly = false) {
     const history = await fetchHistory(paymentPlansOnly ? 'payment_plans' : 'subscriptions');
-    if (history) return history.map((item) => {
-      const status = stripeStatus(item.status);
-      const interval = item.interval_count > 1 ? `${item.interval_count} ${item.interval_unit}` : item.interval_unit;
-      const name = item.customer || item.email || `Client ${item.provider}`;
-      return row(paymentPlansOnly ? [
-        `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), badge(status),
-      ] : [
-        `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, date(item.current_period_end, true), badge(status),
-      ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
-    });
-    const [subscriptions, paypal] = await Promise.all([fetchStripeAll('subscriptions', 20), fetchPayPal(366).catch(() => [])]);
+    if (history) {
+      useHistorySource();
+      return history.map((item) => {
+        const status = stripeStatus(item.status);
+        const interval = item.interval_count > 1 ? `${item.interval_count} ${item.interval_unit}` : item.interval_unit;
+        const name = item.customer || item.email || `Client ${item.provider}`;
+        return row(paymentPlansOnly ? [
+          `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), badge(status),
+        ] : [
+          `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), `<strong>${money(item.amount, item.currency)} / ${escapeHtml(interval)}</strong>`, date(item.current_period_end, true), badge(status),
+        ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+      });
+    }
+    const sources = requirePaySource(await collectPaySources({
+      stripe: fetchStripeAll('subscriptions', 20),
+      paypal: fetchPayPal(366),
+    }), 'pay_subscription_sources_unavailable');
+    const values = sourcesFrom(sources, { stripe: 'Stripe', paypal: 'PayPal' });
+    const subscriptions = values.stripe || [];
+    const paypal = values.paypal || [];
     const stripeRows = subscriptions.map((subscription) => {
       const pricing = subscriptionAmount(subscription);
       const customer = typeof subscription.customer === 'object' ? subscription.customer : null;
@@ -241,17 +284,21 @@ if (screen) {
 
   async function loadProducts() {
     const history = await fetchHistory('products');
-    if (history) return history.flatMap((product) => {
-      const prices = product.prices?.length ? product.prices : [{ id: product.id, provider: product.provider, amount: 0, currency: 'eur', billing_type: 'unknown', active: product.active }];
-      return prices.map((price) => {
-        const billing = price.billing_type === 'recurring' ? `Tous les ${price.interval_count || 1} ${price.interval_unit || 'mois'}` : price.billing_type === 'installment' ? `${price.installment_count || '—'} échéances` : price.billing_type === 'one_time' ? 'Paiement unique' : 'Prix non renseigné';
-        const status = product.active && price.active ? 'Actif' : 'Archivé';
-        return row([
-          `<strong>${escapeHtml(product.name)}</strong><small>#${escapeHtml(price.id)}</small>`, providerCell(product.provider), escapeHtml(billing), `<strong>${price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency)}</strong>`, badge(status),
-        ], [product.name, product.provider, billing, price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency), status], product.provider, status, Math.floor(new Date(product.created_at).getTime() / 1_000));
+    if (history) {
+      useHistorySource();
+      return history.flatMap((product) => {
+        const prices = product.prices?.length ? product.prices : [{ id: product.id, provider: product.provider, amount: 0, currency: 'eur', billing_type: 'unknown', active: product.active }];
+        return prices.map((price) => {
+          const billing = price.billing_type === 'recurring' ? `Tous les ${price.interval_count || 1} ${price.interval_unit || 'mois'}` : price.billing_type === 'installment' ? `${price.installment_count || '—'} échéances` : price.billing_type === 'one_time' ? 'Paiement unique' : 'Prix non renseigné';
+          const status = product.active && price.active ? 'Actif' : 'Archivé';
+          return row([
+            `<strong>${escapeHtml(product.name)}</strong><small>#${escapeHtml(price.id)}</small>`, providerCell(product.provider), escapeHtml(billing), `<strong>${price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency)}</strong>`, badge(status),
+          ], [product.name, product.provider, billing, price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency), status], product.provider, status, Math.floor(new Date(product.created_at).getTime() / 1_000));
+        });
       });
-    });
+    }
     const prices = await fetchStripeAll('prices', 20);
+    sourceLabels = ['Stripe'];
     return prices.map((price) => {
       const product = typeof price.product === 'object' ? price.product : null;
       const name = clean(product?.name || price.nickname) || stripeId(price.product) || 'Produit Stripe';
@@ -265,14 +312,18 @@ if (screen) {
 
   async function loadCheckouts() {
     const history = await fetchHistory('checkouts');
-    if (history) return history.map((item) => {
-      const status = stripeStatus(item.status);
-      const linkHtml = item.public_url ? `<a href="${escapeHtml(item.public_url)}" target="_blank" rel="noreferrer">Ouvrir ↗</a>` : '—';
-      return row([
-        `<strong>${escapeHtml(item.name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), '—', badge(status), linkHtml,
-      ], [item.name, item.provider, '—', status, item.public_url || ''], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
-    });
+    if (history) {
+      useHistorySource();
+      return history.map((item) => {
+        const status = stripeStatus(item.status);
+        const linkHtml = item.public_url ? `<a href="${escapeHtml(item.public_url)}" target="_blank" rel="noreferrer">Ouvrir ↗</a>` : '—';
+        return row([
+          `<strong>${escapeHtml(item.name)}</strong><small>#${escapeHtml(item.id)}</small>`, providerCell(item.provider), '—', badge(status), linkHtml,
+        ], [item.name, item.provider, '—', status, item.public_url || ''], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000));
+      });
+    }
     const links = await fetchStripeAll('payment_links', 20);
+    sourceLabels = ['Stripe'];
     return links.map((link) => {
       const line = link.line_items?.data?.[0];
       const price = line?.price;
@@ -298,6 +349,7 @@ if (screen) {
       ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
     });
     if (history) {
+      sourceLabels = drafts.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
       const historyRows = history.map((discount) => {
         const value = discount.type === 'percentage' ? `${discount.percent_off || 0} %` : money(discount.amount || 0, discount.currency || 'eur');
         const status = stripeStatus(discount.status);
@@ -307,7 +359,15 @@ if (screen) {
       });
       return [...draftRows, ...historyRows];
     }
-    const [coupons, promotionCodes] = await Promise.all([fetchStripeAll('coupons', 10).catch(() => []), fetchStripeAll('promotion_codes', 10).catch(() => [])]);
+    const sources = await collectPaySources({
+      coupons: fetchStripeAll('coupons', 10),
+      promotionCodes: fetchStripeAll('promotion_codes', 10),
+    });
+    if (!drafts.length) requirePaySource(sources, 'pay_discount_sources_unavailable');
+    const values = sourcesFrom(sources, { coupons: 'Stripe', promotionCodes: 'Stripe' });
+    sourceLabels = [...new Set([...(drafts.length ? ['Pay'] : []), ...sourceLabels])];
+    const coupons = values.coupons || [];
+    const promotionCodes = values.promotionCodes || [];
     const couponById = new Map(coupons.map((coupon) => [coupon.id, coupon]));
     const stripeRows = promotionCodes.map((promotion) => {
       const coupon = promotion.coupon || promotion.promotion?.coupon || couponById.get(stripeId(promotion.coupon)) || {};
@@ -341,7 +401,8 @@ if (screen) {
     const status = statusFilter.value;
     const visible = rows.filter((item) => (!query || item.search.includes(query)) && (provider === 'all' || item.provider === provider) && (status === 'all' || item.status === status));
     rowsHost.innerHTML = visible.map((item) => `<div class="resource-row" role="button" tabindex="0" data-resource-index="${rows.indexOf(item)}" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
-    count.textContent = `${visible.length} résultat${visible.length === 1 ? '' : 's'}`;
+    const sourceSuffix = sourceLabels.length ? ` · ${sourceLabels.join(' + ')}` : '';
+    count.textContent = `${visible.length} résultat${visible.length === 1 ? '' : 's'}${sourceSuffix}`;
     table.hidden = visible.length === 0;
     empty.hidden = visible.length !== 0;
   }
