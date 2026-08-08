@@ -29,15 +29,26 @@ import PayAppShell from '../../../components/PayAppShell.astro';
       </div>
 
       <div class="builder-pane" data-step-pane="2" hidden>
-        <div class="builder-heading"><span class="builder-heading-icon">02</span><div><h2>Tarification</h2><p>Choisis une vente unique ou un abonnement mensuel.</p></div></div>
+        <div class="builder-heading"><span class="builder-heading-icon">02</span><div><h2>Tarification</h2><p>Choisis une vente unique, un abonnement ou un échéancier.</p></div></div>
         <div class="billing-options" role="radiogroup" aria-label="Type de paiement">
           <label class="billing-card is-selected"><input type="radio" name="billing" value="one-time" checked /><span class="billing-radio"></span><span><strong>Paiement unique</strong><small>Le client paie une seule fois.</small></span><b>01</b></label>
           <label class="billing-card"><input type="radio" name="billing" value="subscription" /><span class="billing-radio"></span><span><strong>Abonnement</strong><small>Prélèvement automatique mensuel.</small></span><b>↻</b></label>
+          <label class="billing-card"><input type="radio" name="billing" value="payment-plan" /><span class="billing-radio"></span><span><strong>Plan de paiement</strong><small>Acompte, palier puis mensualités.</small></span><b>≋</b></label>
         </div>
         <div class="form-grid price-grid">
           <label class="form-field"><span>Montant</span><div class="amount-field"><input class="pay-input" id="checkoutAmount" name="amount" type="number" min="0" step="0.01" placeholder="97.00" required /><span>€</span></div></label>
           <label class="form-field"><span>Devise</span><select class="pay-select" id="checkoutCurrency" name="currency"><option value="EUR">EUR · Euro</option><option value="CHF">CHF · Franc suisse</option><option value="USD">USD · Dollar</option></select></label>
           <label class="form-field form-field--wide"><span>Texte sous le prix</span><input class="pay-input" id="checkoutPriceNote" name="priceNote" type="text" placeholder="Ex. Accès immédiat après paiement" /></label>
+        </div>
+        <div class="plan-fields" id="checkoutPlanFields" hidden>
+          <div class="plan-intro"><span>≋</span><div><strong>Échéancier personnalisé</strong><small>La dernière ligne se répète chaque mois après les deux premières étapes.</small></div></div>
+          <div class="form-grid">
+            <label class="form-field"><span>Acompte immédiat</span><div class="amount-field"><input class="pay-input" id="checkoutDeposit" type="number" min="0" step="0.01" placeholder="47.00" disabled /><span>€</span></div></label>
+            <label class="form-field"><span>Palier différé</span><div class="amount-field"><input class="pay-input" id="checkoutBridgeAmount" type="number" min="0" step="0.01" placeholder="150.00" disabled /><span>€</span></div></label>
+            <label class="form-field"><span>Délai du palier</span><div class="amount-field"><input class="pay-input" id="checkoutBridgeDelay" type="number" min="1" max="365" step="1" placeholder="14" disabled /><span>jours</span></div></label>
+            <label class="form-field"><span>Nombre de mensualités</span><input class="pay-input" id="checkoutInstallments" type="number" min="1" max="60" step="1" placeholder="11" disabled required /></label>
+          </div>
+          <p><strong>Montant des mensualités :</strong> la valeur principale saisie au-dessus. Pay transmettra cet échéancier au moteur Stripe central.</p>
         </div>
       </div>
 
@@ -48,6 +59,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
           <div class="summary-grid">
             <div><small>Type de paiement</small><strong id="summaryBilling">Paiement unique</strong></div>
             <div><small>Devise</small><strong id="summaryCurrency">EUR</strong></div>
+            <div><small>Échéancier</small><strong id="summarySchedule">—</strong></div>
             <div><small>Statut initial</small><strong><span class="pay-badge pay-badge--draft">Brouillon</span></strong></div>
           </div>
         </div>
@@ -74,6 +86,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   const next = document.getElementById('nextStep');
   const save = document.getElementById('saveCheckout');
   const progress = document.getElementById('builderProgress');
+  const planFields = document.getElementById('checkoutPlanFields');
   let currentStep = 1;
   let slugTouched = false;
 
@@ -92,6 +105,9 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   document.querySelectorAll('input[name="billing"]').forEach((radio) => {
     radio.addEventListener('change', () => {
       document.querySelectorAll('.billing-card').forEach((card) => card.classList.toggle('is-selected', card.contains(radio) && radio.checked));
+      const isPlan = form.querySelector('input[name="billing"]:checked').value === 'payment-plan';
+      planFields.hidden = !isPlan;
+      planFields.querySelectorAll('input').forEach((input) => { input.disabled = !isPlan; });
     });
   });
 
@@ -109,9 +125,16 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     const currency = currencyInput.value;
     document.getElementById('summaryName').textContent = nameInput.value || 'Nouveau checkout';
     document.getElementById('summaryUrl').textContent = `pay.sonnycourt.com/c/${slugInput.value || 'mon-checkout'}`;
-    document.getElementById('summaryPrice').textContent = `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency === 'EUR' ? '€' : currency}` + (billing === 'subscription' ? ' / mois' : '');
-    document.getElementById('summaryBilling').textContent = billing === 'subscription' ? 'Abonnement mensuel' : 'Paiement unique';
+    document.getElementById('summaryPrice').textContent = `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency === 'EUR' ? '€' : currency}` + (billing === 'subscription' || billing === 'payment-plan' ? ' / mois' : '');
+    document.getElementById('summaryBilling').textContent = billing === 'subscription' ? 'Abonnement mensuel' : billing === 'payment-plan' ? 'Plan de paiement' : 'Paiement unique';
     document.getElementById('summaryCurrency').textContent = currency;
+    const deposit = Number(document.getElementById('checkoutDeposit').value || 0);
+    const bridge = Number(document.getElementById('checkoutBridgeAmount').value || 0);
+    const delay = Number(document.getElementById('checkoutBridgeDelay').value || 0);
+    const installments = Number(document.getElementById('checkoutInstallments').value || 0);
+    document.getElementById('summarySchedule').textContent = billing === 'payment-plan'
+      ? `${deposit ? `${deposit} maintenant · ` : ''}${bridge ? `${bridge} à J+${delay || 1} · ` : ''}${installments} × ${amount}`
+      : '—';
   }
 
   function showStep(step) {
@@ -136,7 +159,11 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     event.preventDefault();
     if (!validateStep()) return;
     const billing = form.querySelector('input[name="billing"]:checked').value;
-    const draft = { id: Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(), billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), status: 'draft' };
+    const plan = billing === 'payment-plan' ? {
+      deposit: Number(document.getElementById('checkoutDeposit').value || 0), bridgeAmount: Number(document.getElementById('checkoutBridgeAmount').value || 0),
+      bridgeDelayDays: Number(document.getElementById('checkoutBridgeDelay').value || 0), installments: Number(document.getElementById('checkoutInstallments').value || 0), interval: 'month',
+    } : null;
+    const draft = { id: Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(), billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), plan, status: 'draft' };
     const drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]');
     drafts.unshift(draft);
     localStorage.setItem('pay_checkout_drafts', JSON.stringify(drafts.slice(0, 20)));
@@ -178,7 +205,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   .slug-field { display: flex; align-items: center; border: 1px solid var(--pay-line); border-radius: 15px; background: rgba(3,12,24,.48); overflow: hidden; }
   .slug-field > span { padding-left: 14px; color: var(--pay-muted); font-size: 10px; white-space: nowrap; }
   .slug-field .pay-input { border: 0; background: transparent; }
-  .billing-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .billing-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
   .billing-card { min-height: 105px; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 12px; padding: 17px; border: 1px solid var(--pay-line); border-radius: 18px; background: rgba(3,12,24,.32); cursor: pointer; transition: .18s; }
   .billing-card input { position: absolute; opacity: 0; pointer-events: none; }
   .billing-card.is-selected { border-color: rgba(112,231,255,.38); background: rgba(68,177,231,.075); box-shadow: inset 0 1px rgba(255,255,255,.07); }
@@ -198,7 +225,13 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   .summary-hero h3 { margin: 0; font-size: 14px; }
   .summary-hero small { display: block; margin-top: 6px; color: var(--pay-muted); font-size: 8px; }
   .summary-hero > strong { font-size: 18px; letter-spacing: -.03em; }
-  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .plan-fields { margin-top: 22px; padding: 18px; border: 1px solid rgba(112,231,255,.16); border-radius: 18px; background: rgba(112,231,255,.025); }
+  .plan-intro { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+  .plan-intro > span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(112,231,255,.2); border-radius: 10px; color: var(--pay-cyan); }
+  .plan-intro strong, .plan-intro small { display: block; } .plan-intro strong { font-size: 10px; } .plan-intro small { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .plan-fields > p { margin: 15px 0 0; color: var(--pay-muted); font-size: 8px; line-height: 1.5; }
+  .plan-fields > p strong { color: var(--pay-soft); }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
   .summary-grid > div { padding: 17px 20px; border-right: 1px solid var(--pay-line); }
   .summary-grid > div:last-child { border: 0; }
   .summary-grid small, .summary-grid strong { display: block; }
@@ -209,6 +242,6 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   .builder-footer { min-height: 70px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--pay-line); background: rgba(2,10,20,.22); }
   .builder-progress { height: 3px; flex: 1; margin: 0 10px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
   .builder-progress i { display: block; width: 33%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pay-blue), var(--pay-cyan)); transition: width .25s ease; }
-  @media (max-width: 850px) { .checkout-builder { grid-template-columns: 1fr; } .builder-steps { position: static; grid-template-columns: repeat(3, 1fr); } .builder-tip { display: none; } .builder-step { grid-template-columns: 28px 1fr; padding: 0 6px; } }
+  @media (max-width: 850px) { .checkout-builder { grid-template-columns: 1fr; } .builder-steps { position: static; grid-template-columns: repeat(3, 1fr); } .builder-tip { display: none; } .builder-step { grid-template-columns: 28px 1fr; padding: 0 6px; } .billing-options { grid-template-columns: 1fr; } }
   @media (max-width: 600px) { .builder-steps { grid-template-columns: 1fr; } .builder-step:not(.is-active) { display: none; } .builder-pane { min-height: 540px; padding: 20px 15px; } .form-grid, .billing-options, .summary-grid { grid-template-columns: 1fr; } .summary-hero { grid-template-columns: 42px 1fr; } .summary-hero > strong { grid-column: 2; } .summary-grid > div { border-right: 0; border-bottom: 1px solid var(--pay-line); } .slug-field { align-items: stretch; flex-direction: column; } .slug-field > span { padding: 10px 13px 0; } .builder-footer { flex-wrap: wrap; } .builder-progress { order: -1; flex-basis: 100%; } }
 </style>
