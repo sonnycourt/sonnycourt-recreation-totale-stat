@@ -103,6 +103,17 @@ npm run pay:spiffy:reconcile -- --orders orders.csv --customers customers.csv \
   --plans paymentplans.csv --payments payments.csv
 ```
 
+Le contrôleur de parité va plus loin : il compare les checksums, volumes,
+liaisons, ventes, remboursements, retards et projections calculés avec un
+instantané agrégé réellement observé dans Spiffy. Il échoue dès qu'une valeur
+change, sans écrire ni afficher aucune donnée personnelle :
+
+```bash
+npm run pay:spiffy:parity -- --snapshot docs/pay-spiffy-snapshot-2026-08-08.json \
+  --orders orders.csv --customers customers.csv --plans paymentplans.csv \
+  --payments payments.csv
+```
+
 ## Réconciliation du 8 août 2026
 
 Les quatre exports complets ont été validés à blanc :
