@@ -5,7 +5,7 @@ const transactions = [];
 ---
 
 <PayAppShell active="transactions" eyebrow="Ventes" title="Transactions" description="Retrouve les paiements, remboursements et statuts au même endroit.">
-  <button slot="actions" class="pay-button pay-button--ghost" type="button" data-demo-disabled>↓ Exporter</button>
+  <button slot="actions" class="pay-button pay-button--ghost" id="transactionExport" type="button">↓ Exporter</button>
 
   <section class="transaction-summary">
     <article class="pay-panel"><small>Encaissé · 30 jours</small><strong id="transactionRevenue">—</strong><span id="transactionSuccessCount">En attente de Stripe</span></article>
@@ -66,7 +66,10 @@ const transactions = [];
 <script>
   const REFUND_API = '/.netlify/functions/pay-stripe-refund';
   const STRIPE_DATA_API = '/.netlify/functions/pay-stripe-data';
+  const PAYPAL_DATA_API = '/.netlify/functions/pay-paypal-data';
   let stripeTransactionsData = null;
+  let recentStripeItems = [];
+  let paypalTransactionsData = [];
   let fullHistoryItems = [];
   let fullHistoryCursor = '';
   let fullHistoryLoading = false;
@@ -122,6 +125,7 @@ const transactions = [];
     const customer = billing.name || metadata.customer_name || metadata.customer_first_name || billing.email || intent.receipt_email || metadata.customer_email || 'Client Stripe';
     return {
       id: intent.id,
+      provider: 'stripe',
       created: intent.created,
       amount,
       refunded,
@@ -132,8 +136,29 @@ const transactions = [];
       description: intent.description || metadata.offer_name || metadata.offer_slug || 'Paiement Stripe',
       customer,
       email: billing.email || intent.receipt_email || metadata.customer_email || '',
-      payment_method: card ? `${card.brand || 'carte'} •••• ${card.last4 || ''}` : charge?.payment_method_details?.type || 'Stripe',
+      payment_method: card ? `Stripe · ${card.brand || 'carte'} •••• ${card.last4 || ''}` : `Stripe · ${charge?.payment_method_details?.type || 'paiement'}`,
     };
+  }
+
+  function combinedItems(stripeItems = recentStripeItems) {
+    return [...stripeItems, ...paypalTransactionsData].sort((first, second) => Number(second.created || 0) - Number(first.created || 0));
+  }
+
+  function renderCombinedSummary() {
+    const items = combinedItems(recentStripeItems);
+    const currency = stripeTransactionsData?.account?.currency || items[0]?.currency || 'eur';
+    const successful = items.filter((item) => item.status === 'Réussi' && item.kind !== 'refund');
+    const refunds = items.filter((item) => Number(item.refunded || 0) > 0 || item.kind === 'refund');
+    const pending = items.filter((item) => ['En attente', 'Action requise', 'Incomplet'].includes(item.status));
+    const revenue = successful.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.signed_amount ?? item.amount ?? 0), 0);
+    const refunded = refunds.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.refunded || 0), 0);
+    const pendingAmount = pending.filter((item) => item.currency === currency).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    document.getElementById('transactionRevenue').textContent = transactionMoney(revenue, currency);
+    document.getElementById('transactionSuccessCount').textContent = `${successful.length} paiement${successful.length === 1 ? '' : 's'} réussi${successful.length === 1 ? '' : 's'}`;
+    document.getElementById('transactionRefunded').textContent = transactionMoney(refunded, currency);
+    document.getElementById('transactionRefundCount').textContent = `${refunds.length} remboursement${refunds.length === 1 ? '' : 's'}`;
+    document.getElementById('transactionPending').textContent = transactionMoney(pendingAmount, currency);
+    document.getElementById('transactionPendingCount').textContent = `${pending.length} paiement${pending.length === 1 ? '' : 's'}`;
   }
 
   function renderTransactionTable(items, emptyText = 'Aucune transaction Stripe.') {
@@ -171,7 +196,7 @@ const transactions = [];
       fullHistoryCursor = page.next_cursor || '';
       fullHistoryInitialized = true;
       stripeTransactionsData = { ...stripeTransactionsData, transactions: fullHistoryItems };
-      renderTransactionTable(fullHistoryItems, 'Aucune transaction dans l’historique Stripe.');
+      renderTransactionTable(combinedItems(fullHistoryItems), 'Aucune transaction Stripe ou PayPal.');
       document.getElementById('transactionDescription').textContent = `Historique Stripe · ${fullHistoryItems.length} transaction${fullHistoryItems.length === 1 ? '' : 's'} chargée${fullHistoryItems.length === 1 ? '' : 's'}`;
       state.textContent = page.has_more ? `${fullHistoryItems.length} transactions chargées · historique disponible par pages de 100` : `Historique complet · ${fullHistoryItems.length} transactions`;
       button.hidden = !page.has_more;
@@ -190,19 +215,44 @@ const transactions = [];
     stripeTransactionsData = data;
     const currency = data.account?.currency || 'eur';
     const items = Array.isArray(data.transactions) ? data.transactions : [];
-    document.getElementById('transactionRevenue').textContent = transactionMoney(data.metrics?.revenue?.[currency] || 0, currency);
-    document.getElementById('transactionSuccessCount').textContent = `${data.metrics?.successful || 0} paiement${data.metrics?.successful === 1 ? '' : 's'} réussi${data.metrics?.successful === 1 ? '' : 's'}`;
-    document.getElementById('transactionRefunded').textContent = transactionMoney(data.metrics?.refunded_amount?.[currency] || 0, currency);
-    document.getElementById('transactionRefundCount').textContent = `${data.metrics?.refunded || 0} remboursement${data.metrics?.refunded === 1 ? '' : 's'}`;
-    document.getElementById('transactionPending').textContent = transactionMoney(data.metrics?.pending_amount?.[currency] || 0, currency);
-    document.getElementById('transactionPendingCount').textContent = `${data.metrics?.pending || 0} paiement${data.metrics?.pending === 1 ? '' : 's'}`;
-    document.getElementById('transactionDescription').textContent = 'Données Stripe · 30 derniers jours';
+    recentStripeItems = items.map((item) => ({ ...item, provider: 'stripe', payment_method: item.payment_method?.startsWith('Stripe') ? item.payment_method : `Stripe · ${item.payment_method || 'paiement'}` }));
+    document.getElementById('transactionDescription').textContent = 'Stripe + PayPal · 30 derniers jours';
     const mode = document.getElementById('transactionMode');
     mode.textContent = data.mode === 'live' ? (data.writes_enabled ? 'Stripe réel · actions actives' : 'Stripe réel · actions verrouillées') : 'Stripe test';
     mode.className = `pay-badge ${data.writes_enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
 
-    renderTransactionTable(items, 'Aucune transaction Stripe sur les 30 derniers jours.');
+    renderCombinedSummary();
+    renderTransactionTable(combinedItems(), 'Aucune transaction Stripe ou PayPal sur les 30 derniers jours.');
     loadFullStripeHistory(true);
+  }
+
+  async function loadPayPalTransactions() {
+    const end = new Date(Date.now() - 3 * 60 * 60 * 1_000);
+    const start = new Date(end.getTime() - 30 * 86_400_000);
+    try {
+      const response = await fetch(`${PAYPAL_DATA_API}?${new URLSearchParams({ start: start.toISOString(), end: end.toISOString() })}`, { credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.connected) throw new Error(data.error || 'paypal_data_failed');
+      paypalTransactionsData = (Array.isArray(data.transactions) ? data.transactions : []).map((item) => ({ ...item, provider: 'paypal', payment_method: 'PayPal' }));
+      renderCombinedSummary();
+      renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe ou PayPal.');
+    } catch (error) {
+      console.error('PayPal transactions:', error);
+    }
+  }
+
+  function exportTransactions() {
+    const items = combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems);
+    const rows = [['Client', 'Email', 'Description', 'Date', 'Passerelle', 'Statut', 'Montant', 'Devise'], ...items.map((item) => [item.customer, item.email, item.description, transactionDate(item.created), item.provider === 'paypal' ? 'PayPal' : 'Stripe', item.status, String(Number(item.amount || 0) / currencyDivisor(item.currency)), String(item.currency || 'eur').toUpperCase()])];
+    const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = rows.map((line) => line.map(quote).join(';')).join('\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pay-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    window.payToast?.('Export CSV préparé.');
   }
 
   function validateRefundForm() {
@@ -241,7 +291,7 @@ const transactions = [];
   document.getElementById('stripeTransactionTable')?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-refund-intent]');
     if (!button || !stripeTransactionsData) return;
-    const item = stripeTransactionsData.transactions.find((transaction) => transaction.id === button.dataset.refundIntent);
+    const item = [...fullHistoryItems, ...recentStripeItems].find((transaction) => transaction.id === button.dataset.refundIntent);
     if (item) openRefundDialog(item);
   });
 
@@ -250,6 +300,7 @@ const transactions = [];
   document.getElementById('refundCancel')?.addEventListener('click', closeRefundDialog);
   document.getElementById('refundForm')?.addEventListener('submit', (event) => event.preventDefault());
   document.getElementById('transactionLoadMore')?.addEventListener('click', () => loadFullStripeHistory(false));
+  document.getElementById('transactionExport')?.addEventListener('click', exportTransactions);
 
   document.getElementById('refundSubmit')?.addEventListener('click', async () => {
     const amount = validateRefundForm();
@@ -292,6 +343,8 @@ const transactions = [];
   document.addEventListener('pay:stripe', (event) => renderStripeTransactions(event.detail));
   const stripeTransactionsPromise = window.getPayStripeOverview?.();
   stripeTransactionsPromise?.then(renderStripeTransactions);
+  document.addEventListener('pay:authenticated', loadPayPalTransactions, { once: true });
+  loadPayPalTransactions();
 </script>
 
 <style is:global>

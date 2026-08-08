@@ -1,0 +1,77 @@
+---
+const {
+  screen,
+  columns = [],
+  searchPlaceholder = 'Rechercher…',
+  emptyTitle = 'Aucune donnée',
+  emptyText = 'Les données apparaîtront dès que les passerelles répondront.',
+} = Astro.props;
+---
+
+<div class="resource-screen" data-pay-resource-page={screen} data-empty-title={emptyTitle} data-empty-text={emptyText}>
+  <section class="resource-toolbar pay-panel">
+    <label class="resource-search"><span aria-hidden="true">⌕</span><input type="search" data-resource-search placeholder={searchPlaceholder} /></label>
+    <select class="pay-select" data-resource-provider aria-label="Filtrer par passerelle">
+      <option value="all">Toutes les passerelles</option>
+      <option value="stripe">Stripe</option>
+      <option value="paypal">PayPal</option>
+      <option value="spiffy">Historique Spiffy</option>
+    </select>
+    <select class="pay-select" data-resource-status aria-label="Filtrer par statut">
+      <option value="all">Tous les statuts</option>
+    </select>
+    <span class="resource-count" data-resource-count>Chargement…</span>
+  </section>
+
+  <section class="resource-table-panel pay-panel">
+    <div class="resource-sync-state" data-resource-state>
+      <span class="resource-spinner" aria-hidden="true"></span>
+      <div><strong>Synchronisation des données réelles</strong><small>Lecture sécurisée de Stripe et PayPal…</small></div>
+    </div>
+    <div class="resource-table" data-resource-table hidden>
+      <div class="resource-row resource-head">
+        {columns.map((column) => <span>{column}</span>)}
+      </div>
+      <div data-resource-rows></div>
+    </div>
+    <div class="resource-empty" data-resource-empty hidden><span>◇</span><h2>{emptyTitle}</h2><p>{emptyText}</p></div>
+  </section>
+</div>
+
+<style is:global>
+  .resource-screen { display: grid; gap: 13px; }
+  .resource-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 165px 165px auto; align-items: center; gap: 10px; padding: 12px; border-radius: 19px; }
+  .resource-search { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--pay-line); border-radius: 13px; color: var(--pay-muted); background: rgba(3,12,24,.4); }
+  .resource-search input { width: 100%; border: 0; outline: 0; color: #fff; background: transparent; font-size: 10px; }
+  .resource-search input::placeholder { color: var(--pay-muted); }
+  .resource-toolbar .pay-select { min-width: 0; height: 42px; padding: 0 11px; font-size: 9px; }
+  .resource-count { padding: 0 7px; color: var(--pay-muted); font-size: 9px; white-space: nowrap; }
+  .resource-table-panel { overflow: hidden; min-height: 300px; border-radius: 22px; }
+  .resource-sync-state { min-height: 300px; display: flex; align-items: center; justify-content: center; gap: 13px; color: var(--pay-soft); }
+  .resource-sync-state strong, .resource-sync-state small { display: block; }
+  .resource-sync-state strong { margin-bottom: 5px; color: #fff; font-size: 10px; }
+  .resource-sync-state small { color: var(--pay-muted); font-size: 8px; }
+  .resource-spinner { width: 26px; height: 26px; border: 2px solid rgba(112,231,255,.13); border-top-color: var(--pay-cyan); border-radius: 50%; animation: resource-spin .8s linear infinite; }
+  @keyframes resource-spin { to { transform: rotate(360deg); } }
+  .resource-table { min-width: 860px; }
+  .resource-row { display: grid; grid-template-columns: var(--resource-columns, minmax(210px, 1.5fr) repeat(5, minmax(90px, .7fr))); align-items: center; min-height: 65px; border-bottom: 1px solid var(--pay-line); }
+  .resource-row:last-child { border-bottom: 0; }
+  .resource-row > span { min-width: 0; padding: 12px 15px; overflow: hidden; color: var(--pay-soft); font-size: 9px; line-height: 1.4; text-overflow: ellipsis; }
+  .resource-row > span:first-child { color: #fff; }
+  .resource-row strong, .resource-row small { display: block; }
+  .resource-row strong { color: #fff; font-size: 10px; }
+  .resource-row small { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .resource-row a { color: var(--pay-cyan); text-decoration: none; }
+  .resource-row a:hover { text-decoration: underline; }
+  .resource-head { min-height: 43px; background: rgba(255,255,255,.025); }
+  .resource-head > span { color: var(--pay-muted); font-size: 8px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .resource-provider { display: inline-flex; align-items: center; gap: 6px; }
+  .resource-provider::before { width: 7px; height: 7px; content: ''; border-radius: 50%; background: var(--pay-cyan); box-shadow: 0 0 10px rgba(112,231,255,.45); }
+  .resource-provider--paypal::before { background: #72a9ff; box-shadow: 0 0 10px rgba(114,169,255,.45); }
+  .resource-provider--spiffy::before { background: #ffb56a; box-shadow: 0 0 10px rgba(255,181,106,.45); }
+  .resource-empty { min-height: 300px; display: grid; place-items: center; align-content: center; text-align: center; padding: 40px; }
+  .resource-empty > span { width: 46px; height: 46px; display: grid; place-items: center; margin-bottom: 13px; border: 1px solid var(--pay-line); border-radius: 14px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
+  .resource-empty h2 { margin: 0 0 7px; font-size: 14px; }
+  .resource-empty p { max-width: 420px; margin: 0; color: var(--pay-muted); font-size: 9px; line-height: 1.6; }
+  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-table-panel { overflow-x: auto; } }
+</style>

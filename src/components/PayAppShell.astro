@@ -6,11 +6,21 @@ const {
   description = 'Pilote tes paiements depuis un seul endroit.',
 } = Astro.props;
 
-const navigation = [
+const primaryNavigation = [
   { id: 'dashboard', label: 'Tableau de bord', route: '/', icon: '⌂' },
   { id: 'checkouts', label: 'Checkouts', route: '/checkouts', icon: '▣' },
-  { id: 'transactions', label: 'Transactions', route: '/transactions', icon: '↗' },
   { id: 'products', label: 'Produits', route: '/products', icon: '◇' },
+];
+const salesNavigation = [
+  { id: 'orders', label: 'Commandes', route: '/orders', icon: '◎' },
+  { id: 'customers', label: 'Clients', route: '/customers', icon: '◉' },
+  { id: 'subscriptions', label: 'Abonnements', route: '/subscriptions', icon: '↻' },
+  { id: 'payment-plans', label: 'Plans de paiement', route: '/payment-plans', icon: '≋' },
+  { id: 'transactions', label: 'Paiements', route: '/transactions', icon: '↗' },
+];
+const utilityNavigation = [
+  { id: 'reports', label: 'Rapports', route: '/reports', icon: '⌁' },
+  { id: 'discounts', label: 'Réductions', route: '/discounts', icon: '%' },
   { id: 'settings', label: 'Réglages', route: '/settings', icon: '⚙' },
 ];
 ---
@@ -62,11 +72,35 @@ const navigation = [
 
         <nav class="pay-nav" aria-label="Navigation Pay">
           <p class="pay-nav-label">Espace de travail</p>
-          {navigation.map((item) => (
+          {primaryNavigation.map((item) => (
             <a
               class:list={['pay-nav-link', { 'is-active': active === item.id }]}
               data-pay-route={item.route}
               href={`/pay${item.route === '/' ? '' : item.route}`}
+              aria-current={active === item.id ? 'page' : undefined}
+            >
+              <span class="pay-nav-icon" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+          ))}
+          <p class="pay-nav-label pay-nav-label--section">Ventes</p>
+          {salesNavigation.map((item) => (
+            <a
+              class:list={['pay-nav-link', 'pay-nav-link--compact', { 'is-active': active === item.id }]}
+              data-pay-route={item.route}
+              href={`/pay${item.route}`}
+              aria-current={active === item.id ? 'page' : undefined}
+            >
+              <span class="pay-nav-icon" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+          ))}
+          <p class="pay-nav-label pay-nav-label--section">Outils</p>
+          {utilityNavigation.map((item) => (
+            <a
+              class:list={['pay-nav-link', 'pay-nav-link--compact', { 'is-active': active === item.id }]}
+              data-pay-route={item.route}
+              href={`/pay${item.route}`}
               aria-current={active === item.id ? 'page' : undefined}
             >
               <span class="pay-nav-icon" aria-hidden="true">{item.icon}</span>
@@ -297,11 +331,13 @@ const navigation = [
   .pay-ambient { position: fixed; z-index: -1; border-radius: 50%; filter: blur(85px); pointer-events: none; }
   .pay-ambient--one { width: 380px; height: 380px; top: -170px; right: 10%; background: rgba(32, 151, 255, .18); }
   .pay-ambient--two { width: 340px; height: 340px; bottom: -180px; left: 12%; background: rgba(46, 214, 235, .11); }
-  .pay-sidebar { min-height: calc(100vh - 32px); position: sticky; top: 16px; display: flex; flex-direction: column; align-self: start; padding: 22px 16px 17px; border-radius: 26px; }
+  .pay-sidebar { height: calc(100vh - 32px); min-height: 610px; position: sticky; top: 16px; display: flex; flex-direction: column; align-self: start; overflow-y: auto; padding: 22px 16px 17px; border-radius: 26px; scrollbar-width: thin; scrollbar-color: rgba(112,231,255,.18) transparent; }
   .pay-sidebar .pay-brand { padding: 0 8px 21px; border-bottom: 1px solid rgba(172, 219, 255, .1); }
   .pay-nav { display: grid; gap: 7px; margin-top: 25px; }
   .pay-nav-label { margin: 0 10px 8px; color: var(--pay-muted); font-size: 9px; font-weight: 780; letter-spacing: .14em; text-transform: uppercase; }
+  .pay-nav-label--section { margin-top: 17px; }
   .pay-nav-link { min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border: 1px solid transparent; border-radius: 14px; color: rgba(220, 237, 255, .58); font-size: 12px; font-weight: 670; text-decoration: none; transition: .18s ease; }
+  .pay-nav-link--compact { min-height: 38px; font-size: 11px; }
   .pay-nav-link:hover { color: #fff; background: rgba(255,255,255,.05); }
   .pay-nav-link.is-active { color: #fff; border-color: rgba(104, 213, 255, .2); background: linear-gradient(135deg, rgba(60, 166, 246, .18), rgba(53, 216, 235, .08)); box-shadow: inset 0 1px rgba(255,255,255,.08), 0 9px 25px rgba(0, 118, 214, .08); }
   .pay-nav-icon { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(167, 218, 255, .12); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--pay-cyan); font-size: 14px; }
@@ -327,7 +363,7 @@ const navigation = [
   .pay-page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 27px; }
   .pay-page-header h1 { margin: 7px 0 0; font-size: clamp(31px, 4vw, 48px); line-height: 1; letter-spacing: -.052em; }
   .pay-page-description { margin: 11px 0 0; color: var(--pay-soft); font-size: 13px; }
-  .pay-page-actions { display: flex; gap: 10px; }
+  .pay-page-actions, .pay-action-group { display: flex; align-items: center; gap: 10px; }
 
   .pay-panel { border: 1px solid var(--pay-line); border-radius: 24px; background: radial-gradient(circle at 9% 0%, rgba(255,255,255,.08), transparent 28%), linear-gradient(145deg, rgba(20, 42, 67, .7), rgba(7, 19, 34, .52)); box-shadow: 0 25px 60px rgba(0, 5, 15, .22), inset 0 1px rgba(255,255,255,.1); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
   .pay-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 19px 20px; border-bottom: 1px solid rgba(169, 216, 255, .1); }

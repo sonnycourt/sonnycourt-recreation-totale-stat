@@ -1,0 +1,204 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+---
+
+<PayAppShell active="reports" eyebrow="Analyse" title="Rapports" description="Analyse Stripe et PayPal avec les mêmes repères que dans Spiffy.">
+  <button slot="actions" class="pay-button pay-button--ghost" id="reportExport" type="button">↓ Exporter</button>
+
+  <section class="report-types" aria-label="Types de rapport">
+    <button class="report-type pay-panel is-active" type="button" data-report="products"><span>↗</span><strong>Ventes par produit</strong><small>Revenu, commandes et panier moyen</small></button>
+    <button class="report-type pay-panel" type="button" data-report="ltv"><span>◉</span><strong>Valeur client</strong><small>Achats et valeur cumulée</small></button>
+    <button class="report-type pay-panel" type="button" data-report="cashflow"><span>≋</span><strong>Cash flow</strong><small>Encaissements, remboursements et net</small></button>
+    <button class="report-type pay-panel" type="button" data-report="plans"><span>!</span><strong>Plans de paiement</strong><small>Échéances et paiements en retard</small></button>
+  </section>
+
+  <section class="report-panel pay-panel">
+    <header class="report-header">
+      <div><p class="pay-kicker">Rapport réel</p><h2 id="reportTitle">Ventes par produit</h2><p id="reportCaption">Chargement de Stripe et PayPal…</p></div>
+      <select class="pay-select" id="reportRange" aria-label="Période du rapport"><option value="30">30 derniers jours</option><option value="90">90 derniers jours</option><option value="365">12 derniers mois</option></select>
+    </header>
+    <div class="report-kpis" id="reportKpis"><span><small>Données</small><strong>—</strong></span><span><small>Total</small><strong>—</strong></span><span><small>Moyenne</small><strong>—</strong></span></div>
+    <div class="report-state" id="reportState"><i></i><span><strong>Calcul du rapport</strong><small>Lecture uniquement, aucune action financière.</small></span></div>
+    <div class="report-table" id="reportTable" hidden></div>
+  </section>
+</PayAppShell>
+
+<script>
+  const STRIPE_API = '/.netlify/functions/pay-stripe-data';
+  const PAYPAL_API = '/.netlify/functions/pay-paypal-data';
+  const DAY = 86_400_000;
+  let reportType = 'products';
+  let reportRows = [];
+  let reportRequest = 0;
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  const money = (minor, currency = 'eur') => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(Number(minor || 0) / 100);
+  const dayKey = (timestamp) => new Date(Number(timestamp || 0) * 1_000).toISOString().slice(0, 10);
+  const humanDate = (key) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(`${key}T12:00:00Z`));
+
+  async function stripe(resource, days, maxPages = 20) {
+    const rows = [];
+    let cursor = '';
+    const createdGte = Math.floor((Date.now() - days * DAY) / 1_000);
+    for (let page = 0; page < maxPages; page += 1) {
+      const query = new URLSearchParams({ resource, limit: '100', created_gte: String(createdGte) });
+      if (cursor) query.set('starting_after', cursor);
+      const response = await fetch(`${STRIPE_API}?${query}`, { credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.connected) throw new Error(data.error || 'stripe_report_failed');
+      rows.push(...(data.data || []));
+      if (!data.has_more || !data.next_cursor) break;
+      cursor = data.next_cursor;
+    }
+    return rows;
+  }
+
+  async function paypal(days) {
+    const end = new Date(Date.now() - 3 * 60 * 60 * 1_000);
+    const start = new Date(end.getTime() - days * DAY);
+    const response = await fetch(`${PAYPAL_API}?${new URLSearchParams({ start: start.toISOString(), end: end.toISOString() })}`, { credentials: 'same-origin' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.connected) throw new Error(data.error || 'paypal_report_failed');
+    return data.transactions || [];
+  }
+
+  function customerOfStripe(intent) {
+    const charge = typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
+    const billing = charge?.billing_details || {};
+    const metadata = intent.metadata || {};
+    return {
+      name: billing.name || metadata.customer_name || metadata.customer_first_name || billing.email || intent.receipt_email || 'Client Stripe',
+      email: (billing.email || intent.receipt_email || metadata.customer_email || '').toLowerCase(),
+    };
+  }
+
+  function reportData(type, intents, refunds, invoices, paypalRows) {
+    const succeeded = intents.filter((item) => item.status === 'succeeded').map((item) => ({
+      provider: 'Stripe', id: item.id, created: item.created, amount: Number(item.amount_received || item.amount || 0), currency: item.currency || 'eur',
+      description: item.description || item.metadata?.offer_name || item.metadata?.offer_slug || 'Paiement Stripe', customer: customerOfStripe(item), plan: false,
+    }));
+    const paypalSales = paypalRows.filter((item) => item.status === 'Réussi' && ['sale', 'payment_plan'].includes(item.kind)).map((item) => ({
+      provider: 'PayPal', id: item.id, created: item.created, amount: item.signed_amount, currency: item.currency, description: item.description, customer: { name: item.customer, email: item.email }, plan: item.is_plan_payment,
+    }));
+    const sales = [...succeeded, ...paypalSales];
+    const refundRows = [
+      ...refunds.filter((item) => !['failed', 'canceled'].includes(item.status)).map((item) => ({ created: item.created, amount: Number(item.amount || 0), currency: item.currency || 'eur' })),
+      ...paypalRows.filter((item) => item.kind === 'refund').map((item) => ({ created: item.created, amount: item.refunded, currency: item.currency || 'eur' })),
+    ];
+
+    if (type === 'ltv') {
+      const groups = new Map();
+      sales.forEach((sale) => {
+        const key = sale.customer.email || sale.customer.name.toLowerCase();
+        const current = groups.get(key) || { label: sale.customer.name, email: sale.customer.email, count: 0, amount: 0, currency: sale.currency, provider: new Set() };
+        current.count += 1; current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current);
+      });
+      return [...groups.values()].sort((a, b) => b.amount - a.amount).map((item) => [item.label, item.email || '—', [...item.provider].join(' + '), item.count, money(item.amount, item.currency)]);
+    }
+    if (type === 'cashflow') {
+      const groups = new Map();
+      sales.forEach((sale) => { const key = dayKey(sale.created); const current = groups.get(key) || { revenue: 0, refunds: 0, currency: sale.currency }; current.revenue += sale.amount; groups.set(key, current); });
+      refundRows.forEach((refund) => { const key = dayKey(refund.created); const current = groups.get(key) || { revenue: 0, refunds: 0, currency: refund.currency }; current.refunds += refund.amount; groups.set(key, current); });
+      return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a)).map(([key, item]) => [humanDate(key), money(item.revenue, item.currency), money(item.refunds, item.currency), money(item.revenue - item.refunds, item.currency)]);
+    }
+    if (type === 'plans') {
+      const planRows = invoices.filter((invoice) => invoice.subscription || invoice.parent?.subscription_details?.subscription).map((invoice) => [
+        invoice.customer_name || invoice.customer_email || String(invoice.customer || 'Client Stripe'), 'Stripe', money(invoice.amount_due || invoice.total || 0, invoice.currency || 'eur'), invoice.due_date ? humanDate(dayKey(invoice.due_date)) : humanDate(dayKey(invoice.created)), invoice.status === 'open' && invoice.amount_remaining > 0 ? 'En retard' : invoice.status,
+      ]);
+      paypalSales.filter((sale) => sale.plan).forEach((sale) => planRows.push([sale.customer.name, 'PayPal', money(sale.amount, sale.currency), humanDate(dayKey(sale.created)), 'Payé']));
+      return planRows;
+    }
+    const groups = new Map();
+    sales.forEach((sale) => { const key = sale.description; const current = groups.get(key) || { count: 0, amount: 0, currency: sale.currency, provider: new Set() }; current.count += 1; current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current); });
+    return [...groups.entries()].sort(([, a], [, b]) => b.amount - a.amount).map(([label, item]) => [label, [...item.provider].join(' + '), item.count, money(item.amount, item.currency), money(item.count ? item.amount / item.count : 0, item.currency)]);
+  }
+
+  const reportMeta = {
+    products: { title: 'Ventes par produit', headers: ['Produit', 'Passerelle', 'Commandes', 'Revenu', 'Panier moyen'] },
+    ltv: { title: 'Valeur client', headers: ['Client', 'Email', 'Passerelle', 'Commandes', 'Valeur cumulée'] },
+    cashflow: { title: 'Cash flow', headers: ['Date', 'Encaissé', 'Remboursé', 'Net'] },
+    plans: { title: 'Plans de paiement', headers: ['Client', 'Passerelle', 'Échéance', 'Date', 'Statut'] },
+  };
+
+  function renderReport() {
+    const meta = reportMeta[reportType];
+    const table = document.getElementById('reportTable');
+    table.innerHTML = `<div class="report-row report-row--head">${meta.headers.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</div>` + reportRows.map((line) => `<div class="report-row">${line.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</div>`).join('');
+    table.style.setProperty('--report-columns', `repeat(${meta.headers.length}, minmax(130px, 1fr))`);
+    table.hidden = false;
+    const total = reportRows.length;
+    document.getElementById('reportKpis').innerHTML = `<span><small>Lignes</small><strong>${total}</strong></span><span><small>Passerelles</small><strong>Stripe + PayPal</strong></span><span><small>Source</small><strong>Données réelles</strong></span>`;
+  }
+
+  async function loadReport() {
+    const request = ++reportRequest;
+    const days = Number(document.getElementById('reportRange').value);
+    const meta = reportMeta[reportType];
+    document.getElementById('reportTitle').textContent = meta.title;
+    document.getElementById('reportCaption').textContent = `Chargement des ${days} derniers jours…`;
+    document.getElementById('reportState').hidden = false;
+    document.getElementById('reportTable').hidden = true;
+    try {
+      const [intents, refunds, invoices, paypalRows] = await Promise.all([
+        stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), paypal(days),
+      ]);
+      if (request !== reportRequest) return;
+      reportRows = reportData(reportType, intents, refunds, invoices, paypalRows);
+      document.getElementById('reportCaption').textContent = `Stripe + PayPal · ${days} derniers jours · PayPal peut avoir jusqu’à 3 h de délai`;
+      document.getElementById('reportState').hidden = true;
+      renderReport();
+    } catch (error) {
+      console.error('Pay reports:', error);
+      document.getElementById('reportState').innerHTML = '<span><strong>Rapport indisponible</strong><small>Une passerelle n’a pas répondu.</small></span>';
+    }
+  }
+
+  document.querySelectorAll('[data-report]').forEach((button) => button.addEventListener('click', () => {
+    reportType = button.dataset.report;
+    document.querySelectorAll('[data-report]').forEach((item) => item.classList.toggle('is-active', item === button));
+    loadReport();
+  }));
+  document.getElementById('reportRange').addEventListener('change', loadReport);
+  document.getElementById('reportExport').addEventListener('click', () => {
+    const meta = reportMeta[reportType];
+    const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = [meta.headers, ...reportRows].map((line) => line.map(quote).join(';')).join('\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `pay-rapport-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
+  });
+  loadReport();
+</script>
+
+<style is:global>
+  .report-types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 13px; }
+  .report-type { min-height: 112px; display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; gap: 4px 10px; padding: 16px; color: var(--pay-soft); text-align: left; cursor: pointer; }
+  .report-type > span { width: 28px; height: 28px; grid-row: 1 / 3; display: grid; place-items: center; border: 1px solid var(--pay-line); border-radius: 9px; color: var(--pay-cyan); background: rgba(112,231,255,.05); }
+  .report-type strong { align-self: end; color: #fff; font-size: 10px; }
+  .report-type small { color: var(--pay-muted); font-size: 8px; line-height: 1.4; }
+  .report-type.is-active { border-color: rgba(112,231,255,.38); background: linear-gradient(145deg, rgba(44,132,194,.17), rgba(7,20,36,.65)); }
+  .report-panel { overflow: hidden; }
+  .report-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border-bottom: 1px solid var(--pay-line); }
+  .report-header h2 { margin: 0; font-size: 16px; }
+  .report-header p:not(.pay-kicker) { margin: 6px 0 0; color: var(--pay-muted); font-size: 8px; }
+  .report-header .pay-select { width: 180px; height: 42px; flex: 0 0 auto; padding: 0 11px; font-size: 9px; }
+  .report-kpis { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--pay-line); }
+  .report-kpis > span { padding: 17px 20px; border-right: 1px solid var(--pay-line); }
+  .report-kpis > span:last-child { border: 0; }
+  .report-kpis small, .report-kpis strong { display: block; }
+  .report-kpis small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; }
+  .report-kpis strong { font-size: 13px; }
+  .report-state { min-height: 260px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .report-state i { width: 25px; height: 25px; border: 2px solid rgba(112,231,255,.14); border-top-color: var(--pay-cyan); border-radius: 50%; animation: report-spin .8s linear infinite; }
+  .report-state strong, .report-state small { display: block; }
+  .report-state strong { font-size: 10px; }
+  .report-state small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
+  @keyframes report-spin { to { transform: rotate(360deg); } }
+  .report-table { min-width: 720px; overflow-x: auto; }
+  .report-row { display: grid; grid-template-columns: var(--report-columns); min-height: 58px; border-bottom: 1px solid var(--pay-line); }
+  .report-row > span { display: flex; align-items: center; padding: 11px 16px; color: var(--pay-soft); font-size: 9px; }
+  .report-row > span:first-child { color: #fff; font-weight: 650; }
+  .report-row--head { min-height: 40px; background: rgba(255,255,255,.025); }
+  .report-row--head > span { color: var(--pay-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
+  @media (max-width: 900px) { .report-types { grid-template-columns: repeat(2, 1fr); } .report-panel { overflow-x: auto; } }
+  @media (max-width: 580px) { .report-types { grid-template-columns: 1fr; } .report-header { align-items: stretch; flex-direction: column; } }
+</style>

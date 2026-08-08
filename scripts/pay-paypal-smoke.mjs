@@ -5,6 +5,12 @@ import {
   getPayPalConnectionOverview,
   resetPayPalTokenCache,
 } from '../netlify/functions/lib/pay-paypal.mjs';
+import {
+  classifyPayPalTransaction,
+  getPayPalTransactions,
+  normalizePayPalTransaction,
+  splitPayPalSearchRange,
+} from '../netlify/functions/lib/pay-paypal-data.mjs';
 
 const env = {
   PAYPAL_MODE: 'live',
@@ -26,8 +32,26 @@ const fetchImpl = async (input, init = {}) => {
     return Response.json({ access_token: 'access-token-for-smoke-test', app_id: 'APP-TEST', scope: 'https://uri.paypal.com/services/reporting/search/read https://uri.paypal.com/services/applications/webhooks', expires_in: 3600 });
   }
   if (url.includes('/v1/reporting/transactions')) {
-    assert.match(url, /page_size=1/);
-    return Response.json({ total_items: 42, transaction_details: [] });
+    if (url.includes('page_size=1')) return Response.json({ total_items: 42, transaction_details: [] });
+    assert.match(url, /page_size=500/);
+    return Response.json({
+      total_items: 1,
+      total_pages: 1,
+      transaction_details: [{
+        transaction_info: {
+          transaction_id: 'TXN-1',
+          transaction_event_code: 'T0002',
+          transaction_status: 'S',
+          transaction_initiation_date: '2026-08-05T12:00:00Z',
+          transaction_updated_date: '2026-08-05T12:01:00Z',
+          transaction_amount: { currency_code: 'EUR', value: '97.00' },
+          fee_amount: { currency_code: 'EUR', value: '-3.12' },
+          transaction_subject: 'Plan ES2',
+          paypal_reference_id_type: 'SUB',
+        },
+        payer_info: { email_address: 'client@example.com', payer_name: { given_name: 'Ada', surname: 'Lovelace' } },
+      }],
+    });
   }
   if (url.endsWith('/v1/notifications/webhooks')) {
     assert.equal(init.headers.Authorization, 'Bearer access-token-for-smoke-test');
@@ -47,5 +71,30 @@ assert.deepEqual(overview.probes, { transaction_count: 42, webhook_count: 1 });
 assert.equal(calls.filter((call) => call.url.endsWith('/v1/oauth2/token')).length, 1);
 assert.ok(!JSON.stringify(overview).includes(env.PAYPAL_CLIENT_SECRET));
 assert.ok(!JSON.stringify(overview).includes(token.accessToken));
+
+assert.equal(classifyPayPalTransaction('T1107', -5000), 'refund');
+assert.equal(classifyPayPalTransaction('T0002', 9700), 'payment_plan');
+assert.equal(splitPayPalSearchRange(new Date('2026-01-01T00:00:00Z'), new Date('2026-03-15T00:00:00Z')).length, 3);
+
+const normalized = normalizePayPalTransaction({
+  transaction_info: {
+    transaction_id: 'REF-1', transaction_event_code: 'T1107', transaction_status: 'S',
+    transaction_initiation_date: '2026-08-04T12:00:00Z',
+    transaction_amount: { currency_code: 'EUR', value: '-12.50' },
+  },
+});
+assert.equal(normalized.status, 'Remboursé');
+assert.equal(normalized.refunded, 1250);
+
+const transactions = await getPayPalTransactions({
+  env,
+  fetchImpl,
+  start: '2026-08-01T00:00:00Z',
+  end: '2026-08-08T00:00:00Z',
+  now: () => new Date('2026-08-09T12:00:00Z').getTime(),
+});
+assert.equal(transactions.transactions.length, 1);
+assert.equal(transactions.transactions[0].is_plan_payment, true);
+assert.equal(transactions.metrics.revenue.eur, 9700);
 
 console.log('✅ PayPal connection smoke tests passed');
