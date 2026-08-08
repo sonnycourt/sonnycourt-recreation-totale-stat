@@ -306,10 +306,19 @@ if (screen) {
   }
 
   async function loadProducts() {
+    let drafts = [];
+    try { drafts = JSON.parse(localStorage.getItem('pay_product_drafts') || '[]'); } catch {}
+    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+      const billing = draft.billingType === 'recurring' ? `Tous les ${draft.intervalCount || 1} ${draft.intervalUnit || 'month'}` : 'Paiement unique';
+      const status = 'Brouillon';
+      return row([
+        `<strong>${escapeHtml(draft.name || 'Produit sans nom')}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), escapeHtml(billing), `<strong>${money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'eur')}</strong>`, badge(status),
+      ], [draft.name || 'Produit sans nom', 'Pay', billing, money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'eur'), status], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000));
+    }) : [];
     const history = await fetchHistory('products');
     if (history) {
-      useHistorySource();
-      return history.flatMap((product) => {
+      sourceLabels = draftRows.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
+      const historyRows = history.flatMap((product) => {
         const prices = product.prices?.length ? product.prices : [{ id: product.id, provider: product.provider, amount: 0, currency: 'eur', billing_type: 'unknown', active: product.active }];
         return prices.map((price) => {
           const billing = price.billing_type === 'recurring' ? `Tous les ${price.interval_count || 1} ${price.interval_unit || 'mois'}` : price.billing_type === 'installment' ? `${price.installment_count || '—'} échéances` : price.billing_type === 'one_time' ? 'Paiement unique' : 'Prix non renseigné';
@@ -319,10 +328,13 @@ if (screen) {
           ], [product.name, product.provider, billing, price.billing_type === 'unknown' ? '—' : money(price.amount, price.currency), status], product.provider, status, Math.floor(new Date(product.created_at).getTime() / 1_000));
         });
       });
+      return [...draftRows, ...historyRows];
     }
-    const prices = await fetchStripeAll('prices', 20);
-    sourceLabels = ['Stripe'];
-    return prices.map((price) => {
+    const sources = await collectPaySources({ stripe: fetchStripeAll('prices', 20) });
+    if (!draftRows.length) requirePaySource(sources, 'pay_product_sources_unavailable');
+    const values = sourcesFrom(sources, { stripe: 'Stripe' });
+    sourceLabels = [...new Set([...(draftRows.length ? ['Pay'] : []), ...sourceLabels])];
+    const stripeRows = (values.stripe || []).map((price) => {
       const product = typeof price.product === 'object' ? price.product : null;
       const name = clean(product?.name || price.nickname) || stripeId(price.product) || 'Produit Stripe';
       const billing = price.type === 'recurring' ? `Tous les ${price.recurring?.interval_count || 1} ${price.recurring?.interval || 'mois'}` : 'Paiement unique';
@@ -331,6 +343,7 @@ if (screen) {
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(price.id)}</small>`, providerCell('stripe'), escapeHtml(billing), `<strong>${money(price.unit_amount, price.currency)}</strong>`, badge(status),
       ], [name, 'Stripe', billing, money(price.unit_amount, price.currency), status], 'stripe', status);
     });
+    return [...draftRows, ...stripeRows];
   }
 
   async function loadCheckouts() {
