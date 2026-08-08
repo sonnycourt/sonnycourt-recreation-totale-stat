@@ -108,7 +108,8 @@ Les quatre exports complets ont été validés à blanc :
 
 - 1 841 / 1 841 commandes valides, du 12 novembre 2024 au 7 août 2026 ;
 - 1 557 / 1 557 clients valides ;
-- 552 / 552 plans valides : 56 actifs, 177 en retard et 319 terminés ;
+- 552 / 552 plans valides : 56 actifs, 11 en retard, 166 impayés
+  abandonnés et 319 terminés ;
 - 385 / 385 paiements valides : 330 Stripe et 55 PayPal ;
 - 385 paiements sur 385 reliés à une commande et un client ;
 - 552 plans sur 552 reliés à une commande et un client ;
@@ -118,11 +119,39 @@ L'export des abonnements est vide, ce qui correspond à l'écran Spiffy actuel.
 Quinze réductions ont été repérées dans Spiffy ; leur reprise restera un import
 séparé afin de ne pas activer par erreur un ancien code expiré.
 
+## Sémantique du dashboard validée contre Spiffy
+
+La comparaison du 8 août 2026 a permis de corriger un écart important entre
+des chiffres techniquement Stripe et les indicateurs métier de Spiffy :
+
+- **Ventes** : le montant additionne tous les encaissements réussis Stripe et
+  PayPal, y compris les échéances, tandis que le compteur compte seulement les
+  nouvelles commandes. L'export restitue bien les 7 commandes affichées par
+  Spiffy sur les sept derniers jours ;
+- **Remboursements** : somme et compteur des remboursements fournisseur, sans
+  soustraire une deuxième fois un paiement déjà marqué remboursé ;
+- **Cash flow** : somme des échéances encore attendues entre maintenant et la
+  fin du mois, puis sur le mois suivant. Ce n'est ni le solde Stripe, ni le
+  revenu déjà encaissé. La projection à blanc donne 454 220 centimes au
+  8 août, soit les 4,5 k€ affichés par Spiffy ;
+- **Plans en retard** : uniquement le statut Spiffy `past_due`, soit 11 plans.
+  Les 166 plans `unpaid` restent distincts et ne gonflent plus cet indicateur ;
+- **Courbe des plans** : échéances projetées à leur date, à partir du prochain
+  paiement, de l'intervalle et du solde restant.
+
+Le dashboard ne remplace plus ces définitions par une approximation basée sur
+le nombre d'intentions Stripe ou le solde de la passerelle. Tant que l'historique
+n'est pas initialisé, les indicateurs dépendants de Supabase affichent `—`.
+
+La fonction `pay-history` est strictement en lecture seule. Elle prépare les
+agrégats à partir des tables `pay_*`, exige la session administrateur et renvoie
+`ready: false` tant que la migration n'a pas été autorisée et appliquée.
+
 ## État de parité du MVP
 
 | Zone Spiffy | Pay | État |
 | --- | --- | --- |
-| Dashboard et calendrier | Graphique Stripe + PayPal, 4 séries, infobulles et périodes personnalisées | prêt |
+| Dashboard et calendrier | Graphique Stripe + PayPal, sémantique Spiffy validée, 4 séries, infobulles et périodes personnalisées | prêt avant import |
 | Commandes, clients, paiements | Listes réelles, recherche, filtres, CSV et fiches détaillées | prêt |
 | Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
 | Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |

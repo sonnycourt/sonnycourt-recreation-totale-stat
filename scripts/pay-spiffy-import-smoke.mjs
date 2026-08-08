@@ -24,10 +24,16 @@ assert.equal(orders.normalized[1].row.promo_code, 'OFFRE50POURCENT');
 assert.match(orders.checksum, /^[a-f0-9]{64}$/);
 
 const plans = normalizeSpiffyExport(`Payment Plan ID,Customer Email,Product,Start Date,Next Payment Date,Status,Payment Amount,Number of Payments,Payments Made,Remaining Balance
-plan_1,julie@example.com,ES2.0,2026-01-01,2026-09-01,Active,€197.00,12,8,€788.00`);
+plan_1,julie@example.com,ES2.0,2026-01-01,2026-09-01,Active,€197.00,12,8,€788.00
+plan_2,marie@example.com,ES2.0,2026-01-01,2026-08-01,past_due,€197.00,12,4,€1,576.00
+plan_3,lea@example.com,ES2.0,2026-01-01,2026-08-01,unpaid,€197.00,12,2,€1,970.00`);
 assert.equal(plans.type, 'payment_plans');
 assert.equal(plans.normalized[0].row.installment_count, 12);
 assert.equal(plans.normalized[0].row.remaining_minor, 78800);
+assert.equal(plans.normalized[0].row.interval_unit, 'month');
+assert.equal(plans.normalized[0].row.interval_count, 1);
+assert.equal(plans.normalized[1].row.status, 'past_due');
+assert.equal(plans.normalized[2].row.status, 'unpaid');
 
 const rawPayments = normalizeSpiffyExport(`Payment Id,Order Id,Email,Status,Amount,Amount Refunded,Currency,Gateway,Paid At,Created At
 4706806,2475427,cedric@example.com,succeeded,9700,0,eur,stripe,2026-08-07 09:26:24,2026-08-07 09:26:24`, { type: 'payments' });

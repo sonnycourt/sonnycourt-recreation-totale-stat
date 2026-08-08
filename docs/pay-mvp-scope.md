@@ -27,7 +27,7 @@
 
 ## Ce qu'on repousse volontairement
 
-- Affiliation, rapports avancés, coupons et champs personnalisés.
+- Affiliation et champs personnalisés.
 - Upsells, order bumps, portail client et automatisations.
 - Équipe, API publique et notifications avancées.
 - La création de paiements, produits ou abonnements réels avant validation du flux Stripe en mode test.
@@ -36,7 +36,8 @@
 
 1. ✅ Connecter Stripe en lecture seule : compte, solde et transactions réelles.
 2. ✅ Piloter les remboursements totaux et partiels depuis Pay avec garde-fou pour le mode réel.
-3. Ajouter une clé Stripe dédiée au mode test pour créer produits et checkouts sans toucher au catalogue réel.
-4. Enregistrer les webhooks et persister produits, checkouts, clients et transactions.
-5. Faire passer un premier paiement de bout en bout.
-6. Ajouter PayPal Express après validation du flux Stripe.
+3. ✅ Connecter PayPal Live en lecture seule et préparer les remboursements avec le même verrouillage.
+4. ✅ Construire rapports, réductions, checkouts et listes Stripe + PayPal.
+5. Appliquer la projection Supabase additive après autorisation explicite, puis importer l'historique Spiffy.
+6. Raccorder Pay au webhook Stripe universel et à la synchronisation PayPal durable.
+7. Faire passer un premier paiement de bout en bout en mode test avant toute activation Live.

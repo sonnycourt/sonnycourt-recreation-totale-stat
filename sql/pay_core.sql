@@ -210,6 +210,8 @@ create table if not exists public.pay_payment_plans (
   installment_count integer,
   installments_paid integer not null default 0 check (installments_paid >= 0),
   remaining_minor bigint not null default 0,
+  interval_unit text not null default 'month' check (interval_unit in ('day', 'week', 'month', 'year')),
+  interval_count integer not null default 1 check (interval_count > 0),
   started_at timestamptz,
   next_payment_at timestamptz,
   source_created_at timestamptz,

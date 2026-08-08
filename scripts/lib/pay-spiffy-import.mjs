@@ -38,7 +38,9 @@ const FIELD_ALIASES = Object.freeze({
   updated_at: ['date updated', 'updated at', 'updated'],
   paid_at: ['paid at', 'payment date', 'date paid', 'date'],
   started_at: ['started at', 'start date', 'date created'],
-  next_payment_at: ['next payment', 'next payment date', 'next billing date'],
+  next_payment_at: ['next payment at', 'next payment', 'next payment date', 'next billing date'],
+  frequency: ['frequency', 'interval', 'billing interval'],
+  frequency_count: ['frequency count', 'interval count', 'billing interval count'],
   installment_amount: ['installment amount', 'payment amount', 'payment total amount', 'amount'],
   installment_count: ['installments', 'number of payments', 'payment count'],
   installments_paid: ['payments made', 'installments paid', 'paid payments'],
@@ -204,7 +206,8 @@ function planStatusValue(value) {
   const status = normalizeHeader(value);
   if (/^active$|actif/.test(status)) return 'active';
   if (/finish|complete|succeed|termine/.test(status)) return 'completed';
-  if (/default|past due|retard|impaye|unpaid|fail/.test(status)) return 'past_due';
+  if (/^past due$|retard/.test(status)) return 'past_due';
+  if (/default|^unpaid$|impaye|fail/.test(status)) return 'unpaid';
   if (/cancel|annul/.test(status)) return 'cancelled';
   if (/pend|attente|scheduled/.test(status)) return 'pending';
   return status.replace(/\s+/g, '_') || 'unknown';
@@ -310,12 +313,16 @@ function normalizePlan(row) {
   const remaining = valueOf(row, 'remaining')
     ? Math.abs(spiffyMinor(valueOf(row, 'remaining'), currency))
     : Math.max(0, totalDue - totalPaid);
+  const frequency = normalizeHeader(valueOf(row, 'frequency')) || 'month';
+  const intervalUnit = /day|jour/.test(frequency) ? 'day' : /week|semaine/.test(frequency) ? 'week' : /year|an/.test(frequency) ? 'year' : 'month';
+  const intervalCount = Math.max(1, Number.parseInt(valueOf(row, 'frequency_count') || '1', 10) || 1);
   return {
     table: 'pay_payment_plans',
     row: {
       provider: 'spiffy', external_id: externalId, status: planStatusValue(valueOf(row, 'status')), currency,
       installment_amount_minor: installmentAmount, installment_count: installmentCount,
       installments_paid: Math.max(0, installmentsPaid), remaining_minor: remaining, started_at: dateToIso(valueOf(row, 'started_at')),
+      interval_unit: intervalUnit, interval_count: intervalCount,
       next_payment_at: dateToIso(valueOf(row, 'next_payment_at')), source_created_at: dateToIso(valueOf(row, 'created_at')),
       source_updated_at: dateToIso(valueOf(row, 'updated_at')),
       metadata: { ...rawMetadata(row), order_external_id: idValue(row, ['order_id']), customer_external_id: idValue(row, ['customer_id']), customer_email: valueOf(row, 'email').toLowerCase() || null, product_name: valueOf(row, 'product') || null },
