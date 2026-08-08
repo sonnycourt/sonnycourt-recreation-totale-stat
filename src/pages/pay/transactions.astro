@@ -36,7 +36,7 @@ const transactions = [
   <dialog class="refund-dialog pay-glass" id="refundDialog" aria-labelledby="refundTitle">
     <form id="refundForm">
       <header class="refund-header">
-        <div><p class="pay-kicker">Action financière</p><h2 id="refundTitle">Rembourser ce paiement</h2></div>
+        <div><p class="pay-kicker">Confirmation · étape 2 sur 2</p><h2 id="refundTitle">Rembourser ce paiement</h2></div>
         <button class="refund-close" id="refundClose" type="button" aria-label="Fermer">×</button>
       </header>
 
@@ -52,13 +52,12 @@ const transactions = [
       </div>
 
       <div class="refund-lock" id="refundLock" hidden><strong>Remboursements réels verrouillés</strong><span>Le garde-fou du compte live doit être activé une seule fois avant utilisation.</span></div>
-      <p class="refund-note">Cette opération envoie immédiatement la demande à Stripe. Pour confirmer, écris <strong>REMBOURSER</strong>.</p>
-      <label class="refund-confirm"><span>Confirmation</span><input class="pay-input" id="refundConfirmation" autocomplete="off" placeholder="REMBOURSER" required /></label>
+      <p class="refund-note">Relis le montant et le motif. Seul un clic explicite sur le bouton de confirmation enverra la demande à Stripe.</p>
       <p class="refund-error" id="refundError" role="alert"></p>
 
       <footer class="refund-actions">
         <button class="pay-button" id="refundCancel" type="button">Annuler</button>
-        <button class="pay-button refund-submit" id="refundSubmit" type="submit" disabled>Confirmer le remboursement</button>
+        <button class="pay-button refund-submit" id="refundSubmit" type="button" disabled>Confirmer le remboursement</button>
       </footer>
     </form>
   </dialog>
@@ -131,9 +130,8 @@ const transactions = [
     const amount = Number(document.getElementById('refundAmount').value);
     const divisor = currencyDivisor(refundItem?.currency || 'eur');
     const amountMinor = Math.round(amount * divisor);
-    const confirmed = document.getElementById('refundConfirmation').value.trim() === 'REMBOURSER';
     const validAmount = refundItem && Number.isSafeInteger(amountMinor) && amountMinor > 0 && amountMinor <= refundItem.refundable;
-    document.getElementById('refundSubmit').disabled = !confirmed || !validAmount || !stripeTransactionsData?.writes_enabled;
+    document.getElementById('refundSubmit').disabled = !validAmount || !stripeTransactionsData?.writes_enabled;
     return validAmount ? amountMinor : null;
   }
 
@@ -148,7 +146,6 @@ const transactions = [
     document.getElementById('refundCustomer').textContent = item.customer || item.email || 'Client Stripe';
     document.getElementById('refundPaymentAmount').textContent = transactionMoney(item.amount, item.currency);
     document.getElementById('refundRemaining').textContent = transactionMoney(item.refundable, item.currency);
-    document.getElementById('refundConfirmation').value = '';
     document.getElementById('refundReason').value = 'requested_by_customer';
     document.getElementById('refundError').textContent = '';
     document.getElementById('refundLock').hidden = Boolean(stripeTransactionsData?.writes_enabled);
@@ -170,12 +167,11 @@ const transactions = [
   });
 
   document.getElementById('refundAmount')?.addEventListener('input', validateRefundForm);
-  document.getElementById('refundConfirmation')?.addEventListener('input', validateRefundForm);
   document.getElementById('refundClose')?.addEventListener('click', closeRefundDialog);
   document.getElementById('refundCancel')?.addEventListener('click', closeRefundDialog);
+  document.getElementById('refundForm')?.addEventListener('submit', (event) => event.preventDefault());
 
-  document.getElementById('refundForm')?.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  document.getElementById('refundSubmit')?.addEventListener('click', async () => {
     const amount = validateRefundForm();
     if (!refundItem || !amount) return;
     const submit = document.getElementById('refundSubmit');
@@ -192,7 +188,7 @@ const transactions = [
         payment_intent: refundItem.id,
         amount,
         reason: document.getElementById('refundReason').value,
-        confirmation: document.getElementById('refundConfirmation').value.trim(),
+        confirmation: 'REMBOURSER',
         idempotency_key: refundIdempotencyKey,
       }),
     }).catch(() => null);
@@ -252,13 +248,12 @@ const transactions = [
   .refund-transaction small { margin-bottom: 6px; color: var(--pay-muted); font-size: 8px; }
   .refund-transaction strong { font-size: 10px; }
   .refund-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .refund-fields label, .refund-confirm { display: grid; gap: 7px; color: var(--pay-soft); font-size: 9px; }
-  .refund-fields .pay-input, .refund-fields .pay-select, .refund-confirm .pay-input { height: 45px; padding: 0 12px; font-size: 10px; }
+  .refund-fields label { display: grid; gap: 7px; color: var(--pay-soft); font-size: 9px; }
+  .refund-fields .pay-input, .refund-fields .pay-select { height: 45px; padding: 0 12px; font-size: 10px; }
   .refund-lock { display: grid; gap: 5px; margin-top: 14px; padding: 13px; border: 1px solid rgba(255,192,112,.2); border-radius: 13px; color: #ffd49f; background: rgba(255,177,77,.07); }
   .refund-lock strong { font-size: 9px; }
   .refund-lock span { color: rgba(255,220,178,.67); font-size: 8px; line-height: 1.5; }
   .refund-note { margin: 16px 0 12px; color: var(--pay-soft); font-size: 9px; line-height: 1.55; }
-  .refund-note strong { color: #fff; letter-spacing: .06em; }
   .refund-error { min-height: 18px; margin: 10px 0 0; color: #ff9cac; font-size: 9px; }
   .refund-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 9px; padding-top: 17px; border-top: 1px solid var(--pay-line); }
   .refund-submit { border-color: rgba(255,128,148,.35); color: #fff; background: linear-gradient(135deg, #d83e5a, #ee6576); }

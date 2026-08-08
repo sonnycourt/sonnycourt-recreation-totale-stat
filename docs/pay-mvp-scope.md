@@ -18,6 +18,13 @@
 - Des pages cohérentes pour transactions, produits et réglages.
 - Les accès directs correspondants depuis le Hub.
 
+## Règle de sécurité des actions importantes
+
+- Étape 1 : l’administrateur clique volontairement sur l’action souhaitée.
+- Étape 2 : Pay ouvre un récapitulatif et exige un second clic explicite sur « Confirmer ».
+- Cette règle s’applique notamment aux remboursements, annulations, suppressions et changements d’abonnement.
+- Aucune action sensible ne doit partir automatiquement, par navigation ou au premier clic.
+
 ## Ce qu'on repousse volontairement
 
 - Affiliation, rapports avancés, coupons et champs personnalisés.
