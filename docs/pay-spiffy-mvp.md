@@ -147,6 +147,11 @@ des chiffres techniquement Stripe et les indicateurs métier de Spiffy :
 Le dashboard ne remplace plus ces définitions par une approximation basée sur
 le nombre d'intentions Stripe ou le solde de la passerelle. Tant que l'historique
 n'est pas initialisé, les indicateurs dépendants de Supabase affichent `—`.
+Les points du graphique utilisent des clés calendaires stables et sont rendus
+sans animation afin que chaque valeur reste exactement alignée avec son jour.
+Stripe et PayPal sont chargés indépendamment : si une passerelle ne répond pas,
+l'autre et la projection historique restent utilisables sans afficher de faux
+zéros pour la source indisponible.
 
 La fonction `pay-history` est strictement en lecture seule. Elle prépare les
 agrégats à partir des tables `pay_*`, exige la session administrateur et renvoie

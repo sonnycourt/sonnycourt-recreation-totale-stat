@@ -218,10 +218,15 @@ const utilityNavigation = [
           })
           .catch(() => {
             window.payStripeOverviewPromise = null;
-            const mini = document.getElementById('payStripeMini');
-            const topbar = document.getElementById('payTopbarStatus');
-            if (mini) mini.querySelector('small').textContent = 'Données Stripe indisponibles';
-            if (topbar) topbar.lastChild.textContent = ' Stripe ne répond pas pour le moment';
+            gatewayState.stripe = { connected: false };
+            if (gatewayState.paypal?.connected) {
+              updateGatewayChrome();
+            } else {
+              const mini = document.getElementById('payStripeMini');
+              const topbar = document.getElementById('payTopbarStatus');
+              if (mini) mini.querySelector('small').textContent = 'Données Stripe indisponibles';
+              if (topbar) topbar.lastChild.textContent = ' Stripe ne répond pas pour le moment';
+            }
             return null;
           });
         return window.payStripeOverviewPromise;
