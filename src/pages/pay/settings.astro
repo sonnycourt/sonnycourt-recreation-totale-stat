@@ -105,8 +105,9 @@ import PayAppShell from '../../components/PayAppShell.astro';
     state.classList.remove('gateway-state--locked');
     state.classList.add('gateway-state--connected');
     state.innerHTML = '<i></i>Connecté';
-    const transactionAccess = data.capabilities?.transaction_search ? 'transactions accessibles' : 'transactions à autoriser';
-    description.textContent = `Compte PayPal · mode ${data.mode === 'live' ? 'réel' : 'sandbox'} · ${transactionAccess} · actions ${data.writes_enabled ? 'actives' : 'verrouillées'}`;
+    const readCapabilities = ['transaction_search', 'catalog_products', 'billing_plans', 'subscriptions', 'invoices'];
+    const readable = readCapabilities.filter((capability) => data.capabilities?.[capability]).length;
+    description.textContent = `Compte PayPal · mode ${data.mode === 'live' ? 'réel' : 'sandbox'} · ${readable}/${readCapabilities.length} lectures disponibles · actions ${data.writes_enabled ? 'actives' : 'verrouillées'}`;
     document.getElementById('paypalDashboardLink').hidden = false;
     renderGatewayGlobalStatus();
 

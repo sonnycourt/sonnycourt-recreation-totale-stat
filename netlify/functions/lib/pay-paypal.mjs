@@ -107,7 +107,7 @@ export async function getPayPalConnectionOverview(options = {}) {
   const end = new Date(nowValue - 4 * 60 * 60 * 1_000);
   const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1_000);
 
-  const [transactions, webhooks] = await Promise.allSettled([
+  const [transactions, webhooks, products, plans, subscriptions, invoices] = await Promise.allSettled([
     paypalGet('/v1/reporting/transactions', [
       ['start_date', start.toISOString()],
       ['end_date', end.toISOString()],
@@ -115,6 +115,10 @@ export async function getPayPalConnectionOverview(options = {}) {
       ['page_size', 1],
     ], options),
     paypalGet('/v1/notifications/webhooks', [], options),
+    paypalGet('/v1/catalogs/products', [['page_size', 1], ['page', 1], ['total_required', 'true']], options),
+    paypalGet('/v1/billing/plans', [['page_size', 1], ['page', 1], ['total_required', 'true']], options),
+    paypalGet('/v1/billing/subscriptions', [['page_size', 1], ['page', 1], ['total_required', 'true']], options),
+    paypalGet('/v2/invoicing/invoices', [['page_size', 1], ['page', 1], ['total_required', 'true']], options),
   ]);
 
   return {
@@ -125,10 +129,18 @@ export async function getPayPalConnectionOverview(options = {}) {
     capabilities: {
       transaction_search: transactions.status === 'fulfilled',
       webhooks: webhooks.status === 'fulfilled',
+      catalog_products: products.status === 'fulfilled',
+      billing_plans: plans.status === 'fulfilled',
+      subscriptions: subscriptions.status === 'fulfilled',
+      invoices: invoices.status === 'fulfilled',
     },
     probes: {
       transaction_count: transactions.status === 'fulfilled' ? Number(transactions.value?.total_items || 0) : null,
       webhook_count: webhooks.status === 'fulfilled' ? (webhooks.value?.webhooks || []).length : null,
+      product_count: products.status === 'fulfilled' ? Number(products.value?.total_items || 0) : null,
+      plan_count: plans.status === 'fulfilled' ? Number(plans.value?.total_items || 0) : null,
+      subscription_count: subscriptions.status === 'fulfilled' ? Number(subscriptions.value?.total_items || 0) : null,
+      invoice_count: invoices.status === 'fulfilled' ? Number(invoices.value?.total_items || 0) : null,
     },
   };
 }

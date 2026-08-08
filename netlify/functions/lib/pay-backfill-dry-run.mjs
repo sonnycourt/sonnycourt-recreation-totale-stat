@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
 import { getPayPalTransactions } from './pay-paypal-data.mjs';
-import { projectPayPalTransaction, projectStripeResource, validatePayProjection } from './pay-provider-projection.mjs';
+import { getPayPalResources } from './pay-paypal-resources.mjs';
+import {
+  projectPayPalPlan,
+  projectPayPalProduct,
+  projectPayPalSubscription,
+  projectPayPalTransaction,
+  projectStripeResource,
+  validatePayProjection,
+} from './pay-provider-projection.mjs';
 import { getPayStripePage } from './pay-stripe-data.mjs';
 
 export const PAY_STRIPE_BACKFILL_RESOURCES = Object.freeze([
@@ -203,6 +211,7 @@ export async function runStripeBackfillDryRun(options = {}) {
 
 export async function runPayPalBackfillDryRun(options = {}) {
   const fetchTransactions = options.fetchTransactions || getPayPalTransactions;
+  const fetchResources = options.fetchResources || getPayPalResources;
   const start = date(options.start);
   const end = date(options.end);
   if (!start || !end || start > end) throw new Error('pay_backfill_range_invalid');
@@ -219,6 +228,38 @@ export async function runPayPalBackfillDryRun(options = {}) {
       } catch (error) {
         accumulator.addError(error);
       }
+    }
+  }
+  const resources = {};
+  for (const resource of ['products', 'plans', 'subscriptions']) {
+    try {
+      const result = await fetchResources(resource, { maxPages: safeCount(options.resourceMaxPages, 100, 1, 1_000) });
+      const rows = Array.isArray(result?.data) ? result.data : [];
+      resources[resource] = rows;
+      accumulator.addSource('paypal', resource, rows.length);
+      if (result?.truncated) accumulator.markTruncated();
+    } catch {
+      accumulator.addError(new Error(`paypal_${resource}_unavailable`));
+      resources[resource] = [];
+    }
+  }
+  const plansById = new Map(resources.plans.map((plan) => [clean(plan.id, 255), plan]));
+  for (const product of resources.products) {
+    try { accumulator.addOperations([projectPayPalProduct(product)]); }
+    catch (error) { accumulator.addError(error); }
+  }
+  for (const plan of resources.plans) {
+    try { accumulator.addOperations([projectPayPalPlan(plan)]); }
+    catch (error) { accumulator.addError(error); }
+  }
+  for (const subscription of resources.subscriptions) {
+    try {
+      accumulator.addOperations(projectPayPalSubscription({
+        ...subscription,
+        pay_plan: plansById.get(clean(subscription.plan_id, 255)) || null,
+      }));
+    } catch (error) {
+      accumulator.addError(error);
     }
   }
   return accumulator.report();

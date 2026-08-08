@@ -202,7 +202,10 @@ npm run pay:backfill:dry-run -- --provider both --from 2024-01-01T00:00:00Z
 
 Stripe est paginé ressource par ressource au-delà de la rétention des Events.
 PayPal est découpé en segments de 360 jours, eux-mêmes recherchés par fenêtres
-de 31 jours par le client existant. Les opérations sont dédupliquées selon
+de 31 jours par le client existant. Le même audit lit aussi nativement le
+catalogue PayPal, les plans et les abonnements ; ces objets stables ne sont
+chargés qu'une fois par backfill et jamais une fois par fenêtre de transactions.
+Les opérations sont dédupliquées selon
 `(table, provider, external_id)` et la version fournisseur la plus récente
 gagne. Le rapport ne contient que les volumes, anomalies et un checksum ; il
 n'affiche aucun email ni identifiant client. Les options `--write` et `--apply`
@@ -297,9 +300,9 @@ pages suivantes ; le garde-fou en deux étapes reste inchangé et verrouillé.
 | --- | --- | --- |
 | Dashboard et calendrier | Graphique Stripe + PayPal, sémantique Spiffy validée, 4 séries, infobulles et périodes personnalisées | prêt avant import |
 | Commandes, clients, paiements | Historique unifié, données live prioritaires, recherche, filtres, CSV et fiches détaillées | prêt avant import |
-| Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
+| Abonnements et plans | Objets Stripe et PayPal natifs, échéance PayPal exacte, repli transactionnel seulement si l'API native est refusée, historique Spiffy validé à blanc | prêt avant import |
 | Checkouts | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication en attente du moteur Stripe central |
-| Produits | Catalogue et prix Stripe réels + brouillons modifiables | lecture prête, publication verrouillée |
+| Produits | Catalogues, prix et plans Stripe + PayPal réels, brouillons modifiables | lecture prête, publication verrouillée |
 | Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs et taxes par pays/passerelle, archive + live dédupliqués | prêt avant import |
 | Réductions | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication verrouillée |
 | Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
@@ -308,6 +311,12 @@ pages suivantes ; le garde-fou en deux étapes reste inchangé et verrouillé.
 Les mentions « prêt » décrivent le code et l'interface. L'historique Supabase et
 les actions Live ne sont pas activés tant que leur autorisation distincte n'a
 pas été donnée.
+
+La page Réglages sonde séparément les droits PayPal de recherche des
+transactions, catalogue, plans, abonnements et factures. Une connexion OAuth
+réussie n'est donc plus présentée comme un accès métier complet si un de ces
+modules est refusé. Toutes ces sondes sont des requêtes `GET` ; aucune facture,
+aucun plan et aucun abonnement PayPal n'est créé ou modifié.
 
 ## Recette Live en lecture seule du 9 août 2026
 

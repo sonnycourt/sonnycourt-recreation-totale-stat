@@ -367,6 +367,44 @@ export function projectPayPalTransaction(transaction) {
   return operations;
 }
 
+export function projectPayPalProduct(product) {
+  if (!product || typeof product !== 'object' || Array.isArray(product)) throw new Error('pay_projection_object_invalid');
+  const externalId = id(product);
+  if (!externalId) throw new Error('pay_projection_identity_missing');
+  const status = clean(product.status, 40).toLowerCase();
+  return operation('pay_products', {
+    provider: 'paypal', external_id: externalId, name: clean(product.name, 240) || 'Produit PayPal',
+    description: clean(product.description, 1_000) || null,
+    active: status ? ['active', 'created'].includes(status) : true,
+    source_created_at: iso(product.create_time), source_updated_at: iso(product.update_time || product.create_time),
+    metadata: safeMetadata({}, { product_type: product.type, product_category: product.category }),
+  });
+}
+
+export function projectPayPalPlan(plan) {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) throw new Error('pay_projection_object_invalid');
+  const externalId = id(plan);
+  if (!externalId) throw new Error('pay_projection_identity_missing');
+  const cycles = Array.isArray(plan.billing_cycles) ? plan.billing_cycles : [];
+  const regular = [...cycles].reverse().find((cycle) => String(cycle?.tenure_type || '').toLowerCase() === 'regular') || cycles.at(-1) || {};
+  const fixedPrice = regular?.pricing_scheme?.fixed_price || regular?.amount || plan.amount || {};
+  const planCurrency = currency(plan.currency || fixedPrice.currency || fixedPrice.currency_code);
+  const totalCycles = nonNegative(plan.installment_count ?? regular.total_cycles);
+  const intervalUnit = clean(plan.interval_unit || regular.interval_unit || regular.frequency?.interval_unit, 20).toLowerCase();
+  const intervalCount = Math.max(1, integer(plan.interval_count || regular.interval_count || regular.frequency?.interval_count, 1));
+  const unitAmount = nonNegative(plan.unit_amount_minor, amountToMinor(fixedPrice.value, planCurrency));
+  const status = clean(plan.status, 40).toLowerCase();
+  return operation('pay_prices', {
+    provider: 'paypal', external_id: externalId, label: clean(plan.name, 200) || null,
+    currency: planCurrency, unit_amount_minor: unitAmount,
+    billing_type: clean(plan.billing_type, 20) === 'installment' || totalCycles > 0 ? 'installment' : 'recurring',
+    interval_unit: intervalUnit || null, interval_count: intervalUnit ? intervalCount : null,
+    installment_count: totalCycles || null, active: status === 'active',
+    source_created_at: iso(plan.create_time), source_updated_at: iso(plan.update_time || plan.create_time),
+    metadata: safeMetadata({}, { product_external_id: plan.product_id }),
+  });
+}
+
 export function projectPayPalSubscription(subscription) {
   if (!subscription || typeof subscription !== 'object' || Array.isArray(subscription)) throw new Error('pay_projection_object_invalid');
   const externalId = id(subscription);
@@ -374,33 +412,58 @@ export function projectPayPalSubscription(subscription) {
   const subscriber = subscription.subscriber || {};
   const subscriberEmail = clean(subscriber.email_address, 200).toLowerCase();
   const subscriberName = clean([subscriber.name?.given_name, subscriber.name?.surname].filter(Boolean).join(' '), 200);
-  const amount = subscription.billing_info?.last_payment?.amount || subscription.billing_info?.outstanding_balance || {};
-  const subscriptionCurrency = currency(amount.currency_code || subscription.currency_code);
+  const payPlan = subscription.pay_plan || {};
+  const amount = subscription.billing_info?.last_payment?.amount || subscription.last_payment || subscription.billing_info?.outstanding_balance || subscription.outstanding_balance || {};
+  const subscriptionCurrency = currency(payPlan.currency || amount.currency || amount.currency_code || subscription.currency_code);
+  const amountMinor = nonNegative(payPlan.unit_amount_minor, amountToMinor(amount.value, subscriptionCurrency));
+  const intervalUnit = clean(payPlan.interval_unit, 20).toLowerCase() || null;
+  const intervalCount = intervalUnit ? Math.max(1, integer(payPlan.interval_count, 1)) : null;
+  const installmentCount = nonNegative(payPlan.installment_count);
+  const completedCycles = (Array.isArray(subscription.cycle_executions) ? subscription.cycle_executions : subscription.billing_info?.cycle_executions || [])
+    .reduce((total, cycle) => total + nonNegative(cycle?.cycles_completed), 0);
+  const nextBillingTime = subscription.next_billing_time || subscription.billing_info?.next_billing_time;
   const operations = [];
   if (subscriberEmail) {
     const parsed = names(subscriberName || subscriberEmail);
     operations.push(operation('pay_customers', {
       provider: 'paypal', external_id: subscriberEmail, email: subscriberEmail, email_normalized: subscriberEmail,
       first_name: parsed.first || null, last_name: parsed.last || null, display_name: parsed.display || subscriberEmail,
-      phone: null, country: clean(subscriber.shipping_address?.address?.country_code, 2).toUpperCase() || null,
+      phone: null, country: clean(subscription.shipping_address?.country_code || subscription.shipping_address?.address?.country_code, 2).toUpperCase() || null,
       currency: subscriptionCurrency, source_created_at: iso(subscription.create_time),
       source_updated_at: iso(subscription.update_time || subscription.create_time), metadata: {},
     }));
   }
-  operations.push(operation('pay_subscriptions', {
-    provider: 'paypal', external_id: externalId, status: canonicalPayPalStatus(subscription.status || 'pending'),
-    currency: subscriptionCurrency, amount_minor: amountToMinor(amount.value, subscriptionCurrency),
-    interval_unit: null, interval_count: null, quantity: Math.max(1, integer(subscription.quantity, 1)),
-    started_at: iso(subscription.start_time || subscription.create_time), current_period_start: null,
-    current_period_end: iso(subscription.billing_info?.next_billing_time), cancel_at: null,
-    cancelled_at: /cancel/i.test(String(subscription.status || '')) ? iso(subscription.update_time) : null,
-    source_created_at: iso(subscription.create_time), source_updated_at: iso(subscription.update_time || subscription.create_time),
-    metadata: safeMetadata({}, {
-      customer_external_id: subscriberEmail, customer_email: subscriberEmail, customer_name: subscriberName,
-      product_external_id: subscription.plan_id, price_external_id: subscription.plan_id,
-      paypal_custom_id: subscription.custom_id,
-    }),
-  }));
+  if (installmentCount) {
+    operations.push(operation('pay_payment_plans', {
+      provider: 'paypal', external_id: externalId, status: canonicalPayPalStatus(subscription.status || 'pending'),
+      currency: subscriptionCurrency, installment_amount_minor: amountMinor,
+      installment_count: installmentCount, installments_paid: Math.min(installmentCount, completedCycles),
+      remaining_minor: Math.max(0, installmentCount - completedCycles) * amountMinor,
+      interval_unit: intervalUnit || 'month', interval_count: intervalCount || 1,
+      started_at: iso(subscription.start_time || subscription.create_time), next_payment_at: iso(nextBillingTime),
+      source_created_at: iso(subscription.create_time), source_updated_at: iso(subscription.update_time || subscription.create_time),
+      metadata: safeMetadata({}, {
+        customer_external_id: subscriberEmail, customer_email: subscriberEmail, customer_name: subscriberName,
+        product_external_id: payPlan.product_id, price_external_id: subscription.plan_id,
+        paypal_custom_id: subscription.custom_id,
+      }),
+    }));
+  } else {
+    operations.push(operation('pay_subscriptions', {
+      provider: 'paypal', external_id: externalId, status: canonicalPayPalStatus(subscription.status || 'pending'),
+      currency: subscriptionCurrency, amount_minor: amountMinor,
+      interval_unit: intervalUnit, interval_count: intervalCount, quantity: Math.max(1, integer(subscription.quantity, 1)),
+      started_at: iso(subscription.start_time || subscription.create_time), current_period_start: null,
+      current_period_end: iso(nextBillingTime), cancel_at: null,
+      cancelled_at: /cancel/i.test(String(subscription.status || '')) ? iso(subscription.update_time) : null,
+      source_created_at: iso(subscription.create_time), source_updated_at: iso(subscription.update_time || subscription.create_time),
+      metadata: safeMetadata({}, {
+        customer_external_id: subscriberEmail, customer_email: subscriberEmail, customer_name: subscriberName,
+        product_external_id: payPlan.product_id, price_external_id: subscription.plan_id,
+        paypal_custom_id: subscription.custom_id,
+      }),
+    }));
+  }
   return operations;
 }
 

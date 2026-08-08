@@ -50,11 +50,20 @@ const paypal = await runPayPalBackfillDryRun({
       customer: 'PayPal Test', email: `paypal-${paypalCalls}@example.test`,
     }] };
   },
+  fetchResources: async (resource) => ({
+    data: resource === 'products' ? [{ id: 'PROD-PP', name: 'Produit PayPal', status: 'active' }]
+      : resource === 'plans' ? [{ id: 'PLAN-PP', product_id: 'PROD-PP', name: 'Plan PayPal', status: 'active', billing_type: 'installment', unit_amount_minor: 19_700, currency: 'eur', interval_unit: 'month', interval_count: 1, installment_count: 12 }]
+        : [{ id: 'SUB-PP', plan_id: 'PLAN-PP', status: 'active', subscriber: { email_address: 'subscription@example.test' }, cycle_executions: [{ cycles_completed: 2 }] }],
+    truncated: false,
+  }),
 });
 assert.equal(paypalCalls, 2);
 assert.equal(paypal.ready, true);
 assert.equal(paypal.by_table.pay_payments, 2);
-assert.equal(paypal.by_table.pay_customers, 2);
+assert.equal(paypal.by_table.pay_customers, 3);
+assert.equal(paypal.by_table.pay_products, 1);
+assert.equal(paypal.by_table.pay_prices, 1);
+assert.equal(paypal.by_table.pay_payment_plans, 1);
 assert.equal(JSON.stringify(paypal).includes('@example.test'), false);
 
 const first = createPayBackfillAccumulator();

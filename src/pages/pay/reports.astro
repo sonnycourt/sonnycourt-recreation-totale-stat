@@ -37,7 +37,10 @@ import PayAppShell from '../../components/PayAppShell.astro';
   let reportSourceLabel = 'Passerelles live';
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
-  const money = (minor, currency = 'eur') => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(Number(minor || 0) / 100);
+  const money = (minor, currency = 'eur') => {
+    const formatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() });
+    return formatter.format(Number(minor || 0) / (10 ** formatter.resolvedOptions().maximumFractionDigits));
+  };
   const dayKey = (timestamp) => new Date(Number(timestamp || 0) * 1_000).toISOString().slice(0, 10);
   const humanDate = (key) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(`${key}T12:00:00Z`));
   const humanCountry = (code) => {
@@ -70,6 +73,21 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.connected) throw new Error(data.error || 'paypal_report_failed');
     return data.transactions || [];
+  }
+
+  async function paypalResource(resource, maxPages = 20) {
+    const rows = [];
+    let nextPage = 1;
+    for (let page = 0; page < maxPages && nextPage; page += 1) {
+      const query = new URLSearchParams({ resource, page: String(nextPage) });
+      const response = await fetch(`${PAYPAL_API}?${query}`, { credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.connected) throw new Error(data.error || `paypal_${resource}_report_failed`);
+      rows.push(...(data.data || []));
+      nextPage = data.has_more && data.next_page ? Number(data.next_page) : 0;
+    }
+    if (nextPage) throw new Error(`paypal_${resource}_report_truncated`);
+    return rows;
   }
 
   async function historyResource(resource) {
@@ -130,7 +148,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     };
   }
 
-  function reportData(type, intents, _refunds, invoices, checkoutSessions, paypalRows, history = {}, days = 30) {
+  function reportData(type, intents, _refunds, invoices, checkoutSessions, paypalRows, history = {}, days = 30, paypalBilling = {}) {
     const providerLabel = (provider) => provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Spiffy';
     const successfulStatuses = new Set(['succeeded', 'paid', 'complete', 'completed', 'refunded', 'active']);
     const cutoff = Math.floor((Date.now() - days * DAY) / 1_000);
@@ -189,7 +207,21 @@ import PayAppShell from '../../components/PayAppShell.astro';
       const planRows = invoices.filter((invoice) => invoice.subscription || invoice.parent?.subscription_details?.subscription).map((invoice) => [
         invoice.customer_name || invoice.customer_email || String(invoice.customer || 'Client Stripe'), 'Stripe', money(invoice.amount_due || invoice.total || 0, invoice.currency || 'eur'), invoice.due_date ? humanDate(dayKey(invoice.due_date)) : humanDate(dayKey(invoice.created)), invoice.status === 'open' && invoice.amount_remaining > 0 ? 'En retard' : invoice.status,
       ]);
-      paypalSales.filter((sale) => sale.plan).forEach((sale) => planRows.push([sale.customer.name, 'PayPal', money(sale.amount, sale.currency), humanDate(dayKey(sale.created)), 'Payé']));
+      if (Array.isArray(paypalBilling.subscriptions)) {
+        const plansById = new Map((paypalBilling.plans || []).map((plan) => [plan.id, plan]));
+        const horizon = Date.now() + days * DAY;
+        paypalBilling.subscriptions.filter((subscription) => {
+          const next = new Date(subscription.next_billing_time || 0).getTime();
+          return ['suspended', 'expired'].includes(subscription.status) || (subscription.status === 'active' && Number.isFinite(next) && next <= horizon);
+        }).forEach((subscription) => {
+          const plan = plansById.get(subscription.plan_id);
+          const name = [subscription.subscriber?.name?.given_name, subscription.subscriber?.name?.surname].filter(Boolean).join(' ') || subscription.subscriber?.email_address || 'Client PayPal';
+          const status = subscription.status === 'active' ? 'Actif' : subscription.status === 'suspended' ? 'En retard' : subscription.status;
+          planRows.push([name, 'PayPal', plan ? money(plan.unit_amount_minor, plan.currency) : '—', subscription.next_billing_time ? humanDate(subscription.next_billing_time.slice(0, 10)) : '—', status]);
+        });
+      } else {
+        paypalSales.filter((sale) => sale.plan).forEach((sale) => planRows.push([sale.customer.name, 'PayPal', money(sale.amount, sale.currency), '—', 'Payé']));
+      }
       return planRows;
     }
     if (type === 'checkouts') {
@@ -227,6 +259,15 @@ import PayAppShell from '../../components/PayAppShell.astro';
       paypalRows.filter((item) => ['Refusé', 'En attente'].includes(item.status)).forEach((item) => rowsById.set(`paypal:${item.id}`, [
         humanDate(dayKey(item.created)), item.customer, item.email || '—', 'PayPal', money(item.amount || 0, item.currency || 'eur'), item.status,
       ]));
+      if (Array.isArray(paypalBilling.subscriptions)) {
+        const plansById = new Map((paypalBilling.plans || []).map((plan) => [plan.id, plan]));
+        paypalBilling.subscriptions.filter((subscription) => subscription.status === 'suspended' || Number(subscription.failed_payments_count || 0) > 0).forEach((subscription) => {
+          const plan = plansById.get(subscription.plan_id);
+          const name = [subscription.subscriber?.name?.given_name, subscription.subscriber?.name?.surname].filter(Boolean).join(' ') || subscription.subscriber?.email_address || 'Client PayPal';
+          const key = subscription.next_billing_time?.slice(0, 10) || subscription.update_time?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+          rowsById.set(`paypal-subscription:${subscription.id}`, [humanDate(key), name, subscription.subscriber?.email_address || '—', 'PayPal', plan ? money(plan.unit_amount_minor, plan.currency) : '—', `${subscription.failed_payments_count || 0} échec(s) · ${subscription.status}`]);
+        });
+      }
       return [...rowsById.values()];
     }
     if (type === 'taxes') {
@@ -315,8 +356,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
     state.hidden = false;
     document.getElementById('reportTable').hidden = true;
     try {
+      const needsPayPalBilling = ['plans', 'failures'].includes(reportType);
       const results = await Promise.allSettled([
         stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), stripe('checkout_sessions', days), paypal(days), historyForReport(reportType, days),
+        needsPayPalBilling ? paypalResource('subscriptions') : Promise.resolve(null),
+        needsPayPalBilling ? paypalResource('plans', 8) : Promise.resolve(null),
       ]);
       if (request !== reportRequest) return;
       const value = (index, fallback) => results[index].status === 'fulfilled' ? results[index].value : fallback;
@@ -326,6 +370,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
       const checkoutSessions = value(3, []);
       const paypalRows = value(4, []);
       const history = value(5, { ready: false });
+      const paypalBilling = { subscriptions: value(6, null), plans: value(7, null) };
       const liveReady = results.slice(0, 5).some((result) => result.status === 'fulfilled');
       if (future && !history.ready) {
         document.getElementById('reportCaption').textContent = 'La projection exacte sera disponible après l’initialisation additive de l’historique Pay.';
@@ -333,7 +378,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
         return;
       }
       if (!liveReady && !history.ready) throw new Error('pay_report_sources_unavailable');
-      reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows, history, days);
+      reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows, history, days, paypalBilling);
       reportSourceLabel = reportType === 'taxes' && history.ready
         ? 'Historique Pay'
         : history.ready && liveReady ? 'Historique + live' : history.ready ? 'Historique Pay' : 'Passerelles live';

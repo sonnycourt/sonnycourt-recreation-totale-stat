@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
-import { projectPayPalTransaction, projectStripeResource, validatePayProjection } from '../netlify/functions/lib/pay-provider-projection.mjs';
+import {
+  projectPayPalPlan,
+  projectPayPalProduct,
+  projectPayPalSubscription,
+  projectPayPalTransaction,
+  projectStripeResource,
+  validatePayProjection,
+} from '../netlify/functions/lib/pay-provider-projection.mjs';
 
 const stripePayment = projectStripeResource('payment_intents', {
   id: 'pi_live_test', object: 'payment_intent', created: 1_786_240_000, status: 'succeeded', currency: 'eur',
@@ -45,7 +52,34 @@ const paypalRefund = projectPayPalTransaction({
 assert.equal(paypalRefund[0].table, 'pay_refunds');
 assert.equal(paypalRefund[0].row.metadata.payment_external_id, '5TY-SALE');
 
-validatePayProjection([...stripePayment, ...stripePlan, ...paypalSale, ...paypalRefund]);
+const paypalProduct = projectPayPalProduct({
+  id: 'PROD-PP', name: 'Produit PayPal', description: 'Description', status: 'active',
+  create_time: '2026-01-01T00:00:00Z', update_time: '2026-01-02T00:00:00Z',
+});
+assert.equal(paypalProduct.table, 'pay_products');
+assert.equal(paypalProduct.row.active, true);
+
+const paypalPlanSource = {
+  id: 'PLAN-PP', product_id: 'PROD-PP', name: 'Plan PayPal', status: 'active', billing_type: 'installment',
+  unit_amount_minor: 19_700, currency: 'eur', interval_unit: 'month', interval_count: 1, installment_count: 12,
+};
+const paypalPlan = projectPayPalPlan(paypalPlanSource);
+assert.equal(paypalPlan.table, 'pay_prices');
+assert.equal(paypalPlan.row.billing_type, 'installment');
+assert.equal(paypalPlan.row.metadata.product_external_id, 'PROD-PP');
+
+const paypalSubscription = projectPayPalSubscription({
+  id: 'SUB-PP', plan_id: 'PLAN-PP', status: 'active', quantity: 1,
+  subscriber: { email_address: 'subscriber@example.test', name: { given_name: 'Test', surname: 'Subscriber' } },
+  next_billing_time: '2026-09-01T00:00:00Z', create_time: '2026-01-01T00:00:00Z',
+  cycle_executions: [{ cycles_completed: 3 }], pay_plan: paypalPlanSource,
+});
+assert.equal(paypalSubscription[1].table, 'pay_payment_plans');
+assert.equal(paypalSubscription[1].row.installments_paid, 3);
+assert.equal(paypalSubscription[1].row.remaining_minor, 177_300);
+assert.equal(paypalSubscription[1].row.metadata.product_external_id, 'PROD-PP');
+
+validatePayProjection([...stripePayment, ...stripePlan, ...paypalSale, ...paypalRefund, paypalProduct, paypalPlan, ...paypalSubscription]);
 assert.throws(() => projectStripeResource('events', { id: 'evt_test' }), /pay_projection_resource_invalid/);
 assert.throws(() => projectPayPalTransaction({}), /pay_projection_identity_missing/);
 
@@ -55,5 +89,7 @@ console.log(JSON.stringify({
   stripe_coupon_projection: 'ok',
   paypal_sale_projection: 'ok',
   paypal_refund_projection: 'ok',
+  paypal_catalog_projection: 'ok',
+  paypal_subscription_projection: 'ok',
   sensitive_payload_minimization: 'ok',
 }, null, 2));

@@ -148,6 +148,21 @@ if (screen) {
     return Array.isArray(payload.transactions) ? payload.transactions : [];
   }
 
+  async function fetchPayPalResource(resource, maxPages = 8) {
+    const data = [];
+    let nextPage = 1;
+    for (let page = 0; page < maxPages && nextPage; page += 1) {
+      const parameters = new URLSearchParams({ resource, page: String(nextPage) });
+      const response = await fetch(`${API_PAYPAL}?${parameters}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.connected) throw new Error(payload.error || `paypal_${resource}_failed`);
+      data.push(...(Array.isArray(payload.data) ? payload.data : []));
+      nextPage = payload.has_more && payload.next_page ? Number(payload.next_page) : 0;
+    }
+    if (nextPage) throw new Error(`paypal_${resource}_truncated`);
+    return data;
+  }
+
   async function fetchHistory(resource) {
     try {
       const response = await fetch(`${API_HISTORY}?${new URLSearchParams({ resource })}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -162,10 +177,12 @@ if (screen) {
   function stripeStatus(value) {
     if (value === 'refunded') return 'Remboursé';
     if (value === 'completed') return 'Terminé';
+    if (value === 'expired') return 'Terminé';
     if (value === 'unpaid') return 'Impayé';
     if (['active', 'trialing'].includes(value)) return 'Actif';
     if (['succeeded', 'paid', 'complete'].includes(value)) return 'Réussi';
-    if (['processing', 'open', 'pending', 'incomplete', 'past_due'].includes(value)) return value === 'past_due' ? 'En retard' : 'En attente';
+    if (['processing', 'open', 'pending', 'approval_pending', 'approved', 'incomplete', 'past_due'].includes(value)) return value === 'past_due' ? 'En retard' : 'En attente';
+    if (value === 'suspended') return 'En retard';
     if (['canceled', 'cancelled', 'expired'].includes(value)) return 'Annulé';
     return value || 'Inconnu';
   }
@@ -311,13 +328,26 @@ if (screen) {
         ], paymentPlansOnly ? [name, item.provider, money(item.amount, item.currency), item.installment_count ? `${item.installments_paid}/${item.installment_count}` : 'Récurrent', date(item.next_payment_at, true), status] : [name, item.provider, money(item.amount, item.currency), date(item.current_period_end, true), status], item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000), item.id);
       });
     }
-    const sources = requirePaySource(await collectPaySources({
+    const sources = await collectPaySources({
       stripe: fetchStripeAll('subscriptions', 20),
-      paypal: fetchPayPal(366),
-    }), 'pay_subscription_sources_unavailable');
-    const values = sourcesFrom(sources, { stripe: 'Stripe', paypal: 'PayPal' });
-    const subscriptions = values.stripe || [];
-    const paypal = values.paypal || [];
+      paypalNative: Promise.all([fetchPayPalResource('subscriptions', 20), fetchPayPalResource('plans', 8)])
+        .then(([subscriptions, plans]) => ({ subscriptions, plans })),
+    });
+    let paypalFallback = null;
+    if (!sources.values.paypalNative) {
+      try { paypalFallback = await fetchPayPal(366); } catch {}
+    }
+    if (!sources.values.stripe && !sources.values.paypalNative && !paypalFallback) {
+      throw new Error('pay_subscription_sources_unavailable');
+    }
+    sourceLabels = [
+      ...(sources.values.stripe ? ['Stripe'] : []),
+      ...(sources.values.paypalNative || paypalFallback ? ['PayPal'] : []),
+    ];
+    const subscriptions = (sources.values.stripe || []).filter((subscription) => {
+      const installmentCount = Number(subscription.metadata?.installment_count || 0);
+      return paymentPlansOnly ? installmentCount > 0 : installmentCount === 0;
+    });
     const stripeRows = subscriptions.map((subscription) => {
       const pricing = subscriptionAmount(subscription);
       const customer = typeof subscription.customer === 'object' ? subscription.customer : null;
@@ -331,8 +361,29 @@ if (screen) {
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(subscription.id)}</small>`, providerCell('stripe'), `<strong>${money(pricing.amount, pricing.currency)} / ${escapeHtml(pricing.interval)}</strong>`, date(subscription.current_period_end, true), badge(status),
       ], paymentPlansOnly ? [name, 'Stripe', money(pricing.amount, pricing.currency), total ? `${paid}/${total}` : 'Récurrent', date(subscription.current_period_end, true), status] : [name, 'Stripe', money(pricing.amount, pricing.currency), date(subscription.current_period_end, true), status], 'stripe', status, 0, subscription.id);
     });
+    if (sources.values.paypalNative) {
+      const plansById = new Map(sources.values.paypalNative.plans.map((plan) => [plan.id, plan]));
+      const paypalRows = sources.values.paypalNative.subscriptions.flatMap((subscription) => {
+        const plan = plansById.get(subscription.plan_id) || null;
+        const installment = plan?.billing_type === 'installment';
+        if (paymentPlansOnly !== installment) return [];
+        const first = subscription.subscriber?.name?.given_name || '';
+        const last = subscription.subscriber?.name?.surname || '';
+        const name = clean(`${first} ${last}`) || subscription.subscriber?.email_address || 'Client PayPal';
+        const status = stripeStatus(subscription.status);
+        const amount = plan ? money(plan.unit_amount_minor, plan.currency) : '—';
+        const completed = (subscription.cycle_executions || []).reduce((total, cycle) => total + Number(cycle.cycles_completed || 0), 0);
+        const cadence = plan?.interval_unit ? `${plan.interval_count || 1} ${plan.interval_unit}` : 'cadence inconnue';
+        return [row(paymentPlansOnly ? [
+          `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(subscription.id)}</small>`, providerCell('paypal'), `<strong>${escapeHtml(amount)} / ${escapeHtml(cadence)}</strong>`, plan?.installment_count ? `${completed}/${plan.installment_count}` : '—', date(subscription.next_billing_time, true), badge(status),
+        ] : [
+          `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(subscription.id)}</small>`, providerCell('paypal'), `<strong>${escapeHtml(amount)} / ${escapeHtml(cadence)}</strong>`, date(subscription.next_billing_time, true), badge(status),
+        ], paymentPlansOnly ? [name, 'PayPal', amount, plan?.installment_count ? `${completed}/${plan.installment_count}` : '—', date(subscription.next_billing_time, true), status] : [name, 'PayPal', amount, date(subscription.next_billing_time, true), status], 'paypal', status, Math.floor(new Date(subscription.create_time || 0).getTime() / 1_000), subscription.id)];
+      });
+      return [...stripeRows, ...paypalRows];
+    }
     const paypalGroups = new Map();
-    paypal.filter((item) => item.is_plan_payment && item.reference_id).forEach((item) => {
+    (paypalFallback || []).filter((item) => item.is_plan_payment && item.reference_id).forEach((item) => {
       const current = paypalGroups.get(item.reference_id) || { id: item.reference_id, customer: item.customer, amount: item.amount, currency: item.currency, count: 0, latest: 0, status: item.status };
       current.count += item.status === 'Réussi' ? 1 : 0;
       current.latest = Math.max(current.latest, item.created);
@@ -340,10 +391,10 @@ if (screen) {
       paypalGroups.set(item.reference_id, current);
     });
     const paypalRows = [...paypalGroups.values()].map((plan) => row(paymentPlansOnly ? [
-      `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, `${plan.count} encaissée${plan.count === 1 ? '' : 's'}`, 'Selon plan PayPal', badge(plan.status),
+      `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, `${plan.count} encaissée${plan.count === 1 ? '' : 's'}`, '—', badge(plan.status),
     ] : [
-      `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, 'Selon plan PayPal', badge(plan.status),
-    ], paymentPlansOnly ? [plan.customer, 'PayPal', money(plan.amount, plan.currency), plan.count, 'Selon plan PayPal', plan.status] : [plan.customer, 'PayPal', money(plan.amount, plan.currency), 'Selon plan PayPal', plan.status], 'paypal', plan.status, 0, plan.id));
+      `<strong>${escapeHtml(plan.customer)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), `<strong>${money(plan.amount, plan.currency)}</strong>`, '—', badge(plan.status),
+    ], paymentPlansOnly ? [plan.customer, 'PayPal', money(plan.amount, plan.currency), plan.count, '—', plan.status] : [plan.customer, 'PayPal', money(plan.amount, plan.currency), '—', plan.status], 'paypal', plan.status, 0, plan.id));
     return [...stripeRows, ...paypalRows];
   }
 
@@ -372,9 +423,13 @@ if (screen) {
       });
       return [...draftRows, ...historyRows];
     }
-    const sources = await collectPaySources({ stripe: fetchStripeAll('prices', 20) });
+    const sources = await collectPaySources({
+      stripe: fetchStripeAll('prices', 20),
+      paypal: Promise.all([fetchPayPalResource('products', 8), fetchPayPalResource('plans', 8)])
+        .then(([products, plans]) => ({ products, plans })),
+    });
     if (!draftRows.length) requirePaySource(sources, 'pay_product_sources_unavailable');
-    const values = sourcesFrom(sources, { stripe: 'Stripe' });
+    const values = sourcesFrom(sources, { stripe: 'Stripe', paypal: 'PayPal' });
     sourceLabels = [...new Set([...(draftRows.length ? ['Pay'] : []), ...sourceLabels])];
     const stripeRows = (values.stripe || []).map((price) => {
       const product = typeof price.product === 'object' ? price.product : null;
@@ -385,7 +440,28 @@ if (screen) {
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(price.id)}</small>`, providerCell('stripe'), escapeHtml(billing), `<strong>${money(price.unit_amount, price.currency)}</strong>`, badge(status),
       ], [name, 'Stripe', billing, money(price.unit_amount, price.currency), status], 'stripe', status);
     });
-    return [...draftRows, ...stripeRows];
+    const paypalCatalog = values.paypal || { products: [], plans: [] };
+    const paypalProducts = new Map((paypalCatalog.products || []).map((product) => [product.id, product]));
+    const planProductIds = new Set();
+    const paypalPlanRows = (paypalCatalog.plans || []).map((plan) => {
+      if (plan.product_id) planProductIds.add(plan.product_id);
+      const product = paypalProducts.get(plan.product_id);
+      const name = product?.name || plan.name || plan.product_id || 'Produit PayPal';
+      const billing = plan.billing_type === 'installment'
+        ? `${plan.installment_count || '—'} échéances · tous les ${plan.interval_count || 1} ${plan.interval_unit || 'mois'}`
+        : `Tous les ${plan.interval_count || 1} ${plan.interval_unit || 'mois'}`;
+      const status = plan.status === 'active' ? 'Actif' : 'Archivé';
+      return row([
+        `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(plan.id)}</small>`, providerCell('paypal'), escapeHtml(billing), `<strong>${money(plan.unit_amount_minor, plan.currency)}</strong>`, badge(status),
+      ], [name, 'PayPal', billing, money(plan.unit_amount_minor, plan.currency), status], 'paypal', status, Math.floor(new Date(plan.create_time || 0).getTime() / 1_000), plan.id);
+    });
+    const paypalProductRows = (paypalCatalog.products || []).filter((product) => !planProductIds.has(product.id)).map((product) => {
+      const status = product.status === 'archived' ? 'Archivé' : 'Actif';
+      return row([
+        `<strong>${escapeHtml(product.name)}</strong><small>#${escapeHtml(product.id)}</small>`, providerCell('paypal'), 'Prix non renseigné', '<strong>—</strong>', badge(status),
+      ], [product.name, 'PayPal', 'Prix non renseigné', '—', status], 'paypal', status, Math.floor(new Date(product.create_time || 0).getTime() / 1_000), product.id);
+    });
+    return [...draftRows, ...stripeRows, ...paypalPlanRows, ...paypalProductRows];
   }
 
   async function loadCheckouts() {

@@ -58,6 +58,10 @@ const fetchImpl = async (input, init = {}) => {
     assert.equal(init.headers.Authorization, 'Bearer access-token-for-smoke-test');
     return Response.json({ webhooks: [{ id: 'WH-TEST' }] });
   }
+  if (url.includes('/v1/catalogs/products')) return Response.json({ total_items: 2, products: [] });
+  if (url.includes('/v1/billing/plans')) return Response.json({ total_items: 3, plans: [] });
+  if (url.includes('/v1/billing/subscriptions')) return Response.json({ total_items: 4, subscriptions: [] });
+  if (url.includes('/v2/invoicing/invoices')) return Response.json({ total_items: 5, items: [] });
   if (url.endsWith('/v2/payments/captures/TESTCAPTURE/refund')) {
     assert.equal(init.method, 'POST');
     assert.equal(init.headers['PayPal-Request-Id'], 'refund-test-1');
@@ -73,8 +77,12 @@ assert.equal(token.appId, 'APP-TEST');
 assert.equal(token.accessToken, 'access-token-for-smoke-test');
 
 const overview = await getPayPalConnectionOverview({ env, fetchImpl, now: () => 1_800_000_000_000 });
-assert.deepEqual(overview.capabilities, { transaction_search: true, webhooks: true });
-assert.deepEqual(overview.probes, { transaction_count: 42, webhook_count: 1 });
+assert.deepEqual(overview.capabilities, {
+  transaction_search: true, webhooks: true, catalog_products: true, billing_plans: true, subscriptions: true, invoices: true,
+});
+assert.deepEqual(overview.probes, {
+  transaction_count: 42, webhook_count: 1, product_count: 2, plan_count: 3, subscription_count: 4, invoice_count: 5,
+});
 assert.equal(calls.filter((call) => call.url.endsWith('/v1/oauth2/token')).length, 1);
 assert.ok(!JSON.stringify(overview).includes(env.PAYPAL_CLIENT_SECRET));
 assert.ok(!JSON.stringify(overview).includes(token.accessToken));
