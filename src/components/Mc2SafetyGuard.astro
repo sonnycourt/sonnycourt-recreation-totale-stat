@@ -1,0 +1,30 @@
+<script is:inline>
+    /**
+     * Garde-fou temporaire pendant la construction du funnel MC2.
+     * Les pages restent navigables, mais aucune inscription ne peut être créée.
+     */
+    (function () {
+        window.__MC2_PREVIEW_ONLY__ = true;
+
+        var originalFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+            var url = typeof input === 'string'
+                ? input
+                : (input && typeof input.url === 'string' ? input.url : '');
+
+            if (url.indexOf('/.netlify/functions/register-webinaire') !== -1
+                || url.indexOf('/.netlify/functions/track-masterclass-optin') !== -1) {
+                return Promise.resolve(new Response(JSON.stringify({
+                    ok: false,
+                    preview: true,
+                    error: 'Le funnel MC2 est encore en mode construction.'
+                }), {
+                    status: 409,
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' }
+                }));
+            }
+
+            return originalFetch(input, init);
+        };
+    })();
+</script>
