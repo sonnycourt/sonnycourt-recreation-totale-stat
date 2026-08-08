@@ -19,6 +19,7 @@ export default async (req) => {
       rangeStart: url.searchParams.get('range_start'),
       rangeEnd: url.searchParams.get('range_end'),
       timeZone: 'Europe/Zurich',
+      planStatuses: url.searchParams.get('projection') === 'scheduled' ? ['active'] : undefined,
     });
     return json(200, dashboard);
   } catch (error) {

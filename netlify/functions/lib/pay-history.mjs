@@ -157,7 +157,8 @@ export async function paySupabaseSelect(table, parameters = {}, options = {}) {
 
 export function projectPaymentPlan(plan, options = {}) {
   const status = clean(plan?.status, 40).toLowerCase();
-  if (!['active', 'past_due'].includes(status)) return [];
+  const allowedStatuses = Array.isArray(options.statuses) && options.statuses.length ? options.statuses : ['active', 'past_due'];
+  if (!allowedStatuses.includes(status)) return [];
   const firstDue = new Date(String(plan?.next_payment_at || ''));
   const installment = positiveInteger(Number(plan?.installment_amount_minor));
   let remaining = Math.max(0, Number(plan?.remaining_minor || 0));
@@ -280,6 +281,9 @@ function resourceRow(resource, row) {
       description: clean(row.description, 300) || metadataValue(row.metadata, 'product_name', 'product', 'offer name') || 'Paiement',
       customer: customer.name,
       email: customer.email,
+      order_id: metadataValue(row.metadata, 'order_external_id', 'order id') || null,
+      payment_plan_id: metadataValue(row.metadata, 'payment_plan_external_id', 'paymentplan id', 'payment plan id') || null,
+      failure_reason: metadataValue(row.metadata, 'failure reason', 'failure_reason', 'failure code') || null,
       payment_method: [clean(row.payment_method_brand, 60), clean(row.payment_method_last4, 8) ? `•••• ${clean(row.payment_method_last4, 8)}` : ''].filter(Boolean).join(' ') || clean(row.payment_method_type, 80),
       paid_at: row.paid_at || row.source_created_at,
       due_at: row.due_at,
@@ -404,8 +408,9 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
     orderCurrencies[currencyCode(order?.currency)] = (orderCurrencies[currencyCode(order?.currency)] || 0) + 1;
   }
 
-  const projected = plans.flatMap((plan) => projectPaymentPlan(plan, { timeZone }));
+  const projected = plans.flatMap((plan) => projectPaymentPlan(plan, { timeZone, statuses: options.planStatuses }));
   const plansDueByDay = {};
+  const plansDueCountByDay = {};
   const currentCashflowMinor = {};
   const nextCashflowMinor = {};
   const currentMonth = payMonthKey(now, timeZone);
@@ -418,7 +423,9 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
     if (due >= rangeStart && due < rangeEndExclusive) {
       const key = payDateKey(due, timeZone);
       plansDueByDay[key] ||= {};
+      plansDueCountByDay[key] ||= {};
       addCurrencyAmount(plansDueByDay[key], installment.currency, installment.amount_minor);
+      plansDueCountByDay[key][installment.currency] = (plansDueCountByDay[key][installment.currency] || 0) + 1;
     }
   }
 
@@ -430,6 +437,7 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
     orders_by_day: ordersByDay,
     order_currencies: orderCurrencies,
     plans_due_by_day: plansDueByDay,
+    plans_due_count_by_day: plansDueCountByDay,
     cashflow_current_minor: currentCashflowMinor,
     cashflow_next_minor: nextCashflowMinor,
     past_due_count: plans.filter((plan) => clean(plan?.status, 40).toLowerCase() === 'past_due').length,
@@ -469,5 +477,6 @@ export async function getPayHistoryDashboard(options = {}) {
     rangeStart,
     rangeEnd,
     timeZone: options.timeZone,
+    planStatuses: options.planStatuses,
   });
 }

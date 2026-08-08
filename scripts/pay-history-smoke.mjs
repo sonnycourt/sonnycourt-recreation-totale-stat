@@ -12,6 +12,7 @@ const plans = [
 
 assert.equal(projectPaymentPlan(plans[0]).length, 3);
 assert.equal(projectPaymentPlan(plans[2]).length, 0);
+assert.equal(projectPaymentPlan(plans[1], { statuses: ['active'] }).length, 0);
 
 const dashboard = buildPayHistoryDashboard({
   orders: [
@@ -33,6 +34,14 @@ assert.equal(dashboard.cashflow_current_minor.EUR, 15_000);
 assert.equal(dashboard.cashflow_next_minor.EUR, 15_000);
 assert.equal(dashboard.plans_due_by_day['2026-08-10'].EUR, 10_000);
 assert.equal(dashboard.plans_due_by_day['2026-08-15'].EUR, 5_000);
+assert.equal(dashboard.plans_due_count_by_day['2026-08-15'].EUR, 1);
+
+const scheduledOnly = buildPayHistoryDashboard({ plans }, {
+  now: '2026-08-08T08:00:00Z', rangeStart: '2026-08-08T00:00:00Z', rangeEnd: '2026-08-31T00:00:00Z', planStatuses: ['active'],
+});
+assert.equal(scheduledOnly.cashflow_current_minor.EUR, 10_000);
+assert.equal(scheduledOnly.plans_due_by_day['2026-08-15'], undefined);
+assert.equal(scheduledOnly.past_due_count, 1);
 
 const selected = [];
 const viaSelect = await getPayHistoryDashboard({
@@ -77,12 +86,13 @@ const historyPayments = await getPayHistoryResource('payments', {
   select: async () => [{
     provider: 'paypal', external_id: 'capture_1', status: 'succeeded', currency: 'eur', amount_minor: 19_700,
     refunded_minor: 0, payment_method_type: 'paypal', description: 'Échéance ES2.0', paid_at: '2026-08-07T07:26:24Z',
-    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com' },
+    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com', order_external_id: '2475427' },
   }],
 });
 assert.equal(historyPayments.rows[0].provider, 'paypal');
 assert.equal(historyPayments.rows[0].amount, 19_700);
 assert.equal(historyPayments.rows[0].payment_method, 'paypal');
+assert.equal(historyPayments.rows[0].order_id, '2475427');
 
 const historyProducts = await getPayHistoryResource('products', {
   select: async (table) => table === 'pay_products'

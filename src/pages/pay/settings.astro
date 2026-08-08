@@ -11,6 +11,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
           <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
           <div class="gateway-row gateway-row--safety"><span class="gateway-logo gateway-logo--safety">✓</span><span><strong>Actions financières</strong><small id="stripeActionsDescription">Vérification du garde-fou des remboursements</small></span><span class="gateway-state" id="stripeActionsState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/transactions" href="/pay/transactions">Gérer</a></div>
           <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small id="paypalGatewayDescription">Transactions, abonnements, litiges et factures</small></span><span class="gateway-state" id="paypalGatewayState"><i></i>Vérification…</span><a class="pay-button" id="paypalDashboardLink" href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noopener" hidden>Ouvrir PayPal ↗</a></div>
+          <div class="gateway-row"><span class="gateway-logo gateway-logo--history">H</span><span><strong>Historique Pay</strong><small id="historyGatewayDescription">Vérification de la projection Supabase</small></span><span class="gateway-state" id="historyGatewayState"><i></i>Vérification…</span><span></span></div>
         </div>
       </article>
       <article class="pay-panel company-panel">
@@ -19,13 +20,14 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <footer><button class="pay-button" type="button" data-demo-disabled>Enregistrer les réglages</button></footer>
       </article>
     </div>
-    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie la connexion Stripe déjà utilisée par le site. Aucun produit ni paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Lecture sécurisée du compte</li><li><span>2</span>Remboursements dans Pay</li><li><span>3</span>Checkouts Stripe en mode test</li><li><span>4</span>PayPal Express</li></ol></aside>
+    <aside class="pay-panel roadmap-panel"><span class="roadmap-icon">⚡</span><p class="pay-kicker" id="stripeRoadmapKicker">Connexion en cours</p><h2 id="stripeRoadmapTitle">Brancher le vrai argent.</h2><p id="stripeRoadmapDescription">Pay vérifie les connexions déjà utilisées par le site. Aucun paiement ne sera créé pendant cette étape.</p><ol><li><span>1</span>Stripe + PayPal en lecture</li><li><span>2</span>Historique Spiffy normalisé</li><li><span>3</span>Synchronisation universelle</li><li><span>4</span>Checkouts gérés dans Pay</li></ol></aside>
   </section>
 </PayAppShell>
 
 <script>
   let stripeConnected = false;
   let paypalConnected = false;
+  let historyReady = false;
 
   function renderGatewayGlobalStatus() {
     const globalStatus = document.getElementById('gatewayGlobalStatus');
@@ -38,6 +40,25 @@ import PayAppShell from '../../components/PayAppShell.astro';
     } else if (paypalConnected) {
       globalStatus.textContent = 'PayPal connecté';
       globalStatus.className = 'pay-badge pay-badge--success';
+    }
+  }
+
+  function renderRoadmapStatus() {
+    const kicker = document.getElementById('stripeRoadmapKicker');
+    const title = document.getElementById('stripeRoadmapTitle');
+    const description = document.getElementById('stripeRoadmapDescription');
+    if (stripeConnected && paypalConnected && historyReady) {
+      kicker.textContent = 'Paiements + mémoire connectés';
+      title.textContent = 'Le cockpit est synchronisé.';
+      description.textContent = 'Pay dispose des passerelles live et de son historique normalisé. Les actions financières restent protégées par confirmation en deux étapes.';
+    } else if (stripeConnected && paypalConnected) {
+      kicker.textContent = 'Stripe + PayPal connectés';
+      title.textContent = 'Les deux comptes sont prêts.';
+      description.textContent = 'La prochaine étape est l’initialisation additive de la mémoire Pay, sans modification des tables existantes.';
+    } else if (stripeConnected) {
+      kicker.textContent = 'Stripe connecté';
+      title.textContent = 'Le cockpit devient opérationnel.';
+      description.textContent = 'Pay lit les paiements Stripe. La connexion PayPal et la mémoire historique complètent ensuite le cockpit.';
     }
   }
 
@@ -66,17 +87,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
       actionsState.innerHTML = '<i></i>Verrouillées';
       actionsDescription.textContent = 'Le garde-fou du compte réel doit encore être activé';
     }
-    if (paypalConnected) {
-      document.getElementById('stripeRoadmapKicker').textContent = 'Stripe + PayPal connectés';
-      document.getElementById('stripeRoadmapTitle').textContent = 'Les deux comptes sont prêts.';
-      document.getElementById('stripeRoadmapDescription').textContent = 'Pay dispose désormais des accès de lecture Stripe et PayPal. Les actions financières restent protégées par confirmation en deux étapes.';
-    } else {
-      document.getElementById('stripeRoadmapKicker').textContent = 'Stripe connecté';
-      document.getElementById('stripeRoadmapTitle').textContent = 'Le cockpit devient opérationnel.';
-      document.getElementById('stripeRoadmapDescription').textContent = data.writes_enabled
-        ? `Pay lit les paiements et pilote les remboursements Stripe en mode ${mode}. Prochaine étape : créer les checkouts directement ici.`
-        : `Pay lit les paiements en mode ${mode}. Les remboursements sont prêts, mais le garde-fou du compte réel est encore verrouillé.`;
-    }
+    renderRoadmapStatus();
   }
 
   function renderPayPalSettings(data) {
@@ -99,10 +110,35 @@ import PayAppShell from '../../components/PayAppShell.astro';
     document.getElementById('paypalDashboardLink').hidden = false;
     renderGatewayGlobalStatus();
 
-    if (stripeConnected) {
-      document.getElementById('stripeRoadmapKicker').textContent = 'Stripe + PayPal connectés';
-      document.getElementById('stripeRoadmapTitle').textContent = 'Les deux comptes sont prêts.';
-      document.getElementById('stripeRoadmapDescription').textContent = 'Pay dispose désormais des accès de lecture Stripe et PayPal. Les actions financières restent protégées par confirmation en deux étapes.';
+    renderRoadmapStatus();
+  }
+
+  function renderHistorySettings(data) {
+    const state = document.getElementById('historyGatewayState');
+    const description = document.getElementById('historyGatewayDescription');
+    historyReady = Boolean(data?.ready);
+    if (!historyReady) {
+      state.classList.remove('gateway-state--connected');
+      state.classList.add('gateway-state--locked');
+      state.innerHTML = '<i></i>À initialiser';
+      description.textContent = 'Migration additive non appliquée · aucune donnée existante modifiée';
+    } else {
+      state.classList.remove('gateway-state--locked');
+      state.classList.add('gateway-state--connected');
+      state.innerHTML = '<i></i>Connecté';
+      const lastSync = data.last_sync_at ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.last_sync_at)) : 'import initial';
+      description.textContent = `Projection Supabase disponible · dernière synchronisation : ${lastSync}`;
+    }
+    renderRoadmapStatus();
+  }
+
+  async function loadHistorySettings() {
+    try {
+      const response = await fetch('/.netlify/functions/pay-history', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({ ready: false }));
+      renderHistorySettings(response.ok ? data : { ready: false });
+    } catch {
+      renderHistorySettings({ ready: false });
     }
   }
 
@@ -112,7 +148,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
   stripeSettingsPromise?.then(renderStripeSettings);
   const paypalSettingsPromise = window.getPayPayPalOverview?.();
   paypalSettingsPromise?.then(renderPayPalSettings);
-  document.addEventListener('pay:authenticated', () => window.getPayPayPalOverview?.(), { once: true });
+  document.addEventListener('pay:authenticated', () => {
+    window.getPayPayPalOverview?.();
+    loadHistorySettings();
+  }, { once: true });
+  loadHistorySettings();
 </script>
 
 <style>
@@ -124,6 +164,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .gateway-logo { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; font-weight: 840; }
   .gateway-logo--stripe { color: #cfcaff; border: 1px solid rgba(151,140,255,.2); background: rgba(105,92,255,.1); }
   .gateway-logo--paypal { color: #78c4ff; border: 1px solid rgba(75,169,255,.2); background: rgba(75,169,255,.08); }
+  .gateway-logo--history { color: #70e7ff; border: 1px solid rgba(112,231,255,.2); background: rgba(112,231,255,.07); }
   .gateway-logo--safety { color: var(--pay-green); border: 1px solid rgba(101,229,170,.2); background: rgba(101,229,170,.07); }
   .gateway-row--safety { background: rgba(101,229,170,.015); }
   .gateway-row strong, .gateway-row small { display: block; }

@@ -8,7 +8,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   <section class="report-types" aria-label="Types de rapport">
     <button class="report-type pay-panel is-active" type="button" data-report="products"><span>↗</span><strong>Ventes par produit</strong><small>Revenu, commandes et panier moyen</small></button>
     <button class="report-type pay-panel" type="button" data-report="ltv"><span>◉</span><strong>Valeur client</strong><small>Achats et valeur cumulée</small></button>
-    <button class="report-type pay-panel" type="button" data-report="cashflow"><span>≋</span><strong>Cash flow</strong><small>Encaissements, remboursements et net</small></button>
+    <button class="report-type pay-panel" type="button" data-report="cashflow"><span>≋</span><strong>Cash flow</strong><small>Projection des échéances futures</small></button>
     <button class="report-type pay-panel" type="button" data-report="plans"><span>!</span><strong>Plans de paiement</strong><small>Échéances et paiements en retard</small></button>
     <button class="report-type pay-panel" type="button" data-report="checkouts"><span>⌁</span><strong>Performance checkouts</strong><small>Sessions, paiements et conversion</small></button>
     <button class="report-type pay-panel" type="button" data-report="failures"><span>×</span><strong>Paiements échoués</strong><small>Échecs, actions requises et relances</small></button>
@@ -28,10 +28,12 @@ import PayAppShell from '../../components/PayAppShell.astro';
 <script>
   const STRIPE_API = '/.netlify/functions/pay-stripe-data';
   const PAYPAL_API = '/.netlify/functions/pay-paypal-data';
+  const HISTORY_API = '/.netlify/functions/pay-history';
   const DAY = 86_400_000;
   let reportType = 'products';
   let reportRows = [];
   let reportRequest = 0;
+  let reportSourceLabel = 'Passerelles live';
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const money = (minor, currency = 'eur') => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(Number(minor || 0) / 100);
@@ -64,6 +66,50 @@ import PayAppShell from '../../components/PayAppShell.astro';
     return data.transactions || [];
   }
 
+  async function historyResource(resource) {
+    const response = await fetch(`${HISTORY_API}?${new URLSearchParams({ resource })}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ready || !Array.isArray(data.rows)) return null;
+    return data.rows;
+  }
+
+  async function historyProjection(days) {
+    const start = new Date();
+    const end = new Date(start.getTime() + days * DAY);
+    const query = new URLSearchParams({ range_start: start.toISOString(), range_end: end.toISOString(), projection: 'scheduled' });
+    const response = await fetch(`${HISTORY_API}?${query}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    const data = await response.json().catch(() => ({}));
+    return response.ok && data.ready ? data : null;
+  }
+
+  async function historyForReport(type, days) {
+    try {
+      if (type === 'products') {
+        const [payments, orders] = await Promise.all([historyResource('payments'), historyResource('orders')]);
+        return payments && orders ? { ready: true, payments, orders } : { ready: false };
+      }
+      if (type === 'ltv' || type === 'failures') {
+        const payments = await historyResource('payments');
+        return payments ? { ready: true, payments } : { ready: false };
+      }
+      if (type === 'cashflow') {
+        const projection = await historyProjection(days);
+        return projection ? { ready: true, projection } : { ready: false };
+      }
+      if (type === 'plans') {
+        const plans = await historyResource('payment_plans');
+        return plans ? { ready: true, plans } : { ready: false };
+      }
+      if (type === 'checkouts') {
+        const checkouts = await historyResource('checkouts');
+        return checkouts ? { ready: true, checkouts } : { ready: false };
+      }
+    } catch (error) {
+      console.error('Pay report history:', error);
+    }
+    return { ready: false };
+  }
+
   function customerOfStripe(intent) {
     const charge = typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
     const billing = charge?.billing_details || {};
@@ -74,36 +120,62 @@ import PayAppShell from '../../components/PayAppShell.astro';
     };
   }
 
-  function reportData(type, intents, refunds, invoices, checkoutSessions, paypalRows) {
+  function reportData(type, intents, _refunds, invoices, checkoutSessions, paypalRows, history = {}, days = 30) {
+    const providerLabel = (provider) => provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Spiffy';
+    const successfulStatuses = new Set(['succeeded', 'paid', 'complete', 'completed', 'refunded', 'active']);
+    const cutoff = Math.floor((Date.now() - days * DAY) / 1_000);
+    const ordersById = new Map((history.orders || []).map((order) => [String(order.id), order]));
+    const historySales = (history.payments || []).filter((payment) => {
+      const created = Math.floor(new Date(payment.paid_at || payment.created_at || 0).getTime() / 1_000);
+      return created >= cutoff && successfulStatuses.has(String(payment.status || '').toLowerCase());
+    }).map((payment) => {
+      const order = ordersById.get(String(payment.order_id || ''));
+      return {
+        provider: providerLabel(payment.provider), id: payment.id, created: Math.floor(new Date(payment.paid_at || payment.created_at).getTime() / 1_000),
+        amount: Number(payment.amount || 0), currency: payment.currency || 'eur', order_id: payment.order_id || null,
+        description: order?.description || payment.description || 'Paiement', customer: { name: payment.customer || payment.email || 'Client', email: payment.email || '' },
+        plan: Boolean(payment.payment_plan_id),
+      };
+    });
     const succeeded = intents.filter((item) => item.status === 'succeeded').map((item) => ({
       provider: 'Stripe', id: item.id, created: item.created, amount: Number(item.amount_received || item.amount || 0), currency: item.currency || 'eur',
-      description: item.description || item.metadata?.offer_name || item.metadata?.offer_slug || 'Paiement Stripe', customer: customerOfStripe(item), plan: false,
+      order_id: item.metadata?.order_id || item.metadata?.spiffy_order_id || null,
+      description: item.description || item.metadata?.offer_name || item.metadata?.offer_slug || 'Paiement Stripe', customer: customerOfStripe(item), plan: Boolean(item.invoice),
     }));
     const paypalSales = paypalRows.filter((item) => item.status === 'Réussi' && ['sale', 'payment_plan'].includes(item.kind)).map((item) => ({
-      provider: 'PayPal', id: item.id, created: item.created, amount: item.signed_amount, currency: item.currency, description: item.description, customer: { name: item.customer, email: item.email }, plan: item.is_plan_payment,
+      provider: 'PayPal', id: item.id, created: item.created, amount: item.signed_amount, currency: item.currency, order_id: item.order_id || null,
+      description: item.description, customer: { name: item.customer, email: item.email }, plan: item.is_plan_payment,
     }));
-    const sales = [...succeeded, ...paypalSales];
-    const refundRows = [
-      ...refunds.filter((item) => !['failed', 'canceled'].includes(item.status)).map((item) => ({ created: item.created, amount: Number(item.amount || 0), currency: item.currency || 'eur' })),
-      ...paypalRows.filter((item) => item.kind === 'refund').map((item) => ({ created: item.created, amount: item.refunded, currency: item.currency || 'eur' })),
-    ];
-
+    const salesById = new Map(historySales.map((sale) => [`${sale.provider.toLowerCase()}:${sale.id}`, sale]));
+    [...succeeded, ...paypalSales].forEach((sale) => salesById.set(`${sale.provider.toLowerCase()}:${sale.id}`, sale));
+    const sales = [...salesById.values()];
     if (type === 'ltv') {
       const groups = new Map();
       sales.forEach((sale) => {
         const key = sale.customer.email || sale.customer.name.toLowerCase();
-        const current = groups.get(key) || { label: sale.customer.name, email: sale.customer.email, count: 0, amount: 0, currency: sale.currency, provider: new Set() };
-        current.count += 1; current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current);
+        const current = groups.get(key) || { label: sale.customer.name, email: sale.customer.email, orders: new Set(), amount: 0, currency: sale.currency, provider: new Set() };
+        current.orders.add(sale.order_id || `${sale.provider}:${sale.id}`); current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current);
       });
-      return [...groups.values()].sort((a, b) => b.amount - a.amount).map((item) => [item.label, item.email || '—', [...item.provider].join(' + '), item.count, money(item.amount, item.currency)]);
+      return [...groups.values()].sort((a, b) => b.amount - a.amount).map((item) => [item.label, item.email || '—', [...item.provider].join(' + '), item.orders.size, money(item.amount, item.currency)]);
     }
     if (type === 'cashflow') {
-      const groups = new Map();
-      sales.forEach((sale) => { const key = dayKey(sale.created); const current = groups.get(key) || { revenue: 0, refunds: 0, currency: sale.currency }; current.revenue += sale.amount; groups.set(key, current); });
-      refundRows.forEach((refund) => { const key = dayKey(refund.created); const current = groups.get(key) || { revenue: 0, refunds: 0, currency: refund.currency }; current.refunds += refund.amount; groups.set(key, current); });
-      return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a)).map(([key, item]) => [humanDate(key), money(item.revenue, item.currency), money(item.refunds, item.currency), money(item.revenue - item.refunds, item.currency)]);
+      const amounts = history.projection?.plans_due_by_day || {};
+      const counts = history.projection?.plans_due_count_by_day || {};
+      return Object.entries(amounts).sort(([first], [second]) => first.localeCompare(second)).flatMap(([key, currencies]) => Object.entries(currencies).map(([currency, amount]) => [
+        humanDate(key), counts[key]?.[currency] || 0, currency, money(amount, currency),
+      ]));
     }
     if (type === 'plans') {
+      if (history.ready && Array.isArray(history.plans)) {
+        const horizon = Date.now() + days * DAY;
+        const statusLabel = { active: 'Actif', past_due: 'En retard', unpaid: 'Impayé', completed: 'Terminé', cancelled: 'Annulé', pending: 'En attente' };
+        return history.plans.filter((plan) => {
+          const next = new Date(plan.next_payment_at || 0).getTime();
+          return ['past_due', 'unpaid'].includes(plan.status) || (plan.status === 'active' && Number.isFinite(next) && next <= horizon);
+        }).map((plan) => [
+          plan.customer || plan.email || 'Client', providerLabel(plan.provider), money(plan.amount, plan.currency), plan.next_payment_at ? humanDate(String(plan.next_payment_at).slice(0, 10)) : '—', statusLabel[plan.status] || plan.status,
+        ]);
+      }
       const planRows = invoices.filter((invoice) => invoice.subscription || invoice.parent?.subscription_details?.subscription).map((invoice) => [
         invoice.customer_name || invoice.customer_email || String(invoice.customer || 'Client Stripe'), 'Stripe', money(invoice.amount_due || invoice.total || 0, invoice.currency || 'eur'), invoice.due_date ? humanDate(dayKey(invoice.due_date)) : humanDate(dayKey(invoice.created)), invoice.status === 'open' && invoice.amount_remaining > 0 ? 'En retard' : invoice.status,
       ]);
@@ -122,29 +194,40 @@ import PayAppShell from '../../components/PayAppShell.astro';
         }
         groups.set(key, current);
       });
+      (days === 30 ? history.checkouts || [] : []).forEach((checkout) => {
+        if (groups.has(checkout.id) || groups.has(checkout.name)) return;
+        groups.set(checkout.name || checkout.id, { sessions: null, paid: Number(checkout.customer_count_30d || 0), revenue: Number(checkout.sales_30d || 0), currency: 'eur' });
+      });
       return [...groups.entries()].sort(([, first], [, second]) => second.revenue - first.revenue).map(([label, item]) => [
-        label, item.sessions, item.paid, `${item.sessions ? Math.round(item.paid / item.sessions * 100) : 0} %`, money(item.revenue, item.currency),
+        label, item.sessions == null ? '—' : item.sessions, item.paid, item.sessions == null ? '—' : `${item.sessions ? Math.round(item.paid / item.sessions * 100) : 0} %`, money(item.revenue, item.currency),
       ]);
     }
     if (type === 'failures') {
-      const rows = intents.filter((item) => item.status !== 'succeeded').map((item) => {
+      const rowsById = new Map((history.payments || []).filter((payment) => {
+        const created = Math.floor(new Date(payment.paid_at || payment.created_at || 0).getTime() / 1_000);
+        return Number.isFinite(created) && created >= cutoff && !successfulStatuses.has(String(payment.status || '').toLowerCase());
+      }).map((payment) => {
+        const created = Math.floor(new Date(payment.paid_at || payment.created_at || 0).getTime() / 1_000);
+        return [`${payment.provider}:${payment.id}`, [humanDate(dayKey(created)), payment.customer || payment.email || 'Client', payment.email || '—', providerLabel(payment.provider), money(payment.amount, payment.currency), payment.failure_reason || payment.status]];
+      }));
+      intents.filter((item) => item.status !== 'succeeded').forEach((item) => {
         const customer = customerOfStripe(item);
-        return [humanDate(dayKey(item.created)), customer.name, customer.email || '—', 'Stripe', money(item.amount || 0, item.currency || 'eur'), item.last_payment_error?.message || item.status];
+        rowsById.set(`stripe:${item.id}`, [humanDate(dayKey(item.created)), customer.name, customer.email || '—', 'Stripe', money(item.amount || 0, item.currency || 'eur'), item.last_payment_error?.message || item.status]);
       });
-      paypalRows.filter((item) => ['Refusé', 'En attente'].includes(item.status)).forEach((item) => rows.push([
+      paypalRows.filter((item) => ['Refusé', 'En attente'].includes(item.status)).forEach((item) => rowsById.set(`paypal:${item.id}`, [
         humanDate(dayKey(item.created)), item.customer, item.email || '—', 'PayPal', money(item.amount || 0, item.currency || 'eur'), item.status,
       ]));
-      return rows;
+      return [...rowsById.values()];
     }
     const groups = new Map();
-    sales.forEach((sale) => { const key = sale.description; const current = groups.get(key) || { count: 0, amount: 0, currency: sale.currency, provider: new Set() }; current.count += 1; current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current); });
-    return [...groups.entries()].sort(([, a], [, b]) => b.amount - a.amount).map(([label, item]) => [label, [...item.provider].join(' + '), item.count, money(item.amount, item.currency), money(item.count ? item.amount / item.count : 0, item.currency)]);
+    sales.forEach((sale) => { const key = sale.description; const current = groups.get(key) || { orders: new Set(), amount: 0, currency: sale.currency, provider: new Set() }; current.orders.add(sale.order_id || `${sale.provider}:${sale.id}`); current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current); });
+    return [...groups.entries()].sort(([, a], [, b]) => b.amount - a.amount).map(([label, item]) => [label, [...item.provider].join(' + '), item.orders.size, money(item.amount, item.currency), money(item.orders.size ? item.amount / item.orders.size : 0, item.currency)]);
   }
 
   const reportMeta = {
     products: { title: 'Ventes par produit', headers: ['Produit', 'Passerelle', 'Commandes', 'Revenu', 'Panier moyen'] },
     ltv: { title: 'Valeur client', headers: ['Client', 'Email', 'Passerelle', 'Commandes', 'Valeur cumulée'] },
-    cashflow: { title: 'Cash flow', headers: ['Date', 'Encaissé', 'Remboursé', 'Net'] },
+    cashflow: { title: 'Projection du cash flow', headers: ['Date prévue', 'Échéances', 'Devise', 'Revenu planifié'] },
     plans: { title: 'Plans de paiement', headers: ['Client', 'Passerelle', 'Échéance', 'Date', 'Statut'] },
     checkouts: { title: 'Performance checkouts', headers: ['Checkout', 'Sessions', 'Paiements', 'Conversion', 'Revenu'] },
     failures: { title: 'Paiements échoués', headers: ['Date', 'Client', 'Email', 'Passerelle', 'Montant', 'Motif / statut'] },
@@ -157,35 +240,64 @@ import PayAppShell from '../../components/PayAppShell.astro';
     table.style.setProperty('--report-columns', `repeat(${meta.headers.length}, minmax(130px, 1fr))`);
     table.hidden = false;
     const total = reportRows.length;
-    document.getElementById('reportKpis').innerHTML = `<span><small>Lignes</small><strong>${total}</strong></span><span><small>Passerelles</small><strong>Stripe + PayPal</strong></span><span><small>Source</small><strong>Données réelles</strong></span>`;
+    document.getElementById('reportKpis').innerHTML = `<span><small>Lignes</small><strong>${total}</strong></span><span><small>Passerelles</small><strong>Stripe + PayPal</strong></span><span><small>Source</small><strong>${escapeHtml(reportSourceLabel)}</strong></span>`;
+  }
+
+  function updateRangeLabels() {
+    const range = document.getElementById('reportRange');
+    const future = reportType === 'cashflow';
+    range.options[0].textContent = future ? '30 prochains jours' : '30 derniers jours';
+    range.options[1].textContent = future ? '90 prochains jours' : '90 derniers jours';
+    range.options[2].textContent = future ? '12 prochains mois' : '12 derniers mois';
   }
 
   async function loadReport() {
     const request = ++reportRequest;
     const days = Number(document.getElementById('reportRange').value);
     const meta = reportMeta[reportType];
+    const future = reportType === 'cashflow';
     document.getElementById('reportTitle').textContent = meta.title;
-    document.getElementById('reportCaption').textContent = `Chargement des ${days} derniers jours…`;
-    document.getElementById('reportState').hidden = false;
+    document.getElementById('reportCaption').textContent = `Chargement des ${days} ${future ? 'prochains' : 'derniers'} jours…`;
+    const state = document.getElementById('reportState');
+    state.innerHTML = '<i></i><span><strong>Calcul du rapport</strong><small>Lecture uniquement, aucune action financière.</small></span>';
+    state.hidden = false;
     document.getElementById('reportTable').hidden = true;
     try {
-      const [intents, refunds, invoices, checkoutSessions, paypalRows] = await Promise.all([
-        stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), stripe('checkout_sessions', days), paypal(days),
+      const results = await Promise.allSettled([
+        stripe('payment_intents', days), stripe('refunds', days), stripe('invoices', days), stripe('checkout_sessions', days), paypal(days), historyForReport(reportType, days),
       ]);
       if (request !== reportRequest) return;
-      reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows);
-      document.getElementById('reportCaption').textContent = `Stripe + PayPal · ${days} derniers jours · PayPal peut avoir jusqu’à 3 h de délai`;
-      document.getElementById('reportState').hidden = true;
+      const value = (index, fallback) => results[index].status === 'fulfilled' ? results[index].value : fallback;
+      const intents = value(0, []);
+      const refunds = value(1, []);
+      const invoices = value(2, []);
+      const checkoutSessions = value(3, []);
+      const paypalRows = value(4, []);
+      const history = value(5, { ready: false });
+      const liveReady = results.slice(0, 5).some((result) => result.status === 'fulfilled');
+      if (future && !history.ready) {
+        document.getElementById('reportCaption').textContent = 'La projection exacte sera disponible après l’initialisation additive de l’historique Pay.';
+        state.innerHTML = '<span><strong>Projection prête, historique requis</strong><small>Aucun chiffre approximatif n’est affiché.</small></span>';
+        return;
+      }
+      if (!liveReady && !history.ready) throw new Error('pay_report_sources_unavailable');
+      reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows, history, days);
+      reportSourceLabel = history.ready && liveReady ? 'Historique + live' : history.ready ? 'Historique Pay' : 'Passerelles live';
+      document.getElementById('reportCaption').textContent = future
+        ? `Échéances Stripe + PayPal · ${days} prochains jours · projection calculée depuis les plans actifs`
+        : `Stripe + PayPal · ${days} derniers jours · archive dédupliquée avec les données live`;
+      state.hidden = true;
       renderReport();
     } catch (error) {
       console.error('Pay reports:', error);
-      document.getElementById('reportState').innerHTML = '<span><strong>Rapport indisponible</strong><small>Une passerelle n’a pas répondu.</small></span>';
+      state.innerHTML = '<span><strong>Rapport indisponible</strong><small>Aucune source de données authentifiée n’a répondu.</small></span>';
     }
   }
 
   document.querySelectorAll('[data-report]').forEach((button) => button.addEventListener('click', () => {
     reportType = button.dataset.report;
     document.querySelectorAll('[data-report]').forEach((item) => item.classList.toggle('is-active', item === button));
+    updateRangeLabels();
     loadReport();
   }));
   document.getElementById('reportRange').addEventListener('change', loadReport);
@@ -196,6 +308,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `pay-rapport-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
   });
+  updateRangeLabels();
   loadReport();
 </script>
 

@@ -134,6 +134,10 @@ des chiffres techniquement Stripe et les indicateurs métier de Spiffy :
   fin du mois, puis sur le mois suivant. Ce n'est ni le solde Stripe, ni le
   revenu déjà encaissé. La projection à blanc donne 454 220 centimes au
   8 août, soit les 4,5 k€ affichés par Spiffy ;
+- **Rapport Cashflow Projection** : contrairement à la carte du dashboard, le
+  rapport des 30 prochains jours conserve uniquement les plans `active` et
+  exclut les `past_due`. La projection à blanc donne 628 196 centimes, soit
+  les 6,3 k€ affichés par Spiffy ;
 - **Plans en retard** : uniquement le statut Spiffy `past_due`, soit 11 plans.
   Les 166 plans `unpaid` restent distincts et ne gonflent plus cet indicateur ;
 - **Courbe des plans** : échéances projetées à leur date, à partir du prochain
@@ -163,7 +167,7 @@ action de remboursement.
 | Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
 | Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |
 | Produits | Catalogue et prix Stripe réels | lecture prête |
-| Rapports | Produit, LTV, cash flow, plans, performance checkout, échecs | prêt |
+| Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs, archive + live dédupliqués | prêt avant import |
 | Réductions | Liste Stripe et constructeur de brouillon en deux étapes | publication verrouillée |
 | Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
 | Affiliés et MCP | Hors périmètre volontairement | exclu |
