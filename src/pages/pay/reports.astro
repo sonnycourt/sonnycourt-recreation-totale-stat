@@ -12,6 +12,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     <button class="report-type pay-panel" type="button" data-report="plans"><span>!</span><strong>Plans de paiement</strong><small>Échéances et paiements en retard</small></button>
     <button class="report-type pay-panel" type="button" data-report="checkouts"><span>⌁</span><strong>Performance checkouts</strong><small>Sessions, paiements et conversion</small></button>
     <button class="report-type pay-panel" type="button" data-report="failures"><span>×</span><strong>Paiements échoués</strong><small>Échecs, actions requises et relances</small></button>
+    <button class="report-type pay-panel" type="button" data-report="taxes"><span>§</span><strong>Taxes sur les ventes</strong><small>Taxes déclarées par pays et passerelle</small></button>
   </section>
 
   <section class="report-panel pay-panel">
@@ -39,6 +40,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
   const money = (minor, currency = 'eur') => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(Number(minor || 0) / 100);
   const dayKey = (timestamp) => new Date(Number(timestamp || 0) * 1_000).toISOString().slice(0, 10);
   const humanDate = (key) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(`${key}T12:00:00Z`));
+  const humanCountry = (code) => {
+    const normalized = String(code || '').trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(normalized)) return 'Non renseigné';
+    try { return new Intl.DisplayNames(['fr'], { type: 'region' }).of(normalized) || normalized; } catch { return normalized; }
+  };
 
   async function stripe(resource, days, maxPages = 20) {
     const rows = [];
@@ -87,6 +93,10 @@ import PayAppShell from '../../components/PayAppShell.astro';
       if (type === 'products') {
         const [payments, orders] = await Promise.all([historyResource('payments'), historyResource('orders')]);
         return payments && orders ? { ready: true, payments, orders } : { ready: false };
+      }
+      if (type === 'taxes') {
+        const orders = await historyResource('orders');
+        return orders ? { ready: true, orders } : { ready: false };
       }
       if (type === 'ltv' || type === 'failures') {
         const payments = await historyResource('payments');
@@ -219,6 +229,47 @@ import PayAppShell from '../../components/PayAppShell.astro';
       ]));
       return [...rowsById.values()];
     }
+    if (type === 'taxes') {
+      const taxLines = [];
+      if (history.ready && Array.isArray(history.orders)) {
+        history.orders.filter((order) => {
+          const created = Math.floor(new Date(order.created_at || 0).getTime() / 1_000);
+          return Number.isFinite(created) && created >= cutoff && successfulStatuses.has(String(order.status || '').toLowerCase());
+        }).forEach((order) => taxLines.push({
+          id: `${order.provider}:${order.id}`, provider: providerLabel(order.provider), country: order.country,
+          currency: order.currency || 'eur', gross: Number(order.amount || 0), tax: Number(order.tax || 0),
+        }));
+      } else {
+        const sessionInvoiceIds = new Set();
+        checkoutSessions.filter((session) => session.payment_status === 'paid').forEach((session) => {
+          const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id;
+          if (invoiceId) sessionInvoiceIds.add(invoiceId);
+          taxLines.push({
+            id: `stripe:${session.id}`, provider: 'Stripe', country: session.customer_details?.address?.country || session.shipping_details?.address?.country,
+            currency: session.currency || 'eur', gross: Number(session.amount_total || 0), tax: Number(session.total_details?.amount_tax || 0),
+          });
+        });
+        invoices.filter((invoice) => invoice.status === 'paid' && !sessionInvoiceIds.has(invoice.id)).forEach((invoice) => {
+          const taxes = Array.isArray(invoice.total_taxes) ? invoice.total_taxes : Array.isArray(invoice.total_tax_amounts) ? invoice.total_tax_amounts : [];
+          taxLines.push({
+            id: `stripe:${invoice.id}`, provider: 'Stripe', country: invoice.customer_address?.country || invoice.customer_shipping?.address?.country,
+            currency: invoice.currency || 'eur', gross: Number(invoice.amount_paid || invoice.total || 0), tax: taxes.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+          });
+        });
+        paypalRows.filter((item) => item.status === 'Réussi' && ['sale', 'payment_plan'].includes(item.kind)).forEach((item) => taxLines.push({
+          id: `paypal:${item.id}`, provider: 'PayPal', country: item.country, currency: item.currency || 'eur', gross: Number(item.amount || 0), tax: Number(item.tax || 0),
+        }));
+      }
+      const groups = new Map();
+      taxLines.forEach((line) => {
+        const key = `${line.country || 'XX'}:${line.provider}:${line.currency}`;
+        const current = groups.get(key) || { country: line.country, provider: line.provider, currency: line.currency, transactions: 0, gross: 0, tax: 0 };
+        current.transactions += 1; current.gross += line.gross; current.tax += line.tax; groups.set(key, current);
+      });
+      return [...groups.values()].sort((first, second) => second.tax - first.tax || second.gross - first.gross).map((item) => [
+        humanCountry(item.country), item.provider, item.currency.toUpperCase(), item.transactions, money(item.gross, item.currency), money(item.tax, item.currency), money(Math.max(0, item.gross - item.tax), item.currency),
+      ]);
+    }
     const groups = new Map();
     sales.forEach((sale) => { const key = sale.description; const current = groups.get(key) || { orders: new Set(), amount: 0, currency: sale.currency, provider: new Set() }; current.orders.add(sale.order_id || `${sale.provider}:${sale.id}`); current.amount += sale.amount; current.provider.add(sale.provider); groups.set(key, current); });
     return [...groups.entries()].sort(([, a], [, b]) => b.amount - a.amount).map(([label, item]) => [label, [...item.provider].join(' + '), item.orders.size, money(item.amount, item.currency), money(item.orders.size ? item.amount / item.orders.size : 0, item.currency)]);
@@ -231,6 +282,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     plans: { title: 'Plans de paiement', headers: ['Client', 'Passerelle', 'Échéance', 'Date', 'Statut'] },
     checkouts: { title: 'Performance checkouts', headers: ['Checkout', 'Sessions', 'Paiements', 'Conversion', 'Revenu'] },
     failures: { title: 'Paiements échoués', headers: ['Date', 'Client', 'Email', 'Passerelle', 'Montant', 'Motif / statut'] },
+    taxes: { title: 'Taxes sur les ventes', headers: ['Pays', 'Passerelle', 'Devise', 'Transactions', 'Ventes brutes', 'Taxes', 'Hors taxes'] },
   };
 
   function renderReport() {
@@ -282,10 +334,14 @@ import PayAppShell from '../../components/PayAppShell.astro';
       }
       if (!liveReady && !history.ready) throw new Error('pay_report_sources_unavailable');
       reportRows = reportData(reportType, intents, refunds, invoices, checkoutSessions, paypalRows, history, days);
-      reportSourceLabel = history.ready && liveReady ? 'Historique + live' : history.ready ? 'Historique Pay' : 'Passerelles live';
+      reportSourceLabel = reportType === 'taxes' && history.ready
+        ? 'Historique Pay'
+        : history.ready && liveReady ? 'Historique + live' : history.ready ? 'Historique Pay' : 'Passerelles live';
       document.getElementById('reportCaption').textContent = future
         ? `Échéances Stripe + PayPal · ${days} prochains jours · projection calculée depuis les plans actifs`
-        : `Stripe + PayPal · ${days} derniers jours · archive dédupliquée avec les données live`;
+        : reportType === 'taxes' && history.ready
+          ? `Historique fiscal Pay · ${days} derniers jours · aucune taxe estimée`
+          : `Stripe + PayPal · ${days} derniers jours · archive dédupliquée avec les données live`;
       state.hidden = true;
       renderReport();
     } catch (error) {

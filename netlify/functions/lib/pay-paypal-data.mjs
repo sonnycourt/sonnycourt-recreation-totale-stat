@@ -57,6 +57,16 @@ function transactionDescription(detail, kind) {
   );
 }
 
+function transactionTaxMinor(detail, currency) {
+  const info = detail?.transaction_info || {};
+  const direct = toMinor(info.sales_tax_amount?.value, info.sales_tax_amount?.currency_code || currency)
+    + toMinor(info.shipping_tax_amount?.value, info.shipping_tax_amount?.currency_code || currency);
+  if (direct) return Math.abs(direct);
+  const items = Array.isArray(detail?.cart_info?.item_details) ? detail.cart_info.item_details : [];
+  return Math.abs(items.reduce((total, item) => total + (Array.isArray(item?.tax_amounts) ? item.tax_amounts : [])
+    .reduce((itemTotal, tax) => itemTotal + toMinor(tax?.tax_amount?.value, tax?.tax_amount?.currency_code || currency), 0), 0));
+}
+
 export function classifyPayPalTransaction(eventCode, signedMinor) {
   const code = clean(eventCode, 5).toUpperCase();
   if (REFUND_CODES.has(code)) return 'refund';
@@ -103,6 +113,8 @@ export function normalizePayPalTransaction(detail = {}) {
     reference_type: clean(info.paypal_reference_id_type, 12) || null,
     invoice_id: clean(info.invoice_id, 120) || null,
     fee: Math.abs(toMinor(info.fee_amount?.value, info.fee_amount?.currency_code || currency)),
+    tax: transactionTaxMinor(detail, currency),
+    country: clean(payer.country_code || payer.address?.country_code || detail?.shipping_info?.address?.country_code, 2).toUpperCase() || null,
   };
 }
 

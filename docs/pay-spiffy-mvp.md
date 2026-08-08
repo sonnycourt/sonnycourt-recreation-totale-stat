@@ -13,7 +13,8 @@ en lecture seule.
 - Remises : montant fixe ou pourcentage, date d'expiration, usage unique par
   client, application aux paiements uniques ou récurrents.
 - Rapports : ventes par produit, valeur client, performance des checkouts,
-  performance des plans, projection de trésorerie et paiements échoués.
+  performance des plans, projection de trésorerie, paiements échoués et taxes
+  sur les ventes par pays et passerelle.
 - Exports CSV filtrés.
 - Fiches commande, client et plan avec historique et notes.
 
@@ -167,7 +168,7 @@ action de remboursement.
 | Abonnements et plans | Listes réelles et historique Spiffy validé à blanc | prêt avant import |
 | Checkouts | Liste Stripe et constructeur de brouillon | publication en attente du moteur Stripe central |
 | Produits | Catalogue et prix Stripe réels | lecture prête |
-| Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs, archive + live dédupliqués | prêt avant import |
+| Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs et taxes par pays/passerelle, archive + live dédupliqués | prêt avant import |
 | Réductions | Liste Stripe et constructeur de brouillon en deux étapes | publication verrouillée |
 | Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
 | Affiliés et MCP | Hors périmètre volontairement | exclu |

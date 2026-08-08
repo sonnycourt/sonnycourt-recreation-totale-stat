@@ -93,10 +93,15 @@ const normalized = normalizePayPalTransaction({
     transaction_id: 'REF-1', transaction_event_code: 'T1107', transaction_status: 'S',
     transaction_initiation_date: '2026-08-04T12:00:00Z',
     transaction_amount: { currency_code: 'EUR', value: '-12.50' },
+    sales_tax_amount: { currency_code: 'EUR', value: '1.25' },
+    shipping_tax_amount: { currency_code: 'EUR', value: '0.25' },
   },
+  payer_info: { country_code: 'CH' },
 });
 assert.equal(normalized.status, 'Remboursé');
 assert.equal(normalized.refunded, 1250);
+assert.equal(normalized.tax, 150);
+assert.equal(normalized.country, 'CH');
 
 const transactions = await getPayPalTransactions({
   env,

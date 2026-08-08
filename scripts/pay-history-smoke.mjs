@@ -74,13 +74,17 @@ await assert.rejects(() => paySupabaseSelect('orders', {}, { supabaseUrl: 'https
 const historyOrders = await getPayHistoryResource('orders', {
   select: async () => [{
     provider: 'spiffy', external_id: '2475427', status: 'succeeded', currency: 'eur', total_minor: 116_400,
-    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com', 'name first': 'Client', product_name: 'ES2.0' },
+    subtotal_minor: 100_000, discount_minor: 0, finance_fee_minor: 0, tax_minor: 16_400,
+    source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com', 'name first': 'Client', product_name: 'ES2.0', country: 'CH' },
   }],
 });
 assert.equal(historyOrders.ready, true);
 assert.equal(historyOrders.rows[0].id, '2475427');
 assert.equal(historyOrders.rows[0].customer, 'Client');
 assert.equal(historyOrders.rows[0].description, 'ES2.0');
+assert.equal(historyOrders.rows[0].tax, 16_400);
+assert.equal(historyOrders.rows[0].subtotal, 100_000);
+assert.equal(historyOrders.rows[0].country, 'CH');
 
 const historyPayments = await getPayHistoryResource('payments', {
   select: async () => [{

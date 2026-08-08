@@ -312,7 +312,7 @@ create index if not exists pay_discounts_code_idx
 create table if not exists public.pay_report_definitions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  report_type text not null check (report_type in ('product_sales', 'customer_ltv', 'checkout_performance', 'payment_plan_performance', 'cashflow', 'failed_payments')),
+  report_type text not null check (report_type in ('product_sales', 'customer_ltv', 'checkout_performance', 'payment_plan_performance', 'cashflow', 'failed_payments', 'sales_tax')),
   filters jsonb not null default '{}'::jsonb,
   schedule text,
   active boolean not null default true,

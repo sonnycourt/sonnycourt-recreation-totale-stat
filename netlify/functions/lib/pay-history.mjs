@@ -14,7 +14,7 @@ const ALLOWED_TABLES = new Set([
 const HISTORY_RESOURCES = Object.freeze({
   orders: {
     table: 'pay_orders',
-    select: 'provider,external_id,status,currency,total_minor,refunded_minor,promo_code,source_created_at,source_updated_at,metadata',
+    select: 'provider,external_id,status,currency,subtotal_minor,discount_minor,finance_fee_minor,tax_minor,total_minor,refunded_minor,promo_code,source_created_at,source_updated_at,metadata',
     order: 'source_created_at.desc.nullslast',
   },
   customers: {
@@ -221,11 +221,16 @@ function resourceRow(resource, row) {
       provider: row.provider,
       status: row.status,
       currency: currencyCode(row.currency).toLowerCase(),
+      subtotal: Number(row.subtotal_minor || 0),
+      discount: Number(row.discount_minor || 0),
+      finance_fee: Number(row.finance_fee_minor || 0),
+      tax: Number(row.tax_minor || 0),
       amount: Number(row.total_minor || 0),
       refunded: Number(row.refunded_minor || 0),
       description: metadataValue(row.metadata, 'product_name', 'product', 'offer name') || 'Commande',
       customer: customer.name,
       email: customer.email,
+      country: metadataValue(row.metadata, 'country', 'billing country', 'billing_country', 'country code', 'country_code') || null,
       promo_code: row.promo_code || null,
       created_at: row.source_created_at,
       updated_at: row.source_updated_at,
