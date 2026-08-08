@@ -17,6 +17,32 @@ ignore = "node scripts/block-netlify-auto-build.mjs"
   status = 301
   force = true
 
+# Email Marketing Division : sous-domaine dédié, avec passage SSO court depuis
+# le Hub. Les fonctions et assets conservent leurs routes natives sur le site.
+[[redirects]]
+  from = "https://emd.sonnycourt.com/admin/email-marketing"
+  to = "https://emd.sonnycourt.com/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://emd.sonnycourt.com/admin/email-marketing/"
+  to = "https://emd.sonnycourt.com/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://emd.sonnycourt.com/sso"
+  to = "/admin/email-marketing-sso"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://emd.sonnycourt.com/"
+  to = "/admin/email-marketing"
+  status = 200
+  force = true
+
 # Coaching OS : le marketing reste sur sonnycourt.com et l'application privée
 # est servie avec des URLs propres depuis coaching.sonnycourt.com. Les rewrites
 # 200 conservent l'URL visible ; les anciennes URLs restent un filet de sécurité.
@@ -363,6 +389,14 @@ compress = true
   [functions."generate-email-pack"]
     type = "background"
     timeout = 60
+
+  [functions."admin-email-marketing-autonomy-worker-background"]
+    type = "background"
+    timeout = 900
+
+  # Pulse quotidien de l'Email Marketing Division. Les actions MailerLite restent interdites.
+  [functions."admin-email-marketing-daily-pulse"]
+    schedule = "0 6 * * *"
 
   # Dimanche 23h Paris.
   # CET => 22:00 UTC, CEST => 21:00 UTC. On planifie les 2 pour couvrir DST.

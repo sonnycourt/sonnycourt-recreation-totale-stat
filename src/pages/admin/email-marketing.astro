@@ -1,0 +1,2360 @@
+---
+import '../../styles/email-marketing-workspace.css';
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#06100d" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Email Marketing Division — Sonny Court</title>
+  </head>
+  <body>
+    <div class="loading-screen" id="loadingScreen" role="status" aria-live="polite">
+      <div class="loading-card">
+        <div class="loading-orb" aria-hidden="true"></div>
+        <h1>Le département se met au travail</h1>
+        <p>Lecture sécurisée des campagnes, automations et segments MailerLite…</p>
+      </div>
+    </div>
+
+    <div class="locked-screen" id="lockedScreen" hidden>
+      <div class="locked-card">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <h1>Accès privé</h1>
+        <p>Cette pièce du Hub utilise la même session administrateur. Connecte-toi depuis le Hub pour voir les données MailerLite.</p>
+        <a class="hub-link" href="/hub">Retourner au Hub</a>
+      </div>
+    </div>
+
+    <main class="workspace-shell" id="workspace" aria-busy="true">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">✦</div>
+          <div class="brand-copy">
+            <strong>Email Marketing Division</strong>
+            <span>Sonny Court · Département agentique</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="status-pill">Observation en direct</span>
+          <button class="refresh-button" id="refreshButton" type="button">↻ Rafraîchir</button>
+          <a class="hub-link" href="/hub">← Hub</a>
+        </div>
+      </header>
+
+      <div class="observation-banner">
+        <span class="shield" aria-hidden="true">⛨</span>
+        <span><strong>Broadcasts verrouillés.</strong> Les agents analysent et proposent ; seule une épreuve isolée vers l’adresse test autorisée peut être préparée après ta double validation.</span>
+        <small id="syncLabel">Synchronisation en cours…</small>
+      </div>
+
+      <section class="validator-home" id="validatorHome" aria-labelledby="validatorTitle">
+        <div class="validator-welcome">
+          <div>
+            <div class="section-kicker"><span class="live-dot"></span> Mode validateur</div>
+            <h1 id="validatorTitle">Bonjour Sonny.</h1>
+            <p><strong id="validatorDecisionCount">La division prépare ton briefing.</strong> <span id="validatorTimeEstimate">Tu ne verras ici que ce qui réclame réellement ton attention.</span></p>
+          </div>
+          <button class="validator-department-button" id="openDepartmentView" type="button">Voir tout le département <span aria-hidden="true">→</span></button>
+        </div>
+
+        <div class="validator-layout">
+          <article class="validator-primary-card" id="validatorPrimaryCard" data-state="loading">
+            <div class="validator-card-topline">
+              <span id="validatorPrimaryKicker">Prochaine action</span>
+              <span class="validator-safe-label">Sous ton contrôle</span>
+            </div>
+            <h2 id="validatorPrimaryTitle">Le briefing arrive…</h2>
+            <p id="validatorPrimarySummary">Nova rassemble les informations utiles sans toucher à MailerLite.</p>
+            <div class="validator-reason" id="validatorPrimaryReason">Aucune action externe ne sera exécutée silencieusement.</div>
+            <div class="validator-primary-footer">
+              <span><small>Temps estimé</small><strong id="validatorPrimaryTime">2 min</strong></span>
+              <button class="validator-primary-button" id="validatorPrimaryAction" type="button" disabled>Patienter</button>
+            </div>
+          </article>
+
+          <aside class="validator-side">
+            <section class="validator-decisions" aria-labelledby="validatorDecisionsTitle">
+              <div class="validator-section-heading">
+                <div><span>Aujourd’hui</span><h2 id="validatorDecisionsTitle">Tes décisions</h2></div>
+                <strong id="validatorDecisionBadge">0</strong>
+              </div>
+              <div class="validator-decision-list" id="validatorDecisionList">
+                <div class="validator-empty">Aucune décision urgente pour le moment.</div>
+              </div>
+            </section>
+
+            <section class="validator-team-status" aria-labelledby="validatorTeamTitle">
+              <div>
+                <span>Équipe en arrière-plan</span>
+                <h2 id="validatorTeamTitle">Nova coordonne la division</h2>
+                <p id="validatorTeamStatus">Les agents attendent les données du jour.</p>
+              </div>
+              <div class="validator-agent-strip" id="validatorAgentStrip" aria-label="Agents actifs"></div>
+            </section>
+          </aside>
+        </div>
+
+        <footer class="validator-signal" id="validatorSignal">
+          <span aria-hidden="true">◎</span>
+          <p><strong id="validatorSignalTitle">Signal du compte</strong><small id="validatorSignalDetail">Lecture des données MailerLite en cours…</small></p>
+        </footer>
+      </section>
+
+      <div class="department-view" id="departmentView" hidden>
+        <div class="department-view-heading">
+          <div>
+            <div class="section-kicker">Salle de contrôle approfondie</div>
+            <h1>Tout le département</h1>
+            <p>Équipe, métriques, autonomie, missions et journal de bord.</p>
+          </div>
+          <button class="validator-department-button" id="backToValidatorMode" type="button"><span aria-hidden="true">←</span> Revenir au mode validateur</button>
+        </div>
+
+      <section class="hero-grid" aria-label="Bureau des agents et briefing">
+        <article class="panel office-panel">
+          <div class="eyebrow"><span class="live-dot"></span> Carte de l’équipe · 15 membres en service</div>
+          <div class="hero-heading">
+            <h1>Ton équipe email<br /><span>travaille sous tes yeux.</span></h1>
+            <p>Direction au sommet, expertises par pôle. Sélectionne un agent pour suivre sa mission du moment.</p>
+          </div>
+
+          <div class="office-viewport" aria-label="Carte hiérarchique de l’équipe en pixel art">
+            <div class="office-floor">
+              <div class="office-room-label" aria-hidden="true"><span>EMAIL MARKETING DIVISION · TEAM MAP</span><i></i></div>
+              <div class="department-map" aria-hidden="true">
+                <div class="department-zone department-zone--direction"></div>
+                <div class="department-zone department-zone--editorial"></div>
+                <div class="department-zone department-zone--intelligence"></div>
+                <div class="department-zone department-zone--lifecycle"></div>
+                <div class="department-zone department-zone--governance"></div>
+              </div>
+              <div class="department-label department-label--direction" aria-hidden="true">Direction</div>
+              <div class="department-label department-label--editorial" aria-hidden="true">Pôle éditorial</div>
+              <div class="department-label department-label--intelligence" aria-hidden="true">Intelligence &amp; revenus</div>
+              <div class="department-label department-label--lifecycle" aria-hidden="true">Cycle de vie</div>
+              <div class="department-label department-label--governance" aria-hidden="true">Gouvernance</div>
+              <div class="agent-layer" id="agentFloor"></div>
+            </div>
+          </div>
+
+          <div class="agent-focus" id="agentFocus" aria-live="polite">
+            <div class="agent-focus-identity">
+              <span class="agent-focus-kicker" id="focusDivision">Direction</span>
+              <h2><span id="focusName">Nova</span> <small id="focusRole">Directrice de division</small></h2>
+            </div>
+            <div class="agent-focus-mission">
+              <span class="agent-focus-state" id="focusState">Initialisation</span>
+              <p id="focusTask">Ordonne le briefing du jour.</p>
+            </div>
+            <div class="agent-focus-progress">
+              <span><small>Progression</small><strong id="focusProgressValue">—</strong></span>
+              <div class="progress-track"><span class="progress-bar" id="focusProgressBar"></span></div>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel briefing-panel">
+          <div class="briefing-heading">
+            <div><div class="section-kicker">Briefing exécutif</div><p class="briefing-date" id="briefingDate">Aujourd’hui</p><h2>Ce qui mérite <span>ton attention.</span></h2></div>
+
+            <div class="briefing-score">
+              <div class="score-orb" id="maturityScore">—</div>
+              <div>
+                <strong id="maturityLabel">Évaluation en cours</strong>
+                <p>Indice de maturité opérationnelle, pas une note de délivrabilité.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="briefing-list">
+            <div class="briefing-line">
+              <span class="briefing-line-icon" aria-hidden="true">✉</span>
+              <span><strong>Dernier broadcast éditorial</strong><small>Envoi à 10 000+ contacts · rappels opérationnels exclus</small></span>
+              <span class="briefing-value" id="lastBroadcastValue">—</span>
+            </div>
+            <div class="briefing-line">
+              <span class="briefing-line-icon" aria-hidden="true">◫</span>
+              <span><strong>File éditoriale</strong><small>Prêts + brouillons MailerLite</small></span>
+              <span class="briefing-value" id="pipelineValue">—</span>
+            </div>
+            <div class="briefing-line">
+              <span class="briefing-line-icon" aria-hidden="true">◎</span>
+              <span><strong>Tracking business</strong><small>Campagnes récentes instrumentées</small></span>
+              <span class="briefing-value" id="trackingValue">—</span>
+            </div>
+            <div class="briefing-line">
+              <span class="briefing-line-icon" aria-hidden="true">⌁</span>
+              <span><strong>Connexion événementielle</strong><small>Webhooks actifs, URL masquée</small></span>
+              <span class="briefing-value" id="webhookValue">—</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="metrics-grid" aria-label="Indicateurs principaux">
+        <article class="metric-card"><small>Broadcasts sur 30 jours</small><strong id="metricCadence">—</strong><span class="metric-trend" id="metricCadenceTrend">Calcul…</span></article>
+        <article class="metric-card"><small>Ouvertures pondérées · 90 j</small><strong id="metricOpen">—</strong><span class="metric-trend">Grands envois récents</span></article>
+        <article class="metric-card"><small>Clics pondérés · 90 j</small><strong id="metricClick">—</strong><span class="metric-trend">Grands envois récents</span></article>
+        <article class="metric-card"><small>Désinscriptions · 90 j</small><strong id="metricUnsub">—</strong><span class="metric-trend" id="metricUnsubTrend">Surveillance</span></article>
+        <article class="metric-card"><small>Automations actives</small><strong id="metricAutomations">—</strong><span class="metric-trend" id="metricAutomationDetail">Lecture seule</span></article>
+        <article class="metric-card"><small>Contacts inactifs repérés</small><strong id="metricInactive">—</strong><span class="metric-trend warn">À segmenter avec validation</span></article>
+      </section>
+
+      <section class="panel autonomy-panel" id="autonomyPanel" data-state="loading" aria-labelledby="autonomyTitle">
+        <div class="autonomy-heading">
+          <div>
+            <div class="section-kicker"><span class="live-dot"></span> Moteur autonome</div>
+            <h2 id="autonomyTitle">Le briefing démarre sans prompt.</h2>
+            <p>Chaque jour, l’équipe lit les agrégats, détecte les signaux, archive son briefing et prépare le prochain dossier utile.</p>
+          </div>
+          <span class="autonomy-state" id="autonomyStateBadge">Initialisation</span>
+        </div>
+        <div class="autonomy-grid">
+          <div class="autonomy-stat"><small>Dernier réveil</small><strong id="autonomyLastPulse">—</strong><span id="autonomyLastDecision">Aucun pulse enregistré</span></div>
+          <div class="autonomy-stat"><small>Prochain réveil</small><strong id="autonomyNextPulse">—</strong><span>Planning quotidien sécurisé</span></div>
+          <div class="autonomy-stat"><small>File du jour</small><strong id="autonomyMissionCount">—</strong><span id="autonomyMissionDetail">Signaux à analyser</span></div>
+          <div class="autonomy-stat"><small>Budget IA mensuel</small><strong id="autonomyBudget">—</strong><span id="autonomyBudgetDetail">Plafond dur</span></div>
+        </div>
+        <div class="autonomy-footer">
+          <p><span>Zone verte uniquement</span> Analyse, rédaction et mémoire internes. Aucun brouillon, envoi, archivage de contact ou changement d’automation dans MailerLite.</p>
+          <div class="autonomy-actions">
+            <button class="mission-secondary-button" id="toggleAutonomy" type="button">Mettre en pause</button>
+            <button class="mission-primary-button" id="runAutonomyNow" type="button">Lancer le briefing maintenant</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel first-flight-panel" id="firstFlightPanel" data-state="idle" aria-labelledby="firstFlightTitle">
+        <div class="first-flight-heading">
+          <div>
+            <div class="section-kicker"><span class="live-dot"></span> Premier vol · Email de valeur</div>
+            <h2 id="firstFlightTitle">Vis tout le cycle depuis ce cockpit.</h2>
+            <p id="firstFlightSummary">L’équipe choisit l’angle, recommande l’audience, rédige et contrôle. Tu corriges, valides, puis tu peux recevoir une épreuve isolée.</p>
+          </div>
+          <span class="first-flight-state" id="firstFlightState">Prêt à démarrer</span>
+        </div>
+        <div class="first-flight-route" aria-label="Parcours du premier email">
+          <article id="firstFlightStepAgents" data-state="current"><span>01</span><strong>Agents</strong><small>Angle + rédaction</small></article>
+          <article id="firstFlightStepDossier" data-state="locked"><span>02</span><strong>Dossier</strong><small>Ta validation</small></article>
+          <article id="firstFlightStepContent" data-state="locked"><span>03</span><strong>Contenu</strong><small>Correction libre</small></article>
+          <article id="firstFlightStepProof" data-state="locked"><span>04</span><strong>Épreuve</strong><small>1 adresse autorisée</small></article>
+          <article id="firstFlightStepBroadcast" data-state="locked"><span>05</span><strong>Broadcast</strong><small>Reste verrouillé</small></article>
+        </div>
+        <div class="first-flight-brief">
+          <div><small>Audience recommandée</small><strong id="firstFlightAudience">Analyse en cours…</strong><span id="firstFlightAudienceReason">Aucun destinataire ne sera contacté pendant la préparation.</span></div>
+          <div><small>Adresse d’épreuve</small><strong id="firstFlightRecipient">sonnycourt@gmail.com</strong><span>Fixée côté serveur · impossible à remplacer dans l’interface.</span></div>
+        </div>
+        <div class="first-flight-actions">
+          <button class="mission-primary-button" id="startFirstFlight" type="button">Faire produire la V2</button>
+          <button class="mission-secondary-button" id="openFirstFlightDossier" type="button" disabled>Ouvrir le dossier</button>
+          <button class="mission-secondary-button" id="openFirstFlightStudio" type="button" disabled>Ouvrir l’éditeur</button>
+        </div>
+      </section>
+
+      <section class="panel mission-room" aria-labelledby="missionRoomTitle">
+        <div class="mission-room-header">
+          <div>
+            <div class="section-kicker">Salle des missions</div>
+            <h2 id="missionRoomTitle">Le travail réel de la division.</h2>
+            <p>Les agents analysent, rédigent et préparent les dossiers. L’écriture d’un brouillon et l’envoi final restent deux actions séparées, chacune sous ton contrôle.</p>
+          </div>
+          <div class="mission-counters" aria-label="État des missions">
+            <div><strong id="missionWorkingCount">—</strong><span>En cours</span></div>
+            <div><strong id="missionReviewCount">—</strong><span>À valider</span></div>
+            <div><strong id="missionQueuedCount">—</strong><span>En attente</span></div>
+            <div><strong id="missionDoneCount">—</strong><span>Terminées</span></div>
+          </div>
+        </div>
+
+        <div class="mission-room-grid">
+          <article class="mission-feature" id="missionFeature">
+            <div class="mission-feature-topline">
+              <span class="mission-priority" id="featuredMissionPriority">P1</span>
+              <span class="mission-status" id="featuredMissionStatus">Initialisation</span>
+            </div>
+            <div class="mission-feature-heading">
+              <div>
+                <span class="mission-owner" id="featuredMissionOwner">Mission pilotée par Alma</span>
+                <h3 id="featuredMissionTitle">Préparation du prochain broadcast</h3>
+                <p id="featuredMissionSummary">Les agents établissent le dossier de mission…</p>
+              </div>
+              <div class="mission-progress-orb" id="featuredMissionProgress">—</div>
+            </div>
+
+            <div class="mission-proof-grid" id="featuredMissionEvidence"></div>
+
+            <div class="mission-pipeline-wrap">
+              <div class="mission-subheading"><span>Chaîne de production</span><small>Chaque étape possède un responsable clair</small></div>
+              <div class="mission-pipeline" id="missionPipeline"></div>
+            </div>
+
+            <div class="mission-feature-footer">
+              <div><small>Livrable attendu</small><strong id="featuredMissionDeliverable">—</strong></div>
+              <button class="mission-primary-button" id="openFeaturedMission" type="button">Ouvrir le dossier</button>
+            </div>
+          </article>
+
+          <aside class="mission-portfolio" aria-label="Portefeuille de missions">
+            <div class="mission-portfolio-heading">
+              <div><span>Portefeuille</span><small id="missionPortfolioLabel">Synchronisation…</small></div>
+              <span class="mission-safe-badge">Validation humaine</span>
+            </div>
+            <div class="mission-list" id="missionList">
+              <div class="empty-state">Nova organise la file de missions…</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel work-panel">
+          <div class="card-title-row">
+            <div><div class="section-kicker">File de validation</div><h2>Décisions préparées pour toi</h2><p>Des recommandations lisibles, jamais exécutées silencieusement.</p></div>
+            <span class="count-badge" id="priorityCount">0</span>
+          </div>
+          <div class="priority-list" id="priorityList"><div class="empty-state">Les agents établissent les priorités…</div></div>
+        </article>
+
+        <article class="panel work-panel">
+          <div class="card-title-row">
+            <div><div class="section-kicker">Journal de bord</div><h2>Ce que l’équipe vient de faire</h2><p>Chaque analyse reste traçable.</p></div>
+          </div>
+          <div class="activity-feed" id="activityFeed"></div>
+        </article>
+
+        <article class="panel guardrail-panel span-full">
+          <div>
+            <div class="section-kicker">Périmètre inviolable</div>
+            <h2>Les automations restent sous ton contrôle.</h2>
+            <p>La division peut préparer des broadcasts et, une fois armée, synchroniser des brouillons. Elle ne peut jamais modifier une automation et aucun envoi ne part sans ta validation finale.</p>
+          </div>
+          <div class="guardrail-grid">
+            <div class="guardrail-item"><span class="guardrail-check">✓</span> Analyse MailerLite en lecture seule</div>
+            <div class="guardrail-item"><span class="guardrail-check">✓</span> Passerelle d’écriture séparée et désarmée</div>
+            <div class="guardrail-item"><span class="guardrail-check">✓</span> Automations non modifiables</div>
+            <div class="guardrail-item"><span class="guardrail-check">✓</span> Double validation avant diffusion</div>
+          </div>
+        </article>
+
+        <article class="panel work-panel">
+          <div class="card-title-row">
+            <div><div class="section-kicker">Radar automations</div><h2>Signaux à investiguer</h2><p>Diagnostic seulement — aucun changement n’est possible.</p></div>
+          </div>
+          <div class="signal-grid">
+            <div class="signal-card"><small>Signal fort</small><strong id="strongAutomation">Analyse en cours</strong><span id="strongAutomationRate">—</span></div>
+            <div class="signal-card weak"><small>Point de vigilance</small><strong id="weakAutomation">Analyse en cours</strong><span id="weakAutomationRate">—</span></div>
+          </div>
+          <div class="briefing-line">
+            <span class="briefing-line-icon" aria-hidden="true">⚑</span>
+            <span><strong>Alertes techniques remontées</strong><small>Warnings déclarés par MailerLite</small></span>
+            <span class="briefing-value" id="automationWarnings">—</span>
+          </div>
+        </article>
+
+        <article class="panel work-panel">
+          <div class="card-title-row">
+            <div><div class="section-kicker">Architecture data</div><h2>Base observée</h2><p>Inventaire sans consultation des fiches abonnés.</p></div>
+          </div>
+          <div class="briefing-list">
+            <div class="briefing-line"><span class="briefing-line-icon">◌</span><span><strong>Segments dynamiques</strong><small>Règles d’audience existantes</small></span><span class="briefing-value" id="segmentCount">—</span></div>
+            <div class="briefing-line"><span class="briefing-line-icon">◇</span><span><strong>Groupes</strong><small>Points d’entrée et cohortes</small></span><span class="briefing-value" id="groupCount">—</span></div>
+            <div class="briefing-line"><span class="briefing-line-icon">⌘</span><span><strong>Champs disponibles</strong><small>Potentiel de personnalisation</small></span><span class="briefing-value" id="fieldCount">—</span></div>
+            <div class="briefing-line"><span class="briefing-line-icon">●</span><span><strong>Actifs sur 6 mois</strong><small>Si le segment existe</small></span><span class="briefing-value" id="activeSixMonths">—</span></div>
+          </div>
+        </article>
+
+        <article class="panel work-panel span-full">
+          <div class="card-title-row">
+            <div><div class="section-kicker">Campagnes récentes</div><h2>Derniers signaux éditoriaux</h2><p>Noms, volumes et performances agrégées uniquement.</p></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="campaign-table">
+              <thead><tr><th>Campagne</th><th>Envoyés</th><th>Ouvertures</th><th>Clics</th><th>Désinscr.</th></tr></thead>
+              <tbody id="campaignRows"><tr><td colspan="5">Chargement des campagnes…</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+      </div>
+    </main>
+
+    <div class="toast" id="toast" hidden role="status"></div>
+
+    <dialog class="review-dialog" id="reviewDialog">
+      <div class="dialog-inner">
+        <div class="dialog-owner"><span id="dialogOwner">Recommandation</span><button class="dialog-close" id="dialogClose" type="button" aria-label="Fermer">×</button></div>
+        <h2 id="dialogTitle"></h2>
+        <p id="dialogDetail"></p>
+        <div class="dialog-evidence" id="dialogEvidence"></div>
+        <div class="dialog-lock">⛨ Recommandation en lecture seule. Les validations locales se font depuis la Salle des missions et ne déclenchent aucune action MailerLite.</div>
+      </div>
+    </dialog>
+
+    <dialog class="mission-dialog" id="missionDialog">
+      <div class="mission-dialog-inner">
+        <div class="dialog-owner">
+          <span id="missionDialogOwner">Dossier de mission</span>
+          <button class="dialog-close" id="missionDialogClose" type="button" aria-label="Fermer">×</button>
+        </div>
+        <div class="mission-dialog-heading">
+          <div><span class="mission-priority" id="missionDialogPriority">P1</span><span class="mission-status" id="missionDialogStatus">En cours</span></div>
+          <h2 id="missionDialogTitle"></h2>
+          <p id="missionDialogSummary"></p>
+        </div>
+
+        <div class="mission-dialog-grid">
+          <section>
+            <h3>Preuves observées</h3>
+            <ul class="mission-dialog-evidence" id="missionDialogEvidence"></ul>
+          </section>
+          <section>
+            <h3>Livrables attendus</h3>
+            <ul class="mission-dialog-deliverables" id="missionDialogDeliverables"></ul>
+          </section>
+        </div>
+
+        <section class="mission-dialog-workflow">
+          <h3>État du workflow</h3>
+          <div id="missionDialogSteps"></div>
+        </section>
+
+        <section class="mission-email-entry" id="missionEmailEntry" hidden>
+          <div>
+            <span>Studio de rédaction</span>
+            <strong>Corrige directement l’email proposé par Léo.</strong>
+            <p>Objet, préheader, corps, CTA, audience, versions et aperçu sont réunis ici.</p>
+          </div>
+          <button class="mission-primary-button" id="openEmailStudio" type="button">Ouvrir l’éditeur</button>
+        </section>
+
+        <section class="mission-decision-box">
+          <div><span>Ta décision</span><strong id="missionDecisionPrompt"></strong></div>
+          <label for="missionDecisionNote">Commentaire facultatif</label>
+          <textarea id="missionDecisionNote" rows="3" placeholder="Exemple : raccourcir l’introduction et proposer un CTA plus concret."></textarea>
+          <div class="mission-decision-state" id="missionDecisionState" hidden></div>
+          <div class="mission-dialog-actions">
+            <button class="mission-secondary-button" id="requestMissionRevision" type="button">Demander une correction</button>
+            <button class="mission-primary-button" id="approveMission" type="button">Valider le dossier</button>
+          </div>
+          <p>Cette première validation autorise la préparation éditoriale. Elle ne crée pas encore de brouillon et n’autorise jamais l’envoi.</p>
+        </section>
+      </div>
+    </dialog>
+
+    <dialog class="email-studio-dialog" id="emailStudioDialog">
+      <div class="email-studio-shell">
+        <header class="email-studio-header">
+          <div>
+            <span class="email-studio-kicker">Email Production Studio</span>
+            <h2>Le prochain broadcast, de la rédaction à ta validation.</h2>
+            <p id="emailStudioMode">Mode construction · aucune écriture MailerLite</p>
+          </div>
+          <button class="dialog-close" id="emailStudioClose" type="button" aria-label="Fermer l’éditeur">×</button>
+        </header>
+
+        <div class="email-stage-rail" aria-label="Étapes de validation">
+          <div class="email-stage" id="emailStageDossier"><span>01</span><strong>Dossier</strong><small>Angle autorisé</small></div>
+          <div class="email-stage" id="emailStageContent"><span>02</span><strong>Contenu</strong><small>Version approuvée</small></div>
+          <div class="email-stage" id="emailStageTest"><span>03</span><strong>Épreuve</strong><small>Adresse test uniquement</small></div>
+          <div class="email-stage" id="emailStageDraft"><span>04</span><strong>Brouillon ML</strong><small>Synchronisé</small></div>
+          <div class="email-stage email-stage--danger" id="emailStageSend"><span>05</span><strong>Envoi final</strong><small>Ton bouton rouge</small></div>
+        </div>
+
+        <section class="agentic-production-panel" id="agenticProductionPanel" data-state="idle">
+          <div class="agentic-production-summary">
+            <span>Cycle agentique réel</span>
+            <strong id="agentRunTitle">L’équipe n’a pas encore produit de dossier.</strong>
+            <p id="agentRunDetail">Les agents analyseront uniquement les données agrégées autorisées. Aucun abonné, aucune écriture et aucun envoi MailerLite.</p>
+            <small id="agentRunMeta">Stockage durable prêt · validation humaine obligatoire</small>
+          </div>
+          <div class="agentic-production-actions">
+            <button class="email-button email-button--agent" id="runAgentTeam" type="button">Faire travailler l’équipe</button>
+            <button class="email-button email-button--adopt" id="adoptAgentDraft" type="button" hidden>Charger dans l’éditeur</button>
+          </div>
+          <div class="agentic-contributions" id="agentRunContributions" aria-live="polite"></div>
+        </section>
+
+        <div class="email-studio-grid">
+          <section class="email-compose-panel" aria-labelledby="emailComposeTitle">
+            <div class="email-panel-heading">
+              <div><span>Rédaction</span><h3 id="emailComposeTitle">Version de travail</h3></div>
+              <span class="email-dirty-state" id="emailSaveState">Sauvegarde locale</span>
+            </div>
+
+            <div class="email-form-grid">
+              <label class="email-field email-field--wide">Objet A
+                <input id="emailSubject" maxlength="255" autocomplete="off" />
+                <small id="emailSubjectCount">0/55 recommandé</small>
+              </label>
+              <label class="email-field email-field--wide">Objet B · variante
+                <input id="emailSubjectVariant" maxlength="255" autocomplete="off" />
+              </label>
+              <label class="email-field email-field--wide">Préheader
+                <input id="emailPreheader" maxlength="255" autocomplete="off" />
+                <small id="emailPreheaderCount">0/90 recommandé</small>
+              </label>
+              <label class="email-field">Nom d’expéditeur
+                <input id="emailFromName" maxlength="255" autocomplete="off" />
+              </label>
+              <label class="email-field">Adresse vérifiée MailerLite
+                <input id="emailFromAddress" maxlength="255" type="email" placeholder="ton-adresse@domaine.com" autocomplete="off" />
+              </label>
+              <label class="email-field email-field--wide">Audience
+                <select id="emailAudience"></select>
+                <small id="emailAudienceMeta">Sélection obligatoire avant synchronisation</small>
+              </label>
+              <label class="email-field email-field--wide">Corps de l’email
+                <textarea id="emailBody" rows="16" spellcheck="true"></textarea>
+                <small id="emailWordCount">0 mots</small>
+              </label>
+              <label class="email-field">Texte du CTA
+                <input id="emailCtaLabel" maxlength="120" autocomplete="off" />
+              </label>
+              <label class="email-field">Lien du CTA
+                <input id="emailCtaUrl" maxlength="500" type="url" inputmode="url" autocomplete="off" />
+              </label>
+              <label class="email-field email-field--wide">Hypothèse de test
+                <textarea id="emailHypothesis" rows="3"></textarea>
+              </label>
+            </div>
+
+            <div class="email-editor-actions">
+              <button class="email-button email-button--ghost" id="saveEmailVersion" type="button">Enregistrer une version</button>
+              <button class="email-button email-button--approve" id="approveEmailContent" type="button">Valider cette version</button>
+            </div>
+            <div class="email-content-state" id="emailContentState"></div>
+
+            <details class="email-version-drawer">
+              <summary>Historique des versions <span id="emailVersionCount">0</span></summary>
+              <div id="emailVersionList"></div>
+            </details>
+          </section>
+
+          <aside class="email-preview-panel">
+            <div class="email-panel-heading">
+              <div><span>Aperçu en direct</span><h3>Ce que recevra l’abonné</h3></div>
+              <div class="email-device-switch" role="group" aria-label="Format de l’aperçu">
+                <button type="button" class="is-active" data-email-device="desktop">Desktop</button>
+                <button type="button" data-email-device="mobile">Mobile</button>
+              </div>
+            </div>
+
+            <div class="email-preview-viewport" id="emailPreviewViewport" data-device="desktop">
+              <div class="email-inbox-header">
+                <span class="email-sender-dot">SC</span>
+                <div><strong id="previewFrom">Sonny Court</strong><small id="previewSubject">Objet de l’email</small></div>
+                <time>10:42</time>
+              </div>
+              <div class="email-preview-preheader" id="previewPreheader"></div>
+              <article class="email-preview-body" id="previewBody"></article>
+            </div>
+
+            <section class="email-ai-checklist">
+              <div><span>Contrôle croisé des agents</span><strong id="emailChecklistScore">0/6</strong></div>
+              <ul id="emailChecklist"></ul>
+            </section>
+
+            <section class="email-test-bridge" id="emailTestBridge" data-state="locked">
+              <div>
+                <span>Épreuve isolée</span>
+                <strong id="testFlightTitle">En attente de la version approuvée</strong>
+                <p id="testFlightDetail">Après tes deux validations, MailerLite pourra envoyer cette version exacte à une seule adresse test.</p>
+              </div>
+              <button class="email-button email-button--test" id="prepareTestProof" type="button" disabled>Recevoir l’épreuve</button>
+              <small id="testProofMeta">Destinataire fixé côté serveur : sonnycourt@gmail.com</small>
+            </section>
+
+            <section class="email-mailerlite-bridge">
+              <div>
+                <span>Passerelle MailerLite</span>
+                <strong id="mailerLiteBridgeTitle">Écriture désarmée</strong>
+                <p id="mailerLiteBridgeDetail">Le studio est fonctionnel, mais aucune campagne ne peut être créée pendant la construction.</p>
+              </div>
+              <button class="email-button email-button--sync" id="syncMailerLiteDraft" type="button" disabled>Créer le brouillon MailerLite</button>
+              <button class="email-button email-button--final" id="prepareFinalApproval" type="button" disabled>Ouvrir la validation finale</button>
+              <small id="mailerLiteDraftMeta">Aucun brouillon MailerLite lié.</small>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="send-confirmation-dialog test-confirmation-dialog" id="testConfirmationDialog">
+      <div class="send-confirmation-shell">
+        <div class="dialog-owner">
+          <span>Épreuve isolée · 1 destinataire</span>
+          <button class="dialog-close" id="testConfirmationClose" type="button" aria-label="Fermer">×</button>
+        </div>
+        <span class="send-test-label">Test réel · Broadcast public verrouillé</span>
+        <h2>Recevoir cette version exacte dans ta boîte mail ?</h2>
+        <p>Cette action crée une campagne de test isolée. Elle ne cible jamais l’audience recommandée et ne déverrouille pas le broadcast réel.</p>
+        <dl class="send-summary">
+          <div><dt>Destinataire unique</dt><dd id="testConfirmationRecipient">sonnycourt@gmail.com</dd></div>
+          <div><dt>Objet</dt><dd id="testConfirmationSubject">—</dd></div>
+          <div><dt>Audience future</dt><dd id="testConfirmationAudience">—</dd></div>
+          <div><dt>État broadcast</dt><dd>Verrouillé</dd></div>
+        </dl>
+        <label class="send-check"><input type="checkbox" id="confirmTestReview" /> J’ai relu l’objet, le contenu, les liens et l’expéditeur.</label>
+        <label class="send-phrase">Tape <strong>ENVOYER TEST</strong> pour confirmer cette seule épreuve
+          <input id="testConfirmationPhrase" autocomplete="off" />
+        </label>
+        <button class="send-button send-button--test" id="sendTestProofButton" type="button" disabled>Envoyer uniquement l’épreuve</button>
+        <small id="testAuthMessage">Une session administrateur reste obligatoire pour l’écriture réelle.</small>
+      </div>
+    </dialog>
+
+    <dialog class="send-confirmation-dialog" id="sendConfirmationDialog">
+      <div class="send-confirmation-shell">
+        <div class="dialog-owner">
+          <span>Validation finale irréversible</span>
+          <button class="dialog-close" id="sendConfirmationClose" type="button" aria-label="Fermer">×</button>
+        </div>
+        <span class="send-danger-label">Bouton rouge · Broadcast réel</span>
+        <h2>Confirmer l’envoi de cette version exacte ?</h2>
+        <p>Toute modification du brouillon après ce contrôle annulera automatiquement cette autorisation.</p>
+        <dl class="send-summary">
+          <div><dt>Campagne</dt><dd id="sendCampaignName">—</dd></div>
+          <div><dt>Objet</dt><dd id="sendCampaignSubject">—</dd></div>
+          <div><dt>Audience</dt><dd id="sendCampaignAudience">—</dd></div>
+          <div><dt>Expéditeur</dt><dd id="sendCampaignFrom">—</dd></div>
+        </dl>
+        <div class="send-preflight" id="sendPreflight">Nino et June vérifient le brouillon réel…</div>
+        <label class="send-check"><input type="checkbox" id="confirmFinalReview" /> J’ai relu l’objet, le contenu, les liens et l’audience.</label>
+        <label class="send-phrase">Tape <strong>ENVOYER</strong> pour déverrouiller l’action
+          <input id="sendConfirmationPhrase" autocomplete="off" />
+        </label>
+        <button class="send-button" id="finalSendButton" type="button" disabled>Envoyer maintenant</button>
+        <small id="sendLockMessage">Les envois restent désarmés pendant la construction.</small>
+      </div>
+    </dialog>
+
+    <script is:inline>
+      const OVERVIEW_API = '/.netlify/functions/admin-email-marketing-overview';
+      const ACTIONS_API = '/.netlify/functions/admin-email-marketing-actions';
+      const AGENT_RUNS_API = '/.netlify/functions/admin-email-marketing-agent-runs';
+      const AUTONOMY_API = '/.netlify/functions/admin-email-marketing-autonomy';
+      const workspace = document.getElementById('workspace');
+      const loadingScreen = document.getElementById('loadingScreen');
+      const lockedScreen = document.getElementById('lockedScreen');
+      const refreshButton = document.getElementById('refreshButton');
+      const toast = document.getElementById('toast');
+      const reviewDialog = document.getElementById('reviewDialog');
+      const missionDialog = document.getElementById('missionDialog');
+      const emailStudioDialog = document.getElementById('emailStudioDialog');
+      const testConfirmationDialog = document.getElementById('testConfirmationDialog');
+      const sendConfirmationDialog = document.getElementById('sendConfirmationDialog');
+      let currentPriorities = [];
+      let currentAgents = [];
+      let currentMissions = [];
+      let currentOverview = null;
+      let selectedAgentId = 'nova';
+      let featuredMissionId = 'broadcast-value';
+      let activeMissionId = null;
+      let finalApprovalToken = '';
+      let emailPersistTimer = null;
+      let currentAgentRun = null;
+      let workspaceIsDurable = false;
+      let currentAutonomy = null;
+      let autonomyBusy = false;
+      let firstFlightBusy = false;
+
+      const MISSION_DECISION_KEY = 'sonnycourt.emailDivision.missionDecisions.v1';
+      const EMAIL_STUDIO_KEY = 'sonnycourt.emailDivision.broadcastStudio.v1';
+      const EMAIL_STUDIO_STALE_ARCHIVE_KEY = 'sonnycourt.emailDivision.broadcastStudio.stale.v1';
+      let actionCapabilities = {
+        mode: 'construction',
+        draftWritesEnabled: false,
+        sendsEnabled: false,
+        finalApprovalRequired: true,
+        confirmationPhrase: 'ENVOYER',
+        testFlightsEnabled: false,
+        testRecipients: ['sonnycourt@gmail.com'],
+        testConfirmationPhrase: 'ENVOYER TEST',
+      };
+      const missionStatusLabels = {
+        working: 'En cours', review: 'À valider', queued: 'En attente', done: 'Terminée',
+        validated: 'Validée localement', revision: 'Correction demandée',
+      };
+
+      function readMissionDecisions() {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(MISSION_DECISION_KEY) || '{}');
+          return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+
+      let missionDecisions = readMissionDecisions();
+
+      const byId = (id) => document.getElementById(id);
+      const formatNumber = (value) => value == null ? '—' : Number(value).toLocaleString('fr-FR');
+      const formatRate = (value) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2).replace('.', ',')} %` : '—';
+      const dateTime = (value) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.hidden = false;
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => { toast.hidden = true; }, 5000);
+      }
+
+      function showValidatorMode() {
+        byId('validatorHome').hidden = false;
+        byId('departmentView').hidden = true;
+        byId('validatorTitle').focus?.({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function showDepartmentMode() {
+        byId('validatorHome').hidden = true;
+        byId('departmentView').hidden = false;
+        byId('departmentView').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function openStudioFromValidator() {
+        if (!emailStudioState.draft && currentAgentRun?.artifact) adoptAgentDraft();
+        openEmailStudio();
+      }
+
+      function renderValidatorAgents() {
+        const strip = byId('validatorAgentStrip');
+        if (!strip) return;
+        strip.replaceChildren();
+        const preferred = ['nova', 'leo', 'alma', 'sacha', 'june'];
+        const agents = preferred
+          .map((id) => currentAgents.find((agent) => agent.id === id))
+          .filter(Boolean)
+          .slice(0, 5);
+        agents.forEach((agent) => {
+          const chip = document.createElement('div');
+          chip.className = 'validator-agent-chip';
+          chip.dataset.spriteGroup = agent.spriteGroup;
+          chip.dataset.spriteIndex = String(agent.spriteIndex);
+          chip.title = `${agent.name} · ${agent.stateLabel}`;
+          const avatar = document.createElement('span');
+          avatar.setAttribute('aria-hidden', 'true');
+          chip.append(avatar);
+          strip.append(chip);
+        });
+      }
+
+      function renderValidatorHome() {
+        const primaryCard = byId('validatorPrimaryCard');
+        if (!primaryCard) return;
+        const action = byId('validatorPrimaryAction');
+        const agentsReady = currentAgentRun?.status === 'completed' && Boolean(currentAgentRun?.artifact);
+        const agentsRunning = firstFlightBusy || currentAgentRun?.status === 'running';
+        const stage = emailStudioState?.draft ? emailStageState() : {
+          dossierApproved: dossierIsApproved(), contentApproved: false, testProofSent: false, draftSynced: false,
+        };
+
+        let primary = {
+          state: 'loading', kicker: 'Prochaine action', title: 'Le briefing arrive…',
+          summary: 'Nova rassemble les informations utiles sans toucher à MailerLite.',
+          reason: 'Aucune action externe ne sera exécutée silencieusement.',
+          time: '2 min', label: 'Patienter', disabled: true, onClick: null,
+        };
+
+        if (currentOverview && agentsRunning) {
+          primary = {
+            state: 'working', kicker: 'Équipe au travail', title: 'Les agents construisent ton dossier.',
+            summary: 'Angle, audience, rédaction et contrôle qualité sont analysés ensemble. Tu seras sollicité uniquement quand une décision sera prête.',
+            reason: 'MailerLite reste en lecture seule pendant tout ce cycle.',
+            time: '≈ 2 min', label: 'Production en cours…', disabled: true, onClick: null,
+          };
+        } else if (currentOverview && !agentsReady) {
+          primary = {
+            state: currentAgentRun?.status === 'failed' ? 'review' : 'ready',
+            kicker: 'Premier email de valeur', title: currentAgentRun?.status === 'failed' ? 'Le cycle peut être relancé sans risque.' : 'Lance ton premier cycle réel.',
+            summary: 'L’équipe choisira un angle utile, recommandera une audience et rédigera une V2 prête à relire.',
+            reason: 'Le lancement produit seulement un dossier interne : aucun brouillon, aucun contact et aucun envoi MailerLite.',
+            time: '2 min', label: currentAgentRun?.status === 'failed' ? 'Relancer les agents' : 'Faire travailler les agents', disabled: false,
+            onClick: () => startAgentRun({ firstFlight: true }),
+          };
+        } else if (agentsReady && !stage.dossierApproved) {
+          primary = {
+            state: 'review', kicker: 'Décision n° 1', title: 'Le dossier éditorial est prêt à relire.',
+            summary: currentAgentRun?.artifact?.executiveSummary || 'L’équipe a préparé l’angle, l’audience et le raisonnement du prochain email de valeur.',
+            reason: 'Tu valides la direction ou demandes une correction. Rien n’est encore écrit dans MailerLite.',
+            time: '3 min', label: 'Relire le dossier', disabled: false,
+            onClick: () => openMissionDialog('broadcast-value'),
+          };
+        } else if (stage.dossierApproved && !stage.contentApproved) {
+          primary = {
+            state: 'review', kicker: 'Décision n° 2', title: 'Ton email est prêt à être corrigé.',
+            summary: 'Relis l’objet et le contenu directement dans le studio, modifie librement, puis valide exactement ta version.',
+            reason: 'La validation du contenu ne déclenche encore ni brouillon MailerLite ni envoi.',
+            time: '5–8 min', label: 'Corriger l’email', disabled: false, onClick: openStudioFromValidator,
+          };
+        } else if (stage.contentApproved && !stage.testProofSent) {
+          primary = {
+            state: 'review', kicker: 'Décision n° 3', title: 'La version approuvée peut partir en épreuve.',
+            summary: 'Un dernier contrôle dans le studio permet de recevoir cette version uniquement sur ton adresse test autorisée.',
+            reason: 'Le broadcast public reste verrouillé. L’épreuve ne peut cibler que sonnycourt@gmail.com.',
+            time: '2 min', label: 'Contrôler l’épreuve', disabled: false, onClick: openStudioFromValidator,
+          };
+        } else if (stage.testProofSent && !emailStudioState.sent) {
+          primary = {
+            state: 'done', kicker: 'Épreuve envoyée', title: 'Ton premier cycle est arrivé au contrôle final.',
+            summary: 'L’épreuve isolée a été transmise. Tu peux relire son état et préparer la suite sans ouvrir la diffusion publique.',
+            reason: 'Aucun broadcast réel ne part tant que la capacité d’envoi et ta validation finale ne sont pas réunies.',
+            time: '2 min', label: 'Ouvrir le studio', disabled: false, onClick: openStudioFromValidator,
+          };
+        } else if (emailStudioState.sent) {
+          primary = {
+            state: 'done', kicker: 'Cycle terminé', title: 'Le broadcast validé a été transmis.',
+            summary: 'La division peut maintenant observer les résultats et préparer le prochain apprentissage.',
+            reason: 'Le prochain dossier repartira des performances réellement observées.',
+            time: '1 min', label: 'Voir le département', disabled: false, onClick: showDepartmentMode,
+          };
+        }
+
+        primaryCard.dataset.state = primary.state;
+        byId('validatorPrimaryKicker').textContent = primary.kicker;
+        byId('validatorPrimaryTitle').textContent = primary.title;
+        byId('validatorPrimarySummary').textContent = primary.summary;
+        byId('validatorPrimaryReason').textContent = primary.reason;
+        byId('validatorPrimaryTime').textContent = primary.time;
+        action.textContent = primary.label;
+        action.disabled = primary.disabled;
+        action.onclick = primary.onClick;
+
+        const decisions = [];
+        if (!agentsRunning) {
+          if (!agentsReady) decisions.push({ title: 'Démarrer le cycle éditorial', meta: 'Aucune action MailerLite', label: 'Lancer', action: () => startAgentRun({ firstFlight: true }) });
+          else if (!stage.dossierApproved) decisions.push({ title: 'Direction éditoriale', meta: 'Valider ou demander une correction', label: 'Relire', action: () => openMissionDialog('broadcast-value') });
+          else if (!stage.contentApproved) decisions.push({ title: 'Version de l’email', meta: 'Corriger puis approuver', label: 'Ouvrir', action: openStudioFromValidator });
+          else if (!stage.testProofSent) decisions.push({ title: 'Épreuve personnelle', meta: '1 seule adresse autorisée', label: 'Contrôler', action: openStudioFromValidator });
+        }
+        currentMissions
+          .map(effectiveMission)
+          .filter((mission) => mission.id !== 'broadcast-value' && mission.effectiveStatus === 'review')
+          .slice(0, Math.max(0, 3 - decisions.length))
+          .forEach((mission) => decisions.push({
+            title: mission.title, meta: `${mission.owner} · ${mission.priority}`, label: 'Examiner', action: () => openMissionDialog(mission.id),
+          }));
+
+        const list = byId('validatorDecisionList');
+        list.replaceChildren();
+        decisions.slice(0, 3).forEach((decision) => {
+          const item = document.createElement('div'); item.className = 'validator-decision-item';
+          const dot = document.createElement('i'); dot.setAttribute('aria-hidden', 'true');
+          const copy = document.createElement('span');
+          const title = document.createElement('strong'); title.textContent = decision.title;
+          const meta = document.createElement('small'); meta.textContent = decision.meta;
+          copy.append(title, meta);
+          const button = document.createElement('button'); button.type = 'button'; button.textContent = decision.label; button.addEventListener('click', decision.action);
+          item.append(dot, copy, button); list.append(item);
+        });
+        if (!decisions.length) {
+          const empty = document.createElement('div'); empty.className = 'validator-empty'; empty.textContent = agentsRunning ? 'L’équipe travaille. Rien à décider pour le moment.' : 'Aucune décision urgente pour le moment.'; list.append(empty);
+        }
+
+        const count = Math.min(3, decisions.length);
+        const minutes = count === 0 ? 0 : stage.dossierApproved && !stage.contentApproved ? 8 : Math.max(3, count * 3);
+        byId('validatorDecisionBadge').textContent = String(count);
+        byId('validatorDecisionCount').textContent = count === 0 ? 'Aucune décision ne t’attend.' : `${count} décision${count > 1 ? 's' : ''} t’attend${count > 1 ? 'ent' : ''}.`;
+        byId('validatorTimeEstimate').textContent = count === 0 ? 'Tu peux laisser la division travailler.' : `Environ ${minutes} minutes pour tout traiter.`;
+
+        const status = agentsRunning ? 'Nova coordonne la production en ce moment.' : agentsReady ? 'Le dossier collectif est prêt et mémorisé.' : 'Les agents sont prêts pour leur prochain cycle.';
+        byId('validatorTeamStatus').textContent = status;
+        renderValidatorAgents();
+
+        const metrics = currentOverview?.metrics;
+        if (metrics) {
+          const cadence = Number(metrics.campaignsLast30Days || 0);
+          byId('validatorSignalTitle').textContent = cadence === 0 ? 'Rythme éditorial à relancer' : `${cadence} grand${cadence > 1 ? 's' : ''} broadcast${cadence > 1 ? 's' : ''} sur 30 jours`;
+          byId('validatorSignalDetail').textContent = cadence === 0
+            ? 'Aucun grand broadcast détecté sur les 30 derniers jours : le prochain email de valeur est la priorité logique.'
+            : `Ouvertures pondérées ${formatRate(metrics.openRate90Days)} · clics ${formatRate(metrics.clickRate90Days)} sur les grands envois récents.`;
+        }
+      }
+
+      function autonomyDecisionLabel(decision) {
+        const labels = {
+          generated: 'Nouveau dossier préparé · validation requise',
+          awaiting_human_review: 'En attente de ta relecture du dossier précédent',
+          not_scheduled: 'Scan terminé · journée d’analyse seulement',
+          paused: 'Moteur autonome en pause',
+          providers_missing: 'Connexions IA à compléter',
+          budget_exhausted: 'Plafond mensuel atteint',
+          daily_limit: 'Limite quotidienne atteinte',
+          cooldown: 'Intervalle de sécurité actif',
+          eligible: 'Production du dossier en cours',
+          failed: 'Production IA arrêtée sans action externe',
+          pending: 'Analyse des signaux en cours',
+        };
+        return labels[decision?.status] || 'Briefing interne terminé';
+      }
+
+      function renderAutonomy(data) {
+        if (!data?.state) return;
+        currentAutonomy = data;
+        const state = data.state;
+        const pulse = data.latestPulse;
+        const badge = byId('autonomyStateBadge');
+        const panel = byId('autonomyPanel');
+        const running = ['scanning', 'planning', 'producing'].includes(pulse?.status);
+        const active = Boolean(state.enabled);
+        panel.dataset.state = running ? 'running' : active ? 'active' : 'paused';
+        badge.textContent = running ? 'Agents au travail' : active ? 'Actif · zone verte' : 'En pause';
+        byId('autonomyLastPulse').textContent = pulse?.startedAt ? dateTime(pulse.startedAt) : 'Aucun';
+        byId('autonomyLastDecision').textContent = pulse
+          ? running ? 'Le briefing quotidien est en cours…' : autonomyDecisionLabel(pulse.decision?.aiRun)
+          : 'Le premier briefing sera archivé ici';
+        byId('autonomyNextPulse').textContent = data.nextRunAt ? dateTime(data.nextRunAt) : '—';
+        const signalCount = Number(pulse?.summary?.signalsFound ?? pulse?.signals?.length ?? 0);
+        const reviewCount = Number(pulse?.summary?.reviewItems ?? pulse?.signals?.filter?.((item) => item.status === 'review')?.length ?? 0);
+        byId('autonomyMissionCount').textContent = pulse ? `${signalCount}` : '0';
+        byId('autonomyMissionDetail').textContent = pulse ? `${reviewCount} point(s) demandent une revue` : 'Le premier scan n’a pas encore tourné';
+        const spent = Number(data.budget?.spentMonthUsd || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const limit = Number(data.budget?.monthlyLimitUsd || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+        byId('autonomyBudget').textContent = `${spent} $ / ${limit} $`;
+        byId('autonomyBudgetDetail').textContent = `${Number(data.budget?.remainingMonthUsd || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ disponibles`;
+        byId('toggleAutonomy').textContent = active ? 'Mettre en pause' : 'Réactiver';
+        byId('runAutonomyNow').disabled = autonomyBusy || !active || running;
+        renderValidatorHome();
+      }
+
+      async function loadAutonomy() {
+        try {
+          const response = await fetch(AUTONOMY_API, { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          if (!response.ok) return null;
+          const data = await response.json();
+          renderAutonomy(data);
+          return data;
+        } catch {
+          return null;
+        }
+      }
+
+      async function runAutonomyNow() {
+        if (autonomyBusy || !currentAutonomy?.state?.enabled) return;
+        autonomyBusy = true;
+        const button = byId('runAutonomyNow');
+        const previousId = currentAutonomy?.latestPulse?.id || '';
+        button.disabled = true;
+        button.textContent = 'Briefing en cours…';
+        try {
+          const response = await fetch(AUTONOMY_API, {
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ operation: 'run_now' }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || `autonomy_${response.status}`);
+          const deadline = Date.now() + 10 * 60 * 1000;
+          while (Date.now() < deadline) {
+            await new Promise((resolve) => window.setTimeout(resolve, 2_500));
+            const data = await loadAutonomy();
+            const pulse = data?.latestPulse;
+            if (!pulse || pulse.id === previousId) continue;
+            if (pulse.status === 'completed') {
+              showToast(pulse.decision?.aiRun?.status === 'generated'
+                ? 'Le briefing autonome a créé un dossier. Il attend ta validation et MailerLite n’a pas été modifié.'
+                : 'Briefing autonome terminé et archivé. MailerLite n’a pas été modifié.');
+              await loadAgentWorkspace();
+              return;
+            }
+            if (pulse.status === 'failed') throw new Error('autonomy_pulse_failed');
+          }
+          showToast('Le briefing continue en arrière-plan. Son état restera visible ici.');
+        } catch {
+          showToast('Le moteur autonome s’est arrêté en sécurité, sans toucher à MailerLite.');
+          await loadAutonomy();
+        } finally {
+          autonomyBusy = false;
+          button.textContent = 'Lancer le briefing maintenant';
+          if (currentAutonomy) renderAutonomy(currentAutonomy);
+        }
+      }
+
+      async function toggleAutonomy() {
+        const button = byId('toggleAutonomy');
+        const enabled = !currentAutonomy?.state?.enabled;
+        button.disabled = true;
+        try {
+          const response = await fetch(AUTONOMY_API, {
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ operation: 'set_enabled', enabled }),
+          });
+          if (!response.ok) throw new Error(`autonomy_toggle_${response.status}`);
+          await loadAutonomy();
+          showToast(enabled ? 'Moteur autonome réactivé en zone verte.' : 'Moteur autonome mis en pause. Aucun travail ne sera généré.');
+        } catch {
+          showToast('Impossible de modifier le moteur autonome pour le moment.');
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      function readEmailStudioState() {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(EMAIL_STUDIO_KEY) || '{}');
+          return parsed && typeof parsed === 'object'
+            ? { draft: null, versions: [], contentApproval: null, mailerlite: null, sent: null, testProof: null, ...parsed }
+            : { draft: null, versions: [], contentApproval: null, mailerlite: null, sent: null, testProof: null };
+        } catch {
+          return { draft: null, versions: [], contentApproval: null, mailerlite: null, sent: null, testProof: null };
+        }
+      }
+
+      let emailStudioState = readEmailStudioState();
+
+      function persistEmailStudioState() {
+        emailStudioState.updatedAt = new Date().toISOString();
+        try {
+          window.localStorage.setItem(EMAIL_STUDIO_KEY, JSON.stringify(emailStudioState));
+          byId('emailSaveState').textContent = `Sauvegardé à ${new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(new Date())}`;
+        } catch {
+          byId('emailSaveState').textContent = 'Sauvegarde locale indisponible';
+        }
+      }
+
+      function scheduleEmailPersist() {
+        window.clearTimeout(emailPersistTimer);
+        byId('emailSaveState').textContent = 'Modifications locales…';
+        emailPersistTimer = window.setTimeout(persistEmailStudioState, 250);
+      }
+
+      async function persistWorkspaceDurably() {
+        try {
+          const response = await fetch(AGENT_RUNS_API, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              operation: 'save_workspace',
+              workspace: {
+                state: emailStudioState,
+                missionDecision: missionDecisions['broadcast-value'] || null,
+              },
+            }),
+          });
+          if (!response.ok) return false;
+          const data = await response.json();
+          emailStudioState.durableUpdatedAt = data.workspace?.updatedAt || new Date().toISOString();
+          workspaceIsDurable = true;
+          try { window.localStorage.setItem(EMAIL_STUDIO_KEY, JSON.stringify(emailStudioState)); } catch {}
+          if (byId('emailSaveState')) byId('emailSaveState').textContent = 'Sauvegardé dans la mémoire de la division';
+          if (byId('missionPortfolioLabel')) byId('missionPortfolioLabel').textContent = `${currentMissions.length} missions actives · décisions sauvegardées durablement`;
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function broadcastMission() {
+        return currentMissions.find((mission) => mission.id === 'broadcast-value') || null;
+      }
+
+      function dossierIsApproved() {
+        return missionDecisions['broadcast-value']?.type === 'approved';
+      }
+
+      function renderFirstFlight() {
+        const panel = byId('firstFlightPanel');
+        if (!panel) return;
+        const stage = emailStudioState.draft ? emailStageState() : {
+          dossierApproved: dossierIsApproved(), contentApproved: false, testProofSent: false,
+        };
+        const agentsReady = currentAgentRun?.status === 'completed' && Boolean(currentAgentRun?.artifact);
+        const running = firstFlightBusy || currentAgentRun?.status === 'running';
+        const setStep = (id, state) => { byId(id).dataset.state = state; };
+        setStep('firstFlightStepAgents', agentsReady ? 'done' : running ? 'current' : 'current');
+        setStep('firstFlightStepDossier', stage.dossierApproved ? 'done' : agentsReady ? 'current' : 'locked');
+        setStep('firstFlightStepContent', stage.contentApproved ? 'done' : stage.dossierApproved ? 'current' : 'locked');
+        setStep('firstFlightStepProof', stage.testProofSent ? 'done' : stage.contentApproved ? 'current' : 'locked');
+        setStep('firstFlightStepBroadcast', emailStudioState.sent ? 'done' : 'locked');
+
+        const audience = currentOverview?.recommendedValueAudience;
+        byId('firstFlightAudience').textContent = audience
+          ? `${audience.name} · ${formatNumber(audience.count)}`
+          : 'Aucune audience fiable détectée';
+        byId('firstFlightAudienceReason').textContent = audience?.reason
+          || 'La recommandation restera sans effet tant que tu ne valides pas un futur broadcast.';
+        byId('firstFlightRecipient').textContent = actionCapabilities.testRecipients?.[0] || 'sonnycourt@gmail.com';
+
+        const launch = byId('startFirstFlight');
+        launch.disabled = running;
+        launch.textContent = running ? 'Les agents travaillent…' : agentsReady ? 'Produire une nouvelle V2' : 'Faire produire la V2';
+        byId('openFirstFlightDossier').disabled = !agentsReady;
+        byId('openFirstFlightStudio').disabled = !agentsReady;
+
+        const state = byId('firstFlightState');
+        if (stage.testProofSent) {
+          panel.dataset.state = 'done'; state.textContent = 'Épreuve envoyée';
+        } else if (stage.contentApproved) {
+          panel.dataset.state = 'ready'; state.textContent = 'Prêt pour l’épreuve';
+        } else if (stage.dossierApproved) {
+          panel.dataset.state = 'working'; state.textContent = 'Correction en cours';
+        } else if (agentsReady) {
+          panel.dataset.state = 'review'; state.textContent = 'Dossier à valider';
+        } else if (running) {
+          panel.dataset.state = 'working'; state.textContent = 'Agents au travail';
+        } else {
+          panel.dataset.state = 'idle'; state.textContent = 'Prêt à démarrer';
+        }
+        renderValidatorHome();
+      }
+
+      function draftSnapshot(draft) {
+        if (!draft) return '';
+        return JSON.stringify({
+          campaignName: draft.campaignName || '', subject: draft.subject || '', subjectVariant: draft.subjectVariant || '',
+          preheader: draft.preheader || '', fromName: draft.fromName || '', fromAddress: draft.fromAddress || '',
+          audienceType: draft.audienceType || '', audienceId: draft.audienceId || '', body: draft.body || '',
+          ctaLabel: draft.ctaLabel || '', ctaUrl: draft.ctaUrl || '', hypothesis: draft.hypothesis || '',
+        });
+      }
+
+      function initializeEmailDraft() {
+        if (emailStudioState.draft) return;
+        const seed = broadcastMission()?.emailDraft || {};
+        const sender = currentOverview?.senderRecommendation || {};
+        const audience = currentOverview?.recommendedValueAudience || {};
+        emailStudioState.draft = {
+          campaignName: seed.campaignName || 'Broadcast valeur',
+          subject: seed.subject || '',
+          subjectVariant: seed.subjectVariant || '',
+          preheader: seed.preheader || '',
+          fromName: sender.fromName || seed.fromName || 'Sonny Court',
+          fromAddress: sender.fromAddress || seed.fromAddress || '',
+          audienceType: audience.type || seed.audienceType || '',
+          audienceId: audience.id || seed.audienceId || '',
+          audienceName: audience.name || seed.audienceName || '',
+          audienceCount: Number(audience.count ?? seed.audienceCount) || 0,
+          body: seed.body || '',
+          ctaLabel: seed.ctaLabel || '',
+          ctaUrl: seed.ctaUrl || '',
+          hypothesis: seed.hypothesis || '',
+        };
+        persistEmailStudioState();
+      }
+
+      function populateAudienceOptions() {
+        const select = byId('emailAudience');
+        select.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Sélectionner une audience réelle…';
+        select.append(placeholder);
+
+        const appendGroup = (label, type, items, countKey) => {
+          if (!items?.length) return;
+          const group = document.createElement('optgroup');
+          group.label = label;
+          items.forEach((item) => {
+            const option = document.createElement('option');
+            option.value = `${type}:${item.id}`;
+            option.dataset.name = item.name;
+            option.dataset.count = String(Number(item[countKey]) || 0);
+            option.textContent = `${item.name} · ${formatNumber(item[countKey])}`;
+            group.append(option);
+          });
+          select.append(group);
+        };
+        appendGroup('Groupes MailerLite', 'group', currentOverview?.audiences?.groups, 'activeCount');
+        appendGroup('Segments MailerLite', 'segment', currentOverview?.audiences?.segments, 'total');
+      }
+
+      function writeDraftToFields() {
+        const draft = emailStudioState.draft || {};
+        byId('emailSubject').value = draft.subject || '';
+        byId('emailSubjectVariant').value = draft.subjectVariant || '';
+        byId('emailPreheader').value = draft.preheader || '';
+        byId('emailFromName').value = draft.fromName || '';
+        byId('emailFromAddress').value = draft.fromAddress || '';
+        byId('emailBody').value = draft.body || '';
+        byId('emailCtaLabel').value = draft.ctaLabel || '';
+        byId('emailCtaUrl').value = draft.ctaUrl || '';
+        byId('emailHypothesis').value = draft.hypothesis || '';
+        const audienceValue = draft.audienceType && draft.audienceId ? `${draft.audienceType}:${draft.audienceId}` : '';
+        byId('emailAudience').value = audienceValue;
+      }
+
+      function draftFromFields() {
+        const selection = byId('emailAudience');
+        const selectedOption = selection.selectedOptions[0];
+        const [audienceType = '', audienceId = ''] = selection.value.split(':');
+        return {
+          ...(emailStudioState.draft || {}),
+          subject: byId('emailSubject').value.trim(),
+          subjectVariant: byId('emailSubjectVariant').value.trim(),
+          preheader: byId('emailPreheader').value.trim(),
+          fromName: byId('emailFromName').value.trim(),
+          fromAddress: byId('emailFromAddress').value.trim().toLowerCase(),
+          audienceType,
+          audienceId,
+          audienceName: selectedOption?.dataset.name || '',
+          audienceCount: Number(selectedOption?.dataset.count) || 0,
+          body: byId('emailBody').value.trim(),
+          ctaLabel: byId('emailCtaLabel').value.trim(),
+          ctaUrl: byId('emailCtaUrl').value.trim(),
+          hypothesis: byId('emailHypothesis').value.trim(),
+        };
+      }
+
+      function emailChecks(draft) {
+        let secureCta = false;
+        try { secureCta = new URL(draft.ctaUrl).protocol === 'https:'; } catch {}
+        const ctaAbsent = !draft.ctaLabel && !draft.ctaUrl;
+        const ctaCoherent = ctaAbsent || (Boolean(draft.ctaLabel) && secureCta);
+        const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.fromAddress || '');
+        const words = (draft.body || '').split(/\s+/).filter(Boolean).length;
+        return [
+          { label: 'Objet clair et exploitable', detail: `${(draft.subject || '').length} caractères`, ok: (draft.subject || '').length >= 12 && (draft.subject || '').length <= 80 },
+          { label: 'Préheader complémentaire', detail: `${(draft.preheader || '').length} caractères`, ok: (draft.preheader || '').length >= 20 && (draft.preheader || '').length <= 120 },
+          { label: 'Expéditeur vérifiable', detail: draft.fromAddress || 'Adresse manquante', ok: Boolean(draft.fromName) && emailValid },
+          { label: 'Audience explicitement choisie', detail: draft.audienceName || 'Audience manquante', ok: Boolean(draft.audienceId) },
+          { label: 'Corps suffisamment développé', detail: `${words} mots`, ok: words >= 60 },
+          { label: 'CTA cohérent ou volontairement absent', detail: ctaAbsent ? 'Email de valeur sans CTA' : draft.ctaLabel || 'CTA incomplet', ok: ctaCoherent },
+        ];
+      }
+
+      function renderEmailPreview() {
+        const draft = emailStudioState.draft || {};
+        byId('previewFrom').textContent = draft.fromName || 'Expéditeur';
+        byId('previewSubject').textContent = draft.subject || 'Objet de l’email';
+        byId('previewPreheader').textContent = draft.preheader || 'Préheader de l’email';
+        byId('emailSubjectCount').textContent = `${(draft.subject || '').length}/55 recommandé`;
+        byId('emailPreheaderCount').textContent = `${(draft.preheader || '').length}/90 recommandé`;
+        const words = (draft.body || '').split(/\s+/).filter(Boolean).length;
+        byId('emailWordCount').textContent = `${words} mot${words > 1 ? 's' : ''}`;
+        byId('emailAudienceMeta').textContent = draft.audienceId
+          ? `${draft.audienceName} · ${formatNumber(draft.audienceCount)} contacts observés`
+          : 'Sélection obligatoire avant synchronisation';
+
+        const preview = byId('previewBody');
+        preview.replaceChildren();
+        (draft.body || '').split(/\n{2,}/).filter(Boolean).forEach((paragraph) => {
+          const p = document.createElement('p');
+          p.textContent = paragraph.replaceAll('{$name}', 'Prénom');
+          preview.append(p);
+        });
+        if (draft.ctaLabel) {
+          const link = document.createElement('a');
+          link.href = draft.ctaUrl || '#';
+          link.textContent = draft.ctaLabel;
+          link.addEventListener('click', (event) => event.preventDefault());
+          preview.append(link);
+        }
+
+        const checks = emailChecks(draft);
+        const list = byId('emailChecklist');
+        list.replaceChildren();
+        checks.forEach((check) => {
+          const item = document.createElement('li');
+          item.dataset.ok = check.ok ? 'true' : 'false';
+          const icon = document.createElement('span'); icon.textContent = check.ok ? '✓' : '!';
+          const copy = document.createElement('div');
+          const label = document.createElement('strong'); label.textContent = check.label;
+          const detail = document.createElement('small'); detail.textContent = check.detail;
+          copy.append(label, detail); item.append(icon, copy); list.append(item);
+        });
+        byId('emailChecklistScore').textContent = `${checks.filter((item) => item.ok).length}/${checks.length}`;
+      }
+
+      function setEmailStage(id, state) {
+        const stage = byId(id);
+        stage.dataset.state = state;
+      }
+
+      function emailStageState() {
+        const currentSnapshot = draftSnapshot(emailStudioState.draft);
+        const contentApproved = emailStudioState.contentApproval?.snapshot === currentSnapshot;
+        const testProofSent = Boolean(emailStudioState.testProof?.sentAt && emailStudioState.testProof?.sentSnapshot === currentSnapshot);
+        const draftSynced = Boolean(emailStudioState.mailerlite?.campaign?.id && emailStudioState.mailerlite?.syncedSnapshot === currentSnapshot);
+        return { currentSnapshot, dossierApproved: dossierIsApproved(), contentApproved, testProofSent, draftSynced };
+      }
+
+      function renderEmailWorkflow() {
+        const stage = emailStageState();
+        setEmailStage('emailStageDossier', stage.dossierApproved ? 'done' : 'current');
+        setEmailStage('emailStageContent', stage.contentApproved ? 'done' : stage.dossierApproved ? 'current' : 'locked');
+        setEmailStage('emailStageTest', stage.testProofSent ? 'done' : stage.contentApproved ? 'current' : 'locked');
+        setEmailStage('emailStageDraft', stage.draftSynced ? 'done' : stage.testProofSent ? 'current' : 'locked');
+        setEmailStage('emailStageSend', emailStudioState.sent ? 'done' : stage.draftSynced ? 'current' : 'locked');
+
+        const checksPass = emailChecks(emailStudioState.draft || {}).every((item) => item.ok);
+        byId('approveEmailContent').disabled = !checksPass || stage.contentApproved;
+        byId('approveEmailContent').textContent = stage.contentApproved ? 'Version validée' : 'Valider cette version';
+        const contentState = byId('emailContentState');
+        if (!stage.dossierApproved) {
+          contentState.dataset.state = 'waiting';
+          contentState.textContent = 'Étape 1 requise : valide d’abord le dossier de mission.';
+        } else if (!stage.contentApproved) {
+          contentState.dataset.state = 'working';
+          contentState.textContent = 'Tes corrections sont libres. La validation figera exactement cette version.';
+        } else {
+          contentState.dataset.state = 'approved';
+          contentState.textContent = `Version approuvée le ${dateTime(emailStudioState.contentApproval.at)}. Toute modification annulera cette approbation.`;
+        }
+
+        const syncButton = byId('syncMailerLiteDraft');
+        const bridgeTitle = byId('mailerLiteBridgeTitle');
+        const bridgeDetail = byId('mailerLiteBridgeDetail');
+        syncButton.textContent = emailStudioState.mailerlite?.campaign?.id ? 'Mettre à jour le brouillon MailerLite' : 'Créer le brouillon MailerLite';
+        syncButton.disabled = !actionCapabilities.draftWritesEnabled || !stage.dossierApproved || !stage.contentApproved;
+        byId('prepareFinalApproval').disabled = !stage.draftSynced;
+
+        if (!actionCapabilities.draftWritesEnabled) {
+          bridgeTitle.textContent = 'Écriture désarmée';
+          bridgeDetail.textContent = 'Le studio est fonctionnel. La passerelle reste verrouillée pendant la construction.';
+        } else if (!stage.dossierApproved) {
+          bridgeTitle.textContent = 'Dossier en attente';
+          bridgeDetail.textContent = 'Valide le dossier avant toute écriture dans MailerLite.';
+        } else if (!stage.contentApproved) {
+          bridgeTitle.textContent = 'Contenu en attente';
+          bridgeDetail.textContent = 'Valide cette version exacte avant de créer ou modifier le brouillon.';
+        } else if (stage.draftSynced) {
+          bridgeTitle.textContent = 'Brouillon synchronisé';
+          bridgeDetail.textContent = 'La version MailerLite correspond exactement au contenu approuvé.';
+        } else if (emailStudioState.mailerlite?.campaign?.id) {
+          bridgeTitle.textContent = 'Brouillon à resynchroniser';
+          bridgeDetail.textContent = 'Le contenu local a changé depuis la dernière écriture MailerLite.';
+        } else {
+          bridgeTitle.textContent = 'Prêt à créer le brouillon';
+          bridgeDetail.textContent = 'Cette action écrira dans MailerLite, mais elle ne pourra jamais envoyer la campagne.';
+        }
+
+        byId('mailerLiteDraftMeta').textContent = emailStudioState.mailerlite?.campaign?.id
+          ? `Campagne #${emailStudioState.mailerlite.campaign.id} · ${emailStudioState.mailerlite.campaign.status || 'draft'}`
+          : 'Aucun brouillon MailerLite lié.';
+        const proofButton = byId('prepareTestProof');
+        const proofPanel = byId('emailTestBridge');
+        const proofTitle = byId('testFlightTitle');
+        const proofDetail = byId('testFlightDetail');
+        proofButton.disabled = !actionCapabilities.testFlightsEnabled || !stage.dossierApproved || !stage.contentApproved || stage.testProofSent;
+        proofPanel.dataset.state = stage.testProofSent ? 'done' : stage.contentApproved ? 'ready' : 'locked';
+        if (stage.testProofSent) {
+          proofTitle.textContent = 'Épreuve envoyée';
+          proofDetail.textContent = `Cette version exacte a été transmise le ${dateTime(emailStudioState.testProof.sentAt)}. Le broadcast public reste verrouillé.`;
+          proofButton.textContent = 'Épreuve reçue';
+          byId('testProofMeta').textContent = `Campagne test #${emailStudioState.testProof.campaign?.id || '—'} · 1 destinataire`;
+        } else if (!actionCapabilities.testFlightsEnabled) {
+          proofTitle.textContent = 'Épreuve désarmée';
+          proofDetail.textContent = 'La capacité test n’est pas activée côté serveur.';
+          proofButton.textContent = 'Recevoir l’épreuve';
+        } else if (!stage.contentApproved) {
+          proofTitle.textContent = 'En attente de la version approuvée';
+          proofDetail.textContent = 'Valide d’abord le dossier puis la version exacte que tu veux recevoir.';
+          proofButton.textContent = 'Recevoir l’épreuve';
+        } else {
+          proofTitle.textContent = 'Prête pour ton dernier contrôle';
+          proofDetail.textContent = 'L’épreuve ciblera uniquement sonnycourt@gmail.com, jamais l’audience recommandée.';
+          proofButton.textContent = 'Recevoir l’épreuve';
+        }
+
+        byId('emailStudioMode').textContent = actionCapabilities.sendsEnabled
+          ? 'Division armée · double validation obligatoire'
+          : actionCapabilities.draftWritesEnabled
+            ? 'Brouillons autorisés · envois désarmés'
+            : actionCapabilities.testFlightsEnabled
+              ? 'Premier vol · épreuve isolée autorisée, broadcasts désarmés'
+              : 'Mode construction · aucune écriture MailerLite';
+        renderFirstFlight();
+      }
+
+      function renderEmailVersions() {
+        const versions = Array.isArray(emailStudioState.versions) ? emailStudioState.versions : [];
+        byId('emailVersionCount').textContent = String(versions.length);
+        const list = byId('emailVersionList');
+        list.replaceChildren();
+        if (!versions.length) {
+          const empty = document.createElement('p'); empty.textContent = 'Aucune version enregistrée pour le moment.'; list.append(empty); return;
+        }
+        versions.forEach((version, index) => {
+          const row = document.createElement('div'); row.className = 'email-version-row';
+          const copy = document.createElement('div');
+          const title = document.createElement('strong'); title.textContent = `V${versions.length - index} · ${version.draft?.subject || 'Sans objet'}`;
+          const meta = document.createElement('small'); meta.textContent = `${dateTime(version.at)} · ${version.author || 'Sonny'}`;
+          copy.append(title, meta);
+          const restore = document.createElement('button'); restore.type = 'button'; restore.textContent = 'Restaurer';
+          restore.addEventListener('click', () => {
+            emailStudioState.draft = { ...version.draft };
+            emailStudioState.contentApproval = null;
+            finalApprovalToken = '';
+            persistEmailStudioState();
+            persistWorkspaceDurably();
+            writeDraftToFields();
+            renderEmailStudio();
+            showToast('Version restaurée. Une nouvelle validation sera nécessaire.');
+          });
+          row.append(copy, restore); list.append(row);
+        });
+      }
+
+      function renderEmailStudio() {
+        renderEmailPreview();
+        renderEmailWorkflow();
+        renderEmailVersions();
+      }
+
+      function saveDraftFromEditor() {
+        const previousSnapshot = draftSnapshot(emailStudioState.draft);
+        emailStudioState.draft = draftFromFields();
+        const nextSnapshot = draftSnapshot(emailStudioState.draft);
+        if (previousSnapshot !== nextSnapshot && emailStudioState.contentApproval?.snapshot !== nextSnapshot) {
+          emailStudioState.contentApproval = null;
+          finalApprovalToken = '';
+        }
+        scheduleEmailPersist();
+        renderEmailPreview();
+        renderEmailWorkflow();
+      }
+
+      function saveEmailVersion() {
+        emailStudioState.draft = draftFromFields();
+        const version = { at: new Date().toISOString(), author: 'Sonny', draft: { ...emailStudioState.draft } };
+        emailStudioState.versions = [version, ...(emailStudioState.versions || [])].slice(0, 20);
+        persistEmailStudioState();
+        persistWorkspaceDurably();
+        renderEmailVersions();
+        showToast('Nouvelle version enregistrée localement.');
+      }
+
+      async function approveEmailContent() {
+        emailStudioState.draft = draftFromFields();
+        if (!dossierIsApproved()) {
+          showToast('Valide d’abord le dossier de mission avant d’approuver le contenu.');
+          return;
+        }
+        if (!emailChecks(emailStudioState.draft).every((item) => item.ok)) {
+          showToast('Complète les contrôles signalés avant de valider cette version.');
+          return;
+        }
+        const snapshot = draftSnapshot(emailStudioState.draft);
+        emailStudioState.contentApproval = { snapshot, at: new Date().toISOString() };
+        if (!(emailStudioState.versions || []).some((version) => draftSnapshot(version.draft) === snapshot)) saveEmailVersion();
+        persistEmailStudioState();
+        await persistWorkspaceDurably();
+        renderEmailStudio();
+        showToast('Contenu validé. Cette version exacte peut maintenant devenir un brouillon MailerLite.');
+      }
+
+      function openEmailStudio() {
+        initializeEmailDraft();
+        populateAudienceOptions();
+        writeDraftToFields();
+        renderEmailStudio();
+        missionDialog.close();
+        if (!emailStudioDialog.open) emailStudioDialog.showModal();
+      }
+
+      function syncAgentRunToMission(run) {
+        if (!run?.artifact || run.status !== 'completed' || !currentMissions.length) return;
+        const contributionByName = new Map((run.artifact.agentContributions || []).map((item) => [String(item.agent || '').toLocaleLowerCase('fr-FR'), item]));
+        currentMissions = currentMissions.map((mission) => {
+          if (mission.id !== 'broadcast-value') return mission;
+          return {
+            ...mission,
+            status: 'review',
+            statusLabel: 'À valider',
+            progress: 92,
+            summary: run.artifact.executiveSummary || mission.summary,
+            deliverable: `Dossier IA · qualité ${run.artifact.qa?.score || 0}/100 · en attente de Sonny`,
+            steps: (mission.steps || []).map((step) => {
+              const contribution = contributionByName.get(String(step.agent || '').toLocaleLowerCase('fr-FR'));
+              if (!contribution) return step;
+              return { ...step, status: contribution.status === 'done' ? 'done' : 'review', detail: contribution.recommendation || step.detail };
+            }),
+          };
+        });
+        renderMissions(currentMissions);
+      }
+
+      function renderAgentRun(run) {
+        currentAgentRun = run || null;
+        const panel = byId('agenticProductionPanel');
+        const title = byId('agentRunTitle');
+        const detail = byId('agentRunDetail');
+        const meta = byId('agentRunMeta');
+        const contributions = byId('agentRunContributions');
+        const adopt = byId('adoptAgentDraft');
+        const launch = byId('runAgentTeam');
+        contributions.replaceChildren();
+        panel.dataset.state = run?.status || 'idle';
+        adopt.hidden = true;
+        launch.disabled = run?.status === 'running';
+        launch.textContent = run?.status === 'running' ? 'Équipe au travail…' : 'Relancer un cycle IA';
+
+        if (!run) {
+          title.textContent = 'L’équipe n’a pas encore produit de dossier.';
+          detail.textContent = 'Les agents analyseront uniquement les données agrégées autorisées. Aucun abonné, aucune écriture et aucun envoi MailerLite.';
+          meta.textContent = 'Stockage durable prêt · validation humaine obligatoire';
+          launch.textContent = 'Faire travailler l’équipe';
+          renderFirstFlight();
+          return;
+        }
+        if (run.status === 'running') {
+          title.textContent = 'Nova coordonne les spécialistes…';
+          detail.textContent = 'Scan des performances, choix de l’angle, rédaction, expérimentation et contrôle qualité sont en cours.';
+          meta.textContent = `Cycle lancé ${dateTime(run.startedAt)} · MailerLite reste en lecture seule`;
+          renderFirstFlight();
+          return;
+        }
+        if (run.status === 'failed') {
+          title.textContent = 'Le cycle n’a pas produit de dossier.';
+          detail.textContent = 'Le moteur s’est arrêté avant toute action MailerLite. Tu peux relancer sans risque.';
+          meta.textContent = `${dateTime(run.finishedAt || run.startedAt)} · ${run.error || 'erreur technique'}`;
+          renderFirstFlight();
+          return;
+        }
+        const artifact = run.artifact;
+        const engineLabel = run.orchestration
+          ? `Nova ${run.orchestration.director?.model || 'OpenAI'} · Léo ${run.orchestration.writer?.model || 'Claude'} · contrôle Nova`
+          : run.model || 'modèle IA';
+        title.textContent = artifact?.recommendedAngle || 'Dossier prêt pour ta relecture';
+        detail.textContent = artifact?.executiveSummary || 'Les neuf spécialistes ont terminé leur travail.';
+        meta.textContent = `${dateTime(run.finishedAt || run.startedAt)} · ${engineLabel} · qualité ${artifact?.qa?.score || 0}/100 · aucune action MailerLite`;
+        adopt.hidden = !artifact;
+        (artifact?.agentContributions || []).forEach((item) => {
+          const card = document.createElement('article'); card.className = 'agentic-contribution'; card.dataset.status = item.status;
+          const head = document.createElement('div');
+          const initials = document.createElement('span'); initials.textContent = String(item.agent || item.agentId).slice(0, 2).toUpperCase();
+          const copy = document.createElement('div');
+          const name = document.createElement('strong'); name.textContent = item.agent;
+          const role = document.createElement('small'); role.textContent = item.role;
+          copy.append(name, role); head.append(initials, copy);
+          const finding = document.createElement('p'); finding.textContent = item.finding;
+          card.append(head, finding); contributions.append(card);
+        });
+        syncAgentRunToMission(run);
+        renderFirstFlight();
+      }
+
+      async function loadAgentWorkspace() {
+        try {
+          const response = await fetch(AGENT_RUNS_API, { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          if (!response.ok) return;
+          const data = await response.json();
+          workspaceIsDurable = Boolean(data.durable);
+          if (data.intelligenceResetRequired && emailStudioState.intelligenceVersion !== data.intelligenceVersion) {
+            try { window.localStorage.setItem(EMAIL_STUDIO_STALE_ARCHIVE_KEY, JSON.stringify(emailStudioState)); } catch {}
+            emailStudioState = {
+              draft: null, versions: [], contentApproval: null, mailerlite: null, sent: null, testProof: null,
+              intelligenceVersion: data.intelligenceVersion,
+              updatedAt: new Date().toISOString(),
+            };
+            delete missionDecisions['broadcast-value'];
+            try {
+              window.localStorage.setItem(EMAIL_STUDIO_KEY, JSON.stringify(emailStudioState));
+              window.localStorage.setItem(MISSION_DECISION_KEY, JSON.stringify(missionDecisions));
+            } catch {}
+            renderMissions(currentMissions);
+            showToast('L’ancien dossier a été archivé car il utilisait une cadence erronée. Relance les agents sur les données corrigées.');
+          }
+          const serverWorkspace = data.workspace;
+          const serverTime = new Date(serverWorkspace?.updatedAt || 0).getTime();
+          const localTime = new Date(emailStudioState?.updatedAt || 0).getTime();
+          if (serverWorkspace?.state && serverTime > localTime) {
+            emailStudioState = {
+              draft: null, versions: [], contentApproval: null, mailerlite: null, sent: null, testProof: null,
+              ...serverWorkspace.state,
+              updatedAt: serverWorkspace.updatedAt,
+              durableUpdatedAt: serverWorkspace.updatedAt,
+            };
+            if (serverWorkspace.missionDecision) missionDecisions['broadcast-value'] = serverWorkspace.missionDecision;
+            try {
+              window.localStorage.setItem(EMAIL_STUDIO_KEY, JSON.stringify(emailStudioState));
+              window.localStorage.setItem(MISSION_DECISION_KEY, JSON.stringify(missionDecisions));
+            } catch {}
+            renderMissions(currentMissions);
+          }
+          renderAgentRun(data.latestRun);
+          if (workspaceIsDurable) byId('missionPortfolioLabel').textContent = `${currentMissions.length} missions actives · mémoire durable connectée`;
+        } catch {}
+      }
+
+      async function startAgentRun(options = {}) {
+        const firstFlight = options?.firstFlight === true;
+        const button = firstFlight ? byId('startFirstFlight') : byId('runAgentTeam');
+        const requestedAt = Date.now();
+        if (firstFlight) firstFlightBusy = true;
+        button.disabled = true;
+        renderAgentRun({ status: 'running', startedAt: new Date().toISOString() });
+        try {
+          const response = await fetch(AGENT_RUNS_API, {
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ operation: 'start_broadcast', force: true }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `agent_run_${response.status}`);
+          let run = data.run || null;
+          if (data.accepted) {
+            const deadline = Date.now() + 150_000;
+            while (Date.now() < deadline) {
+              await new Promise((resolve) => window.setTimeout(resolve, 2_500));
+              const statusResponse = await fetch(AGENT_RUNS_API, { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+              if (!statusResponse.ok) continue;
+              const statusData = await statusResponse.json();
+              const candidate = statusData.latestRun;
+              if (!candidate || new Date(candidate.startedAt || 0).getTime() < requestedAt - 2_000) continue;
+              renderAgentRun(candidate);
+              if (candidate.status === 'completed') { run = candidate; break; }
+              if (candidate.status === 'failed') throw new Error(candidate.error || 'agent_run_failed');
+            }
+          }
+          if (!run || run.status !== 'completed') throw new Error('agent_run_timeout');
+          renderAgentRun(run);
+          showToast('Les neuf agents ont terminé. Le dossier attend ta relecture, sans aucune action MailerLite.');
+          if (firstFlight) {
+            adoptAgentDraft();
+            openMissionDialog('broadcast-value');
+          }
+          return run;
+        } catch (error) {
+          await loadAgentWorkspace();
+          const messages = {
+            agent_run_already_in_progress: 'Un cycle est déjà en cours. Son état va se mettre à jour.',
+            ai_provider_not_configured: 'Aucun moteur IA n’est configuré pour la division.',
+            email_division_storage_not_configured: 'La mémoire durable de la division n’est pas configurée.',
+          };
+          showToast(messages[error.message] || 'Le cycle IA s’est arrêté avant toute action MailerLite.');
+        } finally {
+          if (firstFlight) firstFlightBusy = false;
+          button.disabled = false;
+          if (!firstFlight && currentAgentRun?.status !== 'running') button.textContent = 'Relancer un cycle IA';
+          renderFirstFlight();
+        }
+        return null;
+      }
+
+      function adoptAgentDraft() {
+        const artifact = currentAgentRun?.artifact;
+        if (!artifact) return;
+        initializeEmailDraft();
+        const preserved = emailStudioState.draft || {};
+        const sender = currentOverview?.senderRecommendation || {};
+        const audience = currentOverview?.recommendedValueAudience || {};
+        emailStudioState.draft = {
+          ...preserved,
+          campaignName: preserved.campaignName || 'Broadcast valeur',
+          fromName: preserved.fromName || sender.fromName || 'Sonny Court',
+          fromAddress: preserved.fromAddress || sender.fromAddress || '',
+          audienceType: preserved.audienceType || audience.type || '',
+          audienceId: preserved.audienceId || audience.id || '',
+          audienceName: preserved.audienceName || audience.name || '',
+          audienceCount: Number(preserved.audienceCount || audience.count) || 0,
+          subject: artifact.subjectA,
+          subjectVariant: artifact.subjectB,
+          preheader: artifact.preheader,
+          body: artifact.emailBody,
+          ctaLabel: artifact.ctaLabel,
+          ctaUrl: artifact.ctaUrlRecommendation,
+          hypothesis: artifact.hypothesis,
+        };
+        const version = { at: new Date().toISOString(), author: 'Équipe IA · Nova', draft: { ...emailStudioState.draft } };
+        emailStudioState.versions = [version, ...(emailStudioState.versions || [])].slice(0, 20);
+        emailStudioState.contentApproval = null;
+        finalApprovalToken = '';
+        persistEmailStudioState();
+        populateAudienceOptions();
+        writeDraftToFields();
+        renderEmailStudio();
+        persistWorkspaceDurably();
+        showToast('Proposition chargée. Le cockpit a prérempli l’expéditeur et l’audience recommandés sans rien modifier dans MailerLite.');
+      }
+
+      async function actionRequest(payload) {
+        const response = await fetch(ACTIONS_API, {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(data.error || `action_${response.status}`);
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      }
+
+      function actionErrorMessage(error) {
+        const messages = {
+          authentication_required: 'Reconnecte-toi à l’espace administrateur avant une écriture.',
+          authenticated_session_required_for_writes: 'Une session administrateur authentifiée est obligatoire pour écrire.',
+          test_flights_locked: 'L’épreuve isolée n’est pas encore activée côté serveur.',
+          explicit_test_approval_required: 'Relis puis confirme exactement « ENVOYER TEST ».',
+          dossier_approval_required: 'Valide d’abord le dossier de mission.',
+          content_approval_required: 'Valide d’abord cette version exacte dans l’éditeur.',
+          draft_changed_after_content_approval: 'La version a changé depuis ta validation. Valide-la de nouveau.',
+          test_proof_already_requested_for_this_version: 'Cette version exacte a déjà demandé une épreuve récemment.',
+          test_group_is_not_isolated: 'Le groupe test contient une autre adresse active : l’envoi a été bloqué.',
+          test_recipient_is_not_active: 'L’adresse test n’est pas active dans MailerLite : l’envoi a été bloqué.',
+          draft_writes_locked: 'La création de brouillons est encore verrouillée.',
+          broadcast_sends_locked: 'Les envois broadcast sont encore verrouillés.',
+          invalid_draft: 'MailerLite refuse encore certains paramètres du brouillon.',
+          campaign_not_managed_by_email_division: 'Cette campagne n’a pas été créée par la division et reste donc intouchable.',
+          campaign_changed_after_approval: 'Le brouillon a changé : la validation finale est annulée.',
+          campaign_preflight_failed: 'Le contrôle MailerLite signale des données manquantes ou des alertes.',
+          invalid_or_expired_approval: 'La validation finale a expiré. Relance le contrôle.',
+        };
+        return messages[error?.message] || 'L’action MailerLite n’a pas abouti. Aucun envoi n’a été déclenché.';
+      }
+
+      function openTestConfirmation() {
+        const stage = emailStageState();
+        if (!actionCapabilities.testFlightsEnabled || !stage.dossierApproved || !stage.contentApproved || stage.testProofSent) return;
+        byId('testConfirmationRecipient').textContent = actionCapabilities.testRecipients?.[0] || 'sonnycourt@gmail.com';
+        byId('testConfirmationSubject').textContent = emailStudioState.draft?.subject || '—';
+        byId('testConfirmationAudience').textContent = emailStudioState.draft?.audienceName || '—';
+        byId('confirmTestReview').checked = false;
+        byId('testConfirmationPhrase').value = '';
+        byId('sendTestProofButton').textContent = 'Envoyer uniquement l’épreuve';
+        byId('testAuthMessage').textContent = 'Une session administrateur reste obligatoire pour l’écriture réelle.';
+        updateTestProofButton();
+        if (!testConfirmationDialog.open) testConfirmationDialog.showModal();
+      }
+
+      function updateTestProofButton() {
+        const phraseOk = byId('testConfirmationPhrase').value.trim() === actionCapabilities.testConfirmationPhrase;
+        const reviewed = byId('confirmTestReview').checked;
+        byId('sendTestProofButton').disabled = !actionCapabilities.testFlightsEnabled || !phraseOk || !reviewed;
+      }
+
+      async function sendTestProof() {
+        const button = byId('sendTestProofButton');
+        if (button.disabled) return;
+        button.disabled = true;
+        button.textContent = 'Transmission de l’épreuve…';
+        try {
+          const sentSnapshot = draftSnapshot(emailStudioState.draft);
+          const data = await actionRequest({
+            operation: 'send_test_proof',
+            finalApproval: true,
+            confirmation: byId('testConfirmationPhrase').value.trim(),
+            draft: emailStudioState.draft,
+          });
+          emailStudioState.testProof = { ...data.testProof, sentSnapshot };
+          persistEmailStudioState();
+          await persistWorkspaceDurably();
+          testConfirmationDialog.close();
+          renderEmailStudio();
+          showToast('Épreuve envoyée uniquement à sonnycourt@gmail.com. Le broadcast réel reste verrouillé.');
+        } catch (error) {
+          byId('testAuthMessage').textContent = actionErrorMessage(error);
+          showToast(actionErrorMessage(error));
+          button.textContent = 'Envoyer uniquement l’épreuve';
+          updateTestProofButton();
+        }
+      }
+
+      async function syncMailerLiteDraft() {
+        const stage = emailStageState();
+        if (!actionCapabilities.draftWritesEnabled || !stage.dossierApproved || !stage.contentApproved) return;
+        const button = byId('syncMailerLiteDraft');
+        button.disabled = true;
+        button.textContent = 'Synchronisation…';
+        try {
+          const existingId = emailStudioState.mailerlite?.campaign?.id;
+          const data = await actionRequest({
+            operation: existingId ? 'update_draft' : 'create_draft',
+            campaignId: existingId || undefined,
+            dossierId: 'broadcast-value',
+            dossierApproved: true,
+            contentApproved: true,
+            draft: emailStudioState.draft,
+          });
+          emailStudioState.mailerlite = { campaign: data.campaign, syncedSnapshot: draftSnapshot(emailStudioState.draft), at: new Date().toISOString() };
+          finalApprovalToken = '';
+          persistEmailStudioState();
+          persistWorkspaceDurably();
+          renderEmailStudio();
+          showToast('Brouillon MailerLite synchronisé. Aucun envoi n’a été effectué.');
+        } catch (error) {
+          showToast(actionErrorMessage(error));
+          renderEmailWorkflow();
+        }
+      }
+
+      function renderSendConfirmation(campaign) {
+        byId('sendCampaignName').textContent = campaign.name || '—';
+        byId('sendCampaignSubject').textContent = campaign.subject || '—';
+        byId('sendCampaignAudience').textContent = campaign.audience?.join(' · ') || emailStudioState.draft?.audienceName || '—';
+        byId('sendCampaignFrom').textContent = [campaign.fromName, campaign.fromAddress].filter(Boolean).join(' · ') || '—';
+        const hasWarnings = campaign.missingData?.length || campaign.warnings?.length;
+        byId('sendPreflight').dataset.state = hasWarnings ? 'blocked' : 'clear';
+        byId('sendPreflight').textContent = hasWarnings
+          ? `Contrôle bloqué · ${[...(campaign.missingData || []), ...(campaign.warnings || [])].join(' · ')}`
+          : 'Contrôle réel terminé · aucun élément bloquant remonté par MailerLite.';
+        byId('confirmFinalReview').checked = false;
+        byId('sendConfirmationPhrase').value = '';
+        byId('sendLockMessage').textContent = actionCapabilities.sendsEnabled
+          ? 'Cette autorisation expire dans 10 minutes et ne vaut que pour cette version exacte.'
+          : 'Les envois restent désarmés pendant la construction.';
+        updateFinalSendButton();
+      }
+
+      async function prepareFinalApproval() {
+        const campaignId = emailStudioState.mailerlite?.campaign?.id;
+        if (!campaignId || !emailStageState().draftSynced) return;
+        const button = byId('prepareFinalApproval');
+        button.disabled = true;
+        button.textContent = 'Contrôle réel…';
+        try {
+          const data = await actionRequest({ operation: 'prepare_final_approval', campaignId });
+          finalApprovalToken = data.approvalToken;
+          renderSendConfirmation(data.campaign);
+          if (!sendConfirmationDialog.open) sendConfirmationDialog.showModal();
+        } catch (error) {
+          finalApprovalToken = '';
+          showToast(actionErrorMessage(error));
+        } finally {
+          button.textContent = 'Ouvrir la validation finale';
+          renderEmailWorkflow();
+        }
+      }
+
+      function updateFinalSendButton() {
+        const phraseOk = byId('sendConfirmationPhrase').value.trim() === actionCapabilities.confirmationPhrase;
+        const reviewed = byId('confirmFinalReview').checked;
+        byId('finalSendButton').disabled = !actionCapabilities.sendsEnabled || !finalApprovalToken || !phraseOk || !reviewed;
+      }
+
+      async function sendApprovedCampaign() {
+        if (byId('finalSendButton').disabled) return;
+        const campaignId = emailStudioState.mailerlite?.campaign?.id;
+        byId('finalSendButton').disabled = true;
+        byId('finalSendButton').textContent = 'Transmission à MailerLite…';
+        try {
+          const data = await actionRequest({
+            operation: 'send_campaign', campaignId, approvalToken: finalApprovalToken,
+            finalApproval: true, confirmation: byId('sendConfirmationPhrase').value.trim(),
+          });
+          emailStudioState.sent = { campaign: data.campaign, at: new Date().toISOString() };
+          persistEmailStudioState();
+          persistWorkspaceDurably();
+          finalApprovalToken = '';
+          sendConfirmationDialog.close();
+          renderEmailStudio();
+          showToast('MailerLite a accepté l’envoi après ta validation finale.');
+        } catch (error) {
+          showToast(actionErrorMessage(error));
+          byId('finalSendButton').textContent = 'Envoyer maintenant';
+          updateFinalSendButton();
+        }
+      }
+
+      async function loadActionCapabilities() {
+        try {
+          const response = await fetch(ACTIONS_API, { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          if (!response.ok) return;
+          actionCapabilities = { ...actionCapabilities, ...(await response.json()) };
+          if (emailStudioDialog.open) renderEmailWorkflow();
+          renderFirstFlight();
+        } catch {}
+      }
+
+      function computeMaturity(metrics) {
+        let score = 42;
+        if (metrics.campaignsLast30Days >= 4) score += 16;
+        else score += Math.min(12, metrics.campaignsLast30Days * 3);
+        if (metrics.openRate90Days >= 20) score += 12;
+        if (metrics.clickRate90Days >= 1) score += 12;
+        else if (metrics.clickRate90Days >= .4) score += 5;
+        if (metrics.unsubscribeRate90Days <= .3) score += 8;
+        if (metrics.activeAutomations >= 10) score += 6;
+        if (metrics.trackedRecentCampaigns > 0) score += 4;
+        return Math.min(100, score);
+      }
+
+      function showAgentFocus(agent) {
+        if (!agent) return;
+        selectedAgentId = agent.id;
+        document.querySelectorAll('.agent-card').forEach((card) => {
+          card.setAttribute('aria-pressed', card.dataset.agent === selectedAgentId ? 'true' : 'false');
+        });
+        byId('agentFocus').dataset.color = agent.color;
+        byId('focusDivision').textContent = agent.division;
+        byId('focusName').textContent = agent.name;
+        byId('focusRole').textContent = agent.role;
+        byId('focusState').textContent = agent.stateLabel;
+        byId('focusTask').textContent = agent.task;
+        const progress = Math.max(0, Math.min(100, Number(agent.progress) || 0));
+        byId('focusProgressValue').textContent = `${progress} %`;
+        byId('focusProgressBar').style.width = `${progress}%`;
+      }
+
+      function renderAgents(agents) {
+        currentAgents = Array.isArray(agents) ? agents : [];
+        const floor = byId('agentFloor');
+        floor.replaceChildren();
+
+        currentAgents.forEach((agent, index) => {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'agent-card';
+          card.dataset.agent = agent.id;
+          card.dataset.color = agent.color;
+          card.dataset.state = agent.state;
+          card.dataset.spriteGroup = agent.spriteGroup;
+          card.dataset.spriteIndex = String(agent.spriteIndex);
+          card.style.setProperty('--agent-delay', `${-(index * .17)}s`);
+          card.setAttribute('aria-label', `${agent.name}, ${agent.role}. ${agent.stateLabel}.`);
+          card.setAttribute('aria-pressed', 'false');
+
+          const avatar = document.createElement('span');
+          avatar.className = 'agent-avatar';
+          avatar.setAttribute('aria-hidden', 'true');
+          const pulse = document.createElement('i');
+          pulse.className = 'agent-pulse';
+          avatar.append(pulse);
+
+          const label = document.createElement('span');
+          label.className = 'agent-info';
+          const name = document.createElement('strong');
+          name.className = 'agent-name';
+          name.textContent = agent.name;
+          const role = document.createElement('small');
+          role.className = 'agent-role';
+          role.textContent = agent.role;
+          label.append(name, role);
+          card.append(avatar, label);
+          card.addEventListener('click', () => showAgentFocus(agent));
+          floor.append(card);
+        });
+
+        showAgentFocus(currentAgents.find((agent) => agent.id === selectedAgentId) || currentAgents[0]);
+      }
+
+      function effectiveMission(mission) {
+        const decision = missionDecisions[mission.id];
+        if (!decision) return { ...mission, effectiveStatus: mission.status, effectiveStatusLabel: mission.statusLabel };
+        const effectiveStatus = decision.type === 'approved' ? 'validated' : 'revision';
+        return {
+          ...mission,
+          localDecision: decision,
+          effectiveStatus,
+          effectiveStatusLabel: missionStatusLabels[effectiveStatus],
+          progress: decision.type === 'approved' ? 100 : mission.progress,
+        };
+      }
+
+      function makeMissionStatus(status, label) {
+        const node = document.createElement('span');
+        node.className = 'mission-status';
+        node.dataset.status = status;
+        node.textContent = label || missionStatusLabels[status] || status;
+        return node;
+      }
+
+      function renderMissionFeature(rawMission) {
+        if (!rawMission) return;
+        const mission = effectiveMission(rawMission);
+        const feature = byId('missionFeature');
+        feature.dataset.tone = mission.tone;
+        feature.dataset.status = mission.effectiveStatus;
+        byId('featuredMissionPriority').textContent = mission.priority;
+        byId('featuredMissionStatus').replaceWith(makeMissionStatus(mission.effectiveStatus, mission.effectiveStatusLabel));
+        const replacedStatus = document.querySelector('.mission-feature-topline .mission-status');
+        replacedStatus.id = 'featuredMissionStatus';
+        byId('featuredMissionOwner').textContent = `Mission pilotée par ${mission.owner}`;
+        byId('featuredMissionTitle').textContent = mission.title;
+        byId('featuredMissionSummary').textContent = mission.summary;
+        byId('featuredMissionProgress').textContent = `${mission.progress} %`;
+        byId('featuredMissionDeliverable').textContent = mission.deliverable;
+
+        const evidence = byId('featuredMissionEvidence');
+        evidence.replaceChildren();
+        (mission.evidence || []).slice(0, 4).forEach((item, index) => {
+          const proof = document.createElement('div');
+          proof.className = 'mission-proof';
+          const number = document.createElement('span'); number.textContent = String(index + 1).padStart(2, '0');
+          const text = document.createElement('p'); text.textContent = item;
+          proof.append(number, text); evidence.append(proof);
+        });
+
+        const pipeline = byId('missionPipeline');
+        pipeline.replaceChildren();
+        (mission.steps || []).forEach((step) => {
+          const item = document.createElement('div');
+          item.className = 'mission-pipeline-step';
+          item.dataset.status = step.status;
+          const avatar = document.createElement('span'); avatar.className = 'mission-step-avatar'; avatar.textContent = step.initials;
+          const copy = document.createElement('span');
+          const owner = document.createElement('strong'); owner.textContent = step.agent;
+          const label = document.createElement('small'); label.textContent = step.label;
+          copy.append(owner, label);
+          const state = document.createElement('i'); state.setAttribute('aria-label', missionStatusLabels[step.status] || step.status);
+          item.append(avatar, copy, state); pipeline.append(item);
+        });
+
+        const openButton = byId('openFeaturedMission');
+        openButton.textContent = mission.effectiveStatus === 'validated' ? 'Relire le dossier' : 'Ouvrir le dossier';
+        openButton.onclick = () => openMissionDialog(mission.id);
+      }
+
+      function makeMissionListCard(rawMission) {
+        const mission = effectiveMission(rawMission);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'mission-list-card';
+        button.dataset.status = mission.effectiveStatus;
+        button.dataset.tone = mission.tone;
+        button.setAttribute('aria-pressed', mission.id === featuredMissionId ? 'true' : 'false');
+
+        const top = document.createElement('span'); top.className = 'mission-list-card-top';
+        const owner = document.createElement('span'); owner.className = 'mission-list-owner'; owner.textContent = mission.owner;
+        top.append(owner, makeMissionStatus(mission.effectiveStatus, mission.effectiveStatusLabel));
+        const title = document.createElement('strong'); title.textContent = mission.title;
+        const meta = document.createElement('span'); meta.className = 'mission-list-meta';
+        const priority = document.createElement('small'); priority.textContent = mission.priority;
+        const due = document.createElement('small'); due.textContent = mission.dueLabel;
+        meta.append(priority, due);
+        const progress = document.createElement('span'); progress.className = 'mission-list-progress';
+        const bar = document.createElement('i'); bar.style.width = `${Math.max(0, Math.min(100, mission.progress))}%`;
+        progress.append(bar);
+        button.append(top, title, meta, progress);
+        button.addEventListener('click', () => {
+          featuredMissionId = mission.id;
+          renderMissionFeature(rawMission);
+          renderMissionPortfolio();
+        });
+        return button;
+      }
+
+      function renderMissionPortfolio() {
+        const list = byId('missionList');
+        list.replaceChildren();
+        currentMissions.forEach((mission) => list.append(makeMissionListCard(mission)));
+      }
+
+      function renderMissions(missions) {
+        currentMissions = Array.isArray(missions) ? missions : [];
+        const effective = currentMissions.map(effectiveMission);
+        const count = (statuses) => effective.filter((mission) => statuses.includes(mission.effectiveStatus)).length;
+        byId('missionWorkingCount').textContent = String(count(['working', 'revision']));
+        byId('missionReviewCount').textContent = String(count(['review']));
+        byId('missionQueuedCount').textContent = String(count(['queued']));
+        byId('missionDoneCount').textContent = String(count(['done', 'validated']));
+        byId('missionPortfolioLabel').textContent = `${currentMissions.length} missions actives · décisions conservées sur cet appareil`;
+        const featured = currentMissions.find((mission) => mission.id === featuredMissionId) || currentMissions[0];
+        if (featured) featuredMissionId = featured.id;
+        renderMissionFeature(featured);
+        renderMissionPortfolio();
+      }
+
+      function openMissionDialog(id) {
+        const rawMission = currentMissions.find((mission) => mission.id === id);
+        if (!rawMission) return;
+        activeMissionId = id;
+        const mission = effectiveMission(rawMission);
+        byId('missionDialogOwner').textContent = `Dossier piloté par ${mission.owner}`;
+        byId('missionDialogPriority').textContent = mission.priority;
+        byId('missionDialogStatus').replaceWith(makeMissionStatus(mission.effectiveStatus, mission.effectiveStatusLabel));
+        const status = document.querySelector('.mission-dialog-heading .mission-status');
+        status.id = 'missionDialogStatus';
+        byId('missionDialogTitle').textContent = mission.title;
+        byId('missionDialogSummary').textContent = mission.summary;
+        byId('missionDecisionPrompt').textContent = mission.decisionPrompt;
+
+        const evidence = byId('missionDialogEvidence'); evidence.replaceChildren();
+        (mission.evidence || []).forEach((item) => { const li = document.createElement('li'); li.textContent = item; evidence.append(li); });
+        const deliverables = byId('missionDialogDeliverables'); deliverables.replaceChildren();
+        (mission.deliverables || []).forEach((item) => { const li = document.createElement('li'); li.textContent = item; deliverables.append(li); });
+        const steps = byId('missionDialogSteps'); steps.replaceChildren();
+        (mission.steps || []).forEach((step) => {
+          const row = document.createElement('div'); row.className = 'mission-dialog-step'; row.dataset.status = step.status;
+          const initials = document.createElement('span'); initials.textContent = step.initials;
+          const copy = document.createElement('div');
+          const title = document.createElement('strong'); title.textContent = `${step.agent} · ${step.label}`;
+          const detail = document.createElement('p'); detail.textContent = step.detail;
+          copy.append(title, detail);
+          const state = makeMissionStatus(step.status, missionStatusLabels[step.status]);
+          row.append(initials, copy, state); steps.append(row);
+        });
+
+        const emailEntry = byId('missionEmailEntry');
+        emailEntry.hidden = mission.type !== 'broadcast';
+        if (mission.type === 'broadcast') {
+          const hasLocalDraft = Boolean(emailStudioState.draft);
+          byId('openEmailStudio').textContent = hasLocalDraft ? 'Reprendre la rédaction' : 'Ouvrir l’éditeur';
+        }
+
+        const decisionState = byId('missionDecisionState');
+        const note = byId('missionDecisionNote');
+        note.value = mission.localDecision?.note || '';
+        if (mission.localDecision) {
+          const decisionDate = new Date(mission.localDecision.at);
+          decisionState.hidden = false;
+          decisionState.dataset.type = mission.localDecision.type;
+          decisionState.textContent = `${mission.effectiveStatusLabel} · ${dateTime(decisionDate)}`;
+        } else {
+          decisionState.hidden = true;
+          decisionState.textContent = '';
+          delete decisionState.dataset.type;
+        }
+        byId('approveMission').disabled = mission.localDecision?.type === 'approved';
+        if (!missionDialog.open) missionDialog.showModal();
+      }
+
+      async function saveMissionDecision(type) {
+        if (!activeMissionId) return;
+        const note = byId('missionDecisionNote').value.trim();
+        if (type === 'revision' && !note) {
+          showToast('Ajoute une consigne avant de demander une correction.');
+          byId('missionDecisionNote').focus();
+          return;
+        }
+        missionDecisions[activeMissionId] = { type, note, at: new Date().toISOString() };
+        try { window.localStorage.setItem(MISSION_DECISION_KEY, JSON.stringify(missionDecisions)); } catch {}
+        await persistWorkspaceDurably();
+        renderMissions(currentMissions);
+        openMissionDialog(activeMissionId);
+        renderFirstFlight();
+        showToast(type === 'approved'
+          ? 'Dossier validé. Le contenu peut maintenant être relu, sans aucune écriture MailerLite.'
+          : 'Correction demandée et mémorisée localement.');
+      }
+
+      function makePriority(item, index) {
+        const card = document.createElement('article');
+        card.className = 'priority-card';
+        card.dataset.tone = item.tone;
+
+        const accent = document.createElement('span');
+        accent.className = 'priority-accent';
+        const copy = document.createElement('div');
+        copy.className = 'priority-copy';
+        const title = document.createElement('h3');
+        title.textContent = item.title;
+        const detail = document.createElement('p');
+        detail.textContent = item.detail;
+        const meta = document.createElement('div');
+        meta.className = 'priority-meta';
+        const owner = document.createElement('span');
+        owner.className = 'priority-owner';
+        owner.textContent = item.owner;
+        const evidence = document.createElement('span');
+        evidence.textContent = item.evidence;
+        meta.append(owner, evidence);
+        copy.append(title, detail, meta);
+
+        const button = document.createElement('button');
+        button.className = 'review-button';
+        button.type = 'button';
+        button.textContent = item.actionLabel || 'Examiner';
+        button.addEventListener('click', () => openRecommendation(index));
+        card.append(accent, copy, button);
+        return card;
+      }
+
+      function renderPriorities(priorities) {
+        currentPriorities = priorities || [];
+        byId('priorityCount').textContent = String(currentPriorities.length);
+        const list = byId('priorityList');
+        list.replaceChildren();
+        if (!currentPriorities.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          empty.textContent = 'Aucun arbitrage prioritaire détecté pour ce briefing.';
+          list.append(empty);
+          return;
+        }
+        currentPriorities.forEach((item, index) => list.append(makePriority(item, index)));
+      }
+
+      function openRecommendation(index) {
+        const item = currentPriorities[index];
+        if (!item) return;
+        byId('dialogOwner').textContent = `Dossier préparé par ${item.owner}`;
+        byId('dialogTitle').textContent = item.title;
+        byId('dialogDetail').textContent = item.detail;
+        byId('dialogEvidence').textContent = item.evidence;
+        reviewDialog.showModal();
+      }
+
+      function renderActivity(data) {
+        const feed = byId('activityFeed');
+        feed.replaceChildren();
+        const timestamp = new Date(data.generatedAt);
+        const items = [
+          ['SA', 'Sacha a terminé le scan', `${data.metrics.inspectedRecentCampaigns} campagnes et ${data.metrics.activeAutomations + data.metrics.inactiveAutomations} automations lues.`, 'maintenant'],
+          ['NO', 'Nova a ordonné le briefing', `${data.priorities.length} recommandation${data.priorities.length > 1 ? 's' : ''} classée${data.priorities.length > 1 ? 's' : ''} par priorité.`, '-1 min'],
+          ['MI', 'Milo a consolidé la mémoire', 'Le nouveau scan est prêt à rejoindre l’historique d’apprentissage.', '-1 min'],
+          ['AL', 'Alma a évalué la cadence', `${data.metrics.campaignsLast30Days} grand${data.metrics.campaignsLast30Days > 1 ? 's' : ''} broadcast${data.metrics.campaignsLast30Days > 1 ? 's' : ''} sur 30 jours.`, '-2 min'],
+          ['IN', 'Inès a cartographié la base', `${data.metrics.segmentCount} segments observés, sans ouvrir de fiche contact.`, '-2 min'],
+        ];
+        for (const [initials, title, description, time] of items) {
+          const row = document.createElement('div');
+          row.className = 'activity-item';
+          const avatar = document.createElement('span'); avatar.className = 'activity-avatar'; avatar.textContent = initials;
+          const copy = document.createElement('div');
+          const strong = document.createElement('strong'); strong.textContent = title;
+          const p = document.createElement('p'); p.textContent = description;
+          copy.append(strong, p);
+          const timeNode = document.createElement('span'); timeNode.className = 'activity-time'; timeNode.textContent = time;
+          row.append(avatar, copy, timeNode);
+          feed.append(row);
+        }
+        byId('syncLabel').textContent = `Synchronisé ${dateTime(timestamp)}`;
+      }
+
+      function renderCampaigns(campaigns) {
+        const tbody = byId('campaignRows');
+        tbody.replaceChildren();
+        if (!campaigns?.length) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td'); cell.colSpan = 5; cell.textContent = 'Aucune campagne récente disponible.';
+          row.append(cell); tbody.append(row); return;
+        }
+        for (const campaign of campaigns) {
+          const row = document.createElement('tr');
+          const nameCell = document.createElement('td');
+          const wrapper = document.createElement('div'); wrapper.className = 'campaign-cell';
+          const icon = document.createElement('span'); icon.className = 'campaign-icon'; icon.textContent = '✉';
+          const name = document.createElement('span'); name.className = 'campaign-name';
+          const strong = document.createElement('strong'); strong.textContent = campaign.name;
+          const small = document.createElement('small');
+          small.textContent = campaign.sentAt ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(campaign.sentAt)) : 'Date inconnue';
+          name.append(strong, small); wrapper.append(icon, name); nameCell.append(wrapper);
+          const values = [formatNumber(campaign.sent), formatRate(campaign.openRate), formatRate(campaign.clickRate), formatRate(campaign.unsubscribeRate)];
+          row.append(nameCell, ...values.map((value) => { const cell = document.createElement('td'); cell.textContent = value; return cell; }));
+          tbody.append(row);
+        }
+      }
+
+      function renderOverview(data) {
+        currentOverview = data;
+        const metrics = data.metrics;
+        renderAgents(data.agents);
+        renderMissions(data.missions);
+        renderPriorities(data.priorities);
+        renderActivity(data);
+        renderCampaigns(data.recentCampaigns);
+        renderFirstFlight();
+
+        const maturity = computeMaturity(metrics);
+        byId('maturityScore').textContent = String(maturity);
+        byId('maturityLabel').textContent = maturity >= 80 ? 'Fondations solides, pilotage à structurer' : maturity >= 65 ? 'Potentiel fort, rythme à stabiliser' : 'Actifs forts, système encore sous-exploité';
+        byId('briefingDate').textContent = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(data.generatedAt));
+        byId('lastBroadcastValue').textContent = metrics.lastBroadcastDays == null ? 'Non détecté' : metrics.lastBroadcastDays === 0 ? 'Aujourd’hui' : `${metrics.lastBroadcastDays} j`;
+        byId('pipelineValue').textContent = formatNumber(metrics.readyCount + metrics.draftCount);
+        byId('trackingValue').textContent = `${metrics.trackedRecentCampaigns}/${metrics.inspectedRecentCampaigns}`;
+        byId('webhookValue').textContent = formatNumber(metrics.activeWebhooks);
+
+        byId('metricCadence').textContent = formatNumber(metrics.campaignsLast30Days);
+        const cadenceDelta = metrics.campaignsLast30Days - metrics.campaignsPrevious30Days;
+        const cadenceTrend = byId('metricCadenceTrend');
+        cadenceTrend.textContent = cadenceDelta === 0 ? 'Stable vs 30 j précédents' : `${cadenceDelta > 0 ? '+' : ''}${cadenceDelta} vs 30 j précédents`;
+        cadenceTrend.className = `metric-trend ${metrics.campaignsLast30Days >= 4 ? 'good' : 'warn'}`;
+        byId('metricOpen').textContent = formatRate(metrics.openRate90Days);
+        byId('metricClick').textContent = formatRate(metrics.clickRate90Days);
+        byId('metricUnsub').textContent = formatRate(metrics.unsubscribeRate90Days);
+        const unsubTrend = byId('metricUnsubTrend');
+        unsubTrend.textContent = metrics.unsubscribeRate90Days <= .3 ? 'Sous le seuil de vigilance' : 'À surveiller';
+        unsubTrend.className = `metric-trend ${metrics.unsubscribeRate90Days <= .3 ? 'good' : 'warn'}`;
+        byId('metricAutomations').textContent = formatNumber(metrics.activeAutomations);
+        byId('metricAutomationDetail').textContent = `${metrics.automationSteps} étapes · ${metrics.automationEmailSteps} emails`;
+        byId('metricInactive').textContent = formatNumber(metrics.inactiveContacts);
+
+        const strongest = data.automationSignals?.strongest;
+        const weakest = data.automationSignals?.weakest;
+        byId('strongAutomation').textContent = strongest?.name || 'Volume insuffisant';
+        byId('strongAutomationRate').textContent = strongest ? `${formatRate(strongest.clickRate)} de clics` : '—';
+        byId('weakAutomation').textContent = weakest?.name || 'Volume insuffisant';
+        byId('weakAutomationRate').textContent = weakest ? `${formatRate(weakest.clickRate)} de clics` : '—';
+        byId('automationWarnings').textContent = formatNumber(data.automationSignals?.warningCount);
+        byId('segmentCount').textContent = formatNumber(metrics.segmentCount);
+        byId('groupCount').textContent = formatNumber(metrics.groupCount);
+        byId('fieldCount').textContent = formatNumber(metrics.fieldsCount);
+        byId('activeSixMonths').textContent = formatNumber(metrics.activeSixMonths);
+
+        if (data.unavailable?.length) showToast(`Données partielles : ${data.unavailable.length} source(s) MailerLite momentanément indisponible(s).`);
+        renderValidatorHome();
+      }
+
+      async function loadOverview({ initial = false } = {}) {
+        refreshButton.disabled = true;
+        try {
+          const response = await fetch(OVERVIEW_API, { method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          if (response.status === 401) {
+            loadingScreen.hidden = true;
+            lockedScreen.hidden = false;
+            return;
+          }
+          if (!response.ok) throw new Error(`overview_${response.status}`);
+          const data = await response.json();
+          renderOverview(data);
+          await Promise.all([loadActionCapabilities(), loadAgentWorkspace(), loadAutonomy()]);
+          workspace.setAttribute('aria-busy', 'false');
+          loadingScreen.hidden = true;
+          lockedScreen.hidden = true;
+          if (!initial) showToast('Briefing MailerLite actualisé. Aucune action n’a été exécutée.');
+        } catch (error) {
+          loadingScreen.hidden = true;
+          workspace.setAttribute('aria-busy', 'false');
+          showToast('Lecture MailerLite indisponible pour le moment. Aucun changement n’a été effectué.');
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+
+      refreshButton.addEventListener('click', () => loadOverview());
+      byId('openDepartmentView').addEventListener('click', showDepartmentMode);
+      byId('backToValidatorMode').addEventListener('click', showValidatorMode);
+      byId('dialogClose').addEventListener('click', () => reviewDialog.close());
+      reviewDialog.addEventListener('click', (event) => {
+        if (event.target === reviewDialog) reviewDialog.close();
+      });
+      byId('missionDialogClose').addEventListener('click', () => missionDialog.close());
+      byId('approveMission').addEventListener('click', () => saveMissionDecision('approved'));
+      byId('requestMissionRevision').addEventListener('click', () => saveMissionDecision('revision'));
+      byId('openEmailStudio').addEventListener('click', openEmailStudio);
+      missionDialog.addEventListener('click', (event) => {
+        if (event.target === missionDialog) missionDialog.close();
+      });
+      byId('emailStudioClose').addEventListener('click', () => emailStudioDialog.close());
+      emailStudioDialog.addEventListener('click', (event) => {
+        if (event.target === emailStudioDialog) emailStudioDialog.close();
+      });
+      [
+        'emailSubject', 'emailSubjectVariant', 'emailPreheader', 'emailFromName', 'emailFromAddress',
+        'emailAudience', 'emailBody', 'emailCtaLabel', 'emailCtaUrl', 'emailHypothesis',
+      ].forEach((id) => byId(id).addEventListener(id === 'emailAudience' ? 'change' : 'input', saveDraftFromEditor));
+      document.querySelectorAll('[data-email-device]').forEach((button) => {
+        button.addEventListener('click', () => {
+          document.querySelectorAll('[data-email-device]').forEach((item) => item.classList.toggle('is-active', item === button));
+          byId('emailPreviewViewport').dataset.device = button.dataset.emailDevice;
+        });
+      });
+      byId('saveEmailVersion').addEventListener('click', saveEmailVersion);
+      byId('approveEmailContent').addEventListener('click', approveEmailContent);
+      byId('runAgentTeam').addEventListener('click', () => startAgentRun());
+      byId('adoptAgentDraft').addEventListener('click', adoptAgentDraft);
+      byId('startFirstFlight').addEventListener('click', () => startAgentRun({ firstFlight: true }));
+      byId('openFirstFlightDossier').addEventListener('click', () => openMissionDialog('broadcast-value'));
+      byId('openFirstFlightStudio').addEventListener('click', () => {
+        if (!emailStudioState.draft && currentAgentRun?.artifact) adoptAgentDraft();
+        openEmailStudio();
+      });
+      byId('runAutonomyNow').addEventListener('click', runAutonomyNow);
+      byId('toggleAutonomy').addEventListener('click', toggleAutonomy);
+      byId('syncMailerLiteDraft').addEventListener('click', syncMailerLiteDraft);
+      byId('prepareTestProof').addEventListener('click', openTestConfirmation);
+      byId('testConfirmationClose').addEventListener('click', () => testConfirmationDialog.close());
+      testConfirmationDialog.addEventListener('click', (event) => {
+        if (event.target === testConfirmationDialog) testConfirmationDialog.close();
+      });
+      byId('confirmTestReview').addEventListener('change', updateTestProofButton);
+      byId('testConfirmationPhrase').addEventListener('input', updateTestProofButton);
+      byId('sendTestProofButton').addEventListener('click', sendTestProof);
+      byId('prepareFinalApproval').addEventListener('click', prepareFinalApproval);
+      byId('sendConfirmationClose').addEventListener('click', () => sendConfirmationDialog.close());
+      sendConfirmationDialog.addEventListener('click', (event) => {
+        if (event.target === sendConfirmationDialog) sendConfirmationDialog.close();
+      });
+      byId('confirmFinalReview').addEventListener('change', updateFinalSendButton);
+      byId('sendConfirmationPhrase').addEventListener('input', updateFinalSendButton);
+      byId('finalSendButton').addEventListener('click', sendApprovedCampaign);
+      loadOverview({ initial: true });
+    </script>
+  </body>
+</html>
