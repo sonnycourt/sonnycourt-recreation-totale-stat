@@ -23,7 +23,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
         <div class="builder-heading"><span class="builder-heading-icon">01</span><div><h2>Informations du checkout</h2><p>Ces informations servent à le reconnaître et à générer son lien.</p></div></div>
         <div class="form-grid">
           <label class="form-field form-field--wide"><span>Nom interne</span><input class="pay-input" id="checkoutName" name="name" type="text" placeholder="Ex. Coaching · Première consultation" autocomplete="off" required /><small>Visible uniquement dans ton espace Pay.</small></label>
-          <label class="form-field form-field--wide"><span>Adresse de la page</span><div class="slug-field"><span>pay.sonnycourt.com/c/</span><input class="pay-input" id="checkoutSlug" name="slug" type="text" placeholder="coaching-premiere-consultation" pattern="[a-z0-9-]+" required /></div><small>Lettres minuscules, chiffres et tirets uniquement.</small></label>
+          <label class="form-field form-field--wide"><span>Identifiant du checkout</span><div class="slug-field"><span>pay/</span><input class="pay-input" id="checkoutSlug" name="slug" type="text" placeholder="coaching-premiere-consultation" pattern="[a-z0-9-]+" required /></div><small>Lettres minuscules, chiffres et tirets uniquement. Le lien Stripe est généré à la publication.</small></label>
           <label class="form-field form-field--wide"><span>Description courte</span><textarea class="pay-textarea" id="checkoutDescription" name="description" rows="4" placeholder="Décris en une phrase ce que le client achète."></textarea></label>
         </div>
       </div>
@@ -40,6 +40,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
           <label class="form-field"><span>Devise</span><select class="pay-select" id="checkoutCurrency" name="currency"><option value="EUR">EUR · Euro</option><option value="CHF">CHF · Franc suisse</option><option value="USD">USD · Dollar</option></select></label>
           <label class="form-field form-field--wide"><span>Texte sous le prix</span><input class="pay-input" id="checkoutPriceNote" name="priceNote" type="text" placeholder="Ex. Accès immédiat après paiement" /></label>
         </div>
+        <label class="ready-check promo-check"><input id="checkoutAllowPromotionCodes" type="checkbox" /><span>Autoriser les codes promotionnels Stripe sur ce checkout.</span></label>
         <div class="plan-fields" id="checkoutPlanFields" hidden>
           <div class="plan-intro"><span>≋</span><div><strong>Échéancier personnalisé</strong><small>La dernière ligne se répète chaque mois après les deux premières étapes.</small></div></div>
           <div class="form-grid">
@@ -55,7 +56,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
       <div class="builder-pane" data-step-pane="3" hidden>
         <div class="builder-heading"><span class="builder-heading-icon">03</span><div><h2>Prêt à créer ton checkout</h2><p>Vérifie les éléments essentiels avant de sauvegarder le brouillon.</p></div></div>
         <div class="checkout-summary">
-          <div class="summary-hero"><span class="summary-logo">P</span><div><p>Aperçu du checkout</p><h3 id="summaryName">Nouveau checkout</h3><small id="summaryUrl">pay.sonnycourt.com/c/mon-checkout</small></div><strong id="summaryPrice">0,00 €</strong></div>
+          <div class="summary-hero"><span class="summary-logo">P</span><div><p>Aperçu du checkout</p><h3 id="summaryName">Nouveau checkout</h3><small id="summaryUrl">Lien Stripe généré à la publication · pay/mon-checkout</small></div><strong id="summaryPrice">0,00 €</strong></div>
           <div class="summary-grid">
             <div><small>Type de paiement</small><strong id="summaryBilling">Paiement unique</strong></div>
             <div><small>Devise</small><strong id="summaryCurrency">EUR</strong></div>
@@ -63,7 +64,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
             <div><small>Statut initial</small><strong><span class="pay-badge pay-badge--draft">Brouillon</span></strong></div>
           </div>
         </div>
-        <label class="ready-check"><input id="readyCheck" type="checkbox" required /><span>Je confirme que le nom, le lien et le prix sont corrects.</span></label>
+        <label class="ready-check"><input id="readyCheck" type="checkbox" required /><span>Je confirme que le nom, l’identifiant et le prix sont corrects.</span></label>
       </div>
 
       <footer class="builder-footer">
@@ -129,7 +130,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     const amount = Number(amountInput.value || 0);
     const currency = currencyInput.value;
     document.getElementById('summaryName').textContent = nameInput.value || 'Nouveau checkout';
-    document.getElementById('summaryUrl').textContent = `pay.sonnycourt.com/c/${slugInput.value || 'mon-checkout'}`;
+    document.getElementById('summaryUrl').textContent = `Lien Stripe généré à la publication · pay/${slugInput.value || 'mon-checkout'}`;
     document.getElementById('summaryPrice').textContent = `${new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency === 'EUR' ? '€' : currency}` + (billing === 'subscription' || billing === 'payment-plan' ? ' / mois' : '');
     document.getElementById('summaryBilling').textContent = billing === 'subscription' ? 'Abonnement mensuel' : billing === 'payment-plan' ? 'Plan de paiement' : 'Paiement unique';
     document.getElementById('summaryCurrency').textContent = currency;
@@ -161,7 +162,8 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     } : null;
     return {
       id: editingDraft?.id || Date.now(), name: nameInput.value.trim(), slug: slugInput.value.trim(), description: document.getElementById('checkoutDescription').value.trim(),
-      billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(), plan, status: 'draft',
+      billing, amount: Number(amountInput.value), currency: currencyInput.value, priceNote: document.getElementById('checkoutPriceNote').value.trim(),
+      allowPromotionCodes: document.getElementById('checkoutAllowPromotionCodes').checked, plan, status: 'draft',
       createdAt: editingDraft?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
   }
@@ -177,6 +179,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
     amountInput.value = editingDraft.amount ?? '';
     currencyInput.value = editingDraft.currency || 'EUR';
     document.getElementById('checkoutPriceNote').value = editingDraft.priceNote || '';
+    document.getElementById('checkoutAllowPromotionCodes').checked = Boolean(editingDraft.allowPromotionCodes);
     document.getElementById('checkoutDeposit').value = editingDraft.plan?.deposit ?? '';
     document.getElementById('checkoutBridgeAmount').value = editingDraft.plan?.bridgeAmount ?? '';
     document.getElementById('checkoutBridgeDelay').value = editingDraft.plan?.bridgeDelayDays ?? '';
@@ -270,6 +273,7 @@ import PayAppShell from '../../../components/PayAppShell.astro';
   .summary-grid strong { font-size: 10px; }
   .ready-check { display: flex; align-items: center; gap: 10px; margin-top: 18px; color: var(--pay-soft); font-size: 9px; cursor: pointer; }
   .ready-check input { accent-color: #4bccea; }
+  .promo-check { margin: 4px 0 0; padding: 12px 14px; border: 1px solid rgba(112,231,255,.12); border-radius: 14px; background: rgba(112,231,255,.025); }
   .builder-footer { min-height: 70px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--pay-line); background: rgba(2,10,20,.22); }
   .builder-progress { height: 3px; flex: 1; margin: 0 10px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
   .builder-progress i { display: block; width: 33%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pay-blue), var(--pay-cyan)); transition: width .25s ease; }

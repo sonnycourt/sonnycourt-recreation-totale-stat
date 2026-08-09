@@ -56,10 +56,21 @@ const {
     <footer>
       <div class="resource-dialog-actions" data-resource-dialog-actions hidden>
         <a class="pay-button pay-button--ghost" data-resource-dialog-edit href="#">Modifier le brouillon</a>
+        <button class="pay-button pay-button--primary" type="button" data-resource-dialog-publish>Préparer la publication</button>
         <button class="pay-button resource-dialog-delete" type="button" data-resource-dialog-delete>Supprimer</button>
       </div>
       <button class="pay-button pay-button--ghost" type="button" data-resource-dialog-close>Fermer</button>
     </footer>
+  </dialog>
+
+  <dialog class="resource-dialog resource-publish-dialog pay-panel" data-resource-publish-dialog aria-labelledby="resourcePublishTitle">
+    <header><div><p class="pay-kicker">Publication · confirmation 2 sur 2</p><h2 id="resourcePublishTitle" data-resource-publish-title>Publier vers Stripe</h2></div><button type="button" data-resource-publish-close aria-label="Fermer">×</button></header>
+    <div class="resource-publish-body">
+      <div class="resource-publish-state" data-resource-publish-state><span class="resource-spinner" aria-hidden="true"></span><span><strong>Préparation du plan</strong><small>Aucune écriture n’est envoyée pendant cette étape.</small></span></div>
+      <div class="resource-publish-plan" data-resource-publish-plan hidden></div>
+      <label class="resource-publish-confirm" data-resource-publish-confirm-wrap hidden><span>Recopie la confirmation exacte</span><input class="pay-input" type="text" autocomplete="off" spellcheck="false" data-resource-publish-confirm /><small data-resource-publish-confirm-hint></small></label>
+    </div>
+    <footer><button class="pay-button pay-button--ghost" type="button" data-resource-publish-close>Annuler</button><button class="pay-button pay-button--primary" type="button" data-resource-publish-execute disabled>Publier vers Stripe</button></footer>
   </dialog>
 
   <dialog class="resource-dialog resource-filter-dialog pay-panel" data-resource-filter-dialog aria-labelledby="resourceFilterTitle">
@@ -156,6 +167,15 @@ const {
   .resource-dialog-actions[hidden] { display: none; }
   .resource-dialog-delete { border-color: rgba(255,128,148,.24); color: #ff9bad; background: rgba(255,128,148,.055); }
   .resource-dialog-delete[data-resource-dialog-delete-confirm='true'] { border-color: rgba(255,128,148,.55); color: #fff; background: rgba(255,94,124,.24); }
+  .resource-publish-body { display: grid; gap: 14px; padding: 22px; }
+  .resource-publish-state { min-height: 90px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid var(--pay-line); border-radius: 15px; color: var(--pay-soft); background: rgba(1,10,21,.25); }
+  .resource-publish-state strong, .resource-publish-state small { display: block; }
+  .resource-publish-state small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
+  .resource-publish-plan { display: grid; gap: 8px; }
+  .resource-publish-plan > div { display: flex; justify-content: space-between; gap: 18px; padding: 12px 13px; border: 1px solid var(--pay-line); border-radius: 12px; color: var(--pay-soft); font-size: 9px; background: rgba(1,10,21,.25); }
+  .resource-publish-plan small { color: var(--pay-muted); }
+  .resource-publish-confirm { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; }
+  .resource-publish-confirm small { color: var(--pay-cyan); font-size: 8px; }
   .resource-filter-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px; }
   .resource-filter-form label, .resource-view-save label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 9px; font-weight: 700; }
   .resource-filter-form .resource-filter-value { grid-column: 1 / -1; }

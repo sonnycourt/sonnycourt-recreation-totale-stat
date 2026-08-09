@@ -10,6 +10,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
         <div class="gateway-list">
           <div class="gateway-row"><span class="gateway-logo gateway-logo--stripe">S</span><span><strong>Stripe</strong><small id="stripeGatewayDescription">Cartes bancaires, Apple Pay et abonnements</small></span><span class="gateway-state" id="stripeGatewayState"><i></i>Vérification…</span><a class="pay-button pay-button--primary" id="stripeDashboardLink" href="https://dashboard.stripe.com" target="_blank" rel="noopener" hidden>Ouvrir Stripe ↗</a></div>
           <div class="gateway-row gateway-row--safety"><span class="gateway-logo gateway-logo--safety">✓</span><span><strong>Actions financières</strong><small id="stripeActionsDescription">Vérification du garde-fou des remboursements</small></span><span class="gateway-state" id="stripeActionsState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/transactions" href="/pay/transactions">Gérer</a></div>
+          <div class="gateway-row gateway-row--catalog"><span class="gateway-logo gateway-logo--catalog">◇</span><span><strong>Publication du catalogue</strong><small id="stripeCatalogDescription">Vérification du garde-fou des produits, checkouts et réductions</small></span><span class="gateway-state" id="stripeCatalogState"><i></i>Vérification…</span><a class="pay-button" data-pay-route="/products" href="/pay/products">Gérer</a></div>
           <div class="gateway-row"><span class="gateway-logo gateway-logo--paypal">P</span><span><strong>PayPal</strong><small id="paypalGatewayDescription">Transactions, abonnements, litiges et factures</small></span><span class="gateway-state" id="paypalGatewayState"><i></i>Vérification…</span><a class="pay-button" id="paypalDashboardLink" href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noopener" hidden>Ouvrir PayPal ↗</a></div>
           <div class="gateway-row"><span class="gateway-logo gateway-logo--history">H</span><span><strong>Historique Pay</strong><small id="historyGatewayDescription">Vérification de la projection Supabase</small></span><span class="gateway-state" id="historyGatewayState"><i></i>Vérification…</span><span></span></div>
         </div>
@@ -114,6 +115,30 @@ import PayAppShell from '../../components/PayAppShell.astro';
     renderRoadmapStatus();
   }
 
+  function renderCatalogSettings(data) {
+    const state = document.getElementById('stripeCatalogState');
+    const description = document.getElementById('stripeCatalogDescription');
+    if (data?.writes_enabled) {
+      state.classList.add('gateway-state--connected');
+      state.innerHTML = '<i></i>Active';
+      description.textContent = `Double confirmation active · Stripe ${data.mode === 'live' ? 'réel' : 'test'}`;
+    } else {
+      state.classList.add('gateway-state--locked');
+      state.innerHTML = '<i></i>Verrouillée';
+      description.textContent = data?.configured ? 'Les plans sont vérifiables, mais aucune publication Stripe ne peut partir' : 'Connexion Stripe indisponible';
+    }
+  }
+
+  async function loadCatalogSettings() {
+    try {
+      const response = await fetch('/.netlify/functions/pay-catalog-publish', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({}));
+      renderCatalogSettings(response.ok ? data : { configured: false, writes_enabled: false });
+    } catch {
+      renderCatalogSettings({ configured: false, writes_enabled: false });
+    }
+  }
+
   function renderHistorySettings(data) {
     const state = document.getElementById('historyGatewayState');
     const description = document.getElementById('historyGatewayDescription');
@@ -152,8 +177,10 @@ import PayAppShell from '../../components/PayAppShell.astro';
   document.addEventListener('pay:authenticated', () => {
     window.getPayPayPalOverview?.();
     loadHistorySettings();
+    loadCatalogSettings();
   }, { once: true });
   loadHistorySettings();
+  loadCatalogSettings();
 </script>
 
 <style>
@@ -167,6 +194,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .gateway-logo--paypal { color: #78c4ff; border: 1px solid rgba(75,169,255,.2); background: rgba(75,169,255,.08); }
   .gateway-logo--history { color: #70e7ff; border: 1px solid rgba(112,231,255,.2); background: rgba(112,231,255,.07); }
   .gateway-logo--safety { color: var(--pay-green); border: 1px solid rgba(101,229,170,.2); background: rgba(101,229,170,.07); }
+  .gateway-logo--catalog { color: #ffd08a; border: 1px solid rgba(255,190,100,.2); background: rgba(255,190,100,.07); }
   .gateway-row--safety { background: rgba(101,229,170,.015); }
   .gateway-row strong, .gateway-row small { display: block; }
   .gateway-row strong { font-size: 11px; }

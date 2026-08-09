@@ -60,6 +60,23 @@ export function removePayDraft(storage, kind, idValue) {
   return { removed: true, rows };
 }
 
+export function markPayDraftPublished(storage, kind, idValue, publication = {}) {
+  const draft = findPayDraft(storage, kind, idValue);
+  if (!draft) throw new Error('pay_draft_not_found');
+  return upsertPayDraft(storage, kind, {
+    ...draft,
+    status: 'published',
+    publishedAt: new Date().toISOString(),
+    publication: {
+      provider: 'stripe',
+      fingerprint: String(publication.fingerprint || '').slice(0, 64) || null,
+      externalIds: Array.isArray(publication.operations)
+        ? publication.operations.map((operation) => String(operation?.result?.id || '')).filter(Boolean).slice(0, 10)
+        : [],
+    },
+  });
+}
+
 export function payDraftEditUrl(kind, idValue, { preview = false } = {}) {
   const { path } = config(kind);
   const query = new URLSearchParams({ draft: cleanId(idValue) });

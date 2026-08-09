@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-const COMMAND_CONFIRMATIONS = Object.freeze({
+export const PAY_CATALOG_CONFIRMATIONS = Object.freeze({
   product: 'PUBLIER PRODUIT',
   checkout: 'PUBLIER CHECKOUT',
   discount: 'PUBLIER REDUCTION',
@@ -150,16 +150,16 @@ function checkoutPlan(input) {
 
   if (billingType === 'payment_plan') {
     const schedule = paymentPlanPhases(input, code);
+    const redirect = httpsUrl(input.success_url);
     return {
       kind: 'checkout',
       flow: 'central_payment_plan',
       schedule,
       operations: [{
-        id: 'initial_checkout_session',
-        stripe_method: 'checkout.sessions.create',
-        idempotency_suffix: 'initial-session',
+        id: 'initial_payment_link',
+        stripe_method: 'paymentLinks.create',
+        idempotency_suffix: 'initial-payment-link',
         params: {
-          mode: 'payment',
           line_items: [{
             quantity: 1,
             price_data: {
@@ -173,6 +173,10 @@ function checkoutPlan(input) {
             installment_count: String(schedule.installment_count),
             payment_plan_total_minor: String(schedule.total_minor),
           },
+          allow_promotion_codes: Boolean(input.allow_promotion_codes),
+          after_completion: redirect
+            ? { type: 'redirect', redirect: { url: redirect } }
+            : { type: 'hosted_confirmation', hosted_confirmation: { custom_message: clean(input.confirmation_message, 500) || 'Premier paiement confirmé.' } },
         },
       }],
       continuation: {
@@ -215,8 +219,11 @@ function discountPlan(input) {
   const type = clean(input.type || input.discount_type, 30).toLowerCase();
   if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(code)) throw new Error('pay_catalog_discount_code_invalid');
   if (!['fixed', 'percentage'].includes(type)) throw new Error('pay_catalog_discount_type_invalid');
+  const appliesOneTime = input.applies_one_time ?? input.appliesOneTime ?? true;
+  const appliesRecurring = input.applies_recurring ?? input.appliesRecurring ?? false;
+  if (!appliesOneTime && !appliesRecurring) throw new Error('pay_catalog_discount_scope_required');
   const coupon = {
-    duration: input.applies_recurring || input.appliesRecurring ? 'forever' : 'once',
+    duration: appliesRecurring ? 'forever' : 'once',
     name: code,
     metadata: metadata(input.metadata),
   };
@@ -264,8 +271,8 @@ function discountPlan(input) {
 
 export function preparePayCatalogCommand(kindValue, input = {}, options = {}) {
   const kind = clean(kindValue, 40).toLowerCase();
-  if (!COMMAND_CONFIRMATIONS[kind]) throw new Error('pay_catalog_command_invalid');
-  if (clean(options.confirmation, 40) !== COMMAND_CONFIRMATIONS[kind]) throw new Error('pay_catalog_confirmation_required');
+  if (!PAY_CATALOG_CONFIRMATIONS[kind]) throw new Error('pay_catalog_command_invalid');
+  if (clean(options.confirmation, 40) !== PAY_CATALOG_CONFIRMATIONS[kind]) throw new Error('pay_catalog_confirmation_required');
   const baseKey = idempotencyKey(options.idempotencyKey);
   const plan = kind === 'product' ? productPlan(input) : kind === 'checkout' ? checkoutPlan(input) : discountPlan(input);
   const operations = plan.operations.map((operation) => ({
@@ -277,7 +284,7 @@ export function preparePayCatalogCommand(kindValue, input = {}, options = {}) {
     mode: 'dry_run',
     executable: false,
     live_write_flag: 'PAY_STRIPE_CATALOG_WRITES_ENABLED',
-    confirmation: COMMAND_CONFIRMATIONS[kind],
+    confirmation: PAY_CATALOG_CONFIRMATIONS[kind],
     fingerprint,
     ...plan,
     operations,

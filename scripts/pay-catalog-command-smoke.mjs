@@ -19,13 +19,17 @@ assert.equal(checkout.flow, 'one_time');
 assert.equal(checkout.operations[0].stripe_method, 'paymentLinks.create');
 assert.equal(checkout.operations[0].params.line_items[0].price_data.unit_amount, 9_700);
 assert.equal(checkout.operations[0].params.metadata.checkout_id, 'premiere-consultation');
+assert.equal(checkout.operations[0].params.allow_promotion_codes, true);
 
 const mc2 = preparePayCatalogCommand('checkout', {
   name: 'MC2', slug: 'mc2', billing: 'payment-plan', amount: 197, currency: 'eur',
+  allow_promotion_codes: true,
   plan: { deposit: 47, bridgeAmount: 150, bridgeDelayDays: 14, installments: 11 },
   metadata: { funnel: 'mc2' },
 }, { confirmation: 'PUBLIER CHECKOUT', idempotencyKey: 'checkout:mc2:2026-08-09' });
 assert.equal(mc2.flow, 'central_payment_plan');
+assert.equal(mc2.operations[0].stripe_method, 'paymentLinks.create');
+assert.equal(mc2.operations[0].params.allow_promotion_codes, true);
 assert.equal(mc2.schedule.total_minor, 236_400);
 assert.deepEqual(mc2.schedule.phases.map((phase) => [phase.kind, phase.count, phase.amount_minor]), [
   ['immediate', 1, 4_700],
@@ -52,6 +56,9 @@ assert.throws(() => preparePayCatalogCommand('checkout', {
 assert.throws(() => preparePayCatalogCommand('discount', {
   code: 'TEST', type: 'percentage', value: 101,
 }, { confirmation: 'PUBLIER REDUCTION', idempotencyKey: 'discount:test:2026-08-09' }), /pay_catalog_discount_value_invalid/);
+assert.throws(() => preparePayCatalogCommand('discount', {
+  code: 'TEST', type: 'percentage', value: 10, appliesOneTime: false, appliesRecurring: false,
+}, { confirmation: 'PUBLIER REDUCTION', idempotencyKey: 'discount:scope:2026-08-09' }), /pay_catalog_discount_scope_required/);
 assert.throws(() => preparePayCatalogCommand('product', {
   name: 'Test', billing_type: 'recurring', amount: 10, currency: 'eur', interval_unit: 'month', interval_count: 37,
 }, { confirmation: 'PUBLIER PRODUIT', idempotencyKey: 'product:interval:2026-08-09' }), /pay_catalog_interval_invalid/);

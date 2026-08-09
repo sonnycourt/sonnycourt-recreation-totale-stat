@@ -182,14 +182,21 @@ Les créations de produit et de commande restent des interfaces de brouillon tan
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement
 autorisés. Aucun de ces parcours ne doit créer de charge pendant la recette.
 
-La publication du catalogue est désormais décrite par le contrat pur
-`netlify/functions/lib/pay-catalog-command.mjs`. Produits, liens de paiement et
+La publication du catalogue est décrite par le contrat pur
+`netlify/functions/lib/pay-catalog-command.mjs` et l'exécuteur central
+`netlify/functions/lib/pay-catalog-executor.mjs`. Produits, liens de paiement et
 codes promotionnels sont validés, associés à une clé d'idempotence et exigent
-une confirmation textuelle distincte. Le contrat MC2 conserve exactement les
+une confirmation textuelle distincte liée à l'empreinte du brouillon. Le
+contrat MC2 conserve exactement les
 trois phases 47 € maintenant, 150 € à J+14 puis 11 × 197 €, dont la continuation
 est réservée au webhook Pay universel. Le résultat reste `dry_run`, avec
-`executable: false` ; aucune opération Stripe n'est encore envoyée et le futur
-exécuteur exigera `PAY_STRIPE_CATALOG_WRITES_ENABLED=true`.
+`executable: false` jusqu'au deuxième geste. L'endpoint authentifié prépare
+d'abord le plan sans écriture, puis n'autorise l'exécuteur qu'après recopie de
+la confirmation et correspondance de l'empreinte. Le verrou
+`PAY_STRIPE_CATALOG_WRITES_ENABLED=true` reste absent : aucune opération Stripe
+n'est donc envoyée pendant la recette actuelle. Les plans complexes publient
+un lien de paiement réutilisable pour l'acompte ; chaque achat sera ensuite
+routé vers le webhook Pay central, jamais vers un webhook concurrent.
 
 ## Backfill fournisseur à blanc
 
@@ -301,10 +308,10 @@ pages suivantes ; le garde-fou en deux étapes reste inchangé et verrouillé.
 | Dashboard et calendrier | Graphique Stripe + PayPal, sémantique Spiffy validée, 4 séries, infobulles et périodes personnalisées | prêt avant import |
 | Commandes, clients, paiements | Historique unifié, données live prioritaires, recherche, filtres, CSV et fiches détaillées | prêt avant import |
 | Abonnements et plans | Objets Stripe et PayPal natifs, échéance PayPal exacte, repli transactionnel seulement si l'API native est refusée, historique Spiffy validé à blanc | prêt avant import |
-| Checkouts | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication en attente du moteur Stripe central |
-| Produits | Catalogues, prix et plans Stripe + PayPal réels, brouillons modifiables | lecture prête, publication verrouillée |
+| Checkouts | Liste Stripe, brouillons modifiables et publication centrale en deux confirmations | code prêt, Live verrouillé |
+| Produits | Catalogues, prix et plans Stripe + PayPal réels, brouillons modifiables et publication idempotente | code prêt, Live verrouillé |
 | Rapports | Produit, LTV, projection cash flow, plans, performance checkout, échecs et taxes par pays/passerelle, archive + live dédupliqués | prêt avant import |
-| Réductions | Liste Stripe et brouillons créables, modifiables et supprimables en deux étapes | publication verrouillée |
+| Réductions | Liste Stripe, brouillons modifiables, chaîne coupon + code promotionnel idempotente | code prêt, Live verrouillé |
 | Remboursements | Stripe + PayPal, total ou partiel, confirmation en deux étapes | code prêt, Live verrouillé |
 | Affiliés et MCP | Hors périmètre volontairement | exclu |
 

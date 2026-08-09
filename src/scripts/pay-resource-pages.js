@@ -2,7 +2,13 @@ import { collectPaySources, requirePaySource } from './pay-source-results.js';
 import { matchesResourceFilter, normalizeResourceFilter, normalizeResourceView, normalizeSavedResourceViews } from './pay-resource-filters.js';
 import { addPayNote, normalizePayNotesStore, payNotesEntityKey, removePayNote } from './pay-resource-notes.js';
 import { payOrderPlainValues } from './pay-resource-rows.js';
-import { payDraftEditUrl, removePayDraft } from './pay-draft-store.js';
+import { findPayDraft, markPayDraftPublished, payDraftEditUrl, removePayDraft } from './pay-draft-store.js';
+import {
+  payCatalogDraftConfirmation,
+  payCatalogDraftIdempotencyKey,
+  payCatalogDraftInput,
+  payCatalogDraftKind,
+} from './pay-catalog-draft.js';
 
 const screen = document.querySelector('[data-pay-resource-page]');
 
@@ -24,7 +30,16 @@ if (screen) {
   const detailContent = screen.querySelector('[data-resource-dialog-content]');
   const detailActions = screen.querySelector('[data-resource-dialog-actions]');
   const detailEdit = screen.querySelector('[data-resource-dialog-edit]');
+  const detailPublish = screen.querySelector('[data-resource-dialog-publish]');
   const detailDelete = screen.querySelector('[data-resource-dialog-delete]');
+  const publishDialog = screen.querySelector('[data-resource-publish-dialog]');
+  const publishTitle = screen.querySelector('[data-resource-publish-title]');
+  const publishState = screen.querySelector('[data-resource-publish-state]');
+  const publishPlan = screen.querySelector('[data-resource-publish-plan]');
+  const publishConfirmWrap = screen.querySelector('[data-resource-publish-confirm-wrap]');
+  const publishConfirm = screen.querySelector('[data-resource-publish-confirm]');
+  const publishConfirmHint = screen.querySelector('[data-resource-publish-confirm-hint]');
+  const publishExecute = screen.querySelector('[data-resource-publish-execute]');
   const notesSection = screen.querySelector('[data-resource-notes]');
   const notesList = screen.querySelector('[data-resource-notes-list]');
   const noteInput = screen.querySelector('[data-resource-note-input]');
@@ -47,6 +62,7 @@ if (screen) {
   let savedViews = readSavedViews();
   let activeNoteEntityKey = '';
   let activeDetailItem = null;
+  let activePublication = null;
   let noteStore = readNoteStore();
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
@@ -198,7 +214,7 @@ if (screen) {
   async function loadOrders() {
     let drafts = [];
     try { drafts = JSON.parse(sessionStorage.getItem('pay_order_drafts') || '[]'); } catch {}
-    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+    const draftRows = Array.isArray(drafts) ? drafts.filter((draft) => draft.status !== 'published').map((draft) => {
       const status = 'Brouillon';
       const created = date(draft.createdAt);
       const amount = money(Math.round(Number(draft.checkoutAmount || 0) * 100), draft.currency || 'EUR');
@@ -401,7 +417,7 @@ if (screen) {
   async function loadProducts() {
     let drafts = [];
     try { drafts = JSON.parse(localStorage.getItem('pay_product_drafts') || '[]'); } catch {}
-    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+    const draftRows = Array.isArray(drafts) ? drafts.filter((draft) => draft.status !== 'published').map((draft) => {
       const billing = draft.billingType === 'recurring' ? `Tous les ${draft.intervalCount || 1} ${draft.intervalUnit || 'month'}` : 'Paiement unique';
       const status = 'Brouillon';
       return row([
@@ -467,7 +483,7 @@ if (screen) {
   async function loadCheckouts() {
     let drafts = [];
     try { drafts = JSON.parse(localStorage.getItem('pay_checkout_drafts') || '[]'); } catch {}
-    const draftRows = Array.isArray(drafts) ? drafts.map((draft) => {
+    const draftRows = Array.isArray(drafts) ? drafts.filter((draft) => draft.status !== 'published').map((draft) => {
       const status = 'Brouillon';
       return row([
         `<strong>${escapeHtml(draft.name || 'Checkout sans nom')}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${money(Math.round(Number(draft.amount || 0) * 100), draft.currency || 'EUR')}</strong>`, badge(status), 'Non publié',
@@ -510,14 +526,14 @@ if (screen) {
     let drafts = [];
     try { drafts = JSON.parse(localStorage.getItem('pay_discount_drafts') || '[]'); } catch {}
     if (!Array.isArray(drafts)) drafts = [];
-    const draftRows = drafts.map((draft) => {
+    const draftRows = drafts.filter((draft) => draft.status !== 'published').map((draft) => {
       const value = draft.type === 'percentage' ? `${draft.value} %` : money(Math.round(Number(draft.value || 0) * 100), draft.currency || 'eur');
       return row([
         `<strong>${escapeHtml(draft.code)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`, providerCell('internal'), `<strong>${escapeHtml(value)}</strong>`, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', '0', badge('Brouillon'),
       ], [draft.code, 'Pay', value, draft.expiresAt ? date(draft.expiresAt, true) : 'Sans expiration', 0, 'Brouillon'], 'internal', 'brouillon', Math.floor(Number(draft.id || 0) / 1000), String(draft.id), { draftKind: 'discounts' });
     });
     if (history) {
-      sourceLabels = drafts.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
+      sourceLabels = draftRows.length ? ['Pay', 'Historique Pay'] : ['Historique Pay'];
       const historyRows = history.map((discount) => {
         const value = discount.type === 'percentage' ? `${discount.percent_off || 0} %` : money(discount.amount || 0, discount.currency || 'eur');
         const status = stripeStatus(discount.status);
@@ -531,9 +547,9 @@ if (screen) {
       coupons: fetchStripeAll('coupons', 10),
       promotionCodes: fetchStripeAll('promotion_codes', 10),
     });
-    if (!drafts.length) requirePaySource(sources, 'pay_discount_sources_unavailable');
+    if (!draftRows.length) requirePaySource(sources, 'pay_discount_sources_unavailable');
     const values = sourcesFrom(sources, { coupons: 'Stripe', promotionCodes: 'Stripe' });
-    sourceLabels = [...new Set([...(drafts.length ? ['Pay'] : []), ...sourceLabels])];
+    sourceLabels = [...new Set([...(draftRows.length ? ['Pay'] : []), ...sourceLabels])];
     const coupons = values.coupons || [];
     const promotionCodes = values.promotionCodes || [];
     const couponById = new Map(coupons.map((coupon) => [coupon.id, coupon]));
@@ -758,6 +774,108 @@ if (screen) {
     renderNotes();
     detailDialog.showModal();
   }
+
+  function publicationErrorMessage(code) {
+    const messages = {
+      stripe_catalog_writes_disabled: 'La publication Stripe est verrouillée dans Netlify.',
+      stripe_secret_missing: 'La connexion Stripe de Pay est indisponible.',
+      pay_catalog_fingerprint_mismatch: 'Le brouillon a changé. Prépare une nouvelle publication.',
+      pay_catalog_confirmation_required: 'La confirmation exacte est requise.',
+    };
+    return messages[code] || 'La publication ne peut pas être préparée pour le moment.';
+  }
+
+  async function catalogRequest(payload) {
+    const response = await fetch('/.netlify/functions/pay-catalog-publish', {
+      method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.error || 'pay_catalog_publish_failed');
+      error.code = data.error || 'pay_catalog_publish_failed';
+      throw error;
+    }
+    return data;
+  }
+
+  async function preparePublication(item) {
+    if (!item?.draftKind || !item.externalId || !publishDialog) return;
+    const draft = findPayDraft(localStorage, item.draftKind, item.externalId);
+    if (!draft) {
+      window.payToast?.('Ce brouillon n’existe plus.');
+      return;
+    }
+    const draftKind = item.draftKind;
+    const kind = payCatalogDraftKind(draftKind);
+    const input = payCatalogDraftInput(draftKind, draft);
+    const idempotencyKey = payCatalogDraftIdempotencyKey(draftKind, draft);
+    activePublication = { draft, draftKind, kind, input, idempotencyKey, plan: null };
+    detailDialog?.close();
+    publishTitle.textContent = `Publier ${item.plain[0] || 'ce brouillon'} vers Stripe`;
+    publishState.hidden = false;
+    publishState.innerHTML = '<span class="resource-spinner" aria-hidden="true"></span><span><strong>Préparation du plan</strong><small>Aucune écriture n’est envoyée pendant cette étape.</small></span>';
+    publishPlan.hidden = true;
+    publishConfirmWrap.hidden = true;
+    publishConfirm.value = '';
+    publishConfirm.disabled = true;
+    publishExecute.disabled = true;
+    publishExecute.textContent = 'Publier vers Stripe';
+    publishDialog.showModal();
+    try {
+      const response = await catalogRequest({ action: 'preview', kind, input, idempotency_key: idempotencyKey });
+      activePublication.plan = response.plan;
+      const labels = {
+        'products.create': 'Créer le produit et son prix',
+        'paymentLinks.create': 'Créer le lien de paiement',
+        'coupons.create': 'Créer la réduction',
+        'promotionCodes.create': 'Créer le code promotionnel',
+      };
+      const lines = response.plan.operations.map((operation, index) => `<div><span>${index + 1}. ${escapeHtml(labels[operation.stripe_method] || operation.stripe_method)}</span><small>${escapeHtml(operation.id)}</small></div>`);
+      if (response.plan.schedule) lines.push(`<div><span>Total de l’échéancier</span><small>${escapeHtml(money(response.plan.schedule.total_minor, input.currency))}</small></div>`);
+      publishPlan.innerHTML = lines.join('');
+      publishPlan.hidden = false;
+      publishConfirmWrap.hidden = false;
+      publishConfirmHint.textContent = response.plan.confirmation;
+      publishConfirm.disabled = !response.plan.writes_enabled;
+      publishState.innerHTML = response.plan.writes_enabled
+        ? '<span><strong>Plan vérifié</strong><small>Recopie la confirmation ci-dessous pour autoriser la publication.</small></span>'
+        : '<span><strong>Plan vérifié · publication verrouillée</strong><small>Le brouillon est valide, mais aucune écriture Stripe ne peut partir tant que le verrou Netlify reste fermé.</small></span>';
+      publishConfirm.focus();
+    } catch (error) {
+      publishState.innerHTML = `<span><strong>Publication indisponible</strong><small>${escapeHtml(publicationErrorMessage(error.code))}</small></span>`;
+    }
+  }
+
+  detailPublish?.addEventListener('click', () => preparePublication(activeDetailItem));
+  publishConfirm?.addEventListener('input', () => {
+    const plan = activePublication?.plan;
+    publishExecute.disabled = !plan?.writes_enabled || publishConfirm.value.trim() !== payCatalogDraftConfirmation(activePublication.draftKind);
+  });
+  publishExecute?.addEventListener('click', async () => {
+    const publication = activePublication;
+    if (!publication?.plan || publishExecute.disabled) return;
+    publishExecute.disabled = true;
+    publishExecute.textContent = 'Publication…';
+    try {
+      const response = await catalogRequest({
+        action: 'execute', kind: publication.kind, input: publication.input,
+        idempotency_key: publication.idempotencyKey, fingerprint: publication.plan.fingerprint,
+        confirmation: publishConfirm.value.trim(),
+      });
+      markPayDraftPublished(localStorage, publication.draftKind, publication.draft.id, response.result || {});
+      window.payToast?.('Publication Stripe terminée.');
+      publishDialog.close();
+      window.setTimeout(() => window.location.reload(), 450);
+    } catch (error) {
+      publishState.innerHTML = `<span><strong>Publication interrompue</strong><small>${escapeHtml(publicationErrorMessage(error.code))}</small></span>`;
+      publishExecute.textContent = 'Réessayer la publication';
+      publishExecute.disabled = publishConfirm.value.trim() !== payCatalogDraftConfirmation(publication.draftKind);
+    }
+  });
+  screen.querySelectorAll('[data-resource-publish-close]').forEach((button) => button.addEventListener('click', () => publishDialog?.close()));
+  publishDialog?.addEventListener('close', () => { activePublication = null; });
+  publishDialog?.addEventListener('click', (event) => { if (event.target === publishDialog) publishDialog.close(); });
 
   detailDelete?.addEventListener('click', () => {
     const item = activeDetailItem;
