@@ -24,6 +24,7 @@ const stripeInvoice = preparePayWebhookEvent('stripe', {
 });
 assert.equal(stripeInvoice.effects[0].type, 'payment_plan_installment');
 assert.equal(stripeInvoice.effects[0].subscription_external_id, 'sub_mc2');
+assert.equal(stripeInvoice.operations[0].table, 'pay_payments');
 
 const stripeUpcomingInvoice = preparePayWebhookEvent('stripe', {
   id: 'evt_invoice_upcoming', type: 'invoice.upcoming', created: 1_786_240_000,
@@ -31,12 +32,12 @@ const stripeUpcomingInvoice = preparePayWebhookEvent('stripe', {
 });
 assert.equal(stripeUpcomingInvoice.effects[0].external_id, 'sub_mc2:1791424000');
 
-const stripeIgnored = preparePayWebhookEvent('stripe', {
+const stripeDispute = preparePayWebhookEvent('stripe', {
   id: 'evt_dispute', type: 'charge.dispute.created', created: 1_786_240_000,
-  data: { object: { id: 'dp_123', object: 'dispute' } },
+  data: { object: { id: 'dp_123', object: 'dispute', amount: 4_700, currency: 'eur', status: 'needs_response' } },
 });
-assert.equal(stripeIgnored.decision, 'ignored');
-assert.equal(stripeIgnored.reason, 'stripe_object_not_in_pay_mvp');
+assert.equal(stripeDispute.decision, 'projected');
+assert.deepEqual(stripeDispute.operations.map((item) => item.table), ['pay_disputes', 'pay_alerts']);
 
 const paypalCapture = preparePayWebhookEvent('paypal', {
   id: 'WH-CAPTURE', event_type: 'PAYMENT.CAPTURE.COMPLETED', create_time: '2026-08-09T10:00:00Z',
@@ -79,18 +80,20 @@ assert.deepEqual(paypalSubscription.operations.map((item) => item.table), ['pay_
 assert.equal(paypalSubscription.operations[1].row.amount_minor, 19_700);
 assert.equal(paypalSubscription.operations[1].row.status, 'active');
 
-const paypalIgnored = preparePayWebhookEvent('paypal', {
+const paypalDispute = preparePayWebhookEvent('paypal', {
   id: 'WH-DISPUTE', event_type: 'CUSTOMER.DISPUTE.CREATED', create_time: '2026-08-09T12:00:00Z',
-  resource: { id: 'PP-D-123' },
+  resource: { id: 'PP-D-123', status: 'OPEN', dispute_amount: { value: '47.00', currency_code: 'EUR' } },
 });
-assert.equal(paypalIgnored.decision, 'ignored');
+assert.equal(paypalDispute.decision, 'projected');
+assert.deepEqual(paypalDispute.operations.map((item) => item.table), ['pay_disputes', 'pay_alerts']);
 
 console.log(JSON.stringify({
   stripe_payment_event: 'ok',
   stripe_installment_effect: 'ok',
-  stripe_unsupported_event: 'explicitly_ignored',
+  stripe_dispute_alert: 'ok',
   paypal_capture_event: 'ok',
   paypal_refund_event: 'ok',
   paypal_subscription_event: 'ok',
+  paypal_dispute_alert: 'ok',
   dry_run_summary: 'pii_free',
 }, null, 2));

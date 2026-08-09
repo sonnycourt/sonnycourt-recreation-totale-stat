@@ -50,7 +50,7 @@ function idempotencyKey(value) {
 }
 
 function metadata(source = {}) {
-  const result = { pay_route: 'pay' };
+  const result = { pay_route: 'pay', pay_origin: 'sonnycourt_pay', source: 'sonnycourt_pay' };
   for (const key of ['checkout_id', 'offer_slug', 'funnel', 'payment_plan_id']) {
     const value = clean(source[key], 200);
     if (value) result[key] = value;

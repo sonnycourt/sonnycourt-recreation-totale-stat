@@ -17,6 +17,7 @@ const STRIPE_RESOURCE_BY_OBJECT = Object.freeze({
   subscription: 'subscriptions',
   coupon: 'coupons',
   promotion_code: 'promotion_codes',
+  dispute: 'disputes',
 });
 
 function clean(value, max = 255) {
@@ -136,20 +137,111 @@ function stripeInvoiceEffect(event) {
   };
 }
 
+function stripeInvoicePaymentOperation(event) {
+  const invoice = event?.data?.object || {};
+  const type = clean(event?.type, 180);
+  if (!['invoice.paid', 'invoice.payment_succeeded', 'invoice.payment_failed'].includes(type)) return null;
+  const succeeded = type !== 'invoice.payment_failed';
+  const externalId = objectId(invoice.payment_intent) || objectId(invoice);
+  if (!externalId) return null;
+  const metadata = {
+    ...(invoice.subscription_details?.metadata || {}),
+    customer_external_id: objectId(invoice.customer),
+    customer_email: clean(invoice.customer_email, 200).toLowerCase(),
+    customer_name: clean(invoice.customer_name, 200),
+    payment_plan_external_id: objectId(invoice.subscription),
+    invoice_external_id: objectId(invoice),
+    failure_reason: clean(invoice.last_finalization_error?.message || invoice.last_payment_error?.message, 500),
+  };
+  return {
+    table: 'pay_payments', conflict: 'provider,external_id',
+    row: {
+      provider: 'stripe', external_id: externalId, status: succeeded ? 'succeeded' : 'failed',
+      currency: currency(invoice.currency), amount_minor: Math.max(0, Number(invoice.amount_paid || invoice.amount_due || 0) || 0),
+      refunded_minor: 0, fee_minor: null, net_minor: null, payment_method_type: null,
+      payment_method_brand: null, payment_method_last4: null,
+      description: clean(invoice.description || invoice.lines?.data?.[0]?.description, 500) || 'Échéance Stripe',
+      paid_at: succeeded ? safeIso(invoice.status_transitions?.paid_at || invoice.created) : null,
+      due_at: safeIso(invoice.due_date || invoice.period_end),
+      source_created_at: safeIso(invoice.created), source_updated_at: safeIso(invoice.updated || invoice.created || event.created),
+      metadata,
+    },
+  };
+}
+
+function alertOperation(provider, event, options = {}) {
+  const eventType = clean(provider === 'stripe' ? event?.type : event?.event_type, 180).toUpperCase();
+  const resource = provider === 'stripe' ? event?.data?.object || {} : event?.resource || {};
+  const isFailure = eventType === 'INVOICE.PAYMENT_FAILED' || eventType === 'BILLING.SUBSCRIPTION.PAYMENT.FAILED';
+  const isDispute = eventType.includes('DISPUTE');
+  if (!isFailure && !isDispute) return null;
+  const entityId = objectId(resource) || objectId(resource.billing_agreement_id) || objectId(resource.dispute_id);
+  if (!entityId) return null;
+  const disputeClosed = /(?:CLOSED|RESOLVED)$/.test(eventType);
+  const amountSource = resource.amount || resource.dispute_amount || {};
+  const amountMinor = provider === 'stripe'
+    ? Math.max(0, Number(resource.amount || resource.amount_due || 0) || 0)
+    : amountToMinor(amountSource.value ?? amountSource.total, amountSource.currency_code || amountSource.currency || 'eur');
+  const currencyCode = currency(provider === 'stripe' ? resource.currency : amountSource.currency_code || amountSource.currency);
+  return {
+    table: 'pay_alerts', conflict: 'provider,external_id',
+    row: {
+      provider, external_id: `${isDispute ? 'dispute' : 'payment_failed'}:${entityId}`,
+      alert_type: isDispute ? 'dispute' : 'payment_failed', severity: isDispute ? 'critical' : 'warning',
+      status: disputeClosed ? 'resolved' : 'open',
+      title: isDispute ? 'Nouveau litige' : 'Échec de paiement',
+      body: clean(resource.reason || resource.status_details?.reason || resource.status_change_note, 500)
+        || (isDispute ? 'Un litige demande ton attention.' : 'Une échéance n’a pas pu être encaissée.'),
+      entity_type: isDispute ? 'dispute' : 'payment', entity_external_id: entityId,
+      customer_email: clean(resource.customer_email || resource.subscriber?.email_address || resource.payer?.email_address, 200).toLowerCase() || null,
+      amount_minor: amountMinor, currency: currencyCode,
+      occurred_at: safeIso(provider === 'stripe' ? event.created : event.create_time || resource.create_time),
+      source_updated_at: safeIso(provider === 'stripe' ? resource.updated || event.created : event.update_time || resource.update_time || event.create_time),
+      metadata: options.metadata || {},
+    },
+  };
+}
+
+function payPalDisputeOperation(event) {
+  const type = clean(event?.event_type, 180).toUpperCase();
+  if (!type.includes('DISPUTE')) return null;
+  const resource = event?.resource || {};
+  const amount = resource.dispute_amount || resource.amount || {};
+  const externalId = objectId(resource);
+  if (!externalId) return null;
+  return {
+    table: 'pay_disputes', conflict: 'provider,external_id',
+    row: {
+      provider: 'paypal', external_id: externalId, status: clean(resource.status, 60).toLowerCase() || 'unknown',
+      currency: currency(amount.currency_code || amount.currency),
+      amount_minor: amountToMinor(amount.value ?? amount.total, amount.currency_code || amount.currency),
+      reason: clean(resource.reason || resource.dispute_life_cycle_stage, 120) || null,
+      evidence_due_at: safeIso(resource.response_due_date), source_created_at: safeIso(resource.create_time || event.create_time),
+      source_updated_at: safeIso(resource.update_time || event.update_time || event.create_time),
+      metadata: { pay_origin: 'sonnycourt_pay' },
+    },
+  };
+}
+
 function prepareStripe(event) {
   const object = event?.data?.object || {};
   const invoiceEffect = object.object === 'invoice' ? stripeInvoiceEffect(event) : null;
-  if (invoiceEffect) return { operations: [], effects: [invoiceEffect], reason: null };
+  const invoicePayment = object.object === 'invoice' ? stripeInvoicePaymentOperation(event) : null;
+  const alert = alertOperation('stripe', event, { metadata: object.metadata || object.subscription_details?.metadata || {} });
+  if (invoiceEffect || invoicePayment) return { operations: [invoicePayment, alert].filter(Boolean), effects: [invoiceEffect].filter(Boolean), reason: null };
   const resource = STRIPE_RESOURCE_BY_OBJECT[clean(object.object, 100)];
   if (!resource) return { operations: [], effects: [], reason: 'stripe_object_not_in_pay_mvp' };
   if (object.deleted === true) return { operations: [], effects: [], reason: 'stripe_deleted_object_requires_existing_row' };
-  return { operations: projectStripeResource(resource, object), effects: [], reason: null };
+  return { operations: [...projectStripeResource(resource, object), alert].filter(Boolean), effects: [], reason: null };
 }
 
 function preparePayPal(event) {
   const type = clean(event?.event_type, 180).toUpperCase();
+  const alert = alertOperation('paypal', event, { metadata: { pay_origin: 'sonnycourt_pay' } });
+  const dispute = payPalDisputeOperation(event);
+  if (dispute) return { operations: [dispute, alert].filter(Boolean), effects: [], reason: null };
   if (type.startsWith('BILLING.SUBSCRIPTION.')) {
-    return { operations: projectPayPalSubscription(event.resource), effects: [], reason: null };
+    return { operations: [...projectPayPalSubscription(event.resource), alert].filter(Boolean), effects: [], reason: null };
   }
   if (type.startsWith('PAYMENT.CAPTURE.') || type.startsWith('PAYMENT.SALE.') || type.startsWith('PAYMENT.REFUND.')) {
     return { operations: projectPayPalTransaction(normalizePayPalWebhookTransaction(event)), effects: [], reason: null };

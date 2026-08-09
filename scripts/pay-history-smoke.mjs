@@ -20,6 +20,8 @@ const dashboard = buildPayHistoryDashboard({
     { external_id: 'order_2', status: 'refunded', currency: 'eur', source_created_at: '2026-08-08T12:00:00Z' },
     { external_id: 'order_3', status: 'failed', currency: 'eur', source_created_at: '2026-08-08T13:00:00Z' },
   ],
+  payments: [{ external_id: 'pi_1', status: 'succeeded', currency: 'eur', amount_minor: 4_700, paid_at: '2026-08-08T10:00:00Z' }],
+  refunds: [{ external_id: 're_1', status: 'succeeded', currency: 'eur', amount_minor: 1_000, refunded_at: '2026-08-08T11:00:00Z' }],
   plans,
   syncRuns: [{ completed_at: '2026-08-08T16:00:00Z' }],
 }, {
@@ -29,6 +31,8 @@ const dashboard = buildPayHistoryDashboard({
 });
 
 assert.equal(dashboard.orders_by_day['2026-08-08'], 2);
+assert.equal(dashboard.payments_by_day['2026-08-08'].EUR, 4_700);
+assert.equal(dashboard.refunds_by_day['2026-08-08'].EUR, 1_000);
 assert.equal(dashboard.past_due_count, 1);
 assert.equal(dashboard.cashflow_current_minor.EUR, 15_000);
 assert.equal(dashboard.cashflow_next_minor.EUR, 15_000);
@@ -56,7 +60,7 @@ const viaSelect = await getPayHistoryDashboard({
   },
 });
 assert.equal(viaSelect.ready, true);
-assert.deepEqual(selected.map((item) => item.table), ['pay_orders', 'pay_payment_plans', 'pay_sync_runs']);
+assert.deepEqual(selected.map((item) => item.table), ['pay_orders', 'pay_payments', 'pay_refunds', 'pay_payment_plans', 'pay_alerts', 'pay_sync_runs']);
 
 const requests = [];
 await paySupabaseSelect('pay_orders', { select: 'external_id' }, {
@@ -73,7 +77,7 @@ await assert.rejects(() => paySupabaseSelect('orders', {}, { supabaseUrl: 'https
 
 const historyOrders = await getPayHistoryResource('orders', {
   select: async () => [{
-    provider: 'spiffy', external_id: '2475427', status: 'succeeded', currency: 'eur', total_minor: 116_400,
+    provider: 'stripe', external_id: '2475427', status: 'succeeded', currency: 'eur', total_minor: 116_400,
     subtotal_minor: 100_000, discount_minor: 0, finance_fee_minor: 0, tax_minor: 16_400,
     source_created_at: '2026-08-07T07:26:24Z', metadata: { customer_email: 'client@example.com', 'name first': 'Client', product_name: 'ES2.0', country: 'CH' },
   }],
@@ -108,18 +112,18 @@ assert.equal(historyProducts.rows[0].prices[0].amount, 19_700);
 await assert.rejects(() => getPayHistoryResource('unknown', { select: async () => [] }), /pay_history_resource_invalid/);
 
 const consolidatedCustomers = consolidatePayHistoryCustomers([
-  { id: 'spiffy-1', provider: 'spiffy', email: ' Client@Example.com ', name: 'Client Historique', currency: 'eur', lifetime_value: 30_000, order_count: 3, created_at: '2025-01-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
   { id: 'cus_1', provider: 'stripe', email: 'client@example.com', name: 'Client Stripe', currency: 'eur', lifetime_value: 30_000, order_count: 3, created_at: '2025-01-02T00:00:00Z', updated_at: '2026-08-02T00:00:00Z' },
+  { id: 'payer-1', provider: 'paypal', email: ' Client@Example.com ', name: 'Client PayPal', currency: 'eur', lifetime_value: 20_000, order_count: 2, created_at: '2025-01-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
   { id: 'anonymous-1', provider: 'paypal', email: '', name: 'Sans email', currency: 'eur', lifetime_value: 5_000, order_count: 1, created_at: '2026-07-01T00:00:00Z' },
 ]);
 assert.equal(consolidatedCustomers.length, 2);
 const mergedCustomer = consolidatedCustomers.find((customer) => customer.email === 'client@example.com');
-assert.equal(mergedCustomer.provider, 'spiffy');
-assert.deepEqual(mergedCustomer.providers, ['spiffy', 'stripe']);
-assert.deepEqual(mergedCustomer.identities, [{ provider: 'spiffy', id: 'spiffy-1' }, { provider: 'stripe', id: 'cus_1' }]);
+assert.equal(mergedCustomer.provider, 'stripe');
+assert.deepEqual(mergedCustomer.providers, ['stripe', 'paypal']);
+assert.deepEqual(mergedCustomer.identities, [{ provider: 'stripe', id: 'cus_1' }, { provider: 'paypal', id: 'payer-1' }]);
 assert.equal(mergedCustomer.source_count, 2);
-assert.equal(mergedCustomer.lifetime_value, 30_000);
-assert.equal(mergedCustomer.order_count, 3);
+assert.equal(mergedCustomer.lifetime_value, 50_000);
+assert.equal(mergedCustomer.order_count, 5);
 
 const providerOnlyCustomer = consolidatePayHistoryCustomers([
   { id: 'cus_2', provider: 'stripe', email: 'multi@example.com', currency: 'eur', lifetime_value: 10_000, order_count: 1 },

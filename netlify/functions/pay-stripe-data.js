@@ -1,5 +1,6 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 import { cleanStripeValue, getPayStripePage, stripeResourceCatalog } from './lib/pay-stripe-data.mjs';
+import { payScopeSummary, stripeObjectBelongsToPay, stripeResourceIsForwardScoped } from './lib/pay-forward-scope.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -25,14 +26,18 @@ export default async (req) => {
       customer: url.searchParams.get('customer'),
       paymentType: url.searchParams.get('type'),
     });
+    const data = stripeResourceIsForwardScoped(resource)
+      ? page.data.filter((item) => stripeObjectBelongsToPay(item))
+      : page.data;
     return json(200, {
       connected: true,
       resource,
       object: page.config.object,
-      data: page.data,
+      data,
       has_more: page.has_more,
       next_cursor: page.next_cursor,
       recent_only: Boolean(page.config.recentOnly),
+      scope: payScopeSummary(),
     });
   } catch (error) {
     console.error('pay-stripe-data:', resource, error);

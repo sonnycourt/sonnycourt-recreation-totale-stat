@@ -2,7 +2,7 @@
 import PayAppShell from '../../components/PayAppShell.astro';
 ---
 
-<PayAppShell active="reports" eyebrow="Analyse" title="Rapports" description="Analyse Stripe et PayPal avec les mêmes repères que dans Spiffy.">
+<PayAppShell active="reports" eyebrow="Analyse" title="Rapports" description="Analyse toutes les nouvelles ventes Stripe et PayPal suivies par Pay.">
   <button slot="actions" class="pay-button pay-button--ghost" id="reportExport" type="button">↓ Exporter</button>
 
   <section class="report-types" aria-label="Types de rapport">
@@ -182,7 +182,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
   }
 
   function reportData(type, intents, _refunds, invoices, checkoutSessions, paypalRows, history = {}, days = 30, paypalBilling = {}) {
-    const providerLabel = (provider) => provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Spiffy';
+    const providerLabel = (provider) => provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Pay';
     const successfulStatuses = new Set(['succeeded', 'paid', 'complete', 'completed', 'refunded', 'active']);
     const cutoff = Math.floor((Date.now() - days * DAY) / 1_000);
     const ordersById = new Map((history.orders || []).map((order) => [String(order.id), order]));
@@ -200,7 +200,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     });
     const succeeded = intents.filter((item) => item.status === 'succeeded').map((item) => ({
       provider: 'Stripe', id: item.id, created: item.created, amount: Number(item.amount_received || item.amount || 0), currency: item.currency || 'eur',
-      order_id: item.metadata?.order_id || item.metadata?.spiffy_order_id || null,
+      order_id: item.metadata?.order_id || null,
       description: item.description || item.metadata?.offer_name || item.metadata?.offer_slug || 'Paiement Stripe', customer: customerOfStripe(item), plan: Boolean(item.invoice),
     }));
     const paypalSales = paypalRows.filter((item) => item.status === 'Réussi' && ['sale', 'payment_plan'].includes(item.kind)).map((item) => ({

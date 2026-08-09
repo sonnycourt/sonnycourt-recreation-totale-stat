@@ -1,0 +1,145 @@
+---
+import PayAppShell from '../../components/PayAppShell.astro';
+---
+
+<PayAppShell active="automations" eyebrow="Recouvrement" title="Automatisations" description="Stripe et PayPal retentent les cartes. Pay pilote les messages visibles envoyés au client.">
+  <section class="automation-layout">
+    <article class="pay-panel automation-card">
+      <div class="pay-panel-header">
+        <div><h2>Premier rappel après un paiement échoué</h2><p>Une seule règle simple, traçable et désactivée par défaut.</p></div>
+        <span class="pay-badge pay-badge--warning" id="automationStatus">Chargement</span>
+      </div>
+      <div class="automation-form">
+        <label class="toggle-row"><span><strong>Activer la relance email</strong><small>Le retry de la carte reste géré nativement par Stripe ou PayPal.</small></span><input id="automationActive" type="checkbox" /></label>
+        <div class="automation-grid">
+          <label><span>Délai après l’échec</span><select class="pay-select" id="automationDelay"><option value="60">1 heure</option><option value="360">6 heures</option><option value="1440">24 heures</option><option value="2880">48 heures</option></select></label>
+          <label><span>Nombre maximum d’emails</span><select class="pay-select" id="automationMax"><option value="1">1 email</option><option value="2">2 emails</option><option value="3">3 emails</option></select></label>
+          <label class="wide"><span>Objet</span><input class="pay-input" id="automationSubject" maxlength="240" /></label>
+          <label class="wide"><span>Message</span><textarea class="pay-input" id="automationBody" rows="7" maxlength="2000"></textarea><small>Variables : {'{{email}}'}, {'{{amount}}'}, {'{{provider}}'}</small></label>
+        </div>
+      </div>
+      <footer><span id="automationSaveNote">Aucun email ne part tant que la règle n’est pas activée.</span><button class="pay-button pay-button--primary" id="automationSave" type="button">Enregistrer</button></footer>
+    </article>
+
+    <aside class="pay-panel alerts-card">
+      <div class="pay-panel-header"><div><h2>Alertes temps réel</h2><p>Échecs et litiges reçus par webhook.</p></div><span class="pay-badge" id="alertsCount">0 ouverte</span></div>
+      <div class="alerts-list" id="alertsList"><div class="alerts-empty">Aucune alerte Pay pour le moment.</div></div>
+    </aside>
+  </section>
+
+  <dialog class="confirmation-dialog" id="automationConfirm">
+    <form method="dialog">
+      <span class="confirm-icon">⚡</span><h2>Confirmer cette règle ?</h2>
+      <p id="automationConfirmText">Vérifie une dernière fois. C’est la deuxième étape requise.</p>
+      <div><button class="pay-button" value="cancel">Annuler</button><button class="pay-button pay-button--primary" id="automationConfirmButton" value="default">Confirmer</button></div>
+    </form>
+  </dialog>
+</PayAppShell>
+
+<script>
+  const AUTOMATION_API = '/.netlify/functions/pay-automations';
+  const HISTORY_API = '/.netlify/functions/pay-history?resource=alerts';
+
+  function escapeText(value) {
+    return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+  }
+
+  function money(value, currency) {
+    try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: String(currency || 'eur').toUpperCase() }).format(Number(value || 0) / 100); }
+    catch { return `${(Number(value || 0) / 100).toFixed(2)} €`; }
+  }
+
+  function renderRule(rule, ready = true) {
+    document.getElementById('automationActive').checked = Boolean(rule.active);
+    document.getElementById('automationDelay').value = String(rule.delay_minutes || 60);
+    document.getElementById('automationMax').value = String(rule.max_messages || 1);
+    document.getElementById('automationSubject').value = rule.subject_template || '';
+    document.getElementById('automationBody').value = rule.body_template || '';
+    const status = document.getElementById('automationStatus');
+    status.textContent = !ready ? 'Mémoire à initialiser' : rule.active ? 'Active' : 'Désactivée';
+    status.className = `pay-badge ${rule.active ? 'pay-badge--success' : 'pay-badge--warning'}`;
+  }
+
+  async function loadRule() {
+    const response = await fetch(AUTOMATION_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.rule) renderRule(data.rule, data.ready);
+  }
+
+  async function loadAlerts() {
+    const response = await fetch(HISTORY_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ready) return;
+    const alerts = (data.rows || []).filter((item) => item.status === 'open');
+    document.getElementById('alertsCount').textContent = `${alerts.length} ouverte${alerts.length === 1 ? '' : 's'}`;
+    document.getElementById('alertsCount').className = `pay-badge ${alerts.length ? 'pay-badge--warning' : 'pay-badge--success'}`;
+    const list = document.getElementById('alertsList');
+    list.innerHTML = alerts.length ? alerts.map((item) => `<article class="alert-row alert-row--${escapeText(item.severity)}"><span>${item.type === 'dispute' ? '!' : '↻'}</span><div><strong>${escapeText(item.title)}</strong><small>${escapeText(item.provider === 'stripe' ? 'Stripe' : 'PayPal')} · ${escapeText(item.email || 'client à identifier')}</small><p>${escapeText(item.body)}</p></div><b>${escapeText(money(item.amount, item.currency))}</b></article>`).join('') : '<div class="alerts-empty">Aucune alerte Pay pour le moment.</div>';
+  }
+
+  function currentRule() {
+    return {
+      active: document.getElementById('automationActive').checked,
+      delay_minutes: Number(document.getElementById('automationDelay').value),
+      max_messages: Number(document.getElementById('automationMax').value),
+      subject_template: document.getElementById('automationSubject').value,
+      body_template: document.getElementById('automationBody').value,
+    };
+  }
+
+  document.getElementById('automationSave').addEventListener('click', () => {
+    const dialog = document.getElementById('automationConfirm');
+    document.getElementById('automationConfirmText').textContent = currentRule().active
+      ? 'Après confirmation, les prochains échecs pourront déclencher cet email.'
+      : 'Après confirmation, aucun nouvel email automatique ne sera envoyé.';
+    dialog.showModal();
+  });
+
+  document.getElementById('automationConfirmButton').addEventListener('click', async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget;
+    button.disabled = true;
+    const response = await fetch(AUTOMATION_API, {
+      method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ confirmation: 'CONFIRMER', rule: currentRule() }),
+    });
+    const data = await response.json().catch(() => ({}));
+    button.disabled = false;
+    document.getElementById('automationConfirm').close();
+    const note = document.getElementById('automationSaveNote');
+    if (!response.ok) { note.textContent = data.error === 'pay_email_sender_missing' ? 'Configure d’abord l’adresse email d’envoi.' : 'Impossible d’enregistrer la règle.'; return; }
+    renderRule(data.rule, true);
+    note.textContent = data.rule.active ? 'Règle active. Chaque envoi sera dédupliqué et journalisé.' : 'Règle enregistrée et désactivée.';
+  });
+
+  document.addEventListener('pay:authenticated', () => { loadRule(); loadAlerts(); }, { once: true });
+  loadRule(); loadAlerts();
+  setInterval(loadAlerts, 30_000);
+</script>
+
+<style>
+  .automation-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(330px, .8fr); gap: 13px; }
+  .automation-form { padding: 20px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px; border: 1px solid var(--pay-line); border-radius: 15px; background: rgba(112,231,255,.025); }
+  .toggle-row strong, .toggle-row small { display: block; } .toggle-row strong { font-size: 11px; } .toggle-row small { margin-top: 5px; color: var(--pay-muted); font-size: 8px; }
+  .toggle-row input { width: 42px; height: 22px; accent-color: #70e7ff; }
+  .automation-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 18px; }
+  .automation-grid label { display: grid; gap: 7px; color: var(--pay-soft); font-size: 9px; }
+  .automation-grid .wide { grid-column: 1 / -1; }
+  .automation-grid textarea { height: auto; padding: 13px; resize: vertical; line-height: 1.55; }
+  .automation-grid small { color: var(--pay-muted); font-size: 8px; }
+  .automation-card footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 20px; border-top: 1px solid var(--pay-line); }
+  .automation-card footer span { color: var(--pay-muted); font-size: 8px; }
+  .alerts-list { display: grid; } .alerts-empty { padding: 45px 20px; color: var(--pay-muted); font-size: 9px; text-align: center; }
+  .alert-row { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 11px; align-items: start; padding: 16px 18px; border-bottom: 1px solid var(--pay-line); }
+  .alert-row > span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #ffd47a; background: rgba(255,212,122,.09); font-weight: 850; }
+  .alert-row--critical > span { color: var(--pay-red); background: rgba(255,128,148,.09); }
+  .alert-row strong, .alert-row small { display: block; } .alert-row strong { font-size: 10px; } .alert-row small { margin-top: 4px; color: var(--pay-muted); font-size: 8px; }
+  .alert-row p { margin: 8px 0 0; color: var(--pay-soft); font-size: 8px; line-height: 1.5; } .alert-row b { font-size: 9px; }
+  .confirmation-dialog { width: min(430px, calc(100vw - 32px)); padding: 0; border: 1px solid rgba(112,231,255,.25); border-radius: 22px; color: #fff; background: #091b30; box-shadow: 0 28px 90px rgba(0,0,0,.65); }
+  .confirmation-dialog::backdrop { background: rgba(1,7,15,.78); backdrop-filter: blur(8px); } .confirmation-dialog form { padding: 28px; text-align: center; }
+  .confirm-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 16px; border-radius: 15px; color: var(--pay-cyan); background: rgba(112,231,255,.08); font-size: 20px; }
+  .confirmation-dialog h2 { margin: 0; font-size: 20px; } .confirmation-dialog p { margin: 11px 0 22px; color: var(--pay-soft); font-size: 10px; line-height: 1.6; } .confirmation-dialog form > div { display: flex; justify-content: center; gap: 10px; }
+  @media (max-width: 980px) { .automation-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .automation-grid { grid-template-columns: 1fr; } .automation-grid .wide { grid-column: auto; } .automation-card footer { align-items: stretch; flex-direction: column; } }
+</style>

@@ -53,6 +53,30 @@ export async function supabasePost(table, body, { prefer = 'return=representatio
   return { ok: res.ok, status: res.status, data, error: res.ok ? null : data };
 }
 
+export async function supabaseUpsert(table, body, { onConflict, prefer = 'resolution=merge-duplicates,return=representation' } = {}) {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) {
+    return { ok: false, status: 500, data: null, error: 'Supabase non configuré' };
+  }
+  const safeTable = typeof table === 'string' && /^pay_[a-z0-9_]+$/.test(table) ? table : '';
+  if (!safeTable) return { ok: false, status: 400, data: null, error: 'Table Pay invalide' };
+  const query = new URLSearchParams();
+  if (onConflict) query.set('on_conflict', String(onConflict));
+  const res = await fetch(`${url}/rest/v1/${safeTable}${query.size ? `?${query}` : ''}`, {
+    method: 'POST',
+    headers: supabaseHeaders({ Prefer: prefer }),
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+  return { ok: res.ok, status: res.status, data, error: res.ok ? null : data };
+}
+
 export async function supabaseDelete(table, query) {
   const { url, key } = getSupabaseConfig();
   if (!url || !key) {

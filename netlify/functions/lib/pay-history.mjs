@@ -2,9 +2,12 @@ const ALLOWED_TABLES = new Set([
   'pay_checkouts',
   'pay_customers',
   'pay_discounts',
+  'pay_disputes',
+  'pay_alerts',
   'pay_orders',
   'pay_payment_plans',
   'pay_payments',
+  'pay_refunds',
   'pay_prices',
   'pay_products',
   'pay_subscriptions',
@@ -46,6 +49,21 @@ const HISTORY_RESOURCES = Object.freeze({
     table: 'pay_discounts',
     select: 'provider,external_id,code,status,discount_type,amount_minor,percent_off,currency,applies_to_one_time,applies_to_recurring,once_per_customer,max_redemptions,redeemed_count,expires_at,source_created_at,source_updated_at',
     order: 'source_created_at.desc.nullslast',
+  },
+  refunds: {
+    table: 'pay_refunds',
+    select: 'provider,external_id,status,currency,amount_minor,reason,refunded_at,source_created_at,source_updated_at,metadata',
+    order: 'refunded_at.desc.nullslast',
+  },
+  disputes: {
+    table: 'pay_disputes',
+    select: 'provider,external_id,status,currency,amount_minor,reason,evidence_due_at,source_created_at,source_updated_at,metadata',
+    order: 'source_created_at.desc.nullslast',
+  },
+  alerts: {
+    table: 'pay_alerts',
+    select: 'provider,external_id,alert_type,severity,status,title,body,entity_type,entity_external_id,customer_email,amount_minor,currency,occurred_at,source_updated_at,metadata',
+    order: 'occurred_at.desc.nullslast',
   },
 });
 
@@ -355,10 +373,37 @@ function resourceRow(resource, row) {
       updated_at: row.source_updated_at,
     };
   }
+  if (resource === 'refunds') {
+    return {
+      id: row.external_id, provider: row.provider, status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(), amount: Number(row.amount_minor || 0),
+      reason: row.reason || null, refunded_at: row.refunded_at || row.source_created_at,
+      payment_id: metadataValue(row.metadata, 'payment_external_id') || null,
+      created_at: row.source_created_at, updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'disputes') {
+    return {
+      id: row.external_id, provider: row.provider, status: row.status,
+      currency: currencyCode(row.currency).toLowerCase(), amount: Number(row.amount_minor || 0),
+      reason: row.reason || null, evidence_due_at: row.evidence_due_at,
+      payment_id: metadataValue(row.metadata, 'payment_external_id') || null,
+      created_at: row.source_created_at, updated_at: row.source_updated_at,
+    };
+  }
+  if (resource === 'alerts') {
+    return {
+      id: row.external_id, provider: row.provider, type: row.alert_type, severity: row.severity,
+      status: row.status, title: row.title, body: row.body, entity_type: row.entity_type,
+      entity_id: row.entity_external_id, email: clean(row.customer_email, 200).toLowerCase(),
+      amount: Number(row.amount_minor || 0), currency: currencyCode(row.currency).toLowerCase(),
+      occurred_at: row.occurred_at, updated_at: row.source_updated_at,
+    };
+  }
   return null;
 }
 
-const CUSTOMER_PROVIDER_PRIORITY = Object.freeze({ internal: 4, spiffy: 3, stripe: 2, paypal: 1 });
+const CUSTOMER_PROVIDER_PRIORITY = Object.freeze({ internal: 3, stripe: 2, paypal: 1 });
 
 function customerProviderPriority(provider) {
   return CUSTOMER_PROVIDER_PRIORITY[clean(provider, 30).toLowerCase()] || 0;
@@ -390,8 +435,8 @@ function customerProviderTotals(customers, field) {
 
 /**
  * Collapses provider-specific identities into one read-only customer record.
- * Spiffy/Pay aggregates are authoritative when present, so imported history is
- * never added a second time to the same Stripe or PayPal totals.
+ * Regroupe les identités Stripe et PayPal d’un même acheteur sans conserver de
+ * donnée de carte et sans dépendre d’un ancien fournisseur.
  */
 export function consolidatePayHistoryCustomers(rows = []) {
   const groups = new Map();
@@ -410,7 +455,7 @@ export function consolidatePayHistoryCustomers(rows = []) {
         - (customerTimestamp(left.updated_at) || customerTimestamp(left.created_at) || 0);
     });
     const primary = ranked[0];
-    const authoritative = group.filter((customer) => ['internal', 'spiffy'].includes(clean(customer.provider, 30).toLowerCase()));
+    const authoritative = group.filter((customer) => clean(customer.provider, 30).toLowerCase() === 'internal');
     const aggregateRows = authoritative.length ? authoritative : group;
     const lifetimeByProvider = customerProviderTotals(aggregateRows, 'lifetime_value');
     const lifetimeValues = Object.fromEntries(Object.entries(lifetimeByProvider).map(([currency, providers]) => [
@@ -497,7 +542,7 @@ export async function getPayHistoryResource(resource, options = {}) {
   return { ready: true, resource, rows: resource === 'customers' ? consolidatePayHistoryCustomers(projectedRows) : projectedRows };
 }
 
-export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [] } = {}, options = {}) {
+export function buildPayHistoryDashboard({ orders = [], payments = [], refunds = [], plans = [], alerts = [], syncRuns = [] } = {}, options = {}) {
   const timeZone = clean(options.timeZone, 80) || DEFAULT_TIME_ZONE;
   const now = new Date(safeIso(options.now, new Date().toISOString()));
   const rangeStart = new Date(safeIso(options.rangeStart, addDays(now, -6).toISOString()));
@@ -505,6 +550,10 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
   const rangeEndExclusive = addDays(rangeEndInclusive, 1);
   const ordersByDay = {};
   const orderCurrencies = {};
+  const paymentsByDay = {};
+  const refundsByDay = {};
+  const refundCountByDay = {};
+  const paymentCountByDay = {};
 
   for (const order of orders) {
     if (!successfulOrder(order?.status)) continue;
@@ -513,6 +562,30 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
     const key = payDateKey(created, timeZone);
     ordersByDay[key] = (ordersByDay[key] || 0) + 1;
     orderCurrencies[currencyCode(order?.currency)] = (orderCurrencies[currencyCode(order?.currency)] || 0) + 1;
+  }
+
+  for (const payment of payments) {
+    if (!successfulOrder(payment?.status)) continue;
+    const created = new Date(String(payment?.paid_at || payment?.source_created_at || ''));
+    if (!Number.isFinite(created.getTime()) || created < rangeStart || created >= rangeEndExclusive) continue;
+    const key = payDateKey(created, timeZone);
+    paymentsByDay[key] ||= {};
+    addCurrencyAmount(paymentsByDay[key], payment.currency, payment.amount_minor);
+    paymentCountByDay[key] = (paymentCountByDay[key] || 0) + 1;
+  }
+
+  for (const refund of refunds) {
+    if (!successfulOrder(refund?.status)) continue;
+    const created = new Date(String(refund?.refunded_at || refund?.source_created_at || ''));
+    if (!Number.isFinite(created.getTime()) || created < rangeStart || created >= rangeEndExclusive) continue;
+    const key = payDateKey(created, timeZone);
+    refundsByDay[key] ||= {};
+    addCurrencyAmount(refundsByDay[key], refund.currency, refund.amount_minor);
+    refundCountByDay[key] = (refundCountByDay[key] || 0) + 1;
+  }
+
+  for (const [key, count] of Object.entries(paymentCountByDay)) {
+    if (!ordersByDay[key]) ordersByDay[key] = count;
   }
 
   const projected = plans.flatMap((plan) => projectPaymentPlan(plan, { timeZone, statuses: options.planStatuses }));
@@ -542,12 +615,17 @@ export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [
     generated_at: now.toISOString(),
     range: { start: rangeStart.toISOString(), end: rangeEndInclusive.toISOString() },
     orders_by_day: ordersByDay,
+    payments_by_day: paymentsByDay,
+    refunds_by_day: refundsByDay,
+    refund_count_by_day: refundCountByDay,
+    payments_authoritative: true,
     order_currencies: orderCurrencies,
     plans_due_by_day: plansDueByDay,
     plans_due_count_by_day: plansDueCountByDay,
     cashflow_current_minor: currentCashflowMinor,
     cashflow_next_minor: nextCashflowMinor,
     past_due_count: plans.filter((plan) => clean(plan?.status, 40).toLowerCase() === 'past_due').length,
+    open_alerts: alerts.filter((alert) => clean(alert?.status, 40).toLowerCase() === 'open').length,
     last_sync_at: syncRuns.map((run) => safeIso(run?.completed_at, '')).filter(Boolean).sort().at(-1) || null,
   };
 }
@@ -561,9 +639,21 @@ export async function getPayHistoryDashboard(options = {}) {
     throw historyError('pay_history_range_invalid', 400);
   }
   const rangeEndExclusive = addDays(rangeEnd, 1);
-  const [orders, plans, syncRuns] = await Promise.all([
+  const [orders, payments, refunds, plans, alerts, syncRuns] = await Promise.all([
     select('pay_orders', {
       select: 'external_id,status,currency,source_created_at',
+      source_created_at: `gte.${rangeStart.toISOString()}`,
+      and: `(source_created_at.lt.${rangeEndExclusive.toISOString()})`,
+      order: 'source_created_at.asc',
+    }, options),
+    select('pay_payments', {
+      select: 'external_id,status,currency,amount_minor,paid_at,source_created_at',
+      source_created_at: `gte.${rangeStart.toISOString()}`,
+      and: `(source_created_at.lt.${rangeEndExclusive.toISOString()})`,
+      order: 'source_created_at.asc',
+    }, options),
+    select('pay_refunds', {
+      select: 'external_id,status,currency,amount_minor,refunded_at,source_created_at',
       source_created_at: `gte.${rangeStart.toISOString()}`,
       and: `(source_created_at.lt.${rangeEndExclusive.toISOString()})`,
       order: 'source_created_at.asc',
@@ -573,13 +663,18 @@ export async function getPayHistoryDashboard(options = {}) {
       status: 'in.(active,past_due)',
       order: 'next_payment_at.asc.nullslast',
     }, options),
+    select('pay_alerts', {
+      select: 'external_id,status,occurred_at',
+      status: 'eq.open',
+      order: 'occurred_at.desc.nullslast',
+    }, options),
     select('pay_sync_runs', {
       select: 'provider,status,completed_at,checksum',
       status: 'eq.completed',
       order: 'completed_at.desc',
     }, options),
   ]);
-  return buildPayHistoryDashboard({ orders, plans, syncRuns }, {
+  return buildPayHistoryDashboard({ orders, payments, refunds, plans, alerts, syncRuns }, {
     now,
     rangeStart,
     rangeEnd,

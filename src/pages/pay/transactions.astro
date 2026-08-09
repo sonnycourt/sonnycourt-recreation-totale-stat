@@ -161,7 +161,7 @@ const transactions = [];
 
   function normalizeHistoryPayment(payment) {
     const paidAt = new Date(payment.paid_at || payment.created_at || 0);
-    const provider = ['stripe', 'paypal'].includes(payment.provider) ? payment.provider : 'spiffy';
+    const provider = ['stripe', 'paypal'].includes(payment.provider) ? payment.provider : 'pay';
     const amount = Number(payment.amount || 0);
     const refunded = Number(payment.refunded || 0);
     return {
@@ -177,7 +177,7 @@ const transactions = [];
       description: payment.description || 'Paiement historique',
       customer: payment.customer || payment.email || 'Client',
       email: payment.email || '',
-      payment_method: payment.payment_method || (provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Spiffy'),
+      payment_method: payment.payment_method || (provider === 'paypal' ? 'PayPal' : provider === 'stripe' ? 'Stripe' : 'Pay'),
       historical: true,
     };
   }
@@ -206,7 +206,7 @@ const transactions = [];
 
   function renderStoredHistory() {
     renderCombinedSummary();
-    renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
+    renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune nouvelle transaction Pay.');
     const description = document.getElementById('transactionDescription');
     description.textContent = storedHistoryReady
       ? `Historique unifié · ${storedHistoryItems.length} paiement${storedHistoryItems.length === 1 ? '' : 's'} archivé${storedHistoryItems.length === 1 ? '' : 's'} + données live`
@@ -215,7 +215,7 @@ const transactions = [];
     const state = document.getElementById('transactionHistoryState');
     if (storedHistoryReady) {
       footer.hidden = false;
-      state.textContent = `Archive Spiffy disponible · ${storedHistoryItems.length} paiement${storedHistoryItems.length === 1 ? '' : 's'}`;
+      state.textContent = `Mémoire Pay disponible · ${storedHistoryItems.length} paiement${storedHistoryItems.length === 1 ? '' : 's'}`;
       document.getElementById('transactionLoadMore').hidden = true;
     }
   }
@@ -275,7 +275,7 @@ const transactions = [];
       fullHistoryCursor = page.next_cursor || '';
       fullHistoryInitialized = true;
       stripeTransactionsData = { ...stripeTransactionsData, transactions: fullHistoryItems };
-      renderTransactionTable(combinedItems(fullHistoryItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
+      renderTransactionTable(combinedItems(fullHistoryItems), 'Aucune nouvelle transaction Pay.');
       document.getElementById('transactionDescription').textContent = `Historique Stripe · ${fullHistoryItems.length} transaction${fullHistoryItems.length === 1 ? '' : 's'} chargée${fullHistoryItems.length === 1 ? '' : 's'}`;
       state.textContent = page.has_more ? `${fullHistoryItems.length} transactions chargées · historique disponible par pages de 100` : `Historique complet · ${fullHistoryItems.length} transactions`;
       button.hidden = !page.has_more;
@@ -301,7 +301,7 @@ const transactions = [];
     mode.className = `pay-badge ${data.writes_enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
 
     renderCombinedSummary();
-    renderTransactionTable(combinedItems(), 'Aucune transaction Stripe, PayPal ou Spiffy sur les 30 derniers jours.');
+    renderTransactionTable(combinedItems(), 'Aucune nouvelle transaction Pay sur la période.');
     loadFullStripeHistory(true);
   }
 
@@ -315,7 +315,7 @@ const transactions = [];
       paypalWritesEnabled = Boolean(data.writes_enabled);
       paypalTransactionsData = (Array.isArray(data.transactions) ? data.transactions : []).map((item) => ({ ...item, provider: 'paypal', payment_method: 'PayPal' }));
       renderCombinedSummary();
-      renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune transaction Stripe, PayPal ou Spiffy.');
+      renderTransactionTable(combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems), 'Aucune nouvelle transaction Pay.');
     } catch (error) {
       console.error('PayPal transactions:', error);
     }

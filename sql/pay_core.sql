@@ -334,6 +334,79 @@ create table if not exists public.pay_discounts (
 create index if not exists pay_discounts_code_idx
   on public.pay_discounts(code);
 
+create table if not exists public.pay_disputes (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('stripe', 'paypal')),
+  external_id text not null,
+  status text not null,
+  currency text not null,
+  amount_minor bigint not null default 0 check (amount_minor >= 0),
+  reason text,
+  evidence_due_at timestamptz,
+  source_created_at timestamptz,
+  source_updated_at timestamptz,
+  synced_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb,
+  unique (provider, external_id)
+);
+
+create index if not exists pay_disputes_status_idx
+  on public.pay_disputes(status, evidence_due_at);
+
+create table if not exists public.pay_alerts (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('stripe', 'paypal')),
+  external_id text not null,
+  alert_type text not null check (alert_type in ('payment_failed', 'dispute')),
+  severity text not null default 'warning' check (severity in ('info', 'warning', 'critical')),
+  status text not null default 'open' check (status in ('open', 'resolved', 'dismissed')),
+  title text not null,
+  body text,
+  entity_type text,
+  entity_external_id text,
+  customer_email text,
+  amount_minor bigint not null default 0 check (amount_minor >= 0),
+  currency text not null default 'eur',
+  occurred_at timestamptz,
+  source_updated_at timestamptz,
+  synced_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb,
+  unique (provider, external_id)
+);
+
+create index if not exists pay_alerts_open_idx
+  on public.pay_alerts(status, occurred_at desc);
+
+create table if not exists public.pay_automation_rules (
+  id uuid primary key default gen_random_uuid(),
+  rule_key text not null unique,
+  active boolean not null default false,
+  trigger_type text not null check (trigger_type in ('payment_failed', 'dispute_created')),
+  delay_minutes integer not null default 60 check (delay_minutes >= 0),
+  max_messages integer not null default 1 check (max_messages between 1 and 5),
+  sender_email text,
+  subject_template text not null,
+  body_template text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create table if not exists public.pay_email_deliveries (
+  id uuid primary key default gen_random_uuid(),
+  rule_id uuid not null references public.pay_automation_rules(id) on delete restrict,
+  provider text not null check (provider in ('stripe', 'paypal')),
+  external_event_id text not null,
+  recipient_email text not null,
+  status text not null default 'pending' check (status in ('pending', 'sent', 'failed', 'cancelled')),
+  scheduled_at timestamptz,
+  sent_at timestamptz,
+  error_code text,
+  created_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb,
+  unique (rule_id, provider, external_event_id, recipient_email)
+);
+
 create table if not exists public.pay_report_definitions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -375,6 +448,10 @@ alter table public.pay_payment_plans enable row level security;
 alter table public.pay_subscriptions enable row level security;
 alter table public.pay_installments enable row level security;
 alter table public.pay_discounts enable row level security;
+alter table public.pay_disputes enable row level security;
+alter table public.pay_alerts enable row level security;
+alter table public.pay_automation_rules enable row level security;
+alter table public.pay_email_deliveries enable row level security;
 alter table public.pay_report_definitions enable row level security;
 alter table public.pay_notes enable row level security;
 
@@ -384,6 +461,8 @@ revoke all on table public.pay_sync_runs, public.pay_sync_cursors,
   public.pay_checkouts, public.pay_orders, public.pay_order_items,
   public.pay_payments, public.pay_refunds, public.pay_payment_plans,
   public.pay_subscriptions, public.pay_installments, public.pay_discounts,
+  public.pay_disputes, public.pay_alerts, public.pay_automation_rules,
+  public.pay_email_deliveries,
   public.pay_report_definitions, public.pay_notes
 from public, anon, authenticated, service_role;
 
@@ -394,4 +473,5 @@ grant select, insert, update on table public.pay_sync_runs,
   public.pay_order_items, public.pay_payments, public.pay_refunds,
   public.pay_payment_plans, public.pay_installments,
   public.pay_subscriptions, public.pay_discounts, public.pay_report_definitions, public.pay_notes
+  , public.pay_disputes, public.pay_alerts, public.pay_automation_rules, public.pay_email_deliveries
 to service_role;

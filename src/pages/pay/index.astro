@@ -242,6 +242,11 @@ import PayAppShell from '../../components/PayAppShell.astro';
     if (history?.ready) {
       const currency = String(stripeOverview?.account?.currency || 'eur').toUpperCase();
       byDay.forEach((row, key) => {
+        if (history.payments_authoritative) {
+          row.revenue = Number(history.payments_by_day?.[key]?.[currency] || 0) / 100;
+          row.refunds = Number(history.refunds_by_day?.[key]?.[currency] || 0) / 100;
+          row.refundCount = Number(history.refund_count_by_day?.[key] || 0);
+        }
         row.orders = Number(history.orders_by_day?.[key] || 0);
         row.plans = Number(history.plans_due_by_day?.[key]?.[currency] || 0) / 100;
       });

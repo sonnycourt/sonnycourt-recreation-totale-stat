@@ -1,7 +1,8 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
 import { cleanPayPalValue, getPayPalConfig } from './lib/pay-paypal.mjs';
-import { getPayPalTransactions } from './lib/pay-paypal-data.mjs';
+import { getPayPalTransactions, payPalMetrics } from './lib/pay-paypal-data.mjs';
 import { getPayPalResourcePage, PAYPAL_READ_RESOURCES } from './lib/pay-paypal-resources.mjs';
+import { payPalCatalogObjectIsForward, payPalObjectBelongsToPay, payScopeSummary } from './lib/pay-forward-scope.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -21,15 +22,17 @@ export default async (req) => {
       const page = Number(url.searchParams.get('page') || 1);
       const pageSize = Number(url.searchParams.get('page_size') || undefined);
       const data = await getPayPalResourcePage(resource, { page, pageSize });
+      const scoped = data.data.filter((item) => payPalCatalogObjectIsForward(item, { resource }));
       const mode = getPayPalConfig().mode;
-      return json(200, { ...data, mode, writes_enabled: mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
+      return json(200, { ...data, data: scoped, scope: payScopeSummary(), mode, writes_enabled: mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
     }
     const data = await getPayPalTransactions({
       start: cleanPayPalValue(url.searchParams.get('start'), 40),
       end: cleanPayPalValue(url.searchParams.get('end'), 40),
     });
+    const transactions = data.transactions.filter((item) => payPalObjectBelongsToPay(item));
     const mode = getPayPalConfig().mode;
-    return json(200, { ...data, mode, writes_enabled: mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
+    return json(200, { ...data, transactions, metrics: payPalMetrics(transactions), scope: payScopeSummary(), mode, writes_enabled: mode !== 'live' || process.env.PAYPAL_LIVE_WRITES_ENABLED === 'true' });
   } catch (error) {
     console.error('pay-paypal-data:', cleanPayPalValue(error?.message, 120));
     const invalid = String(error?.message || '').startsWith('paypal_range_');

@@ -1,7 +1,9 @@
 const TABLES = new Set([
+  'pay_alerts',
   'pay_checkouts',
   'pay_customers',
   'pay_discounts',
+  'pay_disputes',
   'pay_orders',
   'pay_payment_plans',
   'pay_payments',
@@ -19,6 +21,8 @@ const SAFE_METADATA_KEYS = Object.freeze([
   'funnel',
   'pay_route',
   'payment_plan_id',
+  'pay_origin',
+  'source',
   'installment_count',
   'installments_paid',
   'remaining_minor',
@@ -241,6 +245,19 @@ function projectStripeRefund(object) {
   });
 }
 
+function projectStripeDispute(object) {
+  const evidenceDue = object.evidence_details?.due_by;
+  return operation('pay_disputes', {
+    provider: 'stripe', external_id: id(object), status: clean(object.status, 60) || 'unknown',
+    currency: currency(object.currency), amount_minor: nonNegative(object.amount),
+    reason: clean(object.reason, 120) || null, evidence_due_at: iso(evidenceDue),
+    source_created_at: iso(object.created), source_updated_at: iso(object.updated || object.created),
+    metadata: safeMetadata(object.metadata, {
+      payment_external_id: id(object.payment_intent), charge_external_id: id(object.charge),
+    }),
+  });
+}
+
 function projectStripeSubscription(object) {
   const price = stripePrice(object);
   const metadata = object.metadata || {};
@@ -309,6 +326,7 @@ export function projectStripeResource(resource, object) {
     checkout_sessions: projectStripeOrder,
     payment_intents: projectStripePayment,
     refunds: projectStripeRefund,
+    disputes: projectStripeDispute,
     subscriptions: projectStripeSubscription,
     coupons: projectStripeDiscount,
     promotion_codes: projectStripeDiscount,

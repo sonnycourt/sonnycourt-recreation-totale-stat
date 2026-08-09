@@ -8,6 +8,8 @@ const ROUTING_KEYS = Object.freeze([
   'funnel',
   'pay_route',
   'payment_plan_id',
+  'pay_origin',
+  'source',
 ]);
 
 function clean(value, max = 255) {
@@ -141,4 +143,3 @@ export function payIncomingVersionWins(existingValue, incomingValue) {
 }
 
 export const PAY_WEBHOOK_CONFLICT_TARGET = 'provider,event_id';
-

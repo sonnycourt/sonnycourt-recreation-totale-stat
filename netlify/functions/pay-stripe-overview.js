@@ -1,4 +1,5 @@
 import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
+import { payCutoverUnix, payScopeSummary, stripeObjectBelongsToPay } from './lib/pay-forward-scope.mjs';
 
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
 const STRIPE_API_BASE = 'https://api.stripe.com/v1';
@@ -90,7 +91,7 @@ export default async (req) => {
 
   try {
     const until = Math.floor(Date.now() / 1000);
-    const since = until - THIRTY_DAYS_SECONDS;
+    const since = Math.max(until - THIRTY_DAYS_SECONDS, payCutoverUnix());
     const [account, balance, paymentIntents, products] = await Promise.all([
       stripeGet(secretKey, 'account'),
       stripeGet(secretKey, 'balance'),
@@ -105,7 +106,8 @@ export default async (req) => {
       ]),
     ]);
 
-    const intents = paymentIntents.data || [];
+    const intents = (paymentIntents.data || []).filter((item) => stripeObjectBelongsToPay(item));
+    const scopedProducts = (products.data || []).filter((item) => stripeObjectBelongsToPay(item));
     const succeeded = intents.filter((item) => item.status === 'succeeded');
     const pending = intents.filter((item) => item.status === 'processing' || item.status === 'requires_capture');
     const refunded = intents.filter((item) => {
@@ -139,7 +141,7 @@ export default async (req) => {
         successful: succeeded.length,
         pending: pending.length,
         refunded: refunded.length,
-        products: (products.data || []).length,
+        products: scopedProducts.length,
         truncated: Boolean(paymentIntents.has_more || products.has_more),
       },
       transaction_window: {
@@ -147,6 +149,7 @@ export default async (req) => {
         until,
         truncated: Boolean(paymentIntents.has_more),
       },
+      scope: payScopeSummary(),
       transactions: transactionRows,
     });
   } catch (error) {
