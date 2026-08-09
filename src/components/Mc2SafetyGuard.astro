@@ -1,27 +1,95 @@
 <script is:inline>
-    /**
-     * Garde-fou temporaire pendant la construction du funnel MC2.
-     * Les pages restent navigables, mais aucune inscription ne peut être créée.
-     */
+    /** Simulation locale du backend MC2. Elle ne s'active jamais sur le domaine public. */
     (function () {
-        window.__MC2_PREVIEW_ONLY__ = true;
+        var params = new URLSearchParams(window.location.search);
+        var previewOnly = location.hostname === '127.0.0.1'
+            || location.hostname === 'localhost'
+            || params.get('preview') === 'dev';
+        window.__MC2_PREVIEW_ONLY__ = previewOnly;
+        if (!previewOnly) return;
+        window.__MC2_TRACKING_PREVIEW__ = window.__MC2_TRACKING_PREVIEW__ || [];
+        document.documentElement.dataset.mc2TrackingPreview = 'active';
+
+        function exposePreviewTracking() {
+            var events = window.__MC2_TRACKING_PREVIEW__.map(function (entry) {
+                return entry.payload && entry.payload.event ? entry.payload.event : 'presence';
+            });
+            document.documentElement.dataset.mc2TrackingCount = String(events.length);
+            document.documentElement.dataset.mc2TrackingEvents = events.join(',');
+        }
+
+        exposePreviewTracking();
 
         var originalFetch = window.fetch.bind(window);
+        var PREVIEW_REGISTRATION_KEY = 'mc2_preview_registration_v1';
+
+        function readPreviewRegistration() {
+            try { return JSON.parse(sessionStorage.getItem(PREVIEW_REGISTRATION_KEY) || 'null'); }
+            catch (error) { return null; }
+        }
+
+        function response(payload, status) {
+            return Promise.resolve(new Response(JSON.stringify(payload), {
+                status: status || 200,
+                headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            }));
+        }
+
         window.fetch = function (input, init) {
             var url = typeof input === 'string'
                 ? input
                 : (input && typeof input.url === 'string' ? input.url : '');
 
+            if (url.indexOf('/.netlify/functions/register-mc2') !== -1) {
+                var body = {};
+                try { body = JSON.parse((init && init.body) || '{}'); } catch (error) {}
+                var token = 'mc2-preview-' + Date.now().toString(36);
+                var previous = readPreviewRegistration();
+                var registration = {
+                    valid: true,
+                    success: true,
+                    preview: true,
+                    token: previous && previous.token ? previous.token : token,
+                    statut: body.telephone && body.pays ? 'registered' : 'partial',
+                    prenom: body.prenom || '',
+                    email: body.email || '',
+                    sessionStartsAt: body.session_starts_at,
+                    sessionEndsAt: new Date(new Date(body.session_starts_at).getTime() + 75 * 60 * 1000).toISOString(),
+                    slotKind: body.slot_kind || 'jit',
+                    visitorTimezone: body.visitor_timezone || 'UTC'
+                };
+                try { sessionStorage.setItem(PREVIEW_REGISTRATION_KEY, JSON.stringify(registration)); } catch (error) {}
+                return response(registration);
+            }
+
+            if (url.indexOf('/.netlify/functions/get-mc2-registration') !== -1) {
+                var saved = readPreviewRegistration();
+                return saved ? response(saved) : response({ error: 'Token invalide' }, 404);
+            }
+
+            if (url.indexOf('/.netlify/functions/check-mc2-eligibility') !== -1) {
+                return response({ eligible: true, preview: true });
+            }
+
+            if (url.indexOf('/.netlify/functions/track-mc2-optin') !== -1) {
+                return response({ accepted: true, preview: true }, 202);
+            }
+
+            if (url.indexOf('/.netlify/functions/track-mc2-event') !== -1
+                || url.indexOf('/.netlify/functions/mc2-presence') !== -1) {
+                try {
+                    window.__MC2_TRACKING_PREVIEW__.push({
+                        endpoint: url,
+                        payload: JSON.parse((init && init.body) || '{}')
+                    });
+                    exposePreviewTracking();
+                } catch (error) {}
+                return response({ ok: true, preview: true });
+            }
+
             if (url.indexOf('/.netlify/functions/register-webinaire') !== -1
                 || url.indexOf('/.netlify/functions/track-masterclass-optin') !== -1) {
-                return Promise.resolve(new Response(JSON.stringify({
-                    ok: false,
-                    preview: true,
-                    error: 'Le funnel MC2 est encore en mode construction.'
-                }), {
-                    status: 409,
-                    headers: { 'Content-Type': 'application/json; charset=utf-8' }
-                }));
+                return response({ ok: true, preview: true });
             }
 
             return originalFetch(input, init);

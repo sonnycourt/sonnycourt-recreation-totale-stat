@@ -1,0 +1,165 @@
+---
+interface Props {
+    source: 'meta_ad' | 'tiktok_ad';
+}
+
+const { source } = Astro.props;
+---
+
+<script is:inline define:vars={{ source }}>
+    (function () {
+        var MC2_TOKEN_KEY = 'mc2_registration_token';
+        var LEGACY_TOKEN_KEYS = new Set(['masterclass_es2_token', 'webinaire_es2_token']);
+        var nativeStorageGet = Storage.prototype.getItem;
+        var nativeStorageSet = Storage.prototype.setItem;
+        var nativeStorageRemove = Storage.prototype.removeItem;
+
+        // La page publicitaire historique continue à employer son ancien nom de clé,
+        // mais uniquement dans cette route MC2 il pointe vers le stockage MC2.
+        Storage.prototype.getItem = function (key) {
+            if (this === window.localStorage && LEGACY_TOKEN_KEYS.has(String(key))) {
+                return nativeStorageGet.call(this, MC2_TOKEN_KEY);
+            }
+            return nativeStorageGet.call(this, key);
+        };
+        Storage.prototype.setItem = function (key, value) {
+            if (this === window.localStorage && LEGACY_TOKEN_KEYS.has(String(key))) {
+                return nativeStorageSet.call(this, MC2_TOKEN_KEY, value);
+            }
+            return nativeStorageSet.call(this, key, value);
+        };
+        Storage.prototype.removeItem = function (key) {
+            if (this === window.localStorage && LEGACY_TOKEN_KEYS.has(String(key))) {
+                return nativeStorageRemove.call(this, MC2_TOKEN_KEY);
+            }
+            return nativeStorageRemove.call(this, key);
+        };
+
+        function cookieDescriptor() {
+            var proto = document;
+            while (proto) {
+                var descriptor = Object.getOwnPropertyDescriptor(proto, 'cookie');
+                if (descriptor && descriptor.get && descriptor.set) return descriptor;
+                proto = Object.getPrototypeOf(proto);
+            }
+            return null;
+        }
+
+        var nativeCookie = cookieDescriptor();
+        if (nativeCookie) {
+            Object.defineProperty(document, 'cookie', {
+                configurable: true,
+                get: function () {
+                    var raw = nativeCookie.get.call(document);
+                    var pieces = raw.split(';').map(function (piece) { return piece.trim(); }).filter(Boolean);
+                    var mc2 = pieces.find(function (piece) { return piece.indexOf(MC2_TOKEN_KEY + '=') === 0; });
+                    pieces = pieces.filter(function (piece) {
+                        var name = piece.split('=')[0];
+                        return !LEGACY_TOKEN_KEYS.has(name);
+                    });
+                    if (mc2) pieces.push('masterclass_es2_token=' + mc2.slice(MC2_TOKEN_KEY.length + 1));
+                    return pieces.join('; ');
+                },
+                set: function (value) {
+                    var text = String(value || '');
+                    LEGACY_TOKEN_KEYS.forEach(function (key) {
+                        if (text.indexOf(key + '=') === 0) text = MC2_TOKEN_KEY + text.slice(key.length);
+                    });
+                    nativeCookie.set.call(document, text);
+                }
+            });
+        }
+
+        function urlOf(input) {
+            return typeof input === 'string' ? input : (input && input.url ? input.url : '');
+        }
+
+        function withUrl(input, url) {
+            if (typeof input === 'string') return url;
+            return new Request(url, input);
+        }
+
+        function rewriteBody(init, kind) {
+            if (!init || typeof init.body !== 'string') return init;
+            try {
+                var payload = JSON.parse(init.body);
+                if (kind === 'track') {
+                    payload.path = source === 'meta_ad' ? '/meta/mc2/' : '/tt/mc2/';
+                    payload.variant = 'mc2_' + String(payload.variant || 'paid');
+                }
+                return Object.assign({}, init, { body: JSON.stringify(payload) });
+            } catch (error) {
+                return init;
+            }
+        }
+
+        function saveMc2Token(token) {
+            if (!token) return;
+            nativeStorageSet.call(window.localStorage, MC2_TOKEN_KEY, token);
+            if (nativeCookie) {
+                nativeCookie.set.call(document, MC2_TOKEN_KEY + '=' + encodeURIComponent(token) + '; path=/; max-age=31536000; SameSite=Lax');
+            }
+        }
+
+        function confirmationUrl(token) {
+            var suffix = window.__MC2_PREVIEW_ONLY__ ? '&preview=dev' : '';
+            return '/mc2/confirmation?t=' + encodeURIComponent(token) + suffix;
+        }
+
+        function holdForNavigation() {
+            return new Promise(function () {});
+        }
+
+        var previousFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            var url = urlOf(input);
+            var target = url;
+            var kind = '';
+            if (url.indexOf('/.netlify/functions/check-webinaire-eligibility') !== -1) {
+                target = url.replace('check-webinaire-eligibility', 'check-mc2-eligibility');
+                kind = 'eligibility';
+            } else if (url.indexOf('/.netlify/functions/get-webinaire-registration') !== -1) {
+                target = url.replace('get-webinaire-registration', 'get-mc2-registration');
+                kind = 'registration-read';
+            } else if (url.indexOf('/.netlify/functions/register-webinaire') !== -1) {
+                target = url.replace('register-webinaire', 'register-mc2');
+                kind = 'registration-write';
+            } else if (url.indexOf('/.netlify/functions/track-masterclass-optin') !== -1) {
+                target = url.replace('track-masterclass-optin', 'track-mc2-optin');
+                kind = 'track';
+            } else {
+                return previousFetch(input, init);
+            }
+
+            var nextInit = rewriteBody(init, kind);
+            var response = await previousFetch(withUrl(input, target), nextInit);
+
+            if (kind === 'track' || !response.ok) return response;
+            var data = await response.clone().json().catch(function () { return null; });
+
+            if (kind === 'registration-read' && data && data.valid && data.token) {
+                saveMc2Token(data.token);
+                window.location.assign(confirmationUrl(data.token));
+                return holdForNavigation();
+            }
+
+            if (kind === 'eligibility' && data && data.eligible === false && data.token) {
+                saveMc2Token(data.token);
+                window.location.assign(confirmationUrl(data.token));
+                return holdForNavigation();
+            }
+
+            if (kind === 'registration-write' && data && data.success && data.token) {
+                saveMc2Token(data.token);
+                var payload = {};
+                try { payload = JSON.parse((nextInit && nextInit.body) || '{}'); } catch (error) {}
+                if (payload.telephone && payload.pays) {
+                    window.location.assign(confirmationUrl(data.token));
+                    return holdForNavigation();
+                }
+            }
+
+            return response;
+        };
+    })();
+</script>

@@ -1,0 +1,67 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <title>Paiement confirmé — Esprit Subconscient 2.0</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <main>
+      <section class="card" aria-live="polite">
+        <div class="icon" id="status-icon">✓</div>
+        <p class="eyebrow">ESPRIT SUBCONSCIENT 2.0</p>
+        <h1 id="status-title">Nous confirmons ton paiement…</h1>
+        <p id="status-copy">Ne ferme pas cette page pendant quelques secondes.</p>
+        <div class="schedule" id="confirmed-schedule" hidden>
+          <div><span>Aujourd’hui</span><strong>47 € payé</strong></div>
+          <div><span>Dans 14 jours</span><strong>150 €</strong></div>
+          <div><span>Puis 11 mensualités</span><strong>197 € / mois</strong></div>
+        </div>
+        <a id="access-button" href="/formations/" hidden>ACCÉDER À MON PROGRAMME</a>
+      </section>
+    </main>
+    <footer>© {currentYear} Sonny Court</footer>
+
+    <script is:inline>
+      const params = new URLSearchParams(location.search);
+      const token = params.get('t') || '';
+      const sessionId = params.get('session_id') || '';
+      const local = location.hostname === '127.0.0.1' || location.hostname === 'localhost' || params.get('preview') === 'dev';
+      const title = document.querySelector('#status-title');
+      const copy = document.querySelector('#status-copy');
+      const schedule = document.querySelector('#confirmed-schedule');
+      const access = document.querySelector('#access-button');
+
+      function showSuccess(firstName = '') {
+        title.textContent = `${firstName ? `${firstName}, ton` : 'Ton'} accès est confirmé.`;
+        copy.textContent = 'Tu vas recevoir les informations d’accès par email. Ton échéancier est maintenant enregistré dans Stripe.';
+        schedule.hidden = false;
+        access.hidden = false;
+      }
+
+      async function verify() {
+        if (local) return showSuccess('Sonny');
+        if (!token || !sessionId) throw new Error('Confirmation incomplète.');
+        const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.paid) throw new Error(data.error || 'Le paiement n’est pas encore confirmé.');
+        showSuccess(data.first_name || '');
+      }
+
+      verify().catch((error) => {
+        title.textContent = 'La confirmation prend un peu plus de temps.';
+        copy.textContent = `${error.message} Si tu as été débité, ne recommence pas le paiement : écris-nous simplement.`;
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  *{box-sizing:border-box} body{margin:0;min-height:100vh;color:#eef6ff;background:radial-gradient(circle at 50% 0%,rgba(29,111,255,.3),transparent 34rem),linear-gradient(145deg,#040d1d,#071d3c 58%,#041126);font-family:Inter,system-ui,sans-serif} main{min-height:calc(100vh - 54px);display:grid;place-items:center;padding:30px 16px}.card{width:min(620px,100%);padding:clamp(32px,7vw,62px);text-align:center;background:rgba(10,31,62,.72);border:1px solid rgba(136,201,255,.24);border-radius:30px;box-shadow:0 35px 100px rgba(0,0,0,.38);backdrop-filter:blur(24px)}.icon{display:grid;place-items:center;width:62px;height:62px;margin:0 auto 25px;color:#06253a;background:linear-gradient(145deg,#72f1c4,#4bd5ff);border-radius:50%;font-size:28px;font-weight:900;box-shadow:0 0 35px rgba(79,220,211,.25)}.eyebrow{margin:0 0 13px;color:#7ecbff;font-size:10px;font-weight:850;letter-spacing:.15em}.card h1{margin:0;font-size:clamp(34px,7vw,58px);line-height:1;letter-spacing:-.055em}.card>p:not(.eyebrow){max-width:470px;margin:20px auto 0;color:#a9bdd6;font-size:14px;line-height:1.65}.schedule{display:grid;gap:0;margin-top:32px;padding:10px 20px;background:rgba(4,16,35,.5);border:1px solid rgba(130,192,255,.16);border-radius:17px}.schedule[hidden],#access-button[hidden]{display:none}.schedule div{display:flex;justify-content:space-between;gap:20px;padding:15px 0;border-bottom:1px solid rgba(150,205,255,.1);font-size:12px}.schedule div:last-child{border:0}.schedule span{color:#8fa9c7}.schedule strong{color:#fff}#access-button{display:inline-flex;margin-top:28px;padding:17px 24px;color:#fff;background:linear-gradient(135deg,#1678f4,#0f57ca);border-radius:12px;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.03em;box-shadow:0 15px 35px rgba(22,108,230,.28)}footer{height:54px;color:#71849c;text-align:center;font-size:10px}
+</style>

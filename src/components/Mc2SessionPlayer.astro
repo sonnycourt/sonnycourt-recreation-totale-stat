@@ -1,0 +1,722 @@
+---
+import GAConsentMode from './GAConsentMode.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Diffusion en direct — Masterclass Esprit Subconscient 2.0</title>
+    <meta name="description" content="Rejoins ta session de la masterclass Esprit Subconscient 2.0." />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <GAConsentMode performanceMode />
+    <style>
+        @font-face {
+            font-family: Inter;
+            font-style: normal;
+            font-weight: 400 800;
+            font-display: swap;
+            src: url('/fonts/inter-latin.woff2') format('woff2');
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --blue: #3b82f6;
+            --blue-light: #93c5fd;
+            --orange: #fb923c;
+            --muted: rgba(255,255,255,.68);
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #fff;
+            background:
+                radial-gradient(circle at 18% 0%, rgba(37,99,235,.32), transparent 38%),
+                radial-gradient(circle at 86% 72%, rgba(30,64,175,.16), transparent 34%),
+                linear-gradient(180deg, #071126, #070914 60%, #03050c);
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .shell {
+            width: min(100% - 28px, 1120px);
+            margin: 0 auto;
+            padding: 24px 0 58px;
+        }
+
+        .preview-pill {
+            position: fixed;
+            top: 9px;
+            left: 50%;
+            z-index: 100;
+            padding: 7px 12px;
+            border: 1px solid rgba(251,146,60,.4);
+            border-radius: 999px;
+            color: #fed7aa;
+            background: rgba(67,32,17,.9);
+            box-shadow: 0 10px 28px rgba(0,0,0,.3);
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .09em;
+            transform: translateX(-50%);
+        }
+
+        .header {
+            padding-top: 24px;
+            text-align: center;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 13px;
+            padding: 8px 14px;
+            border: 1px solid rgba(96,165,250,.34);
+            border-radius: 999px;
+            color: #bfdbfe;
+            background: rgba(37,99,235,.12);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 0 rgba(239,68,68,.55);
+            animation: pulse 1.35s infinite;
+        }
+
+        @keyframes pulse {
+            50% { opacity: .55; box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: clamp(1.65rem, 4vw, 2.55rem);
+            line-height: 1.12;
+            letter-spacing: -.035em;
+        }
+
+        .session-label {
+            margin-bottom: 18px;
+            color: var(--muted);
+            font-size: .88rem;
+        }
+
+        .player-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 190px;
+            gap: 14px;
+            align-items: stretch;
+        }
+
+        .player-card {
+            overflow: hidden;
+            border: 1px solid rgba(96,165,250,.22);
+            border-radius: 18px;
+            background: #02040a;
+            box-shadow: 0 26px 80px rgba(0,0,0,.48), 0 0 55px rgba(37,99,235,.1);
+        }
+
+        .video-stage {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            background: #000;
+        }
+
+        #masterclass-video {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .join-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background:
+                linear-gradient(rgba(2,6,23,.5), rgba(2,6,23,.88)),
+                url('/media/pages/masterclass-gratuite-banner.webp') center/cover;
+        }
+
+        .join-overlay.is-hidden { display: none; }
+
+        .join-panel {
+            width: min(100%, 470px);
+            padding: 24px;
+            border: 1px solid rgba(147,197,253,.3);
+            border-radius: 18px;
+            background: rgba(4,10,26,.86);
+            box-shadow: 0 20px 60px rgba(0,0,0,.5);
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .join-panel h2 {
+            margin-bottom: 8px;
+            font-size: clamp(1.22rem, 3vw, 1.7rem);
+        }
+
+        .join-panel p {
+            margin-bottom: 16px;
+            color: var(--muted);
+            font-size: .84rem;
+            line-height: 1.5;
+        }
+
+        .join-button {
+            width: 100%;
+            min-height: 52px;
+            border: 0;
+            border-radius: 12px;
+            color: #fff;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 12px 34px rgba(37,99,235,.34);
+            font-size: .88rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .join-button:disabled { opacity: .5; cursor: wait; }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 56px;
+            padding: 9px 13px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            background: rgba(8,12,25,.96);
+        }
+
+        .control-button {
+            display: grid;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 auto;
+            place-items: center;
+            border: 1px solid rgba(96,165,250,.24);
+            border-radius: 10px;
+            color: #dbeafe;
+            background: rgba(37,99,235,.1);
+            cursor: pointer;
+        }
+
+        .control-button svg { width: 18px; height: 18px; }
+
+        .live-track {
+            position: relative;
+            height: 5px;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255,255,255,.12);
+        }
+
+        .live-progress {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+
+        .live-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #fecaca;
+            font-size: .65rem;
+            font-weight: 800;
+            letter-spacing: .07em;
+        }
+
+        .audience {
+            overflow: hidden;
+            border: 1px solid rgba(96,165,250,.16);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(14,24,49,.78), rgba(7,10,22,.9));
+        }
+
+        .audience-head {
+            padding: 13px 12px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            color: #bfdbfe;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .07em;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .hearts {
+            position: relative;
+            min-height: 340px;
+            overflow: hidden;
+        }
+
+        .heart {
+            position: absolute;
+            bottom: -30px;
+            font-size: 20px;
+            opacity: 0;
+            animation: floatHeart 4.2s ease-out forwards;
+        }
+
+        @keyframes floatHeart {
+            10% { opacity: .9; }
+            100% { opacity: 0; transform: translateY(-330px) translateX(var(--drift)) scale(1.35); }
+        }
+
+        .status-strip {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 13px;
+            color: rgba(255,255,255,.5);
+            font-size: .7rem;
+        }
+
+        .offer-zone {
+            display: none;
+            width: min(100%, 680px);
+            margin: 20px auto 0;
+            padding: 22px;
+            border: 1px solid rgba(251,146,60,.28);
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(251,146,60,.13), transparent 45%),
+                linear-gradient(145deg, rgba(67,32,17,.42), rgba(8,12,28,.95));
+            box-shadow: 0 24px 70px rgba(0,0,0,.35);
+            text-align: center;
+        }
+
+        .offer-zone.is-visible { display: block; }
+
+        .offer-kicker {
+            margin-bottom: 7px;
+            color: #fdba74;
+            font-size: .66rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .offer-zone h2 { margin-bottom: 7px; font-size: clamp(1.2rem, 3vw, 1.6rem); }
+        .offer-copy { margin-bottom: 14px; color: var(--muted); font-size: .82rem; }
+
+        .offer-countdown {
+            margin-bottom: 13px;
+            color: #fed7aa;
+            font-size: .74rem;
+            font-weight: 750;
+        }
+
+        .offer-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: min(100%, 470px);
+            min-height: 54px;
+            margin: 0 auto;
+            border-radius: 12px;
+            color: #fff;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            box-shadow: 0 13px 38px rgba(234,88,12,.26);
+            text-decoration: none;
+            font-size: .88rem;
+            font-weight: 850;
+        }
+
+        .offer-button.is-locked { opacity: .5; pointer-events: none; box-shadow: none; }
+
+        @media (max-width: 800px) {
+            .shell { width: min(100% - 18px, 1120px); padding-top: 15px; }
+            .header { padding-top: 30px; }
+            .player-layout { grid-template-columns: 1fr; }
+            .audience { display: none; }
+            .player-card { border-radius: 13px; }
+            .join-panel { padding: 18px 14px; }
+            .controls { min-height: 50px; padding: 7px 9px; }
+            .status-strip { gap: 12px; flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-pill">PRÉPRODUCTION MC2</div>
+    <main class="shell">
+        <header class="header">
+            <div class="live-badge"><span class="live-dot"></span> Diffusion en direct</div>
+            <h1>Masterclass Esprit Subconscient 2.0</h1>
+            <p id="session-label" class="session-label">Synchronisation de ta session…</p>
+        </header>
+
+        <div class="player-layout">
+            <section class="player-card">
+                <div class="video-stage" id="video-stage">
+                    <video id="masterclass-video" playsinline preload="metadata" controlslist="nodownload noremoteplayback nofullscreen"></video>
+                    <div id="join-overlay" class="join-overlay">
+                        <div class="join-panel">
+                            <h2 id="join-title">La salle est ouverte</h2>
+                            <p id="join-copy">Entre maintenant. La diffusion reprendra automatiquement au moment exact du direct.</p>
+                            <button id="join-button" class="join-button" type="button">REJOINDRE LA DIFFUSION</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="mute-button" class="control-button" type="button" aria-label="Activer ou couper le son">
+                        <svg id="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path></svg>
+                    </button>
+                    <div class="live-track" aria-hidden="true"><div id="live-progress" class="live-progress"></div></div>
+                    <span class="live-label"><span class="live-dot"></span> DIRECT</span>
+                    <button id="fullscreen-button" class="control-button" type="button" aria-label="Plein écran">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
+                    </button>
+                </div>
+            </section>
+
+            <aside class="audience" aria-hidden="true">
+                <div class="audience-head">Réactions en direct</div>
+                <div id="hearts" class="hearts"></div>
+            </aside>
+        </div>
+
+        <div class="status-strip">
+            <span>🔒 Diffusion synchronisée</span>
+            <span>⏱️ Avance rapide désactivée</span>
+            <span>🌍 Heure locale</span>
+        </div>
+
+        <section id="offer-zone" class="offer-zone" aria-live="polite">
+            <p class="offer-kicker">Ton prochain pas</p>
+            <h2>Commence Esprit Subconscient 2.0 aujourd’hui</h2>
+            <p class="offer-copy">Accède immédiatement au premier protocole pour 47 €.</p>
+            <p id="offer-countdown" class="offer-countdown">Ouverture dans 01:20</p>
+            <a id="offer-button" class="offer-button is-locked" href="#" aria-disabled="true">L’ACCÈS OUVRE DANS UN INSTANT</a>
+        </section>
+    </main>
+
+    <script is:inline>
+        // @ts-nocheck
+        const STORAGE_KEY = 'mc2_selected_session_v1';
+        const TOKEN_KEY = 'mc2_registration_token';
+        const VIDEO_SOURCE = 'https://sonnycourt-videos-public.b-cdn.net/WEBINAIRE%20W2%20(compresse).mp4';
+        const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
+        const VIDEO_DURATION_SECONDS = 5510;
+        const CTA_APPEAR_SECONDS = 89 * 60 + 10;
+        const CTA_ACTIVE_SECONDS = 90 * 60 + 30;
+        const VIDEO_TRACKING_CHECKPOINTS_MIN = [15, 30, 45, 60, 70, 75, 80, 85, 89];
+
+        let joined = false;
+        let didTrackSessionJoined = false;
+        let didTrackCtaReached = false;
+        const emittedCheckpointMinutes = new Set();
+        let simulatedNowMs = null;
+        let simulatedAnchorMs = null;
+
+        function nowMs() {
+            if (!Number.isFinite(simulatedNowMs)) return Date.now();
+            return simulatedNowMs + (Date.now() - simulatedAnchorMs);
+        }
+
+        function nextQuarterWithLead() {
+            const now = Date.now();
+            const quarter = 15 * 60 * 1000;
+            let target = Math.ceil(now / quarter) * quarter;
+            if (target - now < 8 * 60 * 1000) target += quarter;
+            return new Date(target);
+        }
+
+        function readSession() {
+            const params = new URLSearchParams(window.location.search);
+            const queryStart = params.get('session_starts_at');
+            if (queryStart && Number.isFinite(new Date(queryStart).getTime())) {
+                return {
+                    id: params.get('creneau') || 'jit',
+                    kind: params.get('slot_kind') || 'jit',
+                    startsAt: new Date(queryStart).toISOString(),
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+                };
+            }
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+                if (stored && Number.isFinite(new Date(stored.startsAt).getTime())) return stored;
+            } catch (error) {}
+            const fallback = nextQuarterWithLead();
+            return { id: 'jit', kind: 'jit', startsAt: fallback.toISOString(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' };
+        }
+
+        function readToken() {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get('t') || localStorage.getItem(TOKEN_KEY) || '').trim();
+        }
+
+        function trackingMode() {
+            const preview = new URLSearchParams(window.location.search).get('preview');
+            return preview || ['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'test' : 'real';
+        }
+
+        function trackMc2Event(eventName, value, meta) {
+            const token = readToken();
+            if (!token || !eventName) return;
+            const payload = {
+                token,
+                event: eventName,
+                meta: Object.assign({ page_path: '/mc2/session/' }, meta || {})
+            };
+            if (value !== undefined && value !== null) payload.value = String(value);
+            fetch('/.netlify/functions/track-mc2-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                keepalive: true
+            }).catch(function () {});
+        }
+
+        function sendPresence(video, session) {
+            const token = readToken();
+            if (!token) return;
+            const startMs = new Date(session.startsAt).getTime();
+            fetch('/.netlify/functions/mc2-presence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token,
+                    stage: nowMs() < startMs ? 'waiting' : 'session',
+                    currentSecond: Number.isFinite(video.currentTime) ? Math.floor(video.currentTime) : 0,
+                    isPlaying: joined && !video.paused,
+                    mode: trackingMode()
+                }),
+                keepalive: true
+            }).catch(function () {});
+        }
+
+        async function readServerSession() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('preview') === 'mc2' || params.get('preview') === 'dev') return null;
+            const token = readToken();
+            if (!token) return null;
+            const response = await fetch('/.netlify/functions/get-mc2-registration?t=' + encodeURIComponent(token));
+            if (!response.ok) return null;
+            const registration = await response.json();
+            if (!registration.valid || !registration.sessionStartsAt) return null;
+            return {
+                id: registration.creneau || 'jit',
+                kind: registration.slotKind || 'jit',
+                startsAt: registration.sessionStartsAt,
+                timezone: registration.visitorTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            };
+        }
+
+        function applyPreviewState(sessionStartMs) {
+            const state = new URLSearchParams(window.location.search).get('state');
+            if (!state) return;
+            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
+            const offsets = {
+                waiting: sessionStartMs - 2 * 60 * 1000,
+                live: sessionStartMs + 5 * 60 * 1000,
+                offer: liveStartMs + CTA_APPEAR_SECONDS * 1000 + 25 * 1000,
+                active: liveStartMs + CTA_ACTIVE_SECONDS * 1000 + 1000
+            };
+            if (!Number.isFinite(offsets[state])) return;
+            simulatedNowMs = offsets[state];
+            simulatedAnchorMs = Date.now();
+        }
+
+        function formatSession(date) {
+            const now = new Date();
+            const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+            const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const offset = Math.round((dayStart - nowStart) / 86400000);
+            let day;
+            if (offset === 0) day = 'Aujourd’hui';
+            else if (offset === 1) day = 'Demain';
+            else day = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+            const time = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date).replace(':', ' h ');
+            return day + ' à ' + time.replace(/ h 00$/, ' h') + ' · heure locale';
+        }
+
+        function attachSource(video) {
+            video.src = VIDEO_SOURCE;
+            video.load();
+        }
+
+        function liveOffsetSeconds(sessionStartMs) {
+            return Math.max(0, Math.min(VIDEO_DURATION_SECONDS - 1, (nowMs() - (sessionStartMs - LIVE_VIDEO_LEAD_MS)) / 1000));
+        }
+
+        function syncToLive(video, sessionStartMs) {
+            const target = liveOffsetSeconds(sessionStartMs);
+            if (video.readyState >= 1 && Math.abs(video.currentTime - target) > 2) video.currentTime = target;
+        }
+
+        function checkoutUrl(session) {
+            const current = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams({ source: 'mc2', session_starts_at: session.startsAt, t: readToken() });
+            if (current.get('preview')) params.set('preview', 'dev');
+            return '/commencer/?' + params.toString();
+        }
+
+        function renderTimeState(video, session) {
+            const startMs = new Date(session.startsAt).getTime();
+            const liveStartMs = startMs - LIVE_VIDEO_LEAD_MS;
+            const elapsed = Math.max(0, (nowMs() - liveStartMs) / 1000);
+            const progress = Math.min(100, (elapsed / VIDEO_DURATION_SECONDS) * 100);
+            document.getElementById('live-progress').style.width = progress + '%';
+
+            const joinTitle = document.getElementById('join-title');
+            const joinCopy = document.getElementById('join-copy');
+            if (nowMs() < startMs) {
+                const seconds = Math.max(0, Math.ceil((startMs - nowMs()) / 1000));
+                joinTitle.textContent = 'La diffusion commence dans ' + Math.floor(seconds / 60) + ' min ' + String(seconds % 60).padStart(2, '0') + ' s';
+                joinCopy.textContent = 'Entre maintenant. Tu es au bon endroit et la masterclass démarrera automatiquement.';
+            } else {
+                joinTitle.textContent = 'La masterclass est en cours';
+                joinCopy.textContent = 'Entre maintenant : la vidéo reprendra exactement au point actuel du direct.';
+            }
+
+            const zone = document.getElementById('offer-zone');
+            const button = document.getElementById('offer-button');
+            const countdown = document.getElementById('offer-countdown');
+            if (elapsed >= CTA_APPEAR_SECONDS) {
+                zone.classList.add('is-visible');
+                const remaining = Math.max(0, Math.ceil(CTA_ACTIVE_SECONDS - elapsed));
+                countdown.textContent = remaining > 0
+                    ? 'Ouverture dans ' + String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0')
+                    : 'Ton accès est ouvert maintenant';
+                if (remaining <= 0) {
+                    button.classList.remove('is-locked');
+                    button.removeAttribute('aria-disabled');
+                    button.href = checkoutUrl(session);
+                    button.textContent = 'COMMENCER MAINTENANT POUR 47 €';
+                    if (!didTrackCtaReached) {
+                        didTrackCtaReached = true;
+                        trackMc2Event('cta_reached');
+                    }
+                }
+            }
+
+            if (joined && video.readyState >= 1) {
+                const target = liveOffsetSeconds(startMs);
+                if (target - video.currentTime > 5) syncToLive(video, startMs);
+            }
+        }
+
+        function launchHearts() {
+            const container = document.getElementById('hearts');
+            const colors = ['❤️', '💙', '💜', '🔥', '✨'];
+            window.setInterval(function () {
+                const heart = document.createElement('span');
+                heart.className = 'heart';
+                heart.textContent = colors[Math.floor(Math.random() * colors.length)];
+                heart.style.left = (15 + Math.random() * 70) + '%';
+                heart.style.setProperty('--drift', (-34 + Math.random() * 68) + 'px');
+                container.appendChild(heart);
+                window.setTimeout(function () { heart.remove(); }, 4500);
+            }, 1100 + Math.random() * 500);
+        }
+
+        async function init() {
+            let session = null;
+            try { session = await readServerSession(); } catch (error) {}
+            session = session || readSession();
+            const sessionStartMs = new Date(session.startsAt).getTime();
+            applyPreviewState(sessionStartMs);
+            document.getElementById('session-label').textContent = formatSession(new Date(session.startsAt));
+            const video = document.getElementById('masterclass-video');
+            const overlay = document.getElementById('join-overlay');
+            const joinButton = document.getElementById('join-button');
+            const joinCopy = document.getElementById('join-copy');
+
+            trackMc2Event('session_page_viewed', null, { slot_kind: session.kind || 'jit' });
+
+            attachSource(video);
+            video.muted = false;
+            video.volume = 0.82;
+            video.addEventListener('loadedmetadata', function () { syncToLive(video, sessionStartMs); });
+            video.addEventListener('timeupdate', function () {
+                const watchedMinutes = Math.floor((video.currentTime || 0) / 60);
+                VIDEO_TRACKING_CHECKPOINTS_MIN.forEach(function (checkpoint) {
+                    if (watchedMinutes >= checkpoint && !emittedCheckpointMinutes.has(checkpoint)) {
+                        emittedCheckpointMinutes.add(checkpoint);
+                        trackMc2Event('video_checkpoint', checkpoint);
+                    }
+                });
+            });
+            video.addEventListener('seeking', function () {
+                if (!joined) return;
+                const live = liveOffsetSeconds(sessionStartMs);
+                if (video.currentTime > live + 1 || video.currentTime < live - 8) video.currentTime = live;
+            });
+            video.addEventListener('pause', function () {
+                if (joined && liveOffsetSeconds(sessionStartMs) < VIDEO_DURATION_SECONDS - 2) video.play().catch(function () {});
+            });
+
+            joinButton.addEventListener('click', function () {
+                joinButton.disabled = true;
+                joined = true;
+                if (!didTrackSessionJoined) {
+                    didTrackSessionJoined = true;
+                    trackMc2Event('session_joined', null, { slot_kind: session.kind || 'jit' });
+                }
+                overlay.classList.add('is-hidden');
+                syncToLive(video, sessionStartMs);
+                video.play().then(function () {
+                    joinButton.disabled = false;
+                }).catch(function () {
+                    video.muted = true;
+                    return video.play().then(function () {
+                        joinButton.disabled = false;
+                    });
+                }).catch(function () {
+                    joined = false;
+                    overlay.classList.remove('is-hidden');
+                    joinButton.disabled = false;
+                    joinCopy.textContent = 'La lecture n’a pas démarré. Vérifie ta connexion puis réessaie.';
+                });
+            });
+
+            document.getElementById('mute-button').addEventListener('click', function () {
+                video.muted = !video.muted;
+                document.getElementById('volume-icon').style.opacity = video.muted ? '.45' : '1';
+            });
+            document.getElementById('fullscreen-button').addEventListener('click', function () {
+                const stage = document.getElementById('video-stage');
+                if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+                else if (stage.requestFullscreen) stage.requestFullscreen().catch(function () {});
+                else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+            });
+            document.getElementById('offer-button').addEventListener('click', function (event) {
+                if (event.currentTarget.classList.contains('is-locked')) event.preventDefault();
+                else trackMc2Event('cta_clicked', null, { button_id: 'offer-button' });
+            });
+
+            renderTimeState(video, session);
+            window.setInterval(function () { renderTimeState(video, session); }, 1000);
+            sendPresence(video, session);
+            window.setInterval(function () { sendPresence(video, session); }, 30000);
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) sendPresence(video, session);
+            });
+            window.addEventListener('pagehide', function () { sendPresence(video, session); });
+            launchHearts();
+        }
+
+        init();
+    </script>
+</body>
+</html>

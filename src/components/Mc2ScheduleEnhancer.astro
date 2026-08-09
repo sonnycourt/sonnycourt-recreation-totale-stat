@@ -1,0 +1,382 @@
+<style is:global>
+    body.mc2-schedule-enhanced .countdown,
+    body.mc2-schedule-enhanced .next-session,
+    body.mc2-schedule-enhanced .session-social-proof {
+        display: none !important;
+    }
+
+    .mc2-schedule {
+        width: 100%;
+        max-width: 520px;
+        margin: 0 0 20px;
+    }
+
+    .mc2-schedule__heading {
+        margin: 0 0 10px;
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .mc2-slot-picker {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .mc2-slot-option {
+        position: relative;
+        min-width: 0;
+        padding: 13px 14px;
+        border: 1px solid rgba(96, 165, 250, 0.32);
+        border-radius: 13px;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(30, 58, 138, 0.22));
+        color: #fff;
+        text-align: left;
+        cursor: pointer;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .mc2-slot-option[data-slot-id="jit"] {
+        grid-column: 1 / -1;
+        border-color: rgba(251, 146, 60, 0.28);
+        background:
+            radial-gradient(circle at 95% 0%, rgba(251, 146, 60, 0.08), transparent 42%),
+            linear-gradient(145deg, rgba(67, 32, 17, 0.72), rgba(15, 23, 42, 0.94));
+    }
+
+    .mc2-slot-option:hover {
+        transform: translateY(-1px);
+        border-color: rgba(147, 197, 253, 0.7);
+    }
+
+    .mc2-slot-option.is-selected {
+        border-color: #60a5fa;
+        background: linear-gradient(145deg, rgba(37, 99, 235, 0.3), rgba(15, 23, 42, 0.94));
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18), 0 12px 28px rgba(2, 6, 23, 0.28);
+    }
+
+    .mc2-slot-option[data-slot-id="jit"].is-selected {
+        border-color: #fb923c;
+        background:
+            radial-gradient(circle at 95% 0%, rgba(251, 146, 60, 0.22), transparent 44%),
+            linear-gradient(145deg, rgba(124, 45, 18, 0.46), rgba(15, 23, 42, 0.94));
+        box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.16), 0 12px 30px rgba(2, 6, 23, 0.3);
+    }
+
+    .mc2-slot-option__eyebrow {
+        display: block;
+        margin-bottom: 5px;
+        color: #93c5fd;
+        font-size: 0.64rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    .mc2-slot-option[data-slot-id="jit"] .mc2-slot-option__eyebrow {
+        color: #fdba74;
+    }
+
+    .mc2-slot-option__time {
+        display: block;
+        font-size: 0.98rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .mc2-slot-option__detail {
+        display: block;
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 0.72rem;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .mc2-schedule__timezone {
+        margin: 8px 2px 0;
+        color: rgba(255, 255, 255, 0.48);
+        font-size: 0.7rem;
+    }
+
+    .mc2-schedule--popup {
+        max-width: none;
+        margin-bottom: 16px;
+    }
+
+    .mc2-schedule--popup .mc2-schedule__heading,
+    .mc2-schedule--popup .mc2-schedule__timezone {
+        text-align: center;
+    }
+
+    .mc2-schedule--popup .mc2-slot-option {
+        padding: 11px 12px;
+    }
+
+    @media (max-width: 600px) {
+        .mc2-schedule {
+            order: 2;
+            width: 100%;
+            margin: 0 0 14px;
+        }
+
+        .mc2-schedule__heading {
+            text-align: center;
+            font-size: 0.74rem;
+        }
+
+        .mc2-slot-option {
+            padding: 11px 12px;
+        }
+
+        .mc2-slot-option__time {
+            font-size: 0.9rem;
+        }
+
+        .mc2-schedule__timezone {
+            text-align: center;
+        }
+    }
+</style>
+
+<template id="mc2-schedule-template">
+    <div class="mc2-schedule" data-mc2-picker>
+        <p class="mc2-schedule__heading">Choisis ta session</p>
+        <div class="mc2-slot-picker" role="radiogroup" aria-label="Choisis ta session">
+            <button class="mc2-slot-option is-selected" type="button" role="radio" aria-checked="true" data-slot-id="jit">
+                <span class="mc2-slot-option__eyebrow">La plus proche</span>
+                <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                <span class="mc2-slot-option__detail" data-slot-detail>Prochaine diffusion</span>
+            </button>
+            <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-1">
+                <span class="mc2-slot-option__eyebrow">Autre créneau</span>
+                <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                <span class="mc2-slot-option__detail" data-slot-detail>Heure locale</span>
+            </button>
+            <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-2">
+                <span class="mc2-slot-option__eyebrow">Autre créneau</span>
+                <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                <span class="mc2-slot-option__detail" data-slot-detail>Heure locale</span>
+            </button>
+        </div>
+        <p class="mc2-schedule__timezone">Horaires affichés dans ton heure locale</p>
+    </div>
+</template>
+
+<script is:inline>
+    (function () {
+        var JIT_MIN_LEAD_MS = 8 * 60 * 1000;
+        var JIT_GRACE_MS = 3 * 60 * 1000;
+        var FIXED_MIN_LEAD_MS = 60 * 60 * 1000;
+        var schedule = { selectedSlotId: 'jit', slots: [] };
+
+        function startOfLocalDay(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+        }
+
+        function localDayOffset(date, reference) {
+            return Math.round((startOfLocalDay(date) - startOfLocalDay(reference)) / 86400000);
+        }
+
+        function formatTime(date) {
+            var parts = new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }).formatToParts(date);
+            var hour = (parts.find(function (part) { return part.type === 'hour'; }) || {}).value || '00';
+            var minute = (parts.find(function (part) { return part.type === 'minute'; }) || {}).value || '00';
+            return minute === '00' ? hour + ' h' : hour + ' h ' + minute;
+        }
+
+        function formatSlotLabel(date, reference) {
+            var offset = localDayOffset(date, reference);
+            var dayLabel;
+            if (offset === 0) dayLabel = 'Aujourd’hui';
+            else if (offset === 1) dayLabel = 'Demain';
+            else {
+                dayLabel = new Intl.DateTimeFormat('fr-FR', {
+                    weekday: 'long', day: 'numeric', month: 'long'
+                }).format(date);
+                dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+            }
+            return dayLabel + ' à ' + formatTime(date);
+        }
+
+        function nextQuarter(now) {
+            var quarterMs = 15 * 60 * 1000;
+            var targetMs = Math.ceil(now.getTime() / quarterMs) * quarterMs;
+            if (targetMs - now.getTime() < JIT_MIN_LEAD_MS) targetMs += quarterMs;
+            return new Date(targetMs);
+        }
+
+        function nextFixedSlots(now, jitStart) {
+            var candidates = [];
+            for (var dayOffset = 0; dayOffset < 5; dayOffset += 1) {
+                [11, 20].forEach(function (hour) {
+                    var candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, hour, 0, 0, 0);
+                    if (candidate.getTime() - now.getTime() < FIXED_MIN_LEAD_MS) return;
+                    if (Math.abs(candidate.getTime() - jitStart.getTime()) < 60000) return;
+                    candidates.push(candidate);
+                });
+            }
+            return candidates.sort(function (a, b) { return a.getTime() - b.getTime(); }).slice(0, 2);
+        }
+
+        function buildSchedule(now) {
+            var jitStart = nextQuarter(now);
+            var fixed = nextFixedSlots(now, jitStart);
+            schedule.slots = [
+                { id: 'jit', kind: 'jit', startsAt: jitStart },
+                { id: 'fixed-1', kind: 'scheduled', startsAt: fixed[0] },
+                { id: 'fixed-2', kind: 'scheduled', startsAt: fixed[1] }
+            ].filter(function (slot) { return slot.startsAt instanceof Date; });
+            if (!schedule.slots.some(function (slot) { return slot.id === schedule.selectedSlotId; })) {
+                schedule.selectedSlotId = 'jit';
+            }
+        }
+
+        function selectedSlot() {
+            return schedule.slots.find(function (slot) { return slot.id === schedule.selectedSlotId; }) || schedule.slots[0] || null;
+        }
+
+        function persistSelectedSlot() {
+            var slot = selectedSlot();
+            if (!slot) return;
+            try {
+                localStorage.setItem('mc2_selected_session_v1', JSON.stringify({
+                    id: slot.id,
+                    kind: slot.kind,
+                    startsAt: slot.startsAt.toISOString(),
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+                }));
+            } catch (error) {}
+        }
+
+        function slotDetail(slot, now) {
+            if (slot.kind !== 'jit') return 'Session programmée';
+            var remaining = slot.startsAt.getTime() - now.getTime();
+            if (remaining <= 0) return 'La session vient de commencer';
+            var seconds = Math.max(0, Math.floor(remaining / 1000));
+            return 'Commence dans ' + Math.floor(seconds / 60) + ' min ' + String(seconds % 60).padStart(2, '0') + ' s';
+        }
+
+        function render() {
+            var now = new Date();
+            document.querySelectorAll('[data-mc2-picker] .mc2-slot-option').forEach(function (button) {
+                var slot = schedule.slots.find(function (item) { return item.id === button.dataset.slotId; });
+                if (!slot) {
+                    button.style.display = 'none';
+                    return;
+                }
+                button.style.display = '';
+                var selected = slot.id === schedule.selectedSlotId;
+                button.classList.toggle('is-selected', selected);
+                button.setAttribute('aria-checked', selected ? 'true' : 'false');
+                button.querySelector('[data-slot-time]').textContent = formatSlotLabel(slot.startsAt, now);
+                button.querySelector('[data-slot-detail]').textContent = slotDetail(slot, now);
+            });
+
+            var slot = selectedSlot();
+            var commitment = document.querySelector('.commit-row__text');
+            if (commitment && slot) {
+                commitment.textContent = 'Je m’engage à être présent(e) ' + formatSlotLabel(slot.startsAt, now).toLowerCase();
+            }
+            window.__MC2_SELECTED_SLOT__ = slot ? {
+                id: slot.id,
+                kind: slot.kind,
+                startsAt: slot.startsAt.toISOString(),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            } : null;
+        }
+
+        function select(slotId) {
+            if (!schedule.slots.some(function (slot) { return slot.id === slotId; })) return;
+            schedule.selectedSlotId = slotId;
+            persistSelectedSlot();
+            render();
+        }
+
+        function createPicker(isPopup) {
+            var template = document.getElementById('mc2-schedule-template');
+            var picker = template.content.firstElementChild.cloneNode(true);
+            if (isPopup) picker.classList.add('mc2-schedule--popup');
+            picker.querySelectorAll('.mc2-slot-option').forEach(function (button) {
+                button.addEventListener('click', function () { select(button.dataset.slotId || 'jit'); });
+            });
+            return picker;
+        }
+
+        function installPickers() {
+            var heroMobileImage = document.querySelector('.hero-image--mobile');
+            if (heroMobileImage && !document.querySelector('[data-mc2-picker="hero"]')) {
+                var heroPicker = createPicker(false);
+                heroPicker.dataset.mc2Picker = 'hero';
+                heroMobileImage.parentNode.insertBefore(heroPicker, heroMobileImage);
+            }
+            var popupLead = document.querySelector('#step1-form .popup-form-lead');
+            if (popupLead && !document.querySelector('[data-mc2-picker="popup"]')) {
+                var popupPicker = createPicker(true);
+                popupPicker.dataset.mc2Picker = 'popup';
+                popupLead.parentNode.insertBefore(popupPicker, popupLead);
+            }
+        }
+
+        function updateCopy() {
+            document.querySelectorAll('.subheadline').forEach(function (paragraph) {
+                paragraph.textContent = paragraph.textContent.replace(/^1H30\s+/i, '1 HEURE ');
+            });
+            document.querySelectorAll('.gift-text').forEach(function (paragraph) {
+                paragraph.innerHTML = paragraph.innerHTML.replace('Présent jeudi à 20h ?', 'Présent à ta session ?');
+            });
+        }
+
+        function enrichMc2Request(input, init) {
+            var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+            if (url.indexOf('/.netlify/functions/register-webinaire') === -1
+                && url.indexOf('/.netlify/functions/track-masterclass-optin') === -1) return init;
+            if (!init || typeof init.body !== 'string') return init;
+            try {
+                var payload = JSON.parse(init.body);
+                var slot = window.__MC2_SELECTED_SLOT__;
+                if (!slot) return init;
+                payload.creneau = slot.id;
+                payload.session_date = slot.startsAt;
+                payload.session_starts_at = slot.startsAt;
+                payload.slot_kind = slot.kind;
+                payload.visitor_timezone = slot.timezone;
+                return Object.assign({}, init, { body: JSON.stringify(payload) });
+            } catch (error) {
+                return init;
+            }
+        }
+
+        function installRequestEnricher() {
+            var previousFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+                return previousFetch(input, enrichMc2Request(input, init));
+            };
+        }
+
+        function init() {
+            document.body.classList.add('mc2-schedule-enhanced');
+            installPickers();
+            updateCopy();
+            buildSchedule(new Date());
+            persistSelectedSlot();
+            render();
+            installRequestEnricher();
+            window.setInterval(function () {
+                var now = new Date();
+                var jit = schedule.slots.find(function (slot) { return slot.id === 'jit'; });
+                if (!jit || now.getTime() > jit.startsAt.getTime() + JIT_GRACE_MS) buildSchedule(now);
+                render();
+            }, 1000);
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+        else init();
+    })();
+</script>

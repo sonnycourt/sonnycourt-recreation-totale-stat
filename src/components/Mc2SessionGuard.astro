@@ -1,0 +1,133 @@
+<script is:inline>
+    /**
+     * Bac à sable de la salle MC2.
+     * Il fournit une inscription locale au lecteur historique et neutralise toutes
+     * les écritures tant que le backend MC2 n'est pas branché.
+     */
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        var previewOnly = location.hostname === '127.0.0.1'
+            || location.hostname === 'localhost'
+            || params.get('preview') === 'mc2'
+            || params.get('preview') === 'dev';
+        if (!previewOnly) return;
+        window.__MC2_TRACKING_PREVIEW__ = window.__MC2_TRACKING_PREVIEW__ || [];
+        document.documentElement.dataset.mc2TrackingPreview = 'active';
+
+        function exposePreviewTracking() {
+            var events = window.__MC2_TRACKING_PREVIEW__.map(function (entry) {
+                return entry.payload && entry.payload.event ? entry.payload.event : 'presence';
+            });
+            document.documentElement.dataset.mc2TrackingCount = String(events.length);
+            document.documentElement.dataset.mc2TrackingEvents = events.join(',');
+        }
+
+        exposePreviewTracking();
+
+        var STORAGE_KEY = 'mc2_selected_session_v1';
+        var SESSION_DURATION_MS = 75 * 60 * 1000;
+        var originalFetch = window.fetch.bind(window);
+
+        function nextQuarterWithLead() {
+            var now = Date.now();
+            var quarter = 15 * 60 * 1000;
+            var target = Math.ceil(now / quarter) * quarter;
+            if (target - now < 8 * 60 * 1000) target += quarter;
+            return new Date(target);
+        }
+
+        function readSession() {
+            var params = new URLSearchParams(window.location.search);
+            var queryStart = params.get('session_starts_at');
+            var parsedQuery = queryStart ? new Date(queryStart) : null;
+            if (parsedQuery && Number.isFinite(parsedQuery.getTime())) {
+                return {
+                    id: params.get('creneau') || 'jit',
+                    kind: params.get('slot_kind') || 'jit',
+                    startsAt: parsedQuery.toISOString(),
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+                };
+            }
+            try {
+                var stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+                if (stored && Number.isFinite(new Date(stored.startsAt).getTime())) return stored;
+            } catch (error) {}
+            var fallback = nextQuarterWithLead();
+            return {
+                id: 'jit',
+                kind: 'jit',
+                startsAt: fallback.toISOString(),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            };
+        }
+
+        function jsonResponse(payload, status) {
+            return Promise.resolve(new Response(JSON.stringify(payload), {
+                status: status || 200,
+                headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            }));
+        }
+
+        var session = readSession();
+        var startMs = new Date(session.startsAt).getTime();
+        var sessionEndsAt = new Date(startMs + SESSION_DURATION_MS).toISOString();
+        var offerExpiresAt = new Date(startMs + 72 * 60 * 60 * 1000).toISOString();
+        window.__MC2_SESSION_PREVIEW__ = {
+            session: session,
+            sessionEndsAt: sessionEndsAt,
+            offerExpiresAt: offerExpiresAt
+        };
+
+        window.fetch = function (input, init) {
+            var url = typeof input === 'string'
+                ? input
+                : (input && typeof input.url === 'string' ? input.url : '');
+
+            if (url.indexOf('/.netlify/functions/get-mc2-registration') !== -1
+                || url.indexOf('/.netlify/functions/get-webinaire-registration') !== -1) {
+                return jsonResponse({
+                    valid: true,
+                    token: 'mc2-preview',
+                    statut: 'inscrit',
+                    prenom: 'Preview',
+                    sessionStartsAt: session.startsAt,
+                    sessionEndsAt: sessionEndsAt,
+                    offreExpiresAt: offerExpiresAt,
+                    attended_live: false
+                });
+            }
+
+            if (url.indexOf('/.netlify/functions/webinaire-video-config') !== -1) {
+                return jsonResponse({
+                    activeUrl: 'https://vz-601d6eb4-a9a.b-cdn.net/7a1058fe-ec23-4cdf-8cc6-9b47e3f04744/playlist.m3u8'
+                });
+            }
+
+            var blockedWrites = [
+                '/.netlify/functions/mc2-presence',
+                '/.netlify/functions/track-mc2-event',
+                '/.netlify/functions/webinaire-presence',
+                '/.netlify/functions/track-webinaire-event',
+                '/.netlify/functions/update-webinaire-status',
+                '/.netlify/functions/check-webinaire-eligibility',
+                '/.netlify/functions/track-whatsapp-join',
+                '/.netlify/functions/track-cursus'
+            ];
+            if (blockedWrites.some(function (path) { return url.indexOf(path) !== -1; })) {
+                if (url.indexOf('/.netlify/functions/mc2-') !== -1
+                    || url.indexOf('/.netlify/functions/track-mc2-event') !== -1) {
+                    try {
+                        window.__MC2_TRACKING_PREVIEW__.push({
+                            endpoint: url,
+                            payload: JSON.parse((init && init.body) || '{}')
+                        });
+                        exposePreviewTracking();
+                    } catch (error) {}
+                }
+                return jsonResponse({ ok: true, success: true, preview: true });
+            }
+
+            return originalFetch(input, init);
+        };
+    })();
+</script>
