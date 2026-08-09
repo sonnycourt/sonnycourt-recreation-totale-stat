@@ -61,6 +61,11 @@ export default async (req) => {
     }
 
     const metadata = {
+      pay_origin: 'sonnycourt_pay',
+      source: 'sonnycourt_pay',
+      pay_route: 'pay',
+      checkout_id: 'es2-mc2-commencer',
+      offer_slug: 'es2-complete',
       system: 'es2_mc2',
       funnel: 'mc2',
       mc2_token: token,

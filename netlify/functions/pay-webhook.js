@@ -1,4 +1,5 @@
 import { getPayPalConfig, paypalGet } from './lib/pay-paypal.mjs';
+import { routeMc2StripeEvent } from './lib/mc2-pay-router.mjs';
 import { payPalObjectBelongsToPay, payScopeSummary, stripeObjectBelongsToPay } from './lib/pay-forward-scope.mjs';
 import { preparePayWebhookEvent, summarizePreparedWebhook } from './lib/pay-webhook-projection.mjs';
 import { payWebhookMode, verifyPayPalWebhookSignature, verifyStripeWebhookSignature } from './lib/pay-webhook-security.mjs';
@@ -98,13 +99,24 @@ export default async (req) => {
       : payPalObjectBelongsToPay(enriched.resource || {});
     if (!belongsToPay) return json(200, { received: true, ignored: true, reason: 'outside_forward_pay_scope', scope: payScopeSummary() });
 
+    const businessRoute = provider === 'stripe'
+      ? await routeMc2StripeEvent(enriched)
+      : { handled: false };
     const prepared = preparePayWebhookEvent(provider, enriched, {
       rawBody,
       livemode: payWebhookMode(provider) === 'live',
     });
     const stored = await storePreparedPayWebhook(prepared);
-    console.info('pay-webhook:', summarizePreparedWebhook(prepared), stored);
-    return json(200, { received: true, ...stored });
+    console.info('pay-webhook:', summarizePreparedWebhook(prepared), stored, {
+      business_route: businessRoute.handled ? 'mc2' : null,
+      business_duplicate: Boolean(businessRoute.duplicate),
+      business_status: businessRoute.status || null,
+    });
+    return json(200, {
+      received: true,
+      ...stored,
+      business_route: businessRoute.handled ? 'mc2' : null,
+    });
   } catch (error) {
     console.error('pay-webhook:', provider, clean(error?.message, 180));
     const missing = /(?:secret|webhook|Supabase|configured|configur)/i.test(String(error?.message || ''));

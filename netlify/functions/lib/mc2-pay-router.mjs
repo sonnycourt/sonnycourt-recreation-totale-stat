@@ -4,20 +4,37 @@ import {
   MC2_STRIPE_MONTHLY_PRICE_ID,
   mc2Stripe,
   stripeId,
-} from './lib/mc2-stripe.mjs';
-import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
+} from './mc2-stripe.mjs';
+import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 
 const DAY_SECONDS = 24 * 60 * 60;
+const MC2_SYSTEM = 'es2_mc2';
 
-function json(status, body) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-  });
+export const MC2_PAY_METADATA = Object.freeze({
+  pay_origin: 'sonnycourt_pay',
+  source: 'sonnycourt_pay',
+  pay_route: 'pay',
+  checkout_id: 'es2-mc2-commencer',
+  offer_slug: 'es2-complete',
+  system: MC2_SYSTEM,
+  funnel: 'mc2',
+  payment_plan: '47_now_150_d14_11x197',
+});
+
+function metadataFor(extra = {}) {
+  return { ...MC2_PAY_METADATA, ...extra };
 }
 
-function isoFromUnix(value) {
-  return Number.isFinite(Number(value)) ? new Date(Number(value) * 1000).toISOString() : null;
+function eventMetadata(event) {
+  const object = event?.data?.object || {};
+  return {
+    ...(object.subscription_details?.metadata || {}),
+    ...(object.metadata || {}),
+  };
+}
+
+export function isMc2StripeEvent(event) {
+  return eventMetadata(event).system === MC2_SYSTEM;
 }
 
 async function registrationBy(query) {
@@ -81,39 +98,34 @@ async function createInstallmentSchedule(stripe, session, registration) {
         discounts: [{ coupon: MC2_STRIPE_FIRST_INVOICE_COUPON_ID }],
         duration: { interval: 'month', interval_count: 1 },
         proration_behavior: 'none',
-        metadata: {
-          system: 'es2_mc2',
+        metadata: metadataFor({
           mc2_token: registration.token,
           installment_stage: 'd14_150',
-          payment_plan: '47_now_150_d14_11x197',
-        },
+        }),
       },
       {
         items: [{ price: MC2_STRIPE_MONTHLY_PRICE_ID, quantity: 1 }],
         discounts: [],
         duration: { interval: 'month', interval_count: 11 },
         proration_behavior: 'none',
-        metadata: {
-          system: 'es2_mc2',
+        metadata: metadataFor({
           mc2_token: registration.token,
           installment_stage: 'monthly_197',
-          payment_plan: '47_now_150_d14_11x197',
-        },
+        }),
       },
     ],
-    metadata: {
-      system: 'es2_mc2',
+    metadata: metadataFor({
       mc2_token: registration.token,
       checkout_session_id: session.id,
       contractual_total_cents: String(MC2_CONTRACT_TOTAL_CENTS),
-    },
+    }),
   }, {
     idempotencyKey: `mc2-schedule:${session.id}`,
   });
 }
 
 async function processCheckoutCompleted(stripe, session, event) {
-  if (session.metadata?.system !== 'es2_mc2') return { skipped: 'system' };
+  if (session.metadata?.system !== MC2_SYSTEM) return { skipped: 'system' };
   if (session.mode !== 'payment' || session.payment_status !== 'paid') return { skipped: 'payment' };
   const token = String(session.metadata.mc2_token || '').trim();
   const registration = await registrationBy(`token=eq.${encodeURIComponent(token)}`);
@@ -140,7 +152,7 @@ async function processCheckoutCompleted(stripe, session, event) {
     stripe_event_id: event.id,
     checkout_session_id: session.id,
     schedule_id: schedule.id,
-    payment_plan: '47_now_150_d14_11x197',
+    payment_plan: MC2_PAY_METADATA.payment_plan,
   });
   return { status: 'paid', token, schedule_id: schedule.id };
 }
@@ -233,30 +245,20 @@ async function processChargeAlert(charge, event) {
   return { status, token: registration.token };
 }
 
-export default async (req) => {
-  if (req.method !== 'POST') return json(405, { error: 'Méthode non autorisée' });
-  const secret = String(process.env.STRIPE_MC2_WEBHOOK_SECRET || '').trim();
-  if (!secret) return json(503, { error: 'webhook_secret_missing' });
-  try {
-    const rawBody = await req.text();
-    const stripe = mc2Stripe();
-    const event = stripe.webhooks.constructEvent(rawBody, req.headers.get('stripe-signature') || '', secret);
-    if (await eventWasProcessed(event.id)) return json(200, { received: true, duplicate: true });
-    let result = { skipped: 'event' };
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
-      result = await processCheckoutCompleted(stripe, event.data.object, event);
-    } else if (event.type === 'invoice.paid') {
-      result = await processInvoicePaid(stripe, event.data.object, event);
-    } else if (event.type === 'invoice.payment_failed') {
-      result = await processInvoiceFailed(stripe, event.data.object, event);
-    } else if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
-      result = await processChargeAlert(event.data.object, event);
-    }
-    await markEventProcessed(event);
-    return json(200, { received: true, ...result });
-  } catch (error) {
-    console.error('mc2-stripe-webhook:', error);
-    if (String(error?.type || '').includes('StripeSignature')) return json(400, { error: 'invalid_signature' });
-    return json(500, { received: false });
+export async function routeMc2StripeEvent(event, options = {}) {
+  if (!isMc2StripeEvent(event)) return { handled: false };
+  if (await eventWasProcessed(event.id)) return { handled: true, duplicate: true };
+  const stripe = options.stripe || mc2Stripe();
+  let result = { skipped: 'event' };
+  if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+    result = await processCheckoutCompleted(stripe, event.data.object, event);
+  } else if (event.type === 'invoice.paid') {
+    result = await processInvoicePaid(stripe, event.data.object, event);
+  } else if (event.type === 'invoice.payment_failed') {
+    result = await processInvoiceFailed(stripe, event.data.object, event);
+  } else if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+    result = await processChargeAlert(event.data.object, event);
   }
-};
+  await markEventProcessed(event);
+  return { handled: true, duplicate: false, ...result };
+}
