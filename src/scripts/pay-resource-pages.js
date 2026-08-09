@@ -2,6 +2,7 @@ import { collectPaySources, requirePaySource } from './pay-source-results.js';
 import { matchesResourceFilter, normalizeResourceFilter, normalizeResourceView, normalizeSavedResourceViews } from './pay-resource-filters.js';
 import { addPayNote, normalizePayNotesStore, payNotesEntityKey, removePayNote } from './pay-resource-notes.js';
 import { payOrderPlainValues } from './pay-resource-rows.js';
+import { normalizePayPageSize, payPageButtons, payPageItems } from './pay-resource-pagination.js';
 import { findPayDraft, markPayDraftPublished, payDraftEditUrl, removePayDraft } from './pay-draft-store.js';
 import {
   payCatalogDraftConfirmation,
@@ -24,6 +25,12 @@ if (screen) {
   const state = screen.querySelector('[data-resource-state]');
   const table = screen.querySelector('[data-resource-table]');
   const rowsHost = screen.querySelector('[data-resource-rows]');
+  const pagination = screen.querySelector('[data-resource-pagination]');
+  const pageSummary = screen.querySelector('[data-resource-page-summary]');
+  const pageSizeSelect = screen.querySelector('[data-resource-page-size]');
+  const pageButtons = screen.querySelector('[data-resource-page-buttons]');
+  const pagePrevious = screen.querySelector('[data-resource-page-previous]');
+  const pageNext = screen.querySelector('[data-resource-page-next]');
   const empty = screen.querySelector('[data-resource-empty]');
   const detailDialog = screen.querySelector('[data-resource-dialog]');
   const detailTitle = screen.querySelector('[data-resource-dialog-title]');
@@ -56,6 +63,7 @@ if (screen) {
   const viewName = screen.querySelector('[data-resource-view-name]');
   const columns = JSON.parse(screen.dataset.resourceColumns || '[]');
   const viewsStorageKey = `pay_resource_views_${screen.dataset.payResourcePage}`;
+  const pageSizeStorageKey = 'pay_resource_page_size';
   let rows = [];
   let sourceLabels = [];
   let activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
@@ -64,10 +72,14 @@ if (screen) {
   let activeDetailItem = null;
   let activePublication = null;
   let noteStore = readNoteStore();
+  let currentPage = 1;
+  let pageSize = readPageSize();
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const clean = (value) => typeof value === 'string' ? value.trim() : '';
   const stripeId = (value) => typeof value === 'string' ? value : value?.id || '';
+  const initialQuery = clean(new URLSearchParams(location.search).get('q') || '');
+  if (search && initialQuery) search.value = initialQuery;
 
   function readSavedViews() {
     try { return normalizeSavedResourceViews(JSON.parse(localStorage.getItem(viewsStorageKey) || '[]'), columns.length); }
@@ -87,6 +99,11 @@ if (screen) {
     sessionStorage.setItem(notesStorageKey, JSON.stringify(noteStore));
   }
 
+  function readPageSize() {
+    try { return normalizePayPageSize(localStorage.getItem(pageSizeStorageKey)); }
+    catch { return normalizePayPageSize(); }
+  }
+
   function currencyDigits(currency = 'eur') {
     try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).resolvedOptions().maximumFractionDigits; }
     catch { return 2; }
@@ -104,9 +121,19 @@ if (screen) {
     return new Intl.DateTimeFormat('fr-FR', dateOnly ? { dateStyle: 'medium' } : { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
   }
 
-  function providerCell(provider) {
-    const label = provider === 'paypal' ? 'PayPal' : provider === 'spiffy' ? 'Spiffy' : provider === 'internal' ? 'Pay' : 'Stripe';
-    return `<span class="resource-provider resource-provider--${escapeHtml(provider)}">${label}</span>`;
+  function providerLabel(provider) {
+    return provider === 'paypal' ? 'PayPal' : provider === 'spiffy' ? 'Spiffy' : provider === 'internal' ? 'Pay' : provider === 'stripe' ? 'Stripe' : clean(provider) || 'Inconnu';
+  }
+
+  function providerCell(provider, providers = []) {
+    const values = [...new Set((Array.isArray(providers) && providers.length ? providers : [provider]).map((value) => clean(value).toLowerCase()).filter(Boolean))];
+    const label = values.map(providerLabel).join(' + ') || providerLabel(provider);
+    return `<span class="resource-provider resource-provider--${escapeHtml(provider)}">${escapeHtml(label)}</span>`;
+  }
+
+  function customerLifetimeText(customer) {
+    const values = customer?.lifetime_values && typeof customer.lifetime_values === 'object' ? Object.entries(customer.lifetime_values) : [];
+    return values.length ? values.map(([currency, amount]) => money(amount, currency)).join(' + ') : money(customer?.lifetime_value, customer?.currency);
   }
 
   function badge(label) {
@@ -274,9 +301,20 @@ if (screen) {
       useHistorySource();
       return history.map((customer) => {
         const status = 'Actif';
+        const providers = Array.isArray(customer.providers) && customer.providers.length ? customer.providers : [customer.provider];
+        const providerText = providers.map(providerLabel).join(' + ');
+        const lifetime = customerLifetimeText(customer);
+        const stripeIdentity = (customer.identities || []).find((identity) => identity.provider === 'stripe')?.id || (customer.provider === 'stripe' ? customer.id : '');
         return row([
-          `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider), String(customer.order_count), `<strong>${money(customer.lifetime_value, customer.currency)}</strong>`, badge(status),
-        ], [customer.name, customer.email, customer.provider, customer.order_count, money(customer.lifetime_value, customer.currency), status], customer.provider, status, Math.floor(new Date(customer.created_at).getTime() / 1_000), customer.id);
+          `<strong>${escapeHtml(customer.name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(customer.email || '—'), providerCell(customer.provider, providers), String(customer.order_count), `<strong>${escapeHtml(lifetime)}</strong>`, badge(status),
+        ], [customer.name, customer.email, providerText, customer.order_count, lifetime, status], customer.provider, status, Math.floor(new Date(customer.updated_at || customer.created_at).getTime() / 1_000), customer.id, {
+          providers,
+          details: [
+            ['Prénom', customer.first_name || '—'], ['Nom', customer.last_name || '—'], ['Téléphone', customer.phone || '—'], ['Pays', customer.country || '—'],
+            ['Créé le', date(customer.created_at)], ['Mis à jour le', date(customer.updated_at)], ['Identités rapprochées', String(customer.source_count || 1)],
+          ],
+          customerProfile: { provider: customer.provider, stripeCustomerId: stripeIdentity, email: customer.email || '' },
+        });
       });
     }
     const sources = requirePaySource(await collectPaySources({
@@ -308,9 +346,19 @@ if (screen) {
       const aggregate = valueByCustomer.get(customer.id) || valueByCustomer.get(email) || { value: 0, orders: 0, currency: customer.currency || 'eur' };
       const name = clean(customer.name) || email || 'Client Stripe';
       const status = customer.delinquent ? 'En retard' : 'Actif';
+      const address = customer.address || customer.shipping?.address || {};
+      const defaultMethod = customer.invoice_settings?.default_payment_method || customer.default_source || null;
+      const defaultMethodId = stripeId(defaultMethod);
       return row([
         `<strong>${escapeHtml(name)}</strong><small>#${escapeHtml(customer.id)}</small>`, escapeHtml(email || '—'), providerCell('stripe'), String(aggregate.orders), `<strong>${money(aggregate.value, aggregate.currency)}</strong>`, badge(status),
-      ], [name, email, 'Stripe', aggregate.orders, money(aggregate.value, aggregate.currency), status], 'stripe', status, 0, customer.id || email);
+      ], [name, email, 'Stripe', aggregate.orders, money(aggregate.value, aggregate.currency), status], 'stripe', status, Number(customer.created || 0), customer.id || email, {
+        providers: ['stripe'],
+        details: [
+          ['Téléphone', customer.phone || '—'], ['Pays', address.country || '—'], ['Ville', address.city || '—'], ['Code postal', address.postal_code || '—'],
+          ['Créé le', date(customer.created)], ['Défaut de paiement', customer.delinquent ? 'Oui' : 'Non'],
+        ],
+        customerProfile: { provider: 'stripe', stripeCustomerId: customer.id, defaultMethodId, email },
+      });
     });
     const paypalMap = new Map();
     paypal.filter((item) => item.email).forEach((item) => {
@@ -320,7 +368,11 @@ if (screen) {
     });
     const paypalRows = [...paypalMap.values()].map((customer) => row([
       `<strong>${escapeHtml(customer.name)}</strong><small>${escapeHtml(customer.email)}</small>`, escapeHtml(customer.email), providerCell('paypal'), String(customer.orders), `<strong>${money(customer.value, customer.currency)}</strong>`, badge(customer.status),
-    ], [customer.name, customer.email, 'PayPal', customer.orders, money(customer.value, customer.currency), customer.status], 'paypal', customer.status, 0, customer.email));
+    ], [customer.name, customer.email, 'PayPal', customer.orders, money(customer.value, customer.currency), customer.status], 'paypal', customer.status, 0, customer.email, {
+      providers: ['paypal'],
+      details: [['Email PayPal', customer.email], ['Transactions connues', String(customer.orders)]],
+      customerProfile: { provider: 'paypal', email: customer.email },
+    }));
     return [...stripeRows, ...paypalRows];
   }
 
@@ -594,7 +646,7 @@ if (screen) {
     const view = currentView();
     const query = clean(view.query).toLowerCase();
     return rows.filter((item) => (!query || item.search.includes(query))
-      && (view.provider === 'all' || item.provider === view.provider)
+      && (view.provider === 'all' || item.provider === view.provider || item.providers?.includes(view.provider))
       && (view.status === 'all' || item.status === view.status)
       && matchesResourceFilter(item, view.advanced, columns.length));
   }
@@ -617,12 +669,33 @@ if (screen) {
 
   function render() {
     const visible = visibleRows();
-    rowsHost.innerHTML = visible.map((item) => `<div class="resource-row" role="button" tabindex="0" data-resource-index="${rows.indexOf(item)}" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
+    const page = payPageItems(visible, currentPage, pageSize);
+    currentPage = page.page;
+    rowsHost.innerHTML = page.items.map((item) => `<div class="resource-row" role="button" tabindex="0" data-resource-index="${rows.indexOf(item)}" data-provider="${escapeHtml(item.provider)}" data-status="${escapeHtml(item.status)}">${item.values.map((value) => `<span>${value}</span>`).join('')}</div>`).join('');
     const sourceSuffix = sourceLabels.length ? ` · ${sourceLabels.join(' + ')}` : '';
     count.textContent = `${visible.length} résultat${visible.length === 1 ? '' : 's'}${sourceSuffix}`;
     table.hidden = visible.length === 0;
     empty.hidden = visible.length !== 0;
+    renderPagination(page);
     renderFilterSummary();
+  }
+
+  function renderPagination(page) {
+    if (!pagination) return;
+    pagination.hidden = page.total === 0;
+    if (page.total === 0) return;
+    if (pageSummary) pageSummary.textContent = `${page.start}–${page.end} sur ${page.total}`;
+    if (pageSizeSelect) pageSizeSelect.value = String(page.pageSize);
+    if (pagePrevious) pagePrevious.disabled = page.page <= 1;
+    if (pageNext) pageNext.disabled = page.page >= page.pageCount;
+    if (pageButtons) pageButtons.innerHTML = payPageButtons(page.page, page.pageCount).map((value) => value === 'ellipsis'
+      ? '<span class="resource-pagination-ellipsis" aria-hidden="true">…</span>'
+      : `<button type="button" data-resource-page="${value}" ${value === page.page ? 'aria-current="page" disabled' : ''}>${value}</button>`).join('');
+  }
+
+  function resetPageAndRender() {
+    currentPage = 1;
+    render();
   }
 
   function csvValue(value) {
@@ -644,10 +717,25 @@ if (screen) {
     window.payToast?.('Export CSV préparé.');
   }
 
-  search.addEventListener('input', render);
-  providerFilter.addEventListener('change', render);
-  statusFilter.addEventListener('change', render);
+  search.addEventListener('input', resetPageAndRender);
+  providerFilter.addEventListener('change', resetPageAndRender);
+  statusFilter.addEventListener('change', resetPageAndRender);
   document.querySelector('[data-resource-export]')?.addEventListener('click', exportCsv);
+
+  pageSizeSelect?.addEventListener('change', () => {
+    pageSize = normalizePayPageSize(pageSizeSelect.value);
+    currentPage = 1;
+    try { localStorage.setItem(pageSizeStorageKey, String(pageSize)); } catch {}
+    render();
+  });
+  pagePrevious?.addEventListener('click', () => { currentPage = Math.max(1, currentPage - 1); render(); });
+  pageNext?.addEventListener('click', () => { currentPage += 1; render(); });
+  pageButtons?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-resource-page]');
+    if (!button) return;
+    currentPage = Number(button.dataset.resourcePage) || 1;
+    render();
+  });
 
   function openAdvancedFilters() {
     advancedColumn.value = String(activeAdvancedFilter.column);
@@ -661,7 +749,7 @@ if (screen) {
     providerFilter.value = 'all';
     statusFilter.value = 'all';
     activeAdvancedFilter = normalizeResourceFilter({}, columns.length);
-    render();
+    resetPageAndRender();
     window.payToast?.('Filtres effacés.');
   }
 
@@ -694,7 +782,7 @@ if (screen) {
     providerFilter.value = view.provider;
     statusFilter.value = [...statusFilter.options].some((option) => option.value === view.status) ? view.status : 'all';
     activeAdvancedFilter = normalizeResourceFilter(view.advanced, columns.length);
-    render();
+    resetPageAndRender();
     viewsDialog?.close();
     window.payToast?.(`Vue « ${view.name} » appliquée.`);
   }
@@ -705,7 +793,7 @@ if (screen) {
   screen.querySelector('[data-resource-filter-apply]')?.addEventListener('click', () => {
     activeAdvancedFilter = normalizeResourceFilter({ column: advancedColumn.value, operator: advancedOperator.value, value: advancedValue.value }, columns.length);
     advancedDialog?.close();
-    render();
+    resetPageAndRender();
     window.payToast?.(activeAdvancedFilter.value ? 'Filtre personnalisé appliqué.' : 'Filtre personnalisé effacé.');
   });
   advancedValue?.addEventListener('keydown', (event) => {
@@ -755,11 +843,48 @@ if (screen) {
   screen.querySelectorAll('[data-resource-views-close]').forEach((button) => button.addEventListener('click', () => viewsDialog?.close()));
   viewsDialog?.addEventListener('click', (event) => { if (event.target === viewsDialog) viewsDialog.close(); });
 
+  function customerMethodLabel(method, defaultMethodId = '') {
+    const card = method?.card || {};
+    const brand = clean(card.brand || method?.type || 'carte');
+    const last4 = clean(card.last4) ? `•••• ${clean(card.last4)}` : '';
+    const expiry = card.exp_month && card.exp_year ? ` · ${String(card.exp_month).padStart(2, '0')}/${card.exp_year}` : '';
+    const isDefault = method?.id && method.id === defaultMethodId ? ' · par défaut' : '';
+    return `${brand}${last4 ? ` ${last4}` : ''}${expiry}${isDefault}`;
+  }
+
+  async function renderCustomerPaymentMethods(item) {
+    const host = detailContent?.querySelector('[data-customer-payment-methods]');
+    if (!host || !item?.customerProfile || activeDetailItem !== item) return;
+    const stripeCustomerId = clean(item.customerProfile.stripeCustomerId);
+    if (!stripeCustomerId) {
+      host.innerHTML = item.customerProfile.provider === 'paypal'
+        ? '<strong>À confirmer via le coffre PayPal</strong><span>L’historique des transactions ne révèle pas les jetons enregistrés. Nos futurs checkouts indiqueront ici si le moyen PayPal est réutilisable.</span>'
+        : '<strong>Aucun jeton Stripe rattaché</strong><span>Ce client historique ne possède pas encore d’identité Stripe rapprochée dans Pay.</span>';
+      return;
+    }
+    try {
+      const query = new URLSearchParams({ resource: 'payment_methods', customer: stripeCustomerId, type: 'card', limit: '100' });
+      const response = await fetch(`${API_STRIPE}?${query}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.connected) throw new Error(payload.error || 'stripe_payment_methods_failed');
+      if (activeDetailItem !== item) return;
+      const methods = Array.isArray(payload.data) ? payload.data : [];
+      host.innerHTML = methods.length
+        ? `<strong>Moyen réutilisable : oui</strong><span>${methods.map((method) => escapeHtml(customerMethodLabel(method, item.customerProfile.defaultMethodId))).join('<br>')}</span><small>Seuls le type, les quatre derniers chiffres et l’expiration sont visibles. Pay ne reçoit jamais le numéro complet ni le CVC.</small>`
+        : '<strong>Moyen réutilisable : non détecté</strong><span>Aucune carte enregistrée et rattachée à ce client Stripe.</span>';
+    } catch {
+      if (activeDetailItem === item) host.innerHTML = '<strong>Vérification indisponible</strong><span>Stripe n’a pas répondu pour les moyens de paiement de ce client.</span>';
+    }
+  }
+
   function openDetails(item) {
     if (!item || !detailDialog) return;
     const headers = [...screen.querySelectorAll('.resource-head > span')].map((element) => element.textContent.trim());
     detailTitle.textContent = item.plain[0] || 'Détail';
-    detailContent.innerHTML = headers.map((header, index) => `<div><small>${escapeHtml(header)}</small><strong>${escapeHtml(item.plain[index] || '—')}</strong></div>`).join('');
+    const standardDetails = headers.map((header, index) => `<div><small>${escapeHtml(header)}</small><strong>${escapeHtml(item.plain[index] || '—')}</strong></div>`);
+    const extendedDetails = (Array.isArray(item.details) ? item.details : []).map(([label, value]) => `<div><small>${escapeHtml(label)}</small><strong>${escapeHtml(value || '—')}</strong></div>`);
+    const paymentMethods = item.customerProfile ? '<div class="resource-customer-methods" data-customer-payment-methods><strong>Vérification du moyen de paiement…</strong><span>Lecture sécurisée de la passerelle.</span></div>' : '';
+    detailContent.innerHTML = [...standardDetails, ...extendedDetails, paymentMethods].join('');
     activeDetailItem = item;
     const editableDraft = item.provider === 'internal' && item.draftKind && item.externalId;
     if (detailActions) detailActions.hidden = !editableDraft;
@@ -773,6 +898,7 @@ if (screen) {
     if (noteInput) noteInput.value = '';
     renderNotes();
     detailDialog.showModal();
+    renderCustomerPaymentMethods(item);
   }
 
   function publicationErrorMessage(code) {

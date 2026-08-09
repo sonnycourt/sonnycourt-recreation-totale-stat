@@ -4,7 +4,8 @@ export const PAY_STRIPE_RESOURCES = Object.freeze({
   account: { path: 'account', object: 'account', single: true, label: 'Compte' },
   balance: { path: 'balance', object: 'balance', single: true, label: 'Soldes' },
   balance_transactions: { path: 'balance_transactions', object: 'balance_transaction', created: true, label: 'Mouvements de solde' },
-  customers: { path: 'customers', object: 'customer', created: true, label: 'Clients' },
+  customers: { path: 'customers', object: 'customer', created: true, expand: ['data.invoice_settings.default_payment_method', 'data.default_source'], label: 'Clients' },
+  payment_methods: { path: 'payment_methods', object: 'payment_method', customerRequired: true, label: 'Moyens de paiement clients' },
   payment_intents: { path: 'payment_intents', object: 'payment_intent', created: true, expand: ['data.latest_charge'], label: 'Intentions de paiement' },
   setup_intents: { path: 'setup_intents', object: 'setup_intent', created: true, label: 'Intentions de configuration' },
   charges: { path: 'charges', object: 'charge', created: true, label: 'Paiements' },
@@ -109,6 +110,21 @@ export async function getPayStripePage(resource, options = {}) {
   if (config.created && createdGte) parameters.push(['created[gte]', createdGte]);
   if (config.created && createdLte) parameters.push(['created[lte]', createdLte]);
   for (const [key, value] of Object.entries(config.defaults || {})) parameters.push([key, value]);
+  if (config.customerRequired) {
+    const customer = safeCursor(options.customer);
+    if (!customer || !customer.startsWith('cus_')) {
+      const error = new Error('stripe_customer_invalid');
+      error.status = 400;
+      throw error;
+    }
+    const paymentType = cleanStripeValue(options.paymentType, 40).toLowerCase() || 'card';
+    if (!['card', 'sepa_debit', 'paypal'].includes(paymentType)) {
+      const error = new Error('stripe_payment_method_type_invalid');
+      error.status = 400;
+      throw error;
+    }
+    parameters.push(['customer', customer], ['type', paymentType]);
+  }
   for (const expansion of config.expand || []) parameters.push(['expand[]', expansion]);
 
   const page = await stripeGet(secretKey, config.path, parameters);

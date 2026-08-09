@@ -41,6 +41,15 @@ const {
         {columns.map((column) => <span>{column}</span>)}
       </div>
       <div data-resource-rows></div>
+      <footer class="resource-pagination" data-resource-pagination hidden>
+        <span data-resource-page-summary>0 résultat</span>
+        <label><span>Par page</span><select class="pay-select" data-resource-page-size aria-label="Résultats par page"><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+        <nav aria-label="Pagination des résultats">
+          <button type="button" data-resource-page-previous aria-label="Page précédente">‹</button>
+          <span data-resource-page-buttons></span>
+          <button type="button" data-resource-page-next aria-label="Page suivante">›</button>
+        </nav>
+      </footer>
     </div>
     <div class="resource-empty" data-resource-empty hidden><span>◇</span><h2>{emptyTitle}</h2><p>{emptyText}</p></div>
   </section>
@@ -127,6 +136,15 @@ const {
   .resource-row a:hover { text-decoration: underline; }
   .resource-head { min-height: 43px; background: rgba(255,255,255,.025); }
   .resource-head > span { color: var(--pay-muted); font-size: 8px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .resource-pagination { min-height: 58px; display: grid; grid-template-columns: minmax(140px, 1fr) auto auto; align-items: center; gap: 14px; padding: 10px 15px; border-top: 1px solid var(--pay-line); color: var(--pay-muted); font-size: 8px; }
+  .resource-pagination[hidden] { display: none; }
+  .resource-pagination label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .resource-pagination .pay-select { width: 68px; min-height: 34px; padding: 0 9px; font-size: 8px; }
+  .resource-pagination nav, .resource-pagination nav > span { display: flex; align-items: center; gap: 5px; }
+  .resource-pagination nav button { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--pay-line); border-radius: 9px; color: var(--pay-soft); background: rgba(255,255,255,.025); font-size: 8px; cursor: pointer; }
+  .resource-pagination nav button:hover:not(:disabled), .resource-pagination nav button[aria-current='page'] { border-color: rgba(112,231,255,.34); color: #fff; background: rgba(112,231,255,.09); }
+  .resource-pagination nav button:disabled { opacity: .3; cursor: default; }
+  .resource-pagination-ellipsis { width: 20px; text-align: center; }
   .resource-provider { display: inline-flex; align-items: center; gap: 6px; }
   .resource-provider::before { width: 7px; height: 7px; content: ''; border-radius: 50%; background: var(--pay-cyan); box-shadow: 0 0 10px rgba(112,231,255,.45); }
   .resource-provider--paypal::before { background: #72a9ff; box-shadow: 0 0 10px rgba(114,169,255,.45); }
@@ -146,6 +164,8 @@ const {
   .resource-dialog-grid small, .resource-dialog-grid strong { display: block; overflow-wrap: anywhere; }
   .resource-dialog-grid small { margin-bottom: 7px; color: var(--pay-muted); font-size: 8px; text-transform: uppercase; }
   .resource-dialog-grid strong { color: #fff; font-size: 10px; line-height: 1.5; }
+  .resource-dialog-grid > .resource-customer-methods { grid-column: 1 / -1; min-height: 92px; border-color: rgba(112,231,255,.2); background: rgba(112,231,255,.045); }
+  .resource-customer-methods span, .resource-customer-methods small { display: block; margin-top: 7px; color: var(--pay-soft); font-size: 8px; line-height: 1.55; text-transform: none; }
   .resource-notes { padding: 0 22px 20px; }
   .resource-notes[hidden] { display: none; }
   .resource-notes > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 16px 0 12px; border-top: 1px solid var(--pay-line); }
@@ -191,6 +211,6 @@ const {
   .resource-view-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 18px 22px; border-top: 1px solid var(--pay-line); }
   @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } .resource-note-compose { grid-template-columns: 1fr; } .resource-dialog > footer, .resource-dialog-actions { align-items: stretch; flex-direction: column; } }
   @media (max-width: 1100px) { .resource-toolbar { grid-template-columns: minmax(200px, 1fr) 145px 145px; } .resource-count { justify-self: end; } }
-  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } }
+  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } .resource-pagination { min-width: 860px; } }
   @media (max-width: 560px) { .resource-filter-form { grid-template-columns: 1fr; } .resource-filter-form .resource-filter-value { grid-column: auto; } .resource-view-row { grid-template-columns: 1fr auto; } .resource-view-row button:last-child { grid-column: 1 / -1; } }
 </style>

@@ -19,7 +19,7 @@ const HISTORY_RESOURCES = Object.freeze({
   },
   customers: {
     table: 'pay_customers',
-    select: 'provider,external_id,email,first_name,last_name,display_name,currency,lifetime_value_minor,order_count,source_created_at,source_updated_at',
+    select: 'provider,external_id,email,first_name,last_name,display_name,phone,country,currency,lifetime_value_minor,order_count,source_created_at,source_updated_at,metadata',
     order: 'source_created_at.desc.nullslast',
   },
   payment_plans: {
@@ -243,11 +243,16 @@ function resourceRow(resource, row) {
       provider: row.provider,
       email: clean(row.email, 180).toLowerCase(),
       name,
+      first_name: clean(row.first_name, 100),
+      last_name: clean(row.last_name, 100),
+      phone: clean(row.phone, 60) || null,
+      country: clean(row.country, 2).toUpperCase() || null,
       currency: currencyCode(row.currency).toLowerCase(),
       lifetime_value: Number(row.lifetime_value_minor || 0),
       order_count: Number(row.order_count || 0),
       created_at: row.source_created_at,
       updated_at: row.source_updated_at,
+      metadata: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
     };
   }
   if (resource === 'payment_plans') {
@@ -353,6 +358,102 @@ function resourceRow(resource, row) {
   return null;
 }
 
+const CUSTOMER_PROVIDER_PRIORITY = Object.freeze({ internal: 4, spiffy: 3, stripe: 2, paypal: 1 });
+
+function customerProviderPriority(provider) {
+  return CUSTOMER_PROVIDER_PRIORITY[clean(provider, 30).toLowerCase()] || 0;
+}
+
+function customerTimestamp(value) {
+  const timestamp = new Date(String(value || '')).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function customerIdentityKey(customer, index) {
+  const email = clean(customer?.email, 180).toLowerCase();
+  if (email) return `email:${email}`;
+  const provider = clean(customer?.provider, 30).toLowerCase() || 'unknown';
+  const id = clean(String(customer?.id || ''), 255) || String(index);
+  return `provider:${provider}:${id}`;
+}
+
+function customerProviderTotals(customers, field) {
+  const byCurrency = {};
+  for (const customer of customers) {
+    const currency = currencyCode(customer?.currency);
+    const provider = clean(customer?.provider, 30).toLowerCase() || 'unknown';
+    byCurrency[currency] ||= {};
+    byCurrency[currency][provider] = (byCurrency[currency][provider] || 0) + Math.max(0, Number(customer?.[field] || 0));
+  }
+  return byCurrency;
+}
+
+/**
+ * Collapses provider-specific identities into one read-only customer record.
+ * Spiffy/Pay aggregates are authoritative when present, so imported history is
+ * never added a second time to the same Stripe or PayPal totals.
+ */
+export function consolidatePayHistoryCustomers(rows = []) {
+  const groups = new Map();
+  rows.filter((row) => row && typeof row === 'object').forEach((row, index) => {
+    const key = customerIdentityKey(row, index);
+    const group = groups.get(key) || [];
+    group.push(row);
+    groups.set(key, group);
+  });
+
+  const consolidated = [...groups.values()].map((group) => {
+    const ranked = [...group].sort((left, right) => {
+      const priority = customerProviderPriority(right.provider) - customerProviderPriority(left.provider);
+      if (priority) return priority;
+      return (customerTimestamp(right.updated_at) || customerTimestamp(right.created_at) || 0)
+        - (customerTimestamp(left.updated_at) || customerTimestamp(left.created_at) || 0);
+    });
+    const primary = ranked[0];
+    const authoritative = group.filter((customer) => ['internal', 'spiffy'].includes(clean(customer.provider, 30).toLowerCase()));
+    const aggregateRows = authoritative.length ? authoritative : group;
+    const lifetimeByProvider = customerProviderTotals(aggregateRows, 'lifetime_value');
+    const lifetimeValues = Object.fromEntries(Object.entries(lifetimeByProvider).map(([currency, providers]) => [
+      currency,
+      authoritative.length ? Math.max(0, ...Object.values(providers)) : Object.values(providers).reduce((total, value) => total + value, 0),
+    ]));
+    const orderCounts = aggregateRows.map((customer) => Math.max(0, Number(customer.order_count || 0)));
+    const orderCount = authoritative.length ? Math.max(0, ...orderCounts) : orderCounts.reduce((total, value) => total + value, 0);
+    const providers = [...new Set(group.map((customer) => clean(customer.provider, 30).toLowerCase()).filter(Boolean))]
+      .sort((left, right) => customerProviderPriority(right) - customerProviderPriority(left));
+    const identities = group.map((customer) => ({
+      provider: clean(customer.provider, 30).toLowerCase(),
+      id: clean(String(customer.id || ''), 255),
+    })).filter((identity) => identity.provider && identity.id);
+    const usefulName = ranked.map((customer) => clean(customer.name, 200))
+      .find((name) => name && name !== 'Client' && name.toLowerCase() !== clean(primary.email, 180).toLowerCase());
+    const createdAt = group.map((customer) => ({ value: customer.created_at, timestamp: customerTimestamp(customer.created_at) }))
+      .filter((item) => item.timestamp !== null).sort((left, right) => left.timestamp - right.timestamp)[0]?.value || primary.created_at || null;
+    const updatedAt = group.flatMap((customer) => [customer.updated_at, customer.created_at])
+      .map((value) => ({ value, timestamp: customerTimestamp(value) })).filter((item) => item.timestamp !== null)
+      .sort((left, right) => right.timestamp - left.timestamp)[0]?.value || primary.updated_at || primary.created_at || null;
+    const primaryCurrency = currencyCode(primary.currency);
+
+    return {
+      ...primary,
+      email: clean(primary.email, 180).toLowerCase(),
+      name: usefulName || primary.name || primary.email || 'Client',
+      currency: primaryCurrency.toLowerCase(),
+      lifetime_value: Number(lifetimeValues[primaryCurrency] || 0),
+      lifetime_values: Object.fromEntries(Object.entries(lifetimeValues).map(([currency, amount]) => [currency.toLowerCase(), amount])),
+      order_count: orderCount,
+      providers,
+      identities,
+      source_count: group.length,
+      created_at: createdAt,
+      updated_at: updatedAt,
+    };
+  });
+
+  return consolidated.sort((left, right) => (customerTimestamp(right.updated_at) || customerTimestamp(right.created_at) || 0)
+    - (customerTimestamp(left.updated_at) || customerTimestamp(left.created_at) || 0));
+}
+
 export async function getPayHistoryResource(resource, options = {}) {
   const config = HISTORY_RESOURCES[resource];
   if (!config && resource !== 'products') throw historyError('pay_history_resource_invalid', 400);
@@ -392,7 +493,8 @@ export async function getPayHistoryResource(resource, options = {}) {
     })) };
   }
   const rows = await select(config.table, { select: config.select, order: config.order }, options);
-  return { ready: true, resource, rows: rows.map((row) => resourceRow(resource, row)).filter(Boolean) };
+  const projectedRows = rows.map((row) => resourceRow(resource, row)).filter(Boolean);
+  return { ready: true, resource, rows: resource === 'customers' ? consolidatePayHistoryCustomers(projectedRows) : projectedRows };
 }
 
 export function buildPayHistoryDashboard({ orders = [], plans = [], syncRuns = [] } = {}, options = {}) {

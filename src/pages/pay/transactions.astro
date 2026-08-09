@@ -243,7 +243,10 @@ const transactions = [];
     table.innerHTML = head + items.map((item) => {
       const customer = item.customer || item.email || 'Client Stripe';
       const initials = customer.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S';
-      return `<div class="transaction-row"><span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></span><span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong>${refundAction(item)}</div>`;
+      const customerControl = item.email
+        ? `<button class="transaction-client transaction-client-button" type="button" data-customer-email="${escapeTransactionText(item.email)}" title="Ouvrir le dossier client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>${escapeTransactionText(item.email)}</small></span></button>`
+        : `<span class="transaction-client"><i>${escapeTransactionText(initials)}</i><span><strong>${escapeTransactionText(customer)}</strong><small>—</small></span></span>`;
+      return `<div class="transaction-row">${customerControl}<span>${escapeTransactionText(item.description)}</span><span>${escapeTransactionText(transactionDate(item.created))}</span><span>${escapeTransactionText(item.payment_method || 'Stripe')}</span><span><b class="pay-badge ${transactionBadge(item.status)}">${escapeTransactionText(item.status)}</b></span><strong>${escapeTransactionText(transactionMoney(item.amount, item.currency))}</strong>${refundAction(item)}</div>`;
     }).join('');
   }
 
@@ -371,6 +374,13 @@ const transactions = [];
   }
 
   document.getElementById('stripeTransactionTable')?.addEventListener('click', (event) => {
+    const customerButton = event.target.closest('[data-customer-email]');
+    if (customerButton) {
+      const query = new URLSearchParams({ q: customerButton.dataset.customerEmail });
+      if (new URLSearchParams(location.search).has('preview')) query.set('preview', '1');
+      location.href = `/pay/customers?${query}`;
+      return;
+    }
     const button = event.target.closest('[data-refund-id]');
     if (!button) return;
     const item = combinedItems(fullHistoryItems.length ? fullHistoryItems : recentStripeItems).find((transaction) => transaction.id === button.dataset.refundId && transaction.provider === button.dataset.refundProvider);
@@ -449,6 +459,8 @@ const transactions = [];
   .transaction-head { color: var(--pay-muted); background: rgba(2,10,20,.18); font-size: 8px; font-weight: 700; }
   .transaction-row > strong:nth-last-child(2) { color: #fff; text-align: right; }
   .transaction-client { display: flex; align-items: center; gap: 9px; color: #fff; }
+  .transaction-client-button { width: 100%; padding: 0; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+  .transaction-client-button:hover strong { color: var(--pay-cyan); }
   .transaction-client i { width: 30px; height: 30px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid rgba(112,231,255,.16); border-radius: 10px; color: var(--pay-cyan); background: rgba(112,231,255,.05); font-size: 8px; font-style: normal; font-weight: 800; }
   .transaction-client span { min-width: 0; }
   .transaction-client strong, .transaction-client small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -7,8 +7,11 @@ en lecture seule.
 
 - Tableau de bord combiné Stripe + PayPal : ventes, remboursements, commandes,
   encaissements attendus, échéances et impayés.
-- Checkouts : liste, recherche, statut, lien, statistiques, création et édition.
-- Catalogue : produits, prix uniques et récurrents.
+- Checkouts : liste, recherche, statut, lien et statistiques. Les checkouts
+  sont codés dans le site puis reliés à leurs objets Stripe/PayPal ; Pay n'est
+  pas un constructeur drag-and-drop.
+- Catalogue : lecture des produits et prix uniques/récurrents. Les brouillons
+  déjà créés restent disponibles mais ne font pas partie du parcours principal.
 - Ventes : commandes, clients, paiements, abonnements et plans de paiement.
 - Remises : montant fixe ou pourcentage, date d'expiration, usage unique par
   client, application aux paiements uniques ou récurrents.
@@ -16,9 +19,15 @@ en lecture seule.
   performance des plans, projection de trésorerie, paiements échoués et taxes
   sur les ventes par pays et passerelle.
 - Exports CSV filtrés.
-- Fiches commande, client et plan avec historique et notes.
+- Fiches commande, client et plan avec historique et notes. Le dossier client
+  rapproche les identités fournisseur et vérifie à la demande si Stripe expose
+  un moyen de paiement tokenisé réutilisable ; seuls la marque, les quatre
+  derniers chiffres et l'expiration sont affichés.
+- Paiements échoués et brouillon de règle de relance email, désactivé par
+  défaut jusqu'à l'autorisation du stockage Supabase et du moteur d'envoi.
 
-L'affiliation, les parrainages et l'interface MCP de Spiffy sont hors MVP.
+L'affiliation, les parrainages, l'interface MCP de Spiffy et l'éditeur visuel de
+checkout sont hors MVP.
 
 ## Volumétrie Spiffy observée
 
@@ -163,8 +172,9 @@ Discounts. L'affiliation, Fields et AI/MCP restent volontairement hors du MVP.
   enregistrées ; Pay offre désormais ces mêmes contrôles sur toutes ses listes ;
 - le dashboard propose l'intervalle calendrier, les quatre séries et les quatre
   indicateurs déjà vérifiés par le contrôleur de parité ;
-- la création d'un checkout commence par un nom interne avant l'éditeur ; le
-  constructeur Pay en trois étapes couvre déjà le nom, l'URL et la tarification ;
+- les brouillons de checkout existants restent accessibles, mais la création
+  principale se fait désormais dans le code du site puis se relie à Stripe et
+  PayPal par identifiants ; aucun éditeur visuel n'est requis ;
 - un nouveau produit commence par le choix paiement unique ou abonnement ;
 - une commande manuelle commence par le choix d'un checkout existant ;
 - les rapports observés couvrent ventes par produit, valeur client, performance
@@ -177,6 +187,12 @@ Discounts. L'affiliation, Fields et AI/MCP restent volontairement hors du MVP.
 - les brouillons de checkout, produit et réduction peuvent être rouverts sans
   changer d'identifiant, modifiés puis supprimés uniquement après un second
   clic explicite ; ces opérations restent confinées au navigateur.
+- la page Paiements mène directement au dossier client filtré par email ; une
+  identité importée depuis Spiffy n'est pas additionnée une seconde fois à son
+  double Stripe/PayPal ;
+- le rapport Paiements échoués permet de préparer une première et une seconde
+  relance. La règle est persistée localement pour la recette mais aucun email
+  n'est envoyé avant le branchement explicite du stockage et de l'expéditeur.
 
 Les créations de produit et de commande restent des interfaces de brouillon tant
 que l'écriture Supabase et le moteur central Stripe ne sont pas explicitement

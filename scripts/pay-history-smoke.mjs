@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import payHistoryHandler from '../netlify/functions/pay-history.js';
-import { buildPayHistoryDashboard, getPayHistoryDashboard, getPayHistoryResource, paySupabaseSelect, projectPaymentPlan } from '../netlify/functions/lib/pay-history.mjs';
+import { buildPayHistoryDashboard, consolidatePayHistoryCustomers, getPayHistoryDashboard, getPayHistoryResource, paySupabaseSelect, projectPaymentPlan } from '../netlify/functions/lib/pay-history.mjs';
 
 const plans = [
   { external_id: 'active_1', status: 'active', currency: 'eur', installment_amount_minor: 10_000, installment_count: 4, installments_paid: 1, remaining_minor: 30_000, interval_unit: 'month', interval_count: 1, next_payment_at: '2026-08-10T10:00:00Z' },
@@ -106,6 +106,27 @@ const historyProducts = await getPayHistoryResource('products', {
 assert.equal(historyProducts.rows[0].prices[0].id, 'price_1');
 assert.equal(historyProducts.rows[0].prices[0].amount, 19_700);
 await assert.rejects(() => getPayHistoryResource('unknown', { select: async () => [] }), /pay_history_resource_invalid/);
+
+const consolidatedCustomers = consolidatePayHistoryCustomers([
+  { id: 'spiffy-1', provider: 'spiffy', email: ' Client@Example.com ', name: 'Client Historique', currency: 'eur', lifetime_value: 30_000, order_count: 3, created_at: '2025-01-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z' },
+  { id: 'cus_1', provider: 'stripe', email: 'client@example.com', name: 'Client Stripe', currency: 'eur', lifetime_value: 30_000, order_count: 3, created_at: '2025-01-02T00:00:00Z', updated_at: '2026-08-02T00:00:00Z' },
+  { id: 'anonymous-1', provider: 'paypal', email: '', name: 'Sans email', currency: 'eur', lifetime_value: 5_000, order_count: 1, created_at: '2026-07-01T00:00:00Z' },
+]);
+assert.equal(consolidatedCustomers.length, 2);
+const mergedCustomer = consolidatedCustomers.find((customer) => customer.email === 'client@example.com');
+assert.equal(mergedCustomer.provider, 'spiffy');
+assert.deepEqual(mergedCustomer.providers, ['spiffy', 'stripe']);
+assert.deepEqual(mergedCustomer.identities, [{ provider: 'spiffy', id: 'spiffy-1' }, { provider: 'stripe', id: 'cus_1' }]);
+assert.equal(mergedCustomer.source_count, 2);
+assert.equal(mergedCustomer.lifetime_value, 30_000);
+assert.equal(mergedCustomer.order_count, 3);
+
+const providerOnlyCustomer = consolidatePayHistoryCustomers([
+  { id: 'cus_2', provider: 'stripe', email: 'multi@example.com', currency: 'eur', lifetime_value: 10_000, order_count: 1 },
+  { id: 'payer-2', provider: 'paypal', email: 'multi@example.com', currency: 'eur', lifetime_value: 20_000, order_count: 2 },
+])[0];
+assert.equal(providerOnlyCustomer.lifetime_value, 30_000);
+assert.equal(providerOnlyCustomer.order_count, 3);
 
 const unauthenticated = await payHistoryHandler(new Request('https://pay.sonnycourt.com/.netlify/functions/pay-history'));
 assert.equal(unauthenticated.status, 401);

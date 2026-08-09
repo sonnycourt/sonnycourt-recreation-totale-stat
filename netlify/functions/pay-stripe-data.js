@@ -22,6 +22,8 @@ export default async (req) => {
       startingAfter: url.searchParams.get('starting_after'),
       createdGte: Number(url.searchParams.get('created_gte') || 0),
       createdLte: Number(url.searchParams.get('created_lte') || 0),
+      customer: url.searchParams.get('customer'),
+      paymentType: url.searchParams.get('type'),
     });
     return json(200, {
       connected: true,

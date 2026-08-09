@@ -24,9 +24,21 @@ import PayAppShell from '../../components/PayAppShell.astro';
     <div class="report-state" id="reportState"><i></i><span><strong>Calcul du rapport</strong><small>Lecture uniquement, aucune action financière.</small></span></div>
     <div class="report-table" id="reportTable" hidden></div>
   </section>
+
+  <section class="recovery-panel pay-panel" id="recoveryPanel" hidden>
+    <header><div><p class="pay-kicker">Relance simple</p><h2>Automatisation des paiements échoués</h2><p>Prépare la règle maintenant. Aucun email ne part tant que la mémoire Pay et l’envoi transactionnel ne sont pas explicitement activés.</p></div><span class="pay-badge pay-badge--warning" id="recoveryStatus">Désactivée</span></header>
+    <div class="recovery-fields">
+      <label class="recovery-toggle"><input id="recoveryEnabled" type="checkbox" /><span>Activer cette règle après connexion du moteur d’envoi</span></label>
+      <label><span>Première relance</span><select class="pay-select" id="recoveryFirstDelay"><option value="12">Après 12 heures</option><option value="24">Après 24 heures</option><option value="48">Après 48 heures</option><option value="72">Après 3 jours</option></select></label>
+      <label><span>Deuxième relance</span><select class="pay-select" id="recoveryFollowUp"><option value="0">Aucune</option><option value="72">Après 3 jours</option><option value="120">Après 5 jours</option><option value="168">Après 7 jours</option></select></label>
+    </div>
+    <footer><span id="recoveryPreview">0 paiement avec une adresse email exploitable.</span><button class="pay-button pay-button--primary" id="recoverySave" type="button">Enregistrer le brouillon</button></footer>
+  </section>
 </PayAppShell>
 
 <script>
+  import { normalizePayRecoveryPolicy, payRecoveryEligibleRows } from '../../scripts/pay-recovery-policy.js';
+
   const STRIPE_API = '/.netlify/functions/pay-stripe-data';
   const PAYPAL_API = '/.netlify/functions/pay-paypal-data';
   const HISTORY_API = '/.netlify/functions/pay-history';
@@ -35,6 +47,27 @@ import PayAppShell from '../../components/PayAppShell.astro';
   let reportRows = [];
   let reportRequest = 0;
   let reportSourceLabel = 'Passerelles live';
+  const RECOVERY_STORAGE_KEY = 'pay_recovery_policy_v1';
+  let recoveryPolicy = readRecoveryPolicy();
+
+  function readRecoveryPolicy() {
+    try { return normalizePayRecoveryPolicy(JSON.parse(localStorage.getItem(RECOVERY_STORAGE_KEY) || '{}')); }
+    catch { return normalizePayRecoveryPolicy(); }
+  }
+
+  function renderRecoveryPolicy() {
+    const panel = document.getElementById('recoveryPanel');
+    panel.hidden = reportType !== 'failures';
+    if (panel.hidden) return;
+    document.getElementById('recoveryEnabled').checked = recoveryPolicy.enabled;
+    document.getElementById('recoveryFirstDelay').value = String(recoveryPolicy.firstDelayHours);
+    document.getElementById('recoveryFollowUp').value = recoveryPolicy.maxReminders === 2 ? String(recoveryPolicy.followUpDelayHours) : '0';
+    const eligible = payRecoveryEligibleRows(reportRows).length;
+    document.getElementById('recoveryPreview').textContent = `${eligible} paiement${eligible === 1 ? '' : 's'} avec une adresse email exploitable · aucun envoi réel pendant cette phase.`;
+    const status = document.getElementById('recoveryStatus');
+    status.textContent = recoveryPolicy.enabled ? 'Brouillon activé' : 'Désactivée';
+    status.className = `pay-badge ${recoveryPolicy.enabled ? 'pay-badge--success' : 'pay-badge--warning'}`;
+  }
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const money = (minor, currency = 'eur') => {
@@ -334,6 +367,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     table.hidden = false;
     const total = reportRows.length;
     document.getElementById('reportKpis').innerHTML = `<span><small>Lignes</small><strong>${total}</strong></span><span><small>Passerelles</small><strong>Stripe + PayPal</strong></span><span><small>Source</small><strong>${escapeHtml(reportSourceLabel)}</strong></span>`;
+    renderRecoveryPolicy();
   }
 
   function updateRangeLabels() {
@@ -399,6 +433,7 @@ import PayAppShell from '../../components/PayAppShell.astro';
     reportType = button.dataset.report;
     document.querySelectorAll('[data-report]').forEach((item) => item.classList.toggle('is-active', item === button));
     updateRangeLabels();
+    renderRecoveryPolicy();
     loadReport();
   }));
   document.getElementById('reportRange').addEventListener('change', loadReport);
@@ -409,7 +444,20 @@ import PayAppShell from '../../components/PayAppShell.astro';
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `pay-rapport-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
   });
+  document.getElementById('recoverySave').addEventListener('click', () => {
+    const followUp = Number(document.getElementById('recoveryFollowUp').value || 0);
+    recoveryPolicy = normalizePayRecoveryPolicy({
+      enabled: document.getElementById('recoveryEnabled').checked,
+      firstDelayHours: Number(document.getElementById('recoveryFirstDelay').value),
+      followUpDelayHours: followUp || 72,
+      maxReminders: followUp ? 2 : 1,
+    });
+    localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(recoveryPolicy));
+    renderRecoveryPolicy();
+    window.payToast?.('Brouillon de relance enregistré localement. Aucun email envoyé.');
+  });
   updateRangeLabels();
+  renderRecoveryPolicy();
   loadReport();
 </script>
 
@@ -443,6 +491,18 @@ import PayAppShell from '../../components/PayAppShell.astro';
   .report-row > span:first-child { color: #fff; font-weight: 650; }
   .report-row--head { min-height: 40px; background: rgba(255,255,255,.025); }
   .report-row--head > span { color: var(--pay-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
+  .recovery-panel { margin-top: 13px; overflow: hidden; }
+  .recovery-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 19px 20px; border-bottom: 1px solid var(--pay-line); }
+  .recovery-panel h2 { margin: 5px 0 7px; font-size: 15px; }
+  .recovery-panel header p:not(.pay-kicker) { max-width: 680px; margin: 0; color: var(--pay-muted); font-size: 8px; line-height: 1.55; }
+  .recovery-fields { display: grid; grid-template-columns: 1.3fr 1fr 1fr; align-items: end; gap: 14px; padding: 18px 20px; }
+  .recovery-fields label { display: grid; gap: 8px; color: var(--pay-soft); font-size: 8px; }
+  .recovery-fields .pay-select { min-height: 42px; padding: 0 11px; font-size: 9px; }
+  .recovery-toggle { grid-template-columns: auto 1fr; align-items: center; min-height: 42px; padding: 0 13px; border: 1px solid var(--pay-line); border-radius: 12px; background: rgba(255,255,255,.025); }
+  .recovery-toggle input { accent-color: var(--pay-cyan); }
+  .recovery-panel > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 13px 20px; border-top: 1px solid var(--pay-line); }
+  .recovery-panel > footer span { color: var(--pay-muted); font-size: 8px; }
   @media (max-width: 900px) { .report-types { grid-template-columns: repeat(2, 1fr); } .report-panel { overflow-x: auto; } }
-  @media (max-width: 580px) { .report-types { grid-template-columns: 1fr; } .report-header { align-items: stretch; flex-direction: column; } }
+  @media (max-width: 760px) { .recovery-fields { grid-template-columns: 1fr; } }
+  @media (max-width: 580px) { .report-types { grid-template-columns: 1fr; } .report-header, .recovery-panel > header, .recovery-panel > footer { align-items: stretch; flex-direction: column; } }
 </style>
