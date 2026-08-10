@@ -1,7 +1,27 @@
 ---
-const currentYear = new Date().getFullYear();
----
+import reviewsData from '../data/reviews.json';
 
+const checkoutReviews = reviewsData.reviews.filter((review) => Boolean(review.first_name));
+const ratedReviews = checkoutReviews.filter((review) => Number.isFinite(review.rating));
+const reviewAverage = ratedReviews.reduce((total, review) => total + review.rating, 0) / ratedReviews.length;
+const reviewAverageLabel = reviewAverage.toFixed(1).replace('.', ',');
+const reviewAveragePercent = (reviewAverage / 5) * 100;
+const ratingCounts = ratedReviews.reduce((counts, review) => {
+  counts[review.rating] = (counts[review.rating] || 0) + 1;
+  return counts;
+}, {});
+const ratingFilterValues = Object.keys(ratingCounts).map(Number).sort((a, b) => b - a);
+const ratingDistributionLabel = ratingFilterValues
+  .map((rating) => `${ratingCounts[rating]} × ${rating}★`)
+  .join(' · ');
+const reviewInitials = (name) => name
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0])
+  .join('')
+  .toUpperCase();
+---
 <!doctype html>
 <html lang="fr">
   <head>
@@ -37,25 +57,14 @@ const currentYear = new Date().getFullYear();
           <div class="page-countdown__progress" aria-hidden="true">
             <span id="countdown-progress"></span>
           </div>
-          <span class="page-countdown__note">Après le compteur, ce tarif ne sera plus disponible.</span>
+          <span class="page-countdown__note">Après le compteur, cette offre te sera retirée.</span>
         </div>
 
         <div class="shell hero-grid" id="top">
           <div class="hero-copy">
-            <p class="eyebrow"><span></span> Réservé aux participants de la masterclass</p>
-            <h1>
-              Commence ta transformation
-              <em>aujourd’hui pour 47&nbsp;€.</em>
-            </h1>
-            <p class="hero-lead">
-              Tu n’as pas besoin de décider si tu es capable de tout changer.
-              Tu dois juste faire le premier pas.
-            </p>
-
             <section class="offer-summary" aria-labelledby="offer-summary-title">
               <div class="offer-summary__head">
-                <span>Ce que tu rejoins</span>
-                <h2 id="offer-summary-title">Esprit Subconscient 2.0</h2>
+                <h2 id="offer-summary-title">CE QUE TU OBTIENS</h2>
               </div>
               <div class="offer-summary__visual">
                 <img
@@ -64,29 +73,38 @@ const currentYear = new Date().getFullYear();
                 />
               </div>
               <div class="offer-summary__details">
-                <p><span>✓</span> Un cursus guidé sur 6 mois</p>
-                <p><span>✓</span> 5 modules progressifs</p>
-                <p><span>✓</span> Plus de 36 heures de formation</p>
-                <p><span>✓</span> 15 minutes de pratique par jour</p>
-                <p><span>✓</span> 12 mois d’accès à Morpho</p>
-                <p><span>✓</span> Un bilan personnalisé à J+30</p>
-                <p><span>✓</span> 60 jours d’accompagnement guidé</p>
-                <p><span>✓</span> La communauté Volt</p>
-                <p><span>✓</span> Toutes les mises à jour à vie</p>
+                <p><span>✓</span> 15 minutes par jour pendant 6 mois</p>
+                <p><span>✓</span> Tes premiers changements visibles dès les 14 premiers jours</p>
+                <p><span>✓</span> App Morpho, ton coach IA personnel pendant 12 mois</p>
+                <p><span>✓</span> Ton plan d’action sur mesure dès J+30</p>
+                <p><span>✓</span> La communauté privée Volt, accessible à vie</p>
+                <p><span>✓</span> Toutes les futures mises à jour incluses à vie</p>
+                <p class="offer-summary__result">
+                  <span class="offer-summary__result-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M8 3h8v4.5a4 4 0 0 1-8 0V3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                      <path d="M8 5H5v1.5A3.5 3.5 0 0 0 8.5 10M16 5h3v1.5a3.5 3.5 0 0 1-3.5 3.5M12 11.5V16m-3 4h6m-5-4h4v4h-4v-4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  <span class="offer-summary__result-copy">
+                    Tout ce qu’il te faut pour <strong>devenir qui tu veux</strong> et
+                    <strong class="offer-summary__result-underline">obtenir ce que tu veux</strong>&nbsp;!
+                  </span>
+                </p>
               </div>
             </section>
 
             <button type="button" class="reviews-summary" id="open-reviews" aria-haspopup="dialog">
               <span class="reviews-summary__eyebrow">Avis des participants</span>
               <span class="reviews-summary__main">
-                <span class="reviews-summary__score">4,8<small>/5</small></span>
+                <span class="reviews-summary__score">{reviewAverageLabel}<small>/5</small></span>
                 <span class="reviews-summary__rating">
-                  <span class="star-meter" aria-label="Note moyenne : 4,8 sur 5">
+                  <span class="star-meter" aria-label={`Note moyenne : ${reviewAverageLabel} sur 5`}>
                     <span aria-hidden="true">★★★★★</span>
-                    <span aria-hidden="true">★★★★★</span>
+                    <span aria-hidden="true" style={`width: ${reviewAveragePercent}%`}>★★★★★</span>
                   </span>
-                  <strong>61 avis clients</strong>
-                  <small>48 avis 5 étoiles · 13 avis 4 étoiles</small>
+                  <strong>{checkoutReviews.length} avis authentiques</strong>
+                  <small>{ratedReviews.length} avis notés · {checkoutReviews.length - ratedReviews.length} témoignages sans note</small>
                 </span>
               </span>
               <span class="reviews-summary__footer">
@@ -102,13 +120,30 @@ const currentYear = new Date().getFullYear();
 
           <aside class="order-card" aria-labelledby="order-title">
             <div class="order-head">
-              <p class="order-kicker">Ton accès à Esprit Subconscient 2.0</p>
-              <h2 id="order-title">Commence maintenant</h2>
+              <h2 class="order-product" id="order-title">Esprit Subconscient 2.0</h2>
+              <span class="first-payment-discount" aria-label="84 pour cent de réduction sur le premier versement">
+                <strong>−84&nbsp;%</strong>
+                <small>sur le premier versement</small>
+              </span>
+              <div class="order-mobile-countdown" role="timer" aria-label="Temps restant avant le retrait de l’offre">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5"></circle>
+                  <path d="M12 7.5v5l3.5 2"></path>
+                </svg>
+                <span>
+                  <strong id="countdown-mobile-minutes">60</strong>
+                  <b aria-hidden="true">:</b>
+                  <strong id="countdown-mobile-seconds">00</strong>
+                </span>
+              </div>
               <div class="today-price">
-                <span class="today-price__amount">47&nbsp;€</span>
+                <span class="today-price__numbers">
+                  <span class="today-price__was">297&nbsp;€</span>
+                  <span class="today-price__amount">47&nbsp;€</span>
+                </span>
                 <span class="today-price__label">aujourd’hui</span>
               </div>
-              <p class="access-line"><span></span> Accès envoyé immédiatement après validation</p>
+              <p class="order-essential">Tu as 14 jours pour te faire ton propre avis.</p>
             </div>
 
             <form class="order-form" id="checkout-form" data-stripe-checkout>
@@ -126,7 +161,11 @@ const currentYear = new Date().getFullYear();
               <div class="payment-preview" aria-label="Paiement sécurisé par Stripe">
                 <div class="payment-preview__head">
                   <span>Paiement</span>
-                  <span class="cards">VISA&nbsp;&nbsp; ●● &nbsp;&nbsp;Pay</span>
+                  <span class="cards" aria-label="Visa, Mastercard et Apple Pay">
+                    <span class="card-brand card-brand--visa" aria-hidden="true">VISA</span>
+                    <span class="card-brand card-brand--mastercard" aria-hidden="true"><i></i><i></i></span>
+                    <span class="card-brand card-brand--apple" aria-hidden="true">Pay</span>
+                  </span>
                 </div>
                 <div class="payment-loading" id="payment-loading"><span></span>Connexion sécurisée à Stripe…</div>
                 <div id="stripe-payment-element" data-stripe-payment-element hidden></div>
@@ -137,28 +176,37 @@ const currentYear = new Date().getFullYear();
               <section class="schedule" aria-labelledby="schedule-title">
                 <div class="schedule-title-row">
                   <h3 id="schedule-title">Ton échéancier complet</h3>
-                  <span>Fixe et sans surprise</span>
+                  <span>Sans intérêts ni frais</span>
                 </div>
                 <div class="schedule-row schedule-row--active">
-                  <div><span class="timeline-dot"></span><strong>Aujourd’hui</strong></div>
+                  <div>
+                    <span class="timeline-dot"></span>
+                    <span><strong>Aujourd’hui</strong><small>Acompte</small></span>
+                  </div>
                   <strong>47&nbsp;€</strong>
                 </div>
                 <div class="schedule-row">
-                  <div><span class="timeline-dot"></span><span>Dans 14 jours, le <b id="next-date">21 août 2026</b></span></div>
-                  <strong>150&nbsp;€</strong>
-                </div>
-                <div class="schedule-row">
-                  <div><span class="timeline-dot"></span><span>Puis 11 mensualités</span></div>
-                  <strong>197&nbsp;€ / mois</strong>
+                  <div>
+                    <span class="timeline-dot"></span>
+                    <span>
+                      <strong>Ensuite, 4 échéances</strong>
+                      <small class="schedule-dates">
+                        <b id="installment-date-14">23/08/2026</b> ·
+                        <b id="installment-date-30">08/09/2026</b> ·
+                        <b id="installment-date-60">08/10/2026</b> ·
+                        <b id="installment-date-89">06/11/2026</b>
+                      </small>
+                    </span>
+                  </div>
+                  <strong>4 × 297&nbsp;€</strong>
                 </div>
                 <div class="schedule-total">
-                  <span>Prix total de la commande</span>
-                  <strong>2&nbsp;364&nbsp;€</strong>
+                  <span>Prix total, tout compris</span>
+                  <strong>1&nbsp;235&nbsp;€</strong>
                 </div>
-                <p class="schedule-explainer">
-                  Les 47&nbsp;€ et 150&nbsp;€ constituent ensemble la première échéance de 197&nbsp;€.
-                  Il ne s’agit pas d’un abonnement résiliable chaque mois&nbsp;: les mensualités
-                  échelonnent le paiement d’un achat unique. Tes droits légaux éventuels restent applicables.
+                <p class="schedule-cancel-window">
+                  <span aria-hidden="true">✓</span>
+                  Annulation sans frais pendant les 14 premiers jours
                 </p>
               </section>
 
@@ -166,35 +214,48 @@ const currentYear = new Date().getFullYear();
                 <input type="checkbox" id="commitment" required />
                 <span class="custom-checkbox" aria-hidden="true">✓</span>
                 <span>
-                  J’accepte les CGV.
+                  J’accepte les <a href="/conditions-utilisation/" target="_blank" rel="noopener">CGV</a>
+                  et l’échéancier clairement indiqué ci-dessus.
                 </span>
               </label>
 
               <button type="submit" class="buy-button" id="buy-button" disabled>
-                <span>Payer 47&nbsp;€ et commencer maintenant</span>
+                <span class="buy-button__label">
+                  <strong>Je commence aujourd’hui pour 47&nbsp;€</strong>
+                  <small>Commande avec obligation de paiement</small>
+                </span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
               </button>
-              <p class="payment-obligation">Commande avec obligation de paiement</p>
 
               <div class="trust-row">
-                <span>🔒 Paiement chiffré</span>
-                <span>Accès immédiat</span>
-                <span>Support humain</span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"></path>
+                  </svg>
+                  Paiement chiffré
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M13.5 2 5 13h6l-1 9 9-12h-6.5l1-8Z"></path>
+                  </svg>
+                  Accès immédiat
+                </span>
+                <span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 1-2Zm16 0h-3v6h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-1-2ZM17 19c-1 2-3 2-5 2"></path>
+                  </svg>
+                  Support humain
+                </span>
               </div>
               <p class="legal-note">
-                Tes droits légaux restent applicables dans les conditions prévues par les
-                <a href="/conditions-utilisation/" target="_blank" rel="noopener">CGV</a> et notre
-                <a href="/confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a>.
+                <a href="/confidentialite/" target="_blank" rel="noopener">Politique de confidentialité</a>
               </p>
             </form>
           </aside>
         </div>
       </section>
     </main>
-
-    <footer>
-      <p>© {currentYear} Sonny Court — Paiement sécurisé par Stripe.</p>
-    </footer>
 
     <dialog class="reviews-dialog" id="reviews-dialog" aria-labelledby="reviews-dialog-title">
       <div class="reviews-dialog__top">
@@ -206,134 +267,52 @@ const currentYear = new Date().getFullYear();
       </div>
 
       <div class="reviews-dialog__scorebar">
-        <strong>4,8<small>/5</small></strong>
+        <strong>{reviewAverageLabel}<small>/5</small></strong>
         <div>
-          <span class="star-meter" aria-label="Note moyenne : 4,8 sur 5">
+          <span class="star-meter" aria-label={`Note moyenne : ${reviewAverageLabel} sur 5`}>
             <span aria-hidden="true">★★★★★</span>
-            <span aria-hidden="true">★★★★★</span>
+            <span aria-hidden="true" style={`width: ${reviewAveragePercent}%`}>★★★★★</span>
           </span>
-          <p>61 avis clients</p>
+          <p>{ratedReviews.length} avis notés sur {checkoutReviews.length} témoignages</p>
         </div>
-        <span>48 × 5★<br />13 × 4★</span>
+        <span>{ratingDistributionLabel}</span>
       </div>
 
       <div class="reviews-dialog__filters" aria-label="Filtrer les témoignages">
         <button type="button" class="is-active" data-review-filter="all">Tous</button>
-        <button type="button" data-review-filter="5">5 étoiles</button>
-        <button type="button" data-review-filter="4">4 étoiles</button>
+        {ratingFilterValues.map((rating) => (
+          <button type="button" data-review-filter={rating}>{rating} étoile{rating > 1 ? 's' : ''}</button>
+        ))}
+        <button type="button" data-review-filter="unrated">Sans note</button>
       </div>
 
       <div class="reviews-list">
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/7a97c502-a682-47a4-aec4-2aa2ac563908/malika-modified.png" alt="Malika A." />
-            <span><strong>Malika A.</strong><small>Cliente vérifiée</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Ce que j’ai observé après avoir suivi la formation Manifest, c’est l’impact sur ma psyché, ma manière de penser, de voir les événements qui arrivent. Mon compagnon m’a clairement dit qu’il m’a vue changer au cours de ces derniers mois. […] J’ai pris la décision de quitter mon travail […] J’ai participé au concours et j’ai été sélectionnée ! »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/e825f3b3-c3b4-49a5-9b69-7c2213b33a11/Melyssa.jpg" alt="Melyssa B." />
-            <span><strong>Melyssa B.</strong><small>Cliente vérifiée</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« J’ai vu des changements dans ma vie dès la première semaine ! Tant sur mon bien-être que autour de moi. Je pense plus positivement, j’ai reçu des compliments inattendus… Lorsque des pensées ou sentiments négatifs légers font surface, ça me prend moins de temps à virer au positif en pensée et en sentiment. Je me sens plus calme. »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">CO</span>
-            <span><strong>Cyril O.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Je viens de finir la formation et je dois dire que ça a été une expérience incroyable. La formation est bien structurée et très accessible. Chaque module est rempli de conseils concrets et d’exercices pratiques qui m’ont vraiment aidé à changer ma façon de penser et à éliminer les blocages qui m’empêchaient d’avancer. En seulement 21 jours, j’ai pu constater de réels changements dans ma vie quotidienne et dans ma façon d’aborder les défis. »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">PS</span>
-            <span><strong>Patrick S.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Je recommande fortement cette formation. Après 21 jours, je ressens les effets bénéfiques et remarque un changement en moi. Je me sens dans l’action et suis plus ancré. Je peux affirmer qu’il y a un avant et un après cette formation ⚡😊 Merci ! »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/34e2a154-2e18-46d8-b05e-089f008ed3d2/avis-15.png" alt="Francesco P." />
-            <span><strong>Francesco P.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Après le 1er module, je me sens presque complètement transformé. J’ai appris à être heureux sans raison, même en situation chaotique. C’est une des rares formations qui porte ses fruits immédiatement. En plus, le support est très réactif, réponse dans les 24h. »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">HK</span>
-            <span><strong>Hermann K.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« J’ai suivi la formation avec ma copine. Au début, elle m’a conseillé de ne pas l’acheter, et finalement, elle l’a adorée. Ça valait carrément le coup ! Félicitations Sonny pour ce beau travail ! 😘 »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/9e3b800f-8650-4cda-a536-1f4e781b4d5c/4b2.png" alt="Beven B." />
-            <span><strong>Beven B.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« La formation MANIFEST m’a permis de mieux contrôler mes émotions grâce à son aspect pratique et à ses exercices quotidiens pour renforcer la confiance en soi et l’énergie. Les résultats positifs sont impressionnants. Même mon entourage l’a remarqué ! »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">AF</span>
-            <span><strong>Aurélien F.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Ça ne peut être que bénéfique de connaître les capacités de notre subconscient ! D’ailleurs, j’ai ressenti des changements immédiatement après avoir mis en pratique le contenu de la leçon sur les affirmations positives. Merci ! »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">PL</span>
-            <span><strong>Peter L.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Je n’ai jamais connu, vécu, lu ou perçu une formation d’une telle ampleur, avec un tel impact. Tout est expliqué calmement, une formation faite avec le cœur et sans tabous ni secrets. »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="5">
-          <div class="review-item__head">
-            <span class="review-item__initials">GS</span>
-            <span><strong>Greg S.</strong><small>Client vérifié</small></span>
-            <b aria-label="5 étoiles">★★★★★</b>
-          </div>
-          <p>« Le contenu est juste DINGUE. Un vrai game changer ! La magie se trouve à présent dans mes actions et la rigueur devant moi. Je te suis depuis 2018... et c’est top d’avoir du contenu de qualité comme ça sur la durée. Merci encore ! »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="4">
-          <div class="review-item__head">
-            <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/b94c69cf-4317-41b0-9637-3f8b8b3d6f52/1-1-.png" alt="Daniel L." />
-            <span><strong>Daniel L.</strong><small>Client vérifié</small></span>
-            <b aria-label="4 étoiles">★★★★<i>★</i></b>
-          </div>
-          <p>« Je suis inscrit à la formation depuis environ 2 semaines, et je ressens déjà un profond bien-être. Elle m’aide à travailler sur moi-même en profondeur, que ce soit en matière d’abondance, d’amour ou de confiance en soi. »</p>
-        </article>
-
-        <article class="review-item" data-review-rating="4">
-          <div class="review-item__head">
-            <span class="review-item__initials">HT</span>
-            <span><strong>Hassinat T.</strong><small>Cliente vérifiée</small></span>
-            <b aria-label="4 étoiles">★★★★<i>★</i></b>
-          </div>
-          <p>« Je trouve cette formation excellente car elle est complète, avec de la théorie et de la pratique. Depuis que je la suis, je suis beaucoup plus consciente de mes états. »</p>
-        </article>
+        {checkoutReviews.map((review) => (
+          <article class="review-item" data-review-rating={review.rating ?? 'unrated'}>
+            <div class="review-item__head">
+              {review.source_photo_url ? (
+                <img src={review.source_photo_url} alt={review.first_name} loading="lazy" decoding="async" />
+              ) : (
+                <span class="review-item__initials">{reviewInitials(review.first_name)}</span>
+              )}
+              <span>
+                <strong>{review.first_name}</strong>
+                <small>{review.country || 'Participant vérifié'}</small>
+              </span>
+              {review.rating ? (
+                <b aria-label={`${review.rating} étoiles`}>
+                  {'★'.repeat(review.rating)}<i>{'★'.repeat(5 - review.rating)}</i>
+                </b>
+              ) : (
+                <b class="review-item__unrated">Témoignage</b>
+              )}
+            </div>
+            <p>« {review.review} »</p>
+          </article>
+        ))}
       </div>
 
-      <p class="reviews-dialog__disclosure">Avis recueillis auprès de participants aux programmes désormais réunis dans Esprit Subconscient 2.0.</p>
+      <p class="reviews-dialog__disclosure">Avis authentiques recueillis auprès de participants à des programmes désormais inclus dans Esprit Subconscient 2.0.</p>
     </dialog>
 
     <dialog id="prototype-dialog">
@@ -360,10 +339,12 @@ const currentYear = new Date().getFullYear();
       const stripeElement = document.querySelector('#stripe-payment-element');
       const paymentLoading = document.querySelector('#payment-loading');
       const previewPayment = document.querySelector('#payment-preview-local');
-      const nextDate = document.querySelector('#next-date');
+      const installmentDates = [14, 30, 60, 89];
       const countdownHours = document.querySelector('#countdown-hours');
       const countdownMinutes = document.querySelector('#countdown-minutes');
       const countdownSeconds = document.querySelector('#countdown-seconds');
+      const countdownMobileMinutes = document.querySelector('#countdown-mobile-minutes');
+      const countdownMobileSeconds = document.querySelector('#countdown-mobile-seconds');
       const countdownProgress = document.querySelector('#countdown-progress');
       const params = new URLSearchParams(window.location.search);
       const token = params.get('t') || '';
@@ -383,7 +364,7 @@ const currentYear = new Date().getFullYear();
             page_path: '/commencer/',
             route: '/commencer/',
             plan: 'advanced',
-            payment_mode: '12x',
+            payment_mode: 'deposit_47_then_4x297',
             ...meta,
           },
         };
@@ -424,15 +405,19 @@ const currentYear = new Date().getFullYear();
         track('checkout_engaged', null, { visit_id: checkoutNonce() });
       }
 
-      const date = new Date();
-      date.setDate(date.getDate() + 14);
-      if (nextDate) {
-        nextDate.textContent = new Intl.DateTimeFormat('fr-FR', {
-          day: 'numeric',
-          month: 'long',
+      const checkoutDate = new Date();
+      const installmentDateFormatter = new Intl.DateTimeFormat('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
           year: 'numeric',
-        }).format(date);
-      }
+      });
+      installmentDates.forEach((days) => {
+        const node = document.querySelector(`#installment-date-${days}`);
+        if (!node) return;
+        const dueDate = new Date(checkoutDate);
+        dueDate.setDate(dueDate.getDate() + days);
+        node.textContent = installmentDateFormatter.format(dueDate);
+      });
 
       const countdownEnd = Date.now() + (60 * 60 * 1000);
       const updateCountdown = () => {
@@ -445,6 +430,8 @@ const currentYear = new Date().getFullYear();
         if (countdownHours) countdownHours.textContent = String(hours).padStart(2, '0');
         if (countdownMinutes) countdownMinutes.textContent = String(minutes).padStart(2, '0');
         if (countdownSeconds) countdownSeconds.textContent = String(seconds).padStart(2, '0');
+        if (countdownMobileMinutes) countdownMobileMinutes.textContent = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        if (countdownMobileSeconds) countdownMobileSeconds.textContent = String(seconds).padStart(2, '0');
         if (countdownProgress) countdownProgress.style.transform = `scaleX(${remaining / (60 * 60 * 1000)})`;
       };
 
@@ -594,20 +581,22 @@ const currentYear = new Date().getFullYear();
   }
 
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { background: #061225; scroll-behavior: smooth; }
   body {
     margin: 0;
     color: var(--ink);
-    background: #f6f8fc;
+    background: #061225;
     font-family: 'Inter Local', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+
   button, input { font: inherit; }
 
   .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
   .hero {
     position: relative;
-    min-height: 920px;
+    min-height: 100vh;
+    min-height: 100svh;
     overflow: hidden;
     color: #fff;
     background:
@@ -630,7 +619,7 @@ const currentYear = new Date().getFullYear();
 
   .page-countdown { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 460px; max-width: calc(100% - 40px); margin-top: 24px; padding: 0; color: #fff; }
   .page-countdown::before, .page-countdown::after { display: none; }
-  .page-countdown__note { color: rgba(226,232,240,.67); font-size: .68rem; font-weight: 500; line-height: 1.4; text-align: center; }
+  .page-countdown__note { color: rgba(241,245,249,.82); font-size: .73rem; font-weight: 650; line-height: 1.4; text-align: center; }
   .page-countdown__digits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
   .page-countdown__digits > div { display: grid; place-items: center; min-width: 0; padding: 9px 8px; color: #fff; background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); border: 1px solid rgba(255,255,255,.15); border-radius: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 10px 28px rgba(0,0,0,.08); backdrop-filter: blur(16px); }
   .page-countdown__digits > div:not(:first-of-type)::before { display: none; }
@@ -645,27 +634,28 @@ const currentYear = new Date().getFullYear();
     position: relative;
     z-index: 2;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 500px;
+    grid-template-columns: 500px minmax(0, 1fr);
     gap: clamp(52px, 7vw, 98px);
     align-items: start;
     padding: 30px 0 68px;
   }
-  .hero-copy { padding-top: 25px; }
-  .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 20px; color: rgba(241,245,249,.77); font-size: 10px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
-  .eyebrow span { width: 26px; height: 1px; background: currentColor; box-shadow: 0 0 10px currentColor; }
-  h1 { max-width: 640px; margin: 0; font-size: clamp(42px, 4.6vw, 64px); line-height: 1; letter-spacing: -.052em; }
-  h1 em { display: block; margin-top: 9px; color: #f1eee8; font-family: Georgia, 'Times New Roman', serif; font-weight: 500; text-shadow: 0 12px 38px rgba(255,255,255,.08); }
-  .hero-lead { max-width: 600px; margin: 24px 0 26px; color: rgba(226,232,240,.78); font-size: 17px; line-height: 1.58; }
+  .hero-copy { grid-column: 2; grid-row: 1; padding-top: 0; }
 
   .offer-summary { max-width: 570px; padding: 21px 22px; color: #f8fafc; background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); border: 1px solid rgba(255,255,255,.15); border-radius: 17px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 18px 40px rgba(0,0,0,.1); backdrop-filter: blur(16px); }
   .offer-summary__head > span { display: block; margin-bottom: 6px; color: rgba(226,232,240,.63); font-size: 9px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
   .offer-summary h2 { margin: 0; color: #fff; font-size: 19px; line-height: 1.2; letter-spacing: -.025em; }
-  .offer-summary__visual { position: relative; height: 168px; margin: 18px -7px 0; overflow: hidden; background: #07182f; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 16px 34px rgba(0,0,0,.16); }
+  .offer-summary__visual { position: relative; height: auto; aspect-ratio: 16 / 9; margin: 18px -7px 0; overflow: hidden; background: #07182f; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 16px 34px rgba(0,0,0,.16); }
   .offer-summary__visual::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(4,16,34,.2), transparent 42%); }
   .offer-summary__visual img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 48%; }
-  .offer-summary__details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 16px; margin-top: 17px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); }
+  .offer-summary__details { display: grid; grid-template-columns: 1fr; gap: 9px; margin-top: 17px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); }
   .offer-summary__details p { display: flex; gap: 9px; margin: 0; color: rgba(226,232,240,.78); font-size: 11.5px; line-height: 1.45; }
   .offer-summary__details span { flex: 0 0 auto; color: #fff; font-weight: 900; }
+  .offer-summary__details .offer-summary__result { align-items: center; gap: 12px; margin-top: 5px; padding: 13px 14px; color: #f8fafc; background: linear-gradient(135deg, rgba(14,47,94,.96), rgba(20,79,142,.72)); border: 1px solid rgba(111,170,235,.34); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 24px rgba(1,10,25,.18); font-size: 12.5px; font-weight: 500; }
+  .offer-summary__details .offer-summary__result-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; color: #f8c85f; background: rgba(4,20,45,.48); border: 1px solid rgba(248,200,95,.3); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
+  .offer-summary__result-icon svg { width: 21px; height: 21px; }
+  .offer-summary__details .offer-summary__result-copy { flex: 1 1 auto; min-width: 0; color: #f8fafc; font-weight: 500; line-height: 1.4; overflow-wrap: break-word; }
+  .offer-summary__result-copy strong { color: inherit; font-weight: 850; }
+  .offer-summary__result-copy .offer-summary__result-underline { text-decoration: underline; text-decoration-color: #f8c85f; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 
   .reviews-summary {
     position: relative;
@@ -706,15 +696,19 @@ const currentYear = new Date().getFullYear();
   .reviews-summary__avatars { display: flex; padding-left: 8px; }
   .reviews-summary__avatars img { width: 29px; height: 29px; margin-left: -8px; object-fit: cover; background: #dbeafe; border: 2px solid #0d2342; border-radius: 50%; }
 
-  .order-card { position: sticky; top: 24px; overflow: hidden; color: var(--ink); background: #fff; border: 1px solid rgba(150,200,255,.4); border-radius: 24px; box-shadow: 0 35px 100px rgba(0,0,0,.34), 0 0 0 6px rgba(83,158,255,.035); }
-  .order-head { padding: 27px 30px 25px; color: #fff; background: linear-gradient(135deg, #0a2f66, #0b5ac7); }
-  .order-kicker { margin: 0 0 6px; color: #b9dcff; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-  .order-head h2 { margin: 0; font-size: 28px; letter-spacing: -.035em; }
-  .today-price { display: flex; align-items: baseline; gap: 10px; margin-top: 17px; }
+  .order-card { position: sticky; top: 24px; grid-column: 1; grid-row: 1; overflow: hidden; color: var(--ink); background: #fff; border: 1px solid rgba(150,200,255,.4); border-radius: 24px; box-shadow: 0 35px 100px rgba(0,0,0,.34), 0 0 0 6px rgba(83,158,255,.035); }
+  .order-head { position: relative; padding: 24px 30px 23px; color: #fff; background: linear-gradient(135deg, #0a2f66, #0b5ac7); }
+  .order-product { margin: 0; color: #c4e1ff; font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+  .first-payment-discount { position: absolute; top: 22px; right: 24px; display: flex; flex-direction: column; align-items: center; min-width: 112px; padding: 8px 10px 7px; color: #fff; background: linear-gradient(145deg, #ef4444, #b91c1c); border: 1px solid rgba(255,255,255,.42); border-radius: 13px; box-shadow: 0 9px 22px rgba(93,8,15,.32), inset 0 1px 0 rgba(255,255,255,.25); transform: rotate(1.5deg); }
+  .first-payment-discount strong { font-size: 21px; line-height: 1; font-weight: 900; letter-spacing: -.04em; }
+  .first-payment-discount small { margin-top: 4px; font-size: 7px; line-height: 1; font-weight: 850; letter-spacing: .035em; text-transform: uppercase; }
+  .order-mobile-countdown { display: none; }
+  .today-price { display: flex; align-items: flex-end; gap: 10px; margin-top: 11px; }
+  .today-price__numbers { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .today-price__was { color: rgba(215,234,255,.72); font-size: 27px; line-height: 1; font-weight: 800; letter-spacing: -.04em; text-decoration: line-through; text-decoration-thickness: 2.5px; }
   .today-price__amount { font-size: 54px; line-height: .95; font-weight: 900; letter-spacing: -.06em; }
-  .today-price__label { color: #b8d7ff; font-size: 14px; font-weight: 700; }
-  .access-line { display: flex; align-items: center; gap: 8px; margin: 15px 0 0; color: #d6e9ff; font-size: 11px; font-weight: 650; }
-  .access-line span { width: 7px; height: 7px; background: #62f2b9; border-radius: 50%; box-shadow: 0 0 0 4px rgba(98,242,185,.15); }
+  .today-price__label { margin-bottom: 4px; color: #b8d7ff; font-size: 14px; font-weight: 700; }
+  .order-essential { margin: 11px 0 0; color: #d7eaff; font-size: 10.5px; font-weight: 700; }
   .order-form { padding: 25px 28px 27px; }
   .contact-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 10px; }
   .contact-grid label > span { display: block; margin: 0 0 7px 2px; color: #4c5870; font-size: 11px; font-weight: 800; }
@@ -723,7 +717,14 @@ const currentYear = new Date().getFullYear();
 
   .payment-preview { margin-top: 14px; padding: 14px; background: #f7f9fd; border: 1px solid #e1e6ef; border-radius: 12px; }
   .payment-preview__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 11px; color: #445169; font-size: 11px; font-weight: 800; }
-  .cards { color: #17223a; font-size: 10px; letter-spacing: .03em; }
+  .cards { display: inline-flex; align-items: center; gap: 7px; min-height: 14px; }
+  .card-brand { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .card-brand--visa { color: #1434cb; font-size: 10px; font-weight: 950; font-style: italic; letter-spacing: -.06em; transform: skewX(-6deg); }
+  .card-brand--mastercard { position: relative; width: 24px; height: 14px; }
+  .card-brand--mastercard i { position: absolute; top: 1px; width: 13px; height: 13px; border-radius: 50%; }
+  .card-brand--mastercard i:first-child { left: 1px; background: #eb001b; }
+  .card-brand--mastercard i:last-child { right: 1px; background: #f79e1b; mix-blend-mode: multiply; }
+  .card-brand--apple { color: #111827; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: -.045em; }
   .payment-loading { display:flex; align-items:center; justify-content:center; gap:9px; min-height:74px; color:#788397; font-size:10px; }
   .payment-loading[hidden], [data-stripe-payment-element][hidden], #payment-preview-local[hidden] { display:none!important; }
   .payment-loading span { width:16px; height:16px; border:2px solid #d9e3f1; border-top-color:#126de0; border-radius:50%; animation:spin .7s linear infinite; }
@@ -737,13 +738,29 @@ const currentYear = new Date().getFullYear();
   .schedule { margin-top: 16px; padding: 17px; background: #f7faff; border: 1px solid #dbe8f8; border-radius: 13px; }
   .schedule-title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #dde7f3; }
   .schedule-title-row h3 { margin: 0; font-size: 13px; letter-spacing: -.01em; }
-  .schedule-title-row > span { color: var(--green); font-size: 9px; font-weight: 850; text-transform: uppercase; }
+  .schedule-title-row > span { color: var(--blue); font-size: 9px; font-weight: 850; text-transform: uppercase; }
   .schedule-row { position: relative; display: flex; justify-content: space-between; gap: 14px; align-items: center; min-height: 39px; color: #4e5c73; border-bottom: 1px solid #e6ebf3; font-size: 11px; }
-  .schedule-row > div { display: flex; align-items: center; gap: 8px; }
+  .schedule-row > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .schedule-row > div > span:last-child { min-width: 0; }
+  .schedule-row small { display: block; margin-top: 2px; color: #8a96a8; font-size: 8px; font-weight: 650; }
   .schedule-row > strong { flex: 0 0 auto; color: #17243b; font-size: 11px; }
-  .schedule-row--active { color: #064fa9; }
+  .schedule-row--active {
+    min-height: 54px;
+    margin: 7px -8px 5px;
+    padding: 2px 10px;
+    color: #064faf;
+    background: linear-gradient(135deg, #dcecff, #eef6ff);
+    border: 1px solid #a9ceff;
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 6px 15px rgba(22,112,232,.1);
+  }
+  .schedule-row--active > div strong { font-size: 13px; font-weight: 850; }
+  .schedule-row--active > strong { color: #073f8d; font-size: 14px; font-weight: 850; }
+  .schedule-row--active small { margin-top: 3px; color: #617fa5; font-size: 9px; }
   .timeline-dot { display: block; width: 7px; height: 7px; background: #9db7d7; border: 2px solid #edf4fc; border-radius: 50%; box-shadow: 0 0 0 1px #a7bed9; }
   .schedule-row--active .timeline-dot { background: #1670e8; box-shadow: 0 0 0 1px #1670e8, 0 0 0 4px rgba(22,112,232,.1); }
+  .schedule-cancel-window { display: flex; align-items: center; gap: 6px; margin: 7px 0 1px; padding: 7px 9px; color: #08745a; background: rgba(16,185,129,.075); border: 1px solid rgba(16,185,129,.2); border-radius: 8px; font-size: 9.5px; line-height: 1.25; font-weight: 800; }
+  .schedule-cancel-window span { display: grid; flex: 0 0 auto; width: 15px; height: 15px; place-items: center; color: #fff; background: #10a77b; border-radius: 50%; font-size: 9px; }
   .schedule-total { display: flex; justify-content: space-between; align-items: center; padding: 13px 0 4px; }
   .schedule-total span { color: #8b95a6; font-size: 9px; font-weight: 650; }
   .schedule-total strong { color: #929baa; font-size: 11px; font-weight: 700; }
@@ -756,17 +773,20 @@ const currentYear = new Date().getFullYear();
   .consent input:checked + .custom-checkbox { color: #fff; background: #126de0; border-color: #126de0; }
   .consent > span:last-child { color: #445169; font-size: 10px; line-height: 1.48; }
   .consent strong { color: #111e34; }
+  .consent a { color: #145fbf; font-weight: 750; text-underline-offset: 2px; }
 
-  .buy-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 57px; padding: 12px 17px; color: #fff; background: linear-gradient(135deg, #0e72ef, #0b55c6); border: 0; border-radius: 11px; box-shadow: 0 12px 24px rgba(15,99,221,.28); cursor: pointer; font-size: 13px; font-weight: 900; letter-spacing: .015em; text-transform: uppercase; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+  .buy-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; padding: 13px 17px; color: #fff; background: linear-gradient(135deg, #1681ff, #074dbd); border: 1px solid rgba(7,75,183,.18); border-radius: 11px; box-shadow: 0 15px 30px rgba(9,83,199,.34), inset 0 1px 0 rgba(255,255,255,.22); cursor: pointer; font-size: 13.5px; font-weight: 900; letter-spacing: .015em; text-transform: uppercase; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
   .buy-button:hover { transform: translateY(-2px); box-shadow: 0 16px 28px rgba(15,99,221,.34); filter: brightness(1.04); }
-  .buy-button:disabled { opacity:.55; cursor:wait; transform:none; box-shadow:0 8px 18px rgba(15,99,221,.16); }
+  .buy-button:disabled { opacity:.82; cursor:wait; transform:none; box-shadow:0 12px 25px rgba(15,99,221,.25); }
+  .buy-button__label { display: grid; gap: 3px; text-align: center; }
+  .buy-button__label strong { font: inherit; }
+  .buy-button__label small { font-size: 8px; font-weight: 650; letter-spacing: .045em; opacity: .78; }
   .buy-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; }
-  .payment-obligation { margin: 8px 0 0; color: #5f6b80; text-align: center; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .055em; }
-  .trust-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 15px; margin-top: 16px; color: #617086; font-size: 9px; font-weight: 700; }
+  .trust-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px 18px; margin-top: 17px; color: #2767ad; font-size: 11px; font-weight: 750; }
+  .trust-row span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .trust-row svg { width: 16px; height: 16px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .legal-note { margin: 14px 0 0; color: #8791a2; text-align: center; font-size: 8.5px; line-height: 1.5; }
   .legal-note a { color:#4d6f9f; }
-
-  footer { padding: 26px 20px; color: #929baa; background: #050d1a; text-align: center; font-size: 10px; }
 
   dialog { width: min(480px, calc(100% - 34px)); padding: 35px; color: var(--ink); background: #fff; border: 0; border-radius: 20px; box-shadow: 0 30px 100px rgba(0,0,0,.4); text-align: center; }
   dialog::backdrop { background: rgba(1,8,20,.72); backdrop-filter: blur(5px); }
@@ -800,7 +820,8 @@ const currentYear = new Date().getFullYear();
   .reviews-dialog__scorebar .star-meter { color: #dfe4eb; }
   .reviews-dialog__scorebar > div p { margin: 5px 0 0; color: #6d788a; font-size: 9px; }
   .reviews-dialog__scorebar > span { color: #7b8698; font-size: 8.5px; font-weight: 750; line-height: 1.55; text-align: right; }
-  .reviews-dialog__filters { position: sticky; z-index: 2; top: 85px; display: flex; gap: 7px; padding: 13px 27px; background: rgba(247,249,252,.94); border-bottom: 1px solid #e2e7ef; backdrop-filter: blur(12px); }
+  .reviews-dialog__filters { position: sticky; z-index: 2; top: 85px; display: flex; gap: 7px; padding: 13px 27px; overflow-x: auto; background: rgba(247,249,252,.94); border-bottom: 1px solid #e2e7ef; backdrop-filter: blur(12px); scrollbar-width: none; }
+  .reviews-dialog__filters::-webkit-scrollbar { display: none; }
   .reviews-dialog .reviews-dialog__filters button { padding: 8px 12px; color: #526076; background: #fff; border: 1px solid #dfe5ee; border-radius: 999px; font-size: 9px; }
   .reviews-dialog .reviews-dialog__filters button.is-active { color: #fff; background: #0c4e9e; border-color: #0c4e9e; box-shadow: 0 5px 14px rgba(12,78,158,.17); }
   .reviews-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; max-height: calc(100dvh - 300px); padding: 17px 20px 21px; overflow-y: auto; overscroll-behavior: contain; }
@@ -813,24 +834,27 @@ const currentYear = new Date().getFullYear();
   .review-item__head small { color: #8893a4; font-size: 7.5px; }
   .review-item__head b { color: #d6a93f; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
   .review-item__head b i { color: #dfe4eb; font-style: normal; }
+  .review-item__head .review-item__unrated { padding: 5px 7px; color: #66758b; background: #f2f5f8; border: 1px solid #e2e7ee; border-radius: 999px; font-size: 7px; font-weight: 800; letter-spacing: 0; }
   .reviews-dialog .review-item p { margin: 13px 0 0; color: #4e5d72; font-family: Georgia, 'Times New Roman', serif; font-size: 10.5px; line-height: 1.62; }
   .reviews-dialog .reviews-dialog__disclosure { margin: 0; padding: 0 24px 17px; color: #8a94a4; font-size: 8px; line-height: 1.45; text-align: center; }
+
+  @media (min-width: 981px) {
+    .page-countdown { margin-top: 42px; }
+    .hero-grid { padding-top: 46px; }
+  }
 
   @media (max-width: 980px) {
     .hero-grid { grid-template-columns: 1fr; gap: 0; max-width: 720px; }
     .hero-copy { display: contents; }
-    .offer-summary { order: 2; width: min(530px, 100%); margin: 28px auto 0; }
-    .order-card { position: static; order: 3; width: min(530px, 100%); margin-inline: auto; }
-    .reviews-summary { order: 4; width: min(530px, 100%); margin: 28px auto 0; }
+    .order-card { position: static; order: 1; grid-column: auto; grid-row: auto; width: min(530px, 100%); margin: 0 auto; }
+    .offer-summary { order: 2; width: min(530px, 100%); margin: 24px auto 0; }
+    .reviews-summary { order: 3; width: min(530px, 100%); margin: 20px auto 0; }
   }
 
   @media (max-width: 640px) {
     .shell { width: min(100% - 26px, 560px); }
     .hero-grid { gap: 0; padding: 22px 0 30px; }
-    .eyebrow { margin-bottom: 15px; font-size: 9px; }
-    h1 { font-size: clamp(39px, 11.7vw, 55px); }
-    .hero-lead { margin: 19px 0 0; font-size: 15px; }
-    .offer-summary { margin-top: 24px; padding: 18px 16px; }
+    .offer-summary { margin-top: 20px; padding: 18px 16px; }
     .offer-summary h2 { font-size: 16px; }
     .offer-summary__details { grid-template-columns: 1fr; gap: 8px; }
     .offer-summary__details p { font-size: 10.5px; }
@@ -839,9 +863,9 @@ const currentYear = new Date().getFullYear();
     .reviews-summary__score { font-size: 39px; }
     .reviews-summary__rating small { white-space: normal; }
     .reviews-summary__footer { margin-top: 15px; padding-top: 13px; }
-    .order-card { order: 3; margin-top: 20px; border-radius: 18px; }
+    .order-card { order: 1; margin-top: 0; border-radius: 18px; }
     .order-head { padding: 23px 21px 22px; }
-    .offer-summary__visual { height: 150px; margin-inline: -2px; }
+    .offer-summary__visual { height: auto; margin-inline: -2px; }
     .reviews-dialog { width: calc(100% - 18px); max-height: calc(100dvh - 18px); border-radius: 19px; }
     .reviews-dialog__top { padding: 20px 18px 18px; }
     .reviews-dialog .reviews-dialog__top h2 { max-width: 260px; font-size: 21px; }
@@ -850,13 +874,36 @@ const currentYear = new Date().getFullYear();
     .reviews-dialog__filters { top: 76px; padding: 11px 18px; }
     .reviews-list { grid-template-columns: 1fr; max-height: calc(100dvh - 270px); padding: 13px 12px 17px; }
     .review-item { padding: 15px; }
-    .page-countdown { width: min(100% - 26px, 560px); max-width: none; gap: 11px; padding: 0; }
-    .page-countdown__digits { gap: 6px; padding: 0; }
-    .page-countdown__digits > div { padding: 9px 3px; }
-    .page-countdown__digits strong { font-size: clamp(1.2rem, 6.8vw, 1.55rem); }
-    .page-countdown__digits small { font-size: clamp(.46rem, 2.1vw, .6rem); letter-spacing: .5px; }
-    .page-countdown__note { font-size: .68rem; }
-    .order-head h2 { font-size: 24px; }
+    .page-countdown { display: none; }
+    .order-product { font-size: 10px; }
+    .first-payment-discount { top: 18px; right: 17px; min-width: 100px; padding: 7px 8px 6px; }
+    .first-payment-discount strong { font-size: 19px; }
+    .first-payment-discount small { font-size: 6.3px; }
+    .order-mobile-countdown {
+      position: absolute;
+      top: auto;
+      bottom: 17px;
+      right: 17px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 102px;
+      min-height: 38px;
+      padding: 7px 11px;
+      color: #fff;
+      background: linear-gradient(145deg, rgba(5,43,100,.46), rgba(255,255,255,.055));
+      border: 1px solid rgba(199,225,255,.25);
+      border-radius: 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 7px 18px rgba(0,20,60,.14);
+      backdrop-filter: blur(14px);
+    }
+    .order-mobile-countdown > svg { width: 14px; height: 14px; fill: none; stroke: rgba(219,235,255,.76); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .order-mobile-countdown > span { display: flex; align-items: center; justify-content: center; gap: 3px; }
+    .order-mobile-countdown strong { font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+    .order-mobile-countdown b { color: rgba(255,255,255,.62); font-size: 16px; line-height: 1; }
+    .order-essential { max-width: calc(100% - 116px); }
     .today-price__amount { font-size: 48px; }
     .order-form { padding: 19px 16px 22px; }
     .contact-grid { grid-template-columns: 1fr; }
@@ -864,10 +911,10 @@ const currentYear = new Date().getFullYear();
     .schedule-title-row > span { display: none; }
     .schedule-row { font-size: 10px; }
     .schedule-row > strong { font-size: 10px; }
-    .schedule-row b { display: block; }
+    .schedule-dates { white-space: nowrap; font-size: 7.2px !important; letter-spacing: -.02em; }
+    .schedule-row b { display: inline; }
     .buy-button { font-size: 11px; }
     .floating-chip { font-size: 8px; }
-    footer { padding: 19px 20px 22px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
