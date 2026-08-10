@@ -35,6 +35,13 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { ok: true });
   if (req.method !== 'POST') return json(405, { error: 'Méthode non autorisée' });
 
+  const checkoutEnabled = String(process.env.MC2_CHECKOUT_ENABLED || '')
+    .trim()
+    .toLowerCase() === 'true';
+  if (!checkoutEnabled) {
+    return json(503, { error: 'Le paiement MC2 est encore en préparation.' });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const token = cleanMc2Token(body.token);
