@@ -12,6 +12,10 @@ const MAX_REQUESTS_PER_WINDOW = 20;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 const rateBuckets = new Map();
 
+function seoAgentsEnabled() {
+  return process.env.SEO_AGENTS_ENABLED === 'true';
+}
+
 function json(status, body) {
   return new Response(JSON.stringify(body), {
     status,
@@ -97,17 +101,28 @@ export default async (req) => {
     return json(401, { error: 'Connexion administrateur requise', code: 'AUTH_REQUIRED' });
   }
 
+  const enabled = seoAgentsEnabled();
   const apiKey = process.env.OPENAI_API_KEY;
   if (req.method === 'GET') {
-    return json(apiKey ? 200 : 503, {
-      ready: Boolean(apiKey),
+    return json(enabled && !apiKey ? 503 : 200, {
+      ready: enabled && Boolean(apiKey),
+      paused: !enabled,
       model: SEO_MODEL,
       agents: publicAgentProfiles(),
       publicationEnabled: false,
-      error: apiKey ? null : 'Clé OpenAI manquante côté serveur',
+      error: !enabled
+        ? 'Division SEO en pause — aucun appel OpenAI autorisé'
+        : apiKey ? null : 'Clé OpenAI manquante côté serveur',
     });
   }
 
+  if (!enabled) {
+    return json(423, {
+      error: 'Division SEO en pause — aucun crédit OpenAI ne peut être dépensé',
+      code: 'SEO_AGENTS_PAUSED',
+      paused: true,
+    });
+  }
   if (!apiKey) {
     return json(503, { error: 'OpenAI n’est pas configuré côté serveur', code: 'OPENAI_NOT_CONFIGURED' });
   }
