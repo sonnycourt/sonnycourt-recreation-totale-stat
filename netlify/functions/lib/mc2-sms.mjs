@@ -94,14 +94,24 @@ function sessionUrl(token) {
   return `${origin}${path.startsWith('/') ? path : `/${path}`}?t=${encodeURIComponent(token)}`;
 }
 
+export function mc2LiveCode(jobId) {
+  return clean(jobId, 80).toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 12);
+}
+
+function liveUrl(jobId, token) {
+  const origin = clean(process.env.MC2_PUBLIC_ORIGIN || 'https://sonnycourt.com', 240).replace(/\/$/, '');
+  const code = mc2LiveCode(jobId);
+  return code ? `${origin}/live/${code}` : sessionUrl(token);
+}
+
 function checkoutUrl(token) {
   const origin = clean(process.env.MC2_PUBLIC_ORIGIN || 'https://sonnycourt.com', 240).replace(/\/$/, '');
   return `${origin}/commencer/?t=${encodeURIComponent(token)}`;
 }
 
-export function mc2SmsMessage(type, token) {
+export function mc2SmsMessage(type, token, options = {}) {
   if (type === 'session_live') {
-    return `On est LIVE. Rejoins la masterclass maintenant : ${sessionUrl(token)}`;
+    return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.jobId, token)}`;
   }
   if (type === 'offer_deadline') {
     return `Plus que 15 min pour commencer a 47 EUR. Apres, l'offre ferme : ${checkoutUrl(token)}`;
@@ -197,7 +207,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
   }
 
-  const message = mc2SmsMessage(job.message_type, job.token);
+  const message = mc2SmsMessage(job.message_type, job.token, { jobId: job.id });
   try {
     const provider = await sendGatewaySms({ phone, message, reference: `mc2-${job.id}` });
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
