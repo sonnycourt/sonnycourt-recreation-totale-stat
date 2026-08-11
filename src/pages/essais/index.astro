@@ -1,0 +1,679 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { availableEssais } from '../../data/essais';
+
+const featuredEssai = availableEssais[0];
+---
+
+<Layout
+  title="Les essais de Sonny Court — Bibliothèque numérique"
+  description="Découvre les essais de Sonny Court : des textes courts et denses à lire en PDF ou EPUB et à écouter en audio."
+  image={featuredEssai.cover}
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <div class="essais-library">
+    <section class="library-hero">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-glow" aria-hidden="true"></div>
+
+      <div class="library-container hero-content">
+        <p class="eyebrow"><span></span> La bibliothèque de Sonny Court</p>
+        <h1>Des idées qui ne cherchent pas à <em>rassurer.</em></h1>
+        <p class="hero-lead">
+          Des essais courts, denses et sans détour pour regarder derrière les récits,
+          comprendre les forces à l’œuvre et penser là où les réponses faciles s’arrêtent.
+        </p>
+        <a class="hero-link" href="#bibliotheque">Explorer la bibliothèque <span aria-hidden="true">↓</span></a>
+      </div>
+
+      <div class="hero-index" aria-hidden="true">
+        <span>COLLECTION</span>
+        <strong>01</strong>
+      </div>
+    </section>
+
+    <section class="library-section" id="bibliotheque">
+      <div class="library-container">
+        <header class="section-heading">
+          <div>
+            <p class="section-label">Éditions numériques</p>
+            <h2>La collection</h2>
+          </div>
+          <p>{availableEssais.length.toString().padStart(2, '0')} essai disponible</p>
+        </header>
+
+        <div class="shelf">
+          {availableEssais.map((essai, index) => (
+            <article class="essay-card">
+              <a class="cover-link" href={`/essai/${essai.slug}/`} aria-label={`Découvrir ${essai.title}`}>
+                <span class="book-number">N° {String(index + 1).padStart(2, '0')}</span>
+                <div class="cover-wrap">
+                  <img src={essai.cover} alt={`Couverture de ${essai.title}`} width="864" height="1296" />
+                  <span class="cover-edge" aria-hidden="true"></span>
+                </div>
+              </a>
+
+              <div class="card-copy">
+                <div class="card-meta">
+                  <span>Nouveauté · {essai.year}</span>
+                  <strong>{essai.price} €</strong>
+                </div>
+                <h3><a href={`/essai/${essai.slug}/`}>{essai.title}</a></h3>
+                <p>{essai.libraryDescription}</p>
+
+                <div class="theme-list" aria-label="Thèmes de l’essai">
+                  {essai.themes.map((theme) => <span>{theme}</span>)}
+                </div>
+
+                <div class="card-footer">
+                  <div class="format-list" aria-label="Formats inclus">
+                    {essai.formats.map((format) => <span>{format.name}</span>)}
+                  </div>
+                  <a class="discover-link" href={`/essai/${essai.slug}/`}>
+                    Découvrir l’essai <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="manifesto-section">
+      <div class="library-container manifesto-grid">
+        <div class="manifesto-title">
+          <p class="section-label">Une autre façon de publier</p>
+          <h2>Une idée.<br />Trois façons de l’absorber.</h2>
+        </div>
+
+        <div class="manifesto-principles">
+          <article>
+            <span>01</span>
+            <div>
+              <h3>Brefs, jamais superficiels</h3>
+              <p>Chaque essai va droit à une idée centrale et la pousse jusqu’à ses conséquences.</p>
+            </div>
+          </article>
+          <article>
+            <span>02</span>
+            <div>
+              <h3>À lire et à écouter</h3>
+              <p>PDF, EPUB et audio sont réunis dans chaque édition pour s’adapter à ton attention.</p>
+            </div>
+          </article>
+          <article>
+            <span>03</span>
+            <div>
+              <h3>Sans morale prête-à-porter</h3>
+              <p>Des textes qui proposent une lucidité, pas une nouvelle doctrine à adopter.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="next-chapter">
+      <div class="library-container next-inner">
+        <p class="section-label">La bibliothèque ne fait que commencer</p>
+        <p class="next-quote">« Je n’écris pas pour fermer une question. J’écris pour qu’elle devienne impossible à ignorer. »</p>
+        <span>— Sonny Court</span>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  :global(body) {
+    background: #f1eee7;
+  }
+
+  :global(main) {
+    overflow: hidden;
+  }
+
+  :global(body:has(.essais-library) footer) {
+    margin-top: 0;
+  }
+
+  .essais-library {
+    --paper: #f1eee7;
+    --paper-deep: #e7e2d9;
+    --ink: #101114;
+    --blue: #0a4fff;
+    --muted: #6e6b66;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  .library-container {
+    width: min(1180px, calc(100% - 64px));
+    margin: 0 auto;
+  }
+
+  .library-hero {
+    min-height: 760px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 150px 0 100px;
+    color: #fff;
+    background: #05070b;
+  }
+
+  .library-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(90deg, rgba(5, 7, 11, 0.08), rgba(5, 7, 11, 0.52)),
+      radial-gradient(circle at 84% 45%, rgba(10, 79, 255, 0.25), transparent 34%);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    opacity: 0.17;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+    background-size: 82px 82px;
+    mask-image: linear-gradient(90deg, #000 0%, transparent 78%);
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: -24%;
+    right: -8%;
+    z-index: -1;
+    width: min(720px, 70vw);
+    aspect-ratio: 1;
+    border: 1px solid rgba(80, 133, 255, 0.2);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 80px rgba(10, 79, 255, 0.025),
+      0 0 0 160px rgba(10, 79, 255, 0.018),
+      inset 0 0 160px rgba(10, 79, 255, 0.12);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .eyebrow,
+  .section-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .eyebrow span {
+    width: 34px;
+    height: 2px;
+    background: var(--blue);
+  }
+
+  .library-hero h1 {
+    max-width: 900px;
+    margin: 34px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(58px, 8.2vw, 112px);
+    font-weight: 400;
+    line-height: 0.91;
+    letter-spacing: -0.065em;
+    text-wrap: balance;
+  }
+
+  .library-hero h1 em {
+    color: #5786ff;
+    font-weight: 400;
+  }
+
+  .hero-lead {
+    max-width: 690px;
+    margin: 38px 0 0;
+    color: rgba(255, 255, 255, 0.64);
+    font-size: clamp(17px, 2vw, 21px);
+    line-height: 1.65;
+    text-wrap: balance;
+  }
+
+  .hero-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 40px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+    transition: gap 0.25s ease, border-color 0.25s ease;
+  }
+
+  .hero-link:hover {
+    gap: 20px;
+    border-color: #fff;
+  }
+
+  .hero-index {
+    position: absolute;
+    right: max(32px, calc((100vw - 1180px) / 2));
+    bottom: 72px;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.28);
+  }
+
+  .hero-index span {
+    padding-bottom: 8px;
+    font-size: 8px;
+    letter-spacing: 0.22em;
+    writing-mode: vertical-rl;
+  }
+
+  .hero-index strong {
+    color: rgba(255, 255, 255, 0.11);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 104px;
+    font-weight: 400;
+    line-height: 0.75;
+  }
+
+  .library-section {
+    padding: 120px 0 140px;
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(16, 17, 20, 0.16);
+  }
+
+  .section-label {
+    color: var(--blue);
+  }
+
+  .section-heading h2,
+  .manifesto-title h2 {
+    margin: 12px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(44px, 6vw, 72px);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.05em;
+  }
+
+  .section-heading > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .shelf {
+    padding-top: 68px;
+  }
+
+  .essay-card {
+    display: grid;
+    grid-template-columns: minmax(290px, 0.7fr) minmax(0, 1.3fr);
+    gap: clamp(50px, 8vw, 112px);
+    align-items: center;
+  }
+
+  .cover-link {
+    position: relative;
+    display: block;
+    text-decoration: none;
+  }
+
+  .book-number {
+    position: absolute;
+    top: -32px;
+    left: 0;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .cover-wrap {
+    position: relative;
+    width: min(100%, 420px);
+    aspect-ratio: 2 / 3;
+    box-shadow: 24px 34px 70px rgba(16, 17, 20, 0.2);
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.45s ease;
+  }
+
+  .cover-wrap img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .cover-edge {
+    position: absolute;
+    top: 1%;
+    right: -9px;
+    bottom: 1%;
+    width: 9px;
+    background: linear-gradient(90deg, #c9c4bc, #f8f5ee 70%, #d1ccc3);
+    transform: skewY(35deg);
+    transform-origin: left top;
+  }
+
+  .cover-link:hover .cover-wrap {
+    transform: translateY(-9px) rotate(-0.8deg);
+    box-shadow: 30px 48px 80px rgba(16, 17, 20, 0.24);
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 19px;
+    border-bottom: 1px solid rgba(16, 17, 20, 0.15);
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .card-meta strong {
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+
+  .card-copy h3 {
+    margin: 30px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(42px, 5.4vw, 72px);
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+
+  .card-copy h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .card-copy > p {
+    max-width: 640px;
+    margin: 26px 0 0;
+    color: #55524d;
+    font-size: 18px;
+    line-height: 1.65;
+  }
+
+  .theme-list,
+  .format-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .theme-list {
+    margin-top: 30px;
+  }
+
+  .theme-list span {
+    padding: 8px 13px;
+    border: 1px solid rgba(16, 17, 20, 0.18);
+    border-radius: 999px;
+    color: #54514c;
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 42px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(16, 17, 20, 0.15);
+  }
+
+  .format-list span {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+  }
+
+  .format-list span:not(:last-child)::after {
+    content: '·';
+    margin-left: 8px;
+  }
+
+  .discover-link {
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .discover-link span {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--blue);
+    transition: transform 0.2s ease;
+  }
+
+  .discover-link:hover span {
+    transform: translate(3px, -3px);
+  }
+
+  .manifesto-section {
+    padding: 130px 0;
+    color: #fff;
+    background: #0c0d10;
+  }
+
+  .manifesto-grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: clamp(64px, 10vw, 148px);
+  }
+
+  .manifesto-title {
+    position: sticky;
+    top: 140px;
+    align-self: start;
+  }
+
+  .manifesto-title h2 {
+    color: #f4f1ea;
+  }
+
+  .manifesto-principles article {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 24px;
+    padding: 34px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .manifesto-principles article:last-child {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .manifesto-principles article > span {
+    color: #4b7dff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 15px;
+  }
+
+  .manifesto-principles h3 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 27px;
+    font-weight: 400;
+  }
+
+  .manifesto-principles p {
+    margin: 12px 0 0;
+    color: rgba(255, 255, 255, 0.52);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .next-chapter {
+    padding: 150px 0;
+    background:
+      linear-gradient(rgba(241, 238, 231, 0.95), rgba(241, 238, 231, 0.95)),
+      repeating-linear-gradient(0deg, transparent 0, transparent 5px, rgba(16, 17, 20, 0.04) 6px);
+  }
+
+  .next-inner {
+    text-align: center;
+  }
+
+  .next-quote {
+    max-width: 900px;
+    margin: 28px auto 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(38px, 5vw, 65px);
+    line-height: 1.13;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+  }
+
+  .next-inner > span {
+    display: block;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 800px) {
+    .library-container {
+      width: min(100% - 36px, 620px);
+    }
+
+    .library-hero {
+      min-height: 690px;
+      padding: 140px 0 90px;
+    }
+
+    .library-hero h1 {
+      font-size: clamp(53px, 15vw, 78px);
+    }
+
+    .hero-index {
+      display: none;
+    }
+
+    .library-section,
+    .manifesto-section,
+    .next-chapter {
+      padding: 90px 0;
+    }
+
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .essay-card,
+    .manifesto-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .essay-card {
+      gap: 58px;
+    }
+
+    .cover-wrap {
+      width: min(82vw, 390px);
+      margin: 0 auto;
+    }
+
+    .book-number {
+      left: calc(50% - min(41vw, 195px));
+    }
+
+    .card-copy h3 {
+      font-size: 48px;
+    }
+
+    .card-footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .manifesto-title {
+      position: static;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .library-hero h1 {
+      font-size: 50px;
+    }
+
+    .hero-lead {
+      font-size: 16px;
+    }
+
+    .card-copy h3 {
+      font-size: 42px;
+    }
+
+    .card-meta {
+      align-items: flex-start;
+    }
+
+    .manifesto-principles article {
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cover-wrap,
+    .hero-link,
+    .discover-link span {
+      transition: none;
+    }
+  }
+</style>

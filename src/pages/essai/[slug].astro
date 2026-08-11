@@ -1,0 +1,1337 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { essais, type Essai } from '../../data/essais';
+
+export function getStaticPaths() {
+  return essais
+    .filter((essai) => essai.status === 'available')
+    .map((essai) => ({
+      params: { slug: essai.slug },
+      props: { essai },
+    }));
+}
+
+interface Props {
+  essai: Essai;
+}
+
+const { essai } = Astro.props;
+const formattedPrice = new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 0,
+}).format(essai.price);
+---
+
+<Layout
+  title={`${essai.title} — Essai de Sonny Court`}
+  description={essai.salesDescription}
+  image={essai.cover}
+  noindex={true}
+  hideFormationsInHeader={true}
+  hideBlogInHeader={true}
+  hideFormationsInFooter={true}
+  headerVariant="glass"
+  footerVariant="compact-glass"
+>
+  <article class="essay-sales-page">
+    <section class="sales-hero">
+      <div class="hero-orbit" aria-hidden="true"></div>
+      <div class="sales-container">
+        <a class="breadcrumb" href="/essais/"><span aria-hidden="true">←</span> Tous les essais</a>
+
+        <div class="sales-hero-grid">
+          <div class="book-stage">
+            <div class="book-halo" aria-hidden="true"></div>
+            <div class="book-object">
+              <img src={essai.cover} alt={`Couverture de ${essai.title}`} width="864" height="1296" />
+              <span class="book-pages" aria-hidden="true"></span>
+            </div>
+            <span class="edition-mark">Édition numérique · {essai.year}</span>
+          </div>
+
+          <div class="hero-copy">
+            <p class="eyebrow">Essai n° 01 · Sonny Court</p>
+            <h1>{essai.title}</h1>
+            <p class="subtitle">{essai.subtitle}</p>
+            <p class="hero-question">{essai.salesDescription}</p>
+
+            <div class="hero-offer">
+              <div class="price-block">
+                <span>Édition complète</span>
+                <strong>{formattedPrice}</strong>
+              </div>
+              <a class="primary-cta" href="#edition-numerique">Découvrir l’édition <span aria-hidden="true">↓</span></a>
+            </div>
+
+            <div class="format-strip" aria-label="Formats inclus">
+              {essai.formats.map((format) => (
+                <div>
+                  <strong>{format.name}</strong>
+                  <span>{format.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="thesis-section">
+      <div class="sales-container thesis-grid">
+        <div class="thesis-heading">
+          <p class="section-number">01 — La proposition</p>
+          <h2>Le monde moral est habitable.<br /><em>Pas forcément vrai.</em></h2>
+        </div>
+        <div class="thesis-copy">
+          <p class="lead">
+            Nous parlons du bien et du mal comme s’ils étaient gravés dans la matière.
+            Pourtant, la nature ne connaît ni coupable, ni innocent, ni monstre.
+          </p>
+          <p>
+            Elle ne connaît que des formes qui cherchent à persister, des ressources qui circulent,
+            des puissances qui s’affrontent ou s’allient. La morale arrive ensuite : elle organise,
+            protège, interdit et transforme une préférence collective en force réelle.
+          </p>
+          <p>
+            <em>Sombre lumière éclaire mon chemin</em> suit cette intuition jusque dans ses zones les
+            plus inconfortables — de la prédation animale à l’entreprise moderne, de la toile de
+            l’araignée à l’architecture d’une page de vente.
+          </p>
+        </div>
+      </div>
+
+      <blockquote>
+        <span aria-hidden="true">“</span>
+        <p>{essai.quote}</p>
+        <cite>Sonny Court · Sombre lumière</cite>
+      </blockquote>
+    </section>
+
+    <section class="journey-section">
+      <div class="sales-container">
+        <header class="journey-heading">
+          <div>
+            <p class="section-number">02 — Le parcours</p>
+            <h2>Huit chapitres pour retirer le récit.</h2>
+          </div>
+          <p>
+            Le texte avance comme une lame : de la nature vers la société,
+            puis de la société vers tes propres systèmes.
+          </p>
+        </header>
+
+        <div class="journey-list">
+          {essai.journey.map((step) => (
+            <article>
+              <span>{step.number}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="insights-section">
+      <div class="sales-container">
+        <div class="insights-intro">
+          <p class="section-number">03 — La grille de lecture</p>
+          <h2>Après cette lecture, tu ne regarderas plus seulement ce que les systèmes <em>disent.</em></h2>
+          <p>Tu observeras ce qu’ils protègent, ce qu’ils capturent et ce qui leur permet de continuer.</p>
+        </div>
+
+        <div class="insights-grid">
+          {essai.insights.map((insight, index) => (
+            <article>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <h3>{insight.title}</h3>
+              <p>{insight.text}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="reader-section">
+      <div class="sales-container reader-grid">
+        <div class="reader-quote">
+          <p>« Toute valeur qui refuse de se donner une puissance reste une prière adressée à un univers qui n’écoute pas. »</p>
+        </div>
+        <div class="reader-copy">
+          <p class="section-number">04 — Pour qui ?</p>
+          <h2>Pour celles et ceux qui préfèrent une vérité inconfortable à une illusion rassurante.</h2>
+          <ul>
+            <li>Tu t’intéresses à la philosophie, aux récits et aux rapports de pouvoir.</li>
+            <li>Tu construis une entreprise et veux regarder le marketing sans euphémisme.</li>
+            <li>Tu veux comprendre comment les systèmes organisent les choix avant même qu’ils soient faits.</li>
+            <li>Tu peux distinguer une observation froide du réel d’une prescription morale.</li>
+          </ul>
+          <p class="content-note"><strong>Note de contenu :</strong> l’essai aborde frontalement la violence, la coercition et la prédation.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="edition-section" id="edition-numerique">
+      <div class="edition-glow" aria-hidden="true"></div>
+      <div class="sales-container edition-grid">
+        <div class="edition-cover">
+          <img src={essai.cover} alt="Sombre lumière éclaire mon chemin — édition numérique" width="864" height="1296" loading="lazy" />
+          <span aria-hidden="true"></span>
+        </div>
+
+        <div class="edition-copy">
+          <p class="section-number">L’édition complète</p>
+          <h2>Lis-le. Écoute-le. Reviens-y.</h2>
+          <p class="edition-lead">
+            Une seule acquisition, trois formats complémentaires pour faire entrer l’idée
+            dans ton quotidien — ou la reprendre là où elle résiste encore.
+          </p>
+
+          <div class="included-formats">
+            {essai.formats.map((format, index) => (
+              <article>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <h3>Version {format.name}</h3>
+                  <p>{format.label}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div class="purchase-row">
+            <div>
+              <span>Paiement unique</span>
+              <strong>{formattedPrice}</strong>
+            </div>
+            <a class="purchase-cta" href={essai.checkoutUrl}>
+              Commander l’essai <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <p class="purchase-note">PDF + EPUB + audio · Écris-nous pour finaliser ta commande</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq-section">
+      <div class="sales-container faq-grid">
+        <div>
+          <p class="section-number">Questions fréquentes</p>
+          <h2>Avant d’ouvrir le livre.</h2>
+          <div class="book-facts" aria-label="Informations sur l’essai">
+            <span><strong>{essai.pageCount}</strong> pages</span>
+            <span><strong>{essai.chapterCount}</strong> chapitres</span>
+            <span><strong>{essai.readingTime}</strong> de lecture</span>
+          </div>
+        </div>
+        <div class="faq-list">
+          {essai.faq.map((item) => (
+            <details>
+              <summary>{item.question}<span aria-hidden="true"></span></summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-section">
+      <div class="sales-container closing-inner">
+        <p>Ce qui reste lorsque le récit tombe</p>
+        <h2>Il n’y a aucun juge.<br />Seulement des puissances.</h2>
+        <a href="#edition-numerique">Découvrir Sombre lumière <span aria-hidden="true">↑</span></a>
+      </div>
+    </section>
+  </article>
+</Layout>
+
+<style>
+  :global(body) {
+    background: #f1eee7;
+  }
+
+  :global(main) {
+    overflow: hidden;
+  }
+
+  :global(body:has(.essay-sales-page) footer) {
+    margin-top: 0;
+  }
+
+  .essay-sales-page {
+    --paper: #f1eee7;
+    --paper-deep: #e4dfd5;
+    --ink: #101114;
+    --blue: #0a4fff;
+    --muted: #69655f;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  .sales-container {
+    width: min(1180px, calc(100% - 64px));
+    margin: 0 auto;
+  }
+
+  .sales-hero {
+    min-height: 900px;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 126px 0 100px;
+    background:
+      linear-gradient(90deg, rgba(16, 17, 20, 0.035) 1px, transparent 1px),
+      var(--paper);
+    background-size: 90px 100%;
+  }
+
+  .sales-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    opacity: 0.38;
+    background: radial-gradient(circle at 22% 46%, rgba(10, 79, 255, 0.18), transparent 27%);
+  }
+
+  .hero-orbit {
+    position: absolute;
+    top: 9%;
+    left: -18%;
+    z-index: -1;
+    width: 720px;
+    height: 720px;
+    border: 1px solid rgba(10, 79, 255, 0.2);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 90px rgba(10, 79, 255, 0.025),
+      0 0 0 180px rgba(10, 79, 255, 0.018);
+  }
+
+  .breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #5d5953;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .breadcrumb span {
+    color: var(--blue);
+    transition: transform 0.2s ease;
+  }
+
+  .breadcrumb:hover span {
+    transform: translateX(-3px);
+  }
+
+  .sales-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+    gap: clamp(64px, 9vw, 130px);
+    align-items: center;
+    margin-top: 58px;
+  }
+
+  .book-stage {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 34px;
+  }
+
+  .book-halo {
+    position: absolute;
+    top: 15%;
+    left: 5%;
+    width: 90%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgba(10, 79, 255, 0.1);
+    filter: blur(60px);
+  }
+
+  .book-object {
+    position: relative;
+    width: min(100%, 400px);
+    aspect-ratio: 2 / 3;
+    transform: perspective(1400px) rotateY(5deg) rotateZ(-1deg);
+    transform-style: preserve-3d;
+    box-shadow: 32px 42px 72px rgba(16, 17, 20, 0.24);
+  }
+
+  .book-object img,
+  .edition-cover img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .book-pages {
+    position: absolute;
+    top: 2%;
+    right: -11px;
+    bottom: 1%;
+    width: 11px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 3px, rgba(91, 84, 73, 0.18) 4px),
+      linear-gradient(90deg, #d0cbc2, #fcfaf4 68%, #c6c0b7);
+    transform: skewY(33deg);
+    transform-origin: left top;
+  }
+
+  .edition-mark {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .eyebrow,
+  .section-number {
+    margin: 0;
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 780;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .hero-copy h1 {
+    max-width: 720px;
+    margin: 23px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(62px, 7vw, 94px);
+    font-weight: 400;
+    line-height: 0.9;
+    letter-spacing: -0.065em;
+  }
+
+  .subtitle {
+    max-width: 570px;
+    margin: 26px 0 0;
+    color: #48443e;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-question {
+    max-width: 640px;
+    margin: 31px 0 0;
+    padding-left: 22px;
+    border-left: 2px solid var(--blue);
+    color: #4f4b45;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    line-height: 1.55;
+  }
+
+  .hero-offer {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-top: 36px;
+  }
+
+  .price-block {
+    min-width: 112px;
+  }
+
+  .price-block span {
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .price-block strong {
+    display: block;
+    margin-top: 4px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 37px;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+
+  .primary-cta,
+  .purchase-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 58px;
+    padding: 0 28px;
+    border-radius: 3px;
+    color: #fff;
+    background: var(--blue);
+    box-shadow: 0 16px 34px rgba(10, 79, 255, 0.22);
+    font-size: 12px;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .primary-cta:hover,
+  .purchase-cta:hover {
+    background: #003ed1;
+    box-shadow: 0 20px 40px rgba(10, 79, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .format-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 42px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(16, 17, 20, 0.15);
+  }
+
+  .format-strip > div {
+    padding-right: 18px;
+  }
+
+  .format-strip > div + div {
+    padding-left: 18px;
+    border-left: 1px solid rgba(16, 17, 20, 0.13);
+  }
+
+  .format-strip strong,
+  .format-strip span {
+    display: block;
+  }
+
+  .format-strip strong {
+    color: var(--blue);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  .format-strip span {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .thesis-section {
+    padding: 140px 0 0;
+  }
+
+  .thesis-grid {
+    display: grid;
+    grid-template-columns: 1fr 0.9fr;
+    gap: clamp(60px, 10vw, 150px);
+  }
+
+  .thesis-heading h2,
+  .journey-heading h2,
+  .insights-intro h2,
+  .reader-copy h2,
+  .edition-copy h2,
+  .faq-grid h2,
+  .closing-inner h2 {
+    margin: 20px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(48px, 6vw, 76px);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+  }
+
+  .thesis-heading h2 em,
+  .insights-intro h2 em {
+    color: var(--blue);
+    font-weight: 400;
+  }
+
+  .thesis-copy p {
+    margin: 0;
+    color: #5a5650;
+    font-size: 16px;
+    line-height: 1.78;
+  }
+
+  .thesis-copy p + p {
+    margin-top: 20px;
+  }
+
+  .thesis-copy .lead {
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    line-height: 1.55;
+  }
+
+  blockquote {
+    width: min(980px, calc(100% - 64px));
+    position: relative;
+    margin: 130px auto 0;
+    padding: 82px clamp(34px, 8vw, 104px);
+    border-top: 1px solid rgba(16, 17, 20, 0.16);
+    border-bottom: 1px solid rgba(16, 17, 20, 0.16);
+    text-align: center;
+  }
+
+  blockquote > span {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    color: var(--blue);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 55px;
+    line-height: 1;
+    transform: translateX(-50%);
+  }
+
+  blockquote p {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.24;
+    letter-spacing: -0.04em;
+    text-wrap: balance;
+  }
+
+  blockquote cite {
+    display: block;
+    margin-top: 30px;
+    color: var(--muted);
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+  }
+
+  .journey-section {
+    margin-top: 140px;
+    padding: 130px 0;
+    color: #fff;
+    background: #0b0c0f;
+  }
+
+  .journey-heading {
+    display: grid;
+    grid-template-columns: 1.15fr 0.65fr;
+    gap: 80px;
+    align-items: end;
+  }
+
+  .journey-heading h2 {
+    color: #f3f0e9;
+  }
+
+  .journey-heading > p {
+    margin: 0 0 8px;
+    color: rgba(255, 255, 255, 0.49);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .journey-list {
+    margin-top: 78px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .journey-list article {
+    display: grid;
+    grid-template-columns: 80px 0.8fr 1fr;
+    gap: 40px;
+    align-items: start;
+    padding: 31px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .journey-list article > span {
+    color: #4d7fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+  }
+
+  .journey-list h3 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 400;
+  }
+
+  .journey-list p {
+    max-width: 520px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .insights-section {
+    padding: 140px 0;
+  }
+
+  .insights-intro {
+    max-width: 970px;
+  }
+
+  .insights-intro > p:last-child {
+    max-width: 690px;
+    margin: 28px 0 0;
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    margin-top: 80px;
+    border: 1px solid rgba(16, 17, 20, 0.14);
+    background: rgba(16, 17, 20, 0.14);
+  }
+
+  .insights-grid article {
+    min-height: 270px;
+    padding: 38px;
+    background: var(--paper);
+  }
+
+  .insights-grid article > span {
+    color: var(--blue);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+  }
+
+  .insights-grid h3 {
+    margin: 56px 0 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 30px;
+    font-weight: 400;
+  }
+
+  .insights-grid p {
+    max-width: 470px;
+    margin: 14px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .reader-section {
+    padding: 130px 0;
+    background: #e5e0d6;
+  }
+
+  .reader-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: clamp(70px, 11vw, 160px);
+    align-items: center;
+  }
+
+  .reader-quote {
+    min-height: 520px;
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+    overflow: hidden;
+    padding: 42px;
+    color: #fff;
+    background: #0b0d12;
+    box-shadow: 25px 30px 60px rgba(16, 17, 20, 0.16);
+  }
+
+  .reader-quote::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -90px;
+    width: 360px;
+    height: 360px;
+    border: 1px solid rgba(74, 122, 255, 0.46);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 60px rgba(10, 79, 255, 0.035),
+      inset 0 0 100px rgba(10, 79, 255, 0.11);
+  }
+
+  .reader-quote::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 60px;
+    width: 1px;
+    height: 72%;
+    background: linear-gradient(var(--blue), transparent);
+  }
+
+  .reader-quote p {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(28px, 3.4vw, 40px);
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+  }
+
+  .reader-copy h2 {
+    font-size: clamp(42px, 5vw, 64px);
+  }
+
+  .reader-copy ul {
+    margin: 37px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .reader-copy li {
+    position: relative;
+    padding: 15px 0 15px 28px;
+    border-top: 1px solid rgba(16, 17, 20, 0.14);
+    color: #504c46;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .reader-copy li:last-child {
+    border-bottom: 1px solid rgba(16, 17, 20, 0.14);
+  }
+
+  .reader-copy li::before {
+    content: '';
+    position: absolute;
+    top: 21px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
+    border: 1px solid var(--blue);
+    border-radius: 50%;
+  }
+
+  .content-note {
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .content-note strong {
+    color: var(--ink);
+  }
+
+  .edition-section {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 150px 0;
+    color: #fff;
+    background: #07090e;
+  }
+
+  .edition-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    opacity: 0.2;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+    background-size: 74px 74px;
+  }
+
+  .edition-glow {
+    position: absolute;
+    bottom: -25%;
+    left: -8%;
+    z-index: -1;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: rgba(10, 79, 255, 0.16);
+    filter: blur(120px);
+  }
+
+  .edition-grid {
+    display: grid;
+    grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
+    gap: clamp(70px, 10vw, 140px);
+    align-items: center;
+  }
+
+  .edition-cover {
+    position: relative;
+    width: min(100%, 390px);
+    aspect-ratio: 2 / 3;
+    box-shadow: 34px 42px 84px rgba(0, 0, 0, 0.58);
+    transform: rotate(-1.4deg);
+  }
+
+  .edition-cover > span {
+    position: absolute;
+    top: 1%;
+    right: -10px;
+    bottom: 1%;
+    width: 10px;
+    background: linear-gradient(90deg, #c3bdb3, #fffdf6 70%, #bdb6ac);
+    transform: skewY(35deg);
+    transform-origin: left top;
+  }
+
+  .edition-copy h2 {
+    color: #f5f2eb;
+  }
+
+  .edition-lead {
+    max-width: 660px;
+    margin: 25px 0 0;
+    color: rgba(255, 255, 255, 0.52);
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .included-formats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 47px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .included-formats article {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    min-height: 126px;
+    padding: 25px 18px 22px 0;
+  }
+
+  .included-formats article + article {
+    padding-left: 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .included-formats article > span {
+    color: #5182ff;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .included-formats h3 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    font-weight: 400;
+  }
+
+  .included-formats p {
+    margin: 8px 0 0;
+    color: rgba(255, 255, 255, 0.46);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .purchase-row {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-top: 42px;
+  }
+
+  .purchase-row > div {
+    min-width: 128px;
+  }
+
+  .purchase-row > div span,
+  .purchase-row > div strong {
+    display: block;
+  }
+
+  .purchase-row > div span {
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .purchase-row > div strong {
+    margin-top: 4px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 44px;
+    font-weight: 400;
+  }
+
+  .purchase-cta {
+    min-width: 250px;
+  }
+
+  .purchase-note {
+    margin: 14px 0 0 158px;
+    color: rgba(255, 255, 255, 0.36);
+    font-size: 10px;
+  }
+
+  .faq-section {
+    padding: 140px 0;
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: 0.76fr 1.24fr;
+    gap: clamp(70px, 10vw, 140px);
+  }
+
+  .faq-grid h2 {
+    font-size: clamp(44px, 5vw, 62px);
+  }
+
+  .book-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 38px;
+  }
+
+  .book-facts span {
+    padding: 10px 13px;
+    border: 1px solid rgba(16, 17, 20, 0.14);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .book-facts strong {
+    color: var(--ink);
+  }
+
+  .faq-list {
+    border-bottom: 1px solid rgba(16, 17, 20, 0.16);
+  }
+
+  .faq-list details {
+    border-top: 1px solid rgba(16, 17, 20, 0.16);
+  }
+
+  .faq-list summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 26px 0;
+    cursor: pointer;
+    list-style: none;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 21px;
+    line-height: 1.3;
+  }
+
+  .faq-list summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-list summary span {
+    width: 17px;
+    height: 17px;
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .faq-list summary span::before,
+  .faq-list summary span::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 17px;
+    height: 1px;
+    background: var(--blue);
+    transition: transform 0.2s ease;
+  }
+
+  .faq-list summary span::after {
+    transform: rotate(90deg);
+  }
+
+  .faq-list details[open] summary span::after {
+    transform: rotate(0);
+  }
+
+  .faq-list details > p {
+    max-width: 680px;
+    margin: -6px 0 27px;
+    padding-right: 38px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .closing-section {
+    padding: 150px 0;
+    color: #fff;
+    background:
+      radial-gradient(circle at 50% 100%, rgba(10, 79, 255, 0.2), transparent 36%),
+      #08090d;
+  }
+
+  .closing-inner {
+    text-align: center;
+  }
+
+  .closing-inner > p {
+    margin: 0;
+    color: #5686ff;
+    font-size: 10px;
+    font-weight: 780;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .closing-inner h2 {
+    color: #f4f1ea;
+    font-size: clamp(52px, 8vw, 100px);
+    line-height: 0.96;
+  }
+
+  .closing-inner a {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 40px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  @media (max-width: 900px) {
+    .sales-container {
+      width: min(100% - 40px, 680px);
+    }
+
+    .sales-hero {
+      padding-top: 118px;
+    }
+
+    .sales-hero-grid,
+    .thesis-grid,
+    .journey-heading,
+    .reader-grid,
+    .edition-grid,
+    .faq-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .sales-hero-grid {
+      gap: 70px;
+    }
+
+    .book-object {
+      width: min(76vw, 390px);
+    }
+
+    .hero-copy {
+      text-align: center;
+    }
+
+    .hero-copy h1,
+    .subtitle,
+    .hero-question {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-offer {
+      justify-content: center;
+    }
+
+    .format-strip {
+      text-align: left;
+    }
+
+    .thesis-section,
+    .insights-section,
+    .reader-section,
+    .edition-section,
+    .faq-section,
+    .closing-section {
+      padding-top: 100px;
+      padding-bottom: 100px;
+    }
+
+    blockquote {
+      margin-top: 90px;
+    }
+
+    .journey-section {
+      margin-top: 100px;
+      padding: 100px 0;
+    }
+
+    .journey-heading {
+      gap: 25px;
+    }
+
+    .journey-heading > p {
+      max-width: 520px;
+    }
+
+    .journey-list article {
+      grid-template-columns: 54px 1fr;
+      gap: 12px 20px;
+    }
+
+    .journey-list p {
+      grid-column: 2;
+    }
+
+    .reader-grid,
+    .edition-grid,
+    .faq-grid {
+      gap: 70px;
+    }
+
+    .reader-quote,
+    .edition-cover {
+      width: min(82vw, 400px);
+      margin: 0 auto;
+    }
+
+    .faq-grid > div:first-child {
+      max-width: 540px;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .sales-container {
+      width: min(100% - 34px, 520px);
+    }
+
+    .sales-hero {
+      min-height: auto;
+      background-size: 64px 100%;
+    }
+
+    .hero-copy h1 {
+      font-size: 55px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+    }
+
+    .hero-question {
+      font-size: 18px;
+      text-align: left;
+    }
+
+    .hero-offer,
+    .purchase-row {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .primary-cta,
+    .purchase-cta {
+      width: 100%;
+    }
+
+    .format-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .format-strip > div,
+    .format-strip > div + div {
+      padding: 13px 0;
+      border-left: 0;
+      border-top: 1px solid rgba(16, 17, 20, 0.1);
+    }
+
+    .format-strip > div:first-child {
+      border-top: 0;
+    }
+
+    blockquote {
+      width: calc(100% - 34px);
+      padding: 76px 10px 60px;
+    }
+
+    .journey-list article {
+      grid-template-columns: 36px 1fr;
+    }
+
+    .journey-list h3 {
+      font-size: 23px;
+    }
+
+    .insights-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .insights-grid article {
+      min-height: 240px;
+      padding: 30px;
+    }
+
+    .reader-quote {
+      min-height: 430px;
+      padding: 30px;
+    }
+
+    .included-formats {
+      grid-template-columns: 1fr;
+    }
+
+    .included-formats article,
+    .included-formats article + article {
+      min-height: auto;
+      padding: 20px 0;
+      border-left: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .included-formats article:first-child {
+      border-top: 0;
+    }
+
+    .purchase-note {
+      margin-left: 0;
+      text-align: center;
+    }
+
+    .closing-inner h2 {
+      font-size: 52px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .breadcrumb span,
+    .primary-cta,
+    .purchase-cta,
+    .faq-list summary span::after {
+      transition: none;
+    }
+  }
+</style>
