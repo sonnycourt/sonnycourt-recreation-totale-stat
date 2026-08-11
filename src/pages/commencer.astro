@@ -353,7 +353,18 @@ const reviewInitials = (name) => name
       const countdownMobileSeconds = document.querySelector('#countdown-mobile-seconds');
       const countdownProgress = document.querySelector('#countdown-progress');
       const params = new URLSearchParams(window.location.search);
-      const token = params.get('t') || '';
+      const tokenCookie = document.cookie
+        .split(';')
+        .map((part) => part.trim())
+        .find((part) => part.startsWith('mc2_registration_token='));
+      let token = params.get('t')
+        || localStorage.getItem('mc2_registration_token')
+        || (tokenCookie ? decodeURIComponent(tokenCookie.split('=').slice(1).join('=')) : '')
+        || '';
+      if (token) {
+        localStorage.setItem('mc2_registration_token', token);
+        document.cookie = `mc2_registration_token=${encodeURIComponent(token)}; path=/; max-age=31536000; SameSite=Lax`;
+      }
       const localPreview = location.hostname === '127.0.0.1'
         || location.hostname === 'localhost'
         || params.get('preview') === 'dev';

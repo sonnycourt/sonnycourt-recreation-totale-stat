@@ -121,9 +121,10 @@ function liveUrl(liveCode, token) {
   return code ? `${origin}/live/${code}` : sessionUrl(token);
 }
 
-function checkoutUrl(token) {
+function checkoutUrl(liveCode) {
   const origin = clean(process.env.MC2_PUBLIC_ORIGIN || 'https://sonnycourt.com', 240).replace(/\/$/, '');
-  return `${origin}/commencer/?t=${encodeURIComponent(token)}`;
+  const code = clean(liveCode, 5);
+  return code ? `${origin}/commencer/${code}` : '';
 }
 
 export function mc2SmsMessage(type, token, options = {}) {
@@ -131,9 +132,19 @@ export function mc2SmsMessage(type, token, options = {}) {
     return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.liveCode, token)}`;
   }
   if (type === 'offer_deadline') {
-    return `Plus que 15 min pour commencer a 47 EUR. Apres, l'offre ferme : ${checkoutUrl(token)}`;
+    return `DERNIERE CHANCE !\nIl ne te reste plus que 15 minutes pour t'inscrire à Esprit Subconscient 2.0\nClique ici :\n${checkoutUrl(options.liveCode)}`;
   }
   return '';
+}
+
+async function findMc2LiveCode(token) {
+  const safeToken = clean(token, 128);
+  if (!safeToken) return '';
+  const result = await supabaseGet(
+    `mc2_sms_jobs?token=eq.${encodeURIComponent(safeToken)}&message_type=eq.session_live&live_code=not.is.null&select=live_code&order=created_at.desc&limit=1`,
+  );
+  const code = result.ok && Array.isArray(result.data) ? clean(result.data[0]?.live_code, 5) : '';
+  return /^[A-Za-z0-9]{5}$/.test(code) ? code : '';
 }
 
 async function ensureMc2LiveCode(job) {
@@ -244,8 +255,8 @@ export async function processMc2SmsJob(job, now = new Date()) {
 
   const liveCode = job.message_type === 'session_live'
     ? await ensureMc2LiveCode(claimedJob)
-    : '';
-  if (job.message_type === 'session_live' && !liveCode) {
+    : await findMc2LiveCode(job.token);
+  if (!liveCode) {
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
       status: 'retry',
       last_error: 'live_code_unavailable',
