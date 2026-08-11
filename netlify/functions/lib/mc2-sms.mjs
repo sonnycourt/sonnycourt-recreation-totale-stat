@@ -1,6 +1,7 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 
 const MAX_ATTEMPTS = 3;
+const LIVE_CODE_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 function clean(value, max = 500) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -37,6 +38,12 @@ export function mc2SmsEnabled() {
   return clean(process.env.MC2_SMS_ENABLED, 10).toLowerCase() === 'true';
 }
 
+export function generateMc2LiveCode() {
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => LIVE_CODE_ALPHABET[byte % LIVE_CODE_ALPHABET.length]).join('');
+}
+
 export async function queueMc2Sms({ token, messageType, dueAt, discriminator }) {
   const safeToken = clean(token, 128);
   const safeType = clean(messageType, 40);
@@ -68,14 +75,28 @@ export async function queueMc2Sms({ token, messageType, dueAt, discriminator }) 
     return { ok: updated.ok, row: updated.data?.[0] || row, existing: true, error: updated.error };
   }
 
-  const inserted = await supabasePost('mc2_sms_jobs', {
-    token: safeToken,
-    job_key: jobKey,
-    message_type: safeType,
-    due_at: safeDueAt,
-  });
-  if (!inserted.ok && inserted.status === 409) return { ok: true, existing: true };
-  return { ok: inserted.ok, row: inserted.data?.[0] || null, error: inserted.error };
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const inserted = await supabasePost('mc2_sms_jobs', {
+      token: safeToken,
+      job_key: jobKey,
+      message_type: safeType,
+      due_at: safeDueAt,
+      live_code: safeType === 'session_live' ? generateMc2LiveCode() : null,
+    });
+    if (inserted.ok) {
+      return { ok: true, row: inserted.data?.[0] || null, error: null };
+    }
+    if (inserted.status !== 409) {
+      return { ok: false, row: null, error: inserted.error };
+    }
+    const concurrent = await supabaseGet(
+      `mc2_sms_jobs?job_key=eq.${encodeURIComponent(jobKey)}&select=id,status,due_at,live_code&limit=1`,
+    );
+    if (concurrent.ok && Array.isArray(concurrent.data) && concurrent.data[0]) {
+      return { ok: true, row: concurrent.data[0], existing: true };
+    }
+  }
+  return { ok: false, row: null, error: 'live_code_collision_limit' };
 }
 
 export async function cancelMc2OfferSms(token, reason = 'purchase_completed') {
@@ -94,13 +115,9 @@ function sessionUrl(token) {
   return `${origin}${path.startsWith('/') ? path : `/${path}`}?t=${encodeURIComponent(token)}`;
 }
 
-export function mc2LiveCode(jobId) {
-  return clean(jobId, 80).toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 12);
-}
-
-function liveUrl(jobId, token) {
+function liveUrl(liveCode, token) {
   const origin = clean(process.env.MC2_PUBLIC_ORIGIN || 'https://sonnycourt.com', 240).replace(/\/$/, '');
-  const code = mc2LiveCode(jobId);
+  const code = clean(liveCode, 5);
   return code ? `${origin}/live/${code}` : sessionUrl(token);
 }
 
@@ -111,10 +128,28 @@ function checkoutUrl(token) {
 
 export function mc2SmsMessage(type, token, options = {}) {
   if (type === 'session_live') {
-    return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.jobId, token)}`;
+    return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.liveCode, token)}`;
   }
   if (type === 'offer_deadline') {
     return `Plus que 15 min pour commencer a 47 EUR. Apres, l'offre ferme : ${checkoutUrl(token)}`;
+  }
+  return '';
+}
+
+async function ensureMc2LiveCode(job) {
+  const current = clean(job?.live_code, 5);
+  if (/^[A-Za-z0-9]{5}$/.test(current)) return current;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = generateMc2LiveCode();
+    const updated = await supabasePatch(
+      'mc2_sms_jobs',
+      `id=eq.${encodeURIComponent(job.id)}&live_code=is.null`,
+      { live_code: candidate },
+    );
+    const row = updated.ok && Array.isArray(updated.data) ? updated.data[0] : null;
+    if (row?.live_code) return row.live_code;
+    if (updated.status !== 409) break;
   }
   return '';
 }
@@ -207,7 +242,18 @@ export async function processMc2SmsJob(job, now = new Date()) {
     if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
   }
 
-  const message = mc2SmsMessage(job.message_type, job.token, { jobId: job.id });
+  const liveCode = job.message_type === 'session_live'
+    ? await ensureMc2LiveCode(claimedJob)
+    : '';
+  if (job.message_type === 'session_live' && !liveCode) {
+    await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
+      status: 'retry',
+      last_error: 'live_code_unavailable',
+    });
+    return { status: 'retry' };
+  }
+
+  const message = mc2SmsMessage(job.message_type, job.token, { liveCode });
   try {
     const provider = await sendGatewaySms({ phone, message, reference: `mc2-${job.id}` });
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {

@@ -26,6 +26,28 @@ create table if not exists public.mc2_sms_jobs (
   updated_at timestamptz not null default now()
 );
 
+alter table public.mc2_sms_jobs
+  add column if not exists live_code varchar(5);
+
+create unique index if not exists idx_mc2_sms_jobs_live_code
+  on public.mc2_sms_jobs (live_code)
+  where live_code is not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mc2_sms_jobs_live_code_format'
+      and conrelid = 'public.mc2_sms_jobs'::regclass
+  ) then
+    alter table public.mc2_sms_jobs
+      add constraint mc2_sms_jobs_live_code_format
+      check (live_code is null or live_code ~ '^[A-Za-z0-9]{5}$');
+  end if;
+end;
+$$;
+
 create index if not exists idx_mc2_sms_jobs_due
   on public.mc2_sms_jobs (status, due_at)
   where status in ('pending', 'retry');

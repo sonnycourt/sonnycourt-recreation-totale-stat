@@ -1,8 +1,8 @@
 import { supabaseGet, supabasePost } from './lib/supabase-rest.mjs';
 
 function cleanCode(value) {
-  const code = String(value || '').trim().toLowerCase();
-  return /^[a-f0-9]{12}$/.test(code) ? code : '';
+  const code = String(value || '').trim();
+  return /^[A-Za-z0-9]{5}$/.test(code) ? code : '';
 }
 
 function response(status, body, headers = {}) {
@@ -23,18 +23,14 @@ export default async (req) => {
     const code = cleanCode(url.searchParams.get('code'));
     if (!code) return response(404, 'Lien invalide.');
 
-    const uuidPrefix = `${code.slice(0, 8)}-*`;
     const jobs = await supabaseGet(
-      `mc2_sms_jobs?id=like.${encodeURIComponent(uuidPrefix)}&message_type=eq.session_live&select=id,token&limit=20`,
+      `mc2_sms_jobs?live_code=eq.${encodeURIComponent(code)}&message_type=eq.session_live&select=id,token&limit=2`,
     );
     if (!jobs.ok || !Array.isArray(jobs.data)) return response(503, 'Lien momentanément indisponible.');
 
-    const matches = jobs.data.filter((job) => (
-      String(job?.id || '').toLowerCase().replace(/[^a-f0-9]/g, '').startsWith(code)
-    ));
-    if (matches.length !== 1 || !matches[0]?.token) return response(404, 'Lien invalide.');
+    if (jobs.data.length !== 1 || !jobs.data[0]?.token) return response(404, 'Lien invalide.');
 
-    const job = matches[0];
+    const job = jobs.data[0];
     await supabasePost('mc2_funnel_events', {
       token: job.token,
       event_name: 'sms_live_link_clicked',
