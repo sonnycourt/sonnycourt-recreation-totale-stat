@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
+import { queueMc2Sms } from './lib/mc2-sms.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -40,6 +41,17 @@ function registrationResponse(row, alreadyRegistered = false) {
   };
 }
 
+async function queueLiveReminder(row) {
+  if (!row?.token || !row?.telephone || !row?.sms_consent_at || !row?.session_starts_at) return;
+  const result = await queueMc2Sms({
+    token: row.token,
+    messageType: 'session_live',
+    dueAt: row.session_starts_at,
+    discriminator: row.session_starts_at,
+  });
+  if (!result.ok) console.error('MC2 live SMS queue failed:', result.error);
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -51,6 +63,7 @@ export default async (req) => {
     const telephone = trim(body?.telephone, 40);
     const pays = trim(body?.pays, 80);
     const isComplete = Boolean(telephone && pays);
+    const smsConsent = body?.sms_consent === true;
 
     if (!email || !email.includes('@') || !prenom) {
       return jsonResponse(400, { error: 'Paramètres manquants' });
@@ -112,6 +125,8 @@ export default async (req) => {
         meta_event_id: trim(body?.meta_event_id) || row.meta_event_id || null,
         optin_variant: trim(body?.optin_variant, 80) || row.optin_variant || null,
         optin_funnel_id: trim(body?.optin_funnel_id, 80) || row.optin_funnel_id || null,
+        sms_consent_at: smsConsent ? (row.sms_consent_at || nowIso) : row.sms_consent_at,
+        sms_consent_source: smsConsent ? 'mc2_optin' : row.sms_consent_source,
       };
       const updated = await supabasePatch(
         'mc2_registrations',
@@ -122,7 +137,9 @@ export default async (req) => {
         console.error('MC2 registration update failed:', updated.status, updated.error);
         return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
       }
-      return jsonResponse(200, registrationResponse({ ...row, ...patch }, true));
+      const completedRow = { ...row, ...patch };
+      await queueLiveReminder(completedRow);
+      return jsonResponse(200, registrationResponse(completedRow, true));
     }
 
     const row = {
@@ -147,12 +164,15 @@ export default async (req) => {
       meta_event_id: trim(body?.meta_event_id),
       optin_variant: trim(body?.optin_variant, 80),
       optin_funnel_id: trim(body?.optin_funnel_id, 80),
+      sms_consent_at: smsConsent ? nowIso : null,
+      sms_consent_source: smsConsent ? 'mc2_optin' : null,
     };
     const inserted = await supabasePost('mc2_registrations', row, { prefer: 'return=minimal' });
     if (!inserted.ok) {
       console.error('MC2 registration insert failed:', inserted.status, inserted.error);
       return jsonResponse(500, { error: 'Erreur enregistrement MC2' });
     }
+    await queueLiveReminder(row);
     return jsonResponse(200, registrationResponse(row));
   } catch (error) {
     console.error('register-mc2 error:', error);

@@ -86,6 +86,8 @@ const { source } = Astro.props;
                 if (kind === 'track') {
                     payload.path = source === 'meta_ad' ? '/meta/mc2/' : '/tt/mc2/';
                     payload.variant = 'mc2_' + String(payload.variant || 'paid');
+                } else if (kind === 'registration-write' && payload.telephone && payload.pays) {
+                    payload.sms_consent = true;
                 }
                 return Object.assign({}, init, { body: JSON.stringify(payload) });
             } catch (error) {
@@ -108,6 +110,12 @@ const { source } = Astro.props;
 
         function holdForNavigation() {
             return new Promise(function () {});
+        }
+
+        function discloseSmsReminders() {
+            document.querySelectorAll('.phone-privacy-note span').forEach(function (node) {
+                node.textContent = 'Ton numéro reste confidentiel. En continuant, tu acceptes les 2 rappels SMS liés à ta session et à son offre.';
+            });
         }
 
         var previousFetch = window.fetch.bind(window);
@@ -161,5 +169,11 @@ const { source } = Astro.props;
 
             return response;
         };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', discloseSmsReminders, { once: true });
+        } else {
+            discloseSmsReminders();
+        }
     })();
 </script>

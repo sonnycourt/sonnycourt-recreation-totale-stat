@@ -9,6 +9,10 @@ import {
   mc2StripePublishableKey,
 } from './lib/mc2-stripe.mjs';
 import { supabasePatch } from './lib/supabase-rest.mjs';
+import { queueMc2Sms } from './lib/mc2-sms.mjs';
+
+const OFFER_DURATION_MS = 60 * 60 * 1000;
+const OFFER_SMS_LEAD_MS = 15 * 60 * 1000;
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -56,6 +60,27 @@ export default async (req) => {
       return json(410, { error: 'Cette offre a expiré.' });
     }
 
+    let offerExpiresAt = registration.offer_expires_at;
+    if (!offerExpiresAt) {
+      offerExpiresAt = new Date(Date.now() + OFFER_DURATION_MS).toISOString();
+      const expirySaved = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
+        offer_expires_at: offerExpiresAt,
+        checkout_last_viewed_at: new Date().toISOString(),
+        last_intent_at: new Date().toISOString(),
+      });
+      if (!expirySaved.ok) throw new Error('mc2_offer_expiry_not_saved');
+      registration.offer_expires_at = offerExpiresAt;
+    }
+
+    const reminderDueAt = new Date(new Date(offerExpiresAt).getTime() - OFFER_SMS_LEAD_MS).toISOString();
+    const queued = await queueMc2Sms({
+      token,
+      messageType: 'offer_deadline',
+      dueAt: reminderDueAt,
+      discriminator: offerExpiresAt,
+    });
+    if (!queued.ok) console.error('MC2 offer SMS queue failed:', queued.error);
+
     const stripe = mc2Stripe();
     const existing = await reusableSession(stripe, registration);
     if (existing) {
@@ -64,6 +89,7 @@ export default async (req) => {
         publishable_key: mc2StripePublishableKey(),
         checkout_session_id: existing.id,
         customer: { name: registration.prenom, email: registration.email },
+        offer_expires_at: offerExpiresAt,
       });
     }
 
@@ -113,6 +139,7 @@ export default async (req) => {
       checkout_engaged: true,
       checkout_last_viewed_at: new Date().toISOString(),
       last_intent_at: new Date().toISOString(),
+      offer_expires_at: offerExpiresAt,
     });
     if (!saved.ok) throw new Error('mc2_checkout_not_saved');
 
@@ -122,6 +149,7 @@ export default async (req) => {
       checkout_session_id: session.id,
       offer: { amount: 4700, currency: 'eur', contractual_total: MC2_CONTRACT_TOTAL_CENTS },
       customer: { name: registration.prenom, email: registration.email },
+      offer_expires_at: offerExpiresAt,
     });
   } catch (error) {
     console.error('mc2-stripe-checkout:', error);

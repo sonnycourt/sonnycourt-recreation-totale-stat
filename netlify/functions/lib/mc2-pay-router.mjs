@@ -6,6 +6,7 @@ import {
   stripeId,
 } from './mc2-stripe.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
+import { cancelMc2OfferSms } from './mc2-sms.mjs';
 
 const DAY_SECONDS = 24 * 60 * 60;
 const MC2_SYSTEM = 'es2_mc2';
@@ -148,6 +149,8 @@ async function processCheckoutCompleted(stripe, session, event) {
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
+  const smsCancellation = await cancelMc2OfferSms(token);
+  if (!smsCancellation.ok) console.error('mc2 purchase SMS cancellation:', smsCancellation.error);
   await recordFunnelEvent(token, 'purchase_completed', session.amount_total || 4700, {
     stripe_event_id: event.id,
     checkout_session_id: session.id,

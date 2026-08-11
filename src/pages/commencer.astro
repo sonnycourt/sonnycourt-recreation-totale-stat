@@ -425,7 +425,7 @@ const reviewInitials = (name) => name
         node.textContent = installmentDateFormatter.format(dueDate);
       });
 
-      const countdownEnd = Date.now() + (60 * 60 * 1000);
+      let countdownEnd = Date.now() + (60 * 60 * 1000);
       const updateCountdown = () => {
         const remaining = Math.max(0, countdownEnd - Date.now());
         const totalSeconds = Math.ceil(remaining / 1000);
@@ -477,6 +477,8 @@ const reviewInitials = (name) => name
         if (!token) throw new Error('Reviens depuis la masterclass pour accéder à cette offre.');
         if (!window.Stripe) throw new Error('Stripe ne peut pas être chargé. Recharge la page.');
         const data = await createCheckout();
+        const serverExpiry = new Date(data.offer_expires_at || '').getTime();
+        if (Number.isFinite(serverExpiry)) countdownEnd = serverExpiry;
         firstNameInput.value = data.customer?.name || '';
         emailInput.value = data.customer?.email || '';
         firstNameInput.readOnly = true;
