@@ -119,13 +119,14 @@ export async function sendGatewaySms({ phone, message, reference }) {
     method: 'POST',
     headers: {
       Authorization: `Token ${apiToken}`,
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       sender,
       message,
-      recipient: phone.replace(/^\+/, ''),
-      userref: clean(reference, 64),
+      recipient: Number(phone.replace(/^\+/, '')),
+      reference: clean(reference, 64),
     }),
   });
   const text = await response.text();
