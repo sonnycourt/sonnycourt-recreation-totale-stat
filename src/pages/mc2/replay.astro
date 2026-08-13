@@ -921,7 +921,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       </div>
 
       <section id="offer-zone" class="offer-zone hidden">
-        <p class="offer-countdown-title">L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :</p>
         <div class="countdown">
           <div class="card"><span id="offer-days" class="v">00</span><div class="l">Jours</div></div>
           <div class="card"><span id="offer-hours" class="v">00</span><div class="l">Heures</div></div>
@@ -1159,18 +1158,18 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       } catch {}
     }
     function trackWebinaireEvent(token, eventName, value) {
-      if (!recoveryAccessCode || !eventName) return;
+      if (!recoveryAccessCode || !eventName) return Promise.resolve(null);
       const mappedEvent = eventName === 'video_checkpoint' ? 'replay_progress' : eventName;
-      if (!['replay_started', 'replay_progress', 'cta_reached'].includes(mappedEvent)) return;
+      if (!['replay_started', 'replay_progress', 'cta_reached'].includes(mappedEvent)) return Promise.resolve(null);
       const payload = { access: recoveryAccessCode, event: mappedEvent };
       if (mappedEvent === 'replay_progress') payload.currentSecond = Math.max(0, Math.floor(Number(value) * 60 || 0));
       if (value !== undefined && value !== null) payload.value = String(value);
       console.log('[ES2 TRACKING]', eventName, payload);
-      fetch('/.netlify/functions/mc2-replay-track', {
+      return fetch('/.netlify/functions/mc2-replay-track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      }).catch(() => {});
+      }).then((response) => response.ok ? response.json() : null).catch(() => null);
     }
 
     function mountReplay(reg, token) {
@@ -1226,7 +1225,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const expiryBanner = document.getElementById('expiry-banner');
       const offerZone = document.getElementById('offer-zone');
       const offerCta = document.getElementById('offer-cta');
-      const offerCountdownTitle = document.querySelector('#offer-zone .offer-countdown-title');
       const offerCountdownGrid = document.querySelector('#offer-zone .countdown');
       const offerScarcityCard = document.getElementById('scarcity-card');
       const offerExpiredState = document.getElementById('offer-expired-state');
@@ -1242,7 +1240,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       const toastText = document.getElementById('purchase-toast-text');
 
       const sessionStartMs = new Date(reg.sessionStartsAt || reg.session_date || Date.now() + 2 * 60 * 60 * 1000).getTime();
-      const offerExpiryMs = new Date(reg.offreExpiresAt).getTime();
+      let offerExpiryMs = new Date(reg.offreExpiresAt).getTime();
       const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
       const scarcityWindowEndMs = offerExpiryMs;
       const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
@@ -1258,6 +1256,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       let scarcityEngine = null;
       let previewOfferStateOverride = null;
       let didTrackCtaReached = false;
+      let offerDeadlineSyncInFlight = false;
       let didTrackReplayStarted = false;
       let didAutoRedirectToOffer = false;
       const emittedCheckpointMinutes = new Set();
@@ -1457,7 +1456,6 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
       }
       function setOfferExpiredState(expired) {
         const isExpired = Boolean(expired);
-        if (offerCountdownTitle) offerCountdownTitle.classList.toggle('hidden', isExpired);
         if (offerCountdownGrid) offerCountdownGrid.classList.toggle('hidden', isExpired);
         if (offerScarcityCard) {
           offerScarcityCard.classList.add('hidden');
@@ -1472,14 +1470,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         offerCta.classList.toggle('is-disabled', !isEnabled);
         offerCta.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
         offerCta.setAttribute('tabindex', isEnabled ? '0' : '-1');
-        if (offerCountdownTitle) {
-          offerCountdownTitle.innerHTML = isEnabled
-            ? 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible'
-            : 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :';
-        }
       }
       function updateCtaUnlockCountdown() {
-        const total = Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
+        const total = ctaActivated && Number.isFinite(offerExpiryMs)
+          ? Math.max(0, Math.ceil((offerExpiryMs - Date.now()) / 1000))
+          : Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
         const d = Math.floor(total / 86400);
         const h = Math.floor((total % 86400) / 3600);
         const m = Math.floor((total % 3600) / 60);
@@ -1524,19 +1519,30 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         // Désactivé volontairement sur le replay, comme sur le live :
         // aucune scarcity ni notification d'achat sur cette page.
       }
+      function syncOfferDeadline() {
+        if (didTrackCtaReached || offerDeadlineSyncInFlight) return;
+        offerDeadlineSyncInFlight = true;
+        trackWebinaireEvent(token, 'cta_reached').then((result) => {
+          const serverExpiry = new Date(result?.offer_expires_at).getTime();
+          if (Number.isFinite(serverExpiry)) offerExpiryMs = serverExpiry;
+          didTrackCtaReached = Boolean(result && result.offer_sms_queued !== false);
+          if (!didTrackCtaReached) setTimeout(syncOfferDeadline, 3000);
+        }).finally(() => { offerDeadlineSyncInFlight = false; });
+      }
       function activateOfferAndScarcity() {
-        if (ctaActivated) return;
+        if (ctaActivated) {
+          syncOfferDeadline();
+          return;
+        }
         if (isOfferExpiredNow()) {
           syncReplayUnavailableLock();
           return;
         }
         ctaActivated = true;
+        if (!Number.isFinite(offerExpiryMs)) offerExpiryMs = Date.now() + 60 * 60 * 1000;
         setOfferCtaEnabled(true);
         updateCtaUnlockCountdown();
-        if (!didTrackCtaReached) {
-          didTrackCtaReached = true;
-          trackWebinaireEvent(token, 'cta_reached');
-        }
+        syncOfferDeadline();
         offerZone.classList.remove('hidden');
         offerZone.classList.add('visible');
         expiryBanner.classList.add('hidden');

@@ -14,10 +14,6 @@ import {
   mc2StripePublishableKey,
 } from './lib/mc2-stripe.mjs';
 import { supabasePatch } from './lib/supabase-rest.mjs';
-import { queueMc2Sms } from './lib/mc2-sms.mjs';
-
-const OFFER_DURATION_MS = 60 * 60 * 1000;
-const OFFER_SMS_LEAD_MS = 15 * 60 * 1000;
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -70,26 +66,13 @@ export default async (req) => {
       return json(410, { error: 'Cette offre a expiré.' });
     }
 
-    let offerExpiresAt = registration.offer_expires_at;
+    const offerExpiresAt = registration.offer_expires_at;
     if (!offerExpiresAt) {
-      offerExpiresAt = new Date(Date.now() + OFFER_DURATION_MS).toISOString();
-      const expirySaved = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
-        offer_expires_at: offerExpiresAt,
-        checkout_last_viewed_at: new Date().toISOString(),
-        last_intent_at: new Date().toISOString(),
+      return json(409, {
+        error: 'Cette offre n’a pas encore été ouverte depuis la masterclass.',
+        code: 'offer_not_opened',
       });
-      if (!expirySaved.ok) throw new Error('mc2_offer_expiry_not_saved');
-      registration.offer_expires_at = offerExpiresAt;
     }
-
-    const reminderDueAt = new Date(new Date(offerExpiresAt).getTime() - OFFER_SMS_LEAD_MS).toISOString();
-    const queued = await queueMc2Sms({
-      token,
-      messageType: 'offer_deadline',
-      dueAt: reminderDueAt,
-      discriminator: offerExpiresAt,
-    });
-    if (!queued.ok) console.error('MC2 offer SMS queue failed:', queued.error);
 
     const stripe = mc2Stripe();
     const entryPrice = await stripe.prices.retrieve(MC2_STRIPE_ENTRY_PRICE_ID);

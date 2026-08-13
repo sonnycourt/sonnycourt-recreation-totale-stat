@@ -1,5 +1,6 @@
 import { loadMc2ReplayAccess } from './lib/mc2-replay-recovery.mjs';
 import { supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
+import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
 
 const EVENTS = new Set(['replay_started', 'replay_progress', 'cta_reached']);
 
@@ -26,7 +27,17 @@ export default async (req) => {
     const currentSecond = second(body.currentSecond);
     const nowIso = new Date().toISOString();
     const patch = { last_presence_at: nowIso, last_event_at: nowIso };
-    if (event === 'cta_reached') patch.saw_offer = true;
+    let offerDeadline = null;
+    if (event === 'cta_reached') {
+      patch.saw_offer = true;
+      offerDeadline = await ensureMc2OfferDeadline({
+        token: access.registration.token,
+        registration: access.registration,
+        source: 'replay',
+        now: new Date(nowIso),
+      });
+      if (!offerDeadline.ok) return json(500, { error: 'Expiration de l’offre non initialisée' });
+    }
     await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(access.registration.token)}`, patch);
     if (event === 'replay_progress') {
       await supabasePatch(
@@ -45,7 +56,15 @@ export default async (req) => {
         ? `recovery_replay_${access.job.id}_${Math.floor(currentSecond / 60)}`
         : `recovery_${event}_${access.job.id}`,
     }, { prefer: 'return=minimal' }).catch(() => {});
-    return json(200, { ok: true });
+    return json(200, {
+      ok: true,
+      ...(offerDeadline ? {
+        offer_activated_at: offerDeadline.activatedAt,
+        offer_expires_at: offerDeadline.offerExpiresAt,
+        offer_sms_due_at: offerDeadline.smsDueAt,
+        offer_sms_queued: offerDeadline.smsQueued,
+      } : {}),
+    });
   } catch (error) {
     console.error('mc2-replay-track:', error);
     return json(500, { error: 'Erreur serveur' });

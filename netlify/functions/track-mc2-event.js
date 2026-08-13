@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
+import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'confirmation_viewed',
@@ -167,6 +168,11 @@ export default async (req) => {
 
     const row = registration.data[0];
     const meta = sanitizeMeta(body?.meta);
+    let offerDeadline = null;
+    if (eventName === 'cta_reached') {
+      offerDeadline = await ensureMc2OfferDeadline({ token, registration: row, source: 'live' });
+      if (!offerDeadline.ok) return jsonResponse(500, { error: 'Expiration de l’offre non initialisée' });
+    }
     const patch = buildPatch(eventName, body?.value, meta, row);
     const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, patch);
     if (!updated.ok) return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
@@ -183,7 +189,15 @@ export default async (req) => {
     if (!inserted.ok && inserted.status !== 409) {
       console.error('track-mc2-event insert:', inserted.status, inserted.error);
     }
-    return jsonResponse(200, { ok: true });
+    return jsonResponse(200, {
+      ok: true,
+      ...(offerDeadline ? {
+        offer_activated_at: offerDeadline.activatedAt,
+        offer_expires_at: offerDeadline.offerExpiresAt,
+        offer_sms_due_at: offerDeadline.smsDueAt,
+        offer_sms_queued: offerDeadline.smsQueued,
+      } : {}),
+    });
   } catch (error) {
     console.error('track-mc2-event error:', error);
     return jsonResponse(500, { error: 'Erreur serveur' });

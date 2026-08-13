@@ -1267,7 +1267,6 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         </div>
 
         <div id="offer-zone" class="offer-zone hidden">
-            <p class="offer-countdown-title">L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :</p>
             <div class="countdown">
                 <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
                 <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
@@ -1549,17 +1548,17 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
             }
         }
         function trackWebinaireEvent(token, eventName, value) {
-            if (!token || !eventName) return;
+            if (!token || !eventName) return Promise.resolve(null);
             const payload = { token, event: eventName, meta: { page_path: '/mc2/session/' } };
             if (value !== undefined && value !== null) payload.value = String(value);
             console.log('[ES2 TRACKING]', eventName, payload);
-            fetch('/.netlify/functions/track-mc2-event', {
+            return fetch('/.netlify/functions/track-mc2-event', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-            }).catch(function () {
-                /* best-effort */
-            });
+            }).then(function (response) {
+                return response.ok ? response.json() : null;
+            }).catch(function () { return null; });
         }
         /* ── Heart Column ── */
         const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
@@ -1759,16 +1758,14 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         }
 
         function mountVideoAndOffer(reg) {
-            // L'urgence d'une heure ne commence qu'à la première ouverture de
-            // /commencer. Une inscription fraîche n'a donc volontairement pas
-            // encore d'offer_expires_at et doit quand même accéder au live.
-            const expiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
+            // L'urgence commence à l'apparition du CTA. Avant ce moment, une
+            // inscription fraîche n'a volontairement pas d'expiration.
+            let expiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
             const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
-            const offerCountdownTitleEl = document.querySelector('#offer-zone .offer-countdown-title');
             const offerCountdownEl = document.querySelector('#offer-zone .countdown');
             const offerScarcityEl = document.getElementById('scarcity-card');
             const offerCtaNode = document.getElementById('offer-cta');
@@ -1781,16 +1778,10 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 offerCtaNode.classList.toggle('is-disabled', !isEnabled);
                 offerCtaNode.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
                 offerCtaNode.setAttribute('tabindex', isEnabled ? '0' : '-1');
-                if (offerCountdownTitleEl) {
-                    offerCountdownTitleEl.innerHTML = isEnabled
-                        ? 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible'
-                        : 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :';
-                }
             }
 
             function setOfferExpiredState(nextExpired) {
                 isOfferExpired = Boolean(nextExpired);
-                if (offerCountdownTitleEl) offerCountdownTitleEl.classList.toggle('hidden', isOfferExpired);
                 if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
                 if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
@@ -2637,11 +2628,20 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
                     const isCtaActive = elapsedSec >= CTA_ACTIVATE_SECONDS;
-                    updateCountdown(ctaActivationMs, offerIds);
+                    if (isCtaActive && !Number.isFinite(expiryMs)) {
+                        // Réponse visuelle immédiate ; le serveur confirme la même ancre,
+                        // calculée depuis session_starts_at et 01:30:13.
+                        expiryMs = ctaActivationMs + 60 * 60 * 1000;
+                    }
+                    updateCountdown(isCtaActive ? expiryMs : ctaActivationMs, offerIds);
                     setOfferCtaEnabled(isCtaActive);
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
-                        trackWebinaireEvent(reg.token, 'cta_reached');
+                        trackWebinaireEvent(reg.token, 'cta_reached').then(function (result) {
+                            const serverExpiry = new Date(result?.offer_expires_at).getTime();
+                            if (Number.isFinite(serverExpiry)) expiryMs = serverExpiry;
+                            if (!result || result.offer_sms_queued === false) didTrackCtaReached = false;
+                        });
                     }
                 } else if (elapsedSec < CTA_APPEAR_SECONDS) {
                     setOfferCtaEnabled(false);
