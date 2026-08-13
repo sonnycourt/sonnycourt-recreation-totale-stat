@@ -12,6 +12,7 @@ import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { cancelMc2OfferSms } from './mc2-sms.mjs';
 import { cancelMc2ReplayRecoveryJobs } from './mc2-replay-recovery.mjs';
 import { mc2CircleEnabled, queueMc2CircleOnboarding } from './mc2-circle-onboarding.mjs';
+import { addMc2BuyerToMailerLite } from './mc2-mailerlite-buyers.mjs';
 import {
   cancelMc2DunningJobs,
   mc2DunningStage,
@@ -205,6 +206,14 @@ async function processCheckoutCompleted(stripe, session, event) {
     email: registration.email,
   });
   if (!replayCancellation.ok) console.error('mc2 purchase replay cancellation:', replayCancellation.error);
+  // Le groupe acheteur sert de source de vérité MailerLite et ne déclenche
+  // aucune communication tant qu'aucune automation n'y est reliée.
+  const buyerGroup = await addMc2BuyerToMailerLite({
+    email: registration.email || session.customer_details?.email || session.customer_email,
+  });
+  if (!buyerGroup.ok) {
+    console.error('mc2 purchase MailerLite buyer group:', buyerGroup.error || buyerGroup.skipped);
+  }
   await recordFunnelEvent(token, 'purchase_completed', session.amount_total || MC2_ENTRY_PAYMENT_CENTS, {
     stripe_event_id: event.id,
     checkout_session_id: session.id,
