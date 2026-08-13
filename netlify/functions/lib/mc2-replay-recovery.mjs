@@ -42,7 +42,9 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
     beforeCtaDelayMinutes: beforeCtaDelay === '' ? null : positiveInt(beforeCtaDelay, 0, 14 * 24 * 60),
     offerDelayMinutes: offerDelay === '' ? null : positiveInt(offerDelay, 0, 14 * 24 * 60),
     replayAccessHours: positiveInt(env.MC2_REPLAY_ACCESS_HOURS, 48, 30 * 24),
-    resumeRewindSeconds: positiveInt(env.MC2_REPLAY_RESUME_REWIND_SECONDS, 30, 15 * 60),
+    // La vidéo live contient 20 min 20 s d'attente que le replay ne contient
+    // pas. On retire donc exactement ce décalage au point de reprise.
+    liveCountdownSeconds: positiveInt(env.MC2_LIVE_COUNTDOWN_SECONDS, 20 * 60 + 20, 60 * 60),
     replayUrl: clean(
       env.MC2_REPLAY_VIDEO_URL
         || 'https://vz-601d6eb4-a9a.b-cdn.net/976fa52b-904d-41bd-9107-e68fbb5d3167/playlist.m3u8',
@@ -96,7 +98,7 @@ export function mc2RecoveryDueAt(row = {}, segment, env = process.env) {
 export function mc2RecoveryResumeSeconds(row = {}, segment, env = process.env) {
   if (segment !== 'left_before_cta') return 0;
   const watched = positiveInt(row.watch_max_seconds_live, 0, 24 * 60 * 60);
-  return Math.max(0, watched - mc2ReplayRecoveryConfig(env).resumeRewindSeconds);
+  return Math.max(0, watched - mc2ReplayRecoveryConfig(env).liveCountdownSeconds);
 }
 
 export function mc2RecoveryJobKey(row = {}, segment) {

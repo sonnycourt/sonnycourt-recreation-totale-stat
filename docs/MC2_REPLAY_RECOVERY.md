@@ -15,7 +15,7 @@
 | Segment | Condition de vérité | Délai par défaut | Destination |
 | --- | --- | --- | --- |
 | No-show | `attended_live=false`, non acheteur | session + 22 h | Replay personnel 48 h |
-| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | fin de session + 60 min | Replay 48 h, reprise 30 s avant le dernier point |
+| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | fin de session + 60 min | Replay 48 h, reprise au point live moins 20 min 20 s |
 | Offre vue | `saw_offer=true`, non acheteur | fin de session + 15 min | Offre directe, sans replay |
 | Acheteur | statut/paiement/`purchased_at` | immédiat | Toute relance annulée et groupes retirés |
 
@@ -73,7 +73,7 @@ MC2_REPLAY_NO_SHOW_DELAY_MINUTES=1320
 MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES=60
 MC2_OFFER_FOLLOWUP_DELAY_MINUTES=15
 MC2_REPLAY_ACCESS_HOURS=48
-MC2_REPLAY_RESUME_REWIND_SECONDS=30
+MC2_LIVE_COUNTDOWN_SECONDS=1220
 MC2_PUBLIC_BASE_URL=https://sonnycourt.com
 ```
 
@@ -122,8 +122,9 @@ dans MailerLite ni envoyé par le code.
   le lecteur : signal fiable de présence volontaire.
 - `cta_reached` met `saw_offer=true` lorsque le CTA devient actif : fiable pour
   distinguer l'offre vue, à condition de conserver la seconde CTA synchronisée.
-- `mc2-presence` met à jour `watch_max_seconds_live`, ce qui fournit le dernier
-  point utile pour reprendre le replay.
+- `mc2-presence` met à jour `watch_max_seconds_live`. Le replay retirant les
+  20 min 20 s d'attente présentes uniquement dans le live, le point de reprise
+  est `max(0, watch_max_seconds_live - 1220)`.
 - Le worker crée le contact MailerLite seulement au moment d'une relance due,
   avec le flag actif, puis l'ajoute uniquement au groupe MC2 revalidé. Il ne
   touche à aucun groupe historique du webinaire.

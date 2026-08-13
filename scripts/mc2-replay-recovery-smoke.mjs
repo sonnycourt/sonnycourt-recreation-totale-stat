@@ -25,7 +25,7 @@ const env = {
   MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES: '60',
   MC2_OFFER_FOLLOWUP_DELAY_MINUTES: '15',
   MC2_REPLAY_ACCESS_HOURS: '48',
-  MC2_REPLAY_RESUME_REWIND_SECONDS: '30',
+  MC2_LIVE_COUNTDOWN_SECONDS: '1220',
 };
 
 assert.equal(mc2ReplayRecoveryEnabled({ MC2_REPLAY_RECOVERY_ENABLED: 'false' }), false);
@@ -34,10 +34,19 @@ assert.equal(mc2ReplayRecoveryConfig(env).replayAccessHours, 48);
 assert.equal(mc2RecoverySegment(base), 'no_show');
 assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T16:00:00.000Z');
 
-const left = { ...base, attended_live: true, watch_max_seconds_live: 1_200 };
+const left = { ...base, attended_live: true, watch_max_seconds_live: 2_700 };
 assert.equal(mc2RecoverySegment(left), 'left_before_cta');
-assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_170);
+assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_480);
 assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T20:15:00.000Z');
+
+assert.equal(
+  mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_live: 1_200 }, 'left_before_cta', env),
+  0,
+);
+assert.equal(
+  mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_live: 1_220 }, 'left_before_cta', env),
+  0,
+);
 
 const offer = { ...left, saw_offer: true, offer_expires_at: '2026-08-12T20:15:00.000Z' };
 assert.equal(mc2RecoverySegment(offer), 'offer_seen_no_purchase');
