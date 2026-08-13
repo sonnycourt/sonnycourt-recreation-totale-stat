@@ -20,9 +20,8 @@ function response(status, body, headers = {}) {
 function requestCode(url) {
   const queryCode = cleanCode(url.searchParams.get('code'));
   if (queryCode) return queryCode;
-  const marker = '/mc2-offer-redirect/';
-  const index = url.pathname.indexOf(marker);
-  return index === -1 ? '' : cleanCode(decodeURIComponent(url.pathname.slice(index + marker.length)));
+  const segment = url.pathname.split('/').filter(Boolean).at(-1) || '';
+  return cleanCode(decodeURIComponent(segment));
 }
 
 export default async (req) => {
