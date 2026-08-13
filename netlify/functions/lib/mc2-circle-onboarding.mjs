@@ -4,6 +4,7 @@ const CIRCLE_API_BASE = 'https://app.circle.so/api/admin/v2';
 const CIRCLE_TAG_NAME = 'ES 2.0 (AVANCÉ)';
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAYS_MS = [2 * 60_000, 10 * 60_000, 30 * 60_000, 2 * 60 * 60_000];
+const IMMEDIATE_TIMEOUT_MS = 4_000;
 
 function clean(value, max = 500) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -113,7 +114,7 @@ export async function findCircleMember(email, options = {}) {
   try {
     payload = await circleRequest(
       `community_members/search?email=${encodeURIComponent(safeEmail)}`,
-      { method: 'GET' },
+      { method: 'GET', signal: options.signal },
       options.env,
     );
   } catch (error) {
@@ -128,7 +129,11 @@ export async function findCircleMember(email, options = {}) {
 }
 
 export async function findCircleTag(options = {}) {
-  const payload = await circleRequest('member_tags?page=1&per_page=100', { method: 'GET' }, options.env);
+  const payload = await circleRequest(
+    'member_tags?page=1&per_page=100',
+    { method: 'GET', signal: options.signal },
+    options.env,
+  );
   const matches = records(payload).filter((tag) => clean(tag?.name, 160) === CIRCLE_TAG_NAME);
   if (matches.length !== 1) {
     const errorCode = matches.length ? 'circle_tag_ambiguous' : 'circle_tag_missing';
@@ -140,6 +145,7 @@ export async function findCircleTag(options = {}) {
 export async function inviteCircleMember({ email, name }, options = {}) {
   const payload = await circleRequest('community_members', {
     method: 'POST',
+    signal: options.signal,
     body: JSON.stringify({
       email: normalizedEmail(email),
       name: clean(name, 200) || undefined,
@@ -156,6 +162,7 @@ export async function inviteCircleMember({ email, name }, options = {}) {
 export async function addCircleMemberTag({ email, tagId }, options = {}) {
   return circleRequest('tagged_members', {
     method: 'POST',
+    signal: options.signal,
     body: JSON.stringify({
       user_email: normalizedEmail(email),
       member_tag_id: positiveInteger(tagId),
@@ -229,14 +236,17 @@ export async function processMc2CircleOnboardingJob(job, options = {}) {
   }
 
   try {
-    const tag = await findCircleTag({ env: options.env });
+    const tag = await findCircleTag({ env: options.env, signal: options.signal });
     const tagId = positiveInteger(tag?.id);
     if (!tagId) throw Object.assign(new Error('circle_tag_id_invalid'), { code: 'circle_tag_id_invalid' });
 
-    let member = await findCircleMember(claimedJob.email, { env: options.env });
+    let member = await findCircleMember(claimedJob.email, { env: options.env, signal: options.signal });
     let memberCreated = false;
     if (!member) {
-      member = await inviteCircleMember({ email: claimedJob.email, name: claimedJob.member_name }, { env: options.env });
+      member = await inviteCircleMember(
+        { email: claimedJob.email, name: claimedJob.member_name },
+        { env: options.env, signal: options.signal },
+      );
       memberCreated = true;
       // Persist this irreversible provider-side step immediately. If the worker
       // crashes before tagging, a retry searches Circle and never re-invites.
@@ -250,7 +260,10 @@ export async function processMc2CircleOnboardingJob(job, options = {}) {
     let tagAdded = false;
     if (!memberHasTag(member, tagId)) {
       try {
-        await addCircleMemberTag({ email: claimedJob.email, tagId }, { env: options.env });
+        await addCircleMemberTag(
+          { email: claimedJob.email, tagId },
+          { env: options.env, signal: options.signal },
+        );
         tagAdded = true;
         await patchJob(job.id, {
           circle_member_id: String(member.id),
@@ -263,7 +276,10 @@ export async function processMc2CircleOnboardingJob(job, options = {}) {
         // A concurrent Stripe retry may have applied the tag between the read
         // and write. Re-read once; never remove or replace any existing tag.
         if (Number(error?.status) !== 422 && Number(error?.status) !== 409) throw error;
-        const refreshed = await findCircleMember(claimedJob.email, { env: options.env });
+        const refreshed = await findCircleMember(
+          claimedJob.email,
+          { env: options.env, signal: options.signal },
+        );
         if (!memberHasTag(refreshed, tagId)) throw error;
         member = refreshed;
       }
@@ -314,5 +330,27 @@ export async function processMc2CircleOnboardingJob(job, options = {}) {
   }
 }
 
+// The durable queue is always written by the caller before this best-effort
+// fast path runs. A single deadline covers every Circle request so the Stripe
+// webhook remains responsive. Timeout/provider errors are converted by the
+// normal job processor into `retry`; the scheduled worker then picks them up.
+export async function attemptMc2CircleOnboardingImmediately(job, options = {}) {
+  if (!positiveInteger(job?.id)) return { status: 'not_attempted', reason: 'circle_job_missing' };
+  const configuredTimeout = Number(options.timeoutMs);
+  const timeoutMs = Number.isFinite(configuredTimeout)
+    ? Math.min(Math.max(configuredTimeout, 250), 10_000)
+    : IMMEDIATE_TIMEOUT_MS;
+  const signal = options.signal || AbortSignal.timeout(timeoutMs);
+  try {
+    return await processMc2CircleOnboardingJob(job, { ...options, signal });
+  } catch (error) {
+    // The job already exists durably. Do not fail the paid Stripe webhook for
+    // an unexpected fast-path exception; a pending job is immediately due and
+    // a claimed job is recovered by the scheduled worker's stale-claim guard.
+    return { status: 'deferred', error: providerError(error).code };
+  }
+}
+
 export const MC2_CIRCLE_TAG_NAME = CIRCLE_TAG_NAME;
 export const MC2_CIRCLE_MAX_ATTEMPTS = MAX_ATTEMPTS;
+export const MC2_CIRCLE_IMMEDIATE_TIMEOUT_MS = IMMEDIATE_TIMEOUT_MS;

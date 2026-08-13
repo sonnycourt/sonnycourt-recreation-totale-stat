@@ -14,7 +14,11 @@ import {
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { cancelMc2OfferSms } from './mc2-sms.mjs';
 import { cancelMc2ReplayRecoveryJobs } from './mc2-replay-recovery.mjs';
-import { mc2CircleEnabled, queueMc2CircleOnboarding } from './mc2-circle-onboarding.mjs';
+import {
+  attemptMc2CircleOnboardingImmediately,
+  mc2CircleEnabled,
+  queueMc2CircleOnboarding,
+} from './mc2-circle-onboarding.mjs';
 import { addMc2BuyerToMailerLite } from './mc2-mailerlite-buyers.mjs';
 import {
   cancelMc2DunningJobs,
@@ -196,9 +200,10 @@ async function processCheckoutCompleted(stripe, session, event) {
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
-  // Queue only after Stripe has confirmed the initial MC2 payment. The worker
-  // performs the Circle writes asynchronously and idempotently, so a Circle
-  // outage can never hold the customer's Stripe checkout open.
+  let circleOnboarding = null;
+  // Queue only after Stripe has confirmed the initial MC2 payment. Persist the
+  // job before touching Circle, then try the same idempotent processor inline
+  // with one short deadline. Any outage/timeout leaves a retry for the worker.
   if (mc2CircleEnabled()) {
     const circleQueued = await queueMc2CircleOnboarding({
       token,
@@ -209,6 +214,7 @@ async function processCheckoutCompleted(stripe, session, event) {
     // Do not acknowledge the Stripe event if its durable job was not stored.
     // Stripe may safely redeliver: the schedule and queue both use idempotency.
     if (!circleQueued.ok) throw new Error(`mc2_circle_queue_${circleQueued.error || 'failed'}`);
+    circleOnboarding = await attemptMc2CircleOnboardingImmediately(circleQueued.row);
   }
   const smsCancellation = await cancelMc2OfferSms(token);
   if (!smsCancellation.ok) console.error('mc2 purchase SMS cancellation:', smsCancellation.error);
@@ -231,7 +237,12 @@ async function processCheckoutCompleted(stripe, session, event) {
     schedule_id: schedule.id,
     payment_plan: MC2_PAY_METADATA.payment_plan,
   });
-  return { status: 'paid', token, schedule_id: schedule.id };
+  return {
+    status: 'paid',
+    token,
+    schedule_id: schedule.id,
+    circle_onboarding: circleOnboarding?.status || (mc2CircleEnabled() ? 'deferred' : 'disabled'),
+  };
 }
 
 function invoiceSubscriptionId(invoice) {

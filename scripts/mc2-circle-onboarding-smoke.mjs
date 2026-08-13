@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
+  attemptMc2CircleOnboardingImmediately,
   MC2_CIRCLE_TAG_NAME,
   processMc2CircleOnboardingJob,
   queueMc2CircleOnboarding,
 } from '../netlify/functions/lib/mc2-circle-onboarding.mjs';
+import { routeMc2StripeEvent } from '../netlify/functions/lib/mc2-pay-router.mjs';
 
 process.env.SUPABASE_URL = 'https://supabase.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-only';
@@ -47,7 +49,13 @@ function installMock({ member, searchStatus = 200, failTags = false } = {}) {
     const url = String(input);
     const method = String(init.method || 'GET').toUpperCase();
     const body = init.body ? JSON.parse(init.body) : null;
-    requests.push({ url, method, body, headers: init.headers || {} });
+    requests.push({
+      url,
+      method,
+      body,
+      headers: init.headers || {},
+      hasSignal: Boolean(init.signal),
+    });
 
     if (url.startsWith('https://supabase.test/rest/v1/')) {
       if (method === 'PATCH') {
@@ -114,12 +122,16 @@ function installMock({ member, searchStatus = 200, failTags = false } = {}) {
 // Missing member: one invitation followed by one exact tag assignment.
 {
   const mock = installMock({ searchStatus: 404 });
-  const result = await processMc2CircleOnboardingJob({ id: 10, attempts: 0 }, { env: circleEnv });
+  const result = await attemptMc2CircleOnboardingImmediately(
+    { id: 10, attempts: 0 },
+    { env: circleEnv, timeoutMs: 1_000 },
+  );
   assert.equal(result.status, 'succeeded');
   assert.equal(result.memberCreated, true);
   assert.equal(result.tagAdded, true);
   const circleRequests = mock.requests.filter((request) => request.url.startsWith('https://circle.test'));
   assert.deepEqual(circleRequests.map((request) => request.method), ['GET', 'GET', 'POST', 'POST']);
+  assert.equal(circleRequests.every((request) => request.hasSignal), true);
   assert.equal(circleRequests.some((request) => ['DELETE', 'PUT', 'PATCH'].includes(request.method)), false);
   assert.equal(mock.supabasePatches.some((body) => body.status === 'succeeded'), true);
 }
@@ -127,13 +139,57 @@ function installMock({ member, searchStatus = 200, failTags = false } = {}) {
 // Temporary provider error: no member mutation and a durable safe retry.
 {
   const mock = installMock({ failTags: true });
-  const result = await processMc2CircleOnboardingJob({ id: 10, attempts: 0 }, { env: circleEnv });
+  const result = await attemptMc2CircleOnboardingImmediately(
+    { id: 10, attempts: 0 },
+    { env: circleEnv, timeoutMs: 1_000 },
+  );
   assert.equal(result.status, 'retry');
   assert.equal(mock.supabasePatches.some((body) => body.status === 'retry' && body.next_attempt_at), true);
   assert.equal(
     mock.requests.filter((request) => request.url.startsWith('https://circle.test')).some((request) => request.method === 'POST'),
     false,
   );
+}
+
+// An unpaid Checkout event is marked once but never queues or calls Circle;
+// the identical Stripe delivery is then ignored by the event idempotency key.
+{
+  let processed = false;
+  const requests = [];
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    const method = String(init.method || 'GET').toUpperCase();
+    requests.push({ url, method });
+    assert.equal(url.startsWith('https://supabase.test/rest/v1/'), true);
+    if (url.includes('/mc2_stripe_webhook_events?') && method === 'GET') {
+      return jsonResponse(200, processed ? [{ event_id: 'evt_unpaid_duplicate' }] : []);
+    }
+    if (url.endsWith('/mc2_stripe_webhook_events') && method === 'POST') {
+      processed = true;
+      return jsonResponse(201, null);
+    }
+    throw new Error(`Unexpected unpaid request ${method} ${url}`);
+  };
+  const unpaidEvent = {
+    id: 'evt_unpaid_duplicate',
+    type: 'checkout.session.completed',
+    livemode: true,
+    data: {
+      object: {
+        id: 'cs_unpaid',
+        mode: 'payment',
+        payment_status: 'unpaid',
+        metadata: { system: 'es2_mc2', mc2_token: 'mc2-token' },
+      },
+    },
+  };
+  const first = await routeMc2StripeEvent(unpaidEvent, { stripe: {} });
+  const duplicate = await routeMc2StripeEvent(unpaidEvent, { stripe: {} });
+  assert.equal(first.skipped, 'payment');
+  assert.equal(first.duplicate, false);
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(requests.some(({ url }) => url.includes('mc2_circle_onboarding_jobs')), false);
+  assert.equal(requests.some(({ url }) => url.startsWith('https://circle.test')), false);
 }
 
 // Duplicate Stripe delivery: an existing job is returned, never inserted twice.
@@ -166,14 +222,18 @@ function installMock({ member, searchStatus = 200, failTags = false } = {}) {
   const router = fs.readFileSync(new URL('../netlify/functions/lib/mc2-pay-router.mjs', import.meta.url), 'utf8');
   const paidGuard = router.indexOf("session.payment_status !== 'paid'");
   const circleQueue = router.indexOf('queueMc2CircleOnboarding({');
+  const circleImmediate = router.indexOf('attemptMc2CircleOnboardingImmediately(circleQueued.row)');
   assert.equal(paidGuard >= 0 && circleQueue > paidGuard, true);
   assert.equal(router.slice(paidGuard, circleQueue).includes('mc2_purchase_update_'), true);
+  assert.equal(circleImmediate > circleQueue, true);
 }
 
 console.log(JSON.stringify({
   circle_existing_member: 'ok',
-  circle_invite_and_tag: 'ok',
-  circle_retry: 'ok',
-  stripe_duplicate_idempotence: 'ok',
+  circle_immediate_invite_and_tag: 'ok',
+  circle_immediate_retry_fallback: 'ok',
+  stripe_duplicate_job_idempotence: 'ok',
+  stripe_duplicate_event_idempotence: 'ok',
+  stripe_non_paid_guard: 'ok',
   destructive_guard: 'ok',
 }, null, 2));
