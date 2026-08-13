@@ -20,6 +20,7 @@ import {
   queueMc2CircleOnboarding,
 } from './mc2-circle-onboarding.mjs';
 import { addMc2BuyerToMailerLite } from './mc2-mailerlite-buyers.mjs';
+import { queueMc2ContractDocument } from './mc2-contract-documents.mjs';
 import {
   cancelMc2DunningJobs,
   mc2DunningStage,
@@ -200,6 +201,15 @@ async function processCheckoutCompleted(stripe, session, event) {
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
+  // Le document est figé uniquement après confirmation du paiement initial.
+  // Son insertion est idempotente par inscription ; une rediffusion Stripe ne
+  // crée ni nouveau document ni nouveau lien personnel.
+  const contractDocument = await queueMc2ContractDocument({
+    registration,
+    session,
+    event,
+  });
+  if (!contractDocument.ok) throw new Error(contractDocument.error || 'mc2_contract_document_failed');
   let circleOnboarding = null;
   // Queue only after Stripe has confirmed the initial MC2 payment. Persist the
   // job before touching Circle, then try the same idempotent processor inline
@@ -242,6 +252,9 @@ async function processCheckoutCompleted(stripe, session, event) {
     token,
     schedule_id: schedule.id,
     circle_onboarding: circleOnboarding?.status || (mc2CircleEnabled() ? 'deferred' : 'disabled'),
+    contract_document: contractDocument.enabled
+      ? contractDocument.queued ? 'queued' : 'existing'
+      : 'disabled',
   };
 }
 
