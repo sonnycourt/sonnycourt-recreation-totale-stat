@@ -40,7 +40,7 @@ MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v3.
 MC2_TERMS_SNAPSHOT_SHA256=2a2bc31df89646146de1acfe691c2c79cd9d32c2da5556b8ba86e7dbda6a7e99
 ```
 
-## Email validé — à conserver en brouillon
+## Email validé
 
 Objet exact :
 
@@ -68,14 +68,18 @@ Sonny Court
 ArgEntrepreneur Sàrl
 ```
 
-Conformément aux règles du dépôt, aucune automation MailerLite et aucun envoi
-réel ne sont activés sans relecture finale de Sonny. La transmission vers
-MailerLite du prénom, du lien personnel opaque et de la date de commande
-requiert en plus une autorisation explicite de ce payload précis avant
-d’implémenter le worker ou de créer les champs/groupe distants.
+Sonny a validé le texte et autorisé explicitement la transmission à MailerLite
+du prénom, du lien personnel opaque et de la date de commande. Le groupe
+`MC2 — Documents contractuels`, les champs et le worker idempotent sont prêts.
 
-Après cette autorisation, l’API pourra préparer le groupe et les champs. Il
-restera alors une seule manipulation MailerLite non automatisable : créer en
-brouillon l’automation déclenchée par l’entrée dans ce groupe, y coller l’objet
-et le corps ci-dessus, puis la faire relire message par message par Sonny avant
-toute activation.
+Variables :
+
+```text
+MAILERLITE_GROUP_MC2_CONTRACT_DOCUMENTS=195721838546912284
+MC2_CONTRACT_DOCUMENT_EMAILS_ENABLED=true
+```
+
+L’automation MailerLite « rejoint le groupe → email immédiat » a été créée,
+relue et activée le 13 août 2026 avec le texte exact ci-dessus. La présence de
+la table Supabase a été vérifiée en lecture seule et les deux flags production
+ont ensuite été passés sur `true` ensemble.
