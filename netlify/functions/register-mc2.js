@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
 import { queueMc2Sms } from './lib/mc2-sms.mjs';
+import { queueMc2SessionEmails } from './lib/mc2-session-emails.mjs';
 import { upsertWebinaireSubscriber } from './lib/mailerlite-webinaire.mjs';
 
 function jsonResponse(status, payload) {
@@ -51,6 +52,15 @@ async function queueLiveReminder(row) {
     discriminator: row.session_starts_at,
   });
   if (!result.ok) console.error('MC2 live SMS queue failed:', result.error);
+}
+
+async function queueSessionEmails(row) {
+  try {
+    await queueMc2SessionEmails(row);
+  } catch (error) {
+    // La file email ne doit jamais bloquer une inscription valide.
+    console.error('MC2 session email queue failed:', error?.message || error);
+  }
 }
 
 async function syncMailerLite(row) {
@@ -168,6 +178,7 @@ export default async (req) => {
       const completedRow = { ...row, ...patch };
       await syncMailerLite(completedRow);
       await queueLiveReminder(completedRow);
+      if (isComplete) await queueSessionEmails(completedRow);
       return jsonResponse(200, registrationResponse(completedRow, true));
     }
 
@@ -203,6 +214,7 @@ export default async (req) => {
     }
     await queueLiveReminder(row);
     await syncMailerLite(row);
+    if (isComplete) await queueSessionEmails(row);
     return jsonResponse(200, registrationResponse(row));
   } catch (error) {
     console.error('register-mc2 error:', error);
