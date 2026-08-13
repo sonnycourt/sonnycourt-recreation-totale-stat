@@ -51,7 +51,7 @@ const reviewInitials = (name) => name
           <div class="page-countdown__digits" aria-hidden="true">
             <div><strong>00</strong><small>jours</small></div>
             <b>:</b>
-            <div><strong id="countdown-hours">01</strong><small>heure</small></div>
+            <div><strong id="countdown-hours">01</strong><small>heures</small></div>
             <b>:</b>
             <div><strong id="countdown-minutes">00</strong><small>minutes</small></div>
             <b>:</b>
@@ -208,13 +208,17 @@ const reviewInitials = (name) => name
               </section>
 
               <label class="consent">
-                <input type="checkbox" id="commitment" required />
+                <input type="checkbox" id="commitment" aria-describedby="future-debit-consent" required />
                 <span class="custom-checkbox" aria-hidden="true">✓</span>
                 <span>
                   J’accepte les <a href="/cgv/" target="_blank" rel="noopener">CGV</a>
                   et l’échéancier clairement indiqué ci-dessus.
                 </span>
               </label>
+              <p class="future-debit-consent" id="future-debit-consent">
+                Cette validation autorise ArgEntrepreneur Sàrl à débiter cette carte pour les
+                4 échéances de 297&nbsp;€ prévues.
+              </p>
 
               <button
                 type="submit"
@@ -236,7 +240,7 @@ const reviewInitials = (name) => name
                     <rect x="5" y="10" width="14" height="11" rx="2"></rect>
                     <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"></path>
                   </svg>
-                  Paiement chiffré
+                  Paiement sécurisé
                 </span>
                 <span>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -534,6 +538,71 @@ const reviewInitials = (name) => name
         updateSubmitState();
       }
 
+      const stripeAppearance = {
+        theme: 'stripe',
+        inputs: 'spaced',
+        labels: 'above',
+        variables: {
+          colorPrimary: '#126de0',
+          colorBackground: '#ffffff',
+          colorText: '#17243b',
+          colorDanger: '#c8394f',
+          colorSuccess: '#08745a',
+          fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          fontSizeBase: '16px',
+          spacingUnit: '3px',
+          borderRadius: '7px',
+        },
+        rules: {
+          '.AccordionItem': {
+            backgroundColor: '#f7f9fd',
+            border: '0px solid transparent',
+            borderRadius: '0px',
+            boxShadow: 'none',
+            color: '#445169',
+            fontSize: '11px',
+            fontWeight: '700',
+            padding: '7px 0px',
+          },
+          '.AccordionItem--selected': {
+            borderColor: 'transparent',
+            boxShadow: 'none',
+          },
+          '.Input': {
+            backgroundColor: '#ffffff',
+            border: '1px solid #dce2ec',
+            boxShadow: 'none',
+            color: '#17243b',
+            padding: '10px 11px',
+          },
+          '.Input:focus': {
+            borderColor: '#3a8fff',
+            boxShadow: '0 0 0 3px rgba(40, 126, 255, 0.12)',
+          },
+          '.Input--invalid': {
+            borderColor: '#c8394f',
+            boxShadow: '0 0 0 2px rgba(200, 57, 79, 0.10)',
+          },
+          '.Input::placeholder': {
+            color: '#a0a8b6',
+          },
+          '.Label': {
+            color: '#5f6b7d',
+            fontSize: '11px',
+            fontWeight: '650',
+          },
+          '.Error': {
+            color: '#c8394f',
+            fontSize: '10px',
+          },
+          '.TermsText': {
+            color: '#7a8497',
+            fontSize: '9px',
+            lineHeight: '1.45',
+          },
+        },
+      };
+
       async function createCheckout() {
         const response = await fetch('/.netlify/functions/mc2-stripe-checkout', {
           method: 'POST',
@@ -561,8 +630,26 @@ const reviewInitials = (name) => name
         firstNameInput.readOnly = true;
         emailInput.readOnly = true;
         const stripe = window.Stripe(data.publishable_key);
-        stripeCheckout = await stripe.initCheckout({ fetchClientSecret: () => Promise.resolve(data.client_secret) });
-        const paymentElement = stripeCheckout.createPaymentElement({ layout: 'accordion' });
+        stripeCheckout = await stripe.initCheckout({
+          fetchClientSecret: () => Promise.resolve(data.client_secret),
+          elementsOptions: { appearance: stripeAppearance },
+        });
+        const paymentElement = stripeCheckout.createPaymentElement({
+          layout: {
+            type: 'accordion',
+            defaultCollapsed: false,
+            radios: 'never',
+            spacedAccordionItems: false,
+          },
+          fields: {
+            billingDetails: {
+              address: 'if_required',
+            },
+          },
+          // Le consentement explicite aux quatre débits futurs est recueilli
+          // dans la case CGV ci-dessus et enregistré avant la confirmation.
+          terms: { card: 'never' },
+        });
         paymentLoading.hidden = true;
         stripeElement.hidden = false;
         paymentElement.mount(stripeElement);
@@ -977,6 +1064,7 @@ const reviewInitials = (name) => name
   .consent > span:last-child { color: #445169; font-size: 10px; line-height: 1.48; }
   .consent strong { color: #111e34; }
   .consent a { color: #145fbf; font-weight: 750; text-underline-offset: 2px; }
+  .future-debit-consent { margin: -7px 1px 13px 31px; color: #788397; font-size: 8.5px; line-height: 1.45; }
 
   .buy-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; padding: 13px 17px; color: #fff; background: linear-gradient(135deg, #1681ff, #074dbd); border: 1px solid rgba(7,75,183,.18); border-radius: 11px; box-shadow: 0 15px 30px rgba(9,83,199,.34), inset 0 1px 0 rgba(255,255,255,.22); cursor: pointer; font-size: 13.5px; font-weight: 900; letter-spacing: .015em; text-transform: uppercase; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
   .buy-button:hover { transform: translateY(-2px); box-shadow: 0 16px 28px rgba(15,99,221,.34); filter: brightness(1.04); }
