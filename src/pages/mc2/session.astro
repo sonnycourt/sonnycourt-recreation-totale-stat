@@ -1449,10 +1449,11 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         function decideRouteFromPayload(payload, token) {
             const now = Date.now();
             const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
-            const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+            const offerExpiryRaw = payload.offreExpiresAt || payload.offre_expires_at;
+            const oe = offerExpiryRaw ? new Date(offerExpiryRaw).getTime() : NaN;
             const liveStart = sd - LIVE_VIDEO_LEAD_MS;
             const lateCutoff = sd + LATE_DIRECT_AFTER_SESSION_MS;
-            if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
+            if (!Number.isFinite(sd)) {
                 return { type: 'block', title: 'Erreur', text: 'Dates de session invalides.' };
             }
             if (now < liveStart) {
@@ -1461,7 +1462,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
             if (now >= liveStart && now < lateCutoff) {
                 return { type: 'redirect', url: '/mc2/session?t=' + encodeURIComponent(token) };
             }
-            if (now >= lateCutoff && now < oe) {
+            if (now >= lateCutoff && (!Number.isFinite(oe) || now < oe)) {
                 return { type: 'redirect', url: '/mc2/replay?t=' + encodeURIComponent(token) + '&reason=late' };
             }
             return { type: 'block', title: "Cette masterclass n'est plus accessible.", text: '' };
@@ -1480,7 +1481,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 }
                 submit.disabled = true;
                 try {
-                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                    const res = await fetch('/.netlify/functions/check-mc2-eligibility', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email }),
@@ -1758,7 +1759,10 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         }
 
         function mountVideoAndOffer(reg) {
-            const expiryMs = new Date(reg.offreExpiresAt).getTime();
+            // L'urgence d'une heure ne commence qu'à la première ouverture de
+            // /commencer. Une inscription fraîche n'a donc volontairement pas
+            // encore d'offer_expires_at et doit quand même accéder au live.
+            const expiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
@@ -3272,7 +3276,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                     return;
                 }
                 const data = await res.json();
-                if (!data.valid || !data.sessionStartsAt || !data.offreExpiresAt) {
+                if (!data.valid || !data.sessionStartsAt) {
                     showScreen('screen-recovery');
                     return;
                 }
@@ -3290,10 +3294,9 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
                     ? sessionEndsRawMs
                     : (sessionMs + (90 * 60 * 1000));
-                const offerMs = new Date(reg.offreExpiresAt).getTime();
                 const attendedLive = data?.attended_live === true;
 
-                if (!Number.isFinite(sessionMs) || !Number.isFinite(offerMs)) {
+                if (!Number.isFinite(sessionMs)) {
                     showBlocked('Erreur', 'Dates de session invalides.');
                     return;
                 }
