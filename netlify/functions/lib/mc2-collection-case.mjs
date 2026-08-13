@@ -51,7 +51,7 @@ export function mc2CollectionEligible({ retryCount = 0, exhausted = false } = {}
 }
 
 export function mc2ContractVersion(env = process.env) {
-  return clean(env.MC2_CONTRACT_VERSION, 80) || 'mc2-cgv-2026-08-v3';
+  return clean(env.MC2_CONTRACT_VERSION, 80) || 'mc2-cgv-2026-08-v4';
 }
 
 export function mc2ContractAcceptanceText(env = process.env) {

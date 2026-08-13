@@ -56,7 +56,7 @@ créé pendant l'alignement.
 ## Variables contractuelles à configurer avant activation
 
 ```text
-MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v3
+MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v4
 MC2_TERMS_URL=https://sonnycourt.com/cgv/
 MC2_CONTRACT_ACCEPTANCE_TEXT=J’accepte les CGV et l’échéancier clairement indiqué ci-dessus.
 MC2_CONTRACT_EXPECTED_PAYMENT_PLAN=47_now_then_4x297_days_14_35_56_77
@@ -68,8 +68,8 @@ MC2_CONTRACT_EXPECTED_SCHEDULE_JSON=[{"label":"Aujourd’hui","due_offset_days":
 Il faut aussi fournir une copie figée de cette version des CGV :
 
 ```text
-MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v3.pdf
-MC2_TERMS_SNAPSHOT_SHA256=2a2bc31df89646146de1acfe691c2c79cd9d32c2da5556b8ba86e7dbda6a7e99
+MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v4.pdf
+MC2_TERMS_SNAPSHOT_SHA256=fdc3d84dfa34c036b14559508dc460138284e4417456de7d1914e8766316dcb2
 ```
 
 Les flags d'activation checkout, recouvrement et exports restent désactivés

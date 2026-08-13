@@ -14,12 +14,12 @@ import {
   MC2_PAYMENT_PLAN,
 } from '../netlify/functions/lib/mc2-stripe.mjs';
 
-const termsSha = '2a2bc31df89646146de1acfe691c2c79cd9d32c2da5556b8ba86e7dbda6a7e99';
+const termsSha = 'fdc3d84dfa34c036b14559508dc460138284e4417456de7d1914e8766316dcb2';
 const env = {
   MC2_CONTRACT_DOCUMENTS_ENABLED: 'true',
-  MC2_CONTRACT_VERSION: 'mc2-cgv-2026-08-v3',
+  MC2_CONTRACT_VERSION: 'mc2-cgv-2026-08-v4',
   MC2_TERMS_URL: 'https://sonnycourt.com/cgv/',
-  MC2_TERMS_SNAPSHOT_URL: 'https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v3.pdf',
+  MC2_TERMS_SNAPSHOT_URL: 'https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v4.pdf',
   MC2_TERMS_SNAPSHOT_SHA256: termsSha,
 };
 const registration = {
@@ -63,7 +63,9 @@ assert.match(html, /Imprimer \/ enregistrer en PDF/);
 assert.match(html, /Télécharger une copie HTML/);
 assert.match(html, /1[\s ]235\s€/);
 assert.match(html, /J\+14, J\+35, J\+56 et J\+77/);
-assert.match(html, /Modèle à copier dans un email ou un courrier/);
+assert.match(html, /conditions, les modalités et le formulaire type/);
+assert.doesNotMatch(html, /Modèle à copier dans un email ou un courrier/);
+assert.doesNotMatch(html, /remboursement/i);
 assert.match(html, /ArgEntrepreneur Sàrl/);
 assert.match(html, new RegExp(termsSha));
 for (const secret of [registration.email, registration.prenom, registration.token, paidSession.id, event.id, 'payment_intent', 'stripe_customer']) {

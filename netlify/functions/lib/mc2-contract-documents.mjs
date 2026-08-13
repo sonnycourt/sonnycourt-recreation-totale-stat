@@ -153,7 +153,6 @@ export function buildMc2ContractDocumentSnapshot({ session, event, env = process
       period_days: 14,
       deadline_at: new Date(purchaseTime + 14 * DAY_MS).toISOString(),
       contact_email: 'support@sonnycourt.com',
-      effects: 'Remboursement des 47 €, annulation des échéances futures et retrait immédiat des accès.',
     },
   };
 }
@@ -262,8 +261,7 @@ export function renderMc2ContractDocument(snapshot) {
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #dfe1e5; text-align: left; }
     th { background: #f5f6f7; font-size: 12px; }
-    .note, .form { padding: 14px 16px; border: 1px solid #d8dbe0; background: #f8f9fa; }
-    .form { white-space: pre-line; }
+    .note { padding: 14px 16px; border: 1px solid #d8dbe0; background: #f8f9fa; }
     a { color: #243d64; }
     .actions { display: flex; gap: 10px; margin: 0 auto 18px; max-width: 820px; }
     .actions a, .actions button { appearance: none; padding: 9px 12px; border: 1px solid #aeb3bb; background: #fff; color: #20242a; font: inherit; text-decoration: none; cursor: pointer; }
@@ -301,20 +299,7 @@ export function renderMc2ContractDocument(snapshot) {
     <p><a href="${termsSnapshotUrl}" rel="noopener noreferrer">Consulter la copie archivée des CGV applicables à cette commande</a><br>
     <a href="${termsUrl}" rel="noopener noreferrer">Consulter les CGV actuellement en vigueur</a></p>
     <p class="meta">Empreinte SHA-256 de la copie archivée : ${escapeHtml(snapshot.terms.snapshot_sha256)}</p>
-
-    <h2>Droit de rétractation / annulation et formulaire</h2>
-    <p>Vous pouvez notifier votre décision de vous rétracter et d’annuler Esprit Subconscient 2.0 sans justification pendant les quatorze jours complets suivant le paiement initial, au plus tard le ${escapeHtml(publicDate(snapshot.withdrawal.deadline_at))}, en écrivant à <a href="mailto:${escapeHtml(snapshot.withdrawal.contact_email)}">${escapeHtml(snapshot.withdrawal.contact_email)}</a>.</p>
-    <p>${escapeHtml(snapshot.withdrawal.effects)}</p>
-    <h3>Modèle à copier dans un email ou un courrier</h3>
-    <div class="form">À l’attention d’ArgEntrepreneur Sàrl, Chemin du Marais 13, 1040 Echallens, Suisse — support@sonnycourt.com
-
-Je vous notifie par la présente ma décision de me rétracter et d’annuler ma commande Esprit Subconscient 2.0.
-Référence de commande : ${reference}
-Date de commande : ${escapeHtml(publicDate(snapshot.purchased_at))}
-Nom : ______________________________
-Adresse email utilisée lors de la commande : ______________________________
-Date de la demande : ______________________________
-Signature (uniquement en cas d’envoi papier) : ______________________________</div>
+    <p class="note"><strong>Droit légal de rétractation :</strong> les conditions, les modalités et le formulaire type figurent dans la copie archivée des CGV applicable à cette commande.</p>
 
     <h2>Vendeur</h2>
     <p><strong>${escapeHtml(snapshot.seller.legal_name)}</strong><br>

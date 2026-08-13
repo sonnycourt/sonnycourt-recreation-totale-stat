@@ -34,10 +34,10 @@ valides, rien ne doit être activé.
 Variables déjà exigées par le contrat MC2 :
 
 ```text
-MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v3
+MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v4
 MC2_TERMS_URL=https://sonnycourt.com/cgv/
-MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v3.pdf
-MC2_TERMS_SNAPSHOT_SHA256=2a2bc31df89646146de1acfe691c2c79cd9d32c2da5556b8ba86e7dbda6a7e99
+MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v4.pdf
+MC2_TERMS_SNAPSHOT_SHA256=fdc3d84dfa34c036b14559508dc460138284e4417456de7d1914e8766316dcb2
 ```
 
 ## Email validé
