@@ -1,0 +1,67 @@
+---
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <title>Mettre à jour ma carte — Esprit Subconscient 2.0</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <main>
+      <section class="card" aria-live="polite">
+        <div class="icon" id="status-icon">↗</div>
+        <p class="eyebrow">PAIEMENT SÉCURISÉ STRIPE</p>
+        <h1 id="status-title">Mise à jour de ta carte</h1>
+        <p id="status-copy">La page sécurisée s’ouvre maintenant.</p>
+        <button id="retry-button" type="button" hidden>METTRE À JOUR MA CARTE</button>
+      </section>
+    </main>
+
+    <script is:inline>
+      const params = new URLSearchParams(location.search);
+      const token = params.get('t') || '';
+      const done = params.get('done') === '1';
+      const title = document.querySelector('#status-title');
+      const copy = document.querySelector('#status-copy');
+      const icon = document.querySelector('#status-icon');
+      const button = document.querySelector('#retry-button');
+
+      function showError(message) {
+        icon.textContent = '!';
+        title.textContent = 'Impossible d’ouvrir Stripe';
+        copy.textContent = message || 'Réessaie dans quelques instants.';
+        button.hidden = false;
+      }
+
+      async function openStripe() {
+        button.hidden = true;
+        if (!token) return showError('Ce lien est incomplet. Utilise le lien reçu par email.');
+        const response = await fetch('/.netlify/functions/mc2-update-payment-method', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.url) return showError(data.error);
+        location.replace(data.url);
+      }
+
+      if (done) {
+        icon.textContent = '✓';
+        title.textContent = 'Ta carte est à jour';
+        copy.textContent = 'Stripe va relancer automatiquement l’échéance en attente.';
+      } else {
+        openStripe().catch(() => showError());
+      }
+      button.addEventListener('click', openStripe);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;color:#eef6ff;background:radial-gradient(circle at 50% 0%,rgba(29,111,255,.3),transparent 34rem),linear-gradient(145deg,#040d1d,#071d3c 58%,#041126);font-family:Inter,system-ui,sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:24px 16px}.card{width:min(520px,100%);padding:clamp(34px,8vw,58px);text-align:center;background:rgba(10,31,62,.76);border:1px solid rgba(136,201,255,.25);border-radius:28px;box-shadow:0 35px 100px rgba(0,0,0,.38);backdrop-filter:blur(24px)}.icon{display:grid;place-items:center;width:60px;height:60px;margin:0 auto 23px;color:#06253a;background:linear-gradient(145deg,#72f1c4,#4bd5ff);border-radius:50%;font-size:27px;font-weight:900}.eyebrow{margin:0 0 12px;color:#7ecbff;font-size:10px;font-weight:850;letter-spacing:.15em}.card h1{margin:0;font-size:clamp(34px,7vw,52px);line-height:1;letter-spacing:-.05em}.card>p:not(.eyebrow){margin:18px auto 0;color:#a9bdd6;font-size:14px;line-height:1.6}button{margin-top:25px;padding:17px 23px;border:0;border-radius:12px;color:#fff;background:linear-gradient(135deg,#1678f4,#0f57ca);font:900 11px/1 Inter,system-ui,sans-serif;letter-spacing:.03em;cursor:pointer;box-shadow:0 15px 35px rgba(22,108,230,.28)}button[hidden]{display:none}
+</style>

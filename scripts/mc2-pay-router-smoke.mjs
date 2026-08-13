@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict';
 import { MC2_PAY_METADATA, isMc2StripeEvent } from '../netlify/functions/lib/mc2-pay-router.mjs';
+import {
+  MC2_CONTRACT_TOTAL_CENTS,
+  MC2_ENTRY_PAYMENT_CENTS,
+  MC2_INSTALLMENT_CENTS,
+  MC2_INSTALLMENT_COUNT,
+  MC2_PAYMENT_PLAN,
+  MC2_STRIPE_PRODUCT_ID,
+  isValidMc2EntryPrice,
+  isValidMc2InstallmentPrice,
+} from '../netlify/functions/lib/mc2-stripe.mjs';
 import { stripeObjectBelongsToPay } from '../netlify/functions/lib/pay-forward-scope.mjs';
 import { payWebhookEnvelope } from '../netlify/functions/lib/pay-webhook-contract.mjs';
 
@@ -29,5 +39,41 @@ assert.deepEqual(envelope.routing.targets, [
 ]);
 assert.equal(JSON.stringify(envelope).includes('token-not-persisted-in-envelope'), false);
 assert.equal(isMc2StripeEvent({ ...event, data: { object: { metadata: { system: 'other' } } } }), false);
+assert.equal(MC2_PAYMENT_PLAN, '47_now_then_4x297');
+assert.equal(MC2_ENTRY_PAYMENT_CENTS + (MC2_INSTALLMENT_CENTS * MC2_INSTALLMENT_COUNT), MC2_CONTRACT_TOTAL_CENTS);
+assert.equal(isValidMc2EntryPrice({
+  product: MC2_STRIPE_PRODUCT_ID,
+  active: true,
+  type: 'one_time',
+  currency: 'eur',
+  unit_amount: 4700,
+  tax_behavior: 'inclusive',
+}), true);
+assert.equal(isValidMc2EntryPrice({
+  product: MC2_STRIPE_PRODUCT_ID,
+  active: true,
+  type: 'one_time',
+  currency: 'eur',
+  unit_amount: 29700,
+  tax_behavior: 'inclusive',
+}), false);
+assert.equal(isValidMc2InstallmentPrice({
+  product: MC2_STRIPE_PRODUCT_ID,
+  active: true,
+  type: 'recurring',
+  currency: 'eur',
+  unit_amount: 29700,
+  tax_behavior: 'inclusive',
+  recurring: { interval: 'month', interval_count: 1 },
+}), true);
+assert.equal(isValidMc2InstallmentPrice({
+  product: MC2_STRIPE_PRODUCT_ID,
+  active: true,
+  type: 'recurring',
+  currency: 'eur',
+  unit_amount: 19700,
+  tax_behavior: 'inclusive',
+  recurring: { interval: 'month', interval_count: 1 },
+}), false);
 
 console.log(JSON.stringify({ mc2_pay_route: 'ok', forward_scope: 'ok', token_minimization: 'ok' }, null, 2));

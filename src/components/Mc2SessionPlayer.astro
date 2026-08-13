@@ -344,6 +344,37 @@ import GAConsentMode from './GAConsentMode.astro';
 
         .offer-button.is-locked { opacity: .5; pointer-events: none; box-shadow: none; }
 
+        .workbook-zone {
+            display: none;
+            width: min(100%, 680px);
+            margin: 18px auto 0;
+            text-align: center;
+        }
+
+        .workbook-zone.is-visible { display: block; }
+
+        .workbook-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: min(100%, 470px);
+            min-height: 50px;
+            padding: 12px 18px;
+            border: 1px solid rgba(96,165,250,.35);
+            border-radius: 12px;
+            color: #dbeafe;
+            background: rgba(37,99,235,.12);
+            text-decoration: none;
+            font-size: .82rem;
+            font-weight: 800;
+        }
+
+        .workbook-note {
+            margin-top: 7px;
+            color: rgba(255,255,255,.5);
+            font-size: .7rem;
+        }
+
         @media (max-width: 800px) {
             .shell { width: min(100% - 18px, 1120px); padding-top: 15px; }
             .header { padding-top: 30px; }
@@ -399,6 +430,13 @@ import GAConsentMode from './GAConsentMode.astro';
             <span>🔒 Diffusion synchronisée</span>
             <span>⏱️ Avance rapide désactivée</span>
             <span>🌍 Heure locale</span>
+        </div>
+
+        <div id="workbook-zone" class="workbook-zone" aria-live="polite">
+            <a id="workbook-button" class="workbook-button" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener">
+                OUVRIR ET IMPRIMER LE WORKBOOK
+            </a>
+            <p class="workbook-note">Disponible avant le début de la masterclass.</p>
         </div>
 
         <section id="offer-zone" class="offer-zone" aria-live="polite">
@@ -588,6 +626,10 @@ import GAConsentMode from './GAConsentMode.astro';
             const progress = Math.min(100, (elapsed / VIDEO_DURATION_SECONDS) * 100);
             document.getElementById('live-progress').style.width = progress + '%';
 
+            const workbookZone = document.getElementById('workbook-zone');
+            if (nowMs() < startMs) workbookZone.classList.add('is-visible');
+            else workbookZone.classList.remove('is-visible');
+
             const joinTitle = document.getElementById('join-title');
             const joinCopy = document.getElementById('join-copy');
             if (nowMs() < startMs) {
@@ -713,6 +755,9 @@ import GAConsentMode from './GAConsentMode.astro';
             document.getElementById('offer-button').addEventListener('click', function (event) {
                 if (event.currentTarget.classList.contains('is-locked')) event.preventDefault();
                 else trackMc2Event('cta_clicked', null, { button_id: 'offer-button' });
+            });
+            document.getElementById('workbook-button').addEventListener('click', function () {
+                trackMc2Event('workbook_opened', null, { slot_kind: session.kind || 'jit', origin: 'session_prelaunch' });
             });
 
             renderTimeState(video, session);

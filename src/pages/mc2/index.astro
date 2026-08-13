@@ -496,44 +496,92 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         }
 
         .mc2-slot-option {
+            appearance: none;
             position: relative;
+            isolation: isolate;
+            overflow: hidden;
             min-width: 0;
-            padding: 13px 14px;
-            border: 1px solid rgba(96, 165, 250, 0.32);
-            border-radius: 13px;
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(30, 58, 138, 0.22));
+            min-height: 88px;
+            padding: 16px 48px 16px 16px;
+            border: 1px solid rgba(147, 197, 253, 0.3);
+            border-radius: 16px;
+            background:
+                radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15), transparent 48%),
+                linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(23, 37, 84, 0.92));
             color: #fff;
+            font: inherit;
             text-align: left;
             cursor: pointer;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                0 8px 22px rgba(2, 6, 23, 0.16);
             transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .mc2-slot-option::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: grid;
+            width: 20px;
+            height: 20px;
+            place-items: center;
+            border: 1.5px solid rgba(191, 219, 254, 0.58);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.46);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 900;
+            line-height: 1;
+            box-shadow: inset 0 1px 2px rgba(2, 6, 23, 0.35);
         }
 
         .mc2-slot-option[data-slot-id="jit"] {
             grid-column: 1 / -1;
-            border-color: rgba(251, 146, 60, 0.28);
+            min-height: 94px;
+            border-color: rgba(96, 165, 250, 0.44);
             background:
-                radial-gradient(circle at 95% 0%, rgba(251, 146, 60, 0.08), transparent 42%),
-                linear-gradient(145deg, rgba(67, 32, 17, 0.72), rgba(15, 23, 42, 0.94));
+                radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.24), transparent 46%),
+                linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 58, 138, 0.5));
         }
 
         .mc2-slot-option:hover {
-            transform: translateY(-1px);
-            border-color: rgba(147, 197, 253, 0.7);
+            transform: translateY(-2px);
+            border-color: rgba(147, 197, 253, 0.8);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 14px 30px rgba(2, 6, 23, 0.28);
+        }
+
+        .mc2-slot-option:focus-visible {
+            outline: 3px solid rgba(125, 211, 252, 0.48);
+            outline-offset: 3px;
         }
 
         .mc2-slot-option.is-selected {
-            border-color: #60a5fa;
-            background: linear-gradient(145deg, rgba(37, 99, 235, 0.3), rgba(15, 23, 42, 0.94));
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18), 0 12px 28px rgba(2, 6, 23, 0.28);
+            border-color: #7dd3fc;
+            background:
+                radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.38), transparent 48%),
+                linear-gradient(145deg, rgba(30, 64, 175, 0.68), rgba(15, 23, 42, 0.96));
+            box-shadow:
+                0 0 0 2px rgba(56, 189, 248, 0.16),
+                0 16px 34px rgba(2, 6, 23, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .mc2-slot-option.is-selected::before {
+            content: '\2713';
+            border-color: #bfdbfe;
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+            box-shadow: 0 5px 14px rgba(37, 99, 235, 0.42);
         }
 
         .mc2-slot-option[data-slot-id="jit"].is-selected {
-            border-color: #fb923c;
+            border-color: #7dd3fc;
             background:
-                radial-gradient(circle at 95% 0%, rgba(251, 146, 60, 0.22), transparent 44%),
-                linear-gradient(145deg, rgba(124, 45, 18, 0.46), rgba(15, 23, 42, 0.94));
-            box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.16), 0 12px 30px rgba(2, 6, 23, 0.3);
+                radial-gradient(circle at 100% 0%, rgba(96, 165, 250, 0.44), transparent 46%),
+                linear-gradient(145deg, rgba(30, 64, 175, 0.76), rgba(15, 23, 42, 0.96));
         }
 
         .mc2-slot-option__eyebrow {
@@ -547,7 +595,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         }
 
         .mc2-slot-option[data-slot-id="jit"] .mc2-slot-option__eyebrow {
-            color: #fdba74;
+            color: #bae6fd;
         }
 
         .mc2-slot-option__time {
@@ -564,6 +612,10 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             font-size: 0.72rem;
             font-weight: 600;
             line-height: 1.3;
+        }
+
+        .mc2-slot-option[data-slot-id^="fixed-"] .mc2-slot-option__detail {
+            display: none;
         }
 
         .mc2-schedule__timezone {
@@ -583,7 +635,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         }
 
         .mc2-schedule--popup .mc2-slot-option {
-            padding: 11px 12px;
+            padding: 14px 44px 14px 14px;
         }
 
         .sessions-visual {
@@ -1812,8 +1864,19 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                 font-size: 0.74rem;
             }
 
+            .mc2-slot-picker {
+                grid-template-columns: 1fr;
+            }
+
             .mc2-slot-option {
-                padding: 11px 12px;
+                min-height: 82px;
+                padding: 14px 42px 14px 14px;
+                border-radius: 14px;
+            }
+
+            .mc2-slot-option::before {
+                top: 14px;
+                right: 14px;
             }
 
             .mc2-slot-option__time {
@@ -2249,7 +2312,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                     funnel_id: optinFunnelId,
                     event_name: eventName,
                     variant: OPTIN_VARIANT,
-                    path: '/masterclass/',
+                    path: '/mc2/',
                     traffic_source: null,
                     selected_country: state.country || null,
                     session_date: session ? session.toISOString() : null,

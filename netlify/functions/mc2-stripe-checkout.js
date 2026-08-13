@@ -1,9 +1,14 @@
 import crypto from 'crypto';
 import {
   MC2_CONTRACT_TOTAL_CENTS,
+  MC2_ENTRY_PAYMENT_CENTS,
+  MC2_PAYMENT_PLAN,
   MC2_STRIPE_ENTRY_PRICE_ID,
+  MC2_STRIPE_INSTALLMENT_PRICE_ID,
   cleanMc2Token,
   loadMc2Registration,
+  isValidMc2EntryPrice,
+  isValidMc2InstallmentPrice,
   mc2PublicOrigin,
   mc2Stripe,
   mc2StripePublishableKey,
@@ -32,7 +37,12 @@ function firstName(value) {
 async function reusableSession(stripe, registration) {
   if (!registration.stripe_checkout_session_id) return null;
   const session = await stripe.checkout.sessions.retrieve(registration.stripe_checkout_session_id).catch(() => null);
-  return session?.status === 'open' && session.client_secret ? session : null;
+  return session?.status === 'open'
+    && session.client_secret
+    && session.metadata?.payment_plan === MC2_PAYMENT_PLAN
+    && Number(session.metadata?.contractual_total_cents || 0) === MC2_CONTRACT_TOTAL_CENTS
+    ? session
+    : null;
 }
 
 export default async (req) => {
@@ -82,6 +92,15 @@ export default async (req) => {
     if (!queued.ok) console.error('MC2 offer SMS queue failed:', queued.error);
 
     const stripe = mc2Stripe();
+    const entryPrice = await stripe.prices.retrieve(MC2_STRIPE_ENTRY_PRICE_ID);
+    if (!isValidMc2EntryPrice(entryPrice)) throw new Error('mc2_entry_price_mismatch');
+    if (!/^price_[A-Za-z0-9]+$/.test(MC2_STRIPE_INSTALLMENT_PRICE_ID)) {
+      throw new Error('mc2_installment_price_missing');
+    }
+    const installmentPrice = await stripe.prices.retrieve(MC2_STRIPE_INSTALLMENT_PRICE_ID);
+    if (!isValidMc2InstallmentPrice(installmentPrice)) {
+      throw new Error('mc2_installment_price_mismatch');
+    }
     const existing = await reusableSession(stripe, registration);
     if (existing) {
       return json(200, {
@@ -103,7 +122,7 @@ export default async (req) => {
       funnel: 'mc2',
       mc2_token: token,
       traffic_source: clean(registration.traffic_source || 'organic', 40),
-      payment_plan: '47_now_150_d14_11x197',
+      payment_plan: MC2_PAYMENT_PLAN,
       contractual_total_cents: String(MC2_CONTRACT_TOTAL_CENTS),
     };
     const returnUrl = `${mc2PublicOrigin(req)}/commencer/succes/?session_id={CHECKOUT_SESSION_ID}&t=${encodeURIComponent(token)}`;
@@ -113,7 +132,6 @@ export default async (req) => {
       mode: 'payment',
       line_items: [{ price: MC2_STRIPE_ENTRY_PRICE_ID, quantity: 1 }],
       return_url: returnUrl,
-      payment_method_types: ['card'],
       automatic_tax: { enabled: true },
       billing_address_collection: 'auto',
       client_reference_id: token,
@@ -129,7 +147,7 @@ export default async (req) => {
       },
       invoice_creation: { enabled: true },
     }, {
-      idempotencyKey: `mc2-checkout:${token}:${clean(body.nonce, 80) || crypto.randomUUID()}`,
+      idempotencyKey: `mc2-checkout:${token}:${MC2_PAYMENT_PLAN}:${clean(body.nonce, 80) || crypto.randomUUID()}`,
     });
 
     if (!session.client_secret) throw new Error('stripe_checkout_client_secret_missing');
@@ -147,7 +165,11 @@ export default async (req) => {
       client_secret: session.client_secret,
       publishable_key: mc2StripePublishableKey(),
       checkout_session_id: session.id,
-      offer: { amount: 4700, currency: 'eur', contractual_total: MC2_CONTRACT_TOTAL_CENTS },
+      offer: {
+        amount: MC2_ENTRY_PAYMENT_CENTS,
+        currency: 'eur',
+        contractual_total: MC2_CONTRACT_TOTAL_CENTS,
+      },
       customer: { name: registration.prenom, email: registration.email },
       offer_expires_at: offerExpiresAt,
     });

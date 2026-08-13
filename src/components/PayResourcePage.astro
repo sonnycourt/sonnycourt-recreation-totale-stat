@@ -6,9 +6,20 @@ const {
   emptyTitle = 'Aucune donnée',
   emptyText = 'Les données apparaîtront dès que les passerelles répondront.',
 } = Astro.props;
+const resourceColumnTemplate = columns.length > 1
+  ? `minmax(210px, 1.5fr) repeat(${columns.length - 1}, minmax(90px, .7fr))`
+  : 'minmax(210px, 1fr)';
+const resourceMinWidth = Math.max(860, 210 + Math.max(0, columns.length - 1) * 120);
 ---
 
-<div class="resource-screen" data-pay-resource-page={screen} data-resource-columns={JSON.stringify(columns)} data-empty-title={emptyTitle} data-empty-text={emptyText}>
+<div
+  class="resource-screen"
+  data-pay-resource-page={screen}
+  data-resource-columns={JSON.stringify(columns)}
+  data-empty-title={emptyTitle}
+  data-empty-text={emptyText}
+  style={`--resource-columns:${resourceColumnTemplate};--resource-min-width:${resourceMinWidth}px;`}
+>
   <section class="resource-toolbar pay-panel">
     <label class="resource-search"><span aria-hidden="true">⌕</span><input type="search" data-resource-search placeholder={searchPlaceholder} /></label>
     <select class="pay-select" data-resource-provider aria-label="Filtrer par passerelle">
@@ -122,7 +133,7 @@ const {
   .resource-sync-state small { color: var(--pay-muted); font-size: 8px; }
   .resource-spinner { width: 26px; height: 26px; border: 2px solid rgba(112,231,255,.13); border-top-color: var(--pay-cyan); border-radius: 50%; animation: resource-spin .8s linear infinite; }
   @keyframes resource-spin { to { transform: rotate(360deg); } }
-  .resource-table { min-width: 860px; }
+  .resource-table { min-width: var(--resource-min-width, 860px); }
   .resource-row { display: grid; grid-template-columns: var(--resource-columns, minmax(210px, 1.5fr) repeat(5, minmax(90px, .7fr))); align-items: center; min-height: 65px; border-bottom: 1px solid var(--pay-line); }
   .resource-row:not(.resource-head) { cursor: pointer; transition: background .16s ease; }
   .resource-row:not(.resource-head):hover, .resource-row:not(.resource-head):focus-visible { outline: none; background: rgba(112,231,255,.035); }
@@ -211,6 +222,6 @@ const {
   .resource-view-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 18px 22px; border-top: 1px solid var(--pay-line); }
   @media (max-width: 560px) { .resource-dialog-grid { grid-template-columns: 1fr; } .resource-note-compose { grid-template-columns: 1fr; } .resource-dialog > footer, .resource-dialog-actions { align-items: stretch; flex-direction: column; } }
   @media (max-width: 1100px) { .resource-toolbar { grid-template-columns: minmax(200px, 1fr) 145px 145px; } .resource-count { justify-self: end; } }
-  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } .resource-pagination { min-width: 860px; } }
+  @media (max-width: 780px) { .resource-toolbar { grid-template-columns: 1fr 1fr; } .resource-search { grid-column: 1 / -1; } .resource-count { justify-self: start; } .resource-table-panel { overflow-x: auto; } .resource-view-save { grid-template-columns: 1fr; } .resource-pagination { min-width: var(--resource-min-width, 860px); } }
   @media (max-width: 560px) { .resource-filter-form { grid-template-columns: 1fr; } .resource-filter-form .resource-filter-value { grid-column: auto; } .resource-view-row { grid-template-columns: 1fr auto; } .resource-view-row button:last-child { grid-column: 1 / -1; } }
 </style>

@@ -124,7 +124,7 @@ function paymentPlanPhases(input, code) {
   phases.push({
     sequence: phases.length + 1,
     kind: 'installments',
-    starts_after_days: bridgeAmount > 0 ? bridgeDelayDays : 0,
+    starts_after_days: bridgeDelayDays,
     interval: 'month',
     interval_count: 1,
     count: installments,

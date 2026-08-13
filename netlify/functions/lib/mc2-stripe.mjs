@@ -3,10 +3,44 @@ import { supabaseGet } from './supabase-rest.mjs';
 
 export const MC2_STRIPE_PRODUCT_ID = process.env.MC2_STRIPE_PRODUCT_ID || 'prod_V2GyqoqalbZxqn';
 export const MC2_STRIPE_ENTRY_PRICE_ID = process.env.MC2_STRIPE_ENTRY_PRICE_ID || 'price_1U2CQaCkb0oA7GrjzVHLkKVh';
-export const MC2_STRIPE_D14_PRICE_ID = process.env.MC2_STRIPE_D14_PRICE_ID || 'price_1U2CR0Ckb0oA7GrjmobcXUPp';
-export const MC2_STRIPE_MONTHLY_PRICE_ID = process.env.MC2_STRIPE_MONTHLY_PRICE_ID || 'price_1U2CQjCkb0oA7GrjUY1u2gcg';
-export const MC2_STRIPE_FIRST_INVOICE_COUPON_ID = process.env.MC2_STRIPE_FIRST_INVOICE_COUPON_ID || 'es2_mc2_first_invoice_adjustment_47_v1';
-export const MC2_CONTRACT_TOTAL_CENTS = 236400;
+// No fallback is allowed for the new 297 EUR installment Price. The previous
+// live IDs belonged to the retired 150 + 11 x 197 schedule; silently reusing
+// them would create a contract/Stripe mismatch. Configure the recurring Price
+// explicitly after its amount and tax behavior have been verified in Stripe.
+export const MC2_STRIPE_INSTALLMENT_PRICE_ID = String(
+  process.env.MC2_STRIPE_INSTALLMENT_PRICE_ID || '',
+).trim();
+export const MC2_CONTRACT_TOTAL_CENTS = 123500;
+export const MC2_ENTRY_PAYMENT_CENTS = 4700;
+export const MC2_INSTALLMENT_CENTS = 29700;
+export const MC2_INSTALLMENT_COUNT = 4;
+export const MC2_PAYMENT_PLAN = '47_now_then_4x297';
+
+export function isValidMc2EntryPrice(price) {
+  return Boolean(
+    price
+    && price.active === true
+    && stripeId(price.product) === MC2_STRIPE_PRODUCT_ID
+    && price.type === 'one_time'
+    && String(price.currency || '').toLowerCase() === 'eur'
+    && Number(price.unit_amount || 0) === MC2_ENTRY_PAYMENT_CENTS
+    && price.tax_behavior === 'inclusive'
+  );
+}
+
+export function isValidMc2InstallmentPrice(price) {
+  return Boolean(
+    price
+    && price.active === true
+    && stripeId(price.product) === MC2_STRIPE_PRODUCT_ID
+    && price.type === 'recurring'
+    && String(price.currency || '').toLowerCase() === 'eur'
+    && Number(price.unit_amount || 0) === MC2_INSTALLMENT_CENTS
+    && price.tax_behavior === 'inclusive'
+    && price.recurring?.interval === 'month'
+    && Number(price.recurring?.interval_count || 0) === 1
+  );
+}
 
 let stripeClient;
 

@@ -22,19 +22,18 @@ assert.equal(checkout.operations[0].params.metadata.checkout_id, 'premiere-consu
 assert.equal(checkout.operations[0].params.allow_promotion_codes, true);
 
 const mc2 = preparePayCatalogCommand('checkout', {
-  name: 'MC2', slug: 'mc2', billing: 'payment-plan', amount: 197, currency: 'eur',
+  name: 'MC2', slug: 'mc2', billing: 'payment-plan', amount: 297, currency: 'eur',
   allow_promotion_codes: true,
-  plan: { deposit: 47, bridgeAmount: 150, bridgeDelayDays: 14, installments: 11 },
+  plan: { deposit: 47, bridgeDelayDays: 14, installments: 4 },
   metadata: { funnel: 'mc2' },
 }, { confirmation: 'PUBLIER CHECKOUT', idempotencyKey: 'checkout:mc2:2026-08-09' });
 assert.equal(mc2.flow, 'central_payment_plan');
 assert.equal(mc2.operations[0].stripe_method, 'paymentLinks.create');
 assert.equal(mc2.operations[0].params.allow_promotion_codes, true);
-assert.equal(mc2.schedule.total_minor, 236_400);
+assert.equal(mc2.schedule.total_minor, 123_500);
 assert.deepEqual(mc2.schedule.phases.map((phase) => [phase.kind, phase.count, phase.amount_minor]), [
   ['immediate', 1, 4_700],
-  ['bridge', 1, 15_000],
-  ['installments', 11, 19_700],
+  ['installments', 4, 29_700],
 ]);
 assert.equal(mc2.continuation.handler, 'pay_universal_webhook');
 

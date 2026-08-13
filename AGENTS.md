@@ -29,6 +29,26 @@ modification, dans chaque nouveau chat et dans chaque nouveau worktree.
 - `main` est l'unique source officielle. Un déploiement de production n'est
   autorisé que depuis un `main` propre, identique à `origin/main`.
 
+## Estimation et tâches longues
+
+- Avant de commencer une tâche susceptible de dépasser 15 à 20 minutes,
+  donner à Sonny une estimation très approximative.
+- Sauf demande contraire de Sonny, exécuter ces tâches longues en arrière-plan
+  afin de ne pas bloquer les autres travaux possibles en parallèle.
+- Pendant une tâche en arrière-plan, communiquer seulement des points d'étape
+  espacés et utiles ; ne pas envoyer de micro-mises à jour répétitives.
+- Si Sonny demande explicitement le premier plan, conserver la tâche au premier
+  plan même si elle est longue.
+
+## Communications externes et Supabase
+
+- Toute nouvelle communication client (email, SMS, notification) doit rester en
+  brouillon ou désactivée jusqu'à sa relecture finale, message par message, par
+  Sonny. Aucun envoi réel ne doit servir de test sans son accord explicite.
+- Pour toute création ou modification de schéma Supabase, préparer un fichier
+  SQL sûr et réexécutable, puis le transmettre à Sonny. Sonny exécute lui-même
+  le SQL dans Supabase ; Claude et Codex ne l'exécutent pas à sa place.
+
 ## Ce que le sas vérifie automatiquement
 
 Le script de production refuse de publier si :

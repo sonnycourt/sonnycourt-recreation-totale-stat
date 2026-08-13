@@ -1,7 +1,3318 @@
 ---
-import Mc2SessionGuard from '../../components/Mc2SessionGuard.astro';
-import Mc2SessionPlayer from '../../components/Mc2SessionPlayer.astro';
+import GAConsentMode from '../../components/GAConsentMode.astro';
+import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
 ---
 
-<Mc2SessionGuard />
-<Mc2SessionPlayer />
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta Pixel (base PageView) -->
+    <script type="text/javascript">
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '3367958190030822');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=3367958190030822&ev=PageView&noscript=1"/></noscript>
+    <!-- Meta Pixel End -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session - Masterclass Esprit Subconscient 2.0</title>
+    <meta name="description" content="Regarde la masterclass Esprit Subconscient 2.0.">
+    <meta property="og:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <GAConsentMode />
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "wkawxw5jtq");
+    </script>
+    <style>
+        html { opacity: 0; }
+        html.ready { opacity: 1; transition: opacity 0.15s ease; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --accent: #93c5fd;
+            --bg-dark: #0a0a1a;
+            --text-muted: rgba(255, 255, 255, 0.72);
+            --border: rgba(59, 130, 246, 0.35);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+        }
+        .gate-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(180deg, #0a1628 0%, #0a0a1a 100%);
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(59, 130, 246, 0.25);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.85s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .dev-time-banner {
+            display: none;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            background: rgba(15, 23, 42, 0.92);
+            box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
+        }
+        .dev-time-banner.is-visible {
+            display: block;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            left: auto;
+            z-index: 460000;
+            width: min(380px, calc(100vw - 24px));
+            max-height: min(520px, 78vh);
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .dev-time-title {
+            font-size: 0.78rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .dev-time-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .dev-time-input {
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            padding: 0 10px;
+            font-size: 0.9rem;
+        }
+        .dev-time-btn {
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.16);
+            color: #dbeafe;
+            padding: 0 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dev-time-btn.is-active {
+            border-color: rgba(147, 197, 253, 0.9);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.38), rgba(37, 99, 235, 0.34));
+            color: #fff;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 10px 20px rgba(2, 6, 23, 0.35);
+        }
+        .dev-time-now {
+            margin-left: auto;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .dev-section {
+            margin-bottom: 10px;
+        }
+        .dev-label {
+            display: block;
+            font-size: 0.74rem;
+            color: #93c5fd;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 5px;
+        }
+        .dev-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-size: 0.76rem;
+            color: #dbeafe;
+        }
+        .dev-summary span { white-space: nowrap; }
+        .dev-summary .dev-state-val {
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .screen {
+            display: none;
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 26px 16px 42px;
+        }
+        .screen.is-visible { display: block; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(59, 130, 246, 0.16);
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            margin-bottom: 14px;
+        }
+        .badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #ef4444;
+            box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
+            animation: liveDotPulse 1.3s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes liveDotPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+            }
+            50% {
+                opacity: 0.45;
+                transform: scale(0.84);
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+        .screen-main-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        h1 {
+            font-size: clamp(1.55rem, 4vw, 2.25rem);
+            line-height: 1.2;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            line-height: 1.55;
+            margin-bottom: 18px;
+            max-width: 760px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .screen-main-header {
+            text-align: center;
+        }
+        .blocked {
+            text-align: center;
+            max-width: 620px;
+            margin: 0 auto;
+            padding-top: 48px;
+        }
+        .blocked h1 { -webkit-text-fill-color: #fff; color: #fff; }
+        .blocked p { color: var(--text-muted); margin-top: 10px; line-height: 1.6; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.32);
+        }
+
+        .pre-live-countdown {
+            margin-bottom: 10px;
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        .pre-live-countdown .countdown {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .pre-live-countdown .countdown-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .video-shell {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: #05070f;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        #masterclass-video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+        }
+        .video-waiting {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px;
+            line-height: 1.5;
+            background:
+                linear-gradient(180deg, rgba(2, 6, 18, 0.35) 0%, rgba(2, 6, 18, 0.6) 100%),
+                url('/media/pages/ES20-banner.webp') center/cover no-repeat;
+            z-index: 4;
+        }
+        .video-waiting.is-hidden {
+            display: none;
+        }
+        .waiting-title {
+            font-size: clamp(1rem, 2.2vw, 1.18rem);
+            font-weight: 700;
+            color: #dbeafe;
+            text-shadow: 0 2px 20px rgba(2, 6, 23, 0.5);
+        }
+        .waiting-title.is-ended {
+            color: #fecaca;
+            font-size: clamp(1.08rem, 2.5vw, 1.32rem);
+            letter-spacing: 0.01em;
+            text-shadow: 0 6px 26px rgba(127, 29, 29, 0.55);
+            background: rgba(127, 29, 29, 0.28);
+            border: 1px solid rgba(239, 68, 68, 0.38);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .video-recovery-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+            background: rgba(2, 6, 23, 0.82);
+        }
+        .video-recovery-overlay.is-visible {
+            display: flex;
+        }
+        .video-recovery-overlay__panel {
+            max-width: 420px;
+            border-radius: 14px;
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+            box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
+            padding: 18px 16px;
+            color: #fee2e2;
+        }
+        .video-recovery-overlay__title {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff1f2;
+        }
+        .video-recovery-overlay__text {
+            margin: 0 0 14px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+        .video-recovery-overlay__btn {
+            border: 1px solid rgba(248, 113, 113, 0.55);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.92));
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6;
+            transition: opacity 0.25s ease;
+        }
+        .play-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .play-button {
+            border: 1px solid rgba(147, 197, 253, 0.55);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.92));
+            border-radius: 16px;
+            padding: 14px 24px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 16px 36px rgba(37, 99, 235, 0.45);
+        }
+        .play-button:hover { transform: translateY(-1px); }
+        .play-button__label {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.01em;
+            text-shadow: 0 1px 12px rgba(2, 6, 23, 0.35);
+        }
+        .video-controls {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            z-index: 7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(6, 12, 24, 0.72);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .video-container:hover .video-controls,
+        .video-controls.is-visible {
+            opacity: 1;
+        }
+        @media (max-width: 1023px) {
+            .video-container.is-joined .video-controls {
+                opacity: 1;
+            }
+        }
+        @media (max-width: 1023px) and (orientation: landscape) {
+            .video-container.is-joined .video-controls.mobile-autohide-hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+        /* Verrou strict: aucun contrôle visible avant le "join" explicite */
+        .video-container:not(.is-joined) .video-controls {
+            display: none !important;
+        }
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .control-btn svg { width: 18px; height: 18px; }
+        .control-btn:disabled,
+        .control-btn.is-disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .volume-range {
+            width: 84px;
+            accent-color: var(--primary);
+        }
+        .rotate-hint {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: none;
+            pointer-events: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+        }
+        .rotate-hint__inner {
+            max-width: 420px;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(6, 12, 24, 0.72);
+            padding: 14px 16px;
+            text-align: center;
+            color: #dbeafe;
+            font-weight: 700;
+            font-size: 13px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+        }
+        /* Sur mobile/iPad: recommandation en portrait uniquement */
+        @media (orientation: portrait) and (max-width: 1023px) {
+            .rotate-hint {
+                display: flex;
+            }
+        }
+
+        .fullscreen-floating {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 18;
+            display: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .fullscreen-floating svg { width: 18px; height: 18px; }
+        /* Desktop uniquement */
+        @media (min-width: 1024px) {
+            .fullscreen-floating {
+                display: inline-flex;
+            }
+        }
+        .fullscreen-floating.hidden {
+            display: none !important;
+        }
+        .video-container:not(.is-joined) .fullscreen-floating {
+            display: none !important;
+        }
+        /* ── Heart Column ── */
+        .player-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .player-row .video-shell {
+            flex: 1;
+            min-width: 0;
+            margin-bottom: 0;
+        }
+        .heart-column {
+            position: relative;
+            flex-shrink: 0;
+            width: 50px;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .heart-column.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .heart-column__btn {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.15);
+            font-size: 20px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .heart-column__btn:active { transform: translateX(-50%) scale(0.88); }
+        .heart-column__track {
+            position: absolute;
+            bottom: 58px;
+            left: 0;
+            right: 0;
+            top: 0;
+            overflow: hidden;
+        }
+        @keyframes floatUp {
+            0%   { transform: translateY(0) scale(1);      opacity: 1;  }
+            50%  { transform: translateY(-120px) scale(1.1); opacity: 0.6; }
+            100% { transform: translateY(-260px) scale(0.8); opacity: 0;  }
+        }
+        @media (max-width: 767px) {
+            .player-row { display: block; }
+            .player-row .video-shell { margin-bottom: 20px; }
+            .heart-column {
+                position: fixed;
+                bottom: 20px;
+                right: 12px;
+                width: 44px;
+                height: 200px;
+                z-index: 200;
+            }
+        }
+
+        .purchase-toast {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .purchase-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .purchase-toast__content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 360px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .purchase-toast__thumb-wrap {
+            position: relative;
+            width: 58px;
+            height: 58px;
+            flex-shrink: 0;
+        }
+        .purchase-toast__thumb {
+            width: 58px;
+            height: 58px;
+            border-radius: 9px;
+            object-fit: cover;
+            display: block;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+        }
+        .purchase-toast__thumb-flag {
+            position: absolute;
+            right: -4px;
+            bottom: -4px;
+            font-size: 14px;
+            line-height: 1;
+            filter: drop-shadow(0 2px 6px rgba(2, 6, 23, 0.5));
+        }
+        .purchase-toast__text {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.35;
+            color: #fff;
+        }
+        .purchase-toast__name {
+            color: #60a5fa !important;
+            font-weight: 900 !important;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.35);
+        }
+        .purchase-toast__action {
+            color: rgba(255, 255, 255, 0.72);
+        }
+        .purchase-toast__course {
+            display: block;
+            margin-top: 2px;
+            color: #ffffff !important;
+            font-weight: 400 !important;
+        }
+
+        .offer-zone {
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding-top: 38px;
+        }
+        .offer-zone.hidden {
+            display: none;
+        }
+        .offer-countdown-title.hidden,
+        .countdown.hidden,
+        .offer-cta.hidden,
+        .offer-expired-state.hidden {
+            display: none;
+        }
+        .diagnostic-guide-zone {
+            display: none;
+            margin-top: 22px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .diagnostic-guide-zone.visible {
+            display: block;
+            animation: ctaFadeIn 0.35s ease forwards;
+        }
+        .diagnostic-guide-btn {
+            width: 100%;
+            max-width: 520px;
+            border-radius: 12px;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            background: rgba(59, 130, 246, 0.16);
+            color: #dbeafe;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.93rem;
+            padding: 13px 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.28);
+        }
+        .diagnostic-guide-btn:hover {
+            background: rgba(59, 130, 246, 0.24);
+            border-color: rgba(147, 197, 253, 0.65);
+            color: #fff;
+        }
+        .diagnostic-guide-note {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: rgba(226, 232, 240, 0.68);
+        }
+        .offer-zone.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+            animation: ctaFadeIn 0.4s ease forwards;
+        }
+        @keyframes ctaFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .offer-cta {
+            width: 100%;
+            max-width: 520px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 14px;
+            padding: 16px 20px;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 14px 34px rgba(59, 130, 246, 0.38);
+            transition: all 0.25s ease;
+        }
+        .offer-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
+        }
+        .offer-cta.is-disabled,
+        .offer-cta.is-disabled:hover {
+            color: rgba(226, 232, 240, 0.72);
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: none;
+            cursor: not-allowed;
+            pointer-events: none;
+            transform: none;
+        }
+        .offer-expired-state {
+            width: 100%;
+            max-width: 520px;
+            margin-top: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.38), rgba(69, 10, 10, 0.45));
+            padding: 16px 16px 14px;
+            text-align: center;
+        }
+        .offer-expired-title {
+            margin: 0;
+            color: #fff1f2;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .offer-expired-copy {
+            margin: 8px 0 12px;
+            color: #fecdd3;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .offer-expired-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(251, 113, 133, 0.55);
+            color: #fff;
+            background: rgba(225, 29, 72, 0.32);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .mc-gate-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(2, 6, 23, 0.92);
+            backdrop-filter: blur(10px);
+        }
+        .mc-gate-overlay.is-visible {
+            display: flex;
+        }
+        html.mc-page-lock,
+        html.mc-page-lock body {
+            overflow: hidden;
+            height: 100%;
+        }
+        .mc-gate-overlay__panel {
+            width: min(560px, 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.55), rgba(15, 23, 42, 0.95));
+            box-shadow: 0 24px 70px rgba(2, 6, 23, 0.55);
+            padding: 22px 18px 18px;
+            text-align: center;
+        }
+        .mc-gate-overlay__panel--danger {
+            border-color: rgba(248, 113, 113, 0.45);
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+            box-shadow: 0 24px 70px rgba(127, 29, 29, 0.35);
+        }
+        .mc-gate-overlay__title {
+            margin: 0;
+            font-size: clamp(1.12rem, 2.6vw, 1.42rem);
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            color: #f8fafc;
+        }
+        .mc-gate-overlay__copy {
+            margin: 10px 0 14px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            color: rgba(226, 232, 240, 0.9);
+        }
+        .mc-gate-overlay__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 4px;
+        }
+        .mc-gate-overlay__btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(147, 197, 253, 0.55);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.92));
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .mc-gate-overlay__btn--ghost {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(148, 163, 184, 0.45);
+            font-weight: 700;
+        }
+        .mc-gate-overlay__btn--support {
+            border-color: rgba(251, 113, 133, 0.55);
+            background: rgba(225, 29, 72, 0.35);
+        }
+        @keyframes ctaIn {
+            from { opacity: 0; transform: translateY(6px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .offer-countdown-title {
+            margin-top: 2px;
+            margin-bottom: 16px;
+            color: rgba(255, 255, 255, 0.96);
+            font-size: 0.84rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            text-align: center;
+            text-shadow: 0 2px 12px rgba(2, 6, 23, 0.35);
+        }
+        .offer-countdown-highlight {
+            color: #60a5fa;
+            text-shadow: 0 0 14px rgba(96, 165, 250, 0.35);
+        }
+        .scarcity-card {
+            width: 100%;
+            max-width: 520px;
+            margin: 20px 0 16px;
+            padding: 14px 14px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.55);
+            background: radial-gradient(120% 130% at 0% 0%, rgba(220, 38, 38, 0.24) 0%, rgba(69, 10, 10, 0.30) 45%, rgba(15, 23, 42, 0.72) 100%);
+            box-shadow: 0 14px 30px rgba(127, 29, 29, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            text-align: left;
+        }
+        .scarcity-kicker {
+            margin: 0 0 8px;
+            font-size: 0.70rem;
+            text-transform: uppercase;
+            letter-spacing: 0.10em;
+            color: #fee2e2;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scarcity-kicker::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+        }
+        .scarcity-phase1-total {
+            margin: 0 0 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: rgba(148, 163, 184, 0.9);
+            text-decoration: line-through;
+            text-decoration-thickness: 1.5px;
+        }
+        .scarcity-phase2-note {
+            margin: 0 0 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fde68a;
+        }
+        .scarcity-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .scarcity-label {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.96);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+        .scarcity-value {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(220, 38, 38, 0.28);
+            border: 1px solid rgba(252, 165, 165, 0.72);
+        }
+        .scarcity-number {
+            font-size: 1.42rem;
+            line-height: 1;
+            font-weight: 900;
+            color: #fff;
+        }
+        .scarcity-unit {
+            font-size: 0.80rem;
+            letter-spacing: 0.06em;
+            color: #ffe4e6;
+            font-weight: 700;
+        }
+        @media (max-width: 768px) {
+            .scarcity-value {
+                padding: 4px 10px;
+                gap: 4px;
+            }
+            .scarcity-number {
+                font-size: 1.16rem;
+            }
+            .scarcity-denominator {
+                font-size: 0.78rem;
+            }
+            .scarcity-unit {
+                font-size: 0.68rem;
+            }
+        }
+        .scarcity-meter {
+            margin-top: 10px;
+            width: 100%;
+            height: 7px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(252, 165, 165, 0.35);
+        }
+        .scarcity-meter__fill {
+            height: 100%;
+            width: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.55);
+        }
+        .countdown {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            max-width: 520px;
+        }
+        .session-ended-note {
+            display: none;
+            margin: 0 0 10px;
+            text-align: center;
+            color: #dbeafe;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .session-ended-note.is-visible { display: block; }
+        .count-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .count-value {
+            display: block;
+            font-size: clamp(1.08rem, 3vw, 1.45rem);
+            font-weight: 700;
+            color: #fff;
+        }
+        .count-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.55px;
+        }
+        .wait-note {
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.55;
+        }
+        .form-error {
+            color: #fca5a5;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 1023px) {
+            .screen { padding: 20px 14px 34px; }
+            .offer-cta { width: 100%; }
+            .countdown { max-width: 100%; }
+            .volume-range { width: 64px; }
+            /* Sur mobile : volume géré aux boutons physiques du téléphone, on cache les contrôles software. */
+            #volume-controls-group { display: none !important; }
+            .purchase-toast {
+                left: 10px;
+                right: 10px;
+                top: 10px;
+                bottom: auto;
+                transform: translateY(-20px);
+            }
+            .purchase-toast__content {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <Mc2AccessGate pagePath="/mc2/session/" />
+    <div class="bg-gradient"></div>
+
+    <div id="dev-time-banner" class="dev-time-banner">
+        <p class="dev-time-title">Simulation temps (preview uniquement)</p>
+
+        <div class="dev-section">
+            <label class="dev-label">Inscrit le :</label>
+            <div class="dev-time-row">
+                <input id="dev-inscription-input" class="dev-time-input" type="datetime-local" />
+                <button class="dev-time-btn" data-insc-preset="mon-10" type="button">Lundi 10h</button>
+                <button class="dev-time-btn" data-insc-preset="wed-14" type="button">Mercredi 14h</button>
+                <button class="dev-time-btn" data-insc-preset="thu-18" type="button">Jeudi 18h</button>
+                <button class="dev-time-btn" data-insc-preset="thu-1930" type="button">Jeudi 19h30</button>
+                <button class="dev-time-btn" data-insc-preset="fri-10" type="button">Vendredi 10h</button>
+                <button class="dev-time-btn" data-insc-preset="sat-15" type="button">Samedi 15h</button>
+            </div>
+        </div>
+
+        <div class="dev-section">
+            <label class="dev-label">Heure actuelle :</label>
+            <div class="dev-time-row">
+                <input id="dev-time-input" class="dev-time-input" type="datetime-local" />
+                <button class="dev-time-btn" data-now-preset="session-m60" type="button">Session -60min</button>
+                <button class="dev-time-btn" data-now-preset="session-m30" type="button">Session -30min</button>
+                <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
+                <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
+                <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +20min (cutoff)</button>
+                <button class="dev-time-btn" data-now-preset="cta-m10s" type="button">Bouton -10s</button>
+                <button class="dev-time-btn" data-now-preset="cta-now" type="button">Bouton grisé (1:20)</button>
+                <button class="dev-time-btn" data-now-preset="cta-mid" type="button">Countdown 0:40</button>
+                <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">Activation -5s</button>
+                <button class="dev-time-btn" data-now-preset="cta-active" type="button">Bouton actif (0:00)</button>
+                <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo -1s (1:31:48)</button>
+                <button class="dev-time-btn" data-now-preset="webinaire-ended" type="button">Webinaire terminé</button>
+                <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire (replay)</button>
+                <button class="dev-time-btn" data-now-preset="expired" type="button">Expiré dim 23h30</button>
+            </div>
+        </div>
+
+        <div class="dev-summary" id="dev-summary">
+            <span id="dev-sum-inscription"></span>
+            <span id="dev-sum-session"></span>
+            <span id="dev-sum-now"></span>
+            <span id="dev-sum-state"></span>
+        </div>
+    </div>
+
+    <div id="gate-loading" class="gate-loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Chargement de la session…</p>
+    </div>
+
+    <section id="screen-blocked" class="screen blocked" aria-live="polite">
+        <div class="badge">Session fermée</div>
+        <h1 id="blocked-title">Cette masterclass n'est plus accessible.</h1>
+        <p id="blocked-text"></p>
+        <a id="blocked-volt-link" class="btn" href="https://volt.sonnycourt.com" target="_blank" rel="noopener" style="display:none;">Accéder à mon compte</a>
+        <a id="blocked-back-link" class="btn" href="/mc2/">Retour à la masterclass</a>
+    </section>
+
+    <section id="screen-recovery" class="screen blocked" aria-live="polite">
+        <div class="badge">Retrouver mon accès</div>
+        <h1>Entre l'email utilisé à l'inscription</h1>
+        <p>On vérifie ton accès et on te redirige automatiquement.</p>
+        <div style="max-width:420px;margin:16px auto 0;display:grid;gap:10px;">
+            <input id="recovery-email" type="email" placeholder="Ton email" autocomplete="email" class="dev-time-input" style="height:44px;" />
+            <button id="recovery-submit" type="button" class="btn" style="width:100%;margin-top:0;">Vérifier mon accès</button>
+            <p id="recovery-error" class="form-error" style="text-align:center;min-height:1.2em;"></p>
+        </div>
+    </section>
+
+    <section id="screen-before" class="screen" aria-live="polite">
+        <h1>La masterclass commence dans...</h1>
+        <p class="wait-note">Tu vas être redirigé vers ta page de confirmation.</p>
+        <div class="countdown">
+            <div class="count-card"><span id="before-days" class="count-value">00</span><span class="count-label">Jours</span></div>
+            <div class="count-card"><span id="before-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
+            <div class="count-card"><span id="before-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
+            <div class="count-card"><span id="before-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+    </div>
+    </section>
+
+    <section id="screen-main" class="screen">
+        <div class="screen-main-header">
+            <div class="badge">UNE SEULE DIFFUSION EN DIRECT</div>
+            <h1>Masterclass Esprit Subconscient 2.0</h1>
+            <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
+            </div>
+
+        <div id="pre-live-countdown" class="pre-live-countdown">
+            <p class="countdown-title">Début dans</p>
+            <div class="countdown">
+                <div class="count-card"><span id="pl-days" class="count-value">00</span><span class="count-label">Jours</span></div>
+                <div class="count-card"><span id="pl-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
+                <div class="count-card"><span id="pl-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
+                <div class="count-card"><span id="pl-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+        </div>
+    </div>
+
+        <p id="session-ended-note" class="session-ended-note">La masterclass est terminée</p>
+        <div class="player-row">
+        <div class="video-shell">
+            <div class="video-container" id="video-container">
+                <video id="masterclass-video" preload="metadata" playsinline controlslist="nodownload noremoteplayback nofullscreen" oncontextmenu="return false;"></video>
+                <div id="rotate-hint" class="rotate-hint" aria-hidden="true">
+                    <div class="rotate-hint__inner">Passe ton appareil en mode paysage</div>
+                </div>
+                <button class="fullscreen-floating hidden" id="fullscreenBtnDesktop" aria-label="Plein écran" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                </button>
+                <div id="video-waiting" class="video-waiting">
+                    <p class="waiting-title">Début de la diffusion à l’heure choisie</p>
+                </div>
+                <div id="video-recovery-overlay" class="video-recovery-overlay" aria-hidden="true">
+                    <div class="video-recovery-overlay__panel">
+                        <p class="video-recovery-overlay__title">Lecture interrompue</p>
+                        <p class="video-recovery-overlay__text">Cliquez pour relancer la vidéo.</p>
+                        <button id="video-recovery-reload-btn" type="button" class="video-recovery-overlay__btn">Relancer maintenant</button>
+                    </div>
+                </div>
+                <div class="play-overlay" id="playOverlay">
+                    <button class="play-button" id="playButton" aria-label="Lancer la vidéo">
+                        <span id="playOverlayLabel" class="play-button__label">On clique pour rejoindre la diffusion en cours</span>
+                    </button>
+                </div>
+                <div class="video-controls hidden" id="videoControls">
+                    <div class="controls-group">
+                        <button class="control-btn" id="rewind15Btn" aria-label="Reculer de 15 secondes" style="width:auto;padding:0 12px;font-size:12px;font-weight:800;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;margin-right:6px;">
+                                <polyline points="11 19 3 12 11 5"></polyline>
+                                <path d="M21 12H3"></path>
+                            </svg>
+                            <span style="white-space:nowrap;">15s</span>
+                        </button>
+                    </div>
+                    <div class="controls-group" id="volume-controls-group">
+                        <button class="control-btn" id="muteBtn" aria-label="Activer / couper le son">
+                            <svg id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                            <svg id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                        </button>
+                        <input id="volumeRange" class="volume-range" type="range" min="0" max="100" value="80">
+                    </div>
+                    <div class="controls-group">
+                        <button class="control-btn hidden" id="liveJumpBtn" aria-label="Revenir au live" style="font-size:12px;font-weight:900;background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.55);">LIVE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="heart-column" class="heart-column" aria-hidden="true">
+            <div id="heart-track" class="heart-column__track"></div>
+            <button id="heart-btn" class="heart-column__btn" type="button" aria-label="Envoyer un cœur"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.479 19.374-.971.939a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5a5.2 5.2 0 0 1-.219 1.49"/><path d="M15 15h6"/><path d="M18 12v6"/></svg></button>
+        </div>
+        </div>
+
+        <div id="offer-zone" class="offer-zone hidden">
+            <p class="offer-countdown-title">L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :</p>
+            <div class="countdown">
+                <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
+                <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
+                <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
+                <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+            </div>
+            <div class="scarcity-card" id="scarcity-card" aria-hidden="true" hidden>
+                <p class="scarcity-kicker">Nombre de places limitées</p>
+                <p class="scarcity-phase1-total hidden">30 places</p>
+                <p class="scarcity-phase2-note hidden">10 nouvelles places à titre exceptionnel</p>
+                <div class="scarcity-main">
+                    <p class="scarcity-label">Places restantes</p>
+                    <div class="scarcity-value">
+                        <span class="scarcity-number" id="scarcity-places">30</span>
+                        <span class="scarcity-denominator" id="scarcity-denominator">/ 30</span>
+                        <span class="scarcity-unit">places</span>
+                    </div>
+                </div>
+                <div class="scarcity-meter" aria-hidden="true">
+                    <div class="scarcity-meter__fill"></div>
+                </div>
+            </div>
+            <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">S’inscrire à Esprit Subconscient 2.0</a>
+            <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
+                <p class="offer-expired-title">L'offre n'est plus disponible</p>
+                <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
+                <a class="offer-expired-btn" href="/contact">Contacter le support</a>
+            </div>
+        </div>
+        <div id="diagnostic-guide-zone" class="diagnostic-guide-zone" aria-live="polite">
+            <a class="diagnostic-guide-btn" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener">
+                Télécharge ton guide diagnostique personnel
+            </a>
+            <p class="diagnostic-guide-note">Imprime ce PDF avant la diffusion si possible.</p>
+        </div>
+
+        <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
+            <div class="purchase-toast__content">
+                <div class="purchase-toast__thumb-wrap">
+                    <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
+                    <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
+                </div>
+                <p class="purchase-toast__text" id="purchase-toast-text"><span class="purchase-toast__name">Sophie</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span></p>
+            </div>
+        </div>
+    </section>
+
+    <div id="mc-unavailable-overlay" class="mc-gate-overlay" aria-hidden="true">
+        <div class="mc-gate-overlay__panel mc-gate-overlay__panel--danger">
+            <p class="mc-gate-overlay__title">La masterclass n'est plus disponible</p>
+            <p class="mc-gate-overlay__copy">Si vous avez des questions, contactez le support.</p>
+            <div class="mc-gate-overlay__actions">
+                <a class="mc-gate-overlay__btn mc-gate-overlay__btn--support" href="/contact">Contacter le support</a>
+            </div>
+        </div>
+    </div>
+    <div id="mc-late-overlay" class="mc-gate-overlay" aria-hidden="true">
+        <div class="mc-gate-overlay__panel">
+            <p class="mc-gate-overlay__title">Tu es arrivé(e) trop tard pour le direct</p>
+            <p class="mc-gate-overlay__copy">La fenêtre pour rejoindre la diffusion en direct est close. Tu peux continuer sur le replay avec le même accès.</p>
+            <div class="mc-gate-overlay__actions">
+                <a id="mc-late-replay-link" class="mc-gate-overlay__btn" href="#">Voir le replay</a>
+            </div>
+        </div>
+    </div>
+    <div id="mc-broadcast-ended-overlay" class="mc-gate-overlay" aria-hidden="true">
+        <div class="mc-gate-overlay__panel">
+            <p class="mc-gate-overlay__title">La diffusion en direct est terminée</p>
+            <p class="mc-gate-overlay__copy">Retrouve l'enregistrement sur la page replay.</p>
+            <div class="mc-gate-overlay__actions">
+                <a id="mc-ended-replay-link" class="mc-gate-overlay__btn" href="#">Voir le replay</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // @ts-nocheck
+        import Hls from 'hls.js';
+        import { startScarcityEngine, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
+        const TOKEN_KEY = 'mc2_registration_token';
+        const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
+        const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
+        /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
+        const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
+        const CTA_APPEAR_SECONDS = 90 * 60 + 13; // apparition à 1h30m13s dans la nouvelle vidéo live
+        const CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // le bouton est immédiatement cliquable à son apparition
+        const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
+        const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
+        const FREEZE_RECOVERY_ENABLED = true;
+        // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
+        // 240/360/480/720/1080. La qualité repasse ensuite automatiquement en ABR.
+        const HLS_INITIAL_LEVEL = 1;
+        const VIDEO_DURATION_FALLBACK_SECONDS = 5717; // fallback si metadata indisponible (nouveau live = 1h35m16,6s, arrondi supérieur)
+        let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
+        // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
+        // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
+        // le backup instantané via le cockpit (switch_backup).
+        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/950991b8-2093-4637-a8b5-cd8b98a8f819/playlist.m3u8';
+        let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
+        const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
+        const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
+        const REPLAY_LABEL = 'Lancer la vidéo';
+        const ENDED_PLAY_LABEL = 'La diffusion en direct est terminée';
+        let simulatedNowMs = null;
+        let simulatedAnchorRealMs = null;
+
+        function getNowMs() {
+            if (!Number.isFinite(simulatedNowMs)) return Date.now();
+            if (!Number.isFinite(simulatedAnchorRealMs)) return simulatedNowMs;
+            return simulatedNowMs + (Date.now() - simulatedAnchorRealMs);
+        }
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+        function getVideoDurationSeconds() {
+            return ACTIVE_VIDEO_DURATION_SECONDS || VIDEO_DURATION_FALLBACK_SECONDS;
+        }
+        async function fetchActiveVideoSourceConfig() {
+            try {
+                const res = await fetch('/.netlify/functions/mc2-video-config');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.activeUrl) {
+                    ACTIVE_VIDEO_SOURCE_URL = String(data.activeUrl);
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+        function setTokenEverywhere(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+        function getStoredToken() {
+            let t = (localStorage.getItem(TOKEN_KEY) || '').trim();
+            return t;
+        }
+        function showLoading(on) {
+            document.getElementById('gate-loading').style.display = on ? 'flex' : 'none';
+        }
+        function showScreen(id) {
+            ['screen-blocked', 'screen-before', 'screen-main', 'screen-recovery'].forEach((x) => {
+                document.getElementById(x).classList.toggle('is-visible', x === id);
+            });
+            showLoading(false);
+        }
+        function showBlocked(title, text) {
+            document.getElementById('blocked-title').textContent = title;
+            document.getElementById('blocked-text').textContent = text || '';
+            const voltLink = document.getElementById('blocked-volt-link');
+            const backLink = document.getElementById('blocked-back-link');
+            if (voltLink) voltLink.style.display = 'none';
+            if (backLink) backLink.style.display = '';
+            showScreen('screen-blocked');
+        }
+        function showBuyerBlocked() {
+            document.getElementById('blocked-title').textContent = "Tu fais déjà partie d'Esprit Subconscient 2.0 !";
+            document.getElementById('blocked-text').textContent = 'Accède à ta formation sur Volt.';
+            const voltLink = document.getElementById('blocked-volt-link');
+            const backLink = document.getElementById('blocked-back-link');
+            if (voltLink) voltLink.style.display = '';
+            if (backLink) backLink.style.display = 'none';
+            showScreen('screen-blocked');
+        }
+        function isBuyer(payload) {
+            if (payload && payload.purchased === true) return true;
+            const status = String(payload?.statut || payload?.status || '').toLowerCase();
+            return status === 'acheteur' || status === 'paid' || status === 'purchased';
+        }
+        function normalizeReg(data, token) {
+            return {
+                token,
+                statut: data.statut || 'inscrit',
+                prenom: data.prenom || '',
+                sessionStartsAt: data.sessionStartsAt || data.session_date,
+                sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
+                offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
+                attendedLive: data?.attended_live === true,
+            };
+        }
+        function decideRouteFromPayload(payload, token) {
+            const now = Date.now();
+            const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
+            const oe = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+            const liveStart = sd - LIVE_VIDEO_LEAD_MS;
+            const lateCutoff = sd + LATE_DIRECT_AFTER_SESSION_MS;
+            if (!Number.isFinite(sd) || !Number.isFinite(oe)) {
+                return { type: 'block', title: 'Erreur', text: 'Dates de session invalides.' };
+            }
+            if (now < liveStart) {
+                return { type: 'redirect', url: '/mc2/confirmation?t=' + encodeURIComponent(token) };
+            }
+            if (now >= liveStart && now < lateCutoff) {
+                return { type: 'redirect', url: '/mc2/session?t=' + encodeURIComponent(token) };
+            }
+            if (now >= lateCutoff && now < oe) {
+                return { type: 'redirect', url: '/mc2/replay?t=' + encodeURIComponent(token) + '&reason=late' };
+            }
+            return { type: 'block', title: "Cette masterclass n'est plus accessible.", text: '' };
+        }
+        function setupRecoveryForm() {
+            const submit = document.getElementById('recovery-submit');
+            const input = document.getElementById('recovery-email');
+            const err = document.getElementById('recovery-error');
+            if (!submit || !input || !err) return;
+            submit.addEventListener('click', async function () {
+                err.textContent = '';
+                const email = String(input.value || '').trim().toLowerCase();
+                if (!email || !email.includes('@')) {
+                    err.textContent = 'Merci de saisir un email valide.';
+                    return;
+                }
+                submit.disabled = true;
+                try {
+                    const res = await fetch('/.netlify/functions/check-webinaire-eligibility', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                    const body = await res.json();
+                    if (!res.ok) {
+                        err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'excluded') {
+                        err.textContent = "Tu n'es pas éligible pour suivre cette masterclass.";
+                        return;
+                    }
+                    if (body.eligible === false && body.reason === 'already_registered' && body.token) {
+                        setTokenEverywhere(body.token);
+                        const route = decideRouteFromPayload(body, body.token);
+                        if (route.type === 'redirect') {
+                            window.location.replace(route.url);
+                            return;
+                        }
+                        showBlocked(route.title, route.text || '');
+                        return;
+                    }
+                    err.textContent = "Aucune inscription trouvée avec cet email.";
+                } catch (e) {
+                    err.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    submit.disabled = false;
+                }
+            });
+        }
+        function updateCountdown(targetMs, ids) {
+            const diff = Math.max(0, targetMs - getNowMs());
+            const total = Math.floor(diff / 1000);
+            document.getElementById(ids.days).textContent = pad(Math.floor(total / 86400));
+            document.getElementById(ids.hours).textContent = pad(Math.floor((total % 86400) / 3600));
+            document.getElementById(ids.minutes).textContent = pad(Math.floor((total % 3600) / 60));
+            document.getElementById(ids.seconds).textContent = pad(total % 60);
+        }
+        function getPresenceMode() {
+            try {
+                const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
+                const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+                return (isPreviewDev || isLocalHost) ? 'test' : 'real';
+            } catch {
+                return 'real';
+            }
+        }
+        async function sendPresencePing(token, stage, meta) {
+            if (!token) return;
+            try {
+                await fetch('/.netlify/functions/mc2-presence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token,
+                        stage,
+                        currentSecond: meta && Number.isFinite(meta.currentSecond) ? Math.floor(meta.currentSecond) : null,
+                        isPlaying: Boolean(meta && meta.isPlaying),
+                        mode: getPresenceMode(),
+                    }),
+                });
+            } catch {
+                /* ignore */
+            }
+        }
+        function trackWebinaireEvent(token, eventName, value) {
+            if (!token || !eventName) return;
+            const payload = { token, event: eventName, meta: { page_path: '/mc2/session/' } };
+            if (value !== undefined && value !== null) payload.value = String(value);
+            console.log('[ES2 TRACKING]', eventName, payload);
+            fetch('/.netlify/functions/track-mc2-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }).catch(function () {
+                /* best-effort */
+            });
+        }
+        /* ── Heart Column ── */
+        const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
+
+        function spawnHeart(track) {
+            const h = document.createElement('span');
+            var HEART_BLUES = ['#3b82f6','#60a5fa','#93c5fd','#2563eb','#a5b4fc','#bfdbfe'];
+            var color = HEART_BLUES[Math.floor(Math.random() * HEART_BLUES.length)];
+            h.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="' + color + '" stroke="none"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>';
+            h.style.cssText = `
+                position:absolute;bottom:0;left:${6 + Math.random() * 24}px;
+                font-size:${12 + Math.random() * 10}px;opacity:1;pointer-events:none;
+                animation:floatUp ${2 + Math.random()}s ease-out forwards;
+            `;
+            track.appendChild(h);
+            h.addEventListener('animationend', () => h.remove());
+        }
+
+        function getSimInterval(sessionStartMs) {
+            const now = getNowMs();
+            const pre15 = sessionStartMs - 15 * 60 * 1000; // 19h45
+            const pre5  = sessionStartMs - 5  * 60 * 1000; // 19h55
+            const endMs = sessionStartMs + getVideoDurationSeconds() * 1000;
+            const min15 = sessionStartMs + 15 * 60 * 1000; // 20h15
+            const min30 = sessionStartMs + 30 * 60 * 1000; // 20h30
+
+            if (now < pre15) return null;       // avant 19h45 - invisible
+            if (now >= endMs) return -1;        // après fin - disparaît
+            // 19h45 → 19h55 : montée lente
+            if (now < pre5)  return 3000 + Math.random() * 2000;
+            // 19h55 → 20h00 : montée rapide
+            if (now < sessionStartMs) return 1200 + Math.random() * 800;
+            // 20h00 → 20h15 : pic intense
+            if (now < min15) return 600 + Math.random() * 600;
+            // 20h15 → 20h30 : bon débit mais moins intense
+            if (now < min30) return 1500 + Math.random() * 1000;
+            // 20h30 → fin : débit modéré
+            return 2500 + Math.random() * 1500;
+        }
+
+        function initHeartColumn(sessionStartMs) {
+            const col   = document.getElementById('heart-column');
+            const track = document.getElementById('heart-track');
+            const btn   = document.getElementById('heart-btn');
+            if (!col || !track || !btn) return { recalc: () => {}, destroy: () => {} };
+
+            let timer = null;
+            let burstTimers = [];
+
+            function spawnBurst() {
+                var count = 3 + Math.floor(Math.random() * 5); // 3-7 cœurs par "personne"
+                for (var i = 0; i < count; i++) {
+                    var t = setTimeout(function() { spawnHeart(track); }, i * (80 + Math.random() * 120));
+                    burstTimers.push(t);
+                }
+            }
+
+            function scheduleNext() {
+                if (timer) clearTimeout(timer);
+                var delay = getSimInterval(sessionStartMs);
+                if (delay === null) return;
+                if (delay === -1) { col.classList.remove('is-visible'); return; }
+                timer = setTimeout(function() {
+                    if (col.classList.contains('is-visible')) spawnBurst();
+                    scheduleNext();
+                }, delay);
+            }
+
+            function updateVisibility() {
+                const now = getNowMs();
+                const endMs = sessionStartMs + getVideoDurationSeconds() * 1000;
+                if (now >= endMs) {
+                    col.classList.remove('is-visible');
+                    if (timer) { clearTimeout(timer); timer = null; }
+                    return;
+                }
+                const show = now >= sessionStartMs - HEART_SHOW_BEFORE_MS;
+                if (show && !col.classList.contains('is-visible')) {
+                    col.classList.add('is-visible');
+                    scheduleNext();
+                } else if (!show && col.classList.contains('is-visible')) {
+                    col.classList.remove('is-visible');
+                    if (timer) { clearTimeout(timer); timer = null; }
+                } else if (show) {
+                    scheduleNext();
+                }
+            }
+
+            btn.addEventListener('click', () => {
+                spawnHeart(track);
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => { spawnHeart(track); scheduleNext(); }, 300 + Math.random() * 500);
+            });
+
+            updateVisibility();
+            return {
+                recalc: updateVisibility,
+                destroy: function () {
+                    if (timer) { clearTimeout(timer); timer = null; }
+                    burstTimers.forEach((t) => clearTimeout(t));
+                    burstTimers = [];
+                    col.classList.remove('is-visible');
+                },
+            };
+        }
+
+        function initPurchaseToasts(sessionStartMs, options) {
+            const toast = document.getElementById('purchase-toast');
+            const text = document.getElementById('purchase-toast-text');
+            const flagEl = document.getElementById('purchase-toast-flag');
+            if (!toast || !text || !flagEl) return { recalc: () => {}, destroy: () => {} };
+
+            const setSeatsLeft = typeof options?.setSeatsLeft === 'function' ? options.setSeatsLeft : () => {};
+            let hideTimer = null;
+            let engine = null;
+
+            const isEnded = typeof options?.isEnded === 'function' ? options.isEnded : () => false;
+
+            function shouldRun() {
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
+                return elapsedSec >= CTA_APPEAR_SECONDS && !isEnded();
+            }
+
+            function hideNow() {
+                toast.classList.remove('show');
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
+                }
+            }
+
+            function showPurchase(purchase) {
+                if (!shouldRun()) {
+                    hideNow();
+                    return;
+                }
+                flagEl.textContent = purchase.flag;
+                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                toast.classList.add('show');
+                if (hideTimer) clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 4000);
+            }
+
+            function startEngine() {
+                if (engine) engine.stop();
+                const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
+                engine = startScarcityEngine({
+                    now: function () {
+                        return getNowMs() - SESSION_SCARCITY_DELAY_MS;
+                    },
+                    isActive: shouldRun,
+                    windowStartMs: options?.windowStartMs,
+                    windowEndMs: options?.windowEndMs,
+                    onSeatsLeft: function (seatsLeft, _soldCount, phase) {
+                        setSeatsLeft(seatsLeft, phase);
+                    },
+                    onNotification: function (purchase) {
+                        showPurchase(purchase);
+                    },
+                    debug,
+                });
+            }
+
+            startEngine();
+            return {
+                recalc: function () {
+                    if (engine && typeof engine.debugSnapshot === 'function') {
+                        const snap = engine.debugSnapshot();
+                        setSeatsLeft(snap.seatsLeft, snap.phase);
+                    }
+                },
+                destroy: function () {
+                    if (engine) engine.stop();
+                    engine = null;
+                    hideNow();
+                },
+            };
+        }
+        /* ──────────────────────────────── */
+
+        function showOfferZone(token) {
+            const zone = document.getElementById('offer-zone');
+            if (!zone || zone.classList.contains('visible')) return;
+            const cta = document.getElementById('offer-cta');
+            cta.href = '/commencer?t=' + encodeURIComponent(token);
+            zone.classList.remove('hidden');
+            void zone.offsetWidth; // reflow needed to trigger animation from display:none
+            zone.classList.add('visible');
+        }
+        function hideOfferZone() {
+            const zone = document.getElementById('offer-zone');
+            if (!zone || zone.classList.contains('hidden')) return;
+            zone.classList.remove('visible');
+            zone.classList.add('hidden');
+        }
+
+        function mountVideoAndOffer(reg) {
+            const expiryMs = new Date(reg.offreExpiresAt).getTime();
+            const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
+            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
+            const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
+            const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
+            const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
+            const offerCountdownTitleEl = document.querySelector('#offer-zone .offer-countdown-title');
+            const offerCountdownEl = document.querySelector('#offer-zone .countdown');
+            const offerScarcityEl = document.getElementById('scarcity-card');
+            const offerCtaNode = document.getElementById('offer-cta');
+            const offerExpiredStateEl = document.getElementById('offer-expired-state');
+            let isOfferExpired = false;
+
+            function setOfferCtaEnabled(enabled) {
+                if (!offerCtaNode) return;
+                const isEnabled = Boolean(enabled) && !isOfferExpired;
+                offerCtaNode.classList.toggle('is-disabled', !isEnabled);
+                offerCtaNode.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+                offerCtaNode.setAttribute('tabindex', isEnabled ? '0' : '-1');
+                if (offerCountdownTitleEl) {
+                    offerCountdownTitleEl.innerHTML = isEnabled
+                        ? 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible'
+                        : 'L’accès aux <span class="offer-countdown-highlight">3 secrets</span> &amp; à ES2 est disponible dans :';
+                }
+            }
+
+            function setOfferExpiredState(nextExpired) {
+                isOfferExpired = Boolean(nextExpired);
+                if (offerCountdownTitleEl) offerCountdownTitleEl.classList.toggle('hidden', isOfferExpired);
+                if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
+                if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
+                if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
+                if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
+                if (isOfferExpired) setOfferCtaEnabled(false);
+            }
+
+            function refreshMcPageLock() {
+                const un = document.getElementById('mc-unavailable-overlay')?.classList.contains('is-visible');
+                const la = document.getElementById('mc-late-overlay')?.classList.contains('is-visible');
+                const en = document.getElementById('mc-broadcast-ended-overlay')?.classList.contains('is-visible');
+                document.documentElement.classList.toggle('mc-page-lock', Boolean(un || la || en));
+            }
+            function syncMcUnavailableUi(on) {
+                const ov = document.getElementById('mc-unavailable-overlay');
+                if (!ov) return;
+                ov.classList.toggle('is-visible', Boolean(on));
+                ov.setAttribute('aria-hidden', on ? 'false' : 'true');
+                const v = document.getElementById('masterclass-video');
+                if (on && v) v.pause();
+                refreshMcPageLock();
+            }
+            function syncMcLateUi(on) {
+                const ov = document.getElementById('mc-late-overlay');
+                if (!ov) return;
+                ov.classList.toggle('is-visible', Boolean(on));
+                ov.setAttribute('aria-hidden', on ? 'false' : 'true');
+                const v = document.getElementById('masterclass-video');
+                if (on && v) v.pause();
+                refreshMcPageLock();
+            }
+            function syncMcEndedGateUi(on) {
+                const ov = document.getElementById('mc-broadcast-ended-overlay');
+                if (!ov) return;
+                ov.classList.toggle('is-visible', Boolean(on));
+                ov.setAttribute('aria-hidden', on ? 'false' : 'true');
+                refreshMcPageLock();
+            }
+            const tick = () => {
+                const now = getNowMs();
+                if (Number.isFinite(expiryMs) && now >= expiryMs) {
+                    setOfferExpiredState(true);
+                    syncMcUnavailableUi(true);
+                } else {
+                    setOfferExpiredState(false);
+                    syncMcUnavailableUi(false);
+                    updateCountdown(ctaActivationMs, offerIds);
+                }
+                updateCtaAudit();
+            };
+            let offerInterval = setInterval(tick, 1000);
+
+            const video = document.getElementById('masterclass-video');
+            video.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+            const hlsDiagnostics = {
+                sourceAttachments: 0,
+                hardReloads: 0,
+                softRecoveries: 0,
+                fatalErrors: [],
+                levelSwitches: [],
+                manifestLevels: [],
+            };
+            if (isPreviewPage) window.__mcHlsDiagnostics = hlsDiagnostics;
+            /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
+            let hlsInstance = null;
+            let attachedSourceUrl = '';
+            function isHlsUrl(url) {
+                return /\.m3u8(\?|#|$)/i.test(String(url || ''));
+            }
+            function detachVideoSource() {
+                if (hlsInstance) {
+                    try { hlsInstance.destroy(); } catch { /* ignore */ }
+                    hlsInstance = null;
+                }
+            }
+            function attachVideoSource(url) {
+                detachVideoSource();
+                attachedSourceUrl = String(url || '');
+                hlsDiagnostics.sourceAttachments += 1;
+                if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
+                    hlsInstance = new Hls({
+                        // Démarrage conservateur en 360p, puis ABR automatique dès les
+                        // premiers segments mesurés. Évite une estimation initiale trop haute.
+                        startLevel: HLS_INITIAL_LEVEL,
+                        // Ne pas télécharger de la 1080p sur un petit écran mobile :
+                        // économise la bande passante des connexions fragiles.
+                        capLevelToPlayerSize: true,
+                        maxBufferLength: 60,
+                    });
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function (_evt, data) {
+                        hlsDiagnostics.manifestLevels = (data?.levels || []).map(function (level) {
+                            return { height: level.height || null, bitrate: level.bitrate || null };
+                        });
+                    });
+                    hlsInstance.on(Hls.Events.LEVEL_SWITCHED, function (_evt, data) {
+                        const level = hlsInstance?.levels?.[data?.level];
+                        hlsDiagnostics.levelSwitches.push({
+                            at: Date.now(),
+                            level: Number.isFinite(data?.level) ? data.level : null,
+                            height: level?.height || null,
+                        });
+                    });
+                    hlsInstance.on(Hls.Events.ERROR, function (_evt, data) {
+                        // Une erreur fatale tente d'abord la récupération native hls.js.
+                        // La reconstruction complète de la source reste le dernier recours.
+                        if (data && data.fatal && FREEZE_RECOVERY_ENABLED) {
+                            const trigger = data.type === Hls.ErrorTypes.MEDIA_ERROR
+                                ? 'hls_media_error'
+                                : (data.type === Hls.ErrorTypes.NETWORK_ERROR ? 'hls_network_error' : 'hls_other_error');
+                            hlsDiagnostics.fatalErrors.push({ at: Date.now(), type: data.type || null, details: data.details || null });
+                            void triggerFreezeRecovery(trigger, stalledAccumulatedMs / 1000);
+                        }
+                    });
+                    hlsInstance.loadSource(attachedSourceUrl);
+                    hlsInstance.attachMedia(video);
+                } else {
+                    // MP4 direct, ou HLS natif (Safari/iOS), ou dernier recours.
+                    video.src = attachedSourceUrl;
+                }
+            }
+            function reloadVideoSource() {
+                // Équivalent de video.load() qui fonctionne aussi en mode hls.js
+                // (video.load() casserait l'attachement MediaSource).
+                if (hlsInstance) {
+                    attachVideoSource(attachedSourceUrl);
+                } else {
+                    video.load();
+                }
+            }
+            const videoContainer = document.getElementById('video-container');
+            const videoControls = document.getElementById('videoControls');
+            const waiting = document.getElementById('video-waiting');
+            const playOverlay = document.getElementById('playOverlay');
+            const playBtn = document.getElementById('playButton');
+            const muteBtn = document.getElementById('muteBtn');
+            const volRange = document.getElementById('volumeRange');
+            const fullscreenBtn = document.getElementById('fullscreenBtnDesktop');
+            const preLive = document.getElementById('pre-live-countdown');
+            const endedNote = document.getElementById('session-ended-note');
+            const volumeIcon = document.getElementById('icon-volume');
+            const muteIcon = document.getElementById('icon-mute');
+            const playOverlayLabel = document.getElementById('playOverlayLabel');
+            const rewind15Btn = document.getElementById('rewind15Btn');
+            const liveJumpBtn = document.getElementById('liveJumpBtn');
+            const scarcityPlacesEl = document.getElementById('scarcity-places');
+            const scarcityDenominatorEl = document.getElementById('scarcity-denominator');
+            const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
+            const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
+            const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
+            const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
+            const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
+                ? sessionEndsRawMs
+                : (sessionStartMs + (90 * 60 * 1000));
+            const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
+            const scarcityWindowEndMs = expiryMs;
+            const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
+            const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
+
+            function formatSessionLocalLabel(ms) {
+                const date = new Date(ms);
+                const dateLabel = new Intl.DateTimeFormat('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                }).format(date);
+                const timeLabel = new Intl.DateTimeFormat('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                }).format(date).replace(':', ' h ');
+                return dateLabel + ' à ' + timeLabel.replace(/ h 00$/, ' h');
+            }
+            function formatAuditDate(ms) {
+                if (!Number.isFinite(ms)) return '--';
+                try {
+                    return new Intl.DateTimeFormat('fr-FR', {
+                        timeZone: 'Europe/Paris',
+                        weekday: 'short',
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                    }).format(new Date(ms));
+                } catch (e) {
+                    return '--';
+                }
+            }
+            let ctaAuditEl = null;
+            function mountCtaAudit() {
+                if (!isPreviewPage) return;
+                if (ctaAuditEl) return;
+                const existing = document.getElementById('dev-cta-audit');
+                if (existing) {
+                    ctaAuditEl = existing;
+                    return;
+                }
+                const el = document.createElement('div');
+                el.id = 'dev-cta-audit';
+                el.style.cssText = 'position:fixed;top:10px;left:10px;z-index:459000;width:min(420px,calc(100vw - 24px));padding:10px 12px;border-radius:12px;border:1px solid rgba(96,165,250,.45);background:rgba(15,23,42,.92);box-shadow:0 12px 30px rgba(2,6,23,.45);color:#dbeafe;font-size:12px;line-height:1.4;white-space:pre-line;pointer-events:none;';
+                document.body.appendChild(el);
+                ctaAuditEl = el;
+            }
+            function updateCtaAudit() {
+                if (!ctaAuditEl) return;
+                const nowMs = getNowMs();
+                const ctaAppearMs = liveStartMs + CTA_APPEAR_SECONDS * 1000;
+                const videoEndMs = liveStartMs + getVideoDurationSeconds() * 1000;
+                const remainingSeconds = Math.max(0, Math.ceil((ctaActivationMs - nowMs) / 1000));
+                const ctaState = nowMs < ctaAppearMs
+                    ? 'caché'
+                    : (nowMs < ctaActivationMs ? 'grisé' : 'actif');
+                const countdownLabel = nowMs < ctaAppearMs
+                    ? '--:--'
+                    : `${pad(Math.floor(remainingSeconds / 60))}:${pad(remainingSeconds % 60)}`;
+                ctaAuditEl.textContent = [
+                    `sessionStartsAt : ${formatAuditDate(sessionStartMs)}`,
+                    `début vidéo : ${formatAuditDate(liveStartMs)}`,
+                    `bouton grisé : ${formatAuditDate(ctaAppearMs)}`,
+                    `bouton actif : ${formatAuditDate(ctaActivationMs)}`,
+                    `fin vidéo : ${formatAuditDate(videoEndMs)}`,
+                    `état CTA : ${ctaState}`,
+                    `countdown : ${countdownLabel}`,
+                ].join('\n');
+            }
+
+            let maxWatched = 0;
+            let liveStarted = false;
+            let launchInterval = null;
+            let presenceInterval = null;
+            let configPollInterval = null;
+            let isLiveJoin = false;
+            let isSessionEnded = false;
+            let hasAppliedLiveOffset = false;
+            let pendingForceLiveSeek = false;
+            let liveSeekInProgress = false;
+            let lastSeenPlaybackCommandId = null;
+            let lastSeenActiveUrl = ACTIVE_VIDEO_SOURCE_URL;
+            let pendingSourceSwitch = false;
+            let pendingSourceSwitchToLive = false;
+            let pendingSourceSwitchRestoreTimeSec = null;
+            let didAutoRedirectToOffer = false;
+            let hasJoinedSession = false;
+            let didTrackCtaReached = false;
+            const emittedCheckpointMinutes = new Set();
+            let mobileControlsHideTimer = null;
+            const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
+            const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
+            const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
+            // Laisser hls.js absorber les variations réseau ordinaires. À 24s, une reprise
+            // non destructive est tentée ; la reconstruction de source n'arrive qu'après échec.
+            const FREEZE_THRESHOLD_MS = 24000;
+            const FREEZE_RECOVERY_COOLDOWN_MS = 10000;
+            const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 12000;
+            const FREEZE_VISIBILITY_GRACE_MS = 3000;
+            const MAX_FREEZE_RECOVERIES = 2;
+            let freezeWatchdogInterval = null;
+            let stalledAccumulatedMs = 0;
+            let lastProgressCurrentTime = 0;
+            let suppressFreezeDetectionUntilMs = 0;
+            let freezeRecoveryCount = 0;
+            let lastRecoveryAtMs = 0;
+            let pendingRecoveryValidation = null;
+            let recoveryValidationDeadlineMs = 0;
+            let isRecoveringInProgress = false;
+
+            const lateReplayLinkEl = document.getElementById('mc-late-replay-link');
+            const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
+            const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
+            const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
+            if (lateReplayLinkEl) lateReplayLinkEl.href = '/mc2/replay?t=' + encodeURIComponent(reg.token) + '&reason=late';
+            if (endedReplayLinkEl) endedReplayLinkEl.href = '/mc2/replay?t=' + encodeURIComponent(reg.token);
+            let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
+            let forceEndedOverlay = window.__mcSessionForceEndedOverlay === true;
+            mountCtaAudit();
+            updateCtaAudit();
+
+            let didTrackSessionJoined = false;
+            function trackSessionJoinedIfEligible() {
+                if (didTrackSessionJoined) return;
+                // Guard: do not mark attended_live before the live access window opens.
+                if (Date.now() < sessionStartMs - LIVE_VIDEO_LEAD_MS) return;
+                // Guard retardataires : si on est passé le cutoff (= overlay 'Voir le replay'
+                // affiché), on ne marque PAS attended_live, même si la vidéo a brièvement
+                // chargé en arrière-plan. Évite le double-comptage live + replay.
+                if (Date.now() >= sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS) return;
+                // Send when the player is actually available to play.
+                const playerReady = video.readyState >= 1 || !video.paused;
+                if (!playerReady) return;
+                didTrackSessionJoined = true;
+                trackWebinaireEvent(reg.token, 'session_joined');
+            }
+
+            function setScarcitySeats(seatsLeft, phase) {
+                const isPhase2 = phase === 'phase2';
+                const denominator = isPhase2 ? 10 : 30;
+                const seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
+                if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
+                if (scarcityDenominatorEl) scarcityDenominatorEl.textContent = `/ ${denominator}`;
+                if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.toggle('hidden', !isPhase2);
+                if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.toggle('hidden', !isPhase2);
+                if (scarcityMeterFillEl) {
+                    const pct = (Math.max(0, Math.min(denominator, seats)) / denominator) * 100;
+                    scarcityMeterFillEl.style.width = `${pct}%`;
+                }
+            }
+
+            function syncIcons() {
+                const muted = video.muted || video.volume === 0;
+                volumeIcon.style.display = muted ? 'none' : 'block';
+                muteIcon.style.display = muted ? 'block' : 'none';
+            }
+
+            function setFreezeRecoveryOverlayVisible(on) {
+                if (!freezeRecoveryOverlay) return;
+                freezeRecoveryOverlay.classList.toggle('is-visible', Boolean(on));
+                freezeRecoveryOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+            }
+
+            function buildFreezeRecoveryPayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, recovered, strategy) {
+                return {
+                    trigger,
+                    currentTime_at_freeze: Number.isFinite(currentTimeAtFreeze) ? Math.floor(currentTimeAtFreeze * 100) / 100 : 0,
+                    freeze_duration_sec: Number.isFinite(freezeDurationSec) ? Math.max(0, Math.round(freezeDurationSec * 10) / 10) : 0,
+                    recovery_attempt_number: recoveryAttemptNumber,
+                    recovered: Boolean(recovered),
+                    context: 'live:' + String(strategy || 'unknown'),
+                };
+            }
+
+            function trackFreezeRecoveryPayload(payload) {
+                if (!reg?.token) return;
+                trackWebinaireEvent(reg.token, 'video_freeze_recovery', JSON.stringify(payload));
+            }
+
+            function resetFreezeProgressBaseline() {
+                lastProgressCurrentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                stalledAccumulatedMs = 0;
+            }
+
+            function isVideoActivelyPlayingForFreeze() {
+                if (!FREEZE_RECOVERY_ENABLED) return false;
+                if (video.ended || video.paused) return false;
+                if (isSessionEnded || !hasJoinedSession) return false;
+                if (pendingSourceSwitch) return false;
+                if (suppressFreezeDetectionUntilMs === Number.POSITIVE_INFINITY) return false;
+                if (Number.isFinite(suppressFreezeDetectionUntilMs) && Date.now() < suppressFreezeDetectionUntilMs) return false;
+                return true;
+            }
+
+            function finishRecoveryValidation(recovered) {
+                if (!pendingRecoveryValidation) {
+                    isRecoveringInProgress = false;
+                    return;
+                }
+                const meta = pendingRecoveryValidation;
+                const payload = buildFreezeRecoveryPayload(
+                    meta.trigger,
+                    meta.currentTimeAtFreeze,
+                    meta.freezeDurationSec,
+                    meta.recoveryAttemptNumber,
+                    recovered,
+                    meta.strategy,
+                );
+                trackFreezeRecoveryPayload(payload);
+                pendingRecoveryValidation = null;
+                recoveryValidationDeadlineMs = 0;
+                if (recovered) {
+                    freezeRecoveryCount = 0;
+                    setFreezeRecoveryOverlayVisible(false);
+                } else if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                    setFreezeRecoveryOverlayVisible(true);
+                } else {
+                    // La reprise douce n'a pas suffi : autoriser le dernier recours au tick suivant.
+                    stalledAccumulatedMs = FREEZE_THRESHOLD_MS;
+                }
+                isRecoveringInProgress = false;
+            }
+
+            async function runRecoveryStrategy(trigger, recoveryAttemptNumber, currentTimeAtFreeze) {
+                const canUseSoftHlsRecovery = Boolean(hlsInstance) && recoveryAttemptNumber === 1;
+                if (canUseSoftHlsRecovery) {
+                    let strategy = 'hls_start_load';
+                    if (trigger === 'hls_media_error' && typeof hlsInstance.recoverMediaError === 'function') {
+                        strategy = 'hls_media_recovery';
+                        hlsInstance.recoverMediaError();
+                    } else {
+                        hlsInstance.startLoad();
+                    }
+                    hlsDiagnostics.softRecoveries += 1;
+                    await video.play();
+                    return strategy;
+                }
+
+                if (!hlsInstance && trigger === 'watchdog' && recoveryAttemptNumber === 1) {
+                    hlsDiagnostics.softRecoveries += 1;
+                    await video.play();
+                    return 'native_resume';
+                }
+
+                hlsDiagnostics.hardReloads += 1;
+                reloadVideoSource();
+                if (currentTimeAtFreeze > 0) {
+                    liveSeekInProgress = true;
+                    try { video.currentTime = currentTimeAtFreeze; } catch { /* ignore */ }
+                }
+                await video.play();
+                return 'source_reload';
+            }
+
+            async function triggerFreezeRecovery(trigger, freezeDurationSec) {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                if (!isVideoActivelyPlayingForFreeze()) return;
+                if (video.ended) return;
+                if (pendingRecoveryValidation || isRecoveringInProgress) return;
+                const now = Date.now();
+                if (now - lastRecoveryAtMs < FREEZE_RECOVERY_COOLDOWN_MS) return;
+                if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                    setFreezeRecoveryOverlayVisible(true);
+                    return;
+                }
+
+                freezeRecoveryCount += 1;
+                isRecoveringInProgress = true;
+                lastRecoveryAtMs = now;
+                stalledAccumulatedMs = 0;
+                suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+                const currentTimeAtFreeze = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                const recoveryAttemptNumber = freezeRecoveryCount;
+                let strategy = 'unknown';
+
+                try {
+                    strategy = await runRecoveryStrategy(trigger, recoveryAttemptNumber, currentTimeAtFreeze);
+                } catch {
+                    const payload = buildFreezeRecoveryPayload(
+                        trigger,
+                        currentTimeAtFreeze,
+                        freezeDurationSec,
+                        recoveryAttemptNumber,
+                        false,
+                        strategy,
+                    );
+                    trackFreezeRecoveryPayload(payload);
+                    isRecoveringInProgress = false;
+                    if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+                        setFreezeRecoveryOverlayVisible(true);
+                    } else {
+                        stalledAccumulatedMs = FREEZE_THRESHOLD_MS;
+                    }
+                    return;
+                }
+
+                pendingRecoveryValidation = {
+                    trigger,
+                    currentTimeAtFreeze,
+                    freezeDurationSec,
+                    recoveryAttemptNumber,
+                    strategy,
+                };
+                recoveryValidationDeadlineMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
+                resetFreezeProgressBaseline();
+            }
+
+            function runFreezeWatchdogTick() {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                const now = Date.now();
+
+                if (pendingRecoveryValidation && recoveryValidationDeadlineMs > 0 && now >= recoveryValidationDeadlineMs) {
+                    finishRecoveryValidation(false);
+                }
+
+                if (!isVideoActivelyPlayingForFreeze()) {
+                    resetFreezeProgressBaseline();
+                    return;
+                }
+
+                const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                if (cur > lastProgressCurrentTime + FREEZE_PROGRESS_EPSILON_SEC) {
+                    lastProgressCurrentTime = cur;
+                    stalledAccumulatedMs = 0;
+                    if (pendingRecoveryValidation) {
+                        finishRecoveryValidation(true);
+                    }
+                    return;
+                }
+
+                stalledAccumulatedMs += FREEZE_WATCHDOG_INTERVAL_MS;
+                if (stalledAccumulatedMs >= FREEZE_THRESHOLD_MS) {
+                    void triggerFreezeRecovery('watchdog', stalledAccumulatedMs / 1000);
+                }
+            }
+
+            const freezeVisibilityHandler = function () {
+                if (!FREEZE_RECOVERY_ENABLED) return;
+                if (document.hidden) {
+                    suppressFreezeDetectionUntilMs = Number.POSITIVE_INFINITY;
+                    resetFreezeProgressBaseline();
+                    return;
+                }
+                suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+                resetFreezeProgressBaseline();
+            };
+
+            const manualFreezeRecoveryReloadHandler = function () {
+                window.location.reload();
+            };
+
+            function disableNativeSeekAndFastForward() {
+                video.playbackRate = 1;
+                video.defaultPlaybackRate = 1;
+                video.addEventListener('ratechange', function () {
+                    if (video.playbackRate !== 1) video.playbackRate = 1;
+                });
+            }
+
+            function updatePlayOverlayLabel() {
+                if (!playOverlayLabel) return;
+                if (isSessionEnded) {
+                    playOverlayLabel.textContent = ENDED_PLAY_LABEL;
+                    return;
+                }
+                playOverlayLabel.textContent = isLiveJoin ? LIVE_JOIN_LABEL : REPLAY_LABEL;
+            }
+
+            function getLiveOffsetSeconds() {
+                const now = getNowMs();
+                const elapsedSec = Math.floor((now - liveStartMs) / 1000);
+                const dur = getVideoDurationSeconds();
+                if (!Number.isFinite(elapsedSec) || elapsedSec < 0) return 0;
+                if (!Number.isFinite(dur) || dur <= 0) return Math.max(0, elapsedSec);
+                return Math.max(0, Math.min(dur - 1, elapsedSec));
+            }
+
+            function updateLiveJumpUi() {
+                if (!rewind15Btn || !liveJumpBtn) return;
+                if (!hasJoinedSession || isSessionEnded || getNowMs() < liveStartMs) {
+                    liveJumpBtn.classList.add('hidden');
+                    rewind15Btn.classList.add('hidden');
+                    rewind15Btn.disabled = true;
+                    rewind15Btn.classList.add('is-disabled');
+                    return;
+                }
+                const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                const liveOffset = getLiveOffsetSeconds();
+                const diff = liveOffset - cur;
+                const shouldShowLive = diff > 4;
+                liveJumpBtn.classList.toggle('hidden', !shouldShowLive);
+
+                // FIX (2026-07-13) : bouton -15s.
+                // 1) Actif au bord du live. Avant, `diff > 0` le grisait ET le faisait clignoter : au
+                //    bord du live `diff` oscille autour de 0 (liveOffset = palier Math.floor pendant que
+                //    cur avance en continu), réévalué ~4×/s par timeupdate.
+                // 2) Grisé UNIQUEMENT au plancher (60s derrière le live), avec une zone morte de 3s
+                //    (hystérésis) pour ne pas clignoter à cette frontière : une fois grisé, il ne se
+                //    réactive qu'en repassant sous 57s. La bande (3s) >> oscillation (~1s).
+                // Le recul reste borné à 60s DANS le clic (target = max(liveOffset - 60, cur - 15)).
+                const atFloor = rewind15Btn.disabled
+                    ? diff > MAX_BEHIND_LIVE_SECONDS - 3
+                    : diff >= MAX_BEHIND_LIVE_SECONDS;
+                const canRewind = cur >= 15 && !atFloor;
+                rewind15Btn.classList.remove('hidden');
+                rewind15Btn.disabled = !canRewind;
+                rewind15Btn.classList.toggle('is-disabled', !canRewind);
+            }
+
+            function setJoinedControlsVisible(visible) {
+                if (!videoControls || !fullscreenBtn) return;
+                videoContainer.classList.toggle('is-joined', Boolean(visible));
+                videoControls.classList.toggle('hidden', !visible);
+                fullscreenBtn.classList.toggle('hidden', !visible);
+                if (!visible) {
+                    clearMobileControlsHideTimer();
+                    videoControls.classList.remove('mobile-autohide-hidden');
+                } else {
+                    syncMobileControlsAutoHide();
+                }
+            }
+
+            function isMobileLandscapeViewport() {
+                return window.matchMedia('(max-width: 1023px) and (orientation: landscape)').matches;
+            }
+
+            function clearMobileControlsHideTimer() {
+                if (mobileControlsHideTimer) {
+                    clearTimeout(mobileControlsHideTimer);
+                    mobileControlsHideTimer = null;
+                }
+            }
+
+            function showMobileControlsNow() {
+                if (!videoControls) return;
+                videoControls.classList.add('is-visible');
+                videoControls.classList.remove('mobile-autohide-hidden');
+            }
+
+            function hideMobileControlsNow() {
+                if (!videoControls) return;
+                videoControls.classList.remove('is-visible');
+                videoControls.classList.add('mobile-autohide-hidden');
+            }
+
+            function syncMobileControlsAutoHide() {
+                if (!videoControls || !videoContainer.classList.contains('is-joined')) return;
+                clearMobileControlsHideTimer();
+                if (!isMobileLandscapeViewport()) {
+                    videoControls.classList.remove('mobile-autohide-hidden');
+                    return;
+                }
+                if (video.paused || video.ended || isSessionEnded) {
+                    showMobileControlsNow();
+                    return;
+                }
+                showMobileControlsNow();
+                mobileControlsHideTimer = setTimeout(function () {
+                    if (!video.paused && !video.ended && !isSessionEnded && isMobileLandscapeViewport()) {
+                        hideMobileControlsNow();
+                    }
+                }, MOBILE_CONTROLS_HIDE_DELAY_MS);
+            }
+
+            function onMobileControlsActivity() {
+                if (!isMobileLandscapeViewport() || !videoContainer.classList.contains('is-joined')) return;
+                showMobileControlsNow();
+                syncMobileControlsAutoHide();
+            }
+
+            function applySimulatedLiveOffset(opts) {
+                const force = Boolean(opts && opts.force);
+                if (isSessionEnded) return;
+                if (!force && hasAppliedLiveOffset) return;
+                if (getNowMs() < liveStartMs) return;
+
+                if (!Number.isFinite(video.duration) || video.duration <= 0) {
+                    if (force) pendingForceLiveSeek = true;
+                    return;
+                }
+                pendingForceLiveSeek = false;
+
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
+                const durationSec = getVideoDurationSeconds();
+                if (elapsedSec >= 0 && elapsedSec < durationSec) {
+                    isLiveJoin = true;
+                    // Important: update max first so anti-seek guard doesn't snap back.
+                    maxWatched = Math.max(maxWatched, elapsedSec);
+                    liveSeekInProgress = true;
+                    video.currentTime = elapsedSec;
+                    setTimeout(function () {
+                        liveSeekInProgress = false;
+                    }, 1500);
+                    if (force) video.play().catch(() => {});
+                } else {
+                    isLiveJoin = false;
+                }
+                hasAppliedLiveOffset = true;
+                updatePlayOverlayLabel();
+            }
+
+            function applyInlineEndedUi(opts) {
+                const preserveFrame = opts?.preserveFrame === true;
+                const keepOfferVisible = opts?.keepOfferVisible === true;
+                const showInlineNote = opts?.showInlineNote === true;
+                isSessionEnded = true;
+                liveStarted = false;
+                isLiveJoin = false;
+                if (preLive) preLive.style.display = 'none';
+                if (endedNote) endedNote.classList.toggle('is-visible', showInlineNote);
+                if (waiting) {
+                    waiting.classList.toggle('is-hidden', showInlineNote);
+                    const wt = waiting.querySelector('.waiting-title');
+                    if (wt) {
+                        wt.textContent = 'La masterclass est terminée';
+                        wt.classList.add('is-ended');
+                    }
+                }
+                playOverlay.classList.add('hidden');
+                video.pause();
+                if (!preserveFrame) {
+                    video.currentTime = 0;
+                }
+                updatePlayOverlayLabel();
+                updateLiveJumpUi();
+                if (keepOfferVisible) {
+                    showOfferZone(reg.token);
+                    updateCountdown(ctaActivationMs, offerIds);
+                    setOfferCtaEnabled(true);
+                } else {
+                    hideOfferZone();
+                }
+            }
+            function showEndedState() {
+                syncMcEndedGateUi(true);
+                applyInlineEndedUi();
+            }
+
+            function activateLiveJoinState() {
+                if (isSessionEnded) return;
+                liveStarted = true;
+                if (endedNote) endedNote.classList.remove('is-visible');
+                if (preLive) preLive.style.display = 'none';
+                if (!video.paused) {
+                    if (waiting) waiting.classList.add('is-hidden');
+                    playOverlay.classList.add('hidden');
+                } else {
+                    if (waiting) {
+                        waiting.classList.remove('is-hidden');
+                        const wt = waiting.querySelector('.waiting-title');
+                        if (wt) {
+                            wt.textContent = '';
+                            wt.classList.remove('is-ended');
+                        }
+                    }
+                    playOverlay.classList.remove('hidden');
+                }
+                applySimulatedLiveOffset();
+                syncIcons();
+            }
+
+            function refreshPreLiveCountdown() {
+                const now = getNowMs();
+                const broadcastEndMs = sessionEndsMs;
+
+                // Watchdog: if session is ended, video must stay paused. Always.
+                if (isSessionEnded && !video.paused) {
+                    video.pause();
+                }
+
+                if (Number.isFinite(expiryMs) && now >= expiryMs) {
+                    syncMcLateUi(false);
+                    syncMcEndedGateUi(false);
+                    syncMcUnavailableUi(true);
+                    video.pause();
+                    return;
+                }
+                syncMcUnavailableUi(false);
+
+                if (forceEndedOverlay) {
+                    isLiveJoin = false;
+                    syncMcLateUi(false);
+                    syncMcEndedGateUi(true);
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    setJoinedControlsVisible(false);
+                    updatePlayOverlayLabel();
+                    return;
+                }
+
+                if (forceLateOverlay) {
+                    isLiveJoin = false;
+                    syncMcLateUi(true);
+                    syncMcEndedGateUi(false);
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    setJoinedControlsVisible(false);
+                    updatePlayOverlayLabel();
+                    return;
+                }
+
+                var devLatePreview = false;
+                try {
+                    devLatePreview = window.__mcSessionDevLatePreview === true;
+                } catch (e) {}
+                // Retardataire gate must only apply on initial page load.
+                // Keep this runtime branch for explicit dev preview simulation only.
+                if (isPreviewPage && devLatePreview) {
+                    isLiveJoin = false;
+                    syncMcLateUi(true);
+                    syncMcEndedGateUi(false);
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    setJoinedControlsVisible(false);
+                    updatePlayOverlayLabel();
+                    return;
+                }
+                syncMcLateUi(false);
+
+                if (now < liveStartMs) {
+                    syncMcEndedGateUi(false);
+                    liveStarted = false;
+                    isSessionEnded = false;
+                    hasAppliedLiveOffset = false;
+                    if (endedNote) endedNote.classList.remove('is-visible');
+                    if (preLive) preLive.style.display = 'block';
+                    updateCountdown(sessionStartMs, {
+                        days: 'pl-days',
+                        hours: 'pl-hours',
+                        minutes: 'pl-minutes',
+                        seconds: 'pl-seconds',
+                    });
+                    video.pause();
+                    playOverlay.classList.add('hidden');
+                    updateLiveJumpUi();
+                    if (waiting) {
+                        waiting.classList.remove('is-hidden');
+                        const wt = waiting.querySelector('.waiting-title');
+                        if (wt) {
+                            wt.textContent = `Début de la diffusion ${formatSessionLocalLabel(sessionStartMs)}`;
+                            wt.classList.remove('is-ended');
+                        }
+                    }
+                    return;
+                }
+
+                if (now >= broadcastEndMs) {
+                    const isPresentUser = hasJoinedSession || reg.attendedLive === true;
+                    if (isPresentUser) {
+                        const durationSec = getVideoDurationSeconds();
+                        const atFileEnd = Number.isFinite(video.currentTime)
+                            && video.currentTime >= Math.max(0, durationSec - 0.25);
+
+                        // For present users, rely on real file end for the ended state.
+                        // If they open after the live window ended, show ended inline immediately.
+                        if (!hasJoinedSession || atFileEnd) {
+                            syncMcEndedGateUi(false);
+                            applyInlineEndedUi({
+                                preserveFrame: false,
+                                keepOfferVisible: true,
+                                showInlineNote: false,
+                            });
+                        } else {
+                            syncMcEndedGateUi(false);
+                            updateCtaStateByTime();
+                            updateDiagnosticGuideState();
+                        }
+                    } else {
+                        syncMcEndedGateUi(true);
+                        applyInlineEndedUi();
+                    }
+                    return;
+                }
+
+                syncMcEndedGateUi(false);
+                if (now >= liveStartMs && now < hideCountdownMs && preLive) {
+                    preLive.style.display = 'none';
+                }
+                activateLiveJoinState();
+                updateCtaStateByTime();
+                updateDiagnosticGuideState();
+            }
+
+            function updateCtaStateByTime() {
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
+                if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
+                    showOfferZone(reg.token);
+                    const isCtaActive = elapsedSec >= CTA_ACTIVATE_SECONDS;
+                    updateCountdown(ctaActivationMs, offerIds);
+                    setOfferCtaEnabled(isCtaActive);
+                    if (isCtaActive && !didTrackCtaReached) {
+                        didTrackCtaReached = true;
+                        trackWebinaireEvent(reg.token, 'cta_reached');
+                    }
+                } else if (elapsedSec < CTA_APPEAR_SECONDS) {
+                    setOfferCtaEnabled(false);
+                    hideOfferZone();
+                }
+            }
+            function updateDiagnosticGuideState() {
+                const zone = document.getElementById('diagnostic-guide-zone');
+                if (!zone) return;
+                const now = getNowMs();
+                const showAt = sessionStartMs - GUIDE_RELEASE_LEAD_MS;
+                const hideAt = sessionStartMs + 15 * 60 * 1000;
+                const shouldShow = now >= showAt && now <= hideAt && !isSessionEnded;
+                zone.classList.toggle('visible', shouldShow);
+            }
+
+            function applyVideoEndedState() {
+                if (hasJoinedSession || reg.attendedLive === true) {
+                    syncMcEndedGateUi(false);
+                    applyInlineEndedUi({
+                        preserveFrame: false,
+                        keepOfferVisible: true,
+                        showInlineNote: false,
+                    });
+                } else {
+                    showEndedState();
+                }
+            }
+
+            function scheduleAutoRedirectToOffer() {
+                if (didAutoRedirectToOffer || !reg?.token) return;
+                didAutoRedirectToOffer = true;
+                trackWebinaireEvent(reg.token, 'auto_redirect_to_offer');
+                window.location.href = '/commencer?t=' + encodeURIComponent(reg.token);
+            }
+
+            video.addEventListener('timeupdate', function () {
+                if (video.currentTime > maxWatched) maxWatched = video.currentTime;
+                updateCtaStateByTime();
+                updateLiveJumpUi();
+                const watchedMinutes = Math.floor((video.currentTime || 0) / 60);
+                VIDEO_TRACKING_CHECKPOINTS_MIN.forEach(function (checkpointMin) {
+                    if (watchedMinutes >= checkpointMin && !emittedCheckpointMinutes.has(checkpointMin)) {
+                        emittedCheckpointMinutes.add(checkpointMin);
+                        trackWebinaireEvent(reg.token, 'video_checkpoint', checkpointMin);
+                    }
+                });
+                if (video.currentTime >= getVideoDurationSeconds()) applyVideoEndedState();
+            });
+            video.addEventListener('ended', function () {
+                applyVideoEndedState();
+                if (hasJoinedSession || reg.attendedLive === true) {
+                    scheduleAutoRedirectToOffer();
+                }
+            });
+            video.addEventListener('seeking', function () {
+                if (liveSeekInProgress) return;
+                if (video.currentTime > maxWatched + 1) video.currentTime = maxWatched;
+            });
+            video.addEventListener('seeked', function () {
+                liveSeekInProgress = false;
+            });
+            video.addEventListener('play', function () {
+                if (waiting) waiting.classList.add('is-hidden');
+                playOverlay.classList.add('hidden');
+                syncIcons();
+                syncMobileControlsAutoHide();
+                trackSessionJoinedIfEligible();
+            });
+            video.addEventListener('pause', function () {
+                if (isRecoveringInProgress) return;
+                // No pause experience once user has joined.
+                if (liveStarted && !isSessionEnded && !video.ended) {
+                    video.play().catch(() => {});
+                    playOverlay.classList.add('hidden');
+                }
+                syncIcons();
+                syncMobileControlsAutoHide();
+            });
+            video.addEventListener('volumechange', syncIcons);
+            if (FREEZE_RECOVERY_ENABLED) {
+                // Les events 'waiting' et 'stalled' restent informatifs : aucune reconstruction
+                // du lecteur n'est déclenchée par une bufferisation ordinaire.
+                video.addEventListener('error', function () {
+                    void triggerFreezeRecovery('native_error', stalledAccumulatedMs / 1000);
+                });
+                document.addEventListener('visibilitychange', freezeVisibilityHandler);
+                if (freezeRecoveryReloadBtn) {
+                    freezeRecoveryReloadBtn.addEventListener('click', manualFreezeRecoveryReloadHandler);
+                }
+            }
+            playBtn.addEventListener('click', function () {
+                if (isSessionEnded) return;
+                hasJoinedSession = true;
+                setJoinedControlsVisible(true);
+                // FIX : recalculer la position live AU MOMENT DU CLIC (force), pour ne pas
+                // réutiliser une position figée calculée au démarrage du live (qui renvoyait 0
+                // pour ceux qui attendaient sur la page). Si la vidéo n'est pas prête, on
+                // applique dès loadedmetadata via pendingForceLiveSeek.
+                if (video.readyState >= 1) {
+                    applySimulatedLiveOffset({ force: true });
+                } else {
+                    pendingForceLiveSeek = true;
+                }
+                if (waiting) waiting.classList.add('is-hidden');
+                video.play().catch(() => {});
+                playOverlay.classList.add('hidden');
+                updateLiveJumpUi();
+                syncMobileControlsAutoHide();
+            });
+            muteBtn.addEventListener('click', function () {
+                video.muted = !video.muted;
+                syncIcons();
+            });
+            volRange.addEventListener('input', function () {
+                const v = Number(volRange.value) / 100;
+                video.volume = Math.max(0, Math.min(1, v));
+                video.muted = video.volume === 0;
+                syncIcons();
+            });
+            const offerCtaEl = document.getElementById('offer-cta');
+            if (offerCtaEl) {
+                offerCtaEl.addEventListener('click', function (event) {
+                    if (offerCtaEl.getAttribute('aria-disabled') === 'true') {
+                        event.preventDefault();
+                        return;
+                    }
+                    trackWebinaireEvent(reg.token, 'cta_clicked');
+                });
+            }
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', function () {
+                    if (!document.fullscreenElement && videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen().catch(() => {});
+                    } else if (document.fullscreenElement && document.exitFullscreen) {
+                        document.exitFullscreen().catch(() => {});
+                    }
+                    syncMobileControlsAutoHide();
+                });
+            }
+
+            if (rewind15Btn) {
+                rewind15Btn.addEventListener('click', function () {
+                    if (!hasJoinedSession || isSessionEnded) return;
+                    if (rewind15Btn.disabled) return;
+                    const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                    const liveOffset = getLiveOffsetSeconds();
+                    const minAllowed = Math.max(0, liveOffset - MAX_BEHIND_LIVE_SECONDS);
+                    const target = Math.max(minAllowed, cur - 15);
+                    liveSeekInProgress = true;
+                    video.currentTime = target;
+                    // FIX (2026-05-07) : recalibrer la baseline du watchdog après un seek arrière,
+                    // sinon le watchdog compare la nouvelle position à l'ancienne (plus haute) et déclenche
+                    // une fausse récupération freeze qui remettait la vidéo à 0.
+                    resetFreezeProgressBaseline();
+                    video.play().catch(() => {});
+                    setTimeout(function () {
+                        liveSeekInProgress = false;
+                    }, 900);
+                    updateLiveJumpUi();
+                    syncMobileControlsAutoHide();
+                });
+            }
+            if (liveJumpBtn) {
+                liveJumpBtn.addEventListener('click', function () {
+                    if (!hasJoinedSession || isSessionEnded) return;
+                    applySimulatedLiveOffset({ force: true });
+                    updateLiveJumpUi();
+                    syncMobileControlsAutoHide();
+                });
+            }
+            ['touchstart', 'touchmove', 'pointermove'].forEach(function (evt) {
+                videoContainer.addEventListener(evt, onMobileControlsActivity, { passive: true });
+            });
+            window.addEventListener('resize', syncMobileControlsAutoHide);
+            videoContainer.addEventListener('keydown', function (e) {
+                // Empêche les raccourcis seek du navigateur.
+                if (['ArrowLeft', 'ArrowRight', 'j', 'l', 'J', 'L'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            updateCtaStateByTime();
+            updateDiagnosticGuideState();
+            tick();
+            disableNativeSeekAndFastForward();
+            attachVideoSource(ACTIVE_VIDEO_SOURCE_URL);
+            video.volume = 0.8;
+            video.muted = false;
+            if (volRange) volRange.value = '80';
+            syncIcons();
+            updatePlayOverlayLabel();
+            setJoinedControlsVisible(false);
+            video.addEventListener('loadedmetadata', function () {
+                if (Number.isFinite(video.duration) && video.duration > 0) {
+                    ACTIVE_VIDEO_DURATION_SECONDS = Math.ceil(video.duration);
+                } else {
+                    ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
+                }
+                trackSessionJoinedIfEligible();
+                if (pendingSourceSwitch) {
+                    // Source changed by ops: either re-sync to live (recommended) or restore user's position.
+                    const targetRaw = pendingSourceSwitchRestoreTimeSec;
+                    const durSec = getVideoDurationSeconds();
+                    const targetSec = Number.isFinite(targetRaw) ? Math.max(0, Math.min(durSec - 1, targetRaw)) : 0;
+                    if (pendingSourceSwitchToLive) {
+                        applySimulatedLiveOffset({ force: true });
+                    } else {
+                        isLiveJoin = false;
+                        maxWatched = Math.max(maxWatched, targetSec);
+                        liveSeekInProgress = true;
+                        video.currentTime = targetSec;
+                        setTimeout(function () {
+                            liveSeekInProgress = false;
+                        }, 1200);
+                    }
+                    pendingSourceSwitch = false;
+                    pendingSourceSwitchToLive = false;
+                    pendingSourceSwitchRestoreTimeSec = null;
+                    updatePlayOverlayLabel();
+                } else if (pendingForceLiveSeek) {
+                    pendingForceLiveSeek = false;
+                    applySimulatedLiveOffset({ force: true });
+                } else {
+                    applySimulatedLiveOffset();
+                }
+                updateCtaStateByTime();
+                updateLiveJumpUi();
+                syncMobileControlsAutoHide();
+            });
+            refreshPreLiveCountdown();
+            launchInterval = setInterval(refreshPreLiveCountdown, 1000);
+            if (FREEZE_RECOVERY_ENABLED) {
+                resetFreezeProgressBaseline();
+                freezeWatchdogInterval = setInterval(runFreezeWatchdogTick, FREEZE_WATCHDOG_INTERVAL_MS);
+            }
+            function sendStagedPresencePing() {
+                const now = getNowMs();
+                const stage = now < liveStartMs ? 'waiting' : 'session';
+                const meta = stage === 'waiting'
+                    ? { currentSecond: 0, isPlaying: false }
+                    : { currentSecond: video.currentTime, isPlaying: !video.paused };
+                sendPresencePing(reg.token, stage, meta);
+            }
+            // Ping initial (sans attendre 60s) pour que la présence soit visible immédiatement dans le cockpit
+            sendStagedPresencePing();
+            presenceInterval = setInterval(sendStagedPresencePing, 60000);
+
+            const pageLoadedAtMs = Date.now();
+            configPollInterval = setInterval(async function () {
+                if (isSessionEnded) return;
+                try {
+                    const res = await fetch('/.netlify/functions/mc2-video-config', { cache: 'no-store' });
+                    const d = await res.json().catch(function () { return null; });
+                    if (!d) return;
+                    // 0) Force refresh viewers (admin a cliqué sur le bouton dans le cockpit Ops/Debug).
+                    // Si le timestamp est plus récent que le moment où la page a été chargée, on recharge.
+                    const refreshAt = d?.forceRefreshAt ? Date.parse(String(d.forceRefreshAt)) : NaN;
+                    if (Number.isFinite(refreshAt) && refreshAt > pageLoadedAtMs) {
+                        window.location.reload();
+                        return;
+                    }
+                    // 1) Switch source if ops changed primary/backup.
+                    if (d?.activeUrl && String(d.activeUrl) !== lastSeenActiveUrl) {
+                        const newUrl = String(d.activeUrl);
+                        lastSeenActiveUrl = newUrl;
+                        ACTIVE_VIDEO_SOURCE_URL = newUrl;
+                        suppressFreezeDetectionUntilMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
+
+                        pendingSourceSwitch = true;
+                        const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+                        const liveOffset = getLiveOffsetSeconds();
+                        pendingSourceSwitchToLive = (liveOffset - cur) <= 4;
+                        pendingSourceSwitchRestoreTimeSec = Math.floor(cur);
+
+                        video.pause();
+                        attachVideoSource(ACTIVE_VIDEO_SOURCE_URL);
+                        video.play().catch(() => {});
+                    }
+
+                    // 2) Apply playback command if ops requested a re-sync.
+                    const cmd = d?.playbackCommand;
+                    if (cmd?.id && cmd.id !== lastSeenPlaybackCommandId) {
+                        lastSeenPlaybackCommandId = cmd.id;
+                        if (cmd.action === 'seek_live_offset') {
+                            applySimulatedLiveOffset({ force: true });
+                            updateLiveJumpUi();
+                        }
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }, 7000);
+            const beforeUnloadHandler = function () {
+                if (launchInterval) clearInterval(launchInterval);
+                if (offerInterval) clearInterval(offerInterval);
+                if (presenceInterval) clearInterval(presenceInterval);
+                if (configPollInterval) clearInterval(configPollInterval);
+                if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
+            };
+            window.addEventListener('beforeunload', beforeUnloadHandler);
+
+            const hearts = initHeartColumn(liveStartMs);
+            // Le live reste centré sur le contenu : aucune notification d'achat
+            // et aucun moteur de scarcity visible sur cette page.
+            const purchaseToasts = { recalc: function () {}, destroy: function () {} };
+
+            return {
+                recalcFromSimulatedTime: function () {
+                    hasAppliedLiveOffset = false;
+                    isSessionEnded = false;
+                    syncMcUnavailableUi(false);
+                    syncMcLateUi(false);
+                    syncMcEndedGateUi(false);
+                    hideOfferZone();
+                    refreshPreLiveCountdown();
+                    tick();
+                    updateCtaStateByTime();
+                    updateDiagnosticGuideState();
+                    hearts.recalc();
+                    purchaseToasts.recalc();
+                    updateCtaAudit();
+                },
+                sessionStartMs,
+                destroy: function () {
+                    if (launchInterval) clearInterval(launchInterval);
+                    if (offerInterval) clearInterval(offerInterval);
+                    if (presenceInterval) clearInterval(presenceInterval);
+                    if (configPollInterval) clearInterval(configPollInterval);
+                    if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
+                    detachVideoSource();
+                    hearts.destroy();
+                    purchaseToasts.destroy();
+                    document.documentElement.classList.remove('mc-page-lock');
+                    window.removeEventListener('beforeunload', beforeUnloadHandler);
+                    document.removeEventListener('visibilitychange', freezeVisibilityHandler);
+                    if (freezeRecoveryReloadBtn) {
+                        freezeRecoveryReloadBtn.removeEventListener('click', manualFreezeRecoveryReloadHandler);
+                    }
+                },
+            };
+        }
+
+        async function maybeMarkPresent(reg) {
+            // La présence MC2 est validée par `session_joined` au premier vrai démarrage
+            // du lecteur, jamais par une simple ouverture de page.
+            return reg;
+        }
+
+        function toLocalDatetimeInputValue(ms) {
+            const d = new Date(ms);
+            const z = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+        }
+
+        /* ── Session date calc (mirrors webinaire-session-paris.mjs logic, client-side) ── */
+        function devParisParts(date) {
+            var fmt = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris', numberingSystem: 'latn',
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                weekday: 'short', hour: 'numeric', minute: 'numeric',
+                hourCycle: 'h23',
+            });
+            var parts = fmt.formatToParts(date);
+            var v = function(type) { return Number((parts.find(function(p) { return p.type === type; }) || {}).value || 0); };
+            var wd = (parts.find(function(p) { return p.type === 'weekday'; }) || {}).value || '';
+            return { year: v('year'), month: v('month'), day: v('day'), hour: v('hour'), minute: v('minute'), wd: wd.toLowerCase() };
+        }
+        function devParisWeekday(p) {
+            var map = { lun: 1, mar: 2, mer: 3, jeu: 4, ven: 5, sam: 6, dim: 7 };
+            for (var k in map) { if (p.wd.indexOf(k) === 0) return map[k]; }
+            return 1;
+        }
+        function devAddDays(y, m, d, delta) {
+            var dt = new Date(Date.UTC(y, m - 1, d + delta, 12, 0, 0));
+            var p = devParisParts(dt);
+            return { year: p.year, month: p.month, day: p.day };
+        }
+        function devFindParisInstant(py, pm, pd, ph) {
+            var start = Date.UTC(py, pm - 1, pd, 0, 0, 0);
+            var end = start + 48 * 3600 * 1000;
+            for (var t = start; t < end; t += 60000) {
+                var p = devParisParts(new Date(t));
+                if (p.year === py && p.month === pm && p.day === pd && p.hour === ph) return new Date(t);
+            }
+            return null;
+        }
+        function devCalcSession(inscriptionDate) {
+            var p = devParisParts(inscriptionDate);
+            var dow = devParisWeekday(p);
+            var mon = devAddDays(p.year, p.month, p.day, -(dow - 1));
+            var thu = devAddDays(mon.year, mon.month, mon.day, 3);
+            var thu19 = devFindParisInstant(thu.year, thu.month, thu.day, 19);
+            var targetThu = thu;
+            if (!thu19 || inscriptionDate.getTime() >= thu19.getTime()) {
+                targetThu = devAddDays(thu.year, thu.month, thu.day, 7);
+            }
+            var sessionStart = devFindParisInstant(targetThu.year, targetThu.month, targetThu.day, 20);
+            var sun = devAddDays(targetThu.year, targetThu.month, targetThu.day, 3);
+            var offerExpiry = devFindParisInstant(sun.year, sun.month, sun.day, 23);
+            return { sessionStart: sessionStart, offerExpiry: offerExpiry };
+        }
+        function devFormatParis(ms) {
+            return new Date(ms).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+        }
+        function devGetState(sessionMs, nowMs) {
+            var elapsed = (nowMs - sessionMs) / 1000;
+            var videoElapsed = (nowMs - (sessionMs - LIVE_VIDEO_LEAD_MS)) / 1000;
+            if (elapsed < -900) return 'Attente';
+            if (elapsed < 0)    return 'Pré-live';
+            if (videoElapsed < CTA_APPEAR_SECONDS) return 'Live';
+            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'Bouton grisé';
+            if (videoElapsed < getVideoDurationSeconds()) return 'Bouton actif';
+            var endMs = sessionMs + getVideoDurationSeconds() * 1000;
+            var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
+            if (nowMs < sun23) return 'Vidéo terminée / Replay';
+            return 'Expiré';
+        }
+        function initDevBanner() {
+            var banner = document.getElementById('dev-time-banner');
+            if (!banner) return;
+            banner.classList.add('is-visible');
+
+            var inscInput = document.getElementById('dev-inscription-input');
+            var nowInput  = document.getElementById('dev-time-input');
+            var sumInsc   = document.getElementById('dev-sum-inscription');
+            var sumSession = document.getElementById('dev-sum-session');
+            var sumNow    = document.getElementById('dev-sum-now');
+            var sumState  = document.getElementById('dev-sum-state');
+
+            var inscBtns = Array.from(banner.querySelectorAll('[data-insc-preset]'));
+            var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
+
+            var currentSessionMs = 0;
+            var currentMounted = null;
+
+            function setActiveInsc(key) { inscBtns.forEach(function(b) { b.classList.toggle('is-active', b.getAttribute('data-insc-preset') === key); }); }
+            function setActiveNow(key)  { nowBtns.forEach(function(b)  { b.classList.toggle('is-active', b.getAttribute('data-now-preset') === key); }); }
+
+            function refreshSummary() {
+                var nowMs = getNowMs();
+                sumInsc.textContent = 'Inscrit le : ' + devFormatParis(new Date(inscInput.value).getTime());
+                sumSession.textContent = 'Session : ' + devFormatParis(currentSessionMs);
+                sumNow.textContent = 'Heure simulée : ' + devFormatParis(nowMs);
+                var liveStart = currentSessionMs - LIVE_VIDEO_LEAD_MS;
+                var appearAt = liveStart + CTA_APPEAR_SECONDS * 1000;
+                var activeAt = liveStart + CTA_ACTIVATE_SECONDS * 1000;
+                var remaining = Math.max(0, Math.ceil((activeAt - nowMs) / 1000));
+                var ctaStatus = nowMs < appearAt
+                    ? 'caché'
+                    : (nowMs < activeAt
+                        ? 'grisé · ' + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60)
+                        : 'actif · 00:00');
+                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span> · CTA : <span class="dev-state-val">' + ctaStatus + '</span>';
+            }
+
+            function remountWithSession(sessionMs, offerMs) {
+                try {
+                    window.__mcSessionDevLatePreview = false;
+                } catch (e) {}
+                if (currentMounted && typeof currentMounted.destroy === 'function') {
+                    currentMounted.destroy();
+                }
+                currentSessionMs = sessionMs;
+                var reg = {
+                    token: 'preview-session',
+                    statut: 'present',
+                    prenom: 'Preview',
+                    sessionStartsAt: new Date(sessionMs).toISOString(),
+                    offreExpiresAt: new Date(offerMs).toISOString(),
+                };
+                showScreen('screen-main');
+                currentMounted = mountVideoAndOffer(reg);
+            }
+
+            function setSimNow(ms) {
+                simulatedNowMs = ms;
+                simulatedAnchorRealMs = Date.now();
+                nowInput.value = toLocalDatetimeInputValue(ms);
+                try {
+                    sessionStorage.setItem('es2_mc_dev_clock', JSON.stringify({ simulatedNowMs, simulatedAnchorRealMs }));
+                } catch (e) {}
+                if (currentMounted) currentMounted.recalcFromSimulatedTime();
+                refreshSummary();
+            }
+
+            function onInscriptionChange(inscMs) {
+                inscInput.value = toLocalDatetimeInputValue(inscMs);
+                var result = devCalcSession(new Date(inscMs));
+                var sesMs = result.sessionStart ? result.sessionStart.getTime() : null;
+                var offMs = result.offerExpiry ? result.offerExpiry.getTime() : null;
+                if (!Number.isFinite(sesMs) || !Number.isFinite(offMs)) {
+                    // Fallback robuste pour éviter tout blocage du mode preview
+                    sesMs = new Date(inscMs + 24 * 60 * 60 * 1000).getTime();
+                    offMs = sesMs + 3 * 24 * 60 * 60 * 1000;
+                }
+                remountWithSession(sesMs, offMs);
+                setSimNow(getNowMs());
+                refreshSummary();
+            }
+
+            // Inscription presets: relative to current real week
+            function getInscPresetMs(key) {
+                var now = new Date();
+                var p = devParisParts(now);
+                var dow = devParisWeekday(p);
+                var mon = devAddDays(p.year, p.month, p.day, -(dow - 1));
+                var map = {
+                    'mon-10':   { dayOffset: 0, hour: 10, minute: 0 },
+                    'wed-14':   { dayOffset: 2, hour: 14, minute: 0 },
+                    'thu-18':   { dayOffset: 3, hour: 18, minute: 0 },
+                    'thu-1930': { dayOffset: 3, hour: 19, minute: 30 },
+                    'fri-10':   { dayOffset: 4, hour: 10, minute: 0 },
+                    'sat-15':   { dayOffset: 5, hour: 15, minute: 0 },
+                };
+                var cfg = map[key];
+                if (!cfg) return null;
+                var d = devAddDays(mon.year, mon.month, mon.day, cfg.dayOffset);
+                var instant = devFindParisInstant(d.year, d.month, d.day, cfg.hour);
+                if (instant && cfg.minute) instant = new Date(instant.getTime() + cfg.minute * 60000);
+                return instant ? instant.getTime() : null;
+            }
+
+            inscBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var key = btn.getAttribute('data-insc-preset');
+                    var ms = getInscPresetMs(key);
+                    if (!ms) return;
+                    setActiveInsc(key);
+                    onInscriptionChange(ms);
+                });
+            });
+            inscInput.addEventListener('change', function() {
+                var ms = new Date(inscInput.value).getTime();
+                if (!Number.isFinite(ms)) return;
+                setActiveInsc(null);
+                onInscriptionChange(ms);
+            });
+
+            // Now presets: relative to currentSessionMs
+            var nowPresetOffsets = {
+                'session-m60':  -60 * 60 * 1000,
+                'session-m30':  -30 * 60 * 1000,
+                'session-m15':  -15 * 60 * 1000,
+                'session-p2':   2 * 60 * 1000,
+                'session-p15':  20 * 60 * 1000,
+            };
+            function getNowPresetMs(key) {
+                if (nowPresetOffsets[key] !== undefined) return currentSessionMs + nowPresetOffsets[key];
+                if (key === 'cta-m10s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 - 10000;
+                if (key === 'cta-now') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000;
+                if (key === 'cta-mid') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 40000;
+                if (key === 'cta-active-m5s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 - 5000;
+                if (key === 'cta-active') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000;
+                if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;
+                if (key === 'expired') {
+                    var p2 = devParisParts(new Date(currentSessionMs));
+                    var sun = devAddDays(p2.year, p2.month, p2.day, 3);
+                    var inst2 = devFindParisInstant(sun.year, sun.month, sun.day, 23);
+                    return inst2 ? inst2.getTime() + 30 * 60 * 1000 : currentSessionMs + 76 * 3600 * 1000;
+                }
+                if (key === 'webinaire-ended') {
+                    var durSec = getVideoDurationSeconds();
+                    return currentSessionMs - LIVE_VIDEO_LEAD_MS + durSec * 1000 + 90 * 1000;
+                }
+                if (key === 'late-arrival') {
+                    return currentSessionMs + LATE_DIRECT_AFTER_SESSION_MS + 3 * 60 * 1000;
+                }
+                return null;
+            }
+
+            nowBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var key = btn.getAttribute('data-now-preset');
+                    var ms = getNowPresetMs(key);
+                    if (!ms) return;
+                    setActiveNow(key);
+                    try {
+                        if (key === 'late-arrival') {
+                            window.__mcSessionDevLatePreview = true;
+                        } else {
+                            window.__mcSessionDevLatePreview = false;
+                        }
+                    } catch (e) {}
+                    setSimNow(ms);
+                });
+            });
+            nowInput.addEventListener('change', function() {
+                var ms = new Date(nowInput.value).getTime();
+                if (!Number.isFinite(ms)) return;
+                setActiveNow(null);
+                try {
+                    window.__mcSessionDevLatePreview = false;
+                } catch (e) {}
+                setSimNow(ms);
+            });
+
+            // Initialize: default inscription = now, session = next Thursday
+            var initNow = new Date();
+            simulatedNowMs = initNow.getTime();
+            simulatedAnchorRealMs = Date.now();
+            onInscriptionChange(initNow.getTime());
+            setSimNow(initNow.getTime());
+
+            setInterval(refreshSummary, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const params = new URLSearchParams(window.location.search);
+            const preview = params.get('preview') === 'dev';
+
+            if (preview) {
+                initDevBanner();
+                return;
+            }
+
+            await fetchActiveVideoSourceConfig();
+            setupRecoveryForm();
+
+            await window.__MC2_ACCESS__.resolve();
+            let token = (params.get('t') || params.get('token') || '').trim();
+            if (!token) token = getStoredToken();
+            if (!token) {
+                showScreen('screen-recovery');
+                return;
+            }
+
+            try {
+                const res = await fetch('/.netlify/functions/get-mc2-registration?t=' + encodeURIComponent(token));
+                if (!res.ok) {
+                    showScreen('screen-recovery');
+                    return;
+                }
+                const data = await res.json();
+                if (!data.valid || !data.sessionStartsAt || !data.offreExpiresAt) {
+                    showScreen('screen-recovery');
+                    return;
+                }
+                setTokenEverywhere(token);
+                const reg = normalizeReg(data, token);
+                trackWebinaireEvent(token, 'session_page_viewed');
+                if (isBuyer(data) || isBuyer(reg)) {
+                    showBuyerBlocked();
+                    return;
+                }
+
+                const now = Date.now();
+                const sessionMs = new Date(reg.sessionStartsAt).getTime();
+                const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
+                const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
+                    ? sessionEndsRawMs
+                    : (sessionMs + (90 * 60 * 1000));
+                const offerMs = new Date(reg.offreExpiresAt).getTime();
+                const attendedLive = data?.attended_live === true;
+
+                if (!Number.isFinite(sessionMs) || !Number.isFinite(offerMs)) {
+                    showBlocked('Erreur', 'Dates de session invalides.');
+                    return;
+                }
+
+                const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
+                if (now >= sessionEndsMs && !attendedLive) {
+                    window.__mcSessionForceEndedOverlay = true;
+                }
+                if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
+                    window.__mcSessionForceLateOverlay = true;
+                }
+                showScreen('screen-main');
+                if (now >= liveStartMs) await maybeMarkPresent(reg);
+                mountVideoAndOffer(reg);
+            } catch (e) {
+                showBlocked('Erreur', 'Impossible de charger la session pour le moment.');
+            }
+        });
+    </script>
+    <script>document.documentElement.classList.add('ready');</script>
+</body>
+</html>

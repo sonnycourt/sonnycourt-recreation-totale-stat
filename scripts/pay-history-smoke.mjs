@@ -90,6 +90,41 @@ assert.equal(historyOrders.rows[0].tax, 16_400);
 assert.equal(historyOrders.rows[0].subtotal, 100_000);
 assert.equal(historyOrders.rows[0].country, 'CH');
 
+const recoverySelections = [];
+const mc2Orders = await getPayHistoryResource('orders', {
+  select: async (table) => {
+    recoverySelections.push(table);
+    if (table === 'pay_orders') return [{
+      provider: 'stripe', external_id: 'cs_live_mc2', status: 'paid', currency: 'eur', total_minor: 4_700,
+      subtotal_minor: 4_700, discount_minor: 0, finance_fee_minor: 0, tax_minor: 0,
+      source_created_at: '2026-08-11T20:00:00Z', metadata: {
+        system: 'es2_mc2', funnel: 'mc2', mc2_token: 'secret-token-not-for-browser',
+        customer_email: 'mc2@example.com', product_name: 'Esprit Subconscient 2.0',
+      },
+    }];
+    if (table === 'mc2_registrations') return [{
+      token: 'secret-token-not-for-browser', stripe_checkout_session_id: 'cs_live_mc2', payment_status: 'past_due',
+      payment_retry_count: 1, updated_at: '2026-08-12T20:00:00Z',
+    }];
+    if (table === 'mc2_payment_recoveries') return [{
+      stripe_invoice_id: 'in_mc2_failed', token: 'secret-token-not-for-browser', status: 'retry_scheduled',
+      attempt_count: 2, retry_count: 1, amount_due_cents: 19_700, currency: 'eur',
+      decline_code: 'insufficient_funds', failure_message: 'Fonds insuffisants.',
+      next_retry_at: '2026-08-14T20:00:00Z', first_failed_at: '2026-08-12T20:00:00Z',
+      last_failed_at: '2026-08-12T20:00:00Z', updated_at: '2026-08-12T20:00:00Z',
+    }];
+    if (table === 'mc2_collection_cases') return [];
+    return [];
+  },
+});
+assert.deepEqual(recoverySelections, ['pay_orders', 'mc2_registrations', 'mc2_payment_recoveries', 'mc2_collection_cases']);
+assert.equal(mc2Orders.rows[0].payment_recovery.status, 'retry_scheduled');
+assert.equal(mc2Orders.rows[0].payment_recovery.attempt_count, 2);
+assert.equal(mc2Orders.rows[0].payment_recovery.retry_count, 1);
+assert.equal(mc2Orders.rows[0].payment_recovery.amount_due, 19_700);
+assert.equal(mc2Orders.rows[0].payment_recovery.failure_code, 'insufficient_funds');
+assert.equal(JSON.stringify(mc2Orders.rows).includes('secret-token-not-for-browser'), false);
+
 const historyPayments = await getPayHistoryResource('payments', {
   select: async () => [{
     provider: 'paypal', external_id: 'capture_1', status: 'succeeded', currency: 'eur', amount_minor: 19_700,

@@ -1,4 +1,7 @@
 const ALLOWED_TABLES = new Set([
+  'mc2_payment_recoveries',
+  'mc2_collection_cases',
+  'mc2_registrations',
   'pay_checkouts',
   'pay_customers',
   'pay_discounts',
@@ -403,6 +406,146 @@ function resourceRow(resource, row) {
   return null;
 }
 
+function isMc2Order(metadata = {}) {
+  const system = metadataValue(metadata, 'system').toLowerCase();
+  const funnel = metadataValue(metadata, 'funnel').toLowerCase();
+  const checkout = metadataValue(metadata, 'checkout_id', 'pay_checkout_id').toLowerCase();
+  return system === 'es2_mc2' || funnel === 'mc2' || checkout === 'es2-mc2-commencer';
+}
+
+function publicRecovery(recovery = null) {
+  if (!recovery) {
+    return {
+      tracked: true,
+      status: 'current',
+      attempt_count: 0,
+      retry_count: 0,
+      amount_due: 0,
+      currency: 'eur',
+      next_retry_at: null,
+      failure_code: null,
+      failure_message: null,
+      recovered_at: null,
+      exhausted_at: null,
+      updated_at: null,
+    };
+  }
+  return {
+    tracked: true,
+    invoice_id: clean(recovery.stripe_invoice_id, 255) || null,
+    status: clean(recovery.status, 60).toLowerCase() || 'failed',
+    attempt_count: Math.max(0, Number(recovery.attempt_count || 0)),
+    retry_count: Math.max(0, Number(recovery.retry_count || 0)),
+    amount_due: Math.max(0, Number(recovery.amount_due_cents || 0)),
+    currency: currencyCode(recovery.currency).toLowerCase(),
+    next_retry_at: recovery.next_retry_at || null,
+    failure_code: clean(recovery.decline_code || recovery.failure_code, 120) || null,
+    failure_message: clean(recovery.failure_message, 500) || null,
+    first_failed_at: recovery.first_failed_at || null,
+    last_failed_at: recovery.last_failed_at || null,
+    recovered_at: recovery.recovered_at || null,
+    exhausted_at: recovery.exhausted_at || null,
+    updated_at: recovery.updated_at || null,
+  };
+}
+
+function publicCollectionCase(row = null) {
+  if (!row) return null;
+  return {
+    id: Math.max(0, Number(row.id || 0)),
+    case_number: clean(row.case_number, 120) || null,
+    status: clean(row.status, 80).toLowerCase() || 'draft',
+    revision: Math.max(1, Number(row.revision || 1)),
+    balance_due: Math.max(0, Number(row.balance_due_cents || 0)),
+    currency: currencyCode(row.currency).toLowerCase(),
+    automatic_retry_count: Math.max(0, Number(row.automatic_retry_count || 0)),
+    complete: row.completeness?.complete === true,
+    missing: Array.isArray(row.completeness?.missing) ? row.completeness.missing.slice(0, 30) : [],
+    prepared_at: row.prepared_at || null,
+    approved_at: row.approved_at || null,
+    exported_at: row.exported_at || null,
+  };
+}
+
+async function optionalSelect(select, table, parameters, options) {
+  try { return await select(table, parameters, options); }
+  catch (error) {
+    if (String(error?.code || error?.message || '').includes('pay_history_not_initialized')) return [];
+    throw error;
+  }
+}
+
+function recoveryFromRegistration(registration = null) {
+  if (!registration) return null;
+  const paymentStatus = clean(registration.payment_status, 60).toLowerCase();
+  const exhausted = paymentStatus === 'unpaid' || Boolean(registration.payment_exhausted_at);
+  const failing = paymentStatus === 'past_due';
+  if (!exhausted && !failing && !registration.payment_recovered_at) return null;
+  return {
+    status: exhausted ? 'exhausted' : failing ? 'failed' : 'recovered',
+    attempt_count: Math.max(0, Number(registration.payment_retry_count || 0)) + (failing || exhausted ? 1 : 0),
+    retry_count: Math.max(0, Number(registration.payment_retry_count || 0)),
+    amount_due_cents: 0,
+    currency: 'eur',
+    failure_code: registration.payment_failure_code || null,
+    failure_message: registration.payment_failure_message || null,
+    next_retry_at: registration.payment_next_retry_at || null,
+    recovered_at: registration.payment_recovered_at || null,
+    exhausted_at: registration.payment_exhausted_at || null,
+    updated_at: registration.updated_at || null,
+  };
+}
+
+async function projectOrdersWithRecoveries(rows, select, options) {
+  const projected = rows.map((row) => ({ row, order: resourceRow('orders', row) })).filter((item) => item.order);
+  const trackedOrders = projected.filter(({ row }) => isMc2Order(row.metadata));
+  if (!trackedOrders.length) return projected.map(({ order }) => order);
+
+  const registrations = await select('mc2_registrations', {
+    select: 'token,stripe_checkout_session_id,payment_status,payment_retry_count,payment_next_retry_at,payment_failure_code,payment_failure_message,payment_recovered_at,payment_exhausted_at,updated_at',
+    order: 'updated_at.desc.nullslast',
+  }, options);
+  const registrationByCheckout = new Map();
+  for (const registration of registrations) {
+    const checkoutId = clean(registration?.stripe_checkout_session_id, 255);
+    if (checkoutId && !registrationByCheckout.has(checkoutId)) registrationByCheckout.set(checkoutId, registration);
+  }
+  const trackedTokens = new Set(registrations.map((registration) => clean(registration?.token, 255)).filter(Boolean));
+
+  const recoveries = await select('mc2_payment_recoveries', {
+    select: 'stripe_invoice_id,token,status,attempt_count,retry_count,amount_due_cents,currency,failure_code,decline_code,failure_message,next_retry_at,first_failed_at,last_failed_at,recovered_at,exhausted_at,updated_at',
+    order: 'updated_at.desc.nullslast',
+  }, options);
+  const latestByToken = new Map();
+  for (const recovery of recoveries) {
+    const token = clean(recovery?.token, 255);
+    if (trackedTokens.has(token) && !latestByToken.has(token)) latestByToken.set(token, recovery);
+  }
+
+  const cases = await optionalSelect(select, 'mc2_collection_cases', {
+    select: 'id,case_number,token,status,revision,currency,balance_due_cents,automatic_retry_count,completeness,prepared_at,approved_at,exported_at',
+    order: 'prepared_at.desc.nullslast',
+  }, options);
+  const latestCaseByToken = new Map();
+  for (const item of cases) {
+    const token = clean(item?.token, 255);
+    if (trackedTokens.has(token) && !latestCaseByToken.has(token)) latestCaseByToken.set(token, item);
+  }
+
+  return projected.map(({ row, order }) => {
+    if (!isMc2Order(row.metadata)) return order;
+    const registration = registrationByCheckout.get(clean(row.external_id, 255));
+    if (!registration) return { ...order, payment_recovery: { ...publicRecovery(), status: 'unlinked' } };
+    const token = clean(registration.token, 255);
+    const recovery = latestByToken.get(token) || recoveryFromRegistration(registration);
+    return {
+      ...order,
+      payment_recovery: publicRecovery(recovery),
+      collection_case: publicCollectionCase(latestCaseByToken.get(token)),
+    };
+  });
+}
+
 const CUSTOMER_PROVIDER_PRIORITY = Object.freeze({ internal: 3, stripe: 2, paypal: 1 });
 
 function customerProviderPriority(provider) {
@@ -538,6 +681,13 @@ export async function getPayHistoryResource(resource, options = {}) {
     })) };
   }
   const rows = await select(config.table, { select: config.select, order: config.order }, options);
+  if (resource === 'orders') {
+    return {
+      ready: true,
+      resource,
+      rows: await projectOrdersWithRecoveries(rows, select, options),
+    };
+  }
   const projectedRows = rows.map((row) => resourceRow(resource, row)).filter(Boolean);
   return { ready: true, resource, rows: resource === 'customers' ? consolidatePayHistoryCustomers(projectedRows) : projectedRows };
 }

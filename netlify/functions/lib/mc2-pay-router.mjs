@@ -1,12 +1,32 @@
 import {
   MC2_CONTRACT_TOTAL_CENTS,
-  MC2_STRIPE_FIRST_INVOICE_COUPON_ID,
-  MC2_STRIPE_MONTHLY_PRICE_ID,
+  MC2_ENTRY_PAYMENT_CENTS,
+  MC2_INSTALLMENT_COUNT,
+  MC2_PAYMENT_PLAN,
+  MC2_STRIPE_INSTALLMENT_PRICE_ID,
+  isValidMc2InstallmentPrice,
   mc2Stripe,
   stripeId,
 } from './mc2-stripe.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { cancelMc2OfferSms } from './mc2-sms.mjs';
+import { cancelMc2ReplayRecoveryJobs } from './mc2-replay-recovery.mjs';
+import { mc2CircleEnabled, queueMc2CircleOnboarding } from './mc2-circle-onboarding.mjs';
+import {
+  cancelMc2DunningJobs,
+  mc2DunningStage,
+  mc2NextRetryAt,
+  mc2PaymentFailure,
+  queueMc2DunningJob,
+  upsertMc2Recovery,
+} from './mc2-payment-recovery.mjs';
+import {
+  buildMc2PaymentAttempt,
+  mc2CollectionEligible,
+  mc2CollectionEnabled,
+  persistMc2PaymentAttempt,
+  queueMc2CollectionCase,
+} from './mc2-collection-case.mjs';
 
 const DAY_SECONDS = 24 * 60 * 60;
 const MC2_SYSTEM = 'es2_mc2';
@@ -19,7 +39,7 @@ export const MC2_PAY_METADATA = Object.freeze({
   offer_slug: 'es2-complete',
   system: MC2_SYSTEM,
   funnel: 'mc2',
-  payment_plan: '47_now_150_d14_11x197',
+  payment_plan: MC2_PAYMENT_PLAN,
 });
 
 function metadataFor(extra = {}) {
@@ -79,6 +99,27 @@ async function createInstallmentSchedule(stripe, session, registration) {
   const paymentMethodId = stripeId(paymentIntent.payment_method);
   const customerId = stripeId(session.customer) || stripeId(paymentIntent.customer);
   if (!paymentMethodId || !customerId) throw new Error('mc2_saved_payment_method_missing');
+  if (!/^price_[A-Za-z0-9]+$/.test(MC2_STRIPE_INSTALLMENT_PRICE_ID)) {
+    throw new Error('mc2_installment_price_missing');
+  }
+
+  const installmentPrice = await stripe.prices.retrieve(MC2_STRIPE_INSTALLMENT_PRICE_ID);
+  if (!isValidMc2InstallmentPrice(installmentPrice)) {
+    throw new Error('mc2_installment_price_mismatch');
+  }
+
+  // Keep the Customer default aligned with the payment method explicitly used
+  // by the schedule. This also gives the recovery flow one canonical card to
+  // replace when the customer updates it later.
+  await stripe.customers.update(customerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+    metadata: metadataFor({
+      mc2_token: registration.token,
+      contractual_total_cents: String(MC2_CONTRACT_TOTAL_CENTS),
+    }),
+  }, {
+    idempotencyKey: `mc2-customer-payment-method:${session.id}`,
+  });
 
   const startDate = Number(paymentIntent.created) + (14 * DAY_SECONDS);
   return stripe.subscriptionSchedules.create({
@@ -95,23 +136,14 @@ async function createInstallmentSchedule(stripe, session, registration) {
     },
     phases: [
       {
-        items: [{ price: MC2_STRIPE_MONTHLY_PRICE_ID, quantity: 1 }],
-        discounts: [{ coupon: MC2_STRIPE_FIRST_INVOICE_COUPON_ID }],
-        duration: { interval: 'month', interval_count: 1 },
-        proration_behavior: 'none',
-        metadata: metadataFor({
-          mc2_token: registration.token,
-          installment_stage: 'd14_150',
-        }),
-      },
-      {
-        items: [{ price: MC2_STRIPE_MONTHLY_PRICE_ID, quantity: 1 }],
+        items: [{ price: MC2_STRIPE_INSTALLMENT_PRICE_ID, quantity: 1 }],
         discounts: [],
-        duration: { interval: 'month', interval_count: 11 },
+        duration: { interval: 'month', interval_count: MC2_INSTALLMENT_COUNT },
         proration_behavior: 'none',
         metadata: metadataFor({
           mc2_token: registration.token,
-          installment_stage: 'monthly_197',
+          installment_stage: 'monthly_297',
+          installment_count: String(MC2_INSTALLMENT_COUNT),
         }),
       },
     ],
@@ -140,18 +172,40 @@ async function processCheckoutCompleted(stripe, session, event) {
     stripe_checkout_session_id: session.id,
     stripe_payment_intent_id: stripeId(session.payment_intent),
     stripe_subscription_schedule_id: schedule.id,
-    initial_payment_cents: Number(session.amount_total || 4700),
+    initial_payment_cents: Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS),
     contractual_total_cents: MC2_CONTRACT_TOTAL_CENTS,
     paid_installment_count: Math.max(Number(registration.paid_installment_count || 0), 1),
-    paid_total_cents: Math.max(Number(registration.paid_total_cents || 0), Number(session.amount_total || 4700)),
+    paid_total_cents: Math.max(
+      Number(registration.paid_total_cents || 0),
+      Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS),
+    ),
     purchased_at: registration.purchased_at || nowIso,
     last_payment_at: nowIso,
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
+  // Queue only after Stripe has confirmed the initial MC2 payment. The worker
+  // performs the Circle writes asynchronously and idempotently, so a Circle
+  // outage can never hold the customer's Stripe checkout open.
+  if (mc2CircleEnabled()) {
+    const circleQueued = await queueMc2CircleOnboarding({
+      token,
+      email: registration.email || session.customer_details?.email || session.customer_email,
+      name: registration.prenom || session.customer_details?.name,
+      stripeEventId: event.id,
+    });
+    // Do not acknowledge the Stripe event if its durable job was not stored.
+    // Stripe may safely redeliver: the schedule and queue both use idempotency.
+    if (!circleQueued.ok) throw new Error(`mc2_circle_queue_${circleQueued.error || 'failed'}`);
+  }
   const smsCancellation = await cancelMc2OfferSms(token);
   if (!smsCancellation.ok) console.error('mc2 purchase SMS cancellation:', smsCancellation.error);
-  await recordFunnelEvent(token, 'purchase_completed', session.amount_total || 4700, {
+  const replayCancellation = await cancelMc2ReplayRecoveryJobs({
+    token,
+    email: registration.email,
+  });
+  if (!replayCancellation.ok) console.error('mc2 purchase replay cancellation:', replayCancellation.error);
+  await recordFunnelEvent(token, 'purchase_completed', session.amount_total || MC2_ENTRY_PAYMENT_CENTS, {
     stripe_event_id: event.id,
     checkout_session_id: session.id,
     schedule_id: schedule.id,
@@ -166,6 +220,12 @@ function invoiceSubscriptionId(invoice) {
     || stripeId(invoice.subscription_details?.subscription);
 }
 
+function invoicePaymentIntentId(invoice) {
+  return stripeId(invoice.payment_intent)
+    || stripeId(invoice.payments?.data?.[0]?.payment?.payment_intent)
+    || stripeId(invoice.confirmation_secret?.payment_intent);
+}
+
 async function registrationForInvoice(stripe, invoice) {
   const subscriptionId = invoiceSubscriptionId(invoice);
   if (!subscriptionId) return { registration: null, subscriptionId: null };
@@ -177,7 +237,7 @@ async function registrationForInvoice(stripe, invoice) {
     : scheduleId
       ? await registrationBy(`stripe_subscription_schedule_id=eq.${encodeURIComponent(scheduleId)}`)
       : null;
-  return { registration, subscriptionId, scheduleId };
+  return { registration, subscriptionId, scheduleId, subscription };
 }
 
 async function processInvoicePaid(stripe, invoice, event) {
@@ -187,16 +247,49 @@ async function processInvoicePaid(stripe, invoice, event) {
   const row = context.registration;
   const amount = Math.max(Number(invoice.amount_paid || 0), 0);
   const nowIso = new Date().toISOString();
+  const invoiceId = stripeId(invoice);
+  const wasRecovering = ['past_due', 'unpaid'].includes(String(row.payment_status || '').toLowerCase());
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
     statut: 'purchased',
     payment_status: 'paid',
     stripe_subscription_id: context.subscriptionId,
     paid_installment_count: Number(row.paid_installment_count || 0) + 1,
     paid_total_cents: Number(row.paid_total_cents || 0) + amount,
+    payment_retry_count: 0,
+    payment_next_retry_at: null,
+    payment_failure_code: null,
+    payment_failure_message: null,
+    payment_recovered_at: wasRecovering ? nowIso : row.payment_recovered_at,
+    payment_exhausted_at: null,
     last_payment_at: nowIso,
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_invoice_update_${updated.status}`);
+  if (invoiceId && wasRecovering) {
+    await upsertMc2Recovery({
+      stripe_invoice_id: invoiceId,
+      token: row.token,
+      stripe_customer_id: stripeId(invoice.customer) || row.stripe_customer_id,
+      stripe_subscription_id: context.subscriptionId,
+      stripe_payment_intent_id: invoicePaymentIntentId(invoice),
+      status: 'recovered',
+      attempt_count: Math.max(1, Number(invoice.attempt_count || 1)),
+      retry_count: Math.max(0, Number(invoice.attempt_count || 1) - 1),
+      amount_due_cents: Math.max(Number(invoice.amount_due || amount), 0),
+      currency: String(invoice.currency || 'eur').toLowerCase(),
+      next_retry_at: null,
+      recovered_at: nowIso,
+      exhausted_at: null,
+      last_stripe_event_id: event.id,
+    });
+    await cancelMc2DunningJobs({ token: row.token, invoiceId });
+    await queueMc2DunningJob({
+      token: row.token,
+      invoiceId,
+      eventId: event.id,
+      messageType: 'payment_recovered_cleanup',
+    });
+  }
   await recordFunnelEvent(row.token, 'installment_paid', amount, {
     stripe_event_id: event.id,
     invoice_id: invoice.id,
@@ -208,19 +301,244 @@ async function processInvoicePaid(stripe, invoice, event) {
 async function processInvoiceFailed(stripe, invoice, event) {
   const context = await registrationForInvoice(stripe, invoice);
   if (!context.registration) return { skipped: 'registration' };
+  const invoiceId = stripeId(invoice);
+  if (!invoiceId) return { skipped: 'invoice_id' };
+  const paymentIntentId = invoicePaymentIntentId(invoice);
+  const paymentIntent = paymentIntentId
+    ? await stripe.paymentIntents.retrieve(paymentIntentId)
+    : null;
+  const failure = mc2PaymentFailure(paymentIntent, invoice);
+  const stage = mc2DunningStage(invoice);
+  const nextRetryAt = mc2NextRetryAt(invoice);
   const nowIso = new Date().toISOString();
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(context.registration.token)}`, {
     payment_status: 'past_due',
     stripe_subscription_id: context.subscriptionId,
     payment_failed_at: nowIso,
+    payment_retry_count: Math.max(0, stage - 1),
+    payment_next_retry_at: nextRetryAt,
+    payment_failure_code: failure.declineCode || failure.code,
+    payment_failure_message: failure.message,
+    payment_exhausted_at: null,
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_invoice_failed_${updated.status}`);
+  await upsertMc2Recovery({
+    stripe_invoice_id: invoiceId,
+    token: context.registration.token,
+    stripe_customer_id: stripeId(invoice.customer) || context.registration.stripe_customer_id,
+    stripe_subscription_id: context.subscriptionId,
+    stripe_payment_intent_id: paymentIntentId,
+    status: failure.requiresAction
+      ? 'payment_action_required'
+      : nextRetryAt ? 'retry_scheduled' : 'failed',
+    attempt_count: Math.max(1, Number(invoice.attempt_count || 1)),
+    retry_count: Math.max(0, Number(invoice.attempt_count || 1) - 1),
+    amount_due_cents: Math.max(Number(invoice.amount_due || 0), 0),
+    currency: String(invoice.currency || 'eur').toLowerCase(),
+    failure_code: failure.code,
+    decline_code: failure.declineCode,
+    failure_message: failure.message,
+    next_retry_at: nextRetryAt,
+    first_failed_at: context.registration.payment_failed_at || nowIso,
+    last_failed_at: nowIso,
+    recovered_at: null,
+    exhausted_at: null,
+    last_stripe_event_id: event.id,
+  });
+  // Une ligne append-only par webhook d'échec : le dossier final ne dépend pas
+  // de l'état courant mutable de mc2_payment_recoveries.
+  if (mc2CollectionEnabled()) {
+    await persistMc2PaymentAttempt(buildMc2PaymentAttempt({
+      token: context.registration.token,
+      invoice,
+      paymentIntent,
+      failure,
+      event,
+    }));
+  }
+  await queueMc2DunningJob({
+    token: context.registration.token,
+    invoiceId,
+    eventId: event.id,
+    messageType: failure.requiresAction ? 'payment_action_required' : 'payment_failed',
+    stage,
+  });
   await recordFunnelEvent(context.registration.token, 'installment_failed', invoice.amount_due || 0, {
     stripe_event_id: event.id,
-    invoice_id: invoice.id,
+    invoice_id: invoiceId,
+    attempt_count: Number(invoice.attempt_count || 1),
+    retry_count: Math.max(0, Number(invoice.attempt_count || 1) - 1),
+    next_retry_at: nextRetryAt,
+    failure_code: failure.declineCode || failure.code,
+    requires_action: failure.requiresAction,
   });
-  return { status: 'installment_failed', token: context.registration.token };
+  return {
+    status: failure.requiresAction ? 'payment_action_required' : 'installment_failed',
+    token: context.registration.token,
+    stage,
+    next_retry_at: nextRetryAt,
+  };
+}
+
+async function processInvoiceUpdated(stripe, invoice, event) {
+  const attemptCount = Math.max(0, Number(invoice.attempt_count || 0));
+  if (!attemptCount || invoice.status === 'paid') return { skipped: 'invoice_state' };
+  const context = await registrationForInvoice(stripe, invoice);
+  if (!context.registration) return { skipped: 'registration' };
+  const invoiceId = stripeId(invoice);
+  if (!invoiceId) return { skipped: 'invoice_id' };
+  const nextRetryAt = mc2NextRetryAt(invoice);
+  const exhausted = !nextRetryAt && (
+    attemptCount >= 6
+    || invoice.status === 'uncollectible'
+    || context.subscription?.status === 'unpaid'
+  );
+  const nowIso = new Date().toISOString();
+  const registrationPatch = {
+    payment_next_retry_at: nextRetryAt,
+    payment_retry_count: Math.max(0, attemptCount - 1),
+    last_event_at: nowIso,
+  };
+  if (exhausted) {
+    registrationPatch.payment_status = 'unpaid';
+    registrationPatch.payment_exhausted_at = nowIso;
+  }
+  const updated = await supabasePatch(
+    'mc2_registrations',
+    `token=eq.${encodeURIComponent(context.registration.token)}`,
+    registrationPatch,
+  );
+  if (!updated.ok) throw new Error(`mc2_invoice_retry_update_${updated.status}`);
+  await upsertMc2Recovery({
+    stripe_invoice_id: invoiceId,
+    token: context.registration.token,
+    stripe_customer_id: stripeId(invoice.customer) || context.registration.stripe_customer_id,
+    stripe_subscription_id: context.subscriptionId,
+    stripe_payment_intent_id: invoicePaymentIntentId(invoice),
+    status: exhausted ? 'exhausted' : nextRetryAt ? 'retry_scheduled' : 'failed',
+    attempt_count: attemptCount,
+    retry_count: Math.max(0, attemptCount - 1),
+    amount_due_cents: Math.max(Number(invoice.amount_due || 0), 0),
+    currency: String(invoice.currency || 'eur').toLowerCase(),
+    next_retry_at: nextRetryAt,
+    exhausted_at: exhausted ? nowIso : null,
+    last_stripe_event_id: event.id,
+  });
+  const retryCount = Math.max(0, attemptCount - 1);
+  if (mc2CollectionEnabled() && mc2CollectionEligible({ retryCount, exhausted })) {
+    const queued = await queueMc2CollectionCase({
+      token: context.registration.token,
+      invoiceId,
+      stripeEventId: event.id,
+      retryCount,
+    });
+    if (!queued.ok) throw new Error(queued.error || 'mc2_collection_queue_failed');
+  }
+  if (exhausted && attemptCount < 6) {
+    await queueMc2DunningJob({
+      token: context.registration.token,
+      invoiceId,
+      eventId: event.id,
+      messageType: 'payment_final_failed',
+      stage: Math.min(6, attemptCount),
+    });
+  }
+  await recordFunnelEvent(
+    context.registration.token,
+    exhausted ? 'installment_exhausted' : 'installment_retry_scheduled',
+    invoice.amount_due || 0,
+    {
+      stripe_event_id: event.id,
+      invoice_id: invoiceId,
+      attempt_count: attemptCount,
+      next_retry_at: nextRetryAt,
+    },
+  );
+  return {
+    status: exhausted ? 'installment_exhausted' : 'installment_retry_scheduled',
+    token: context.registration.token,
+    next_retry_at: nextRetryAt,
+  };
+}
+
+async function currentRecoveryForToken(token) {
+  const result = await supabaseGet(
+    `mc2_payment_recoveries?token=eq.${encodeURIComponent(token)}`
+      + '&status=in.(failed,retry_scheduled,payment_action_required)'
+      + '&select=*&order=updated_at.desc&limit=1',
+  );
+  return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
+}
+
+async function processCustomerUpdated(stripe, customer, event) {
+  const defaultPaymentMethod = stripeId(customer.invoice_settings?.default_payment_method);
+  const previousDefault = stripeId(
+    event.data?.previous_attributes?.invoice_settings?.default_payment_method,
+  );
+  if (!defaultPaymentMethod || previousDefault === defaultPaymentMethod) {
+    return { skipped: 'payment_method_unchanged' };
+  }
+  const customerId = stripeId(customer);
+  const registration = customerId
+    ? await registrationBy(`stripe_customer_id=eq.${encodeURIComponent(customerId)}`)
+    : null;
+  if (!registration) return { skipped: 'registration' };
+
+  const recovery = await currentRecoveryForToken(registration.token);
+  const subscriptionId = recovery?.stripe_subscription_id || registration.stripe_subscription_id;
+  const scheduleId = registration.stripe_subscription_schedule_id;
+  if (scheduleId) {
+    await stripe.subscriptionSchedules.update(scheduleId, {
+      default_settings: { default_payment_method: defaultPaymentMethod },
+    }, {
+      idempotencyKey: `mc2-sync-schedule-payment-method:${event.id}:${scheduleId}`,
+    });
+  }
+  if (subscriptionId) {
+    await stripe.subscriptions.update(subscriptionId, {
+      default_payment_method: defaultPaymentMethod,
+    }, {
+      idempotencyKey: `mc2-sync-payment-method:${event.id}:${subscriptionId}`,
+    });
+  }
+
+  const updated = await supabasePatch(
+    'mc2_registrations',
+    `token=eq.${encodeURIComponent(registration.token)}`,
+    { last_event_at: new Date().toISOString() },
+  );
+  if (!updated.ok) throw new Error(`mc2_payment_method_update_${updated.status}`);
+
+  let invoiceRetry = 'not_needed';
+  if (recovery?.stripe_invoice_id) {
+    try {
+      await stripe.invoices.pay(recovery.stripe_invoice_id, {
+        payment_method: defaultPaymentMethod,
+      }, {
+        idempotencyKey: `mc2-pay-updated-card:${event.id}:${recovery.stripe_invoice_id}`,
+      });
+      invoiceRetry = 'requested';
+    } catch (error) {
+      // A failed immediate attempt emits invoice.payment_failed and remains in
+      // Stripe's retry policy. Returning 2xx prevents a useless customer.updated
+      // webhook loop while preserving the recovery state.
+      invoiceRetry = `failed:${String(error?.code || error?.type || 'stripe_error').slice(0, 80)}`;
+    }
+  }
+
+  await recordFunnelEvent(registration.token, 'payment_method_updated', null, {
+    stripe_event_id: event.id,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId || null,
+    stripe_subscription_schedule_id: scheduleId || null,
+    invoice_retry: invoiceRetry,
+  });
+  return {
+    status: 'payment_method_updated',
+    token: registration.token,
+    invoice_retry: invoiceRetry,
+  };
 }
 
 async function processChargeAlert(charge, event) {
@@ -241,6 +559,7 @@ async function processChargeAlert(charge, event) {
     last_event_at: new Date().toISOString(),
   });
   if (!updated.ok) throw new Error(`mc2_charge_alert_${updated.status}`);
+  await cancelMc2DunningJobs({ token: registration.token, reason: status });
   await recordFunnelEvent(registration.token, status, charge.amount_refunded || charge.amount || 0, {
     stripe_event_id: event.id,
     charge_id: charge.id,
@@ -259,6 +578,12 @@ export async function routeMc2StripeEvent(event, options = {}) {
     result = await processInvoicePaid(stripe, event.data.object, event);
   } else if (event.type === 'invoice.payment_failed') {
     result = await processInvoiceFailed(stripe, event.data.object, event);
+  } else if (event.type === 'invoice.payment_action_required') {
+    result = await processInvoiceFailed(stripe, event.data.object, event);
+  } else if (event.type === 'invoice.updated') {
+    result = await processInvoiceUpdated(stripe, event.data.object, event);
+  } else if (event.type === 'customer.updated') {
+    result = await processCustomerUpdated(stripe, event.data.object, event);
   } else if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
     result = await processChargeAlert(event.data.object, event);
   }

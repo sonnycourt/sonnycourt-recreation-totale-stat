@@ -16,12 +16,12 @@ assert.equal(product.billing_type, 'recurring');
 assert.equal(product.currency, 'eur');
 
 const checkout = payCatalogDraftInput('checkouts', {
-  name: 'MC2', slug: 'mc2', billing: 'payment-plan', amount: 197, currency: 'EUR',
+  name: 'MC2', slug: 'mc2', billing: 'payment-plan', amount: 297, currency: 'EUR',
   allowPromotionCodes: true,
-  plan: { deposit: 47, bridgeAmount: 150, bridgeDelayDays: 14, installments: 11 },
+  plan: { deposit: 47, bridgeDelayDays: 14, installments: 4 },
 });
 assert.equal(checkout.billing, 'payment_plan');
-assert.deepEqual(checkout.plan, { deposit: 47, bridge_amount: 150, bridge_delay_days: 14, installments: 11 });
+assert.deepEqual(checkout.plan, { deposit: 47, bridge_amount: 0, bridge_delay_days: 14, installments: 4 });
 assert.equal(checkout.metadata.checkout_id, 'mc2');
 assert.equal(checkout.allow_promotion_codes, true);
 

@@ -1,0 +1,179 @@
+---
+interface Props { pagePath?: string; }
+const { pagePath = '/mc2/' } = Astro.props;
+---
+
+<div class="mc2-access-gate" id="mc2-access-gate" data-page-path={pagePath} hidden>
+  <div class="mc2-access-gate__backdrop"></div>
+  <section class="mc2-access-gate__card" role="dialog" aria-modal="true" aria-labelledby="mc2-access-title">
+    <div class="mc2-access-gate__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2M6.5 10h11A1.5 1.5 0 0 1 19 11.5v7A1.5 1.5 0 0 1 17.5 20h-11A1.5 1.5 0 0 1 5 18.5v-7A1.5 1.5 0 0 1 6.5 10Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 14v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <p class="mc2-access-gate__eyebrow">Accès réservé aux participants</p>
+    <h2 id="mc2-access-title">Retrouve ton accès</h2>
+    <p class="mc2-access-gate__copy">Entre l’adresse email utilisée pour t’inscrire à la masterclass.</p>
+    <form id="mc2-access-form" novalidate>
+      <label for="mc2-access-email">Ton adresse email</label>
+      <input id="mc2-access-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="ton@email.com" required />
+      <p class="mc2-access-gate__error" id="mc2-access-error" role="alert"></p>
+      <p class="mc2-access-gate__success" id="mc2-access-success" role="status"></p>
+      <button type="submit" id="mc2-access-submit"><span>RECEVOIR MON LIEN D’ACCÈS</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </form>
+    <p class="mc2-access-gate__support">Besoin d’aide ? <a href="mailto:info@sonnycourt.com">Contacter le support</a></p>
+  </section>
+</div>
+
+<script is:inline>
+  (function () {
+  const TOKEN_KEY = 'mc2_registration_token';
+  const LEGACY_TOKEN_KEYS = ['masterclass_es2_token', 'webinaire_es2_token', 'mc2_registration_token_legacy'];
+  const gate = document.getElementById('mc2-access-gate');
+  const form = document.getElementById('mc2-access-form');
+  const emailInput = document.getElementById('mc2-access-email');
+  const submit = document.getElementById('mc2-access-submit');
+  const errorNode = document.getElementById('mc2-access-error');
+  const successNode = document.getElementById('mc2-access-success');
+  const pagePath = gate?.dataset.pagePath || window.location.pathname;
+  let resolvedToken = '';
+  let resolvingPromise = null;
+
+  function cookieValue(name) {
+    const match = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`));
+    return match ? decodeURIComponent(match.slice(name.length + 1)) : '';
+  }
+
+  function candidates() {
+    const params = new URLSearchParams(window.location.search);
+    const values = [params.get('t'), params.get('token')];
+    try {
+      values.push(localStorage.getItem(TOKEN_KEY));
+      LEGACY_TOKEN_KEYS.forEach((key) => values.push(localStorage.getItem(key)));
+    } catch (error) {}
+    values.push(cookieValue(TOKEN_KEY));
+    LEGACY_TOKEN_KEYS.forEach((key) => values.push(cookieValue(key)));
+    return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+  }
+
+  function persist(token) {
+    resolvedToken = token;
+    try { localStorage.setItem(TOKEN_KEY, token); } catch (error) {}
+    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=2592000; SameSite=Lax; Secure`;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('t') !== token) {
+      url.searchParams.set('t', token);
+      url.searchParams.delete('token');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+
+  function clearCandidate(token) {
+    try {
+      [TOKEN_KEY, ...LEGACY_TOKEN_KEYS].forEach((key) => {
+        if (localStorage.getItem(key) === token) localStorage.removeItem(key);
+      });
+    } catch (error) {}
+    [TOKEN_KEY, ...LEGACY_TOKEN_KEYS].forEach((key) => {
+      if (cookieValue(key) === token) document.cookie = `${key}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+    });
+  }
+
+  async function validate(token) {
+    const response = await fetch(`/.netlify/functions/get-mc2-registration?t=${encodeURIComponent(token)}`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    return response.ok;
+  }
+
+  function showGate() {
+    if (!gate) return;
+    gate.hidden = false;
+    document.documentElement.classList.add('mc2-access-locked');
+    window.setTimeout(() => emailInput?.focus(), 50);
+  }
+
+  function hideGate() {
+    if (!gate) return;
+    gate.hidden = true;
+    document.documentElement.classList.remove('mc2-access-locked');
+  }
+
+  function showError(message) { if (errorNode) errorNode.textContent = message; }
+  function showSuccess(message) { if (successNode) successNode.textContent = message; }
+
+  async function requestLink(email) {
+    const response = await fetch('/.netlify/functions/request-mc2-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, page_path: pagePath }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Impossible d’envoyer ton lien.');
+    return String(data.message || 'Si cette adresse correspond à une inscription, ton lien d’accès vient d’être envoyé.');
+  }
+
+  async function resolveAccess() {
+    if (resolvedToken) return resolvedToken;
+    if (resolvingPromise) return resolvingPromise;
+    resolvingPromise = (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname) && params.get('preview');
+      if (isLocalPreview) { persist('mc2-preview'); hideGate(); return resolvedToken; }
+
+      for (const token of candidates()) {
+        try {
+          if (await validate(token)) { persist(token); hideGate(); return resolvedToken; }
+        } catch (error) {}
+        clearCandidate(token);
+      }
+
+      showGate();
+      return new Promise(() => {
+        form?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const email = String(emailInput?.value || '').trim().toLowerCase();
+          if (!email || !email.includes('@')) { showError('Entre une adresse email valide.'); return; }
+          showError(''); showSuccess('');
+          if (submit) submit.disabled = true;
+          form.classList.add('is-loading');
+          try {
+            showSuccess(await requestLink(email));
+            if (emailInput) emailInput.disabled = true;
+            form.classList.add('is-sent');
+          } catch (error) {
+            showError(error instanceof Error ? error.message : 'Impossible d’envoyer ton lien.');
+            if (submit) submit.disabled = false;
+            form.classList.remove('is-loading');
+          }
+        });
+      });
+    })();
+    return resolvingPromise;
+  }
+
+  window.__MC2_ACCESS__ = { resolve: resolveAccess, peek: () => resolvedToken || candidates()[0] || '' };
+  })();
+</script>
+
+<style is:global>
+  html.mc2-access-locked, html.mc2-access-locked body { overflow: hidden !important; }
+  .mc2-access-gate[hidden] { display: none !important; }
+  .mc2-access-gate { position: fixed; inset: 0; z-index: 2147483000; display: grid; min-height: 100dvh; place-items: center; padding: 22px; font-family: Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .mc2-access-gate__backdrop { position: absolute; inset: 0; background: rgba(2,8,23,.78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+  .mc2-access-gate__card { position: relative; width: min(100%,440px); padding: 34px; border: 1px solid rgba(147,197,253,.38); border-radius: 24px; color: #fff; background: linear-gradient(150deg,rgba(20,58,121,.98),rgba(5,21,50,.99)); box-shadow: 0 32px 100px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.08); text-align: center; }
+  .mc2-access-gate__icon { display: grid; width: 54px; height: 54px; margin: 0 auto 18px; place-items: center; border: 1px solid rgba(147,197,253,.35); border-radius: 16px; color: #93c5fd; background: rgba(37,99,235,.16); }
+  .mc2-access-gate__icon svg { width: 28px; height: 28px; }
+  .mc2-access-gate__eyebrow { margin: 0 0 9px; color: #93c5fd; font-size: .68rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+  .mc2-access-gate__card h2 { margin: 0 0 10px; font-size: clamp(1.7rem,6vw,2.25rem); line-height: 1.06; letter-spacing: -.04em; }
+  .mc2-access-gate__copy { margin: 0 auto 24px; color: rgba(255,255,255,.72); font-size: .94rem; line-height: 1.5; }
+  #mc2-access-form { text-align: left; }
+  #mc2-access-form label { display: block; margin: 0 0 8px; color: rgba(255,255,255,.85); font-size: .78rem; font-weight: 750; }
+  #mc2-access-email { width: 100%; height: 56px; padding: 0 16px; border: 1px solid rgba(147,197,253,.34); border-radius: 13px; outline: none; color: #0f172a; background: #fff; font: inherit; font-size: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+  #mc2-access-email:focus { border-color: #60a5fa; box-shadow: 0 0 0 4px rgba(96,165,250,.2); }
+  .mc2-access-gate__error,.mc2-access-gate__success { min-height: 0; margin: 8px 2px 5px; font-size: .76rem; line-height: 1.4; }
+  .mc2-access-gate__error:not(:empty),.mc2-access-gate__success:not(:empty) { min-height: 20px; }
+  .mc2-access-gate__error { color: #fecaca; } .mc2-access-gate__success { color: #bbf7d0; }
+  #mc2-access-submit { display: flex; width: 100%; min-height: 57px; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 13px; color: #fff; background: linear-gradient(135deg,#3b82f6,#2563eb); box-shadow: 0 14px 36px rgba(37,99,235,.38); font: inherit; font-size: .84rem; font-weight: 850; letter-spacing: .025em; cursor: pointer; }
+  #mc2-access-submit svg { width: 19px; height: 19px; } #mc2-access-submit:disabled { opacity: .7; cursor: wait; }
+  #mc2-access-form.is-loading #mc2-access-submit span::after { content: '…'; }
+  #mc2-access-form.is-sent #mc2-access-submit { display: none; }
+  .mc2-access-gate__support { margin: 18px 0 0; color: rgba(255,255,255,.55); font-size: .75rem; }
+  .mc2-access-gate__support a { color: #bfdbfe; font-weight: 700; }
+  @media (max-width:560px) { .mc2-access-gate { padding: 15px; } .mc2-access-gate__card { padding: 28px 20px 24px; border-radius: 20px; } }
+</style>

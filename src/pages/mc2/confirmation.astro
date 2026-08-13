@@ -1,6 +1,7 @@
 ---
 import GAConsentMode from '../../components/GAConsentMode.astro';
 import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
+import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
 ---
 
 <!DOCTYPE html>
@@ -89,6 +90,15 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
         .preview-banner.is-visible { display: block; }
 
+        .confetti-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
         .confirmation-head {
             text-align: center;
             margin-bottom: 22px;
@@ -149,14 +159,6 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             text-align: center;
         }
 
-        .session-card::before {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            content: '';
-            background: radial-gradient(circle at 50% -20%, rgba(251, 146, 60, 0.2), transparent 50%);
-        }
-
         .session-kicker {
             position: relative;
             margin-bottom: 8px;
@@ -191,16 +193,16 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
         .count-box {
             padding: 13px 8px;
-            border: 1px solid rgba(251, 146, 60, 0.3);
+            border: 1px solid rgba(96, 165, 250, 0.34);
             border-radius: 13px;
-            background: linear-gradient(180deg, rgba(124,45,18,.3), rgba(15,23,42,.58));
+            background: linear-gradient(180deg, rgba(37, 99, 235, .22), rgba(15, 23, 42, .62));
             box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
         }
 
         .count-number {
             display: block;
             font-variant-numeric: tabular-nums;
-            color: #fff7ed;
+            color: #eff6ff;
             font-size: clamp(1.35rem, 5vw, 2rem);
             font-weight: 800;
             line-height: 1;
@@ -209,7 +211,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         .count-label {
             display: block;
             margin-top: 6px;
-            color: #fdba74;
+            color: #93c5fd;
             font-size: 0.58rem;
             font-weight: 800;
             letter-spacing: 0.08em;
@@ -252,27 +254,32 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             font-size: 0.72rem;
         }
 
+        .session-summary {
+            position: relative;
+            margin-top: 11px;
+            color: rgba(255,255,255,.62);
+            font-size: .75rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
         .content-card { padding: 22px; }
 
         .workbook-card {
-            display: grid;
-            grid-template-columns: 122px minmax(0, 1fr);
-            gap: 20px;
-            align-items: center;
+            display: block;
             margin-bottom: 16px;
             padding: 20px;
-            border: 1px solid rgba(251, 146, 60, 0.32);
+            border: 1px solid rgba(96, 165, 250, 0.24);
             border-radius: 20px;
-            background:
-                radial-gradient(circle at 0% 50%, rgba(251, 146, 60, 0.14), transparent 42%),
-                linear-gradient(145deg, rgba(67, 32, 17, 0.48), rgba(8, 12, 28, 0.94));
+            background: linear-gradient(145deg, rgba(17, 30, 62, 0.86), rgba(8, 12, 28, 0.92));
             box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 22px 65px rgba(0,0,0,.3);
         }
 
         .workbook-cover {
             display: block;
-            width: 100%;
-            max-height: 158px;
+            width: min(100%, 220px);
+            max-height: 312px;
+            margin: 0 auto 17px;
             object-fit: contain;
             filter: drop-shadow(0 14px 22px rgba(0,0,0,.34));
         }
@@ -302,18 +309,27 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
-            min-height: 49px;
-            padding: 12px 16px;
-            border-radius: 12px;
+            width: min(100%, 460px);
+            min-height: 54px;
+            margin: 0 auto;
+            padding: 14px 20px;
+            border-radius: 13px;
             color: #fff;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            box-shadow: 0 12px 34px rgba(234, 88, 12, 0.25);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 12px 34px rgba(37, 99, 235, 0.28);
             text-align: center;
             text-decoration: none;
-            font-size: 0.8rem;
+            font-size: 0.92rem;
             font-weight: 850;
             letter-spacing: 0.02em;
+        }
+
+        .workbook-fallback {
+            margin-top: 11px;
+            color: rgba(255,255,255,.65);
+            text-align: center;
+            font-size: .76rem;
+            line-height: 1.4;
         }
 
         .content-card h2 {
@@ -329,6 +345,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         }
 
         .video-frame {
+            position: relative;
             overflow: hidden;
             border: 1px solid rgba(96, 165, 250, 0.18);
             border-radius: 15px;
@@ -341,6 +358,130 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             width: 100%;
             aspect-ratio: 16 / 9;
             object-fit: cover;
+        }
+
+        .video-frame::after {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 38%;
+            pointer-events: none;
+            content: '';
+            background: linear-gradient(transparent, rgba(2, 6, 23, .86));
+        }
+
+        .video-start {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 3;
+            display: grid;
+            grid-template-columns: 48px auto;
+            gap: 11px;
+            align-items: center;
+            min-height: 64px;
+            padding: 8px 20px 8px 9px;
+            border: 1px solid rgba(255,255,255,.34);
+            border-radius: 999px;
+            color: #fff;
+            background: linear-gradient(145deg, rgba(30, 64, 175, .88), rgba(15, 23, 42, .9));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 18px 50px rgba(2, 6, 23, .5);
+            backdrop-filter: blur(15px) saturate(135%);
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            font: inherit;
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: .035em;
+            white-space: nowrap;
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        .video-start.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(.94);
+        }
+
+        .video-start-icon {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            place-items: center;
+            border-radius: 50%;
+            color: #1d4ed8;
+            background: #fff;
+            box-shadow: 0 9px 24px rgba(255,255,255,.18);
+        }
+
+        .video-start-icon svg { width: 20px; height: 20px; margin-left: 3px; }
+
+        .video-unmute {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 4;
+            min-height: 37px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,.3);
+            border-radius: 999px;
+            color: #fff;
+            background: rgba(15, 23, 42, .76);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+            backdrop-filter: blur(12px);
+            cursor: pointer;
+            font: inherit;
+            font-size: .68rem;
+            font-weight: 800;
+        }
+
+        .video-controls {
+            position: absolute;
+            right: 13px;
+            bottom: 11px;
+            left: 13px;
+            z-index: 3;
+            display: grid;
+            grid-template-columns: 36px minmax(0, 1fr) auto 36px 36px;
+            gap: 9px;
+            align-items: center;
+        }
+
+        .video-control-button {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 10px;
+            color: #fff;
+            background: rgba(15, 23, 42, .66);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+
+        .video-control-button svg { width: 16px; height: 16px; }
+
+        .video-control-button [hidden],
+        .video-control-button .is-hidden,
+        .video-unmute[hidden] {
+            display: none;
+        }
+
+        .video-progress {
+            width: 100%;
+            height: 4px;
+            accent-color: #60a5fa;
+            cursor: pointer;
+        }
+
+        .video-time {
+            min-width: 78px;
+            color: rgba(255,255,255,.8);
+            font-size: .65rem;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
         }
 
         .video-caption {
@@ -414,6 +555,62 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
         button.secondary-button { width: 100%; }
 
+        .confirmation-head { margin-bottom: 26px; }
+
+        .confirmation-head h1 { margin-bottom: 16px; }
+
+        .steps-heading {
+            color: #bfdbfe;
+            font-size: clamp(1rem, 2.4vw, 1.18rem);
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+
+        .step-heading {
+            position: relative;
+            display: grid;
+            grid-template-columns: 46px minmax(0, 1fr);
+            gap: 13px;
+            align-items: center;
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .step-number {
+            display: grid;
+            width: 46px;
+            height: 46px;
+            place-items: center;
+            border: 1px solid rgba(147, 197, 253, .5);
+            border-radius: 14px;
+            color: #fff;
+            background: linear-gradient(145deg, #2563eb, #1d4ed8);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, .26);
+            font-size: 1.18rem;
+            font-weight: 800;
+        }
+
+        .step-title {
+            margin: 0;
+            font-size: clamp(1.14rem, 3vw, 1.42rem);
+            font-weight: 800;
+            line-height: 1.15;
+        }
+
+        .content-card h2.step-title,
+        .workbook-card h2.step-title { margin: 0; }
+
+        .step-copy {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: .82rem;
+            line-height: 1.4;
+        }
+
+        .workbook-card .step-heading { margin-bottom: 14px; }
+
+        .session-card .step-heading { margin-bottom: 21px; }
+
         @media (max-width: 600px) {
             .shell { width: min(100% - 24px, 760px); padding-top: 18px; }
             .confirmation-head { margin-bottom: 17px; }
@@ -421,36 +618,94 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             .session-card, .content-card { border-radius: 17px; }
             .session-card { padding: 20px 14px; }
             .content-card { padding: 19px 15px; }
+            .step-heading { grid-template-columns: 42px minmax(0, 1fr); gap: 11px; margin-bottom: 15px; }
+            .step-number { width: 42px; height: 42px; border-radius: 12px; }
             .workbook-card {
-                grid-template-columns: 82px minmax(0, 1fr);
-                gap: 13px;
                 padding: 16px 14px;
                 border-radius: 17px;
             }
-            .workbook-cover { max-height: 124px; }
+            .workbook-cover { width: 170px; max-height: 240px; }
             .workbook-copy { font-size: 0.75rem; }
-            .workbook-button { min-height: 46px; padding: 10px 11px; font-size: 0.7rem; }
+            .workbook-button { min-height: 54px; padding: 14px 20px; font-size: 0.92rem; }
             .prep-grid { grid-template-columns: 1fr; }
             .prep-item { display: grid; grid-template-columns: 34px 1fr; column-gap: 8px; }
             .prep-number { grid-row: 1 / 3; margin-bottom: 0; }
             .action-row { grid-template-columns: 1fr; }
+            .video-start { grid-template-columns: 42px auto; min-height: 56px; padding-right: 16px; font-size: .7rem; }
+            .video-start-icon { width: 42px; height: 42px; }
+            .video-controls { right: 8px; bottom: 7px; left: 8px; grid-template-columns: 32px minmax(0, 1fr) auto 32px 32px; gap: 5px; }
+            .video-control-button { width: 32px; height: 32px; border-radius: 9px; }
+            .video-time { min-width: 58px; font-size: .58rem; }
         }
     </style>
 </head>
 <body>
+    <Mc2AccessGate pagePath="/mc2/confirmation/" />
+    <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
     <main class="shell">
         <div id="preview-banner" class="preview-banner">Préproduction MC2 — aucune inscription réelle</div>
 
         <header class="confirmation-head">
-            <div class="badge"><span class="badge-dot"></span> Inscription confirmée</div>
             <h1>Ta place est réservée.</h1>
-            <p class="subtitle">Prépare maintenant les conditions pour vivre pleinement la masterclass.</p>
+            <p class="steps-heading">3 choses à faire maintenant</p>
         </header>
 
-        <section class="session-card" aria-labelledby="session-heading">
-            <p class="session-kicker">Ta session</p>
-            <h2 id="session-heading" class="session-time">Calcul de ton horaire…</h2>
-            <p id="timezone-label" class="timezone">Heure locale</p>
+        <section class="content-card" aria-labelledby="video-title">
+            <div class="step-heading">
+                <span class="step-number">1</span>
+                <div>
+                    <h2 id="video-title" class="step-title">Regarde la vidéo maintenant</h2>
+                    <p class="step-copy">1 minute. Appuie sur lecture.</p>
+                </div>
+            </div>
+            <div id="confirmation-video-frame" class="video-frame">
+                <video id="confirmation-video" playsinline preload="metadata" controlslist="nodownload noremoteplayback" poster="https://vz-601d6eb4-a9a.b-cdn.net/2aca51f9-31cc-4fa9-a147-41472b5b9790/thumbnail.jpg">
+                    <source src="https://vz-601d6eb4-a9a.b-cdn.net/2aca51f9-31cc-4fa9-a147-41472b5b9790/play_720p.mp4" type="video/mp4" />
+                </video>
+                <button id="confirmation-video-start" class="video-start" type="button" aria-label="Lire la vidéo">
+                    <span class="video-start-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                    </span>
+                    <span>LANCER LA VIDÉO</span>
+                </button>
+                <button id="confirmation-video-unmute" class="video-unmute" type="button" hidden>ACTIVER LE SON</button>
+                <div class="video-controls">
+                    <button id="confirmation-video-toggle" class="video-control-button" type="button" aria-label="Lire ou mettre en pause">
+                        <svg class="video-icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                        <svg class="video-icon-pause is-hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg>
+                    </button>
+                    <input id="confirmation-video-progress" class="video-progress" type="range" min="0" max="1000" value="0" aria-label="Progression de la vidéo" />
+                    <span id="confirmation-video-time" class="video-time">0:00 / 1:49</span>
+                    <button id="confirmation-video-mute" class="video-control-button" type="button" aria-label="Activer ou couper le son">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+                    </button>
+                    <button id="confirmation-video-fullscreen" class="video-control-button" type="button" aria-label="Afficher en plein écran">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="workbook-card" aria-labelledby="workbook-title">
+            <div class="step-heading">
+                <span class="step-number">2</span>
+                <div>
+                    <h2 id="workbook-title" class="step-title">Imprime ton workbook</h2>
+                    <p class="step-copy">Tu vas le remplir pendant la session.</p>
+                </div>
+            </div>
+            <img class="workbook-cover" src="/media/pages/mc2-workbook-cover.webp" alt="Première page du workbook de la masterclass Esprit Subconscient 2.0" width="720" height="1018" />
+            <a id="workbook-button" class="workbook-button" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener">IMPRIMER MON WORKBOOK</a>
+            <p class="workbook-fallback">Pas d’imprimante ? Prends simplement de quoi noter.</p>
+        </section>
+
+        <section class="session-card" aria-labelledby="session-step-title">
+            <div class="step-heading">
+                <span class="step-number">3</span>
+                <div>
+                    <h2 id="session-step-title" class="step-title">Rejoins ta session</h2>
+                </div>
+            </div>
 
             <div class="countdown" aria-live="polite">
                 <div class="count-box"><span id="hours" class="count-number">00</span><span class="count-label">Heures</span></div>
@@ -458,54 +713,9 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                 <div class="count-box"><span id="seconds" class="count-number">00</span><span class="count-label">Secondes</span></div>
             </div>
 
-            <a id="join-button" class="join-button is-locked" href="#" aria-disabled="true">LE LIEN S’OUVRE 3 MINUTES AVANT</a>
-            <p id="access-note" class="access-note">Garde cette page ouverte : le bouton s’activera automatiquement.</p>
-        </section>
-
-        <section class="workbook-card" aria-labelledby="workbook-title">
-            <img class="workbook-cover" src="/media/pages/secrets-book.webp" alt="Workbook de la masterclass Esprit Subconscient 2.0" width="830" height="1114" />
-            <div>
-                <p class="workbook-kicker">À faire maintenant</p>
-                <h2 id="workbook-title">Imprime ton workbook avant le début</h2>
-                <p class="workbook-copy">Tu vas le remplir en direct pendant la masterclass. Ouvre le document, puis utilise la fonction « Imprimer » de ton téléphone ou de ton ordinateur.</p>
-                <a id="workbook-button" class="workbook-button" href="/media/pages/Masterclass-Esprit-subconscient-2-0.pdf" target="_blank" rel="noopener">OUVRIR ET IMPRIMER LE WORKBOOK</a>
-            </div>
-        </section>
-
-        <section class="content-card">
-            <h2>Regarde ceci avant de commencer</h2>
-            <p class="card-intro">Une minute pour savoir comment tirer le maximum de cette expérience.</p>
-            <div class="video-frame">
-                <video controls playsinline preload="metadata" controlslist="nodownload noremoteplayback" poster="/media/pages/masterclass-gratuite-banner-800.webp">
-                    <source src="https://sonnycourt-videos-public.b-cdn.net/FE%CC%81LICITATIONS%20(inscription%20Webinaire%20V2).mp4" type="video/mp4" />
-                </video>
-            </div>
-            <p class="video-caption">Message personnel de Sonny · 1 minute</p>
-        </section>
-
-        <section class="content-card">
-            <h2>Trois choses avant la diffusion</h2>
-            <p class="card-intro">Tu peux suivre sur téléphone. Pour une meilleure expérience, prépare ceci maintenant.</p>
-            <div class="prep-grid">
-                <div class="prep-item">
-                    <span class="prep-number">1</span>
-                    <strong>Prends un ordinateur</strong>
-                    <p>Écran plus grand, moins de distractions.</p>
-                </div>
-                <div class="prep-item">
-                    <span class="prep-number">2</span>
-                    <strong>Imprime le workbook</strong>
-                    <p>Tu vas le remplir pendant la masterclass.</p>
-                </div>
-                <div class="prep-item">
-                    <span class="prep-number">3</span>
-                    <strong>Bloque 1 h 15</strong>
-                    <p>Installe-toi au calme avec de quoi écrire.</p>
-                </div>
-            </div>
-            <div class="action-row">
-                <button id="calendar-button" class="secondary-button" type="button">AJOUTER À MON AGENDA</button>
-            </div>
+            <a id="join-button" class="join-button" href="#">ACCÉDER À MA MASTERCLASS</a>
+            <p id="session-heading" class="session-summary">Calcul de ton horaire…</p>
+            <p id="access-note" hidden></p>
         </section>
     </main>
 
@@ -514,7 +724,6 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         (function () {
             const STORAGE_KEY = 'mc2_selected_session_v1';
             const TOKEN_KEY = 'mc2_registration_token';
-            const OPEN_EARLY_MS = 3 * 60 * 1000;
             const SESSION_DURATION_MS = 75 * 60 * 1000;
 
             function nextQuarterWithLead() {
@@ -527,6 +736,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
             function readSession() {
                 const params = new URLSearchParams(window.location.search);
+                const isPreview = params.get('preview') === 'dev';
                 const queryStart = params.get('session_starts_at');
                 if (queryStart && Number.isFinite(new Date(queryStart).getTime())) {
                     return {
@@ -536,11 +746,13 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
                     };
                 }
-                try {
-                    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-                    const storedMs = stored && new Date(stored.startsAt).getTime();
-                    if (Number.isFinite(storedMs) && storedMs + SESSION_DURATION_MS > Date.now()) return stored;
-                } catch (error) {}
+                if (!isPreview) {
+                    try {
+                        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+                        const storedMs = stored && new Date(stored.startsAt).getTime();
+                        if (Number.isFinite(storedMs) && storedMs + SESSION_DURATION_MS > Date.now()) return stored;
+                    } catch (error) {}
+                }
                 const fallback = nextQuarterWithLead();
                 return {
                     id: 'jit',
@@ -551,6 +763,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             }
 
             function readToken() {
+                if (window.__MC2_ACCESS__) return window.__MC2_ACCESS__.peek();
                 const params = new URLSearchParams(window.location.search);
                 return (params.get('t') || localStorage.getItem(TOKEN_KEY) || '').trim();
             }
@@ -568,6 +781,202 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                     }),
                     keepalive: true
                 }).catch(function () {});
+            }
+
+            let confettiPlayed = false;
+            function launchConfetti() {
+                if (confettiPlayed) return;
+                confettiPlayed = true;
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas && canvas.getContext('2d');
+                if (!canvas || !ctx) return;
+
+                const particles = [];
+                const colors = ['#60a5fa', '#93c5fd', '#f8fafc', '#22c55e', '#f59e0b'];
+                const durationMs = 4200;
+                const gravity = 0.12;
+                const drag = 0.992;
+                const start = performance.now();
+
+                function resize() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                resize();
+
+                const sideCount = Math.min(110, Math.max(66, Math.floor(window.innerWidth / 13)));
+                for (let i = 0; i < sideCount; i++) {
+                    const fromLeft = i % 2 === 0;
+                    particles.push({
+                        x: fromLeft ? -20 - Math.random() * 80 : canvas.width + 20 + Math.random() * 80,
+                        y: Math.random() * canvas.height * 0.42,
+                        vx: fromLeft ? 2 + Math.random() * 4 : -2 - Math.random() * 4,
+                        vy: -1.8 + Math.random() * 2.2,
+                        size: 3 + Math.random() * 6,
+                        rot: Math.random() * Math.PI,
+                        vr: (Math.random() - 0.5) * 0.25,
+                        color: colors[(Math.random() * colors.length) | 0],
+                        life: 0.75 + Math.random() * 0.9
+                    });
+                }
+
+                const rainCount = Math.min(130, Math.max(75, Math.floor(window.innerWidth / 11)));
+                for (let i = 0; i < rainCount; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: -20 - Math.random() * 240,
+                        vx: (Math.random() - 0.5) * 1.4,
+                        vy: 1.6 + Math.random() * 2.3,
+                        size: 2.8 + Math.random() * 5.2,
+                        rot: Math.random() * Math.PI,
+                        vr: (Math.random() - 0.5) * 0.22,
+                        color: colors[(Math.random() * colors.length) | 0],
+                        life: 0.95 + Math.random() * 1.05
+                    });
+                }
+
+                function frame(now) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(function (particle) {
+                        particle.vx *= drag;
+                        particle.vy = particle.vy * drag + gravity;
+                        particle.x += particle.vx;
+                        particle.y += particle.vy;
+                        particle.rot += particle.vr;
+                        particle.life -= 0.0062;
+                        if (particle.life <= 0 || particle.y > canvas.height + 30) return;
+                        ctx.save();
+                        ctx.translate(particle.x, particle.y);
+                        ctx.rotate(particle.rot);
+                        ctx.globalAlpha = Math.max(0, particle.life);
+                        ctx.fillStyle = particle.color;
+                        ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.64);
+                        ctx.restore();
+                    });
+
+                    if (now - start < durationMs) requestAnimationFrame(frame);
+                    else {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        window.removeEventListener('resize', resize);
+                    }
+                }
+
+                window.addEventListener('resize', resize);
+                requestAnimationFrame(frame);
+            }
+
+            function initConfirmationVideo() {
+                const frame = document.getElementById('confirmation-video-frame');
+                const video = document.getElementById('confirmation-video');
+                const startButton = document.getElementById('confirmation-video-start');
+                const startLabel = startButton && startButton.querySelector('span:last-child');
+                const toggleButton = document.getElementById('confirmation-video-toggle');
+                const playIcon = toggleButton && toggleButton.querySelector('.video-icon-play');
+                const pauseIcon = toggleButton && toggleButton.querySelector('.video-icon-pause');
+                const progress = document.getElementById('confirmation-video-progress');
+                const time = document.getElementById('confirmation-video-time');
+                const muteButton = document.getElementById('confirmation-video-mute');
+                const unmuteButton = document.getElementById('confirmation-video-unmute');
+                const fullscreenButton = document.getElementById('confirmation-video-fullscreen');
+                if (!frame || !video || !startButton || !toggleButton || !progress || !time || !muteButton || !unmuteButton || !fullscreenButton) return;
+
+                const desktopAutoplay = window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)').matches
+                    && (navigator.maxTouchPoints || 0) === 0;
+
+                function formatVideoTime(seconds) {
+                    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+                    const minutes = Math.floor(seconds / 60);
+                    return minutes + ':' + String(Math.floor(seconds % 60)).padStart(2, '0');
+                }
+
+                function refreshTime() {
+                    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+                    time.textContent = formatVideoTime(video.currentTime) + ' / ' + formatVideoTime(duration);
+                    progress.value = duration > 0 ? String(Math.round((video.currentTime / duration) * 1000)) : '0';
+                }
+
+                function refreshPlaybackState() {
+                    const playing = !video.paused && !video.ended;
+                    startButton.classList.toggle('is-hidden', playing);
+                    playIcon.classList.toggle('is-hidden', playing);
+                    pauseIcon.classList.toggle('is-hidden', !playing);
+                    toggleButton.setAttribute('aria-label', playing ? 'Mettre en pause' : 'Lire la vidéo');
+                    if (startLabel) startLabel.textContent = video.currentTime > 0 ? 'REPRENDRE LA VIDÉO' : 'LANCER LA VIDÉO';
+                    unmuteButton.hidden = !playing || !video.muted;
+                }
+
+                async function playWithSound() {
+                    video.muted = false;
+                    unmuteButton.hidden = true;
+                    try {
+                        await video.play();
+                    } catch (error) {
+                        refreshPlaybackState();
+                    }
+                }
+
+                async function attemptDesktopAutoplay() {
+                    if (!desktopAutoplay) return;
+                    video.muted = false;
+                    try {
+                        await video.play();
+                    } catch (withSoundError) {
+                        try {
+                            video.muted = true;
+                            await video.play();
+                        } catch (mutedError) {
+                            video.muted = false;
+                        }
+                    }
+                    refreshPlaybackState();
+                }
+
+                function togglePlayback() {
+                    if (video.paused || video.ended) playWithSound();
+                    else video.pause();
+                }
+
+                startButton.addEventListener('click', playWithSound);
+                toggleButton.addEventListener('click', togglePlayback);
+                video.addEventListener('click', togglePlayback);
+                video.addEventListener('playing', refreshPlaybackState);
+                video.addEventListener('pause', refreshPlaybackState);
+                video.addEventListener('ended', refreshPlaybackState);
+                video.addEventListener('loadedmetadata', refreshTime);
+                video.addEventListener('durationchange', refreshTime);
+                video.addEventListener('timeupdate', refreshTime);
+
+                progress.addEventListener('input', function () {
+                    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+                    video.currentTime = video.duration * (Number(progress.value) / 1000);
+                    refreshTime();
+                });
+
+                muteButton.addEventListener('click', function () {
+                    video.muted = !video.muted;
+                    unmuteButton.hidden = !video.muted || video.paused;
+                    muteButton.setAttribute('aria-label', video.muted ? 'Activer le son' : 'Couper le son');
+                });
+
+                unmuteButton.addEventListener('click', function () {
+                    video.muted = false;
+                    unmuteButton.hidden = true;
+                    muteButton.setAttribute('aria-label', 'Couper le son');
+                });
+
+                fullscreenButton.addEventListener('click', async function () {
+                    try {
+                        if (document.fullscreenElement) await document.exitFullscreen();
+                        else if (frame.requestFullscreen) await frame.requestFullscreen();
+                        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+                    } catch (error) {}
+                });
+
+                refreshTime();
+                refreshPlaybackState();
+                attemptDesktopAutoplay();
             }
 
             async function readServerSession() {
@@ -628,15 +1037,12 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
                 const button = document.getElementById('join-button');
                 const note = document.getElementById('access-note');
-                const params = new URLSearchParams(window.location.search);
-                const isOpen = remaining <= OPEN_EARLY_MS && Date.now() <= startMs + SESSION_DURATION_MS;
-                const forceOpen = params.get('unlock') === '1';
-                if (isOpen || forceOpen) {
+                if (Date.now() <= startMs + SESSION_DURATION_MS) {
                     button.classList.remove('is-locked');
                     button.removeAttribute('aria-disabled');
                     button.href = sessionUrl(session);
-                    button.textContent = remaining > 0 ? 'REJOINDRE LA SALLE MAINTENANT' : 'ENTRER DANS LA MASTERCLASS';
-                    note.textContent = remaining > 0 ? 'La salle vient d’ouvrir.' : 'Ta session est en cours.';
+                    button.textContent = 'ACCÉDER À MA MASTERCLASS';
+                    note.textContent = remaining > 0 ? 'Tu peux déjà entrer dans la salle.' : 'Ta session est en cours.';
                 } else if (Date.now() > startMs + SESSION_DURATION_MS) {
                     button.classList.add('is-locked');
                     button.setAttribute('aria-disabled', 'true');
@@ -675,17 +1081,23 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
             }
 
             async function init() {
+                await window.__MC2_ACCESS__.resolve();
+                launchConfetti();
+                initConfirmationVideo();
                 let session = null;
                 try { session = await readServerSession(); } catch (error) {}
                 session = session || readSession();
                 try { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); } catch (error) {}
                 const start = new Date(session.startsAt);
-                document.getElementById('session-heading').textContent = formatSession(start);
-                document.getElementById('timezone-label').textContent = 'Horaire affiché dans ton heure locale · ' + (session.timezone || 'UTC');
-                document.getElementById('calendar-button').addEventListener('click', function () { downloadCalendar(session); });
-                document.getElementById('calendar-button').addEventListener('click', function () {
-                    trackMc2Event('calendar_downloaded', { slot_kind: session.kind || 'jit' });
-                });
+                const formattedSession = formatSession(start);
+                document.getElementById('session-heading').textContent = 'La session commence ' + formattedSession.charAt(0).toLowerCase() + formattedSession.slice(1) + '.';
+                const calendarButton = document.getElementById('calendar-button');
+                if (calendarButton) {
+                    calendarButton.addEventListener('click', function () { downloadCalendar(session); });
+                    calendarButton.addEventListener('click', function () {
+                        trackMc2Event('calendar_downloaded', { slot_kind: session.kind || 'jit' });
+                    });
+                }
                 document.getElementById('workbook-button').addEventListener('click', function () {
                     trackMc2Event('workbook_opened', { slot_kind: session.kind || 'jit' });
                 });

@@ -1,7 +1,12 @@
 ---
 import reviewsData from '../data/reviews.json';
+import reviewConversionOrder from '../data/review-conversion-order.json';
+import Mc2AccessGate from '../components/Mc2AccessGate.astro';
 
-const checkoutReviews = reviewsData.reviews.filter((review) => Boolean(review.first_name));
+const allReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
+const checkoutReviews = reviewsData.reviews
+  .filter((review) => Boolean(review.first_name))
+  .sort((a, b) => (allReviewOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (allReviewOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
 const ratedReviews = checkoutReviews.filter((review) => Number.isFinite(review.rating));
 const reviewAverage = ratedReviews.reduce((total, review) => total + review.rating, 0) / ratedReviews.length;
 const reviewAverageLabel = reviewAverage.toFixed(1).replace('.', ',');
@@ -11,9 +16,6 @@ const ratingCounts = ratedReviews.reduce((counts, review) => {
   return counts;
 }, {});
 const ratingFilterValues = Object.keys(ratingCounts).map(Number).sort((a, b) => b - a);
-const ratingDistributionLabel = ratingFilterValues
-  .map((rating) => `${ratingCounts[rating]} × ${rating}★`)
-  .join(' · ');
 const reviewInitials = (name) => name
   .split(/\s+/)
   .filter(Boolean)
@@ -39,6 +41,7 @@ const reviewInitials = (name) => name
   </head>
 
   <body>
+    <Mc2AccessGate pagePath="/commencer/" />
     <main>
       <section class="hero">
         <div class="ambient ambient--one"></div>
@@ -104,7 +107,6 @@ const reviewInitials = (name) => name
                     <span aria-hidden="true" style={`width: ${reviewAveragePercent}%`}>★★★★★</span>
                   </span>
                   <strong>{checkoutReviews.length} avis authentiques</strong>
-                  <small>{ratedReviews.length} avis notés · {checkoutReviews.length - ratedReviews.length} témoignages sans note</small>
                 </span>
               </span>
               <span class="reviews-summary__footer">
@@ -161,11 +163,6 @@ const reviewInitials = (name) => name
               <div class="payment-preview" aria-label="Paiement sécurisé par Stripe">
                 <div class="payment-preview__head">
                   <span>Paiement</span>
-                  <span class="cards" aria-label="Visa, Mastercard et Apple Pay">
-                    <span class="card-brand card-brand--visa" aria-hidden="true">VISA</span>
-                    <span class="card-brand card-brand--mastercard" aria-hidden="true"><i></i><i></i></span>
-                    <span class="card-brand card-brand--apple" aria-hidden="true">Pay</span>
-                  </span>
                 </div>
                 <div class="payment-loading" id="payment-loading"><span></span>Connexion sécurisée à Stripe…</div>
                 <div id="stripe-payment-element" data-stripe-payment-element hidden></div>
@@ -192,9 +189,9 @@ const reviewInitials = (name) => name
                       <strong>Ensuite, 4 échéances</strong>
                       <small class="schedule-dates">
                         <b id="installment-date-14">23/08/2026</b> ·
-                        <b id="installment-date-30">08/09/2026</b> ·
-                        <b id="installment-date-60">08/10/2026</b> ·
-                        <b id="installment-date-89">06/11/2026</b>
+                        <b id="installment-date-44">22/09/2026</b> ·
+                        <b id="installment-date-74">22/10/2026</b> ·
+                        <b id="installment-date-104">22/11/2026</b>
                       </small>
                     </span>
                   </div>
@@ -214,7 +211,7 @@ const reviewInitials = (name) => name
                 <input type="checkbox" id="commitment" required />
                 <span class="custom-checkbox" aria-hidden="true">✓</span>
                 <span>
-                  J’accepte les <a href="/conditions-utilisation/" target="_blank" rel="noopener">CGV</a>
+                  J’accepte les <a href="/cgv/" target="_blank" rel="noopener">CGV</a>
                   et l’échéancier clairement indiqué ci-dessus.
                 </span>
               </label>
@@ -263,11 +260,41 @@ const reviewInitials = (name) => name
       </section>
     </main>
 
+    <section
+      class="expired-offer"
+      id="expired-offer"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="expired-offer-title"
+      aria-describedby="expired-offer-copy"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="expired-offer__card">
+        <span class="expired-offer__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+          </svg>
+        </span>
+        <span class="expired-offer__eyebrow">ESPRIT SUBCONSCIENT 2.0</span>
+        <h1 id="expired-offer-title">Cette offre a été retirée.</h1>
+        <p id="expired-offer-copy">
+          Le délai accordé après la masterclass est terminé. Cette page n’est plus accessible.
+        </p>
+        <a href="mailto:support@sonnycourt.com?subject=Offre%20Esprit%20Subconscient%202.0">
+          Contacter le support
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        </a>
+        <small>support@sonnycourt.com</small>
+      </div>
+    </section>
+
     <dialog class="reviews-dialog" id="reviews-dialog" aria-labelledby="reviews-dialog-title">
       <div class="reviews-dialog__top">
         <div>
-          <span class="reviews-dialog__eyebrow">Résultats des participants</span>
-          <h2 id="reviews-dialog-title">Leurs mots. Leurs changements.</h2>
+          <span class="reviews-dialog__eyebrow">Témoignages authentiques</span>
+          <h2 id="reviews-dialog-title">Avis des participants</h2>
         </div>
         <button type="button" class="reviews-dialog__close" id="close-reviews" aria-label="Fermer">×</button>
       </div>
@@ -281,7 +308,6 @@ const reviewInitials = (name) => name
           </span>
           <p>{ratedReviews.length} avis notés sur {checkoutReviews.length} témoignages</p>
         </div>
-        <span>{ratingDistributionLabel}</span>
       </div>
 
       <div class="reviews-dialog__filters" aria-label="Filtrer les témoignages">
@@ -294,7 +320,7 @@ const reviewInitials = (name) => name
 
       <div class="reviews-list">
         {checkoutReviews.map((review) => (
-          <article class="review-item" data-review-rating={review.rating ?? 'unrated'}>
+          <article class="review-item" data-review-id={review.id} data-review-rating={review.rating ?? 'unrated'}>
             <div class="review-item__head">
               {review.source_photo_url ? (
                 <img src={review.source_photo_url} alt={review.first_name} loading="lazy" decoding="async" />
@@ -328,6 +354,12 @@ const reviewInitials = (name) => name
       <button type="button" id="close-dialog">Fermer le prototype</button>
     </dialog>
 
+    <script
+      type="application/json"
+      id="review-conversion-orders"
+      set:html={JSON.stringify(reviewConversionOrder.filters)}
+    ></script>
+
     <script is:inline>
       const form = document.querySelector('#checkout-form');
       const checkbox = document.querySelector('#commitment');
@@ -338,6 +370,10 @@ const reviewInitials = (name) => name
       const closeReviews = document.querySelector('#close-reviews');
       const reviewFilters = document.querySelectorAll('[data-review-filter]');
       const reviewItems = document.querySelectorAll('[data-review-rating]');
+      const reviewList = document.querySelector('.reviews-list');
+      const reviewOrdersNode = document.querySelector('#review-conversion-orders');
+      const reviewOrders = JSON.parse(reviewOrdersNode?.textContent || '{"all":[]}');
+      const reviewsById = new Map([...reviewItems].map((item) => [item.dataset.reviewId, item]));
       const firstNameInput = document.querySelector('#customer-first-name');
       const emailInput = document.querySelector('#customer-email');
       const submitButton = document.querySelector('#buy-button');
@@ -345,32 +381,23 @@ const reviewInitials = (name) => name
       const stripeElement = document.querySelector('#stripe-payment-element');
       const paymentLoading = document.querySelector('#payment-loading');
       const previewPayment = document.querySelector('#payment-preview-local');
-      const installmentDates = [14, 30, 60, 89];
+      const installmentDates = [14, 44, 74, 104];
       const countdownHours = document.querySelector('#countdown-hours');
       const countdownMinutes = document.querySelector('#countdown-minutes');
       const countdownSeconds = document.querySelector('#countdown-seconds');
       const countdownMobileMinutes = document.querySelector('#countdown-mobile-minutes');
       const countdownMobileSeconds = document.querySelector('#countdown-mobile-seconds');
       const countdownProgress = document.querySelector('#countdown-progress');
+      const expiredOffer = document.querySelector('#expired-offer');
       const params = new URLSearchParams(window.location.search);
-      const tokenCookie = document.cookie
-        .split(';')
-        .map((part) => part.trim())
-        .find((part) => part.startsWith('mc2_registration_token='));
-      let token = params.get('t')
-        || localStorage.getItem('mc2_registration_token')
-        || (tokenCookie ? decodeURIComponent(tokenCookie.split('=').slice(1).join('=')) : '')
-        || '';
-      if (token) {
-        localStorage.setItem('mc2_registration_token', token);
-        document.cookie = `mc2_registration_token=${encodeURIComponent(token)}; path=/; max-age=31536000; SameSite=Lax`;
-      }
+      let token = '';
       const localPreview = location.hostname === '127.0.0.1'
         || location.hostname === 'localhost'
         || params.get('preview') === 'dev';
       let stripeCheckout = null;
       let stripeCanConfirm = false;
       let checkoutEngagedSent = false;
+      let checkoutSessionId = '';
 
       function trackingPayload(event, value, meta = {}) {
         return {
@@ -428,15 +455,53 @@ const reviewInitials = (name) => name
           month: '2-digit',
           year: 'numeric',
       });
-      installmentDates.forEach((days) => {
+      installmentDates.forEach((days, index) => {
         const node = document.querySelector(`#installment-date-${days}`);
         if (!node) return;
         const dueDate = new Date(checkoutDate);
-        dueDate.setDate(dueDate.getDate() + days);
+        dueDate.setDate(dueDate.getDate() + 14);
+        if (index > 0) dueDate.setMonth(dueDate.getMonth() + index);
         node.textContent = installmentDateFormatter.format(dueDate);
       });
 
-      let countdownEnd = Date.now() + (60 * 60 * 1000);
+      const countdownDuration = 60 * 60 * 1000;
+      let countdownStorageKey = '';
+      const previewExpired = params.get('preview_expired') === '1';
+
+      function resolveCountdownEnd() {
+        if (previewExpired) return Date.now();
+        if (!countdownStorageKey) return Date.now() + countdownDuration;
+        const storedEnd = Number(window.localStorage.getItem(countdownStorageKey));
+        if (Number.isFinite(storedEnd) && storedEnd > 0) return storedEnd;
+        const newEnd = Date.now() + countdownDuration;
+        window.localStorage.setItem(countdownStorageKey, String(newEnd));
+        return newEnd;
+      }
+
+      function showExpiredOffer() {
+        if (!expiredOffer || document.body.classList.contains('offer-expired')) return;
+        document.body.classList.add('offer-expired');
+        document.querySelector('main')?.setAttribute('inert', '');
+        form?.querySelectorAll('input, button, select, textarea').forEach((control) => {
+          control.disabled = true;
+        });
+        if (reviewsDialog?.open) reviewsDialog.close();
+        if (dialog?.open) dialog.close();
+        expiredOffer.hidden = false;
+        expiredOffer.setAttribute('aria-hidden', 'false');
+        expiredOffer.querySelector('a')?.focus();
+        track('offer_expired', null, { countdown_seconds: 0 });
+      }
+
+      let countdownEnd = Date.now() + countdownDuration;
+      function syncCountdownEnd(value) {
+        const serverEnd = new Date(value || '').getTime();
+        if (!Number.isFinite(serverEnd)) return;
+        countdownEnd = serverEnd;
+        if (countdownStorageKey) window.localStorage.setItem(countdownStorageKey, String(serverEnd));
+        updateCountdown();
+      }
+
       const updateCountdown = () => {
         const remaining = Math.max(0, countdownEnd - Date.now());
         const totalSeconds = Math.ceil(remaining / 1000);
@@ -449,14 +514,10 @@ const reviewInitials = (name) => name
         if (countdownSeconds) countdownSeconds.textContent = String(seconds).padStart(2, '0');
         if (countdownMobileMinutes) countdownMobileMinutes.textContent = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
         if (countdownMobileSeconds) countdownMobileSeconds.textContent = String(seconds).padStart(2, '0');
-        if (countdownProgress) countdownProgress.style.transform = `scaleX(${remaining / (60 * 60 * 1000)})`;
+        if (countdownProgress) countdownProgress.style.transform = `scaleX(${remaining / countdownDuration})`;
+        if (remaining <= 0) showExpiredOffer();
+        return remaining;
       };
-
-      updateCountdown();
-      const countdownInterval = window.setInterval(() => {
-        updateCountdown();
-        if (Date.now() >= countdownEnd) window.clearInterval(countdownInterval);
-      }, 1000);
 
       function mountPreview() {
         paymentLoading.hidden = true;
@@ -480,7 +541,11 @@ const reviewInitials = (name) => name
           body: JSON.stringify({ token, nonce: checkoutNonce() }),
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Le paiement ne peut pas être préparé.');
+        if (!response.ok) {
+          const error = new Error(data.error || 'Le paiement ne peut pas être préparé.');
+          error.code = data.code || '';
+          throw error;
+        }
         return data;
       }
 
@@ -488,8 +553,9 @@ const reviewInitials = (name) => name
         if (!token) throw new Error('Reviens depuis la masterclass pour accéder à cette offre.');
         if (!window.Stripe) throw new Error('Stripe ne peut pas être chargé. Recharge la page.');
         const data = await createCheckout();
-        const serverExpiry = new Date(data.offer_expires_at || '').getTime();
-        if (Number.isFinite(serverExpiry)) countdownEnd = serverExpiry;
+        checkoutSessionId = data.checkout_session_id || '';
+        syncCountdownEnd(data.offer_expires_at);
+        if (Date.now() >= countdownEnd) return;
         firstNameInput.value = data.customer?.name || '';
         emailInput.value = data.customer?.email || '';
         firstNameInput.readOnly = true;
@@ -524,6 +590,20 @@ const reviewInitials = (name) => name
         submitButton.disabled = true;
         submitButton.classList.add('is-loading');
         showError('');
+        try {
+          const evidenceResponse = await fetch('/.netlify/functions/mc2-contract-acceptance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, checkout_session_id: checkoutSessionId, accepted: checkbox.checked }),
+          });
+          if (!evidenceResponse.ok) throw new Error('La confirmation contractuelle n’a pas pu être enregistrée. Réessaie.');
+        } catch (error) {
+          showError(error.message || 'Réessaie dans un instant.');
+          submitButton.classList.remove('is-loading');
+          stripeCanConfirm = true;
+          updateSubmitState();
+          return;
+        }
         track('payment_submitted', 4700, { button_id: 'buy-button' });
         const result = await stripeCheckout.confirm().catch((error) => ({ type: 'error', error }));
         if (result?.type === 'error' || result?.error) {
@@ -563,16 +643,43 @@ const reviewInitials = (name) => name
         button.addEventListener('click', () => {
           const rating = button.dataset.reviewFilter;
           reviewFilters.forEach((filter) => filter.classList.toggle('is-active', filter === button));
+          (reviewOrders[rating] || reviewOrders.all).forEach((id) => {
+            const item = reviewsById.get(id);
+            if (item) reviewList?.append(item);
+          });
           reviewItems.forEach((item) => {
             item.hidden = rating !== 'all' && item.dataset.reviewRating !== rating;
           });
+          reviewList?.scrollTo({ top: 0, behavior: 'instant' });
         });
       });
 
-      if (localPreview) mountPreview();
-      else mountStripe().catch((error) => {
+      async function initCheckoutPage() {
+        token = await window.__MC2_ACCESS__.resolve();
+        countdownStorageKey = token ? `mc2_offer_expires_at_${token}` : '';
+        countdownEnd = resolveCountdownEnd();
+        const initialCountdownRemaining = updateCountdown();
+        if (initialCountdownRemaining > 0) {
+          const countdownInterval = window.setInterval(() => {
+            if (updateCountdown() <= 0) window.clearInterval(countdownInterval);
+          }, 1000);
+        }
+        if (initialCountdownRemaining <= 0) {
+          showExpiredOffer();
+        } else if (localPreview) {
+          mountPreview();
+        } else {
+          await mountStripe();
+        }
+      }
+
+      initCheckoutPage().catch((error) => {
+        if (error.code === 'offer_expired') {
+          showExpiredOffer();
+          return;
+        }
         paymentLoading.hidden = true;
-        showError(error.message);
+        showError(error.message || 'Le paiement ne peut pas être préparé.');
         track('payment_error', null, { section: 'initialization' });
       });
     </script>
@@ -608,6 +715,91 @@ const reviewInitials = (name) => name
     font-family: 'Inter Local', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+
+  body.offer-expired { height: 100dvh; overflow: hidden; }
+  body.offer-expired > main { visibility: hidden; pointer-events: none; user-select: none; }
+
+  .expired-offer[hidden] { display: none; }
+  .expired-offer {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    display: grid;
+    min-height: 100dvh;
+    place-items: center;
+    padding: 24px;
+    overflow: auto;
+    color: #f8fbff;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(30,113,231,.28), transparent 34%),
+      linear-gradient(145deg, #061124 0%, #071a36 55%, #050e1d 100%);
+  }
+  .expired-offer::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: .16;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(circle at center, #000 0%, transparent 78%);
+  }
+  .expired-offer__card {
+    position: relative;
+    display: flex;
+    width: min(520px, 100%);
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(34px, 7vw, 58px) clamp(24px, 6vw, 52px);
+    text-align: center;
+    background: linear-gradient(145deg, rgba(255,255,255,.095), rgba(255,255,255,.035));
+    border: 1px solid rgba(177,213,255,.22);
+    border-radius: 26px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 34px 100px rgba(0,0,0,.42);
+    backdrop-filter: blur(24px);
+  }
+  .expired-offer__icon {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 23px;
+    place-items: center;
+    color: #d9eaff;
+    background: linear-gradient(145deg, rgba(38,125,244,.34), rgba(10,55,122,.48));
+    border: 1px solid rgba(164,205,255,.34);
+    border-radius: 17px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 13px 35px rgba(0,24,70,.3);
+  }
+  .expired-offer__icon svg { width: 28px; height: 28px; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .expired-offer__eyebrow { color: #89bfff; font-size: 10px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
+  .expired-offer h1 { margin: 11px 0 0; color: #fff; font-size: clamp(31px, 7vw, 46px); line-height: 1.02; letter-spacing: -.055em; }
+  .expired-offer p { max-width: 390px; margin: 19px 0 28px; color: rgba(226,236,249,.72); font-size: 14px; line-height: 1.65; }
+  .expired-offer a {
+    display: flex;
+    width: min(320px, 100%);
+    min-height: 56px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #1681ff, #0751c5);
+    border: 1px solid rgba(108,174,255,.5);
+    border-radius: 12px;
+    box-shadow: 0 16px 35px rgba(5,72,172,.35), inset 0 1px 0 rgba(255,255,255,.22);
+    font-size: 13px;
+    font-weight: 850;
+    letter-spacing: .025em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: transform .2s ease, filter .2s ease;
+  }
+  .expired-offer a:hover { transform: translateY(-2px); filter: brightness(1.06); }
+  .expired-offer a:focus-visible { outline: 3px solid rgba(106,177,255,.42); outline-offset: 4px; }
+  .expired-offer a svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.3; }
+  .expired-offer small { margin-top: 13px; color: rgba(199,216,238,.5); font-size: 9px; }
 
   button, input { font: inherit; }
 
@@ -736,14 +928,6 @@ const reviewInitials = (name) => name
 
   .payment-preview { margin-top: 14px; padding: 14px; background: #f7f9fd; border: 1px solid #e1e6ef; border-radius: 12px; }
   .payment-preview__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 11px; color: #445169; font-size: 11px; font-weight: 800; }
-  .cards { display: inline-flex; align-items: center; gap: 7px; min-height: 14px; }
-  .card-brand { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
-  .card-brand--visa { color: #1434cb; font-size: 10px; font-weight: 950; font-style: italic; letter-spacing: -.06em; transform: skewX(-6deg); }
-  .card-brand--mastercard { position: relative; width: 24px; height: 14px; }
-  .card-brand--mastercard i { position: absolute; top: 1px; width: 13px; height: 13px; border-radius: 50%; }
-  .card-brand--mastercard i:first-child { left: 1px; background: #eb001b; }
-  .card-brand--mastercard i:last-child { right: 1px; background: #f79e1b; mix-blend-mode: multiply; }
-  .card-brand--apple { color: #111827; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: -.045em; }
   .payment-loading { display:flex; align-items:center; justify-content:center; gap:9px; min-height:74px; color:#788397; font-size:10px; }
   .payment-loading[hidden], [data-stripe-payment-element][hidden], #payment-preview-local[hidden] { display:none!important; }
   .payment-loading span { width:16px; height:16px; border:2px solid #d9e3f1; border-top-color:#126de0; border-radius:50%; animation:spin .7s linear infinite; }
@@ -816,7 +1000,7 @@ const reviewInitials = (name) => name
 
   .reviews-dialog {
     width: min(760px, calc(100% - 32px));
-    max-height: min(860px, calc(100dvh - 34px));
+    height: min(860px, calc(100dvh - 34px));
     padding: 0;
     overflow: hidden;
     color: #122039;
@@ -826,24 +1010,23 @@ const reviewInitials = (name) => name
     box-shadow: 0 36px 120px rgba(0,0,0,.48);
     text-align: left;
   }
-  .reviews-dialog[open] { animation: reviews-in .22s ease-out; }
+  .reviews-dialog[open] { display: flex; flex-direction: column; animation: reviews-in .22s ease-out; }
   @keyframes reviews-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
-  .reviews-dialog__top { position: sticky; z-index: 3; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 27px 22px; color: #fff; background: linear-gradient(135deg, #071b39, #0a3a78); border-bottom: 1px solid rgba(255,255,255,.12); }
+  .reviews-dialog__top { position: sticky; z-index: 3; top: 0; display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 27px 22px; color: #fff; background: linear-gradient(135deg, #071b39, #0a3a78); border-bottom: 1px solid rgba(255,255,255,.12); }
   .reviews-dialog__eyebrow { display: block; margin-bottom: 5px; color: rgba(204,226,255,.65); font-size: 8px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
   .reviews-dialog .reviews-dialog__top h2 { margin: 0; color: #fff; font-size: 25px; letter-spacing: -.04em; }
   .reviews-dialog .reviews-dialog__close { display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; padding: 0 0 3px; color: rgba(255,255,255,.8); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 50%; font-size: 25px; font-weight: 300; line-height: 1; }
   .reviews-dialog .reviews-dialog__close:hover { color: #fff; background: rgba(255,255,255,.15); }
-  .reviews-dialog__scorebar { display: grid; grid-template-columns: auto 1fr auto; gap: 17px; align-items: center; padding: 20px 27px; background: #fff; border-bottom: 1px solid #e4e9f1; }
+  .reviews-dialog__scorebar { display: grid; flex: 0 0 auto; grid-template-columns: auto 1fr; gap: 17px; align-items: center; padding: 20px 27px; background: #fff; border-bottom: 1px solid #e4e9f1; }
   .reviews-dialog__scorebar > strong { font-size: 38px; line-height: 1; letter-spacing: -.06em; }
   .reviews-dialog__scorebar > strong small { margin-left: 3px; color: #7e899b; font-size: 12px; letter-spacing: 0; }
   .reviews-dialog__scorebar .star-meter { color: #dfe4eb; }
   .reviews-dialog__scorebar > div p { margin: 5px 0 0; color: #6d788a; font-size: 9px; }
-  .reviews-dialog__scorebar > span { color: #7b8698; font-size: 8.5px; font-weight: 750; line-height: 1.55; text-align: right; }
-  .reviews-dialog__filters { position: sticky; z-index: 2; top: 85px; display: flex; gap: 7px; padding: 13px 27px; overflow-x: auto; background: rgba(247,249,252,.94); border-bottom: 1px solid #e2e7ef; backdrop-filter: blur(12px); scrollbar-width: none; }
+  .reviews-dialog__filters { position: sticky; z-index: 2; top: 85px; display: flex; flex: 0 0 auto; gap: 7px; padding: 13px 27px; overflow-x: auto; background: rgba(247,249,252,.94); border-bottom: 1px solid #e2e7ef; backdrop-filter: blur(12px); scrollbar-width: none; }
   .reviews-dialog__filters::-webkit-scrollbar { display: none; }
   .reviews-dialog .reviews-dialog__filters button { padding: 8px 12px; color: #526076; background: #fff; border: 1px solid #dfe5ee; border-radius: 999px; font-size: 9px; }
   .reviews-dialog .reviews-dialog__filters button.is-active { color: #fff; background: #0c4e9e; border-color: #0c4e9e; box-shadow: 0 5px 14px rgba(12,78,158,.17); }
-  .reviews-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; max-height: calc(100dvh - 300px); padding: 17px 20px 21px; overflow-y: auto; overscroll-behavior: contain; }
+  .reviews-list { display: grid; flex: 1 1 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; min-height: 0; padding: 17px 20px 21px; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .review-item { padding: 16px; background: #fff; border: 1px solid #e3e8f0; border-radius: 14px; box-shadow: 0 8px 24px rgba(19,38,68,.045); }
   .review-item[hidden] { display: none; }
   .review-item__head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 9px; align-items: center; }
@@ -855,7 +1038,7 @@ const reviewInitials = (name) => name
   .review-item__head b i { color: #dfe4eb; font-style: normal; }
   .review-item__head .review-item__unrated { padding: 5px 7px; color: #66758b; background: #f2f5f8; border: 1px solid #e2e7ee; border-radius: 999px; font-size: 7px; font-weight: 800; letter-spacing: 0; }
   .reviews-dialog .review-item p { margin: 13px 0 0; color: #4e5d72; font-family: Georgia, 'Times New Roman', serif; font-size: 10.5px; line-height: 1.62; }
-  .reviews-dialog .reviews-dialog__disclosure { margin: 0; padding: 0 24px 17px; color: #8a94a4; font-size: 8px; line-height: 1.45; text-align: center; }
+  .reviews-dialog .reviews-dialog__disclosure { display: flex; flex: 0 0 auto; min-height: 52px; align-items: center; justify-content: center; margin: 0; padding: 10px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
 
   @media (min-width: 981px) {
     .page-countdown { margin-top: 42px; }
@@ -885,13 +1068,12 @@ const reviewInitials = (name) => name
     .order-card { order: 1; margin-top: 0; border-radius: 18px; }
     .order-head { padding: 23px 21px 22px; }
     .offer-summary__visual { height: auto; margin-inline: -2px; }
-    .reviews-dialog { width: calc(100% - 18px); max-height: calc(100dvh - 18px); border-radius: 19px; }
+    .reviews-dialog { width: calc(100% - 18px); height: calc(100dvh - 18px); border-radius: 19px; }
     .reviews-dialog__top { padding: 20px 18px 18px; }
     .reviews-dialog .reviews-dialog__top h2 { max-width: 260px; font-size: 21px; }
     .reviews-dialog__scorebar { grid-template-columns: auto 1fr; gap: 14px; padding: 17px 18px; }
-    .reviews-dialog__scorebar > span { display: none; }
     .reviews-dialog__filters { top: 76px; padding: 11px 18px; }
-    .reviews-list { grid-template-columns: 1fr; max-height: calc(100dvh - 270px); padding: 13px 12px 17px; }
+    .reviews-list { grid-template-columns: 1fr; padding: 13px 12px 17px; }
     .review-item { padding: 15px; }
     .page-countdown { display: none; }
     .order-product { font-size: 10px; }
@@ -934,6 +1116,26 @@ const reviewInitials = (name) => name
     .schedule-row b { display: inline; }
     .buy-button { font-size: 11px; }
     .floating-chip { font-size: 8px; }
+  }
+
+  @media (orientation: landscape) and (max-height: 520px) {
+    .reviews-dialog { width: min(900px, calc(100% - 16px)); height: calc(100dvh - 12px); border-radius: 16px; }
+    .reviews-dialog__top { padding: 10px 17px 9px; }
+    .reviews-dialog__eyebrow { margin-bottom: 1px; font-size: 6.5px; }
+    .reviews-dialog .reviews-dialog__top h2 { font-size: 18px; }
+    .reviews-dialog .reviews-dialog__close { width: 30px; height: 30px; font-size: 20px; }
+    .reviews-dialog__scorebar { gap: 10px; padding: 8px 18px; }
+    .reviews-dialog__scorebar > strong { font-size: 28px; }
+    .reviews-dialog__scorebar > strong small { font-size: 9px; }
+    .reviews-dialog__scorebar > div p { margin-top: 2px; font-size: 7.5px; }
+    .reviews-dialog__filters { top: 0; gap: 6px; padding: 6px 18px; }
+    .reviews-dialog .reviews-dialog__filters button { padding: 6px 10px; font-size: 8px; }
+    .reviews-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; padding: 9px 12px 11px; }
+    .review-item { padding: 12px; }
+    .review-item__head { grid-template-columns: 32px minmax(0, 1fr) auto; }
+    .review-item__head img, .review-item__initials { width: 32px; height: 32px; }
+    .reviews-dialog .review-item p { margin-top: 9px; font-size: 10px; line-height: 1.48; }
+    .reviews-dialog .reviews-dialog__disclosure { min-height: 34px; padding: 5px 16px; font-size: 7px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

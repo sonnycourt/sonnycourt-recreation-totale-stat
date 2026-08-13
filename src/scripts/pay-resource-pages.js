@@ -140,7 +140,75 @@ if (screen) {
     const normalized = clean(label).toLowerCase();
     const success = /réussi|actif|active|paid|complete|succeeded|trialing/.test(normalized);
     const warning = /attente|past|retard|open|pending|incomplete/.test(normalized);
-    return `<span class="pay-badge ${success ? 'pay-badge--success' : warning ? 'pay-badge--warning' : 'pay-badge--draft'}">${escapeHtml(label || 'Inconnu')}</span>`;
+    const danger = /échec|échoué|impayé|recouvrement|épuisé|unpaid|failed/.test(normalized);
+    return `<span class="pay-badge ${success ? 'pay-badge--success' : danger ? 'pay-badge--danger' : warning ? 'pay-badge--warning' : 'pay-badge--draft'}">${escapeHtml(label || 'Inconnu')}</span>`;
+  }
+
+  function recoveryPresentation(recovery) {
+    if (!recovery?.tracked) return { label: '—', tone: 'none', hint: 'Aucun suivi MC2' };
+    const status = clean(recovery.status).toLowerCase();
+    if (status === 'unlinked') return { label: 'À vérifier', tone: 'warning', hint: 'Commande MC2 non rapprochée' };
+    if (status === 'current') return { label: 'À jour', tone: 'success', hint: 'Aucun incident' };
+    if (status === 'recovered') return { label: 'Récupéré', tone: 'success', hint: recovery.recovered_at ? date(recovery.recovered_at) : 'Paiement récupéré' };
+    if (status === 'payment_action_required') return { label: 'Action requise', tone: 'warning', hint: 'Carte à authentifier' };
+    if (status === 'exhausted') return { label: 'Recouvrement', tone: 'danger', hint: '5 relances épuisées' };
+    if (status === 'retry_scheduled') {
+      const nextRetry = Math.min(5, Math.max(1, Number(recovery.retry_count || 0) + 1));
+      return { label: `Relance ${nextRetry}/5`, tone: 'warning', hint: recovery.next_retry_at ? date(recovery.next_retry_at) : 'Nouvelle tentative prévue' };
+    }
+    return { label: 'Paiement échoué', tone: 'danger', hint: 'Relance à confirmer' };
+  }
+
+  function recoveryCell(recovery) {
+    const view = recoveryPresentation(recovery);
+    if (view.tone === 'none') return '<span class="resource-recovery-empty">—</span>';
+    return `<span class="pay-badge pay-badge--${view.tone}">${escapeHtml(view.label)}</span><small>${escapeHtml(view.hint)}</small>`;
+  }
+
+  function recoveryDetails(recovery) {
+    if (!recovery?.tracked) return [];
+    const view = recoveryPresentation(recovery);
+    if (clean(recovery.status).toLowerCase() === 'current') {
+      return [['Recouvrement', view.label], ['Incidents de paiement', 'Aucun']];
+    }
+    const details = [
+      ['Statut du recouvrement', view.label],
+      ['Échéance concernée', Number(recovery.amount_due || 0) > 0 ? money(recovery.amount_due, recovery.currency) : 'Montant non renseigné'],
+      ['Tentatives Stripe', `${Math.min(6, Number(recovery.attempt_count || 0))}/6`],
+      ['Relances déjà effectuées', `${Math.min(5, Number(recovery.retry_count || 0))}/5`],
+      ['Prochaine tentative', recovery.next_retry_at ? date(recovery.next_retry_at) : 'Aucune planifiée'],
+      ['Motif', recovery.failure_message || recovery.failure_code || 'Non communiqué par la banque'],
+      ['Code bancaire', recovery.failure_code || '—'],
+      ['Premier échec', recovery.first_failed_at ? date(recovery.first_failed_at) : '—'],
+      ['Dernier échec', recovery.last_failed_at ? date(recovery.last_failed_at) : '—'],
+      ['Paiement récupéré', recovery.recovered_at ? date(recovery.recovered_at) : '—'],
+      ['Relances épuisées', recovery.exhausted_at ? date(recovery.exhausted_at) : '—'],
+      ['Facture Stripe', recovery.invoice_id || '—'],
+    ];
+    return details;
+  }
+
+  function collectionCaseDetails(collectionCase) {
+    if (!collectionCase) return [];
+    const statuses = {
+      draft: 'Brouillon', needs_information: 'Informations manquantes', ready_for_review: 'À valider humainement',
+      approved: 'Approuvé', rejected: 'Rejeté', exported: 'Exporté', recovered: 'Récupéré', closed: 'Clôturé',
+    };
+    return [
+      ['Dossier', collectionCase.case_number || '—'],
+      ['État du dossier', statuses[collectionCase.status] || collectionCase.status],
+      ['Validation humaine', collectionCase.approved_at ? `Approuvé le ${date(collectionCase.approved_at)}` : 'Requise avant tout export'],
+      ['Dossier complet', collectionCase.complete ? 'Oui' : `Non · ${(collectionCase.missing || []).length} élément(s) manquant(s)`],
+      ['Solde préparé', money(collectionCase.balance_due, collectionCase.currency)],
+      ['Version du dossier', String(collectionCase.revision || 1)],
+      ['Préparé le', collectionCase.prepared_at ? date(collectionCase.prepared_at) : '—'],
+      ['Transmis à un prestataire', collectionCase.exported_at ? `Exporté le ${date(collectionCase.exported_at)}` : 'Non'],
+    ];
+  }
+
+  function orderPlainValuesWithRecovery(order, recovery) {
+    const values = payOrderPlainValues(order);
+    return [...values.slice(0, 5), recoveryPresentation(recovery).label, ...values.slice(5)];
   }
 
   function row(values, plain, provider, status, sortTime = 0, externalId = '', options = {}) {
@@ -250,8 +318,8 @@ if (screen) {
       return row([
         `<strong>${escapeHtml(description)}</strong><small>#brouillon-${escapeHtml(draft.id)}</small>`,
         `<strong>${escapeHtml(customer)}</strong><small>${escapeHtml(draft.customerEmail || '')}</small>`,
-        created, providerCell('internal'), badge(status), `<strong>${amount}</strong>`,
-      ], payOrderPlainValues({ description, customer, email: draft.customerEmail, created, provider: 'Pay', status, total: amount }), 'internal', 'brouillon', Math.floor(new Date(draft.createdAt || Number(draft.id || 0)).getTime() / 1_000), `brouillon-${draft.id}`);
+        created, providerCell('internal'), badge(status), recoveryCell(null), `<strong>${amount}</strong>`,
+      ], orderPlainValuesWithRecovery({ description, customer, email: draft.customerEmail, created, provider: 'Pay', status, total: amount }), 'internal', 'brouillon', Math.floor(new Date(draft.createdAt || Number(draft.id || 0)).getTime() / 1_000), `brouillon-${draft.id}`);
     }) : [];
     const history = await fetchHistory('orders');
     if (history) {
@@ -262,8 +330,10 @@ if (screen) {
         return row([
           `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
           `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
-          created, providerCell(item.provider), badge(status), `<strong>${money(item.amount, item.currency)}</strong>`,
-        ], payOrderPlainValues({ description: item.description, customer: item.customer, email: item.email, created, provider: item.provider, status, total: money(item.amount, item.currency) }), item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000), item.id);
+          created, providerCell(item.provider), badge(status), recoveryCell(item.payment_recovery), `<strong>${money(item.amount, item.currency)}</strong>`,
+        ], orderPlainValuesWithRecovery({ description: item.description, customer: item.customer, email: item.email, created, provider: item.provider, status, total: money(item.amount, item.currency) }, item.payment_recovery), item.provider, status, Math.floor(new Date(item.created_at).getTime() / 1_000), item.id, {
+          details: [...recoveryDetails(item.payment_recovery), ...collectionCaseDetails(item.collection_case)],
+        });
       });
       return [...draftRows, ...historyRows].sort((a, b) => b.sortTime - a.sortTime);
     }
@@ -284,14 +354,14 @@ if (screen) {
       return row([
         `<strong>${escapeHtml(description)}</strong><small>#${escapeHtml(intent.id)}</small>`,
         `<strong>${escapeHtml(customer.name)}</strong><small>${escapeHtml(customer.email)}</small>`,
-        date(intent.created), providerCell('stripe'), badge(status), `<strong>${money(amount, intent.currency)}</strong>`,
-      ], payOrderPlainValues({ description, customer: customer.name, email: customer.email, created: date(intent.created), provider: 'Stripe', status, total: money(amount, intent.currency) }), 'stripe', status, intent.created, intent.id);
+        date(intent.created), providerCell('stripe'), badge(status), recoveryCell(null), `<strong>${money(amount, intent.currency)}</strong>`,
+      ], orderPlainValuesWithRecovery({ description, customer: customer.name, email: customer.email, created: date(intent.created), provider: 'Stripe', status, total: money(amount, intent.currency) }), 'stripe', status, intent.created, intent.id);
     });
     const paypalRows = paypal.filter((item) => ['sale', 'payment_plan'].includes(item.kind)).map((item) => row([
       `<strong>${escapeHtml(item.description)}</strong><small>#${escapeHtml(item.id)}</small>`,
       `<strong>${escapeHtml(item.customer)}</strong><small>${escapeHtml(item.email)}</small>`,
-      date(item.created), providerCell('paypal'), badge(item.status), `<strong>${money(item.amount, item.currency)}</strong>`,
-    ], payOrderPlainValues({ description: item.description, customer: item.customer, email: item.email, created: date(item.created), provider: 'PayPal', status: item.status, total: money(item.amount, item.currency) }), 'paypal', item.status, item.created, item.id));
+      date(item.created), providerCell('paypal'), badge(item.status), recoveryCell(null), `<strong>${money(item.amount, item.currency)}</strong>`,
+    ], orderPlainValuesWithRecovery({ description: item.description, customer: item.customer, email: item.email, created: date(item.created), provider: 'PayPal', status: item.status, total: money(item.amount, item.currency) }), 'paypal', item.status, item.created, item.id));
     return [...draftRows, ...stripeRows, ...paypalRows].sort((a, b) => b.sortTime - a.sortTime);
   }
 
