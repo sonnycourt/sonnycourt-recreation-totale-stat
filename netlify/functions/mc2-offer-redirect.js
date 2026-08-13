@@ -17,10 +17,18 @@ function response(status, body, headers = {}) {
   });
 }
 
+function requestCode(url) {
+  const queryCode = cleanCode(url.searchParams.get('code'));
+  if (queryCode) return queryCode;
+  const marker = '/mc2-offer-redirect/';
+  const index = url.pathname.indexOf(marker);
+  return index === -1 ? '' : cleanCode(decodeURIComponent(url.pathname.slice(index + marker.length)));
+}
+
 export default async (req) => {
   try {
     const url = new URL(req.url);
-    const code = cleanCode(url.searchParams.get('code'));
+    const code = requestCode(url);
     if (!code) return response(404, 'Lien invalide.');
 
     const jobs = await supabaseGet(
