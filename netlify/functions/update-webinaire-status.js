@@ -4,6 +4,7 @@ import {
   getWebinaireGroupEnv,
 } from './lib/mailerlite-webinaire.mjs';
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
+import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -58,6 +59,13 @@ export default async (req) => {
     if (!patch.ok) {
       console.error('update-webinaire-status patch:', patch.error);
       return jsonResponse(500, { error: 'Mise à jour impossible' });
+    }
+
+    if (statut === 'present') {
+      const exclusion = await excludeWebinarAttendee(email, 'participant_webinaire');
+      if (!exclusion.ok) {
+        console.error('webinaire attendee exclusion failed:', exclusion.status, exclusion.error);
+      }
     }
 
     const apiKey = process.env.MAILERLITE_API_KEY;

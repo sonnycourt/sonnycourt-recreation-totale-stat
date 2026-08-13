@@ -1,5 +1,6 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
+import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'confirmation_viewed',
@@ -176,6 +177,13 @@ export default async (req) => {
     const patch = buildPatch(eventName, body?.value, meta, row);
     const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, patch);
     if (!updated.ok) return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
+
+    if (eventName === 'session_joined') {
+      const exclusion = await excludeWebinarAttendee(row.email, 'participant_mc2');
+      if (!exclusion.ok) {
+        console.error('MC2 attendee exclusion failed:', exclusion.status, exclusion.error);
+      }
+    }
 
     const event = {
       token,
