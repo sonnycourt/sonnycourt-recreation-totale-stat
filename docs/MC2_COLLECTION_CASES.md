@@ -61,8 +61,8 @@ facture PDF officielle reste celle de Stripe et son URL figure dans le snapshot.
 ## Blocages connus avant activation
 
 - Le code, la checkout et les CGV sont alignés sur `47 € + 4 × 297 €`
-  (1 235 €). Avant activation, il reste à créer ou identifier dans Stripe un
-  Price mensuel actif de 297 € TTC, à renseigner dans
+  à J+14, J+35, J+56 et J+77 (1 235 €). Avant activation, il reste à identifier
+  dans Stripe un Price mensuel actif de 297 € TTC, à renseigner dans
   `MC2_STRIPE_INSTALLMENT_PRICE_ID`, puis à aligner les variables
   `MC2_CONTRACT_EXPECTED_*`. Le garde-fou contractuel bloque toute acceptation
   incohérente.

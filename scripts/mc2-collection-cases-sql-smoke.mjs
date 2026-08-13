@@ -29,7 +29,7 @@ await db.exec(`
     evidence_sha256
   ) values (
     'mc2-sql-test', 'cs_test_sql', 'v1', 'https://example.test/cgv',
-    'https://example.test/cgv-v1.pdf', repeat('a', 64), 'Accepté', '47_then_4x297',
+    'https://example.test/cgv-v1.pdf', repeat('a', 64), 'Accepté', '47_then_4x297_days_14_35_56_77',
     '[{"label":"Acompte","amount_cents":4700}]'::jsonb,
     4700, 123500, 'eur', now(), repeat('b', 64)
   );

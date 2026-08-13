@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
-import { MC2_PAY_METADATA, isMc2StripeEvent } from '../netlify/functions/lib/mc2-pay-router.mjs';
+import {
+  MC2_PAY_METADATA,
+  isMc2StripeEvent,
+  mc2InstallmentSchedulePhases,
+} from '../netlify/functions/lib/mc2-pay-router.mjs';
 import {
   MC2_CONTRACT_TOTAL_CENTS,
   MC2_ENTRY_PAYMENT_CENTS,
   MC2_INSTALLMENT_CENTS,
   MC2_INSTALLMENT_COUNT,
+  MC2_INSTALLMENT_INTERVAL_DAYS,
+  MC2_INSTALLMENT_OFFSETS_DAYS,
   MC2_PAYMENT_PLAN,
   MC2_STRIPE_PRODUCT_ID,
   isValidMc2EntryPrice,
@@ -39,8 +45,22 @@ assert.deepEqual(envelope.routing.targets, [
 ]);
 assert.equal(JSON.stringify(envelope).includes('token-not-persisted-in-envelope'), false);
 assert.equal(isMc2StripeEvent({ ...event, data: { object: { metadata: { system: 'other' } } } }), false);
-assert.equal(MC2_PAYMENT_PLAN, '47_now_then_4x297');
+assert.equal(MC2_PAYMENT_PLAN, '47_now_then_4x297_days_14_35_56_77');
 assert.equal(MC2_ENTRY_PAYMENT_CENTS + (MC2_INSTALLMENT_CENTS * MC2_INSTALLMENT_COUNT), MC2_CONTRACT_TOTAL_CENTS);
+assert.deepEqual(MC2_INSTALLMENT_OFFSETS_DAYS, [14, 35, 56, 77]);
+assert.equal(MC2_INSTALLMENT_INTERVAL_DAYS, 21);
+const schedulePhases = mc2InstallmentSchedulePhases();
+assert.equal(schedulePhases.length, 4);
+assert.deepEqual(schedulePhases.map((phase) => phase.duration), [
+  { interval: 'week', interval_count: 3 },
+  { interval: 'week', interval_count: 3 },
+  { interval: 'week', interval_count: 3 },
+  { interval: 'week', interval_count: 3 },
+]);
+assert.deepEqual(schedulePhases.map((phase) => phase.billing_cycle_anchor), [
+  'phase_start', 'phase_start', 'phase_start', 'phase_start',
+]);
+assert.deepEqual(schedulePhases.map((phase) => Number(phase.metadata.due_offset_days)), [14, 35, 56, 77]);
 assert.equal(isValidMc2EntryPrice({
   product: MC2_STRIPE_PRODUCT_ID,
   active: true,

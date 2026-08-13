@@ -189,9 +189,9 @@ const reviewInitials = (name) => name
                       <strong>Ensuite, 4 échéances</strong>
                       <small class="schedule-dates">
                         <b id="installment-date-14">23/08/2026</b> ·
-                        <b id="installment-date-44">22/09/2026</b> ·
-                        <b id="installment-date-74">22/10/2026</b> ·
-                        <b id="installment-date-104">22/11/2026</b>
+                        <b id="installment-date-35">13/09/2026</b> ·
+                        <b id="installment-date-56">04/10/2026</b> ·
+                        <b id="installment-date-77">25/10/2026</b>
                       </small>
                     </span>
                   </div>
@@ -385,7 +385,7 @@ const reviewInitials = (name) => name
       const stripeElement = document.querySelector('#stripe-payment-element');
       const paymentLoading = document.querySelector('#payment-loading');
       const previewPayment = document.querySelector('#payment-preview-local');
-      const installmentDates = [14, 44, 74, 104];
+      const installmentDates = [14, 35, 56, 77];
       const countdownHours = document.querySelector('#countdown-hours');
       const countdownMinutes = document.querySelector('#countdown-minutes');
       const countdownSeconds = document.querySelector('#countdown-seconds');
@@ -412,7 +412,7 @@ const reviewInitials = (name) => name
             page_path: '/commencer/',
             route: '/commencer/',
             plan: 'advanced',
-            payment_mode: 'deposit_47_then_4x297',
+            payment_mode: 'deposit_47_then_4x297_days_14_35_56_77',
             ...meta,
           },
         };
@@ -459,12 +459,11 @@ const reviewInitials = (name) => name
           month: '2-digit',
           year: 'numeric',
       });
-      installmentDates.forEach((days, index) => {
+      installmentDates.forEach((days) => {
         const node = document.querySelector(`#installment-date-${days}`);
         if (!node) return;
         const dueDate = new Date(checkoutDate);
-        dueDate.setDate(dueDate.getDate() + 14);
-        if (index > 0) dueDate.setMonth(dueDate.getMonth() + index);
+        dueDate.setDate(dueDate.getDate() + days);
         node.textContent = installmentDateFormatter.format(dueDate);
       });
 

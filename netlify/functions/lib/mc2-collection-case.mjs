@@ -51,7 +51,7 @@ export function mc2CollectionEligible({ retryCount = 0, exhausted = false } = {}
 }
 
 export function mc2ContractVersion(env = process.env) {
-  return clean(env.MC2_CONTRACT_VERSION, 80) || 'mc2-cgv-2026-08-v2';
+  return clean(env.MC2_CONTRACT_VERSION, 80) || 'mc2-cgv-2026-08-v3';
 }
 
 export function mc2ContractAcceptanceText(env = process.env) {
@@ -127,7 +127,7 @@ export function buildMc2ContractAcceptance({ registration, session, req, accepte
     terms_snapshot_url: clean(env.MC2_TERMS_SNAPSHOT_URL, 500) || null,
     terms_snapshot_sha256: clean(env.MC2_TERMS_SNAPSHOT_SHA256, 128) || null,
     acceptance_text: mc2ContractAcceptanceText(env),
-    payment_plan: clean(session?.metadata?.payment_plan, 120) || '47_now_then_4x297',
+    payment_plan: clean(session?.metadata?.payment_plan, 120) || '47_now_then_4x297_days_14_35_56_77',
     payment_schedule: mc2ExpectedContractSchedule(env),
     initial_payment_cents: Math.max(0, Number(session?.amount_total || 4_700)),
     contractual_total_cents: Math.max(0, Number(session?.metadata?.contractual_total_cents || registration?.contractual_total_cents || 0)),

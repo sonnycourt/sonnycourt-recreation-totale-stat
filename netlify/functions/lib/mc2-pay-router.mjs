@@ -2,6 +2,9 @@ import {
   MC2_CONTRACT_TOTAL_CENTS,
   MC2_ENTRY_PAYMENT_CENTS,
   MC2_INSTALLMENT_COUNT,
+  MC2_INSTALLMENT_FIRST_OFFSET_DAYS,
+  MC2_INSTALLMENT_INTERVAL_DAYS,
+  MC2_INSTALLMENT_OFFSETS_DAYS,
   MC2_PAYMENT_PLAN,
   MC2_STRIPE_INSTALLMENT_PRICE_ID,
   isValidMc2InstallmentPrice,
@@ -92,7 +95,23 @@ async function recordFunnelEvent(token, eventName, value, metadata = {}) {
   if (!inserted.ok && inserted.status !== 409) console.error('mc2 stripe funnel event:', inserted.error);
 }
 
-async function createInstallmentSchedule(stripe, session, registration) {
+export function mc2InstallmentSchedulePhases() {
+  return MC2_INSTALLMENT_OFFSETS_DAYS.map((dueOffsetDays, index) => ({
+    items: [{ price: MC2_STRIPE_INSTALLMENT_PRICE_ID, quantity: 1 }],
+    discounts: [],
+    billing_cycle_anchor: 'phase_start',
+    duration: { interval: 'week', interval_count: MC2_INSTALLMENT_INTERVAL_DAYS / 7 },
+    proration_behavior: 'none',
+    metadata: metadataFor({
+      installment_stage: 'every_21_days_297',
+      installment_number: String(index + 1),
+      installment_count: String(MC2_INSTALLMENT_COUNT),
+      due_offset_days: String(dueOffsetDays),
+    }),
+  }));
+}
+
+async function createInstallmentSchedule(stripe, session, registration, completedAtEpochSeconds) {
   if (registration.stripe_subscription_schedule_id) {
     return stripe.subscriptionSchedules.retrieve(registration.stripe_subscription_schedule_id);
   }
@@ -122,7 +141,8 @@ async function createInstallmentSchedule(stripe, session, registration) {
     idempotencyKey: `mc2-customer-payment-method:${session.id}`,
   });
 
-  const startDate = Number(paymentIntent.created) + (14 * DAY_SECONDS);
+  const paidAt = Number(completedAtEpochSeconds || session.created || paymentIntent.created);
+  const startDate = paidAt + (MC2_INSTALLMENT_FIRST_OFFSET_DAYS * DAY_SECONDS);
   return stripe.subscriptionSchedules.create({
     customer: customerId,
     start_date: startDate,
@@ -135,19 +155,10 @@ async function createInstallmentSchedule(stripe, session, registration) {
       automatic_tax: { enabled: true },
       description: 'Échéancier Esprit Subconscient 2.0',
     },
-    phases: [
-      {
-        items: [{ price: MC2_STRIPE_INSTALLMENT_PRICE_ID, quantity: 1 }],
-        discounts: [],
-        duration: { interval: 'month', interval_count: MC2_INSTALLMENT_COUNT },
-        proration_behavior: 'none',
-        metadata: metadataFor({
-          mc2_token: registration.token,
-          installment_stage: 'monthly_297',
-          installment_count: String(MC2_INSTALLMENT_COUNT),
-        }),
-      },
-    ],
+    phases: mc2InstallmentSchedulePhases().map((phase) => ({
+      ...phase,
+      metadata: metadataFor({ ...phase.metadata, mc2_token: registration.token }),
+    })),
     metadata: metadataFor({
       mc2_token: registration.token,
       checkout_session_id: session.id,
@@ -164,7 +175,7 @@ async function processCheckoutCompleted(stripe, session, event) {
   const token = String(session.metadata.mc2_token || '').trim();
   const registration = await registrationBy(`token=eq.${encodeURIComponent(token)}`);
   if (!registration) throw new Error('mc2_registration_missing');
-  const schedule = await createInstallmentSchedule(stripe, session, registration);
+  const schedule = await createInstallmentSchedule(stripe, session, registration, event.created);
   const nowIso = new Date().toISOString();
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
     statut: 'purchased',

@@ -27,7 +27,7 @@ const acceptance = buildMc2ContractAcceptance({
     id: 'cs_test_mc2',
     amount_total: 4_700,
     currency: 'eur',
-    metadata: { payment_plan: '47_now_then_4x297', contractual_total_cents: '123500' },
+    metadata: { payment_plan: '47_now_then_4x297_days_14_35_56_77', contractual_total_cents: '123500' },
   },
   req: { headers },
   acceptedAt: '2026-08-12T12:00:00.000Z',
@@ -47,12 +47,15 @@ assert.equal(validateMc2ContractReadiness({
   ]),
 }).valid, true);
 const offerEnv = {
-  MC2_CONTRACT_EXPECTED_PAYMENT_PLAN: '47_now_then_4x297',
+  MC2_CONTRACT_EXPECTED_PAYMENT_PLAN: '47_now_then_4x297_days_14_35_56_77',
   MC2_CONTRACT_EXPECTED_ENTRY_CENTS: '4700',
   MC2_CONTRACT_EXPECTED_TOTAL_CENTS: '123500',
   MC2_CONTRACT_EXPECTED_SCHEDULE_JSON: JSON.stringify([
     { label: "Aujourd’hui", due_offset_days: 0, amount_cents: 4700, installments: 1 },
-    { label: 'Ensuite, 4 échéances', due_offset_days: 14, amount_cents: 29700, installments: 4 },
+    { label: 'Échéance 1', due_offset_days: 14, amount_cents: 29700, installments: 1 },
+    { label: 'Échéance 2', due_offset_days: 35, amount_cents: 29700, installments: 1 },
+    { label: 'Échéance 3', due_offset_days: 56, amount_cents: 29700, installments: 1 },
+    { label: 'Échéance 4', due_offset_days: 77, amount_cents: 29700, installments: 1 },
   ]),
 };
 assert.deepEqual(validateMc2ContractOffer(acceptance, offerEnv), { valid: true, errors: [] });

@@ -14,7 +14,10 @@ export const MC2_CONTRACT_TOTAL_CENTS = 123500;
 export const MC2_ENTRY_PAYMENT_CENTS = 4700;
 export const MC2_INSTALLMENT_CENTS = 29700;
 export const MC2_INSTALLMENT_COUNT = 4;
-export const MC2_PAYMENT_PLAN = '47_now_then_4x297';
+export const MC2_INSTALLMENT_FIRST_OFFSET_DAYS = 14;
+export const MC2_INSTALLMENT_INTERVAL_DAYS = 21;
+export const MC2_INSTALLMENT_OFFSETS_DAYS = Object.freeze([14, 35, 56, 77]);
+export const MC2_PAYMENT_PLAN = '47_now_then_4x297_days_14_35_56_77';
 
 export function isValidMc2EntryPrice(price) {
   return Boolean(
