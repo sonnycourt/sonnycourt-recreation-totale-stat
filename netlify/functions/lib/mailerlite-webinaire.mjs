@@ -87,6 +87,7 @@ export async function upsertWebinaireSubscriber({
   dateWebinaire,
   groupId,
   apiKey,
+  extraFields = {},
 }) {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
@@ -114,6 +115,7 @@ export async function upsertWebinaireSubscriber({
           es2_date_webinaire: dateWebinaire,
         }
       : {}),
+    ...extraFields,
   };
 
   const existingSubscriber = await getMailerLiteSubscriberSnapshot(email, apiKey);

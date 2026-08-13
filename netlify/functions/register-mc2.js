@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
 import { queueMc2Sms } from './lib/mc2-sms.mjs';
+import { upsertWebinaireSubscriber } from './lib/mailerlite-webinaire.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -50,6 +51,33 @@ async function queueLiveReminder(row) {
     discriminator: row.session_starts_at,
   });
   if (!result.ok) console.error('MC2 live SMS queue failed:', result.error);
+}
+
+async function syncMailerLite(row) {
+  const apiKey = process.env.MAILERLITE_API_KEY;
+  const groupId = process.env.MAILERLITE_GROUP_MC2_REGISTRATIONS;
+  if (!apiKey || !groupId || !row?.email || !row?.token) return;
+  try {
+    await upsertWebinaireSubscriber({
+      email: row.email,
+      prenom: row.prenom || '',
+      telephone: row.telephone || '',
+      pays: row.pays || '',
+      token: row.token,
+      dateOptinMasterclass: row.registered_at || new Date().toISOString(),
+      dateWebinaire: row.session_starts_at,
+      groupId,
+      apiKey,
+      extraFields: {
+        mc2_session_kind: row.slot_kind === 'jit' ? 'just-in-time' : 'scheduled',
+        mc2_session_starts_at: row.session_starts_at || '',
+        mc2_visitor_timezone: row.visitor_timezone || 'UTC',
+      },
+    });
+  } catch (error) {
+    // MailerLite ne doit jamais empêcher une inscription MC2 valide.
+    console.error('MC2 MailerLite sync failed:', error?.message || error);
+  }
 }
 
 export default async (req) => {
@@ -138,6 +166,7 @@ export default async (req) => {
         return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
       }
       const completedRow = { ...row, ...patch };
+      await syncMailerLite(completedRow);
       await queueLiveReminder(completedRow);
       return jsonResponse(200, registrationResponse(completedRow, true));
     }
@@ -173,6 +202,7 @@ export default async (req) => {
       return jsonResponse(500, { error: 'Erreur enregistrement MC2' });
     }
     await queueLiveReminder(row);
+    await syncMailerLite(row);
     return jsonResponse(200, registrationResponse(row));
   } catch (error) {
     console.error('register-mc2 error:', error);
