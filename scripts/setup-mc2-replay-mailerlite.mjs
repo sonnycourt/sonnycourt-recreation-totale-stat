@@ -1,6 +1,14 @@
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
-const input = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+const rawInput = Buffer.concat(chunks).toString('utf8').trim();
+let input = {};
+if (rawInput) {
+  try {
+    input = JSON.parse(rawInput);
+  } catch {
+    input = { MAILERLITE_API_KEY: rawInput };
+  }
+}
 const apiKey = String(input.MAILERLITE_API_KEY || process.env.MAILERLITE_API_KEY || '').trim();
 if (!apiKey) throw new Error('MAILERLITE_API_KEY manquante');
 

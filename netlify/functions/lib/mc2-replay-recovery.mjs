@@ -36,7 +36,7 @@ export function mc2ReplayRecoveryEnabled(env = process.env) {
 
 export function mc2ReplayRecoveryConfig(env = process.env) {
   const beforeCtaDelay = clean(env.MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES ?? '60', 20);
-  const offerDelay = clean(env.MC2_OFFER_FOLLOWUP_DELAY_MINUTES ?? '15', 20);
+  const offerDelay = clean(env.MC2_OFFER_FOLLOWUP_DELAY_MINUTES ?? '5', 20);
   return {
     noShowDelayMinutes: positiveInt(env.MC2_REPLAY_NO_SHOW_DELAY_MINUTES, 22 * 60, 14 * 24 * 60),
     beforeCtaDelayMinutes: beforeCtaDelay === '' ? null : positiveInt(beforeCtaDelay, 0, 14 * 24 * 60),
@@ -86,7 +86,9 @@ export function mc2RecoveryDueAt(row = {}, segment, env = process.env) {
     return new Date(end.getTime() + config.beforeCtaDelayMinutes * 60_000);
   }
   if (segment === 'offer_seen_no_purchase' && config.offerDelayMinutes != null) {
-    return new Date(end.getTime() + config.offerDelayMinutes * 60_000);
+    const offerExpires = dateOrNull(row.offer_expires_at);
+    if (!offerExpires) return null;
+    return new Date(offerExpires.getTime() + config.offerDelayMinutes * 60_000);
   }
   return null;
 }
@@ -159,7 +161,7 @@ export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purc
 
 async function loadRegistration(token) {
   const result = await supabaseGet(
-    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,session_starts_at,session_ends_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1`,
+    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1`,
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -251,7 +253,7 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
     const replayUrl = hasReplay
       ? `${config.publicBaseUrl}/mc2/replay/?access=${encodeURIComponent(accessCode)}`
       : '';
-    const offerUrl = `${config.publicBaseUrl}/.netlify/functions/mc2-replay-offer?access=${encodeURIComponent(accessCode)}`;
+    const offerUrl = '';
     // Le lien court est lui aussi temporaire. Pour le segment offre, il sert
     // uniquement à retrouver le token côté serveur puis ouvre la checkout.
     const expiresAt = new Date(now.getTime() + config.replayAccessHours * 60 * 60_000);

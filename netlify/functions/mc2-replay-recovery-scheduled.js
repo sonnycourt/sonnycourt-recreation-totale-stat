@@ -20,7 +20,7 @@ async function loadCandidates(now) {
         + `&session_starts_at=gt.${encodeURIComponent(lower.toISOString())}`
         + '&statut=not.in.(purchased,expired)'
         + '&or=(payment_status.is.null,payment_status.not.in.(paid,succeeded,active,complete,completed))'
-        + '&select=token,email,prenom,session_starts_at,session_ends_at,attended_live,saw_offer,watch_max_seconds_live,statut,payment_status,purchased_at'
+        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,statut,payment_status,purchased_at'
         + '&order=session_starts_at.asc&limit=1000',
     );
     if (!result.ok) throw new Error(`mc2_recovery_candidates_${result.status}`);

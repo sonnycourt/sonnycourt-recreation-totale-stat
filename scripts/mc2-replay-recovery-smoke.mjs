@@ -39,9 +39,9 @@ assert.equal(mc2RecoverySegment(left), 'left_before_cta');
 assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_170);
 assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T20:15:00.000Z');
 
-const offer = { ...left, saw_offer: true };
+const offer = { ...left, saw_offer: true, offer_expires_at: '2026-08-12T20:15:00.000Z' };
 assert.equal(mc2RecoverySegment(offer), 'offer_seen_no_purchase');
-assert.equal(mc2RecoveryDueAt(offer, 'offer_seen_no_purchase', env).toISOString(), '2026-08-12T19:30:00.000Z');
+assert.equal(mc2RecoveryDueAt(offer, 'offer_seen_no_purchase', env).toISOString(), '2026-08-12T20:30:00.000Z');
 assert.equal(mc2RecoveryResumeSeconds(offer, 'offer_seen_no_purchase', env), 0);
 
 for (const purchased of [

@@ -1,6 +1,7 @@
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
-const env = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+const stdinEnv = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+const env = { ...process.env, ...stdinEnv };
 
 const requiredGroups = [
   ...Array.from({ length: 6 }, (_, index) => `MAILERLITE_GROUP_MC2_PAYMENT_FAILED_${index + 1}`),
