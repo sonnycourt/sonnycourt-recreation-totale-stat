@@ -72,12 +72,8 @@ export function mc2CircleReadiness(env = process.env) {
 
 async function circleRequest(path, options = {}, env = process.env) {
   const token = clean(env.CIRCLE_ADMIN_API_TOKEN, 2_000);
-  const host = clean(env.CIRCLE_COMMUNITY_HOST || 'volt.sonnycourt.com', 240)
-    .replace(/^https?:\/\//i, '')
-    .replace(/\/$/, '');
   const tagName = clean(env.MC2_CIRCLE_MEMBER_TAG_NAME || CIRCLE_TAG_NAME, 160);
   if (!token) throw Object.assign(new Error('circle_token_missing'), { code: 'circle_token_missing' });
-  if (!host) throw Object.assign(new Error('circle_host_missing'), { code: 'circle_host_missing' });
   if (tagName !== CIRCLE_TAG_NAME) {
     throw Object.assign(new Error('circle_tag_name_mismatch'), { code: 'circle_tag_name_mismatch' });
   }
@@ -86,8 +82,10 @@ async function circleRequest(path, options = {}, env = process.env) {
   const response = await fetch(`${base}/${String(path).replace(/^\//, '')}`, {
     ...options,
     headers: {
-      Authorization: `Token ${token}`,
-      host,
+      // Circle Admin API v2 requires the standard Bearer scheme. The token
+      // itself identifies the community; overriding the HTTP Host header would
+      // route the request away from Circle's documented API host.
+      Authorization: `Bearer ${token}`,
       Accept: 'application/json',
       'Content-Type': 'application/json',
       ...(options.headers || {}),

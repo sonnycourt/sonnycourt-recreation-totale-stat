@@ -8,60 +8,150 @@ const currentYear = new Date().getFullYear();
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow,noarchive" />
-    <title>Paiement confirmé — Esprit Subconscient 2.0</title>
+    <title>Dernière étape — Esprit Subconscient 2.0</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
     <main>
       <section class="card" aria-live="polite">
-        <div class="icon" id="status-icon">✓</div>
-        <p class="eyebrow">ESPRIT SUBCONSCIENT 2.0</p>
-        <h1 id="status-title">Nous confirmons ton paiement…</h1>
-        <p id="status-copy">Ne ferme pas cette page pendant quelques secondes.</p>
-        <div class="schedule" id="confirmed-schedule" hidden>
-          <div><span>Aujourd’hui</span><strong>47 € payé</strong></div>
-          <div><span>À J+14, J+35, J+56 et J+77</span><strong>4 × 297 €</strong></div>
-          <div><span>Prix total TTC</span><strong>1 235 €</strong></div>
+        <div class="status-icon" id="status-icon">✓</div>
+        <p class="eyebrow">PAIEMENT CONFIRMÉ</p>
+        <h1 id="status-title">Une dernière étape.</h1>
+        <p class="intro" id="status-copy">Complète ton adresse pour finaliser ton dossier.</p>
+
+        <div class="loading" id="loading-state">Vérification du paiement…</div>
+
+        <form id="billing-form" hidden>
+          <div class="row">
+            <label>Prénom et nom<input id="full-name" name="name" autocomplete="name" required /></label>
+            <label>Téléphone<input id="phone" name="phone" type="tel" autocomplete="tel" required /></label>
+          </div>
+          <label>Adresse<input id="street" name="street" autocomplete="address-line1" required /></label>
+          <label>Complément <small>(optionnel)</small><input id="street2" name="street2" autocomplete="address-line2" /></label>
+          <div class="row row-address">
+            <label>Code postal<input id="zip" name="zip" autocomplete="postal-code" required /></label>
+            <label>Ville<input id="city" name="city" autocomplete="address-level2" required /></label>
+          </div>
+          <label>Pays
+            <select id="country" name="country" autocomplete="country" required>
+              <option value="">Choisis ton pays</option>
+              <option value="FR">France</option><option value="CH">Suisse</option>
+              <option value="BE">Belgique</option><option value="CA">Canada</option>
+              <option value="LU">Luxembourg</option><option value="MC">Monaco</option>
+              <option value="DE">Allemagne</option><option value="ES">Espagne</option>
+              <option value="IT">Italie</option><option value="GB">Royaume-Uni</option>
+              <option value="US">États-Unis</option><option value="MA">Maroc</option>
+              <option value="DZ">Algérie</option><option value="TN">Tunisie</option>
+              <option value="CI">Côte d’Ivoire</option><option value="SN">Sénégal</option>
+              <option value="CM">Cameroun</option><option value="CD">République démocratique du Congo</option>
+              <option value="CG">Congo-Brazzaville</option><option value="GA">Gabon</option>
+              <option value="MU">Maurice</option><option value="RE">La Réunion</option>
+              <option value="GP">Guadeloupe</option><option value="MQ">Martinique</option>
+              <option value="GF">Guyane française</option><option value="NC">Nouvelle-Calédonie</option>
+              <option value="PF">Polynésie française</option><option value="OTHER">Autre</option>
+            </select>
+          </label>
+          <button id="submit-button" type="submit">FINALISER MON INSCRIPTION</button>
+          <p class="error" id="form-error" role="alert"></p>
+          <p class="privacy">🔒 Ces informations complètent uniquement ton dossier de facturation.</p>
+        </form>
+
+        <div class="complete" id="complete-state" hidden>
+          <h2>Tout est prêt.</h2>
+          <p>Ton compte VOLT est en cours de création. Tu vas recevoir ton invitation par email.</p>
+          <a href="https://volt.sonnycourt.com/">ACCÉDER À VOLT</a>
         </div>
-        <a id="access-button" href="/formations/" hidden>ACCÉDER À MON PROGRAMME</a>
       </section>
     </main>
     <footer>© {currentYear} Sonny Court</footer>
 
     <script is:inline>
       const params = new URLSearchParams(location.search);
-      const token = params.get('t') || '';
-      const sessionId = params.get('session_id') || '';
+      const token = (params.get('t') || '').trim();
+      const sessionId = (params.get('session_id') || '').trim();
       const local = location.hostname === '127.0.0.1' || location.hostname === 'localhost' || params.get('preview') === 'dev';
+      const form = document.querySelector('#billing-form');
+      const loading = document.querySelector('#loading-state');
+      const complete = document.querySelector('#complete-state');
+      const errorNode = document.querySelector('#form-error');
+      const button = document.querySelector('#submit-button');
       const title = document.querySelector('#status-title');
       const copy = document.querySelector('#status-copy');
-      const schedule = document.querySelector('#confirmed-schedule');
-      const access = document.querySelector('#access-button');
+      const byId = (id) => document.getElementById(id);
 
-      function showSuccess(firstName = '') {
-        title.textContent = `${firstName ? `${firstName}, ton` : 'Ton'} accès est confirmé.`;
-        copy.textContent = 'Tu vas recevoir les informations d’accès par email. Ton échéancier est maintenant enregistré dans Stripe.';
-        schedule.hidden = false;
-        access.hidden = false;
+      const countryAliases = {
+        France: 'FR', Suisse: 'CH', Belgique: 'BE', Canada: 'CA', Luxembourg: 'LU', Monaco: 'MC',
+        Allemagne: 'DE', Espagne: 'ES', Italie: 'IT', 'Royaume-Uni': 'GB', 'États-Unis': 'US',
+        Maroc: 'MA', Algérie: 'DZ', Tunisie: 'TN', Cameroun: 'CM', Sénégal: 'SN', Gabon: 'GA',
+      };
+
+      function revealForm(data = {}) {
+        loading.hidden = true;
+        form.hidden = false;
+        byId('full-name').value = data.first_name || '';
+        byId('phone').value = data.phone || '';
+        const country = String(data.country || '').trim();
+        const iso = country.length === 2 ? country.toUpperCase() : countryAliases[country];
+        if (iso && [...byId('country').options].some((option) => option.value === iso)) byId('country').value = iso;
       }
 
-      async function verify() {
-        if (local) return showSuccess('Sonny');
+      async function verifyPayment() {
+        if (local) return revealForm({ first_name: 'Sonny', phone: '+41 78 000 00 00', country: 'CH' });
         if (!token || !sessionId) throw new Error('Confirmation incomplète.');
-        const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.paid) throw new Error(data.error || 'Le paiement n’est pas encore confirmé.');
-        showSuccess(data.first_name || '');
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || 'Paiement introuvable.');
+          if (data.paid && data.schedule_ready) return revealForm(data);
+          if (!data.paid) throw new Error('Le paiement n’est pas confirmé.');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        throw new Error('La confirmation prend un peu plus de temps. Recharge cette page dans un instant.');
       }
 
-      verify().catch((error) => {
-        title.textContent = 'La confirmation prend un peu plus de temps.';
-        copy.textContent = `${error.message} Si tu as été débité, ne recommence pas le paiement : écris-nous simplement.`;
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        button.disabled = true;
+        button.textContent = 'ENREGISTREMENT…';
+        errorNode.textContent = '';
+        try {
+          const response = await fetch('/.netlify/functions/mc2-billing-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              t: token,
+              session_id: sessionId,
+              full_name: byId('full-name').value.trim(),
+              phone: byId('phone').value.trim(),
+              street: byId('street').value.trim(),
+              street2: byId('street2').value.trim(),
+              zip: byId('zip').value.trim(),
+              city: byId('city').value.trim(),
+              country: byId('country').value,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || 'Enregistrement impossible.');
+          form.hidden = true;
+          complete.hidden = false;
+          title.textContent = 'Bienvenue dans ES 2.0.';
+          copy.textContent = 'Ton inscription est terminée.';
+        } catch (error) {
+          errorNode.textContent = error.message || 'Réessaie dans un instant.';
+          button.disabled = false;
+          button.textContent = 'FINALISER MON INSCRIPTION';
+        }
+      });
+
+      verifyPayment().catch((error) => {
+        loading.textContent = error.message || 'La confirmation est indisponible.';
+        loading.classList.add('is-error');
       });
     </script>
   </body>
 </html>
 
 <style is:global>
-  *{box-sizing:border-box} body{margin:0;min-height:100vh;color:#eef6ff;background:radial-gradient(circle at 50% 0%,rgba(29,111,255,.3),transparent 34rem),linear-gradient(145deg,#040d1d,#071d3c 58%,#041126);font-family:Inter,system-ui,sans-serif} main{min-height:calc(100vh - 54px);display:grid;place-items:center;padding:30px 16px}.card{width:min(620px,100%);padding:clamp(32px,7vw,62px);text-align:center;background:rgba(10,31,62,.72);border:1px solid rgba(136,201,255,.24);border-radius:30px;box-shadow:0 35px 100px rgba(0,0,0,.38);backdrop-filter:blur(24px)}.icon{display:grid;place-items:center;width:62px;height:62px;margin:0 auto 25px;color:#06253a;background:linear-gradient(145deg,#72f1c4,#4bd5ff);border-radius:50%;font-size:28px;font-weight:900;box-shadow:0 0 35px rgba(79,220,211,.25)}.eyebrow{margin:0 0 13px;color:#7ecbff;font-size:10px;font-weight:850;letter-spacing:.15em}.card h1{margin:0;font-size:clamp(34px,7vw,58px);line-height:1;letter-spacing:-.055em}.card>p:not(.eyebrow){max-width:470px;margin:20px auto 0;color:#a9bdd6;font-size:14px;line-height:1.65}.schedule{display:grid;gap:0;margin-top:32px;padding:10px 20px;background:rgba(4,16,35,.5);border:1px solid rgba(130,192,255,.16);border-radius:17px}.schedule[hidden],#access-button[hidden]{display:none}.schedule div{display:flex;justify-content:space-between;gap:20px;padding:15px 0;border-bottom:1px solid rgba(150,205,255,.1);font-size:12px}.schedule div:last-child{border:0}.schedule span{color:#8fa9c7}.schedule strong{color:#fff}#access-button{display:inline-flex;margin-top:28px;padding:17px 24px;color:#fff;background:linear-gradient(135deg,#1678f4,#0f57ca);border-radius:12px;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.03em;box-shadow:0 15px 35px rgba(22,108,230,.28)}footer{height:54px;color:#71849c;text-align:center;font-size:10px}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;color:#edf6ff;background:radial-gradient(circle at 50% 0,rgba(31,113,255,.27),transparent 36rem),linear-gradient(145deg,#031022,#082c57 58%,#06192f);font-family:Inter,system-ui,-apple-system,sans-serif}main{min-height:calc(100vh - 45px);display:grid;place-items:center;padding:28px 14px}.card{width:min(680px,100%);padding:clamp(28px,6vw,54px);background:rgba(8,28,56,.78);border:1px solid rgba(148,205,255,.22);border-radius:28px;box-shadow:0 34px 90px rgba(0,0,0,.35);backdrop-filter:blur(22px)}.status-icon{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 18px;color:#052238;background:linear-gradient(145deg,#75f0c8,#54cfff);border-radius:50%;font-size:24px;font-weight:900}.eyebrow{margin:0 0 8px;color:#75c9ff;text-align:center;font-size:10px;font-weight:850;letter-spacing:.15em}h1{margin:0;text-align:center;font-size:clamp(34px,7vw,52px);line-height:1;letter-spacing:-.05em}.intro{margin:14px auto 25px;color:#a9bdd5;text-align:center;font-size:14px}.loading{padding:24px;text-align:center;color:#c7d9ed;background:rgba(4,15,33,.45);border-radius:14px}.loading.is-error{color:#ffb4bd}form{display:grid;gap:14px}form[hidden],.complete[hidden]{display:none}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row-address{grid-template-columns:.7fr 1.3fr}label{display:grid;gap:7px;color:#bfd0e4;font-size:11px;font-weight:750}label small{font-weight:500;opacity:.65}input,select{width:100%;min-height:48px;padding:0 14px;color:#edf6ff;background:rgba(2,14,32,.78);border:1px solid rgba(148,195,240,.22);border-radius:11px;outline:0;font:inherit;font-size:14px}input:focus,select:focus{border-color:#4f9cff;box-shadow:0 0 0 3px rgba(48,132,255,.12)}button,.complete a{display:flex;align-items:center;justify-content:center;min-height:53px;margin-top:7px;color:white;background:linear-gradient(135deg,#2387ff,#1262d7);border:0;border-radius:12px;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.025em;box-shadow:0 15px 34px rgba(26,113,235,.25);cursor:pointer}button:disabled{opacity:.6;cursor:wait}.error{min-height:16px;margin:0;color:#ffadb6;text-align:center;font-size:12px}.privacy{margin:0;color:#718da9;text-align:center;font-size:10px}.complete{text-align:center}.complete h2{margin:10px 0;font-size:32px}.complete p{color:#a9bdd5;line-height:1.6}.complete a{max-width:310px;margin:24px auto 0}footer{height:45px;color:#67809b;text-align:center;font-size:10px}@media(max-width:560px){main{padding:14px 10px}.card{padding:26px 18px;border-radius:22px}.row{grid-template-columns:1fr}.row-address{grid-template-columns:.75fr 1.25fr}h1{font-size:38px}}
 </style>

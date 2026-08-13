@@ -26,6 +26,8 @@ export default async (req) => {
       currency: session.currency,
       schedule_ready: Boolean(registration?.stripe_subscription_schedule_id),
       first_name: registration?.prenom || '',
+      phone: registration?.telephone || '',
+      country: registration?.pays || '',
     });
   } catch (error) {
     console.error('mc2-stripe-status:', error);

@@ -62,8 +62,8 @@ function installMock({ member, searchStatus = 200, failTags = false } = {}) {
     }
 
     assert.equal(url.startsWith('https://circle.test/api/admin/v2/'), true);
-    assert.equal(init.headers.Authorization, 'Token circle-test-only');
-    assert.equal(init.headers.host, 'volt.sonnycourt.com');
+    assert.equal(init.headers.Authorization, 'Bearer circle-test-only');
+    assert.equal(Object.hasOwn(init.headers, 'host'), false);
     if (url.includes('/member_tags?')) {
       return failTags
         ? jsonResponse(500, { message: 'temporary outage' })
