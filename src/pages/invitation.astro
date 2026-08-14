@@ -4,6 +4,7 @@ import GAConsentMode from '../components/GAConsentMode.astro';
 import PromoBanner from '../components/PromoBanner.astro';
 import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo } from '../config/promo';
 const currentYear = new Date().getFullYear();
+const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-presentation';
 ---
 
 <html lang="fr">
@@ -26,6 +27,7 @@ const currentYear = new Date().getFullYear();
       src="https://www.facebook.com/tr?id=3367958190030822&ev=PageView&noscript=1"/></noscript>
     <!-- Meta Pixel End -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {isEs2Presentation && <meta name="robots" content="noindex, nofollow, noarchive" />}
     <title>Esprit Subconscient 2.0 - La formation pour reprogrammer ton subconscient</title>
     <meta name="description" content="Accès à la formation Esprit Subconscient 2.0 : reprogramme ton subconscient et manifeste la vie de tes rêves avec la méthode de Sonny Court.">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -11359,10 +11361,11 @@ const currentYear = new Date().getFullYear();
             const params = new URLSearchParams(window.location.search);
             const isPreviewDev = params.get('preview') === 'dev';
             const isPreviewCloser = params.get('preview') === 'closer';
+            const isTokenlessPresentation = window.location.pathname.replace(/\/+$/, '') === '/es2-presentation';
             // Aperçu sans token ni gate (dev interne + closers). Le panneau de debug
             // reste réservé à isPreviewDev ; isPreview ne lève que les blocages d'accès.
             // /invitation : page X-Men avec le gate email/token du funnel masterclass.
-            const isPreview = isPreviewDev || isPreviewCloser;
+            const isPreview = isPreviewDev || isPreviewCloser || isTokenlessPresentation;
             const TOKEN_KEY = 'masterclass_es2_token';
             const INVITATION_SCARCITY_DELAY_MS = 60 * 1000;
             const INVITATION_GATE_DELAY_MS = 60 * 60 * 1000;
@@ -11602,9 +11605,10 @@ const currentYear = new Date().getFullYear();
             }
 
             function setTokenEverywhere(nextToken) {
+                if (!nextToken) return;
                 // Le token synthétique de l'aperçu ne doit jamais remplacer un
                 // vrai token webinaire conservé dans le navigateur.
-                if (isPreviewDev && nextToken === 'preview-invitation') return;
+                if ((isPreviewDev || isTokenlessPresentation) && nextToken === 'preview-invitation') return;
                 localStorage.setItem(TOKEN_KEY, nextToken);
             }
             function trackWebinaireEvent(token, eventName, value, meta) {
@@ -11622,6 +11626,7 @@ const currentYear = new Date().getFullYear();
             }
 
             function propagateTokenToCheckoutLinks(activeToken) {
+                if (isTokenlessPresentation) return;
                 document.querySelectorAll('a[href*="spiffy.co/checkout"], a[href*="/invitation-es2"]').forEach(function (a) {
                     const href = a.getAttribute('href') || '';
                     const separator = href.includes('?') ? '&' : '?';
@@ -12078,7 +12083,7 @@ const currentYear = new Date().getFullYear();
                     const gateOpensAtMs = sessionStartsAtMsForGate + INVITATION_GATE_DELAY_MS;
                     const isGateClosed = Date.now() < gateOpensAtMs;
                     if (isGateClosed) {
-                        if (!token && isPreview) token = 'preview-invitation';
+                        if (!token && isPreview && !isTokenlessPresentation) token = 'preview-invitation';
                         setTokenEverywhere(token);
                         propagateTokenToCheckoutLinks(token);
                         lockInvitationGateUntil(gateOpensAtMs);
@@ -12094,7 +12099,7 @@ const currentYear = new Date().getFullYear();
                 }
 
                 // Persist token and propagate it to CTA links.
-                if (!token && isPreview) token = 'preview-invitation';
+                if (!token && isPreview && !isTokenlessPresentation) token = 'preview-invitation';
                 setTokenEverywhere(token);
                 propagateTokenToCheckoutLinks(token);
                 bindCheckoutClickTracking(token);
