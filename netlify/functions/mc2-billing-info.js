@@ -35,8 +35,10 @@ export default async (req) => {
     if (session.payment_status !== 'paid' || session.client_reference_id !== token) {
       return json(403, { error: 'Paiement non confirmé' });
     }
+    const firstName = clean(body.first_name, 80);
+    const lastName = clean(body.last_name, 80);
     const patch = {
-      billing_full_name: clean(body.full_name, 160),
+      billing_full_name: `${firstName} ${lastName}`.trim(),
       billing_phone: clean(body.phone, 40),
       billing_street: clean(body.street),
       billing_street2: clean(body.street2) || null,
@@ -45,8 +47,15 @@ export default async (req) => {
       billing_country: clean(body.country, 80),
       billing_completed_at: new Date().toISOString(),
     };
-    const missing = ['billing_full_name', 'billing_phone', 'billing_street', 'billing_zip', 'billing_city', 'billing_country']
-      .filter((field) => !patch[field]);
+    const missing = [
+      !firstName && 'first_name',
+      !lastName && 'last_name',
+      !patch.billing_phone && 'billing_phone',
+      !patch.billing_street && 'billing_street',
+      !patch.billing_zip && 'billing_zip',
+      !patch.billing_city && 'billing_city',
+      !patch.billing_country && 'billing_country',
+    ].filter(Boolean);
     if (missing.length) return json(400, { error: 'Champs obligatoires manquants', missing });
     const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, patch);
     if (!updated.ok) return json(500, { error: 'Enregistrement impossible' });
