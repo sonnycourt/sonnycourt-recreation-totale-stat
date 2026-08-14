@@ -15,6 +15,11 @@ assert.match(checkout, /radios:\s*['"]never['"]/);
 assert.match(checkout, /spacedAccordionItems:\s*false/);
 assert.match(checkout, /billingDetails:\s*\{[\s\S]*address:\s*['"]if_required['"]/);
 assert.match(checkout, /terms:\s*\{\s*card:\s*['"]never['"]\s*\}/);
+assert.match(checkout, /createExpressCheckoutElement\(\{[\s\S]*applePay:\s*['"]auto['"][\s\S]*googlePay:\s*['"]auto['"]/);
+assert.match(checkout, /availablePaymentMethods\?\.applePay\s*\|\|\s*availablePaymentMethods\?\.googlePay/);
+assert.match(checkout, /confirm\(\{\s*expressCheckoutConfirmEvent:\s*event\s*\}\)/);
+assert.match(checkout, /expressCheckout\.classList\.toggle\(['"]is-locked['"],\s*!unlocked\)/);
+assert.match(checkout, /recordContractAcceptance\(\)[\s\S]*expressCheckoutConfirmEvent/);
 assert.match(checkout, /Cette validation autorise ArgEntrepreneur Sàrl[\s\S]*4 échéances de 297/);
 assert.match(checkout, /id="commitment" aria-describedby="future-debit-consent"/);
 assert.match(checkout, /const installmentDates = \[14, 35, 56, 77\]/);
@@ -36,5 +41,6 @@ console.log(JSON.stringify({
   compact_appearance: 'configured',
   billing_address: 'if_required',
   future_debit_consent: 'explicit',
+  express_wallets: 'apple_pay_google_pay_when_device_eligible',
   schedule: '47_then_4x297_days_14_35_56_77_total_1235',
 }, null, 2));

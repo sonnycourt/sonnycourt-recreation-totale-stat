@@ -220,6 +220,11 @@ const reviewInitials = (name) => name
                 4 échéances de 297&nbsp;€ prévues.
               </p>
 
+              <div class="express-checkout" id="express-checkout" hidden aria-disabled="true">
+                <div id="stripe-express-checkout-element"></div>
+                <div class="express-checkout__divider" aria-hidden="true"><span>ou payer par carte</span></div>
+              </div>
+
               <button
                 type="submit"
                 class="buy-button"
@@ -383,6 +388,8 @@ const reviewInitials = (name) => name
       const submitButton = document.querySelector('#buy-button');
       const stripeError = document.querySelector('#stripe-error');
       const stripeElement = document.querySelector('#stripe-payment-element');
+      const expressCheckout = document.querySelector('#express-checkout');
+      const expressCheckoutElement = document.querySelector('#stripe-express-checkout-element');
       const paymentLoading = document.querySelector('#payment-loading');
       const previewPayment = document.querySelector('#payment-preview-local');
       const installmentDates = [14, 35, 56, 77];
@@ -441,6 +448,11 @@ const reviewInitials = (name) => name
       function updateSubmitState() {
         if (!submitButton) return;
         submitButton.disabled = !(checkbox?.checked && (localPreview || stripeCanConfirm));
+        if (expressCheckout && !expressCheckout.hidden) {
+          const unlocked = Boolean(checkbox?.checked);
+          expressCheckout.classList.toggle('is-locked', !unlocked);
+          expressCheckout.setAttribute('aria-disabled', String(!unlocked));
+        }
       }
 
       function showError(message) {
@@ -617,6 +629,24 @@ const reviewInitials = (name) => name
         return data;
       }
 
+      async function recordContractAcceptance() {
+        const evidenceResponse = await fetch('/.netlify/functions/mc2-contract-acceptance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, checkout_session_id: checkoutSessionId, accepted: checkbox?.checked === true }),
+        });
+        if (!evidenceResponse.ok) {
+          throw new Error('La confirmation contractuelle n’a pas pu être enregistrée. Réessaie.');
+        }
+      }
+
+      function handlePaymentError(result, buttonId) {
+        if (result?.type !== 'error' && !result?.error) return false;
+        showError(result.error?.message || 'Vérifie les informations de paiement.');
+        track('payment_error', null, { button_id: buttonId });
+        return true;
+      }
+
       async function mountStripe() {
         if (!token) throw new Error('Reviens depuis la masterclass pour accéder à cette offre.');
         if (!window.Stripe) throw new Error('Stripe ne peut pas être chargé. Recharge la page.');
@@ -649,9 +679,56 @@ const reviewInitials = (name) => name
           // dans la case CGV ci-dessus et enregistré avant la confirmation.
           terms: { card: 'never' },
         });
+        const walletElement = stripeCheckout.createExpressCheckoutElement({
+          buttonHeight: 48,
+          layout: {
+            maxColumns: 2,
+            maxRows: 1,
+            overflow: 'never',
+          },
+          buttonType: {
+            applePay: 'buy',
+            googlePay: 'buy',
+          },
+          paymentMethods: {
+            applePay: 'auto',
+            googlePay: 'auto',
+            link: 'never',
+            paypal: 'never',
+            amazonPay: 'never',
+            klarna: 'never',
+          },
+        });
+        walletElement.on('ready', ({ availablePaymentMethods }) => {
+          const walletAvailable = Boolean(
+            availablePaymentMethods?.applePay || availablePaymentMethods?.googlePay,
+          );
+          if (!expressCheckout || !walletAvailable) return;
+          expressCheckout.hidden = false;
+          updateSubmitState();
+        });
+        walletElement.on('confirm', async (event) => {
+          if (!checkbox?.checked || !form.reportValidity()) {
+            showError('Accepte les CGV et l’échéancier avant de payer.');
+            return;
+          }
+          showError('');
+          try {
+            await recordContractAcceptance();
+          } catch (error) {
+            showError(error.message || 'Réessaie dans un instant.');
+            return;
+          }
+          track('payment_submitted', 4700, { button_id: 'express-checkout' });
+          const result = await stripeCheckout
+            .confirm({ expressCheckoutConfirmEvent: event })
+            .catch((error) => ({ type: 'error', error }));
+          handlePaymentError(result, 'express-checkout');
+        });
         paymentLoading.hidden = true;
         stripeElement.hidden = false;
         paymentElement.mount(stripeElement);
+        walletElement.mount(expressCheckoutElement);
         stripeCheckout.on('change', (session) => {
           stripeCanConfirm = Boolean(session.canConfirm);
           if (stripeCanConfirm) markEngaged();
@@ -677,12 +754,7 @@ const reviewInitials = (name) => name
         submitButton.classList.add('is-loading');
         showError('');
         try {
-          const evidenceResponse = await fetch('/.netlify/functions/mc2-contract-acceptance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, checkout_session_id: checkoutSessionId, accepted: checkbox.checked }),
-          });
-          if (!evidenceResponse.ok) throw new Error('La confirmation contractuelle n’a pas pu être enregistrée. Réessaie.');
+          await recordContractAcceptance();
         } catch (error) {
           showError(error.message || 'Réessaie dans un instant.');
           submitButton.classList.remove('is-loading');
@@ -692,10 +764,7 @@ const reviewInitials = (name) => name
         }
         track('payment_submitted', 4700, { button_id: 'buy-button' });
         const result = await stripeCheckout.confirm().catch((error) => ({ type: 'error', error }));
-        if (result?.type === 'error' || result?.error) {
-          const message = result.error?.message || 'Vérifie les informations de paiement.';
-          showError(message);
-          track('payment_error', null, { button_id: 'buy-button' });
+        if (handlePaymentError(result, 'buy-button')) {
           submitButton.classList.remove('is-loading');
           stripeCanConfirm = true;
           updateSubmitState();
@@ -1064,6 +1133,13 @@ const reviewInitials = (name) => name
   .consent strong { color: #111e34; }
   .consent a { color: #145fbf; font-weight: 750; text-underline-offset: 2px; }
   .future-debit-consent { margin: -7px 1px 13px 31px; color: #788397; font-size: 8.5px; line-height: 1.45; }
+
+  .express-checkout[hidden] { display: none!important; }
+  .express-checkout { margin: 2px 0 13px; transition: opacity .18s ease; }
+  .express-checkout.is-locked { opacity: .42; pointer-events: none; }
+  .express-checkout__divider { display: flex; align-items: center; gap: 10px; margin: 12px 0 11px; color: #8791a2; font-size: 8.5px; font-weight: 650; text-transform: uppercase; }
+  .express-checkout__divider::before, .express-checkout__divider::after { content: ''; flex: 1; height: 1px; background: #e2e7ef; }
+  .express-checkout__divider span { white-space: nowrap; }
 
   .buy-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; padding: 13px 17px; color: #fff; background: linear-gradient(135deg, #1681ff, #074dbd); border: 1px solid rgba(7,75,183,.18); border-radius: 11px; box-shadow: 0 15px 30px rgba(9,83,199,.34), inset 0 1px 0 rgba(255,255,255,.22); cursor: pointer; font-size: 13.5px; font-weight: 900; letter-spacing: .015em; text-transform: uppercase; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
   .buy-button:hover { transform: translateY(-2px); box-shadow: 0 16px 28px rgba(15,99,221,.34); filter: brightness(1.04); }
