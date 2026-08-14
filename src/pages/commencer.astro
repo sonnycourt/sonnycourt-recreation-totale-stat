@@ -406,6 +406,7 @@ const reviewInitials = (name) => name
         || location.hostname === 'localhost'
         || params.get('preview') === 'dev';
       let stripeCheckout = null;
+      let checkoutActions = null;
       let stripeCanConfirm = false;
       let checkoutEngagedSent = false;
       let checkoutSessionId = '';
@@ -640,6 +641,32 @@ const reviewInitials = (name) => name
         }
       }
 
+      async function syncCheckoutIdentity() {
+        const firstName = String(firstNameInput?.value || '').trim();
+        const email = String(emailInput?.value || '').trim().toLowerCase();
+        if (!firstName || !emailInput?.checkValidity()) {
+          throw new Error('Vérifie ton prénom et ton adresse email.');
+        }
+        if (!checkoutActions) throw new Error('Le paiement sécurisé se prépare encore.');
+        const emailResult = await checkoutActions.updateEmail(email);
+        if (emailResult?.error) throw new Error(emailResult.error.message || 'Vérifie ton adresse email.');
+        const identityResponse = await fetch('/.netlify/functions/mc2-stripe-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_identity',
+            token,
+            checkout_session_id: checkoutSessionId,
+            first_name: firstName,
+            email,
+          }),
+        });
+        const identity = await identityResponse.json().catch(() => ({}));
+        if (!identityResponse.ok) throw new Error(identity.error || 'Tes informations n’ont pas pu être actualisées.');
+        firstNameInput.value = identity.customer?.name || firstName;
+        emailInput.value = identity.customer?.email || email;
+      }
+
       function handlePaymentError(result, buttonId) {
         if (result?.type !== 'error' && !result?.error) return false;
         showError(result.error?.message || 'Vérifie les informations de paiement.');
@@ -656,12 +683,24 @@ const reviewInitials = (name) => name
         if (Date.now() >= countdownEnd) return;
         firstNameInput.value = data.customer?.name || '';
         emailInput.value = data.customer?.email || '';
-        firstNameInput.readOnly = true;
-        emailInput.readOnly = true;
         const stripe = window.Stripe(data.publishable_key);
         stripeCheckout = await stripe.initCheckout({
           fetchClientSecret: () => Promise.resolve(data.client_secret),
           elementsOptions: { appearance: stripeAppearance },
+        });
+        const actionsResult = await stripeCheckout.loadActions();
+        if (actionsResult?.type !== 'success') {
+          throw new Error(actionsResult?.error?.message || 'Stripe ne peut pas préparer tes informations.');
+        }
+        checkoutActions = actionsResult.actions;
+        const initialEmailResult = await checkoutActions.updateEmail(emailInput.value.trim().toLowerCase());
+        if (initialEmailResult?.error) {
+          throw new Error(initialEmailResult.error.message || 'Vérifie ton adresse email.');
+        }
+        emailInput.addEventListener('blur', async () => {
+          if (!emailInput.checkValidity()) return;
+          const result = await checkoutActions.updateEmail(emailInput.value.trim().toLowerCase());
+          showError(result?.error?.message || '');
         });
         const paymentElement = stripeCheckout.createPaymentElement({
           layout: {
@@ -714,6 +753,7 @@ const reviewInitials = (name) => name
           }
           showError('');
           try {
+            await syncCheckoutIdentity();
             await recordContractAcceptance();
           } catch (error) {
             showError(error.message || 'Réessaie dans un instant.');
@@ -754,6 +794,7 @@ const reviewInitials = (name) => name
         submitButton.classList.add('is-loading');
         showError('');
         try {
+          await syncCheckoutIdentity();
           await recordContractAcceptance();
         } catch (error) {
           showError(error.message || 'Réessaie dans un instant.');
