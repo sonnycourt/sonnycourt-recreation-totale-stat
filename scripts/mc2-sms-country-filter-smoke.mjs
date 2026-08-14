@@ -79,5 +79,10 @@ assert.ok(
     < smsSource.indexOf('const provider = await sendGatewaySms'),
   'Le filtre pays doit s’exécuter avant GatewayAPI',
 );
+assert.match(
+  smsSource,
+  /expiration:\s*['"]PT10M['"]/,
+  'GatewayAPI doit abandonner la livraison après 10 minutes',
+);
 
 console.log('MC2 SMS country filter smoke: OK');

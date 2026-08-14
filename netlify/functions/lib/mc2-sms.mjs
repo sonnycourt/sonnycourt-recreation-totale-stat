@@ -193,6 +193,8 @@ export async function sendGatewaySms({ phone, message, reference, countryDecisio
       message,
       recipient: Number(phone.replace(/^\+/, '')),
       reference: clean(reference, 64),
+      // Un SMS MC2 devient trompeur s'il arrive après son urgence réelle.
+      expiration: 'PT10M',
     }),
   });
   const text = await response.text();
