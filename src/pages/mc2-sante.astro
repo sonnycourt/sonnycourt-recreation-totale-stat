@@ -1,0 +1,662 @@
+---
+// Cockpit MC2 strictement en lecture seule. L’accès et l’API réutilisent la session privée du HUB.
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#071018" />
+    <title>Santé MC2 — Sonny Court</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style is:global>
+      :root {
+        color-scheme: dark;
+        --bg: #071018;
+        --panel: rgba(14, 28, 39, 0.82);
+        --panel-strong: #10222e;
+        --line: rgba(211, 232, 242, 0.11);
+        --text: #f4f8fa;
+        --soft: #9eb2bd;
+        --muted: #71858f;
+        --green: #4de5a2;
+        --green-rgb: 77, 229, 162;
+        --orange: #ffbd59;
+        --orange-rgb: 255, 189, 89;
+        --red: #ff6b72;
+        --red-rgb: 255, 107, 114;
+        --unknown: #91a4ae;
+        --unknown-rgb: 145, 164, 174;
+      }
+
+      * { box-sizing: border-box; }
+
+      html { min-height: 100%; background: var(--bg); }
+
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background:
+          radial-gradient(circle at 50% -18%, rgba(41, 177, 151, 0.16), transparent 40rem),
+          radial-gradient(circle at 94% 32%, rgba(43, 126, 194, 0.11), transparent 31rem),
+          linear-gradient(160deg, #071018 0%, #08151e 52%, #071119 100%);
+      }
+
+      button, a { font: inherit; }
+
+      button { -webkit-tap-highlight-color: transparent; }
+
+      .gate {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .gate-card {
+        width: min(420px, 100%);
+        padding: 32px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--panel);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      }
+
+      .gate-pulse {
+        width: 22px;
+        height: 22px;
+        margin: 0 auto 18px;
+        border: 3px solid rgba(var(--green-rgb), 0.2);
+        border-top-color: var(--green);
+        border-radius: 50%;
+        animation: spin 850ms linear infinite;
+      }
+
+      .gate h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
+      .gate p { margin: 0; color: var(--soft); font-size: 14px; line-height: 1.55; }
+
+      .app {
+        display: none;
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 24px 0 64px;
+      }
+
+      .topbar {
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--soft);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .back::before { content: "←"; font-size: 17px; }
+      .back:hover { color: #fff; }
+
+      .refresh {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 0 15px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        color: #dce8ed;
+        background: rgba(255, 255, 255, 0.045);
+        cursor: pointer;
+      }
+
+      .refresh:hover { border-color: rgba(211, 232, 242, 0.22); background: rgba(255, 255, 255, 0.075); }
+      .refresh:disabled { opacity: 0.6; cursor: wait; }
+      .refresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+      .refresh.is-loading .refresh-dot { animation: blink 800ms ease-in-out infinite alternate; }
+
+      .hero {
+        --status: var(--unknown);
+        --status-rgb: var(--unknown-rgb);
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 30px;
+        align-items: center;
+        min-height: 230px;
+        padding: 34px;
+        border: 1px solid rgba(var(--status-rgb), 0.28);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 95% 5%, rgba(var(--status-rgb), 0.19), transparent 22rem),
+          linear-gradient(145deg, rgba(var(--status-rgb), 0.09), rgba(14, 28, 39, 0.82) 48%);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.23), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      }
+
+      .status-green { --status: var(--green); --status-rgb: var(--green-rgb); }
+      .status-orange { --status: var(--orange); --status-rgb: var(--orange-rgb); }
+      .status-red { --status: var(--red); --status-rgb: var(--red-rgb); }
+      .status-unknown { --status: var(--unknown); --status-rgb: var(--unknown-rgb); }
+
+      .eyebrow {
+        margin: 0 0 16px;
+        color: var(--status);
+        font-size: 11px;
+        font-weight: 780;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(34px, 6vw, 64px);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .hero-summary {
+        max-width: 720px;
+        margin: 17px 0 0;
+        color: var(--soft);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      .checked {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status-orb {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(var(--status-rgb), 0.36);
+        border-radius: 50%;
+        background: rgba(var(--status-rgb), 0.1);
+        box-shadow: 0 0 80px rgba(var(--status-rgb), 0.21), inset 0 0 34px rgba(var(--status-rgb), 0.08);
+      }
+
+      .status-orb::before {
+        content: "";
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--status);
+        box-shadow: 0 0 28px rgba(var(--status-rgb), 0.65);
+      }
+
+      .status-orb::after {
+        content: "";
+        position: absolute;
+        inset: 13px;
+        border: 1px solid rgba(var(--status-rgb), 0.22);
+        border-radius: 50%;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 14px 0 0;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        color: var(--soft);
+        background: rgba(255, 255, 255, 0.025);
+        font-size: 12px;
+      }
+
+      .legend-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--status); }
+      .legend-item strong { margin-left: auto; color: #fff; font-size: 14px; }
+
+      .attention { display: none; margin-top: 30px; }
+      .attention.has-items { display: block; }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin: 30px 2px 13px;
+      }
+
+      .section-head h2 { margin: 0; font-size: 16px; letter-spacing: -0.02em; }
+      .section-head p { margin: 0; color: var(--muted); font-size: 12px; }
+
+      .attention-list { display: grid; gap: 9px; }
+
+      .alert-row {
+        --status: var(--unknown);
+        --status-rgb: var(--unknown-rgb);
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        gap: 13px;
+        align-items: center;
+        padding: 15px 17px;
+        border: 1px solid rgba(var(--status-rgb), 0.22);
+        border-radius: 16px;
+        background: rgba(var(--status-rgb), 0.055);
+      }
+
+      .alert-row .signal { width: 9px; height: 9px; border-radius: 50%; background: var(--status); box-shadow: 0 0 12px rgba(var(--status-rgb), 0.42); }
+      .alert-row strong { display: block; margin-bottom: 3px; font-size: 13px; }
+      .alert-row span { color: var(--soft); font-size: 12px; line-height: 1.35; }
+      .alert-row a { color: var(--status); font-size: 12px; font-weight: 700; text-decoration: none; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 13px;
+      }
+
+      .health-card {
+        --status: var(--unknown);
+        --status-rgb: var(--unknown-rgb);
+        position: relative;
+        overflow: hidden;
+        padding: 20px;
+        border: 1px solid rgba(var(--status-rgb), 0.18);
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at 100% 0%, rgba(var(--status-rgb), 0.08), transparent 14rem),
+          var(--panel);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+      }
+
+      .alert-row.status-green,
+      .health-card.status-green { --status: var(--green); --status-rgb: var(--green-rgb); }
+      .alert-row.status-orange,
+      .health-card.status-orange { --status: var(--orange); --status-rgb: var(--orange-rgb); }
+      .alert-row.status-red,
+      .health-card.status-red { --status: var(--red); --status-rgb: var(--red-rgb); }
+      .alert-row.status-unknown,
+      .health-card.status-unknown { --status: var(--unknown); --status-rgb: var(--unknown-rgb); }
+
+      .card-top { display: grid; grid-template-columns: 11px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+      .signal { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--status); box-shadow: 0 0 14px rgba(var(--status-rgb), 0.45); }
+      .health-card h3 { margin: 0; font-size: 15px; letter-spacing: -0.02em; }
+      .card-desc { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+      .pill {
+        padding: 5px 8px;
+        border: 1px solid rgba(var(--status-rgb), 0.23);
+        border-radius: 999px;
+        color: var(--status);
+        background: rgba(var(--status-rgb), 0.07);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .card-summary { margin: 17px 0 0; font-size: 18px; font-weight: 730; letter-spacing: -0.03em; }
+      .card-note { min-height: 38px; margin: 7px 0 0; color: var(--soft); font-size: 11px; line-height: 1.5; }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 16px;
+      }
+
+      .metric { min-width: 0; padding: 10px; border-radius: 11px; background: rgba(255, 255, 255, 0.035); }
+      .metric span { display: block; overflow: hidden; color: var(--muted); font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+      .metric strong { display: block; margin-top: 5px; overflow: hidden; color: #fff; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+
+      .items { display: grid; gap: 7px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+      .item { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 8px; color: var(--soft); font-size: 10px; }
+      .item-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status); }
+      .item a { color: inherit; text-decoration: none; }
+      .item-value { color: #dbe7eb; font-variant-numeric: tabular-nums; }
+
+      .card-foot {
+        min-height: 28px;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .card-foot a { color: var(--status); font-weight: 720; text-decoration: none; }
+      .last-error { color: var(--red); }
+
+      .thresholds {
+        margin-top: 30px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.022);
+      }
+
+      .thresholds summary { padding: 16px 18px; color: var(--soft); font-size: 12px; font-weight: 700; cursor: pointer; }
+      .thresholds ul { margin: 0; padding: 0 36px 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+      .privacy { margin: 18px 0 0; color: var(--muted); font-size: 10px; text-align: center; }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes blink { to { opacity: 0.2; } }
+
+      @media (max-width: 760px) {
+        .app { width: calc(100% - 24px); padding-top: 12px; }
+        .topbar { margin-bottom: 10px; }
+        .hero { min-height: 0; grid-template-columns: 1fr; gap: 23px; padding: 25px 21px; border-radius: 22px; }
+        .hero h1 { font-size: clamp(34px, 12vw, 48px); }
+        .status-orb { width: 74px; height: 74px; grid-row: 1; justify-self: end; position: absolute; top: 20px; right: 20px; opacity: 0.68; }
+        .status-orb::before { width: 28px; height: 28px; }
+        .hero-copy { position: relative; z-index: 1; padding-right: 42px; }
+        .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid { grid-template-columns: 1fr; }
+        .alert-row { grid-template-columns: 10px minmax(0, 1fr); }
+        .alert-row a { grid-column: 2; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .section-head { align-items: start; flex-direction: column; gap: 4px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .gate-pulse, .refresh.is-loading .refresh-dot { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gate" class="gate">
+      <div class="gate-card">
+        <div class="gate-pulse" aria-hidden="true"></div>
+        <h1>Vérification de la santé MC2</h1>
+        <p id="gate-message">Connexion sécurisée au cockpit…</p>
+      </div>
+    </div>
+
+    <main id="app" class="app">
+      <nav class="topbar" aria-label="Navigation du cockpit">
+        <a class="back" href="/hub">Retour au HUB</a>
+        <button id="refresh" class="refresh" type="button">
+          <span class="refresh-dot" aria-hidden="true"></span>
+          <span id="refresh-label">Actualiser</span>
+        </button>
+      </nav>
+
+      <section id="hero" class="hero status-unknown" aria-live="polite">
+        <div class="hero-copy">
+          <p class="eyebrow">Santé MC2 · Lecture seule</p>
+          <h1 id="overall-label">Vérification…</h1>
+          <p id="overall-summary" class="hero-summary">Les contrôles sont en cours.</p>
+          <p id="checked" class="checked">—</p>
+        </div>
+        <div class="status-orb" aria-hidden="true"></div>
+      </section>
+
+      <div id="legend" class="legend" aria-label="Répartition des états"></div>
+
+      <section id="attention" class="attention" aria-labelledby="attention-title">
+        <div class="section-head">
+          <h2 id="attention-title">À regarder maintenant</h2>
+          <p>Les signaux non verts remontent ici automatiquement.</p>
+        </div>
+        <div id="attention-list" class="attention-list"></div>
+      </section>
+
+      <section aria-labelledby="essential-title">
+        <div class="section-head">
+          <h2 id="essential-title">Essentiel</h2>
+          <p>Pages, données, funnel et paiement.</p>
+        </div>
+        <div id="essential-grid" class="grid"></div>
+      </section>
+
+      <section aria-labelledby="automation-title">
+        <div class="section-head">
+          <h2 id="automation-title">Automatisations</h2>
+          <p>SMS, emails, replay, impayés, Circle et dossiers.</p>
+        </div>
+        <div id="automation-grid" class="grid"></div>
+      </section>
+
+      <details class="thresholds">
+        <summary>Comment les couleurs sont décidées</summary>
+        <ul id="threshold-list"></ul>
+      </details>
+      <p class="privacy">Aucune donnée personnelle ni aucun secret n’est affiché. Le cockpit n’effectue aucune écriture.</p>
+    </main>
+
+    <script>
+      const API = '/.netlify/functions/mc2-health';
+      const STATUS = {
+        green: { label: 'OK', noun: 'Verts' },
+        orange: { label: 'À surveiller', noun: 'Orange' },
+        red: { label: 'Bloqué', noun: 'Rouges' },
+        unknown: { label: 'Inconnu', noun: 'Inconnus' },
+      };
+      const ESSENTIAL = new Set(['pages', 'supabase', 'funnel', 'stripe']);
+      const LOCAL_PREVIEW = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+      let refreshTimer = null;
+      let countdownTimer = null;
+      let refreshSeconds = 60;
+
+      const esc = (value) => String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+      function safeUrl(value) {
+        const url = String(value || '');
+        return url.startsWith('/') || url.startsWith('https://') ? url : '#';
+      }
+
+      function relativeTime(value) {
+        const stamp = Date.parse(value || '');
+        if (!Number.isFinite(stamp)) return 'Aucune exécution observée';
+        const delta = Math.max(0, Date.now() - stamp);
+        const minutes = Math.floor(delta / 60000);
+        if (minutes < 1) return 'À l’instant';
+        if (minutes < 60) return `Il y a ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Il y a ${hours} h`;
+        return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(stamp));
+      }
+
+      function statusClass(status) {
+        return `status-${STATUS[status] ? status : 'unknown'}`;
+      }
+
+      function fixture() {
+        const now = new Date().toISOString();
+        const wanted = new URLSearchParams(window.location.search).get('preview') || 'green';
+        const sampleStatus = ['green', 'orange', 'red', 'unknown'].includes(wanted) ? wanted : 'green';
+        const base = [
+          ['pages', 'Pages critiques', 'Disponibilité réelle des six étapes publiques MC2', 'green', 'Toutes les pages répondent', [{ label: 'OK', value: 6 }, { label: 'Lentes', value: 0 }, { label: 'En erreur', value: 0 }]],
+          ['supabase', 'Supabase', 'Base de données et événements du funnel', 'green', 'Lecture opérationnelle', [{ label: 'Lecture', value: 'OK' }]],
+          ['funnel', 'Flux MC2', 'Inscription → présence → CTA → checkout → achat', sampleStatus, sampleStatus === 'green' ? 'Le flux reçoit des données' : sampleStatus === 'orange' ? 'Présence anormalement basse' : sampleStatus === 'red' ? 'Aucune présence après les inscriptions' : 'Pas assez de trafic pour conclure', [{ label: 'Opt-ins 2 h', value: 8 }, { label: 'Inscrits 2 h', value: 3 }, { label: 'En lecture', value: 1 }, { label: 'CTA / offre', value: 0 }, { label: 'Checkout', value: 0 }, { label: 'Achats', value: 0 }]],
+          ['stripe', 'Stripe', 'Checkout, paiements et webhooks MC2', 'green', 'Paiement prêt', [{ label: 'Checkouts 24 h', value: 0 }, { label: 'Achats 24 h', value: 0 }, { label: 'Webhooks lus', value: 2 }]],
+          ['sms', 'SMS', 'Rappels live et échéance individuelle', 'green', 'File à jour', [{ label: 'En retard', value: 0 }, { label: 'Réussis', value: 3 }]],
+          ['mailerlite', 'MailerLite', 'Inscription, confirmations, replay et relances', 'green', 'Configuration présente', [{ label: 'Livraisons visibles', value: 3 }]],
+          ['emails', 'Emails de session', 'Confirmation et rappel H−1', 'green', 'File à jour', [{ label: 'En retard', value: 0 }, { label: 'Réussis', value: 4 }]],
+          ['replay', 'Replay', 'No-show, départ avant CTA et offre vue', 'unknown', 'Automatisation désactivée', [{ label: 'État', value: 'Désactivé' }]],
+          ['dunning', 'Impayés', 'Relances d’échéances Stripe', 'green', 'File à jour', [{ label: 'En retard', value: 0 }]],
+          ['circle', 'Circle', 'Invitation et tag après achat', 'green', 'File à jour', [{ label: 'Réussis', value: 1 }]],
+          ['contracts', 'Documents', 'Confirmation contractuelle après achat', 'green', 'File à jour', [{ label: 'Réussis', value: 1 }]],
+          ['collection', 'Recouvrement', 'Préparation locale après cinq reprises', 'unknown', 'Automatisation désactivée', [{ label: 'État', value: 'Désactivé' }]],
+        ].map(([id, name, description, status, summary, metrics]) => ({
+          id, name, description, status, summary, metrics, affectsOverall: !['replay', 'collection'].includes(id),
+          note: status === 'unknown' ? 'Sans donnée, cet état n’est jamais considéré comme sain.' : 'Dernier contrôle effectué sans écriture.',
+          checkedAt: now, lastRunAt: now, items: id === 'pages' ? [
+            { label: 'Inscription', path: '/mc2/', status: 'green', value: '284 ms' },
+            { label: 'Confirmation', path: '/mc2/confirmation/', status: 'green', value: '212 ms' },
+            { label: 'Session', path: '/mc2/session/', status: 'green', value: '238 ms' },
+          ] : [], diagnosticUrl: id === 'funnel' ? '/mc2-sante/#flux-mc2' : 'https://app.netlify.com',
+        }));
+        const counts = { green: 0, orange: 0, red: 0, unknown: 0 };
+        base.forEach((component) => { counts[component.status] += 1; });
+        return {
+          generatedAt: now, refreshSeconds: 60, components: base,
+          overall: {
+            status: sampleStatus,
+            label: { green: 'Tout fonctionne', orange: 'À surveiller', red: 'Action requise', unknown: 'État incomplet' }[sampleStatus],
+            summary: sampleStatus === 'green' ? 'Les contrôles essentiels MC2 sont au vert.' : 'Un signal mérite ton attention.',
+            counts,
+          },
+          thresholds: ['Pages : rouge si HTTP ou marqueur échoue.', 'Files : orange après 5 min ; rouge dès 3 jobs ou 30 min.', 'Sans donnée, l’état reste Inconnu — jamais Vert.'],
+        };
+      }
+
+      function renderLegend(counts) {
+        document.getElementById('legend').innerHTML = ['green', 'orange', 'red', 'unknown'].map((status) => `
+          <div class="legend-item ${statusClass(status)}">
+            <span class="legend-dot" aria-hidden="true"></span>
+            <span>${STATUS[status].noun}</span>
+            <strong>${Number(counts?.[status] || 0)}</strong>
+          </div>
+        `).join('');
+      }
+
+      function renderItem(item) {
+        const label = esc(item.label || 'Contrôle');
+        const value = esc(item.value ?? '—');
+        const content = item.path ? `<a href="${esc(safeUrl(item.path))}" target="_blank" rel="noopener">${label}</a>` : label;
+        return `<div class="item ${statusClass(item.status || 'unknown')}">
+          <span class="item-dot" aria-hidden="true"></span>
+          <span>${content}</span>
+          <span class="item-value">${value}</span>
+        </div>`;
+      }
+
+      function renderCard(component) {
+        const status = STATUS[component.status] ? component.status : 'unknown';
+        const metrics = (component.metrics || []).map((metric) => `
+          <div class="metric"><span title="${esc(metric.label)}">${esc(metric.label)}</span><strong>${esc(metric.value)}</strong></div>
+        `).join('');
+        const items = (component.items || []).length ? `<div class="items">${component.items.map(renderItem).join('')}</div>` : '';
+        const last = component.lastRunAt ? relativeTime(component.lastRunAt) : 'Aucune exécution observée';
+        const error = component.lastError ? `<span class="last-error">${esc(component.lastError)} · ${esc(relativeTime(component.lastErrorAt))}</span>` : `<span>${esc(last)}</span>`;
+        return `<article id="${esc(component.id)}" class="health-card ${statusClass(status)}">
+          <div class="card-top">
+            <span class="signal" aria-hidden="true"></span>
+            <div><h3>${esc(component.name)}</h3><p class="card-desc">${esc(component.description)}</p></div>
+            <span class="pill">${STATUS[status].label}</span>
+          </div>
+          <p class="card-summary">${esc(component.summary)}</p>
+          <p class="card-note">${esc(component.note)}</p>
+          ${metrics ? `<div class="metrics">${metrics}</div>` : ''}
+          ${items}
+          <div class="card-foot">
+            ${error}
+            <a href="${esc(safeUrl(component.diagnosticUrl))}" ${String(component.diagnosticUrl || '').startsWith('https://') ? 'target="_blank" rel="noopener"' : ''}>Diagnostic ↗</a>
+          </div>
+        </article>`;
+      }
+
+      function renderAttention(components) {
+        const items = components.filter((component) => component.status !== 'green');
+        const section = document.getElementById('attention');
+        section.classList.toggle('has-items', items.length > 0);
+        document.getElementById('attention-list').innerHTML = items.map((component) => `
+          <div class="alert-row ${statusClass(component.status)}">
+            <span class="signal" aria-hidden="true"></span>
+            <div><strong>${esc(component.name)} · ${STATUS[component.status]?.label || 'Inconnu'}</strong><span>${esc(component.summary)}</span></div>
+            <a href="#${esc(component.id)}">Voir le détail ↓</a>
+          </div>
+        `).join('');
+      }
+
+      function render(data) {
+        refreshSeconds = Number(data.refreshSeconds) || 60;
+        const status = STATUS[data.overall?.status] ? data.overall.status : 'unknown';
+        const hero = document.getElementById('hero');
+        hero.className = `hero ${statusClass(status)}`;
+        document.getElementById('overall-label').textContent = data.overall?.label || 'État incomplet';
+        document.getElementById('overall-summary').textContent = data.overall?.summary || 'Les données disponibles sont incomplètes.';
+        document.getElementById('checked').textContent = `Contrôlé ${relativeTime(data.generatedAt)} · prochaine vérification dans ${refreshSeconds} s`;
+        renderLegend(data.overall?.counts || {});
+        renderAttention(data.components || []);
+        document.getElementById('essential-grid').innerHTML = (data.components || []).filter((component) => ESSENTIAL.has(component.id)).map(renderCard).join('');
+        document.getElementById('automation-grid').innerHTML = (data.components || []).filter((component) => !ESSENTIAL.has(component.id)).map(renderCard).join('');
+        document.getElementById('threshold-list').innerHTML = (data.thresholds || []).map((line) => `<li>${esc(line)}</li>`).join('');
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        startCountdown(data.generatedAt);
+      }
+
+      function startCountdown(generatedAt) {
+        clearInterval(countdownTimer);
+        countdownTimer = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - Date.parse(generatedAt)) / 1000);
+          const remaining = Math.max(0, refreshSeconds - elapsed);
+          document.getElementById('checked').textContent = `Contrôlé ${relativeTime(generatedAt)} · prochaine vérification dans ${remaining} s`;
+        }, 1000);
+      }
+
+      async function load({ manual = false } = {}) {
+        const button = document.getElementById('refresh');
+        button.disabled = true;
+        button.classList.add('is-loading');
+        document.getElementById('refresh-label').textContent = 'Vérification…';
+        try {
+          const data = LOCAL_PREVIEW ? fixture() : await fetch(API, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          }).then(async (response) => {
+            if (response.status === 401) {
+              window.location.replace('/hub');
+              throw new Error('auth');
+            }
+            if (!response.ok) throw new Error('health_unavailable');
+            return response.json();
+          });
+          render(data);
+          clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => load(), refreshSeconds * 1000);
+        } catch (error) {
+          if (error.message === 'auth') return;
+          if (document.getElementById('app').style.display === 'block') {
+            document.getElementById('overall-label').textContent = 'État incomplet';
+            document.getElementById('overall-summary').textContent = 'La dernière vérification n’a pas répondu. Réessaie maintenant.';
+            document.getElementById('hero').className = 'hero status-unknown';
+          } else {
+            document.getElementById('gate-message').textContent = 'Le cockpit ne répond pas. Recharge la page dans un instant.';
+          }
+          if (!manual) refreshTimer = setTimeout(() => load(), 30000);
+        } finally {
+          button.disabled = false;
+          button.classList.remove('is-loading');
+          document.getElementById('refresh-label').textContent = 'Actualiser';
+        }
+      }
+
+      document.getElementById('refresh').addEventListener('click', () => load({ manual: true }));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') load();
+      });
+      load();
+    </script>
+  </body>
+</html>
