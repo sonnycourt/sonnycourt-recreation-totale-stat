@@ -28,7 +28,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
     <!-- Meta Pixel End -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {isEs2Presentation && <meta name="robots" content="noindex, nofollow, noarchive" />}
-    <title>Esprit Subconscient 2.0 - La formation pour reprogrammer ton subconscient</title>
+    <title>{isEs2Presentation ? 'Découvrir Esprit Subconscient 2.0' : 'Esprit Subconscient 2.0 - La formation pour reprogrammer ton subconscient'}</title>
     <meta name="description" content="Accès à la formation Esprit Subconscient 2.0 : reprogramme ton subconscient et manifeste la vie de tes rêves avec la méthode de Sonny Court.">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -66,6 +66,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
 
     <!-- Spiffy Checkout Integration -->
     <script>
+    if (window.location.pathname.replace(/\/+$/, '') !== '/es2-presentation') {
     "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
     if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
     ;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
@@ -79,13 +80,14 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
         hideSidebar: false,
     })
     spiffy.load("sonnycourt");
+    }
     </script>
     <!-- End Spiffy Integration -->
     <style>html{opacity:0}html.ready{opacity:1;transition:opacity .15s ease}</style>
 </head>
-<body>
-    <PromoBanner formation="manifest" />
-    <div id="promo-config"
+<body class:list={{ 'es2-presentation-mode': isEs2Presentation }}>
+    {!isEs2Presentation && <PromoBanner formation="manifest" />}
+    {!isEs2Presentation && <div id="promo-config"
       data-start={promo.start}
       data-deadline={promo.deadline}
       data-badge={promo.badgeText}
@@ -97,19 +99,28 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
       data-price-promo={promo.formations.manifest.pricePromo}
       data-installment-count={promo.formations.manifest.installmentCount}
       data-installment-price={promo.formations.manifest.installmentPrice}
-      style="display:none;"></div>
+      style="display:none;"></div>}
     {/* BlackFriday Banner désactivé - Réactiver l'année prochaine en changeant show={false} en show={true} */}
-    <BlackFridayBanner show={false} discount={70} />
+    {!isEs2Presentation && <BlackFridayBanner show={false} discount={70} />}
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <div style="text-align:center;"><span class="modules-intro-kicker">Réservé aux participants de la masterclass</span></div>
+                <div style="text-align:center;"><span class="modules-intro-kicker">{isEs2Presentation ? 'Bienvenue dans Esprit Subconscient 2.0' : 'Réservé aux participants de la masterclass'}</span></div>
                 <h1 class="guarantee-title guarantee-title--split hero-page-title">
                     <span class="hero-page-title__stack">
-                        <span class="guarantee-title-main">Tu sais maintenant exactement ce que tu veux</span>
-                        <span class="guarantee-title-main">et ce qui te bloque.</span>
-                        <span class="guarantee-title-accent">Il ne te manque plus que le protocole ES2 pour transformer ta vie.</span>
+                        {isEs2Presentation ? (
+                            <>
+                                <span class="guarantee-title-main">Découvre tout ce qui t'attend dans ES2.</span>
+                                <span class="guarantee-title-accent">Ton parcours, tes outils et tes ressources pour les six prochains mois.</span>
+                            </>
+                        ) : (
+                            <>
+                                <span class="guarantee-title-main">Tu sais maintenant exactement ce que tu veux</span>
+                                <span class="guarantee-title-main">et ce qui te bloque.</span>
+                                <span class="guarantee-title-accent">Il ne te manque plus que le protocole ES2 pour transformer ta vie.</span>
+                            </>
+                        )}
                     </span>
                 </h1>
 
@@ -193,7 +204,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
     </section>
 
     <!-- Histoire d'identification -->
-    <section class="sales-stories-section">
+    <section class="sales-stories-section sales-identification-section">
         <div class="container">
             <div class="sales-stories-inner">
                 <div style="text-align:center;"><span class="modules-intro-kicker">Une histoire vraie</span></div>
@@ -257,9 +268,9 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
     </section>
 
     <!-- Le subconscient — ce n'était pas ta faute -->
-    <section class="sales-stories-section">
+    <section class="sales-stories-section sales-secrets-section">
         <div class="container">
-            <div class="sales-stories-inner">
+            <div class="sales-stories-inner sales-blame-intro">
                 <h2 class="guarantee-title guarantee-title--split sales-stories-title-stack">
                     <span class="guarantee-title-main">Rien n'a vraiment fonctionné jusqu'ici.</span>
                     <span class="guarantee-title-accent">Et ce n'est pas de ta faute !</span>
@@ -543,7 +554,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                     <figcaption>Dans l'urgence, tu peux finir par brûler l'échelle qui devait te sortir du trou.</figcaption>
                 </figure>
 
-                <p class="ss-bridge">Cette échelle peut être Esprit Subconscient 2.0. Mais avant de te la présenter, il reste une décision à prendre : par quel chemin veux-tu sortir ?</p>
+                <p class="ss-bridge">{isEs2Presentation ? 'ES2 a été conçu pour t’aider à avancer depuis la clarté plutôt que depuis la peur, une étape après l’autre.' : 'Cette échelle peut être Esprit Subconscient 2.0. Mais avant de te la présenter, il reste une décision à prendre : par quel chemin veux-tu sortir ?'}</p>
             </div>
             </div>
         </div>
@@ -654,7 +665,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
     </section>
 
     <!-- Trois options -->
-    <section class="sales-stories-section decision-section">
+    <section class="sales-stories-section decision-section sales-choice-section">
         <div class="container">
             <div class="sales-stories-inner">
                 <div class="decision-kicker"><span class="modules-intro-kicker">Le moment de choisir</span></div>
@@ -752,7 +763,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                     <span class="module-discovery__kicker">Comment ES2 fonctionne</span>
 
                     <div class="module-discovery__intro">
-                        <p class="module-discovery__lead"><strong>Donne-moi 6 semaines et 15 minutes par jour pour lancer ta transformation. Puis garde ES2 à tes côtés pendant 6 mois pour rendre cette transformation irréversible.</strong><br>Je vais t'aider à passer de « j'espère que ça va marcher » à « comment est-ce que ça ne pourrait pas marcher ? »</p>
+                        <p class="module-discovery__lead"><strong>{isEs2Presentation ? 'Ton parcours commence par 6 semaines guidées à raison de 15 minutes par jour. ES2 reste ensuite à tes côtés pendant 6 mois pour ancrer ta transformation.' : 'Donne-moi 6 semaines et 15 minutes par jour pour lancer ta transformation. Puis garde ES2 à tes côtés pendant 6 mois pour rendre cette transformation irréversible.'}</strong><br>{isEs2Presentation ? 'Chaque étape t’aide à passer de la compréhension à une nouvelle façon de penser, de ressentir et d’agir.' : 'Je vais t’aider à passer de « j’espère que ça va marcher » à « comment est-ce que ça ne pourrait pas marcher ? »'}</p>
                         <p>Dès le départ, une courte leçon se débloque chaque jour, dans un ordre précis. Puis le rythme s'adapte à la profondeur de chaque pratique. Tu comprends une pièce du puzzle, tu la mets immédiatement en pratique, puis Morpho te montre ce qui change. <strong>Rien à trier. Rien à assembler seul.</strong></p>
                     </div>
 
@@ -784,7 +795,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                         <p><strong>Tu as déjà tout lu sur le développement personnel ?</strong> Alors oublie ce que tu crois savoir. Si le savoir suffisait, tes résultats seraient déjà là. On reprend tout à zéro, des fondations jusqu'à la manifestation.</p>
                     </div>
                     <p class="module-discovery__proof">ES2 condense près de dix ans de travail et les retours de milliers d'élèves dans un seul protocole, à suivre dans le bon ordre.</p>
-                    <p class="module-discovery__bridge"><strong>Mais concrètement, qu'est-ce que tu obtiens en rejoignant Esprit Subconscient 2.0 ?</strong></p>
+                    <p class="module-discovery__bridge"><strong>{isEs2Presentation ? 'Voici maintenant tout ce qui compose Esprit Subconscient 2.0.' : "Mais concrètement, qu'est-ce que tu obtiens en rejoignant Esprit Subconscient 2.0 ?"}</strong></p>
                 </div>
 
                 <div class="descriptive-text">
@@ -1099,10 +1110,10 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                         <h2 class="guarantee-title guarantee-title--split"><span class="guarantee-title-main" style="display:block;">Pour t'accompagner encore plus loin,</span> <span class="guarantee-title-accent" style="display:block;">ES2 inclut aussi :</span></h2>
                     </div>
                     <div class="ss-intro" style="max-width:720px;margin:0 auto;text-align:left;">
-                        <p>À ce stade, tu te dis sûrement : « Ok Sonny, ça a l'air génial. Mais si je bloque, si je ne comprends pas quelque chose, si j'ai une question ? » Pas de souci. J'ai tout prévu, avec ces ressources.</p>
+                        <p>{isEs2Presentation ? 'Ces ressources complètent le parcours et t’accompagnent à chaque étape de ta progression.' : 'À ce stade, tu te dis sûrement : « Ok Sonny, ça a l’air génial. Mais si je bloque, si je ne comprends pas quelque chose, si j’ai une question ? » Pas de souci. J’ai tout prévu, avec ces ressources.'}</p>
                     </div>
 
-                    <div class="es2-bonus-card es2-resource-card es2-resource-card--sonny" style="max-width:720px;margin:0 auto;">
+                    <div class="es2-bonus-card es2-resource-card es2-resource-card--sonny es2-resource-card--legacy" style="max-width:720px;margin:0 auto;">
                         <div class="es2-bonus-body">
                             <span class="es2-bonus-badge">Ressource 1</span>
                             <h3 class="es2-bonus-name">Mon adresse email privée. Accès direct et illimité pendant 30 jours.</h3>
@@ -1114,7 +1125,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                         </div>
                     </div>
 
-                    <div class="es2-bonus-card es2-resource-card es2-resource-card--romain" style="max-width:720px;margin:clamp(20px,3vw,32px) auto 0;">
+                    <div class="es2-bonus-card es2-resource-card es2-resource-card--romain es2-resource-card--legacy" style="max-width:720px;margin:clamp(20px,3vw,32px) auto 0;">
                         <div class="es2-bonus-body">
                             <span class="es2-bonus-badge">Ressource 2</span>
                             <h3 class="es2-bonus-name">4 visios privées avec un expert du subconscient.</h3>
@@ -1251,7 +1262,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                             <h3 class="es2-bonus-name">Court-Circuit : 60 matins pour ne jamais avancer seul.</h3>
                             <img src="/media/pages/booster2.webp?v=1" alt="Court-Circuit accompagne chaque matin les 60 premiers jours dans Esprit Subconscient 2.0" class="es2-resource-img" loading="lazy" width="600" height="600">
                             <p class="es2-court-circuit-lead">Rien n'est plus détestable que de se lancer dans une aventure et de finir avec le sentiment de se retrouver seul.</p>
-                            <p class="es2-bonus-desc">C'est pourquoi, en rejoignant ES2 aujourd'hui, tu obtiens également un accès réservé à Court-Circuit pendant tes 60 premiers jours.</p>
+                            <p class="es2-bonus-desc">{isEs2Presentation ? 'Ton accès à ES2 inclut également Court-Circuit pendant tes 60 premiers jours.' : "C'est pourquoi, en rejoignant ES2 aujourd'hui, tu obtiens également un accès réservé à Court-Circuit pendant tes 60 premiers jours."}</p>
                             <p class="es2-bonus-desc">Chaque matin, je t'envoie un email conçu pour <strong>court-circuiter une croyance limitante avant même que tu n'aies commencé ta journée.</strong></p>
                             <div class="es2-resource-facts" aria-label="Contenu des emails Court-Circuit">
                                 <div class="es2-resource-fact"><strong>60 matins</strong><span>à tes côtés</span></div>
@@ -1270,7 +1281,7 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                             <img src="/media/pages/booster3.webp?v=1" alt="Toutes les futures mises à jour d'Esprit Subconscient 2.0 incluses à vie" class="es2-resource-img" loading="lazy" width="600" height="600">
                             <p class="es2-bonus-desc">Comme n'importe quel membre d'ES2 pourra te le confirmer, je mets constamment à jour et améliore le contenu de la formation.</p>
                             <p class="es2-bonus-desc">Et en tant que membre, <strong>tu accèdes à chacune de ces mises à jour sans aucun coût supplémentaire.</strong></p>
-                            <p class="es2-bonus-desc">C'est ma façon de m'assurer qu'Esprit Subconscient 2.0 reste un excellent investissement à long terme pour toi et ta transformation.</p>
+                            <p class="es2-bonus-desc">{isEs2Presentation ? 'Ainsi, Esprit Subconscient 2.0 continue d’évoluer avec toi et ta transformation.' : "C'est ma façon de m'assurer qu'Esprit Subconscient 2.0 reste un excellent investissement à long terme pour toi et ta transformation."}</p>
                             <p class="es2-updates-access">Toutes les futures améliorations. Incluses à vie.</p>
                         </div>
                     </div>
@@ -1628,15 +1639,24 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
     <section class="decision-section">
         <div class="container">
             <div class="decision-shell">
-                <span class="decision-kicker">Une dernière question</span>
-                <h2 class="guarantee-title guarantee-title--split decision-title">
-                    <span class="guarantee-title-main">Ça fait déjà <span id="pdv-rounded-minutes">15 minutes</span></span>
-                    <span class="guarantee-title-accent">que tu es sur cette page.</span>
-                </h2>
-                <div class="decision-intro">
-                    <p>Tu as lu les histoires, découvert les trois secrets, inspecté les modules et comparé les formules.</p>
-                    <p><strong>À ce stade, ce n'est plus de la curiosité.</strong> Quelque chose en toi veut savoir si cette fois peut réellement être différente.</p>
-                </div>
+                {isEs2Presentation ? (
+                    <h2 class="guarantee-title guarantee-title--split decision-title decision-title--presentation">
+                        <span class="guarantee-title-main">ES2 est-il</span>
+                        <span class="guarantee-title-accent">fait pour toi ?</span>
+                    </h2>
+                ) : (
+                    <>
+                        <span class="decision-kicker">Une dernière question</span>
+                        <h2 class="guarantee-title guarantee-title--split decision-title">
+                            <span class="guarantee-title-main">Ça fait déjà <span id="pdv-rounded-minutes">15 minutes</span></span>
+                            <span class="guarantee-title-accent">que tu es sur cette page.</span>
+                        </h2>
+                        <div class="decision-intro">
+                            <p>Tu as lu les histoires, découvert les trois secrets, inspecté les modules et comparé les formules.</p>
+                            <p><strong>À ce stade, ce n'est plus de la curiosité.</strong> Quelque chose en toi veut savoir si cette fois peut réellement être différente.</p>
+                        </div>
+                    </>
+                )}
 
                 <div class="decision-disqualify">
                     <p class="decision-block-label">Soyons clairs</p>
@@ -1686,16 +1706,16 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
                     </article>
 
                     <article class="decision-answer decision-answer--start">
-                        <span class="decision-answer-number">02</span>
+                        <span class="decision-answer-number">{isEs2Presentation ? '01' : '02'}</span>
                         <div>
                             <p class="decision-block-label">Concrètement</p>
-                            <h3>Que se passe-t-il juste après ton inscription ?</h3>
+                            <h3>{isEs2Presentation ? 'Comment profiter pleinement d’ES2 ?' : "Que se passe-t-il juste après ton inscription ?"}</h3>
                             <div class="decision-start-steps">
-                                <div><span>1</span><p><strong>Tu reçois immédiatement tes accès</strong> à Volt et au Module 1.</p></div>
+                                <div><span>1</span><p><strong>{isEs2Presentation ? 'Retrouve tes accès' : 'Tu reçois immédiatement tes accès'}</strong> à Volt et au Module 1.</p></div>
                                 <div><span>2</span><p><strong>Ta première leçon te montre exactement quoi faire.</strong> Tu peux commencer aujourd'hui, en 15 minutes.</p></div>
-                                <div><span>3</span><p><strong>Au début, une nouvelle étape se débloque chaque jour. Puis le rythme s'adapte à la profondeur de chaque pratique.</strong> Les outils et l'accompagnement inclus dans ta formule se mettent en place au rythme du parcours.</p></div>
+                                <div><span>3</span><p><strong>Au début, une nouvelle étape se débloque chaque jour. Puis le rythme s'adapte à la profondeur de chaque pratique.</strong> Tes outils et tes ressources se mettent en place au rythme du parcours.</p></div>
                             </div>
-                            <p class="decision-start-close">Tu n'as rien à préparer et rien à deviner. Tu choisis ta formule, puis le protocole te guide.</p>
+                            <p class="decision-start-close">{isEs2Presentation ? 'Tu n’as rien à préparer et rien à deviner. Suis simplement le protocole, étape après étape.' : 'Tu n’as rien à préparer et rien à deviner. Tu choisis ta formule, puis le protocole te guide.'}</p>
                         </div>
                     </article>
                 </div>
@@ -1836,6 +1856,35 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
             --gradient-dark: linear-gradient(180deg, #0a1628 0%, #0a0f1f 100%);
             --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.1);
             --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Variante post-achat : présentation du contenu sans mécanique de vente. */
+        .es2-presentation-mode .scarcity-section,
+        .es2-presentation-mode .sales-identification-section,
+        .es2-presentation-mode .sales-choice-section,
+        .es2-presentation-mode .sales-secrets-section .sales-blame-intro,
+        .es2-presentation-mode .es2-resource-card--legacy,
+        .es2-presentation-mode #formules,
+        .es2-presentation-mode .launch-protection-content,
+        .es2-presentation-mode .decision-six-weeks,
+        .es2-presentation-mode .decision-answer--guarantee,
+        .es2-presentation-mode .final-enrollment-section,
+        .es2-presentation-mode .inv-offer-expired {
+            display: none !important;
+        }
+
+        .es2-presentation-mode .launch-protection-section {
+            padding-top: clamp(56px, 8vw, 96px);
+        }
+
+        .es2-presentation-mode .decision-title--presentation {
+            margin-bottom: clamp(30px, 5vw, 54px);
+        }
+
+        .es2-presentation-mode .decision-answers {
+            grid-template-columns: minmax(0, 1fr);
+            max-width: 760px;
+            margin-inline: auto;
         }
 
         * {
@@ -11362,6 +11411,9 @@ const isEs2Presentation = Astro.url.pathname.replace(/\/+$/, '') === '/es2-prese
             const isPreviewDev = params.get('preview') === 'dev';
             const isPreviewCloser = params.get('preview') === 'closer';
             const isTokenlessPresentation = window.location.pathname.replace(/\/+$/, '') === '/es2-presentation';
+            // La variante post-achat n'initialise ni gate, ni rareté, ni expiration,
+            // ni preuve sociale commerciale. Le reste de la page demeure interactif.
+            if (isTokenlessPresentation) return;
             // Aperçu sans token ni gate (dev interne + closers). Le panneau de debug
             // reste réservé à isPreviewDev ; isPreview ne lève que les blocages d'accès.
             // /invitation : page X-Men avec le gate email/token du funnel masterclass.
