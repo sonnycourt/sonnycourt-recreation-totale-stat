@@ -30,17 +30,11 @@ function firstName(value) {
   return clean(value, 100).split(/\s+/)[0] || 'Élève';
 }
 
-function validEmail(value) {
-  const email = clean(value, 200).toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
-}
-
 async function reusableSession(stripe, registration) {
   if (!registration.stripe_checkout_session_id) return null;
   const session = await stripe.checkout.sessions.retrieve(registration.stripe_checkout_session_id).catch(() => null);
   return session?.status === 'open'
     && session.client_secret
-    && session.metadata?.identity_editable === 'v1'
     && session.metadata?.payment_plan === MC2_PAYMENT_PLAN
     && Number(session.metadata?.contractual_total_cents || 0) === MC2_CONTRACT_TOTAL_CENTS
     ? session
@@ -80,33 +74,6 @@ export default async (req) => {
       });
     }
 
-    if (body.action === 'update_identity') {
-      const prenom = clean(body.first_name, 100);
-      const email = validEmail(body.email);
-      const checkoutSessionId = clean(body.checkout_session_id, 100);
-      if (!prenom || !email) return json(400, { error: 'Vérifie ton prénom et ton adresse email.' });
-      if (!checkoutSessionId || checkoutSessionId !== registration.stripe_checkout_session_id) {
-        return json(409, { error: 'Cette session de paiement n’est plus active.' });
-      }
-      const stripe = mc2Stripe();
-      const checkoutSession = await stripe.checkout.sessions.retrieve(checkoutSessionId);
-      if (checkoutSession.status !== 'open'
-        || checkoutSession.metadata?.mc2_token !== token
-        || checkoutSession.metadata?.identity_editable !== 'v1') {
-        return json(409, { error: 'Cette session de paiement n’est plus active.' });
-      }
-      if (typeof checkoutSession.customer === 'string') {
-        await stripe.customers.update(checkoutSession.customer, { name: prenom, email });
-      }
-      const savedIdentity = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
-        prenom,
-        email,
-        updated_at: new Date().toISOString(),
-      });
-      if (!savedIdentity.ok) throw new Error('mc2_checkout_identity_not_saved');
-      return json(200, { ok: true, customer: { name: prenom, email } });
-    }
-
     const stripe = mc2Stripe();
     const entryPrice = await stripe.prices.retrieve(MC2_STRIPE_ENTRY_PRICE_ID);
     if (!isValidMc2EntryPrice(entryPrice)) throw new Error('mc2_entry_price_mismatch');
@@ -136,7 +103,6 @@ export default async (req) => {
       offer_slug: 'es2-complete',
       system: 'es2_mc2',
       funnel: 'mc2',
-      identity_editable: 'v1',
       mc2_token: token,
       traffic_source: clean(registration.traffic_source || 'organic', 40),
       payment_plan: MC2_PAYMENT_PLAN,
@@ -155,9 +121,10 @@ export default async (req) => {
       metadata,
       ...(customerId
         ? { customer: customerId, customer_update: { address: 'auto', name: 'auto' } }
-        : { customer_creation: 'always' }),
+        : { customer_email: registration.email, customer_creation: 'always' }),
       payment_intent_data: {
         setup_future_usage: 'off_session',
+        receipt_email: registration.email,
         statement_descriptor_suffix: 'ES2',
         metadata: { ...metadata, customer_first_name: firstName(registration.prenom) },
       },
