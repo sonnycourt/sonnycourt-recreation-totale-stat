@@ -18,11 +18,11 @@ function response(status, body, extraHeaders = {}) {
   return new Response(body, { status, headers: { ...SECURITY_HEADERS, ...extraHeaders } });
 }
 
-export default async (req) => {
+export default async (req, context = {}) => {
   if (!['GET', 'HEAD'].includes(req.method)) return response(405, 'Méthode non autorisée.');
   try {
     const url = new URL(req.url);
-    const token = String(url.searchParams.get('token') || '').trim();
+    const token = String(context?.params?.token || url.searchParams.get('token') || '').trim();
     const document = await loadMc2ContractDocumentByAccessToken(token);
     if (!document) return response(404, 'Document introuvable.');
     const download = url.searchParams.get('download') === '1';
@@ -37,4 +37,8 @@ export default async (req) => {
     console.error('mc2-contract-document:', String(error?.message || 'document_error').slice(0, 160));
     return response(500, 'Document indisponible.');
   }
+};
+
+export const config = {
+  path: '/documents-contractuels/:token',
 };
