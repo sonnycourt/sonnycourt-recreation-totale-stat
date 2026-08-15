@@ -23,6 +23,10 @@ const reviewInitials = (name) => name
   .map((part) => part[0])
   .join('')
   .toUpperCase();
+const reviewResponses: Record<string, string> = {
+  'historique-es2-kevin-3-etoiles': `Merci Kevin. Ta coach a raison sur un point : le rapport humain compte, et c'est pour ça qu'on ajoute du coaching à nos services en septembre. Mais soyons honnêtes : aucun coach ne peut faire le travail à ta place. La transformation vient de la pratique quotidienne, 15 minutes par jour, et c'est exactement ce que le programme installe. Le coaching accélère. La pratique transforme. Les deux se complètent.`,
+  'historique-es2-cedric-1-etoile': `Bonjour Cédric. On a vérifié ton espace membre avant de te répondre : aucun module ouvert à ce jour. Difficile de ne pas aimer un programme qu'on n'a pas commencé. Si quelque chose te bloque pour démarrer, écris-nous et on regarde ensemble ce qui coince vraiment.`,
+};
 ---
 <!doctype html>
 <html lang="fr">
@@ -47,22 +51,6 @@ const reviewInitials = (name) => name
         <div class="ambient ambient--one"></div>
         <div class="ambient ambient--two"></div>
 
-        <div class="page-countdown shell" role="timer" aria-label="Temps restant : une heure">
-          <div class="page-countdown__digits" aria-hidden="true">
-            <div><strong>00</strong><small>jours</small></div>
-            <b>:</b>
-            <div><strong id="countdown-hours">01</strong><small>heures</small></div>
-            <b>:</b>
-            <div><strong id="countdown-minutes">00</strong><small>minutes</small></div>
-            <b>:</b>
-            <div><strong id="countdown-seconds">00</strong><small>secondes</small></div>
-          </div>
-          <div class="page-countdown__progress" aria-hidden="true">
-            <span id="countdown-progress"></span>
-          </div>
-          <span class="page-countdown__note">Après le compteur, cette offre te sera retirée.</span>
-        </div>
-
         <div class="shell hero-grid" id="top">
           <div class="hero-copy">
             <section class="offer-summary" aria-labelledby="offer-summary-title">
@@ -75,12 +63,28 @@ const reviewInitials = (name) => name
                   alt="Esprit Subconscient 2.0 avec la formation, Morpho et la communauté Volt"
                 />
               </div>
+              <div class="page-countdown" role="timer" aria-label="Temps restant : une heure">
+                <div class="page-countdown__digits" aria-hidden="true">
+                  <div><strong>00</strong><small>jours</small></div>
+                  <b>:</b>
+                  <div><strong id="countdown-hours">01</strong><small>heures</small></div>
+                  <b>:</b>
+                  <div><strong id="countdown-minutes">00</strong><small>minutes</small></div>
+                  <b>:</b>
+                  <div><strong id="countdown-seconds">00</strong><small>secondes</small></div>
+                </div>
+                <div class="page-countdown__progress" aria-hidden="true">
+                  <span id="countdown-progress"></span>
+                </div>
+                <span class="page-countdown__note">Après le compteur, cette offre te sera retirée.</span>
+              </div>
               <div class="offer-summary__details">
+                <p class="offer-summary__training-volume"><span>✓</span> <strong>5 modules et plus de 36 heures de formation</strong></p>
                 <p><span>✓</span> 15 minutes par jour pendant 6 mois</p>
                 <p><span>✓</span> Tes premiers changements visibles dès les 14 premiers jours</p>
                 <p><span>✓</span> App Morpho, ton coach IA personnel pendant 12 mois</p>
                 <p><span>✓</span> Ton plan d’action sur mesure dès J+30</p>
-                <p><span>✓</span> La communauté privée Volt, accessible à vie</p>
+                <p><span>✓</span> La communauté privée Volt</p>
                 <p><span>✓</span> Toutes les futures mises à jour incluses à vie</p>
                 <p class="offer-summary__result">
                   <span class="offer-summary__result-icon" aria-hidden="true">
@@ -90,7 +94,7 @@ const reviewInitials = (name) => name
                     </svg>
                   </span>
                   <span class="offer-summary__result-copy">
-                    Tout ce qu’il te faut pour <strong>devenir qui tu veux</strong> et
+                    Tout ce qu’il te faut pour <strong>réveiller le meilleur en toi</strong> et
                     <strong class="offer-summary__result-underline">obtenir ce que tu veux</strong>&nbsp;!
                   </span>
                 </p>
@@ -170,55 +174,31 @@ const reviewInitials = (name) => name
                 <p class="stripe-error" id="stripe-error" data-stripe-error role="alert"></p>
               </div>
 
-              <section class="schedule" aria-labelledby="schedule-title">
-                <div class="schedule-title-row">
-                  <h3 id="schedule-title">Ton échéancier complet</h3>
-                  <span>Sans intérêts ni frais</span>
-                </div>
-                <div class="schedule-row schedule-row--active">
-                  <div>
-                    <span class="timeline-dot"></span>
-                    <span><strong>Aujourd’hui</strong><small>Acompte</small></span>
-                  </div>
-                  <strong>47&nbsp;€</strong>
-                </div>
-                <div class="schedule-row">
-                  <div>
-                    <span class="timeline-dot"></span>
-                    <span>
-                      <strong>Ensuite, 4 échéances</strong>
-                      <small class="schedule-dates">
-                        <b id="installment-date-14">23/08/2026</b> ·
-                        <b id="installment-date-35">13/09/2026</b> ·
-                        <b id="installment-date-56">04/10/2026</b> ·
-                        <b id="installment-date-77">25/10/2026</b>
-                      </small>
-                    </span>
-                  </div>
-                  <strong>4 × 297&nbsp;€</strong>
-                </div>
-                <div class="schedule-total">
-                  <span>Prix total, tout compris</span>
-                  <strong>1&nbsp;235&nbsp;€</strong>
-                </div>
-                <p class="schedule-cancel-window">
-                  <span aria-hidden="true">✓</span>
-                  Annulation sans frais pendant les 14 premiers jours
+              <section class="schedule schedule--prose" aria-labelledby="schedule-title">
+                <h3 id="schedule-title">Informations relatives au règlement</h3>
+                <p>
+                  Le premier règlement exigible et débité aujourd’hui est fixé à 47&nbsp;€.
+                  À la suite de ce règlement initial de 47&nbsp;€, quatre échéances distinctes
+                  de 297&nbsp;€ chacune seront dues et prélevées respectivement le
+                  <b id="installment-date-14">23/08/2026</b>, le
+                  <b id="installment-date-35">13/09/2026</b>, le
+                  <b id="installment-date-56">04/10/2026</b> et le
+                  <b id="installment-date-77">25/10/2026</b>.
+                  L’ensemble de ces règlements représente un prix total de 1&nbsp;235&nbsp;€,
+                  sans intérêts ni frais supplémentaires. Une annulation sans frais reste
+                  possible pendant les quatorze premiers jours conformément aux conditions
+                  générales de vente acceptées au moment de la commande.
                 </p>
               </section>
 
               <label class="consent">
-                <input type="checkbox" id="commitment" aria-describedby="future-debit-consent" required />
+                <input type="checkbox" id="commitment" required />
                 <span class="custom-checkbox" aria-hidden="true">✓</span>
                 <span>
                   J’accepte les <a href="/cgv/" target="_blank" rel="noopener">CGV</a>
-                  et l’échéancier clairement indiqué ci-dessus.
+                  et autorise les prélèvements conformément à l’échéancier indiqué ci-dessus.
                 </span>
               </label>
-              <p class="future-debit-consent" id="future-debit-consent">
-                Cette validation autorise ArgEntrepreneur Sàrl à débiter cette carte pour les
-                4 échéances de 297&nbsp;€ prévues.
-              </p>
 
               <div class="express-checkout" id="express-checkout" hidden aria-disabled="true">
                 <div id="stripe-express-checkout-element"></div>
@@ -229,12 +209,11 @@ const reviewInitials = (name) => name
                 type="submit"
                 class="buy-button"
                 id="buy-button"
-                aria-label="Payer 47 € aujourd’hui et commencer Esprit Subconscient 2.0"
+                aria-label="Commencer ma transformation pour 47 euros aujourd’hui avec Esprit Subconscient 2.0"
                 disabled
               >
                 <span class="buy-button__label">
-                  <strong>Je commence aujourd’hui pour 47&nbsp;€</strong>
-                  <small>Commande avec obligation de paiement</small>
+                  <strong>Je commence ma transformation pour 47&nbsp;€ aujourd’hui</strong>
                 </span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
               </button>
@@ -260,14 +239,15 @@ const reviewInitials = (name) => name
                   Support humain
                 </span>
               </div>
-              <p class="legal-note">
-                <a href="/confidentialite/" target="_blank" rel="noopener">Politique de confidentialité</a>
-              </p>
             </form>
           </aside>
         </div>
       </section>
     </main>
+
+    <p class="legal-note legal-note--page-bottom">
+      <a href="/confidentialite/" target="_blank" rel="noopener">Politique de confidentialité</a>
+    </p>
 
     <section
       class="expired-offer"
@@ -349,6 +329,12 @@ const reviewInitials = (name) => name
               )}
             </div>
             <p>« {review.review} »</p>
+            {reviewResponses[review.id] && (
+              <div class="review-response">
+                <strong>Réponse de Sonny Court</strong>
+                <p>{reviewResponses[review.id]}</p>
+              </div>
+            )}
           </article>
         ))}
       </div>
@@ -1142,18 +1128,16 @@ const reviewInitials = (name) => name
   .ambient--one { width: 500px; height: 500px; left: -290px; top: 80px; border: 1px solid rgba(80,170,255,.22); box-shadow: 0 0 100px rgba(30,120,255,.1) inset; }
   .ambient--two { width: 760px; height: 760px; right: -510px; bottom: -250px; border: 1px solid rgba(80,210,255,.14); }
 
-  .page-countdown { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 460px; max-width: calc(100% - 40px); margin-top: 24px; padding: 0; color: #fff; }
+  .page-countdown { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; width: 100%; margin-top: 15px; padding: 12px 13px 11px; color: #fff; background: rgba(5,24,51,.52); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.045); }
   .page-countdown::before, .page-countdown::after { display: none; }
   .page-countdown__note { color: rgba(241,245,249,.82); font-size: .73rem; font-weight: 650; line-height: 1.4; text-align: center; }
-  .page-countdown__digits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
-  .page-countdown__digits > div { display: grid; place-items: center; min-width: 0; padding: 9px 8px; color: #fff; background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); border: 1px solid rgba(255,255,255,.15); border-radius: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 10px 28px rgba(0,0,0,.08); backdrop-filter: blur(16px); }
+  .page-countdown__digits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .page-countdown__digits > div { display: grid; place-items: center; min-width: 0; padding: 9px 6px; color: #fff; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
   .page-countdown__digits > div:not(:first-of-type)::before { display: none; }
-  .page-countdown__digits strong { display: block; color: #f8fafc; font-size: clamp(1.2rem, 2.7vw, 1.65rem); line-height: 1.05; font-variant-numeric: tabular-nums; font-weight: 700; }
-  .page-countdown__digits small { margin-top: 4px; color: rgba(226,232,240,.68); font-size: clamp(.48rem, 1.2vw, .68rem); font-weight: 550; letter-spacing: .8px; text-transform: uppercase; }
+  .page-countdown__digits strong { display: block; color: #f8fafc; font-size: clamp(1.15rem, 3.6vw, 1.45rem); line-height: 1.05; font-variant-numeric: tabular-nums; font-weight: 740; }
+  .page-countdown__digits small { margin-top: 4px; color: rgba(203,213,225,.62); font-size: clamp(.43rem, 1vw, .53rem); font-weight: 650; letter-spacing: .8px; text-transform: uppercase; }
   .page-countdown__digits > b { display: none; }
-  .page-countdown__progress { width: 100%; height: 3px; overflow: visible; background: rgba(255,255,255,.07); border-radius: 999px; }
-  .page-countdown__progress span { position: relative; display: block; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(148,163,184,.45), #f8fafc); border-radius: inherit; box-shadow: 0 0 12px rgba(226,232,240,.16); transform-origin: left center; }
-  .page-countdown__progress span::after { content: ''; position: absolute; width: 6px; height: 6px; right: -2px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,.55); }
+  .page-countdown__progress { display: none; }
 
   .hero-grid {
     position: relative;
@@ -1173,8 +1157,9 @@ const reviewInitials = (name) => name
   .offer-summary__visual::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(4,16,34,.2), transparent 42%); }
   .offer-summary__visual img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 48%; }
   .offer-summary__details { display: grid; grid-template-columns: 1fr; gap: 9px; margin-top: 17px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); }
-  .offer-summary__details p { display: flex; gap: 9px; margin: 0; color: rgba(226,232,240,.78); font-size: 11.5px; line-height: 1.45; }
+  .offer-summary__details p { display: flex; gap: 9px; margin: 0; color: #f8fafc; font-size: 11.5px; line-height: 1.45; }
   .offer-summary__details span { flex: 0 0 auto; color: #fff; font-weight: 900; }
+  .offer-summary__training-volume strong { font-weight: 850; }
   .offer-summary__details .offer-summary__result { align-items: center; gap: 12px; margin-top: 5px; padding: 13px 14px; color: #f8fafc; background: linear-gradient(135deg, rgba(14,47,94,.96), rgba(20,79,142,.72)); border: 1px solid rgba(111,170,235,.34); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 24px rgba(1,10,25,.18); font-size: 12.5px; font-weight: 500; }
   .offer-summary__details .offer-summary__result-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; color: #f8c85f; background: rgba(4,20,45,.48); border: 1px solid rgba(248,200,95,.3); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
   .offer-summary__result-icon svg { width: 21px; height: 21px; }
@@ -1190,20 +1175,17 @@ const reviewInitials = (name) => name
     padding: 24px 25px 21px;
     overflow: hidden;
     color: #fff;
-    background:
-      radial-gradient(circle at 88% 8%, rgba(100,183,255,.22), transparent 33%),
-      linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.025));
-    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(15,39,70,.96);
+    border: 1px solid rgba(255,255,255,.13);
     border-radius: 18px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 28px 65px rgba(0,0,0,.24);
-    backdrop-filter: blur(16px);
+    box-shadow: 0 16px 34px rgba(0,0,0,.16);
+    backdrop-filter: none;
     cursor: pointer;
     text-align: left;
-    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    transition: border-color .18s ease;
   }
-  .reviews-summary::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 25%, rgba(255,255,255,.055) 46%, transparent 67%); transform: translateX(-80%); transition: transform .65s ease; }
-  .reviews-summary:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.27); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 33px 72px rgba(0,0,0,.28); }
-  .reviews-summary:hover::after { transform: translateX(80%); }
+  .reviews-summary::after { display: none; }
+  .reviews-summary:hover { transform: none; border-color: rgba(255,255,255,.24); box-shadow: 0 16px 34px rgba(0,0,0,.16); }
   .reviews-summary:focus-visible { outline: 3px solid rgba(91,177,255,.5); outline-offset: 3px; }
   .reviews-summary__eyebrow { display: block; color: rgba(226,232,240,.62); font-size: 8.5px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
   .reviews-summary__main { display: flex; align-items: center; gap: 21px; margin-top: 13px; }
@@ -1213,11 +1195,11 @@ const reviewInitials = (name) => name
   .reviews-summary__rating strong { color: #f8fafc; font-size: 11px; }
   .reviews-summary__rating small { color: rgba(226,232,240,.56); font-size: 8.5px; }
   .star-meter { position: relative; display: inline-block; width: max-content; color: rgba(255,255,255,.18); font-size: 16px; line-height: 1; letter-spacing: 2px; }
-  .star-meter > span:last-child { position: absolute; inset: 0 auto 0 0; width: 96%; overflow: hidden; color: #f3d58d; white-space: nowrap; filter: drop-shadow(0 2px 7px rgba(243,213,141,.16)); }
+  .star-meter > span:last-child { position: absolute; inset: 0 auto 0 0; width: 96%; overflow: hidden; color: #f3d58d; white-space: nowrap; filter: none; }
   .reviews-summary__footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 17px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,.09); }
   .reviews-summary__footer > strong { color: rgba(241,245,249,.88); font-size: 9px; font-weight: 780; letter-spacing: .02em; }
-  .reviews-summary__footer > strong span { display: inline-block; margin-left: 4px; transition: transform .2s ease; }
-  .reviews-summary:hover .reviews-summary__footer > strong span { transform: translateX(4px); }
+  .reviews-summary__footer > strong span { display: inline-block; margin-left: 4px; }
+  .reviews-summary:hover .reviews-summary__footer > strong span { transform: none; }
   .reviews-summary__avatars { display: flex; padding-left: 8px; }
   .reviews-summary__avatars img { width: 29px; height: 29px; margin-left: -8px; object-fit: cover; background: #dbeafe; border: 2px solid #0d2342; border-radius: 50%; }
 
@@ -1253,6 +1235,10 @@ const reviewInitials = (name) => name
   .payment-preview .stripe-error { min-height:14px; color:#c8394f; font-size:10px; line-height:1.4; }
 
   .schedule { margin-top: 16px; padding: 17px; background: #f7faff; border: 1px solid #dbe8f8; border-radius: 13px; }
+  .schedule--prose { padding: 17px 18px; color: #526077; background: #f7f9fc; border-color: #e0e6ef; }
+  .schedule--prose h3 { margin: 0 0 9px; color: #344158; font-size: 11px; font-weight: 700; letter-spacing: 0; }
+  .schedule--prose p { margin: 0; color: #687387; font-size: 11px; font-weight: 450; line-height: 1.65; text-align: left; }
+  .schedule--prose b { color: inherit; font-weight: inherit; }
   .schedule-title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #dde7f3; }
   .schedule-title-row h3 { margin: 0; font-size: 13px; letter-spacing: -.01em; }
   .schedule-title-row > span { color: var(--blue); font-size: 9px; font-weight: 850; text-transform: uppercase; }
@@ -1291,7 +1277,6 @@ const reviewInitials = (name) => name
   .consent > span:last-child { color: #445169; font-size: 10px; line-height: 1.48; }
   .consent strong { color: #111e34; }
   .consent a { color: #145fbf; font-weight: 750; text-underline-offset: 2px; }
-  .future-debit-consent { margin: -7px 1px 13px 31px; color: #788397; font-size: 8.5px; line-height: 1.45; }
 
   .express-checkout[hidden] { display: none!important; }
   .express-checkout { margin: 2px 0 13px; transition: opacity .18s ease; }
@@ -1312,6 +1297,8 @@ const reviewInitials = (name) => name
   .trust-row svg { width: 16px; height: 16px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .legal-note { margin: 14px 0 0; color: #8791a2; text-align: center; font-size: 8.5px; line-height: 1.5; }
   .legal-note a { color:#4d6f9f; }
+  .legal-note--page-bottom { position: relative; z-index: 2; margin: -44px auto 0; padding: 0 16px 24px; background: transparent; }
+  .legal-note--page-bottom a { color: rgba(211,228,250,.58); font-size: 10px; }
 
   dialog { width: min(480px, calc(100% - 34px)); padding: 35px; color: var(--ink); background: #fff; border: 0; border-radius: 20px; box-shadow: 0 30px 100px rgba(0,0,0,.4); text-align: center; }
   dialog::backdrop { background: rgba(1,8,20,.72); backdrop-filter: blur(5px); }
@@ -1360,12 +1347,12 @@ const reviewInitials = (name) => name
   .review-item__head b i { color: #dfe4eb; font-style: normal; }
   .review-item__head .review-item__unrated { padding: 5px 7px; color: #66758b; background: #f2f5f8; border: 1px solid #e2e7ee; border-radius: 999px; font-size: 7px; font-weight: 800; letter-spacing: 0; }
   .reviews-dialog .review-item p { margin: 13px 0 0; color: #4e5d72; font-family: Georgia, 'Times New Roman', serif; font-size: 10.5px; line-height: 1.62; }
+  .review-response { margin-top: 14px; padding: 12px 14px; color: #344158; background: #edf5ff; border-left: 3px solid #2f80ed; border-radius: 0 9px 9px 0; }
+  .review-response strong { display: block; margin-bottom: 5px; color: #1763bd; font-size: 11px; }
+  .reviews-dialog .review-response p { margin: 0; color: #536177; font-family: inherit; font-size: 11px; line-height: 1.55; }
   .reviews-dialog .reviews-dialog__disclosure { display: flex; flex: 0 0 auto; min-height: 52px; align-items: center; justify-content: center; margin: 0; padding: 10px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
 
-  @media (min-width: 981px) {
-    .page-countdown { margin-top: 42px; }
-    .hero-grid { padding-top: 46px; }
-  }
+  @media (min-width: 981px) { .hero-grid { padding-top: 28px; } }
 
   @media (max-width: 980px) {
     .hero-grid { grid-template-columns: 1fr; gap: 0; max-width: 720px; }
@@ -1397,7 +1384,7 @@ const reviewInitials = (name) => name
     .reviews-dialog__filters { top: 76px; padding: 11px 18px; }
     .reviews-list { grid-template-columns: 1fr; padding: 13px 12px 17px; }
     .review-item { padding: 15px; }
-    .page-countdown { display: none; }
+    .page-countdown { display: flex; margin-top: 13px; padding: 11px 10px 10px; }
     .order-product { font-size: 10px; }
     .first-payment-discount { top: 18px; right: 17px; min-width: 100px; padding: 7px 8px 6px; }
     .first-payment-discount strong { font-size: 19px; }
@@ -1408,7 +1395,7 @@ const reviewInitials = (name) => name
       bottom: 17px;
       right: 17px;
       z-index: 2;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       gap: 7px;
@@ -1426,7 +1413,7 @@ const reviewInitials = (name) => name
     .order-mobile-countdown > span { display: flex; align-items: center; justify-content: center; gap: 3px; }
     .order-mobile-countdown strong { font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
     .order-mobile-countdown b { color: rgba(255,255,255,.62); font-size: 16px; line-height: 1; }
-    .order-essential { max-width: calc(100% - 116px); }
+    .order-essential { max-width: none; }
     .today-price__amount { font-size: 48px; }
     .order-form { padding: 19px 16px 22px; }
     .contact-grid { grid-template-columns: 1fr; }
