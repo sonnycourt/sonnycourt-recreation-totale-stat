@@ -153,6 +153,17 @@ const reviewResponses: Record<string, string> = {
             </div>
 
             <form class="order-form" id="checkout-form" data-stripe-checkout>
+              <div
+                class="session-scarcity"
+                id="session-scarcity"
+                aria-live="polite"
+                aria-label="Places encore disponibles pour cette session"
+                hidden
+              >
+                <span class="session-scarcity__dot" aria-hidden="true"></span>
+                <span id="session-scarcity-copy"></span>
+              </div>
+
               <div class="contact-grid">
                 <label>
                   <span>Prénom</span>
@@ -378,6 +389,8 @@ const reviewResponses: Record<string, string> = {
       const expressCheckoutElement = document.querySelector('#stripe-express-checkout-element');
       const paymentLoading = document.querySelector('#payment-loading');
       const previewPayment = document.querySelector('#payment-preview-local');
+      const sessionScarcity = document.querySelector('#session-scarcity');
+      const sessionScarcityCopy = document.querySelector('#session-scarcity-copy');
       const installmentDates = [14, 35, 56, 77];
       const countdownHours = document.querySelector('#countdown-hours');
       const countdownMinutes = document.querySelector('#countdown-minutes');
@@ -393,6 +406,7 @@ const reviewResponses: Record<string, string> = {
         || params.get('preview') === 'dev';
       let stripeCheckout = null;
       let stripeCanConfirm = false;
+      let sessionCapacityBlocked = false;
       let checkoutEngagedSent = false;
       let checkoutSessionId = '';
       let stripeReady = false;
@@ -498,11 +512,69 @@ const reviewResponses: Record<string, string> = {
         return nonce;
       }
 
+      function renderSessionCapacity(data = {}) {
+        if (!sessionScarcity || !sessionScarcityCopy) return;
+        if (data.enabled !== true) {
+          sessionScarcity.hidden = true;
+          sessionCapacityBlocked = false;
+          updateSubmitState();
+          return;
+        }
+
+        const remaining = Math.max(0, Math.min(20, Number(data.remaining) || 0));
+        const reserved = data.reserved === true || data.accepted === true;
+        sessionCapacityBlocked = remaining <= 0 && !reserved;
+        sessionScarcity.hidden = false;
+        sessionScarcity.classList.toggle('is-full', sessionCapacityBlocked);
+        sessionScarcity.classList.toggle('is-reserved', reserved);
+
+        if (reserved) {
+          sessionScarcityCopy.innerHTML = '<strong>Ta place est réservée</strong> pendant la finalisation du paiement';
+        } else if (sessionCapacityBlocked) {
+          sessionScarcityCopy.innerHTML = '<strong>Cette session est complète.</strong>';
+        } else if (remaining === 1) {
+          sessionScarcityCopy.innerHTML = 'Plus qu’<strong>1 place</strong> disponible pour cette session';
+        } else {
+          sessionScarcityCopy.innerHTML = `Plus que <strong>${remaining} places</strong> disponibles pour cette session`;
+        }
+        sessionScarcity.setAttribute('aria-label', sessionScarcityCopy.textContent || 'Places disponibles');
+        updateSubmitState();
+      }
+
+      async function sessionCapacityRequest({ reserve = false } = {}) {
+        if (localPreview) {
+          const preview = { enabled: true, capacity: 3, occupied: 0, remaining: 3, reserved: false };
+          renderSessionCapacity(preview);
+          return preview;
+        }
+        const response = await fetch(
+          reserve
+            ? '/.netlify/functions/mc2-session-capacity'
+            : `/.netlify/functions/mc2-session-capacity?t=${encodeURIComponent(token)}`,
+          reserve
+            ? {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token }),
+              }
+            : { headers: { Accept: 'application/json' }, cache: 'no-store' },
+        );
+        const data = await response.json().catch(() => ({}));
+        renderSessionCapacity(data);
+        if (!response.ok) {
+          const error = new Error(data.error || 'La disponibilité de cette session a changé.');
+          error.code = data.reason || 'session_capacity_error';
+          throw error;
+        }
+        return data;
+      }
+
       function updateSubmitState() {
         if (!submitButton) return;
-        submitButton.disabled = !(checkbox?.checked && (localPreview || stripeCanConfirm));
+        submitButton.disabled = sessionCapacityBlocked
+          || !(checkbox?.checked && (localPreview || stripeCanConfirm));
         if (expressCheckout && !expressCheckout.hidden) {
-          const unlocked = Boolean(checkbox?.checked);
+          const unlocked = Boolean(checkbox?.checked) && !sessionCapacityBlocked;
           expressCheckout.classList.toggle('is-locked', !unlocked);
           expressCheckout.setAttribute('aria-disabled', String(!unlocked));
         }
@@ -785,6 +857,7 @@ const reviewResponses: Record<string, string> = {
           }
           showError('');
           try {
+            await sessionCapacityRequest({ reserve: true });
             await recordContractAcceptance();
           } catch (error) {
             showError(error.message || 'Réessaie dans un instant.');
@@ -866,6 +939,7 @@ const reviewResponses: Record<string, string> = {
         submitButton.classList.add('is-loading');
         showError('');
         try {
+          await sessionCapacityRequest({ reserve: true });
           await recordContractAcceptance();
         } catch (error) {
           showError(error.message || 'Réessaie dans un instant.');
@@ -962,9 +1036,16 @@ const reviewResponses: Record<string, string> = {
         if (initialCountdownRemaining <= 0) {
           showExpiredOffer();
         } else if (localPreview) {
+          await sessionCapacityRequest();
           mountPreview();
         } else {
           trackOnce('checkout_viewed', 4700, { checkout_enabled: true });
+          await sessionCapacityRequest();
+          if (sessionCapacityBlocked) {
+            paymentLoading.hidden = true;
+            showError('Cette session est complète. Aucune nouvelle place ne peut être réservée.');
+            return;
+          }
           await mountStripe();
         }
       }
@@ -1217,6 +1298,39 @@ const reviewResponses: Record<string, string> = {
   .today-price__label { margin-bottom: 4px; color: #b8d7ff; font-size: 14px; font-weight: 700; }
   .order-essential { margin: 11px 0 0; color: #d7eaff; font-size: 10.5px; font-weight: 700; }
   .order-form { padding: 25px 28px 27px; }
+  .session-scarcity[hidden] { display: none; }
+  .session-scarcity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    margin: 0 0 14px;
+    padding: 11px 13px;
+    color: #374151;
+    background: #feecec;
+    border: 1px solid #fca5a5;
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 #fff, 0 7px 18px rgba(127,29,29,.1);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .session-scarcity strong { color: #dc2626; font-weight: 850; }
+  .session-scarcity__dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border: 2px solid rgba(255,255,255,.8);
+    border-radius: 999px;
+    box-shadow: 0 0 0 4px rgba(239,68,68,.16);
+    animation: session-scarcity-pulse 1.8s ease-in-out infinite;
+  }
+  .session-scarcity.is-full { background: #fff1f2; border-color: #f87171; }
+  .session-scarcity.is-reserved { background: #fff5f5; }
+  @keyframes session-scarcity-pulse {
+    50% { box-shadow: 0 0 0 7px rgba(239,68,68,.03); }
+  }
   .contact-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 10px; }
   .contact-grid label > span { display: block; margin: 0 0 7px 2px; color: #4c5870; font-size: 11px; font-weight: 800; }
   .contact-grid input { width: 100%; height: 48px; padding: 0 13px; color: var(--ink); background: #fbfcff; border: 1px solid #d7deea; border-radius: 9px; outline: none; font-size: 13px; }
@@ -1416,6 +1530,7 @@ const reviewResponses: Record<string, string> = {
     .order-essential { max-width: none; }
     .today-price__amount { font-size: 48px; }
     .order-form { padding: 19px 16px 22px; }
+    .session-scarcity { padding: 10px 11px; font-size: 9.5px; }
     .contact-grid { grid-template-columns: 1fr; }
     .schedule { padding: 14px 12px; }
     .schedule-title-row > span { display: none; }
