@@ -1,12 +1,16 @@
 ---
 interface Props {
     source: 'meta_ad' | 'tiktok_ad';
+    trackingPath?: string;
 }
 
-const { source } = Astro.props;
+const {
+    source,
+    trackingPath = source === 'meta_ad' ? '/meta/mc2/' : '/tt/mc2/'
+} = Astro.props;
 ---
 
-<script is:inline define:vars={{ source }}>
+<script is:inline define:vars={{ source, trackingPath }}>
     (function () {
         var MC2_TOKEN_KEY = 'mc2_registration_token';
         var LEGACY_TOKEN_KEYS = new Set(['masterclass_es2_token', 'webinaire_es2_token']);
@@ -84,7 +88,7 @@ const { source } = Astro.props;
             try {
                 var payload = JSON.parse(init.body);
                 if (kind === 'track') {
-                    payload.path = source === 'meta_ad' ? '/meta/mc2/' : '/tt/mc2/';
+                    payload.path = trackingPath;
                     payload.variant = 'mc2_' + String(payload.variant || 'paid');
                 } else if (kind === 'registration-write' && payload.telephone && payload.pays) {
                     payload.sms_consent = true;
