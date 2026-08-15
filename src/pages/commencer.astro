@@ -414,7 +414,30 @@ const reviewInitials = (name) => name
       let paymentDetailsComplete = false;
       let paymentConfirmationStarted = false;
       let lastCheckoutStage = 'page_opened';
+      let checkoutActiveSeconds = 0;
+      let lastUserActivityAt = Date.now();
       const telemetrySent = new Set();
+      const activeActivityWindowMs = 30 * 1000;
+      const activeSecondsCap = 2 * 60 * 60;
+
+      function markUserActivity() {
+        lastUserActivityAt = Date.now();
+      }
+
+      window.setInterval(() => {
+        if (
+          document.visibilityState === 'visible'
+          && Date.now() - lastUserActivityAt <= activeActivityWindowMs
+          && checkoutActiveSeconds < activeSecondsCap
+        ) checkoutActiveSeconds += 1;
+      }, 1000);
+
+      ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+        window.addEventListener(eventName, markUserActivity, { passive: true });
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') markUserActivity();
+      });
 
       function trackingPayload(event, value, meta = {}) {
         return {
@@ -767,6 +790,7 @@ const reviewInitials = (name) => name
           updateSubmitState();
         });
         walletElement.on('confirm', async (event) => {
+          markUserActivity();
           lastCheckoutStage = 'wallet_selected';
           trackOnce('wallet_selected', null, { payment_method: 'express_checkout' });
           if (!checkbox?.checked || !form.reportValidity()) {
@@ -780,10 +804,16 @@ const reviewInitials = (name) => name
             showError(error.message || 'Réessaie dans un instant.');
             return;
           }
-          track('payment_submitted', 4700, { button_id: 'express-checkout' });
+          track('payment_submitted', 4700, {
+            button_id: 'express-checkout',
+            active_seconds: checkoutActiveSeconds,
+          });
           paymentConfirmationStarted = true;
           lastCheckoutStage = 'payment_confirmation_started';
-          trackOnce('payment_confirmation_started', 4700, { button_id: 'express-checkout' });
+          trackOnce('payment_confirmation_started', 4700, {
+            button_id: 'express-checkout',
+            active_seconds: checkoutActiveSeconds,
+          });
           const result = await stripeCheckout
             .confirm({ expressCheckoutConfirmEvent: event })
             .catch((error) => ({ type: 'error', error }));
@@ -797,10 +827,12 @@ const reviewInitials = (name) => name
           trackOnce('stripe_element_ready', null, { stripe_ready: true, element_state: 'ready' });
         });
         paymentElement.on('focus', () => {
+          markUserActivity();
           lastCheckoutStage = 'payment_element_focused';
           markEngaged();
         });
         paymentElement.on('change', (event) => {
+          markUserActivity();
           if (event?.empty === false || event?.complete) {
             paymentDetailsStarted = true;
             lastCheckoutStage = 'payment_details_started';
@@ -837,6 +869,7 @@ const reviewInitials = (name) => name
       });
       form?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        markUserActivity();
         if (!form.reportValidity() || !checkbox?.checked) return;
         if (localPreview) {
           dialog?.showModal();
@@ -855,10 +888,16 @@ const reviewInitials = (name) => name
           updateSubmitState();
           return;
         }
-        track('payment_submitted', 4700, { button_id: 'buy-button' });
+        track('payment_submitted', 4700, {
+          button_id: 'buy-button',
+          active_seconds: checkoutActiveSeconds,
+        });
         paymentConfirmationStarted = true;
         lastCheckoutStage = 'payment_confirmation_started';
-        trackOnce('payment_confirmation_started', 4700, { button_id: 'buy-button' });
+        trackOnce('payment_confirmation_started', 4700, {
+          button_id: 'buy-button',
+          active_seconds: checkoutActiveSeconds,
+        });
         const result = await stripeCheckout.confirm().catch((error) => ({ type: 'error', error }));
         if (handlePaymentError(result, 'buy-button')) {
           submitButton.classList.remove('is-loading');
@@ -872,6 +911,7 @@ const reviewInitials = (name) => name
         const payload = trackingPayload('checkout_abandoned', null, {
           visit_id: checkoutNonce(),
           last_stage: lastCheckoutStage,
+          active_seconds: checkoutActiveSeconds,
           stripe_ready: stripeReady,
           payment_details_started: paymentDetailsStarted,
           payment_details_complete: paymentDetailsComplete,

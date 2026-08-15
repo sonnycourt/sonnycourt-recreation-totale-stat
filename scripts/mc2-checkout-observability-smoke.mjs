@@ -28,6 +28,12 @@ assert.match(checkout, /checkbox\?\.addEventListener\(['"]change['"][\s\S]*terms
 assert.match(checkout, /paymentConfirmationStarted\s*=\s*true[\s\S]*stripeCheckout\.confirm/);
 assert.match(checkout, /addEventListener\(['"]pagehide['"][\s\S]*navigator\.sendBeacon/);
 assert.match(checkout, /fetch\(['"]\/\.netlify\/functions\/track-mc2-event['"][\s\S]*\.catch\(\(\)\s*=>\s*\{\}\)/);
+assert.match(checkout, /document\.visibilityState\s*===\s*['"]visible['"]/);
+assert.match(checkout, /Date\.now\(\)\s*-\s*lastUserActivityAt\s*<=\s*activeActivityWindowMs/);
+assert.match(checkout, /const activeActivityWindowMs = 30 \* 1000/);
+assert.match(checkout, /const activeSecondsCap = 2 \* 60 \* 60/);
+assert.match(checkout, /checkout_abandoned[\s\S]*active_seconds:\s*checkoutActiveSeconds/);
+assert.match(checkout, /payment_submitted[\s\S]*active_seconds:\s*checkoutActiveSeconds/);
 
 assert.match(status, /expand:\s*\[['"]payment_intent\.latest_charge['"]\]/);
 assert.match(status, /payment_method_details\?\.card\?\.three_d_secure/);
