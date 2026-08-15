@@ -83,6 +83,32 @@ const currentYear = new Date().getFullYear();
       const copy = document.querySelector('#status-copy');
       const byId = (id) => document.getElementById(id);
 
+      function trackAuthentication(authentication) {
+        if (local || !token || !authentication || (!authentication.attempted && authentication.state !== 'required')) return;
+        fetch('/.netlify/functions/track-mc2-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({
+            token,
+            event: 'payment_authentication_outcome',
+            value: null,
+            meta: {
+              page_path: '/commencer/succes/',
+              route: '/commencer/succes/',
+              plan: 'advanced',
+              payment_mode: 'deposit_47_then_4x297_days_14_35_56_77',
+              visit_id: sessionId,
+              authentication_state: authentication.state,
+              authentication_result: authentication.result,
+              authentication_flow: authentication.flow,
+              authentication_reason: authentication.reason,
+              intent_status: authentication.intent_status,
+            },
+          }),
+        }).catch(() => {});
+      }
+
       const countryAliases = {
         France: 'FR', Suisse: 'CH', Belgique: 'BE', Canada: 'CA', Luxembourg: 'LU', Monaco: 'MC',
         Allemagne: 'DE', Espagne: 'ES', Italie: 'IT', 'Royaume-Uni': 'GB', 'États-Unis': 'US',
@@ -106,6 +132,7 @@ const currentYear = new Date().getFullYear();
           const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`);
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || 'Paiement introuvable.');
+          trackAuthentication(data.authentication);
           if (data.paid && data.schedule_ready) return revealForm(data);
           if (!data.paid) throw new Error('Le paiement n’est pas confirmé.');
           await new Promise((resolve) => setTimeout(resolve, 2000));

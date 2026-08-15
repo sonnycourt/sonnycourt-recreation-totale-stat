@@ -409,6 +409,12 @@ const reviewInitials = (name) => name
       let stripeCanConfirm = false;
       let checkoutEngagedSent = false;
       let checkoutSessionId = '';
+      let stripeReady = false;
+      let paymentDetailsStarted = false;
+      let paymentDetailsComplete = false;
+      let paymentConfirmationStarted = false;
+      let lastCheckoutStage = 'page_opened';
+      const telemetrySent = new Set();
 
       function trackingPayload(event, value, meta = {}) {
         return {
@@ -433,6 +439,44 @@ const reviewInitials = (name) => name
           keepalive: true,
           body: JSON.stringify(trackingPayload(event, value, meta)),
         }).catch(() => {});
+      }
+
+      function trackOnce(event, value = null, meta = {}) {
+        if (telemetrySent.has(event)) return;
+        telemetrySent.add(event);
+        track(event, value, { visit_id: checkoutNonce(), ...meta });
+      }
+
+      function safePaymentErrorMeta(error, buttonId = '') {
+        const paymentIntent = error?.payment_intent && typeof error.payment_intent === 'object'
+          ? error.payment_intent
+          : null;
+        return {
+          button_id: buttonId,
+          error_type: String(error?.type || '').slice(0, 64),
+          error_code: String(error?.code || '').slice(0, 100),
+          decline_code: String(error?.decline_code || '').slice(0, 100),
+          intent_status: String(paymentIntent?.status || '').slice(0, 48),
+        };
+      }
+
+      function trackAuthentication(authentication) {
+        if (!authentication || (!authentication.attempted && authentication.state !== 'required')) return;
+        trackOnce('payment_authentication_outcome', null, {
+          authentication_state: authentication.state,
+          authentication_result: authentication.result,
+          authentication_flow: authentication.flow,
+          authentication_reason: authentication.reason,
+          intent_status: authentication.intent_status,
+        });
+      }
+
+      async function inspectPaymentAuthentication() {
+        if (!checkoutSessionId || !token || localPreview) return;
+        const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(checkoutSessionId)}&t=${encodeURIComponent(token)}`);
+        if (!response.ok) return;
+        const data = await response.json().catch(() => ({}));
+        trackAuthentication(data.authentication);
       }
 
       function checkoutNonce() {
@@ -462,6 +506,7 @@ const reviewInitials = (name) => name
       function markEngaged() {
         if (checkoutEngagedSent) return;
         checkoutEngagedSent = true;
+        lastCheckoutStage = 'checkout_engaged';
         track('checkout_engaged', null, { visit_id: checkoutNonce() });
       }
 
@@ -642,8 +687,15 @@ const reviewInitials = (name) => name
 
       function handlePaymentError(result, buttonId) {
         if (result?.type !== 'error' && !result?.error) return false;
-        showError(result.error?.message || 'Vérifie les informations de paiement.');
-        track('payment_error', null, { button_id: buttonId });
+        const error = result.error || result;
+        showError(error?.message || 'Vérifie les informations de paiement.');
+        paymentConfirmationStarted = false;
+        lastCheckoutStage = 'payment_error';
+        track('payment_error', null, {
+          visit_id: checkoutNonce(),
+          ...safePaymentErrorMeta(error, buttonId),
+        });
+        inspectPaymentAuthentication().catch(() => {});
         return true;
       }
 
@@ -700,14 +752,23 @@ const reviewInitials = (name) => name
           },
         });
         walletElement.on('ready', ({ availablePaymentMethods }) => {
+          const availableWallets = [
+            availablePaymentMethods?.applePay ? 'apple_pay' : '',
+            availablePaymentMethods?.googlePay ? 'google_pay' : '',
+          ].filter(Boolean);
           const walletAvailable = Boolean(
             availablePaymentMethods?.applePay || availablePaymentMethods?.googlePay,
           );
+          if (walletAvailable) {
+            trackOnce('wallet_available', null, { payment_method: availableWallets.join('_') });
+          }
           if (!expressCheckout || !walletAvailable) return;
           expressCheckout.hidden = false;
           updateSubmitState();
         });
         walletElement.on('confirm', async (event) => {
+          lastCheckoutStage = 'wallet_selected';
+          trackOnce('wallet_selected', null, { payment_method: 'express_checkout' });
           if (!checkbox?.checked || !form.reportValidity()) {
             showError('Accepte les CGV et l’échéancier avant de payer.');
             return;
@@ -720,6 +781,9 @@ const reviewInitials = (name) => name
             return;
           }
           track('payment_submitted', 4700, { button_id: 'express-checkout' });
+          paymentConfirmationStarted = true;
+          lastCheckoutStage = 'payment_confirmation_started';
+          trackOnce('payment_confirmation_started', 4700, { button_id: 'express-checkout' });
           const result = await stripeCheckout
             .confirm({ expressCheckoutConfirmEvent: event })
             .catch((error) => ({ type: 'error', error }));
@@ -727,6 +791,30 @@ const reviewInitials = (name) => name
         });
         paymentLoading.hidden = true;
         stripeElement.hidden = false;
+        paymentElement.on('ready', () => {
+          stripeReady = true;
+          lastCheckoutStage = 'stripe_element_ready';
+          trackOnce('stripe_element_ready', null, { stripe_ready: true, element_state: 'ready' });
+        });
+        paymentElement.on('focus', () => {
+          lastCheckoutStage = 'payment_element_focused';
+          markEngaged();
+        });
+        paymentElement.on('change', (event) => {
+          if (event?.empty === false || event?.complete) {
+            paymentDetailsStarted = true;
+            lastCheckoutStage = 'payment_details_started';
+            trackOnce('payment_details_started', null, { element_state: 'non_empty' });
+          }
+          paymentDetailsComplete = Boolean(event?.complete);
+          if (!paymentDetailsComplete) return;
+          paymentDetailsStarted = true;
+          lastCheckoutStage = 'payment_details_completed';
+          trackOnce('payment_details_completed', null, {
+            element_state: 'complete',
+            payment_details_complete: true,
+          });
+        });
         paymentElement.mount(stripeElement);
         walletElement.mount(expressCheckoutElement);
         stripeCheckout.on('change', (session) => {
@@ -734,12 +822,17 @@ const reviewInitials = (name) => name
           if (stripeCanConfirm) markEngaged();
           updateSubmitState();
         });
-        track('checkout_viewed', 4700, { checkout_enabled: true });
       }
 
       form?.addEventListener('focusin', markEngaged, { once: true });
       checkbox?.addEventListener('change', () => {
         markEngaged();
+        lastCheckoutStage = checkbox.checked ? 'terms_accepted' : 'terms_unchecked';
+        if (checkbox.checked) {
+          trackOnce('terms_accepted', null, { terms_checked: true });
+        } else {
+          track('terms_unchecked', null, { visit_id: checkoutNonce(), terms_checked: false });
+        }
         updateSubmitState();
       });
       form?.addEventListener('submit', async (event) => {
@@ -763,11 +856,32 @@ const reviewInitials = (name) => name
           return;
         }
         track('payment_submitted', 4700, { button_id: 'buy-button' });
+        paymentConfirmationStarted = true;
+        lastCheckoutStage = 'payment_confirmation_started';
+        trackOnce('payment_confirmation_started', 4700, { button_id: 'buy-button' });
         const result = await stripeCheckout.confirm().catch((error) => ({ type: 'error', error }));
         if (handlePaymentError(result, 'buy-button')) {
           submitButton.classList.remove('is-loading');
           stripeCanConfirm = true;
           updateSubmitState();
+        }
+      });
+
+      window.addEventListener('pagehide', () => {
+        if (!token || localPreview || paymentConfirmationStarted || document.body.classList.contains('offer-expired')) return;
+        const payload = trackingPayload('checkout_abandoned', null, {
+          visit_id: checkoutNonce(),
+          last_stage: lastCheckoutStage,
+          stripe_ready: stripeReady,
+          payment_details_started: paymentDetailsStarted,
+          payment_details_complete: paymentDetailsComplete,
+          terms_checked: Boolean(checkbox?.checked),
+        });
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/.netlify/functions/track-mc2-event', new Blob([body], { type: 'application/json' }));
+        } else {
+          track('checkout_abandoned', null, payload.meta);
         }
       });
 
@@ -824,6 +938,7 @@ const reviewInitials = (name) => name
         } else if (localPreview) {
           mountPreview();
         } else {
+          trackOnce('checkout_viewed', 4700, { checkout_enabled: true });
           await mountStripe();
         }
       }
@@ -835,7 +950,11 @@ const reviewInitials = (name) => name
         }
         paymentLoading.hidden = true;
         showError(error.message || 'Le paiement ne peut pas être préparé.');
-        track('payment_error', null, { section: 'initialization' });
+        track('payment_error', null, {
+          section: 'initialization',
+          visit_id: checkoutNonce(),
+          ...safePaymentErrorMeta(error),
+        });
       });
     </script>
   </body>

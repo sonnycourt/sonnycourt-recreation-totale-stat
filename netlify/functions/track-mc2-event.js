@@ -19,6 +19,16 @@ const ALLOWED_EVENTS = new Set([
   'checkout_clicked',
   'checkout_viewed',
   'checkout_engaged',
+  'stripe_element_ready',
+  'payment_details_started',
+  'payment_details_completed',
+  'terms_accepted',
+  'terms_unchecked',
+  'wallet_available',
+  'wallet_selected',
+  'payment_confirmation_started',
+  'payment_authentication_outcome',
+  'checkout_abandoned',
   'payment_submitted',
   'payment_error',
   'purchase_completed',
@@ -57,10 +67,21 @@ function sanitizeMeta(value) {
     button_id: 100,
     section: 64,
     plan: 24,
-    payment_mode: 8,
+    payment_mode: 80,
     referrer: 240,
     visit_id: 100,
     slot_kind: 24,
+    element_state: 32,
+    payment_method: 32,
+    error_type: 64,
+    error_code: 100,
+    decline_code: 100,
+    intent_status: 48,
+    authentication_state: 32,
+    authentication_result: 48,
+    authentication_flow: 48,
+    authentication_reason: 100,
+    last_stage: 64,
   })) {
     const text = clean(input[key], limit);
     if (text) output[key] = text;
@@ -68,6 +89,10 @@ function sanitizeMeta(value) {
   if (input.percent != null) output.percent = positiveInt(input.percent, 100);
   if (input.active_seconds != null) output.active_seconds = positiveInt(input.active_seconds, 86400);
   if (typeof input.checkout_enabled === 'boolean') output.checkout_enabled = input.checkout_enabled;
+  if (typeof input.stripe_ready === 'boolean') output.stripe_ready = input.stripe_ready;
+  if (typeof input.payment_details_started === 'boolean') output.payment_details_started = input.payment_details_started;
+  if (typeof input.payment_details_complete === 'boolean') output.payment_details_complete = input.payment_details_complete;
+  if (typeof input.terms_checked === 'boolean') output.terms_checked = input.terms_checked;
   return output;
 }
 
@@ -77,6 +102,22 @@ function dedupeKey(eventName, value, meta) {
   if (eventName === 'sales_section_viewed' && meta.section) return `sales_section_${meta.section}`;
   if (eventName === 'checkout_engaged' && (meta.visit_id || meta.route)) {
     return `checkout_engaged_${clean(meta.visit_id || meta.route, 100)}`;
+  }
+  if ([
+    'stripe_element_ready',
+    'payment_details_started',
+    'payment_details_completed',
+    'terms_accepted',
+    'wallet_available',
+    'wallet_selected',
+    'payment_confirmation_started',
+    'payment_authentication_outcome',
+    'checkout_abandoned',
+  ].includes(eventName) && meta.visit_id) {
+    const suffix = eventName === 'payment_authentication_outcome'
+      ? `_${clean(meta.authentication_result || meta.authentication_state || 'unknown', 48)}`
+      : '';
+    return `${eventName}_${clean(meta.visit_id, 100)}${suffix}`;
   }
   if (['confirmation_viewed', 'workbook_opened', 'calendar_downloaded', 'session_joined', 'cta_reached'].includes(eventName)) {
     return eventName;
