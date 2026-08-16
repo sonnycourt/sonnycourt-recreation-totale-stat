@@ -1,6 +1,10 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
 import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
+import {
+  mc2FunnelMetaEvents,
+  sendMc2MetaEvents,
+} from './lib/mc2-meta-events.mjs';
 
 const ALLOWED_EVENTS = new Set([
   'confirmation_viewed',
@@ -87,6 +91,7 @@ function sanitizeMeta(value) {
     if (text) output[key] = text;
   }
   if (input.percent != null) output.percent = positiveInt(input.percent, 100);
+  if (input.duration_seconds != null) output.duration_seconds = positiveInt(input.duration_seconds, 86400);
   if (input.active_seconds != null) output.active_seconds = positiveInt(input.active_seconds, 86400);
   if (typeof input.checkout_enabled === 'boolean') output.checkout_enabled = input.checkout_enabled;
   if (typeof input.stripe_ready === 'boolean') output.stripe_ready = input.stripe_ready;
@@ -210,6 +215,12 @@ export default async (req) => {
 
     const row = registration.data[0];
     const meta = sanitizeMeta(body?.meta);
+    const metaEvents = mc2FunnelMetaEvents({
+      eventName,
+      value: body?.value,
+      meta,
+      registration: row,
+    });
     let offerDeadline = null;
     if (eventName === 'cta_reached') {
       offerDeadline = await ensureMc2OfferDeadline({ token, registration: row, source: 'live' });
@@ -237,6 +248,19 @@ export default async (req) => {
     const inserted = await supabasePost('mc2_funnel_events', event, { prefer: 'return=minimal' });
     if (!inserted.ok && inserted.status !== 409) {
       console.error('track-mc2-event insert:', inserted.status, inserted.error);
+    }
+    if (metaEvents.length > 0) {
+      try {
+        await sendMc2MetaEvents({
+          events: metaEvents,
+          registration: row,
+          req,
+          pagePath: meta.page_path,
+        });
+      } catch (error) {
+        // Le tracking Meta ne doit jamais altérer le parcours MC2.
+        console.error('MC2 Meta funnel event failed:', error?.message || error);
+      }
     }
     return jsonResponse(200, {
       ok: true,

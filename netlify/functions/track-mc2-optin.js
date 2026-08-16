@@ -10,7 +10,14 @@ const ALLOWED_EVENTS = new Set([
   'registration_submitted',
   'registration_completed',
 ]);
-const ALLOWED_PATHS = new Set(['/mc2/', '/meta/mc2/', '/tt/mc2/']);
+const ALLOWED_PATHS = new Set([
+  '/mc2/',
+  '/meta/mc2/',
+  '/tt/mc2/',
+  '/masterclass/',
+  '/meta/masterclass/',
+  '/tt/masterclass/',
+]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(status, payload) {

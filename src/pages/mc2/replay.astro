@@ -1157,13 +1157,19 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         });
       } catch {}
     }
-    function trackWebinaireEvent(token, eventName, value) {
+    function trackWebinaireEvent(token, eventName, value, progressMeta) {
       if (!recoveryAccessCode || !eventName) return Promise.resolve(null);
       const mappedEvent = eventName === 'video_checkpoint' ? 'replay_progress' : eventName;
       if (!['replay_started', 'replay_progress', 'cta_reached'].includes(mappedEvent)) return Promise.resolve(null);
       const payload = { access: recoveryAccessCode, event: mappedEvent };
       if (mappedEvent === 'replay_progress') payload.currentSecond = Math.max(0, Math.floor(Number(value) * 60 || 0));
       if (value !== undefined && value !== null) payload.value = String(value);
+      if (progressMeta && Number.isFinite(Number(progressMeta.percent))) {
+        payload.percent = Math.max(0, Math.min(100, Math.round(Number(progressMeta.percent))));
+      }
+      if (progressMeta && Number.isFinite(Number(progressMeta.durationSeconds))) {
+        payload.duration_seconds = Math.max(1, Math.floor(Number(progressMeta.durationSeconds)));
+      }
       console.log('[ES2 TRACKING]', eventName, payload);
       return fetch('/.netlify/functions/mc2-replay-track', {
         method: 'POST',
@@ -1918,7 +1924,11 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         VIDEO_TRACKING_CHECKPOINTS_MIN.forEach((checkpointMin) => {
           if (watchedMinutes >= checkpointMin && !emittedCheckpointMinutes.has(checkpointMin)) {
             emittedCheckpointMinutes.add(checkpointMin);
-            trackWebinaireEvent(token, 'video_checkpoint', checkpointMin);
+            const durationSeconds = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null;
+            trackWebinaireEvent(token, 'video_checkpoint', checkpointMin, {
+              percent: durationSeconds ? (checkpointMin * 60 * 100) / durationSeconds : null,
+              durationSeconds,
+            });
           }
         });
       });

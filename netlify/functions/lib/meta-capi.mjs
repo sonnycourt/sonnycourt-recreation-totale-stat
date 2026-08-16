@@ -42,6 +42,7 @@ function hashPhone(phone) {
  * @param {string} [p.eventId]            - id de déduplication (doit matcher le pixel navigateur)
  * @param {string} [p.email]
  * @param {string} [p.phone]
+ * @param {string} [p.externalId]         - identifiant interne stable (hashé avant envoi)
  * @param {string} [p.ip]
  * @param {string} [p.userAgent]
  * @param {string} [p.fbc]               - cookie _fbc (ou reconstruit depuis fbclid)
@@ -56,6 +57,11 @@ function hashPhone(phone) {
 export async function sendMetaEvent(p = {}) {
   const accessToken = process.env.META_ACCESS_TOKEN;
   const pixelId = process.env.META_PIXEL_ID;
+  const deployContext = String(process.env.CONTEXT || '').trim().toLowerCase();
+
+  if (deployContext && deployContext !== 'production' && process.env.META_CAPI_ALLOW_NON_PRODUCTION !== 'true') {
+    return { ok: false, skipped: true, reason: 'non_production' };
+  }
 
   if (!accessToken || !pixelId) {
     console.warn('Meta CAPI: META_ACCESS_TOKEN ou META_PIXEL_ID manquant, event ignoré');
@@ -68,8 +74,10 @@ export async function sendMetaEvent(p = {}) {
   const userData = {};
   const hEmail = hashEmail(p.email);
   const hPhone = hashPhone(p.phone);
+  const hExternalId = p.externalId ? sha256(String(p.externalId).trim()) : undefined;
   if (hEmail) userData.em = [hEmail];
   if (hPhone) userData.ph = [hPhone];
+  if (hExternalId) userData.external_id = [hExternalId];
   if (p.ip) userData.client_ip_address = String(p.ip);
   if (p.userAgent) userData.client_user_agent = String(p.userAgent);
   if (p.fbc) userData.fbc = String(p.fbc);
@@ -104,11 +112,14 @@ export async function sendMetaEvent(p = {}) {
 
   const endpoint = `https://graph.facebook.com/${META_API_VERSION}/${pixelId}/events`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3500);
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     const json = await res.json().catch(() => ({}));
     // Meta renvoie { events_received: N } en cas de succès, { error: {...} } sinon.
@@ -120,5 +131,7 @@ export async function sendMetaEvent(p = {}) {
   } catch (err) {
     console.error('Meta CAPI fetch error:', err);
     return { ok: false, error: String(err) };
+  } finally {
+    clearTimeout(timeout);
   }
 }

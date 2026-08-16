@@ -21,6 +21,7 @@ import {
 } from './mc2-circle-onboarding.mjs';
 import { addMc2BuyerToMailerLite } from './mc2-mailerlite-buyers.mjs';
 import { queueMc2ContractDocument } from './mc2-contract-documents.mjs';
+import { mc2MetaEventId, sendMc2MetaEvents } from './mc2-meta-events.mjs';
 import {
   cancelMc2DunningJobs,
   mc2DunningStage,
@@ -201,6 +202,28 @@ async function processCheckoutCompleted(stripe, session, event) {
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
+  try {
+    const purchaseRegistration = {
+      ...registration,
+      email: registration.email || session.customer_details?.email || session.customer_email,
+      telephone: registration.telephone || session.customer_details?.phone,
+    };
+    await sendMc2MetaEvents({
+      events: [{
+        eventName: 'Purchase',
+        eventId: mc2MetaEventId('purchase', session.id),
+        contentName: 'Esprit Subconscient 2.0',
+      }],
+      registration: purchaseRegistration,
+      pagePath: '/commencer/succes/',
+      eventTime: Number(event.created) || undefined,
+      value: Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS) / 100,
+      currency: String(session.currency || 'eur').toUpperCase(),
+    });
+  } catch (error) {
+    // Seul Stripe confirme l'achat ; Meta ne doit jamais bloquer le webhook.
+    console.error('MC2 Meta Purchase failed:', error?.message || error);
+  }
   // Le document est figé uniquement après confirmation du paiement initial.
   // Son insertion est idempotente par inscription ; une rediffusion Stripe ne
   // crée ni nouveau document ni nouveau lien personnel.

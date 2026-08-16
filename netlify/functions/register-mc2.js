@@ -4,6 +4,10 @@ import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
 import { queueMc2Sms } from './lib/mc2-sms.mjs';
 import { queueMc2SessionEmails } from './lib/mc2-session-emails.mjs';
 import { upsertWebinaireSubscriber } from './lib/mailerlite-webinaire.mjs';
+import {
+  mc2RegistrationMetaEvents,
+  sendMc2MetaEvents,
+} from './lib/mc2-meta-events.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -29,7 +33,7 @@ function trim(value, max = 255) {
   return cleaned ? cleaned.slice(0, max) : null;
 }
 
-function registrationResponse(row, alreadyRegistered = false) {
+function registrationResponse(row, alreadyRegistered = false, metaEvents = []) {
   return {
     success: true,
     alreadyRegistered,
@@ -40,7 +44,20 @@ function registrationResponse(row, alreadyRegistered = false) {
     slotKind: row.slot_kind,
     visitorTimezone: row.visitor_timezone,
     redirectTo: `/mc2/confirmation?t=${encodeURIComponent(row.token)}`,
+    ...(metaEvents.length > 0 ? { metaEvents } : {}),
   };
+}
+
+async function deliverRegistrationMetaEvents(req, row, options) {
+  const events = mc2RegistrationMetaEvents(row, options);
+  if (events.length === 0) return [];
+  try {
+    await sendMc2MetaEvents({ events, registration: row, req });
+  } catch (error) {
+    // Meta ne doit jamais bloquer l'inscription MC2.
+    console.error('MC2 Meta registration event failed:', error?.message || error);
+  }
+  return events;
 }
 
 async function queueLiveReminder(row) {
@@ -143,6 +160,7 @@ export default async (req) => {
 
     if (Array.isArray(existing.data) && existing.data.length > 0) {
       const row = existing.data[0];
+      const completedBefore = Boolean(row.registration_completed_at);
       const patch = {
         prenom,
         ...sessionFields,
@@ -179,7 +197,11 @@ export default async (req) => {
       await syncMailerLite(completedRow);
       await queueLiveReminder(completedRow);
       if (isComplete) await queueSessionEmails(completedRow);
-      return jsonResponse(200, registrationResponse(completedRow, true));
+      const metaEvents = await deliverRegistrationMetaEvents(req, completedRow, {
+        created: false,
+        completedNow: isComplete && !completedBefore,
+      });
+      return jsonResponse(200, registrationResponse(completedRow, true, metaEvents));
     }
 
     const row = {
@@ -215,7 +237,11 @@ export default async (req) => {
     await queueLiveReminder(row);
     await syncMailerLite(row);
     if (isComplete) await queueSessionEmails(row);
-    return jsonResponse(200, registrationResponse(row));
+    const metaEvents = await deliverRegistrationMetaEvents(req, row, {
+      created: true,
+      completedNow: isComplete,
+    });
+    return jsonResponse(200, registrationResponse(row, false, metaEvents));
   } catch (error) {
     console.error('register-mc2 error:', error);
     return jsonResponse(500, {
