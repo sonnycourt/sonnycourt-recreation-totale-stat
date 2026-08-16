@@ -1550,7 +1550,14 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         function trackWebinaireEvent(token, eventName, value) {
             if (!token || !eventName) return Promise.resolve(null);
             const payload = { token, event: eventName, meta: { page_path: '/mc2/session/' } };
-            if (value !== undefined && value !== null) payload.value = String(value);
+            if (value !== undefined && value !== null) {
+                payload.value = String(value);
+                if (eventName === 'video_checkpoint') {
+                    const durationSeconds = getVideoDurationSeconds();
+                    payload.meta.duration_seconds = Math.max(1, Math.floor(durationSeconds));
+                    payload.meta.percent = Math.min(100, Math.round((Number(value) * 60 * 100) / durationSeconds));
+                }
+            }
             console.log('[ES2 TRACKING]', eventName, payload);
             return fetch('/.netlify/functions/track-mc2-event', {
                 method: 'POST',

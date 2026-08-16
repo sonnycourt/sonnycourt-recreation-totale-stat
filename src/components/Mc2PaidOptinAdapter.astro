@@ -116,6 +116,21 @@ const {
             return new Promise(function () {});
         }
 
+        function fireMetaBrowserEvents(data) {
+            if (source !== 'meta_ad' || !window.fbq || !Array.isArray(data && data.metaEvents)) return;
+            data.metaEvents.forEach(function (event) {
+                if (!event || !event.eventName || !event.eventId) return;
+                var params = {
+                    content_name: event.contentName || 'Masterclass ES2'
+                };
+                if (event.eventName === 'Lead') {
+                    window.fbq('track', 'Lead', params, { eventID: event.eventId });
+                } else {
+                    window.fbq('trackCustom', event.eventName, params, { eventID: event.eventId });
+                }
+            });
+        }
+
         function discloseSmsReminders() {
             document.querySelectorAll('.phone-privacy-note span').forEach(function (node) {
                 node.textContent = 'Ton numéro reste confidentiel. En continuant, tu acceptes les 2 rappels SMS liés à ta session et à son offre.';
@@ -163,6 +178,7 @@ const {
 
             if (kind === 'registration-write' && data && data.success && data.token) {
                 saveMc2Token(data.token);
+                try { fireMetaBrowserEvents(data); } catch (error) {}
                 var payload = {};
                 try { payload = JSON.parse((nextInit && nextInit.body) || '{}'); } catch (error) {}
                 if (payload.telephone && payload.pays) {

@@ -1,6 +1,10 @@
 import { loadMc2ReplayAccess } from './lib/mc2-replay-recovery.mjs';
 import { supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
+import {
+  mc2FunnelMetaEvents,
+  sendMc2MetaEvents,
+} from './lib/mc2-meta-events.mjs';
 
 const EVENTS = new Set(['replay_started', 'replay_progress', 'cta_reached']);
 
@@ -25,6 +29,8 @@ export default async (req) => {
     const access = await loadMc2ReplayAccess(body.access);
     if (!access.ok) return json(404, { error: 'Accès invalide' });
     const currentSecond = second(body.currentSecond);
+    const percent = second(body.percent);
+    const durationSeconds = second(body.duration_seconds);
     const nowIso = new Date().toISOString();
     const patch = { last_presence_at: nowIso, last_event_at: nowIso };
     let offerDeadline = null;
@@ -46,16 +52,40 @@ export default async (req) => {
         { watch_max_seconds_replay: currentSecond, last_presence_at: nowIso, last_event_at: nowIso },
       );
     }
+    const funnelEventName = event === 'replay_progress' ? 'video_checkpoint' : event;
+    const eventMeta = {
+      route: '/mc2/replay/',
+      ...(percent > 0 ? { percent: Math.min(100, percent) } : {}),
+      ...(durationSeconds > 0 ? { duration_seconds: durationSeconds } : {}),
+    };
     await supabasePost('mc2_funnel_events', {
       token: access.registration.token,
-      event_name: event === 'replay_progress' ? 'video_checkpoint' : event,
+      event_name: funnelEventName,
       event_value: String(currentSecond),
       page_path: '/mc2/replay/',
-      metadata: { route: '/mc2/replay/' },
+      metadata: eventMeta,
       dedupe_key: event === 'replay_progress'
         ? `recovery_replay_${access.job.id}_${Math.floor(currentSecond / 60)}`
         : `recovery_${event}_${access.job.id}`,
     }, { prefer: 'return=minimal' }).catch(() => {});
+    const metaEvents = mc2FunnelMetaEvents({
+      eventName: funnelEventName,
+      value: event === 'replay_progress' ? currentSecond / 60 : body.value,
+      meta: eventMeta,
+      registration: access.registration,
+    });
+    if (metaEvents.length > 0) {
+      try {
+        await sendMc2MetaEvents({
+          events: metaEvents,
+          registration: access.registration,
+          req,
+          pagePath: '/mc2/replay/',
+        });
+      } catch (error) {
+        console.error('MC2 Meta replay event failed:', error?.message || error);
+      }
+    }
     return json(200, {
       ok: true,
       ...(offerDeadline ? {
