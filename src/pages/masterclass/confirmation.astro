@@ -577,6 +577,37 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             display: block;
         }
 
+        .postponed-state {
+            max-width: 680px;
+            margin: 12vh auto 0;
+            padding: clamp(30px, 7vw, 52px);
+            text-align: center;
+            border: 1px solid rgba(96, 165, 250, 0.34);
+            border-radius: 22px;
+            background: rgba(15, 23, 42, 0.88);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+        }
+
+        .postponed-state[hidden] {
+            display: none;
+        }
+
+        .postponed-state .badge {
+            margin-bottom: 18px;
+        }
+
+        .postponed-state h1 {
+            margin: 0 0 16px;
+        }
+
+        .postponed-state p {
+            max-width: 540px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            line-height: 1.65;
+        }
+
         .dev-preview-banner {
             position: fixed;
             top: 0;
@@ -709,6 +740,12 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
     <div class="container">
         <div id="loading-state">Chargement de ta confirmation…</div>
+
+        <section id="postponed-state" class="postponed-state" hidden aria-live="polite">
+            <div class="badge">Session reportée</div>
+            <h1 id="postponed-title">Cette session a été reportée</h1>
+            <p id="postponed-message">La nouvelle date et ton lien personnel te seront envoyés dans les prochains jours.</p>
+        </section>
 
         <div id="main-content">
             <div id="badge-label" class="badge">Inscription confirmée</div>
@@ -1251,6 +1288,29 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }, 1000);
         }
 
+        function showPostponedState(data) {
+            const loading = document.getElementById('loading-state');
+            const main = document.getElementById('main-content');
+            const state = document.getElementById('postponed-state');
+            const title = document.getElementById('postponed-title');
+            const message = document.getElementById('postponed-message');
+            const video = document.getElementById('confirmation-video');
+
+            if (video) {
+                try { video.pause(); } catch {}
+                video.removeAttribute('src');
+                video.querySelectorAll('source').forEach(function (source) {
+                    source.removeAttribute('src');
+                });
+                try { video.load(); } catch {}
+            }
+            if (loading) loading.style.display = 'none';
+            if (main) main.classList.remove('visible');
+            if (title) title.textContent = data?.accessTitle || 'Cette session a été reportée';
+            if (message) message.textContent = data?.accessMessage || 'La nouvelle date et ton lien personnel te seront envoyés dans les prochains jours.';
+            if (state) state.hidden = false;
+        }
+
         /* ── Custom Video Player ── */
         (function initVideoPlayer() {
             var player = document.getElementById('video-player');
@@ -1456,13 +1516,23 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             }
 
             const data = await res.json();
-            if (!data.valid || !data.sessionStartsAt || !data.sessionEndsAt) {
+            if (!data.valid) {
                 window.location.replace('/masterclass');
                 return;
             }
 
             const tk = token.trim();
             setTokenEverywhere(tk);
+
+            if (data.sessionPostponed === true || data.accessState === 'postponed') {
+                showPostponedState(data);
+                return;
+            }
+
+            if (!data.sessionStartsAt || !data.sessionEndsAt) {
+                window.location.replace('/masterclass');
+                return;
+            }
 
             async function pingWaiting() {
                 try {

@@ -1157,7 +1157,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     </div>
 
     <section id="screen-blocked" class="screen blocked" aria-live="polite">
-        <div class="badge">Session fermée</div>
+        <div id="blocked-badge" class="badge">Session fermée</div>
         <h1 id="blocked-title">Cette masterclass n'est plus accessible.</h1>
         <p id="blocked-text"></p>
         <a id="blocked-volt-link" class="btn" href="https://volt.sonnycourt.com" target="_blank" rel="noopener" style="display:none;">Accéder à mon compte</a>
@@ -1425,6 +1425,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             const voltLink = document.getElementById('blocked-volt-link');
             const backLink = document.getElementById('blocked-back-link');
             if (voltLink) voltLink.style.display = '';
+            if (backLink) backLink.style.display = 'none';
+            showScreen('screen-blocked');
+        }
+        function showPostponedBlocked(payload) {
+            const badge = document.getElementById('blocked-badge');
+            const voltLink = document.getElementById('blocked-volt-link');
+            const backLink = document.getElementById('blocked-back-link');
+            if (badge) badge.textContent = 'Session reportée';
+            document.getElementById('blocked-title').textContent = payload?.accessTitle || 'Cette session a été reportée';
+            document.getElementById('blocked-text').textContent = payload?.accessMessage || 'La nouvelle date et ton lien personnel te seront envoyés dans les prochains jours.';
+            if (voltLink) voltLink.style.display = 'none';
             if (backLink) backLink.style.display = 'none';
             showScreen('screen-blocked');
         }
@@ -3268,11 +3279,22 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     return;
                 }
                 const data = await res.json();
-                if (!data.valid || !data.sessionStartsAt || !data.offreExpiresAt) {
+                if (!data.valid) {
                     showScreen('screen-recovery');
                     return;
                 }
                 setTokenEverywhere(token);
+
+                if (data.sessionPostponed === true || data.accessState === 'postponed') {
+                    showPostponedBlocked(data);
+                    return;
+                }
+
+                if (!data.sessionStartsAt || !data.offreExpiresAt) {
+                    showScreen('screen-recovery');
+                    return;
+                }
+
                 const reg = normalizeReg(data, token);
                 if (isBuyer(data) || isBuyer(reg)) {
                     showBuyerBlocked();

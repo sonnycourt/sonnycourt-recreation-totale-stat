@@ -1,6 +1,10 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
+import {
+  isLegacyWebinarPostponed,
+  LEGACY_WEBINAR_POSTPONEMENT,
+} from './lib/legacy-webinar-postponement.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 const MAILERLITE_TIMEOUT_MS = 3000;
@@ -272,6 +276,22 @@ export default async (req) => {
     }
 
     const row = res.data[0];
+    if (isLegacyWebinarPostponed(row)) {
+      return jsonResponse(200, {
+        valid: true,
+        sessionPostponed: true,
+        accessState: 'postponed',
+        accessTitle: LEGACY_WEBINAR_POSTPONEMENT.title,
+        accessMessage: LEGACY_WEBINAR_POSTPONEMENT.message,
+        prenom: row.prenom || '',
+        creneau: row.creneau || '20h',
+        statut: row.statut || 'inscrit',
+        sessionStartsAt: row.session_date,
+        sessionEndsAt: row.session_ends_at,
+        offreExpiresAt: row.offre_expires_at,
+      });
+    }
+
     let purchased = row.purchased === true;
     if (!purchased) {
       purchased = await isInMailerLiteAcheteursGroup(String(row.email || '').trim().toLowerCase());
