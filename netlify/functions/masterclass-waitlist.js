@@ -76,7 +76,9 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return json(200, { success: true });
   if (req.method !== 'POST') return json(405, { success: false, error: 'method_not_allowed' });
 
-  const apiKey = clean(process.env.MAILERLITE_API_KEY, 500);
+  // Les clés MailerLite actuelles peuvent dépasser 500 caractères.
+  // Ne jamais tronquer un secret d’authentification.
+  const apiKey = String(process.env.MAILERLITE_API_KEY || '').trim();
   const groupId = clean(process.env.MAILERLITE_GROUP_MC2_WAITLIST, 160);
   if (!apiKey || !groupId) {
     console.error('Masterclass waitlist MailerLite configuration missing');

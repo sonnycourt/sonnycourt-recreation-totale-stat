@@ -4,7 +4,12 @@ const originalFetch = globalThis.fetch;
 const calls = [];
 
 globalThis.fetch = async (url, options = {}) => {
-  calls.push({ url: String(url), method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : null });
+  calls.push({
+    url: String(url),
+    method: options.method || 'GET',
+    body: options.body ? JSON.parse(options.body) : null,
+    authorization: options.headers?.Authorization || '',
+  });
   const pathname = new URL(String(url)).pathname;
   if (pathname === '/api/subscribers/new%40example.com') {
     return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
@@ -24,7 +29,8 @@ globalThis.fetch = async (url, options = {}) => {
   return new Response(JSON.stringify({ error: pathname }), { status: 500 });
 };
 
-process.env.MAILERLITE_API_KEY = 'test-key';
+const longApiKey = `test-key-${'x'.repeat(900)}`;
+process.env.MAILERLITE_API_KEY = longApiKey;
 process.env.MAILERLITE_GROUP_MC2_WAITLIST = 'group-waitlist';
 const { default: handler } = await import('../netlify/functions/masterclass-waitlist.js');
 
@@ -39,6 +45,7 @@ assert.equal(response.status, 200);
 assert.equal((await response.json()).success, true);
 assert(calls.some((call) => call.method === 'POST' && call.url.endsWith('/api/subscribers')));
 assert(calls.some((call) => call.url.endsWith('/subscribers/subscriber-new/groups/group-waitlist')));
+assert(calls.every((call) => call.authorization === `Bearer ${longApiKey}`));
 
 response = await handler(request({ prenom: 'Marc', email: 'existing@example.com' }));
 assert.equal(response.status, 200);
