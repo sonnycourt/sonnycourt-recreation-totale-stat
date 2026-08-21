@@ -88,13 +88,15 @@ assert.equal(onceDocument.schedule.length, 1);
 assert.equal(onceDocument.pricing.remaining_scheduled_cents, 0);
 
 const page = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
-assert.match(page, /js\.stripe\.com\/clover\/stripe\.js/);
-assert.match(page, /clientSecret:\s*data\.client_secret/);
-assert.match(page, /controller\.actions\.confirm/);
-assert.match(page, /checkout_surface:\s*'mc2_session'/);
-assert.match(page, /createPaymentElement/);
-assert.match(page, /createExpressCheckoutElement/);
-assert.match(page, /updateBillingAddress/);
+assert.match(page, /https:\/\/js\.static\.spiffy\.co\/spiffy\.js/);
+assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
+assert.match(page, /esprit-subconscient-2-0-2-2-1/);
+assert.match(page, /esprit-subconscient-2-0-34/);
+assert.match(page, /document\.createElement\(['"]spiffy-checkout['"]\)/);
+assert.match(page, /document\.createElement\(['"]iframe['"]\)/);
+assert.match(page, /setAttribute\(['"]allow['"],\s*['"]payment['"]\)/);
+assert.match(page, /url\.searchParams\.set\(['"]name_first['"],\s*reg\.prenom\)/);
+assert.match(page, /url\.searchParams\.set\(['"]email['"],\s*reg\.email\)/);
 assert.match(page, /mountLiveInlineCheckout\(reg\)/);
 assert.doesNotMatch(page, /window\.location\.href\s*=\s*'\/commencer\?t='/);
 
@@ -108,7 +110,7 @@ console.log(JSON.stringify({
   monthly: '197_now_plus_11_monthly',
   one_time: '1997_once',
   contract_documents: 'both_plans',
-  payment_element: 'inline_secure',
-  wallets: 'apple_pay_google_pay',
+  payment_provider: 'spiffy_embedded',
+  payment_fields: 'provider_hosted_pci_scope',
   redirect_to_checkout: 'removed',
 }, null, 2));

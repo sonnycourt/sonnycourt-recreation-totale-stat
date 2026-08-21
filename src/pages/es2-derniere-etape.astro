@@ -317,6 +317,12 @@
   <script>
     document.addEventListener('DOMContentLoaded', async function () {
       const params = new URLSearchParams(window.location.search);
+      let mc2Token = '';
+      try { mc2Token = (localStorage.getItem('mc2_registration_token') || '').trim(); } catch (e) { /* noop */ }
+      if (mc2Token) {
+        window.location.replace('/commencer/succes/?provider=spiffy&t=' + encodeURIComponent(mc2Token));
+        return;
+      }
       const TOKEN_KEY = 'masterclass_es2_token';
       let token = (params.get('t') || params.get('token') || '').trim();
       if (!token) {

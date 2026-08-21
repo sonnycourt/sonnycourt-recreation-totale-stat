@@ -71,7 +71,11 @@ const currentYear = new Date().getFullYear();
 
     <script is:inline>
       const params = new URLSearchParams(location.search);
-      const token = (params.get('t') || '').trim();
+      const provider = params.get('provider') === 'spiffy' ? 'spiffy' : 'stripe';
+      let token = (params.get('t') || '').trim();
+      if (!token && provider === 'spiffy') {
+        try { token = (localStorage.getItem('mc2_registration_token') || '').trim(); } catch {}
+      }
       const sessionId = (params.get('session_id') || '').trim();
       const local = location.hostname === '127.0.0.1' || location.hostname === 'localhost' || params.get('preview') === 'dev';
       const form = document.querySelector('#billing-form');
@@ -127,9 +131,12 @@ const currentYear = new Date().getFullYear();
 
       async function verifyPayment() {
         if (local) return revealForm({ first_name: 'Sonny', phone: '+41 78 000 00 00', country: 'CH' });
-        if (!token || !sessionId) throw new Error('Confirmation incomplète.');
+        if (!token || (provider === 'stripe' && !sessionId)) throw new Error('Confirmation incomplète.');
         for (let attempt = 0; attempt < 10; attempt += 1) {
-          const response = await fetch(`/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`);
+          const statusUrl = provider === 'spiffy'
+            ? `/.netlify/functions/mc2-spiffy-status?t=${encodeURIComponent(token)}`
+            : `/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`;
+          const response = await fetch(statusUrl);
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || 'Paiement introuvable.');
           trackAuthentication(data.authentication);
@@ -153,6 +160,7 @@ const currentYear = new Date().getFullYear();
             body: JSON.stringify({
               t: token,
               session_id: sessionId,
+              provider,
               first_name: byId('first-name').value.trim(),
               last_name: byId('last-name').value.trim(),
               phone: byId('phone').value.trim(),

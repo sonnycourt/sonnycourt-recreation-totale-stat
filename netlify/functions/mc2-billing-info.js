@@ -20,20 +20,27 @@ export default async (req) => {
     const body = await req.json().catch(() => ({}));
     const token = cleanMc2Token(body.t);
     const sessionId = clean(body.session_id, 255);
-    if (!token || !sessionId) return json(400, { error: 'Identification manquante' });
+    const provider = clean(body.provider, 32).toLowerCase() === 'spiffy' ? 'spiffy' : 'stripe';
+    if (!token || (provider === 'stripe' && !sessionId)) return json(400, { error: 'Identification manquante' });
     const registrationResult = await supabaseGet(
       `mc2_registrations?token=eq.${encodeURIComponent(token)}`
-        + '&select=token,email,stripe_checkout_session_id,stripe_customer_id,payment_status&limit=1',
+        + '&select=token,email,statut,stripe_checkout_session_id,stripe_customer_id,payment_status&limit=1',
     );
     const registration = registrationResult.ok && Array.isArray(registrationResult.data)
       ? registrationResult.data[0]
       : null;
-    if (!registration || registration.stripe_checkout_session_id !== sessionId) {
+    if (!registration || (provider === 'stripe' && registration.stripe_checkout_session_id !== sessionId)) {
       return json(404, { error: 'Achat introuvable' });
     }
-    const session = await mc2Stripe().checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== 'paid' || session.client_reference_id !== token) {
-      return json(403, { error: 'Paiement non confirmé' });
+    if (provider === 'spiffy') {
+      if (registration.payment_status !== 'paid' || registration.statut !== 'purchased') {
+        return json(403, { error: 'Paiement non confirmé' });
+      }
+    } else {
+      const session = await mc2Stripe().checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== 'paid' || session.client_reference_id !== token) {
+        return json(403, { error: 'Paiement non confirmé' });
+      }
     }
     const firstName = clean(body.first_name, 80);
     const lastName = clean(body.last_name, 80);
@@ -59,7 +66,7 @@ export default async (req) => {
     if (missing.length) return json(400, { error: 'Champs obligatoires manquants', missing });
     const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, patch);
     if (!updated.ok) return json(500, { error: 'Enregistrement impossible' });
-    if (registration.stripe_customer_id) {
+    if (provider === 'stripe' && registration.stripe_customer_id) {
       const addressFingerprint = crypto.createHash('sha256')
         .update(JSON.stringify(patch))
         .digest('hex')

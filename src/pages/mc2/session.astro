@@ -57,7 +57,19 @@ const previewReviewInitials = (name) => name
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-    <script is:inline src="https://js.stripe.com/clover/stripe.js"></script>
+    <script is:inline>
+    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
+    ;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+    e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t
+    ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+    spiffy.SNIPPET_VERSION="1.1.0";
+    spiffy.config({ hideSidebar: true });
+    if (window.location.protocol === 'https:') spiffy.load("sonnycourt");
+    </script>
     <GAConsentMode />
     <script type="text/javascript">
         (function(c,l,a,r,i,t,y){
@@ -967,8 +979,31 @@ const previewReviewInitials = (name) => name
             margin-bottom: 14px;
         }
         .preview-payment__label { margin: 0; font-size: 0.92rem; font-weight: 850; }
-        .preview-payment__cards { display: flex; gap: 5px; color: #bed0e6; font-size: 0.64rem; font-weight: 800; }
-        .preview-payment__cards span { padding: 4px 5px; border: 1px solid rgba(150, 184, 226, 0.24); border-radius: 4px; background: rgba(255, 255, 255, 0.055); }
+        .preview-spiffy-slot {
+            min-height: 610px;
+            overflow: hidden;
+            border: 1px solid rgba(145, 177, 217, 0.22);
+            border-radius: 14px;
+            background: #111a30;
+        }
+        .preview-spiffy-slot spiffy-checkout { display: block; width: 100%; }
+        .preview-spiffy-frame {
+            display: block;
+            width: 100%;
+            min-height: 950px;
+            border: 0;
+            background: #111a30;
+        }
+        .preview-spiffy-loading {
+            display: grid;
+            min-height: 160px;
+            place-items: center;
+            padding: 28px 14px;
+            color: #aebfd4;
+            font-size: 0.74rem;
+            text-align: center;
+        }
+        .preview-spiffy-error { min-height: 18px; margin: 10px 2px 0; color: #fda4af; font-size: 0.7rem; line-height: 1.45; text-align: center; }
         .preview-card-field,
         .preview-card-mini,
         .preview-country {
@@ -1747,72 +1782,18 @@ const previewReviewInitials = (name) => name
                     </div>
                 </header>
                 <div class="preview-checkout__body">
-                    <form id="preview-payment" class="preview-payment" novalidate>
+                    <div id="preview-payment" class="preview-payment" data-plan="monthly">
                         <div class="preview-seat-badge" aria-label="Quatorze places disponibles sur quinze">
                             <span>Places encore disponibles pour cette session</span>
                             <strong>14 <small>/ 15</small></strong>
                         </div>
-                        <div class="preview-identity">
-                            <div class="preview-identity__field">
-                                <label for="preview-first-name">Prénom</label>
-                                <input id="preview-first-name" type="text" value="Preview" autocomplete="given-name" readonly />
+                        <div id="preview-spiffy-slot" class="preview-spiffy-slot" aria-live="polite">
+                            <div class="preview-spiffy-loading">Chargement du formulaire d’inscription…</div>
+                        </div>
+                        <div class="preview-schedule" aria-label="Échéancier de paiement">
+                            <div class="preview-schedule__head">
+                                <p class="preview-schedule__title">Informations relatives au règlement</p>
                             </div>
-                            <div class="preview-identity__field">
-                                <label for="preview-email">Email</label>
-                                <input id="preview-email" type="email" value="preview@sonnycourt.com" autocomplete="email" readonly />
-                            </div>
-                        </div>
-                        <div class="preview-payment__head">
-                            <p class="preview-payment__label">Carte bancaire</p>
-                            <div class="preview-payment__cards" aria-hidden="true"><span>VISA</span><span>MC</span><span>AMEX</span></div>
-                        </div>
-                        <div class="preview-fake-only preview-card-field">Numéro de carte</div>
-                        <div class="preview-fake-only preview-card-row">
-                            <div class="preview-card-mini">MM / AA</div>
-                            <div class="preview-card-mini">CVC</div>
-                        </div>
-                        <div class="stripe-live-only">
-                            <div id="preview-stripe-wallet" class="preview-stripe-wallet" hidden></div>
-                            <div id="preview-stripe-separator" class="preview-stripe-separator" hidden>ou par carte</div>
-                            <div id="preview-stripe-loading" class="preview-stripe-loading">Chargement du paiement sécurisé…</div>
-                            <div id="preview-stripe-payment-element"></div>
-                        </div>
-                        <div class="preview-country-wrap">
-                            <label for="preview-country">Pays</label>
-                            <select id="preview-country" class="preview-country" required>
-                                <option value="CH">Suisse</option>
-                                <option value="FR">France</option>
-                                <option value="BE">Belgique</option>
-                                <option value="LU">Luxembourg</option>
-                                <option value="MC">Monaco</option>
-                                <option value="CA">Canada</option>
-                                <option value="DE">Allemagne</option>
-                                <option value="AT">Autriche</option>
-                                <option value="ES">Espagne</option>
-                                <option value="IT">Italie</option>
-                                <option value="PT">Portugal</option>
-                                <option value="GB">Royaume-Uni</option>
-                                <option value="IE">Irlande</option>
-                                <option value="NL">Pays-Bas</option>
-                                <option value="US">États-Unis</option>
-                                <option value="MA">Maroc</option>
-                                <option value="DZ">Algérie</option>
-                                <option value="TN">Tunisie</option>
-                                <option value="SN">Sénégal</option>
-                                <option value="CI">Côte d’Ivoire</option>
-                                <option value="CM">Cameroun</option>
-                                <option value="GA">Gabon</option>
-                                <option value="CD">République démocratique du Congo</option>
-                                <option value="CG">République du Congo</option>
-                                <option value="MG">Madagascar</option>
-                                <option value="MU">Maurice</option>
-                                <option value="HT">Haïti</option>
-                            </select>
-                        </div>
-                            <div class="preview-schedule" aria-label="Échéancier de paiement">
-                                <div class="preview-schedule__head">
-                                    <p class="preview-schedule__title">Informations relatives au règlement</p>
-                                </div>
                             <div class="preview-schedule__today">
                                 <span class="preview-schedule__today-main">
                                     <span class="preview-schedule__dot" aria-hidden="true"></span>
@@ -1825,11 +1806,9 @@ const previewReviewInitials = (name) => name
                             </div>
                             <p id="preview-schedule-copy" class="preview-schedule__copy">Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.</p>
                         </div>
-                        <label class="preview-cgv"><span class="preview-fake-only preview-cgv__box" aria-hidden="true"></span><input id="preview-cgv-checkbox" class="stripe-live-only" type="checkbox" required /><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener" style="color:inherit;">CGV</a> et l’échéancier mentionné ci-dessus.</span></label>
-                        <button id="preview-pay-btn" class="preview-pay-btn" type="submit">Je commence ma transformation</button>
                         <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
-                        <p id="preview-stripe-error" class="preview-stripe-error stripe-live-only" role="alert"></p>
-                    </form>
+                        <p id="preview-spiffy-error" class="preview-spiffy-error" role="alert"></p>
+                    </div>
                     <div class="preview-guarantee">
                         <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
                         <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
@@ -1889,7 +1868,7 @@ const previewReviewInitials = (name) => name
                                 <div><h4>Un accompagnement qui reste présent à chaque étape</h4><p>Morpho, ton coach IA pendant 12 mois, ton plan d’action dès J+30 et la communauté privée Volt.</p></div>
                             </div>
                         </div>
-                        <a id="preview-obtain-cta" class="preview-obtain__cta" href="#preview-first-name">Je commence ma transformation</a>
+                        <a id="preview-obtain-cta" class="preview-obtain__cta" href="#preview-spiffy-slot">Je commence ma transformation</a>
                     </div>
                 </div>
             </section>
@@ -2421,12 +2400,6 @@ const previewReviewInitials = (name) => name
 
         let inlineCheckoutController = null;
 
-        function liveInlineCheckoutRequested(token) {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('preview') !== 'dev'
-                || (params.get('stripe') === 'live' && token && token !== 'preview-session');
-        }
-
         function inlinePlanUi(plan) {
             const once = plan === 'once';
             const paymentPanel = document.getElementById('preview-payment');
@@ -2447,220 +2420,93 @@ const previewReviewInitials = (name) => name
                 : 'Payer en une fois et économiser 367 €';
         }
 
+        const SPIFFY_CHECKOUT_URLS = Object.freeze({
+            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1',
+            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34',
+        });
+
         async function mountLiveInlineCheckout(reg) {
-            if (!liveInlineCheckoutRequested(reg?.token)) return;
+            if (!reg?.token) return;
             const checkoutSection = document.getElementById('preview-checkout');
             const oldCta = document.getElementById('offer-cta');
+            const paymentPanel = document.getElementById('preview-payment');
+            const switchButton = document.getElementById('preview-payment-switch');
+            const errorNode = document.getElementById('preview-spiffy-error');
+            const slot = document.getElementById('preview-spiffy-slot');
             checkoutSection?.classList.add('is-live');
             oldCta?.classList.add('hidden');
-            if (inlineCheckoutController?.token === reg.token) return;
-            if (!window.Stripe) throw new Error('Stripe ne peut pas être chargé. Recharge la page.');
-
-            const form = document.getElementById('preview-payment');
-            const firstName = document.getElementById('preview-first-name');
-            const email = document.getElementById('preview-email');
-            const country = document.getElementById('preview-country');
-            const checkbox = document.getElementById('preview-cgv-checkbox');
-            const submit = document.getElementById('preview-pay-btn');
-            const switchButton = document.getElementById('preview-payment-switch');
-            const errorNode = document.getElementById('preview-stripe-error');
-            const loading = document.getElementById('preview-stripe-loading');
-            const walletNode = document.getElementById('preview-stripe-wallet');
-            const walletSeparator = document.getElementById('preview-stripe-separator');
-            const paymentNode = document.getElementById('preview-stripe-payment-element');
-            if (!form || !submit || !paymentNode) return;
+            if (!paymentPanel || !switchButton || !slot) return;
+            if (inlineCheckoutController?.provider === 'spiffy' && inlineCheckoutController.token === reg.token) return;
 
             const controller = {
+                provider: 'spiffy',
                 token: reg.token,
                 plan: 'monthly',
-                checkout: null,
-                actions: null,
-                paymentElement: null,
-                walletElement: null,
-                checkoutSessionId: '',
                 generation: 0,
                 busy: false,
-                canConfirm: false,
             };
             inlineCheckoutController = controller;
-            inlinePlanUi(controller.plan);
-
-            const appearance = {
-                theme: 'night',
-                labels: 'above',
-                variables: {
-                    colorPrimary: '#3b82f6',
-                    colorBackground: '#07172c',
-                    colorText: '#f7fbff',
-                    colorTextSecondary: '#aebfd4',
-                    colorDanger: '#fda4af',
-                    colorSuccess: '#4ade80',
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                    borderRadius: '10px',
-                    spacingUnit: '4px',
-                },
-                rules: {
-                    '.Input': { border: '1px solid rgba(145, 177, 217, 0.3)', boxShadow: 'none' },
-                    '.Input:focus': { borderColor: '#60a5fa', boxShadow: '0 0 0 3px rgba(59,130,246,.15)' },
-                    '.Label': { color: '#c6d6e9', fontSize: '12px', fontWeight: '700' },
-                    '.Tab': { border: '1px solid rgba(145, 177, 217, 0.24)', boxShadow: 'none' },
-                    '.Tab--selected': { borderColor: '#60a5fa', boxShadow: '0 0 0 2px rgba(59,130,246,.14)' },
-                    '.TermsText': { color: '#91a5bc', fontSize: '10px' },
-                },
-            };
 
             function showPaymentError(message) {
                 if (errorNode) errorNode.textContent = message || '';
             }
 
-            async function createCheckout(plan) {
-                const response = await fetch('/.netlify/functions/mc2-stripe-checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: reg.token,
-                        checkout_surface: 'mc2_session',
-                        plan,
-                        nonce: (window.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)),
-                    }),
-                });
-                const data = await response.json().catch(function () { return {}; });
-                if (!response.ok) throw new Error(data.error || 'Le paiement ne peut pas être préparé.');
-                return data;
+            function buildCheckoutUrl(plan) {
+                const url = new URL(SPIFFY_CHECKOUT_URLS[plan]);
+                if (reg.prenom) url.searchParams.set('name_first', reg.prenom);
+                if (reg.email) url.searchParams.set('email', reg.email);
+                if (reg.pays && reg.pays !== 'Autre') url.searchParams.set('country', reg.pays);
+                return url;
             }
 
-            async function mountPlan(plan) {
+            function mountPlan(plan) {
                 const generation = ++controller.generation;
                 controller.plan = plan;
                 controller.busy = true;
-                controller.canConfirm = false;
-                submit.disabled = true;
                 switchButton.disabled = true;
-                form.classList.add('is-switching');
+                paymentPanel.classList.add('is-switching');
                 showPaymentError('');
-                if (loading) loading.hidden = false;
-                controller.paymentElement?.unmount?.();
-                controller.walletElement?.unmount?.();
-                paymentNode.replaceChildren();
-                walletNode?.replaceChildren();
-                if (walletNode) walletNode.hidden = true;
-                if (walletSeparator) walletSeparator.hidden = true;
+                inlinePlanUi(plan);
+                const url = buildCheckoutUrl(plan);
+                slot.replaceChildren();
 
-                try {
-                    const data = await createCheckout(plan);
-                    if (generation !== controller.generation) return;
-                    controller.checkoutSessionId = data.checkout_session_id || '';
-                    if (firstName) firstName.value = data.customer?.name || reg.prenom || '';
-                    if (email) email.value = data.customer?.email || '';
-                    const stripe = window.Stripe(data.publishable_key);
-                    const checkout = stripe.initCheckout({
-                        clientSecret: data.client_secret,
-                        elementsOptions: { appearance },
-                    });
-                    if (generation !== controller.generation) return;
-                    controller.checkout = checkout;
-                    const actionsResult = await checkout.loadActions();
-                    if (actionsResult.type !== 'success') throw new Error('Le paiement Stripe ne peut pas être initialisé.');
-                    controller.actions = actionsResult.actions;
-                    const paymentElement = checkout.createPaymentElement({
-                        layout: { type: 'accordion', defaultCollapsed: false, radios: 'never', spacedAccordionItems: false },
-                        fields: { billingDetails: { name: 'never', email: 'never', address: 'never' } },
-                    });
-                    paymentElement.mount(paymentNode);
-                    controller.paymentElement = paymentElement;
-                    const walletElement = checkout.createExpressCheckoutElement({
-                        buttonHeight: 48,
-                        layout: { maxColumns: 2, maxRows: 1, overflow: 'never' },
-                        buttonType: { applePay: 'buy', googlePay: 'buy' },
-                        paymentMethods: { applePay: 'auto', googlePay: 'auto', link: 'never', paypal: 'never', amazonPay: 'never', klarna: 'never' },
-                    });
-                    walletElement.on('ready', function (event) {
-                        const available = event?.availablePaymentMethods;
-                        const hasWallet = Boolean(available?.applePay || available?.googlePay);
-                        if (walletNode) walletNode.hidden = !hasWallet;
-                        if (walletSeparator) walletSeparator.hidden = !hasWallet;
-                    });
-                    walletElement.on('confirm', async function (event) {
-                        if (!checkbox?.checked || !country?.value) {
-                            showPaymentError('Sélectionne ton pays et accepte les CGV avant de payer.');
-                            return;
-                        }
-                        await confirmPayment({ expressCheckoutConfirmEvent: event });
-                    });
-                    if (walletNode) walletElement.mount(walletNode);
-                    controller.walletElement = walletElement;
-                    checkout.on('change', function (session) {
-                        if (generation !== controller.generation) return;
-                        controller.canConfirm = Boolean(session.canConfirm);
-                        if (!controller.busy) submit.disabled = !controller.canConfirm;
-                    });
-                    if (loading) loading.hidden = true;
-                } finally {
-                    if (generation === controller.generation) {
-                        controller.busy = false;
-                        submit.disabled = !controller.canConfirm;
-                        switchButton.disabled = false;
-                        form.classList.remove('is-switching');
-                    }
+                if (window.location.protocol === 'http:') {
+                    url.searchParams.set('elements', btoa(JSON.stringify({
+                        modality: 'inline',
+                        uid: generation,
+                        from: window.location.href,
+                        handles: {},
+                    })));
+                    const frame = document.createElement('iframe');
+                    frame.className = 'preview-spiffy-frame';
+                    frame.src = url.toString();
+                    frame.title = plan === 'once'
+                        ? 'Paiement unique Esprit Subconscient 2.0'
+                        : 'Paiement mensuel Esprit Subconscient 2.0';
+                    frame.setAttribute('allow', 'payment');
+                    frame.setAttribute('loading', 'eager');
+                    frame.style.cssText = 'display:block;width:100%;height:950px;border:0;background:#111a30;';
+                    slot.appendChild(frame);
+                } else {
+                    const checkout = document.createElement('spiffy-checkout');
+                    checkout.setAttribute('url', url.toString());
+                    checkout.style.cssText = 'display:block;width:100%;';
+                    slot.appendChild(checkout);
                 }
-            }
 
-            async function recordAcceptance() {
-                const response = await fetch('/.netlify/functions/mc2-contract-acceptance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: reg.token,
-                        checkout_session_id: controller.checkoutSessionId,
-                        accepted: checkbox?.checked === true,
-                    }),
-                });
-                if (!response.ok) throw new Error('La confirmation contractuelle n’a pas pu être enregistrée. Réessaie.');
-            }
-
-            async function confirmPayment(options) {
-                if (controller.busy || !controller.checkout || !controller.actions) return;
-                controller.busy = true;
-                submit.disabled = true;
-                switchButton.disabled = true;
-                showPaymentError('');
-                try {
-                    const billingResult = await controller.actions.updateBillingAddress({
-                        name: firstName?.value || reg.prenom || 'Élève',
-                        address: { country: country.value },
-                    });
-                    if (billingResult?.error) throw new Error(billingResult.error.message || 'Vérifie ton pays.');
-                    await recordAcceptance();
-                    const result = await controller.actions.confirm(options || {});
-                    if (result?.type === 'error' || result?.error) {
-                        throw new Error(result?.error?.message || 'Vérifie les informations de paiement.');
-                    }
-                } catch (error) {
-                    showPaymentError(error?.message || 'Le paiement n’a pas pu être confirmé.');
+                window.setTimeout(function () {
+                    if (generation !== controller.generation) return;
                     controller.busy = false;
-                    submit.disabled = !controller.canConfirm;
                     switchButton.disabled = false;
-                }
+                    paymentPanel.classList.remove('is-switching');
+                }, 180);
             }
 
-            form.addEventListener('submit', function (event) {
-                event.preventDefault();
-                if (!checkbox?.checked || !country?.value) {
-                    showPaymentError('Sélectionne ton pays et accepte les CGV avant de payer.');
-                    return;
-                }
-                confirmPayment();
-            });
             switchButton.addEventListener('click', function () {
                 if (controller.busy) return;
-                const nextPlan = controller.plan === 'once' ? 'monthly' : 'once';
-                inlinePlanUi(nextPlan);
-                mountPlan(nextPlan).catch(function (error) {
-                    showPaymentError(error?.message || 'Impossible de changer le mode de paiement.');
-                });
+                mountPlan(controller.plan === 'once' ? 'monthly' : 'once');
             });
-
-            await mountPlan('monthly');
+            mountPlan('monthly');
         }
         function hideOfferZone() {
             const zone = document.getElementById('offer-zone');
@@ -3552,7 +3398,7 @@ const previewReviewInitials = (name) => name
                     if (isCtaActive) {
                         mountLiveInlineCheckout(reg).catch(function (error) {
                             const checkout = document.getElementById('preview-checkout');
-                            const errorNode = document.getElementById('preview-stripe-error');
+                            const errorNode = document.getElementById('preview-spiffy-error');
                             checkout?.classList.add('is-live');
                             if (errorNode) errorNode.textContent = error?.message || 'Le paiement ne peut pas être chargé.';
                         });
@@ -3987,7 +3833,7 @@ const previewReviewInitials = (name) => name
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
             var previewParams = new URLSearchParams(window.location.search);
-            var liveStripePreviewToken = previewParams.get('stripe') === 'live'
+            var liveCheckoutPreviewToken = previewParams.get('checkout') === 'live'
                 ? String(previewParams.get('t') || previewParams.get('token') || '').trim()
                 : '';
             document.documentElement.classList.add('mc-preview-dev');
@@ -4006,37 +3852,12 @@ const previewReviewInitials = (name) => name
                 });
             }
 
-            var paymentSwitch = document.getElementById('preview-payment-switch');
             var paymentPanel = document.getElementById('preview-payment');
-            var scheduleCopy = document.getElementById('preview-schedule-copy');
-            var scheduleNowDetail = document.getElementById('preview-schedule-now-detail');
-            var scheduleNowAmount = document.getElementById('preview-schedule-now-amount');
             var scheduleAnalogy = document.getElementById('preview-schedule-analogy');
             if (scheduleAnalogy && paymentPanel) {
                 var initialOnce = paymentPanel.getAttribute('data-plan') === 'once';
                 scheduleAnalogy.style.display = initialOnce ? 'none' : 'block';
             }
-            // Keep the offer countdown dans sa position native pour éviter toute régression visuelle.
-            if (paymentSwitch && paymentPanel && !liveStripePreviewToken) {
-                paymentSwitch.addEventListener('click', function () {
-                    var once = paymentPanel.getAttribute('data-plan') !== 'once';
-                    paymentPanel.classList.add('is-switching');
-                    window.setTimeout(function () {
-                        paymentPanel.setAttribute('data-plan', once ? 'once' : 'monthly');
-                        if (scheduleNowDetail) scheduleNowDetail.textContent = once ? 'Paiement unique' : 'Première mensualité';
-                        if (scheduleNowAmount) scheduleNowAmount.textContent = once ? '1 997 €' : '197 €';
-                        if (scheduleCopy) scheduleCopy.textContent = once
-                            ? 'Aucun autre prélèvement n’est prévu. Ce paiement en une fois représente une économie de 367 € par rapport au règlement en douze mensualités.'
-                            : 'Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.';
-                        if (scheduleAnalogy) scheduleAnalogy.style.display = once ? 'none' : 'block';
-                        paymentSwitch.textContent = once
-                            ? 'Revenir aux 12 mensualités de 197 €'
-                            : 'Payer en une fois et économiser 367 €';
-                        paymentPanel.classList.remove('is-switching');
-                    }, 160);
-                });
-            }
-
             var previewReviewsDialog = document.getElementById('preview-reviews-dialog');
             var previewOpenReviews = document.getElementById('preview-open-reviews');
             var previewCloseReviews = document.getElementById('preview-close-reviews');
@@ -4099,9 +3920,11 @@ const previewReviewInitials = (name) => name
                 }
                 currentSessionMs = sessionMs;
                 var reg = {
-                    token: liveStripePreviewToken || 'preview-session',
+                    token: liveCheckoutPreviewToken || 'preview-session',
                     statut: 'present',
                     prenom: 'Preview',
+                    email: 'preview@sonnycourt.com',
+                    pays: 'France',
                     sessionStartsAt: new Date(sessionMs).toISOString(),
                     offreExpiresAt: new Date(offerMs).toISOString(),
                 };
@@ -4236,7 +4059,7 @@ const previewReviewInitials = (name) => name
             simulatedNowMs = initNow.getTime();
             simulatedAnchorRealMs = Date.now();
             onInscriptionChange(initNow.getTime());
-            setSimNow(liveStripePreviewToken ? getNowPresetMs('cta-active') : initNow.getTime());
+            setSimNow(liveCheckoutPreviewToken ? getNowPresetMs('cta-active') : initNow.getTime());
 
             setInterval(refreshSummary, 1000);
         }
