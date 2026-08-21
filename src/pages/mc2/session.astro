@@ -1,6 +1,29 @@
 ---
 import GAConsentMode from '../../components/GAConsentMode.astro';
 import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
+import reviewsData from '../../data/reviews.json';
+import reviewConversionOrder from '../../data/review-conversion-order.json';
+
+const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
+const previewCheckoutReviews = reviewsData.reviews
+    .filter((review) => Boolean(review.first_name))
+    .sort((a, b) => (previewReviewOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (previewReviewOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+const previewRatedReviews = previewCheckoutReviews.filter((review) => Number.isFinite(review.rating));
+const previewReviewAverage = previewRatedReviews.reduce((total, review) => total + review.rating, 0) / previewRatedReviews.length;
+const previewReviewAverageLabel = previewReviewAverage.toFixed(1).replace('.', ',');
+const previewReviewAveragePercent = (previewReviewAverage / 5) * 100;
+const previewRatingCounts = previewRatedReviews.reduce((counts, review) => {
+    counts[review.rating] = (counts[review.rating] || 0) + 1;
+    return counts;
+}, {});
+const previewRatingFilterValues = Object.keys(previewRatingCounts).map(Number).sort((a, b) => b - a);
+const previewReviewInitials = (name) => name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 ---
 
 <!DOCTYPE html>
@@ -112,6 +135,39 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
             overflow-y: auto;
             margin: 0;
             -webkit-overflow-scrolling: touch;
+        }
+        .dev-time-banner.is-collapsed {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 999px;
+        }
+        .dev-time-banner.is-collapsed > :not(.dev-time-toggle) {
+            display: none;
+        }
+        .dev-time-toggle {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            z-index: 1;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid rgba(147, 197, 253, 0.5);
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #dbeafe;
+            font: 700 16px/1 sans-serif;
+            cursor: pointer;
+        }
+        .dev-time-banner.is-collapsed .dev-time-toggle {
+            inset: 0;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            background: transparent;
+            color: #60a5fa;
         }
         .dev-time-title {
             font-size: 0.78rem;
@@ -799,6 +855,391 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
             pointer-events: none;
             transform: none;
         }
+        .preview-checkout {
+            display: none;
+            width: 100%;
+            max-width: 760px;
+            margin-top: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(133, 186, 255, 0.34);
+            border-radius: 22px;
+            background: linear-gradient(145deg, #102947, #07162a 68%);
+            box-shadow: 0 30px 82px rgba(0, 5, 17, 0.58), inset 0 1px rgba(255, 255, 255, 0.07);
+            color: #fff;
+            text-align: left;
+        }
+        html.mc-preview-dev .preview-checkout { display: block; }
+        html.mc-preview-dev #offer-cta { display: none !important; }
+        .preview-checkout.hidden { display: none !important; }
+        .preview-checkout__header {
+            display: grid;
+            grid-template-columns: 1fr;
+            align-items: center;
+            gap: 20px;
+            padding: 25px 28px;
+            background:
+                radial-gradient(circle at 85% 0%, rgba(53, 142, 255, 0.3), transparent 44%),
+                linear-gradient(135deg, #102f5d 0%, #0d448d 100%);
+            border-bottom: 1px solid rgba(159, 202, 255, 0.2);
+        }
+        .preview-checkout__eyebrow {
+            margin: 0 0 7px;
+            color: rgba(219, 234, 254, 0.82);
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+        .preview-checkout__title {
+            margin: 0;
+            color: #fff;
+            font-size: clamp(1.45rem, 3vw, 1.95rem);
+            font-weight: 900;
+            letter-spacing: 0.015em;
+            text-transform: uppercase;
+        }
+        .preview-checkout__subtitle {
+            margin: 7px 0 0;
+            color: rgba(239, 246, 255, 0.82);
+            font-size: 0.86rem;
+        }
+        .preview-checkout__subtitle strong { color: #fff; font-weight: 900; }
+        .preview-seat-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            width: 100%;
+            margin-bottom: 18px;
+            padding: 12px 15px;
+            border: 1px solid rgba(248, 113, 113, 0.42);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(112, 25, 29, 0.44), rgba(71, 18, 25, 0.34));
+            box-shadow: 0 10px 24px rgba(48, 5, 11, 0.18), inset 0 1px rgba(255, 255, 255, 0.035);
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .preview-seat-badge span { color: rgba(255, 232, 234, 0.9); font-size: 0.65rem; font-weight: 850; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.065em; }
+        .preview-seat-badge strong { flex: 0 0 auto; color: #fff; font-size: 1.2rem; line-height: 1; font-weight: 950; letter-spacing: -0.03em; white-space: nowrap; }
+        .preview-seat-badge strong small { color: rgba(255, 224, 226, 0.72); font-size: 0.68rem; font-weight: 800; letter-spacing: 0; }
+        .preview-checkout__body {
+            padding: 24px 28px 28px;
+            background: linear-gradient(180deg, #09192e 0%, #071426 100%);
+        }
+        .preview-payment {
+            scroll-margin-top: 20px;
+            padding: 20px;
+            border: 1px solid rgba(143, 190, 250, 0.22);
+            border-radius: 16px;
+            background: linear-gradient(155deg, rgba(18, 42, 72, 0.98), rgba(10, 27, 51, 0.98));
+            box-shadow: 0 18px 46px rgba(0, 5, 18, 0.32), inset 0 1px rgba(255, 255, 255, 0.045);
+            color: #f4f8ff;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .preview-payment.is-switching { opacity: 0.45; transform: translateX(-5px); }
+        .preview-identity {
+            display: grid;
+            grid-template-columns: 0.78fr 1.22fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .preview-identity__field { display: grid; gap: 6px; }
+        .preview-identity__field label { color: #c6d6e9; font-size: 0.7rem; font-weight: 800; }
+        .preview-identity__field input {
+            width: 100%;
+            min-height: 46px;
+            padding: 0 12px;
+            border: 1px solid rgba(145, 177, 217, 0.3);
+            border-radius: 10px;
+            background: #07172c;
+            color: #f7fbff;
+            font: inherit;
+            font-size: 0.82rem;
+            box-sizing: border-box;
+        }
+        .preview-payment__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .preview-payment__label { margin: 0; font-size: 0.92rem; font-weight: 850; }
+        .preview-payment__cards { display: flex; gap: 5px; color: #bed0e6; font-size: 0.64rem; font-weight: 800; }
+        .preview-payment__cards span { padding: 4px 5px; border: 1px solid rgba(150, 184, 226, 0.24); border-radius: 4px; background: rgba(255, 255, 255, 0.055); }
+        .preview-card-field,
+        .preview-card-mini,
+        .preview-country {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            min-height: 48px;
+            padding: 0 13px;
+            border: 1px solid rgba(145, 177, 217, 0.3);
+            border-radius: 10px;
+            background: #07172c;
+            color: #9fb0c5;
+            font-size: 0.83rem;
+            box-sizing: border-box;
+        }
+        .preview-card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 9px; }
+        .preview-country-wrap { display: grid; gap: 6px; margin-top: 9px; }
+        .preview-country-wrap label { color: #c6d6e9; font-size: 0.7rem; font-weight: 800; }
+        .preview-country { appearance: auto; }
+        .preview-schedule {
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid rgba(143, 190, 250, 0.18);
+            border-radius: 13px;
+            background: rgba(3, 15, 32, 0.52);
+        }
+        .preview-schedule__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(154, 188, 231, 0.15); }
+        .preview-schedule__title { margin: 0; color: #d8e4f2; font-size: 0.76rem; font-weight: 850; }
+        .preview-schedule__head small { color: #6eb1ff; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; }
+        .preview-schedule__today { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; margin-top: 9px; padding: 8px 11px; color: #eaf4ff; background: linear-gradient(135deg, rgba(24, 91, 174, 0.72), rgba(17, 59, 112, 0.72)); border: 1px solid rgba(105, 177, 255, 0.55); border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 8px 20px rgba(0, 43, 99, 0.24); }
+        .preview-schedule__today-main { display: flex; align-items: center; gap: 9px; }
+        .preview-schedule__dot { width: 8px; height: 8px; flex: 0 0 auto; background: #69b4ff; border: 2px solid #173e6d; border-radius: 50%; box-shadow: 0 0 0 1px #69b4ff, 0 0 0 4px rgba(105,180,255,.12); }
+        .preview-schedule__today strong { display: block; font-size: 0.82rem; font-weight: 900; }
+        .preview-schedule__today small { display: block; margin-top: 2px; color: #afc9e9; font-size: 0.58rem; font-weight: 650; }
+        .preview-schedule__amount { color: #fff; font-size: 0.93rem; font-weight: 900; white-space: nowrap; }
+                .preview-schedule__copy { margin: 11px 2px 0; color: #aebfd4; font-size: 0.68rem; line-height: 1.56; }
+        .preview-schedule__amount-stack { display: grid; justify-items: end; gap: 2px; flex: 0 0 auto; }
+        .preview-schedule__amount-note { color: #b8d0f0; font-size: 0.55rem; font-weight: 700; white-space: nowrap; }
+        .preview-guarantee {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 14px;
+            align-items: center;
+            margin-top: 17px;
+            padding: 18px 20px;
+            color: #effff7;
+            background:
+                radial-gradient(circle at 7% 0%, rgba(74, 222, 128, 0.2), transparent 39%),
+                linear-gradient(135deg, rgba(13, 77, 54, 0.9), rgba(7, 43, 34, 0.9));
+            border: 1px solid rgba(74, 222, 128, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 16px 34px rgba(0, 25, 15, 0.34), inset 0 1px rgba(220, 252, 231, 0.1);
+        }
+        .preview-guarantee__badge {
+            display: grid;
+            width: 56px;
+            height: 56px;
+            place-items: center;
+            color: #063d28;
+            background: linear-gradient(145deg, #bbf7d0, #4ade80);
+            border: 3px double rgba(5, 82, 52, 0.4);
+            border-radius: 50%;
+            font-size: 1.3rem;
+            font-weight: 950;
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25), inset 0 1px rgba(255, 255, 255, 0.65);
+        }
+        .preview-guarantee__kicker { display: block; margin-bottom: 3px; color: #86efac; font-size: 0.55rem; font-weight: 950; letter-spacing: 0.12em; text-transform: uppercase; }
+        .preview-guarantee strong { display: block; color: #f0fdf4; font-size: 0.98rem; font-weight: 950; letter-spacing: 0.005em; }
+        .preview-guarantee p { margin: 5px 0 0; color: #bbf7d0; font-size: 0.66rem; line-height: 1.45; }
+        .preview-cgv {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin: 13px 1px;
+            color: #aebfd3;
+            font-size: 0.71rem;
+            line-height: 1.42;
+        }
+        .preview-cgv__box { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; border: 1px solid #8095af; background: #07172c; border-radius: 4px; }
+        .preview-pay-btn {
+            width: 100%;
+            min-height: 52px;
+            border: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+        }
+        .preview-payment-switch {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #92a9c4;
+            font: inherit;
+            font-size: 0.68rem;
+            font-weight: 650;
+            text-align: center;
+            text-decoration: underline;
+            text-decoration-color: #526b89;
+            text-underline-offset: 2px;
+            cursor: pointer;
+        }
+        .preview-payment-switch:hover { color: #dcecff; }
+        .preview-includes {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 22px;
+            align-items: stretch;
+            padding: 26px 28px 30px;
+            border-top: 1px solid rgba(148, 197, 255, 0.16);
+        }
+        .preview-includes__urgency {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: minmax(0, 360px);
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 0 0 3px;
+            box-sizing: border-box;
+        }
+        .preview-includes__urgency-copy { margin: 0; color: rgba(226, 232, 240, 0.72); font-size: 0.62rem; font-weight: 850; line-height: 1.35; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; }
+        .preview-includes__countdown-slot { width: 100%; min-width: 0; }
+        .preview-includes__countdown-slot .countdown { width: 100%; max-width: none; gap: 6px; }
+        .preview-includes__countdown-slot .count-card { padding: 7px 2px; background: rgba(255, 255, 255, 0.045); border-radius: 10px; }
+        .preview-includes__countdown-slot .count-value { font-size: 1rem; }
+        .preview-includes__countdown-slot .count-label {
+            font-size: clamp(0.47rem, 1.6vw, 0.54rem);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .preview-includes__visual { width: min(520px, 100%); margin: 0 auto; }
+        .preview-includes__visual img { display: block; width: 100%; border-radius: 13px; }
+        .preview-obtain { width: 100%; }
+        .preview-obtain__heading { margin: 4px 0 20px; text-align: center; }
+        .preview-obtain__heading h3 {
+            margin: 0;
+            color: #fff;
+            font-size: clamp(1.35rem, 3vw, 1.8rem);
+            font-weight: 900;
+            line-height: 1.12;
+            letter-spacing: 0.015em;
+            text-transform: uppercase;
+            text-shadow: 0 8px 24px rgba(0, 5, 17, 0.38);
+        }
+        .preview-obtain__volume { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; margin: 9px 0 0; color: rgba(203, 220, 242, 0.72); font-size: 0.64rem; }
+        .preview-obtain__volume strong { padding: 5px 9px; color: #dbeafe; background: rgba(37, 99, 235, 0.17); border: 1px solid rgba(96, 165, 250, 0.24); border-radius: 999px; }
+        .preview-obtain__list { padding: 5px 21px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 16px; }
+        .preview-obtain__item { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 13px; align-items: start; padding: 15px 0; }
+        .preview-obtain__item + .preview-obtain__item { border-top: 1px solid rgba(255, 255, 255, 0.055); }
+        .preview-obtain__check { display: grid; width: 24px; height: 24px; margin-top: 1px; place-items: center; color: #fff; background: #2563eb; border-radius: 50%; box-shadow: 0 5px 14px rgba(37, 99, 235, 0.28); font-size: 0.72rem; font-weight: 950; }
+        .preview-obtain__item h4 { margin: 0 0 4px; color: #f4f8ff; font-size: 0.84rem; line-height: 1.35; }
+        .preview-obtain__item p { margin: 0; color: rgba(210, 222, 239, 0.58); font-size: 0.69rem; line-height: 1.55; }
+        .preview-obtain__cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: min(430px, 100%);
+            min-height: 52px;
+            margin: 20px auto 0;
+            padding: 12px 18px;
+            color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: 0;
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3);
+            font: inherit;
+            font-size: 0.88rem;
+            font-weight: 900;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .preview-obtain__cta:hover { filter: brightness(1.06); }
+        .preview-obtain__cta:focus-visible { outline: 3px solid rgba(147, 197, 253, 0.55); outline-offset: 3px; }
+        .preview-reviews {
+            display: none;
+            width: 100%;
+            max-width: 760px;
+            margin-top: 18px;
+        }
+        html.mc-preview-dev .preview-reviews { display: block; }
+        .preview-reviews-summary {
+            position: relative;
+            display: block;
+            width: min(570px, 100%);
+            margin: 0 auto;
+            padding: 24px 25px 21px;
+            overflow: hidden;
+            color: #fff;
+            background: radial-gradient(circle at 88% 8%, rgba(100,183,255,.22), transparent 33%), linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.025));
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 18px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 28px 65px rgba(0,0,0,.24);
+            cursor: pointer;
+            text-align: left;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .preview-reviews-summary:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.27); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 33px 72px rgba(0,0,0,.28); }
+        .preview-reviews-summary:focus-visible { outline: 3px solid rgba(91,177,255,.5); outline-offset: 3px; }
+        .preview-reviews-summary__eyebrow { display: block; color: rgba(226,232,240,.62); font-size: 8.5px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+        .preview-reviews-summary__main { display: flex; align-items: center; gap: 21px; margin-top: 13px; }
+        .preview-reviews-summary__score { flex: 0 0 auto; color: #fff; font-size: 44px; font-weight: 780; line-height: 1; letter-spacing: -.06em; }
+        .preview-reviews-summary__score small { margin-left: 3px; color: rgba(226,232,240,.58); font-size: 13px; font-weight: 650; letter-spacing: 0; }
+        .preview-reviews-summary__rating { display: grid; gap: 3px; min-width: 0; }
+        .preview-reviews-summary__rating strong { color: #f8fafc; font-size: 11px; }
+        .preview-star-meter { position: relative; display: inline-block; width: max-content; color: rgba(255,255,255,.18); font-size: 16px; line-height: 1; letter-spacing: 2px; }
+        .preview-star-meter > span:last-child { position: absolute; inset: 0 auto 0 0; overflow: hidden; color: #f3d58d; white-space: nowrap; filter: drop-shadow(0 2px 7px rgba(243,213,141,.16)); }
+        .preview-reviews-summary__footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 17px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,.09); }
+        .preview-reviews-summary__footer > strong { color: rgba(241,245,249,.88); font-size: 9px; font-weight: 780; letter-spacing: .02em; }
+        .preview-reviews-summary__avatars { display: flex; padding-left: 8px; }
+        .preview-reviews-summary__avatars img { width: 29px; height: 29px; margin-left: -8px; object-fit: cover; background: #dbeafe; border: 2px solid #0d2342; border-radius: 50%; }
+        .preview-reviews-dialog { width: min(760px, calc(100% - 32px)); height: min(860px, calc(100dvh - 34px)); margin: auto; padding: 0; overflow: hidden; color: #122039; background: #f7f9fc; border: 1px solid rgba(255,255,255,.5); border-radius: 24px; box-shadow: 0 36px 120px rgba(0,0,0,.48); text-align: left; }
+        .preview-reviews-dialog::backdrop { background: rgba(1,8,20,.72); backdrop-filter: blur(5px); }
+        .preview-reviews-dialog[open] { display: flex; flex-direction: column; }
+        .preview-reviews-dialog__top { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 27px 22px; color: #fff; background: linear-gradient(135deg, #071b39, #0a3a78); border-bottom: 1px solid rgba(255,255,255,.12); }
+        .preview-reviews-dialog__eyebrow { display: block; margin-bottom: 5px; color: rgba(204,226,255,.65); font-size: 8px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
+        .preview-reviews-dialog__top h2 { margin: 0; color: #fff; font-size: 25px; letter-spacing: -.04em; }
+        .preview-reviews-dialog__close { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0 0 3px; place-items: center; color: rgba(255,255,255,.8); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 50%; cursor: pointer; font-size: 25px; line-height: 1; }
+        .preview-reviews-dialog__scorebar { display: grid; flex: 0 0 auto; grid-template-columns: auto 1fr; gap: 17px; align-items: center; padding: 20px 27px; background: #fff; border-bottom: 1px solid #e4e9f1; }
+        .preview-reviews-dialog__scorebar > strong { font-size: 38px; line-height: 1; letter-spacing: -.06em; }
+        .preview-reviews-dialog__scorebar > strong small { margin-left: 3px; color: #7e899b; font-size: 12px; letter-spacing: 0; }
+        .preview-reviews-dialog__scorebar .preview-star-meter { color: #dfe4eb; }
+        .preview-reviews-dialog__scorebar p { margin: 5px 0 0; color: #6d788a; font-size: 9px; }
+        .preview-reviews-dialog__filters { display: flex; flex: 0 0 auto; gap: 7px; padding: 13px 27px; overflow-x: auto; background: #f7f9fc; border-bottom: 1px solid #e2e7ef; scrollbar-width: none; }
+        .preview-reviews-dialog__filters button { padding: 8px 12px; color: #526076; background: #fff; border: 1px solid #dfe5ee; border-radius: 999px; cursor: pointer; font-size: 9px; white-space: nowrap; }
+        .preview-reviews-dialog__filters button.is-active { color: #fff; background: #0c4e9e; border-color: #0c4e9e; }
+        .preview-reviews-list { display: grid; flex: 1 1 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; min-height: 0; padding: 17px 20px 21px; overflow-y: auto; }
+        .preview-review-item { padding: 16px; background: #fff; border: 1px solid #e3e8f0; border-radius: 14px; box-shadow: 0 8px 24px rgba(19,38,68,.045); }
+        .preview-review-item[hidden] { display: none; }
+        .preview-review-item__head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 9px; align-items: center; }
+        .preview-review-item__head img, .preview-review-item__initials { display: grid; width: 36px; height: 36px; place-items: center; object-fit: cover; color: #0b467e; background: linear-gradient(145deg, #e6f2ff, #c4def8); border: 1px solid #d3e0ee; border-radius: 50%; font-size: 10px; font-weight: 850; }
+        .preview-review-item__head > span:not(.preview-review-item__initials) { display: grid; gap: 2px; min-width: 0; }
+        .preview-review-item__head strong { color: #17263e; font-size: 10px; }
+        .preview-review-item__head small { color: #8893a4; font-size: 7.5px; }
+        .preview-review-item__head b { color: #d6a93f; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+        .preview-review-item__head b i { color: #dfe4eb; font-style: normal; }
+        .preview-review-item__unrated { padding: 5px 7px; color: #66758b !important; background: #f2f5f8; border: 1px solid #e2e7ee; border-radius: 999px; font-size: 7px !important; letter-spacing: 0 !important; }
+        .preview-review-item > p { margin: 13px 0 0; color: #4e5d72; font-family: Georgia, 'Times New Roman', serif; font-size: 10.5px; line-height: 1.62; }
+        .preview-reviews-dialog__disclosure { flex: 0 0 auto; margin: 0; padding: 12px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
+        @media (max-width: 760px) {
+            .preview-checkout__header { grid-template-columns: 1fr; gap: 14px; padding: 21px 18px 18px; }
+            .preview-seat-badge { gap: 12px; margin-bottom: 15px; padding: 11px 12px; }
+            .preview-checkout__body { padding: 16px; }
+            .preview-payment { padding: 16px; }
+            .preview-guarantee { padding: 15px 16px; }
+            .preview-guarantee__badge { width: 48px; height: 48px; }
+            .preview-identity { grid-template-columns: 1fr; }
+            .preview-includes { grid-template-columns: 1fr; padding: 22px 18px 25px; }
+            .preview-includes__urgency { grid-template-columns: 1fr; gap: 7px; padding: 0 0 3px; }
+            .preview-includes__urgency-copy { text-align: center; }
+            .preview-includes__visual { max-width: 360px; }
+            .preview-obtain__list { padding: 4px 14px; }
+            .preview-obtain__item { grid-template-columns: 23px minmax(0, 1fr); gap: 11px; padding: 14px 0; }
+            .preview-obtain__check { width: 22px; height: 22px; }
+            .preview-reviews { margin-top: 14px; }
+            .preview-reviews-summary { padding: 21px 20px 19px; }
+            .preview-reviews-summary__main { gap: 15px; }
+            .preview-reviews-summary__score { font-size: 39px; }
+            .preview-reviews-dialog { width: calc(100% - 18px); height: calc(100dvh - 18px); border-radius: 19px; }
+            .preview-reviews-dialog__top { padding: 20px 18px 18px; }
+            .preview-reviews-dialog__scorebar { padding: 17px 18px; }
+            .preview-reviews-dialog__filters { padding: 11px 18px; }
+            .preview-reviews-list { grid-template-columns: 1fr; padding: 13px 12px 17px; }
+        }
         .offer-expired-state {
             width: 100%;
             max-width: 520px;
@@ -1109,6 +1550,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
     <div class="bg-gradient"></div>
 
     <div id="dev-time-banner" class="dev-time-banner">
+        <button id="dev-time-toggle" class="dev-time-toggle" type="button" aria-expanded="true" aria-controls="dev-time-banner" aria-label="Masquer la simulation temps" title="Masquer la simulation temps">−</button>
         <p class="dev-time-title">Simulation temps (preview uniquement)</p>
 
         <div class="dev-section">
@@ -1190,7 +1632,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
 
     <section id="screen-main" class="screen">
         <div class="screen-main-header">
-            <div class="badge">UNE SEULE DIFFUSION EN DIRECT</div>
+            <div class="badge">DIFFUSION EN DIRECT</div>
             <h1>Masterclass Esprit Subconscient 2.0</h1>
             <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
             </div>
@@ -1267,12 +1709,6 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         </div>
 
         <div id="offer-zone" class="offer-zone hidden">
-            <div class="countdown">
-                <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
-                <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
-                <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
-                <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
-            </div>
             <div class="scarcity-card" id="scarcity-card" aria-hidden="true" hidden>
                 <p class="scarcity-kicker">Nombre de places limitées</p>
                 <p class="scarcity-phase1-total hidden">30 places</p>
@@ -1290,6 +1726,189 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 </div>
             </div>
             <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">S’inscrire à Esprit Subconscient 2.0</a>
+            <section id="preview-checkout" class="preview-checkout" aria-label="Aperçu du futur paiement intégré">
+                <header class="preview-checkout__header">
+                    <div>
+                        <p class="preview-checkout__eyebrow">Esprit Subconscient 2.0</p>
+                        <h2 class="preview-checkout__title">Inscris-toi maintenant</h2>
+                    </div>
+                </header>
+                <div class="preview-checkout__body">
+                    <div id="preview-payment" class="preview-payment">
+                        <div class="preview-seat-badge" aria-label="Quatorze places disponibles sur quinze">
+                            <span>Places encore disponibles pour cette session</span>
+                            <strong>14 <small>/ 15</small></strong>
+                        </div>
+                        <div class="preview-identity">
+                            <div class="preview-identity__field">
+                                <label for="preview-first-name">Prénom</label>
+                                <input id="preview-first-name" type="text" value="Preview" autocomplete="given-name" />
+                            </div>
+                            <div class="preview-identity__field">
+                                <label for="preview-email">Email</label>
+                                <input id="preview-email" type="email" value="preview@sonnycourt.com" autocomplete="email" />
+                            </div>
+                        </div>
+                        <div class="preview-payment__head">
+                            <p class="preview-payment__label">Carte bancaire</p>
+                            <div class="preview-payment__cards" aria-hidden="true"><span>VISA</span><span>MC</span><span>AMEX</span></div>
+                        </div>
+                        <div class="preview-card-field">Numéro de carte</div>
+                        <div class="preview-card-row">
+                            <div class="preview-card-mini">MM / AA</div>
+                            <div class="preview-card-mini">CVC</div>
+                        </div>
+                        <div class="preview-country-wrap">
+                            <label for="preview-country">Pays</label>
+                            <select id="preview-country" class="preview-country" required>
+                                <option value="CH">Suisse</option>
+                                <option value="FR">France</option>
+                                <option value="BE">Belgique</option>
+                                <option value="CA">Canada</option>
+                                <option value="OTHER">Autre</option>
+                            </select>
+                        </div>
+                            <div class="preview-schedule" aria-label="Échéancier de paiement">
+                                <div class="preview-schedule__head">
+                                    <p class="preview-schedule__title">Informations relatives au règlement</p>
+                                </div>
+                            <div class="preview-schedule__today">
+                                <span class="preview-schedule__today-main">
+                                    <span class="preview-schedule__dot" aria-hidden="true"></span>
+                                    <span><strong>Aujourd’hui</strong><small id="preview-schedule-now-detail">Première mensualité</small></span>
+                                </span>
+                                <span class="preview-schedule__amount-stack">
+                                    <strong id="preview-schedule-now-amount" class="preview-schedule__amount">197 €</strong>
+                                    <small id="preview-schedule-analogy" class="preview-schedule__amount-note">environ 6 € par jour</small>
+                                </span>
+                            </div>
+                            <p id="preview-schedule-copy" class="preview-schedule__copy">Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.</p>
+                        </div>
+                        <div class="preview-cgv"><span class="preview-cgv__box" aria-hidden="true"></span><span>J’accepte les CGV et l’échéancier correspondant au mode de paiement sélectionné.</span></div>
+                        <button id="preview-pay-btn" class="preview-pay-btn" type="button">Je commence ma transformation</button>
+                        <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
+                    </div>
+                    <div class="preview-guarantee">
+                        <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
+                        <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
+                    </div>
+                </div>
+                <div class="preview-includes">
+                    <div class="preview-includes__urgency">
+                        <p class="preview-includes__urgency-copy">Cette offre expire dans</p>
+                        <div id="preview-countdown-slot" class="preview-includes__countdown-slot">
+                            <div id="offer-countdown" class="countdown">
+                                <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
+                                <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
+                                <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
+                                <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-includes__visual">
+                        <img src="/media/pages/es2-bundle.webp" alt="Esprit Subconscient 2.0 avec la formation, Morpho et la communauté Volt" />
+                    </div>
+                    <div class="preview-obtain">
+                        <div class="preview-obtain__heading">
+                            <h3>CE QUE TU VAS OBTENIR AVEC<br />ESPRIT SUBCONSCIENT 2.0</h3>
+                            <p class="preview-obtain__volume"><strong>36h+ de contenus</strong><span>Un parcours guidé de 6 mois · 15 minutes par jour</span></p>
+                        </div>
+                        <div class="preview-obtain__list">
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Un subconscient reprogrammé en profondeur</h4><p>Tu sauras comment accéder à ton subconscient et le reprogrammer pour qu’il travaille pour toi, et non plus contre toi.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>La fin des croyances limitantes qui te sabotent depuis toujours</h4><p>Tu identifieras les vraies racines de tes blocages financiers, amoureux et professionnels, puis tu apprendras à les désamorcer.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>La capacité d’incarner l’état d’être de ton choix</h4><p>Confiance, paix, abondance, magnétisme : tu sauras activer ces états lorsque tu en as besoin.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Une transformation qui s’ancre même pendant ton sommeil</h4><p>Tu utiliseras les moments où ton cerveau est le plus réceptif pour prolonger ta reprogrammation sans effort conscient.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Une clarté mentale nouvelle</h4><p>Tu apprendras à sortir des ruminations, des doutes permanents et des pensées qui tournent en rond.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Le pouvoir de manifester ta nouvelle vie avec précision</h4><p>Tu comprendras ce qui bloque la manifestation et maîtriseras les principes qui gouvernent la création de ta réalité.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Des outils conçus pour t’accompagner durablement</h4><p>Audios guidés, vidéos, exercices accompagnés et mises à jour incluses pour continuer à progresser au-delà des six mois.</p></div>
+                            </div>
+                            <div class="preview-obtain__item">
+                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
+                                <div><h4>Un accompagnement qui reste présent à chaque étape</h4><p>Morpho, ton coach IA pendant 12 mois, ton plan d’action dès J+30 et la communauté privée Volt.</p></div>
+                            </div>
+                        </div>
+                        <a id="preview-obtain-cta" class="preview-obtain__cta" href="#preview-first-name">Je commence ma transformation</a>
+                    </div>
+                </div>
+            </section>
+                <div class="preview-reviews">
+                    <button type="button" class="preview-reviews-summary" id="preview-open-reviews" aria-haspopup="dialog">
+                        <span class="preview-reviews-summary__eyebrow">Avis des participants</span>
+                        <span class="preview-reviews-summary__main">
+                            <span class="preview-reviews-summary__score">{previewReviewAverageLabel}<small>/5</small></span>
+                            <span class="preview-reviews-summary__rating">
+                                <span class="preview-star-meter" aria-label={`Note moyenne : ${previewReviewAverageLabel} sur 5`}>
+                                    <span aria-hidden="true">★★★★★</span>
+                                    <span aria-hidden="true" style={`width: ${previewReviewAveragePercent}%`}>★★★★★</span>
+                                </span>
+                                <strong>{previewCheckoutReviews.length} avis authentiques</strong>
+                            </span>
+                        </span>
+                        <span class="preview-reviews-summary__footer">
+                            <span class="preview-reviews-summary__avatars" aria-hidden="true">
+                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/7a97c502-a682-47a4-aec4-2aa2ac563908/malika-modified.png" alt="" />
+                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/e825f3b3-c3b4-49a5-9b69-7c2213b33a11/Melyssa.jpg" alt="" />
+                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/b94c69cf-4317-41b0-9637-3f8b8b3d6f52/1-1-.png" alt="" />
+                            </span>
+                            <strong>Lire leurs témoignages <span aria-hidden="true">→</span></strong>
+                        </span>
+                    </button>
+                </div>
+
+                <dialog class="preview-reviews-dialog" id="preview-reviews-dialog" aria-labelledby="preview-reviews-dialog-title">
+                    <div class="preview-reviews-dialog__top">
+                        <div><span class="preview-reviews-dialog__eyebrow">Témoignages authentiques</span><h2 id="preview-reviews-dialog-title">Avis des participants</h2></div>
+                        <button type="button" class="preview-reviews-dialog__close" id="preview-close-reviews" aria-label="Fermer">×</button>
+                    </div>
+                    <div class="preview-reviews-dialog__scorebar">
+                        <strong>{previewReviewAverageLabel}<small>/5</small></strong>
+                        <div>
+                            <span class="preview-star-meter" aria-label={`Note moyenne : ${previewReviewAverageLabel} sur 5`}>
+                                <span aria-hidden="true">★★★★★</span>
+                                <span aria-hidden="true" style={`width: ${previewReviewAveragePercent}%`}>★★★★★</span>
+                            </span>
+                            <p>{previewRatedReviews.length} avis notés sur {previewCheckoutReviews.length} témoignages</p>
+                        </div>
+                    </div>
+                    <div class="preview-reviews-dialog__filters" aria-label="Filtrer les témoignages">
+                        <button type="button" class="is-active" data-preview-review-filter="all">Tous</button>
+                        {previewRatingFilterValues.map((rating) => <button type="button" data-preview-review-filter={rating}>{rating} étoile{rating > 1 ? 's' : ''}</button>)}
+                        <button type="button" data-preview-review-filter="unrated">Sans note</button>
+                    </div>
+                    <div class="preview-reviews-list">
+                        {previewCheckoutReviews.map((review) => (
+                            <article class="preview-review-item" data-preview-review-rating={review.rating ?? 'unrated'}>
+                                <div class="preview-review-item__head">
+                                    {review.source_photo_url ? <img src={review.source_photo_url} alt={review.first_name} loading="lazy" decoding="async" /> : <span class="preview-review-item__initials">{previewReviewInitials(review.first_name)}</span>}
+                                    <span><strong>{review.first_name}</strong><small>{review.country || 'Participant vérifié'}</small></span>
+                                    {review.rating ? <b aria-label={`${review.rating} étoiles`}>{'★'.repeat(review.rating)}<i>{'★'.repeat(5 - review.rating)}</i></b> : <b class="preview-review-item__unrated">Témoignage</b>}
+                                </div>
+                                <p>« {review.review} »</p>
+                            </article>
+                        ))}
+                    </div>
+                    <p class="preview-reviews-dialog__disclosure">Avis authentiques recueillis auprès de participants à des programmes désormais inclus dans Esprit Subconscient 2.0.</p>
+                </dialog>
             <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
                 <p class="offer-expired-title">L'offre n'est plus disponible</p>
                 <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
@@ -1773,9 +2392,10 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
             const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
             const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
-            const offerCountdownEl = document.querySelector('#offer-zone .countdown');
+            const offerCountdownEl = document.getElementById('offer-countdown');
             const offerScarcityEl = document.getElementById('scarcity-card');
             const offerCtaNode = document.getElementById('offer-cta');
+            const previewCheckoutNode = document.getElementById('preview-checkout');
             const offerExpiredStateEl = document.getElementById('offer-expired-state');
             let isOfferExpired = false;
 
@@ -1792,6 +2412,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
                 if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
+                if (previewCheckoutNode) previewCheckoutNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
                 if (isOfferExpired) setOfferCtaEnabled(false);
             }
@@ -3070,7 +3691,72 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
+            document.documentElement.classList.add('mc-preview-dev');
             banner.classList.add('is-visible');
+
+            var toggle = document.getElementById('dev-time-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    var collapsed = banner.classList.toggle('is-collapsed');
+                    var ctaAudit = document.getElementById('dev-cta-audit');
+                    if (ctaAudit) ctaAudit.style.display = collapsed ? 'none' : 'block';
+                    toggle.textContent = collapsed ? '+' : '−';
+                    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                    toggle.setAttribute('aria-label', collapsed ? 'Afficher la simulation temps' : 'Masquer la simulation temps');
+                    toggle.title = collapsed ? 'Afficher la simulation temps' : 'Masquer la simulation temps';
+                });
+            }
+
+            var paymentSwitch = document.getElementById('preview-payment-switch');
+            var paymentPanel = document.getElementById('preview-payment');
+            var scheduleCopy = document.getElementById('preview-schedule-copy');
+            var scheduleNowDetail = document.getElementById('preview-schedule-now-detail');
+            var scheduleNowAmount = document.getElementById('preview-schedule-now-amount');
+            var scheduleAnalogy = document.getElementById('preview-schedule-analogy');
+            if (scheduleAnalogy && paymentPanel) {
+                var initialOnce = paymentPanel.getAttribute('data-plan') === 'once';
+                scheduleAnalogy.style.display = initialOnce ? 'none' : 'block';
+            }
+            // Keep the offer countdown dans sa position native pour éviter toute régression visuelle.
+            if (paymentSwitch && paymentPanel) {
+                paymentSwitch.addEventListener('click', function () {
+                    var once = paymentPanel.getAttribute('data-plan') !== 'once';
+                    paymentPanel.classList.add('is-switching');
+                    window.setTimeout(function () {
+                        paymentPanel.setAttribute('data-plan', once ? 'once' : 'monthly');
+                        if (scheduleNowDetail) scheduleNowDetail.textContent = once ? 'Paiement unique' : 'Première mensualité';
+                        if (scheduleNowAmount) scheduleNowAmount.textContent = once ? '1 997 €' : '197 €';
+                        if (scheduleCopy) scheduleCopy.textContent = once
+                            ? 'Aucun autre prélèvement n’est prévu. Ce paiement en une fois représente une économie de 367 € par rapport au règlement en douze mensualités.'
+                            : 'Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.';
+                        if (scheduleAnalogy) scheduleAnalogy.style.display = once ? 'none' : 'block';
+                        paymentSwitch.textContent = once
+                            ? 'Revenir aux 12 mensualités de 197 €'
+                            : 'Payer en une fois et économiser 367 €';
+                        paymentPanel.classList.remove('is-switching');
+                    }, 160);
+                });
+            }
+
+            var previewReviewsDialog = document.getElementById('preview-reviews-dialog');
+            var previewOpenReviews = document.getElementById('preview-open-reviews');
+            var previewCloseReviews = document.getElementById('preview-close-reviews');
+            var previewReviewFilters = Array.from(document.querySelectorAll('[data-preview-review-filter]'));
+            var previewReviewItems = Array.from(document.querySelectorAll('[data-preview-review-rating]'));
+            if (previewOpenReviews && previewReviewsDialog) previewOpenReviews.addEventListener('click', function () { previewReviewsDialog.showModal(); });
+            if (previewCloseReviews && previewReviewsDialog) previewCloseReviews.addEventListener('click', function () { previewReviewsDialog.close(); });
+            if (previewReviewsDialog) previewReviewsDialog.addEventListener('click', function (event) {
+                if (event.target === previewReviewsDialog) previewReviewsDialog.close();
+            });
+            previewReviewFilters.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var rating = button.getAttribute('data-preview-review-filter');
+                    previewReviewFilters.forEach(function (filter) { filter.classList.toggle('is-active', filter === button); });
+                    previewReviewItems.forEach(function (item) {
+                        item.hidden = rating !== 'all' && item.getAttribute('data-preview-review-rating') !== rating;
+                    });
+                });
+            });
 
             var inscInput = document.getElementById('dev-inscription-input');
             var nowInput  = document.getElementById('dev-time-input');
