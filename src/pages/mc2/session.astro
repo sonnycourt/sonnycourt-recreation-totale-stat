@@ -57,7 +57,7 @@ const previewReviewInitials = (name) => name
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-    <script is:inline src="https://js.stripe.com/basil/stripe.js"></script>
+    <script is:inline src="https://js.stripe.com/clover/stripe.js"></script>
     <GAConsentMode />
     <script type="text/javascript">
         (function(c,l,a,r,i,t,y){
@@ -1825,7 +1825,7 @@ const previewReviewInitials = (name) => name
                             </div>
                             <p id="preview-schedule-copy" class="preview-schedule__copy">Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.</p>
                         </div>
-                        <label class="preview-cgv"><span class="preview-fake-only preview-cgv__box" aria-hidden="true"></span><input id="preview-cgv-checkbox" class="stripe-live-only" type="checkbox" required /><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener" style="color:inherit;">CGV</a> et l’échéancier correspondant au mode de paiement sélectionné.</span></label>
+                        <label class="preview-cgv"><span class="preview-fake-only preview-cgv__box" aria-hidden="true"></span><input id="preview-cgv-checkbox" class="stripe-live-only" type="checkbox" required /><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener" style="color:inherit;">CGV</a> et l’échéancier mentionné ci-dessus.</span></label>
                         <button id="preview-pay-btn" class="preview-pay-btn" type="submit">Je commence ma transformation</button>
                         <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
                         <p id="preview-stripe-error" class="preview-stripe-error stripe-live-only" role="alert"></p>
@@ -2553,8 +2553,8 @@ const previewReviewInitials = (name) => name
                     if (firstName) firstName.value = data.customer?.name || reg.prenom || '';
                     if (email) email.value = data.customer?.email || '';
                     const stripe = window.Stripe(data.publishable_key);
-                    const checkout = await stripe.initCheckout({
-                        fetchClientSecret: function () { return Promise.resolve(data.client_secret); },
+                    const checkout = stripe.initCheckout({
+                        clientSecret: data.client_secret,
                         elementsOptions: { appearance },
                     });
                     if (generation !== controller.generation) return;
@@ -2631,7 +2631,7 @@ const previewReviewInitials = (name) => name
                     });
                     if (billingResult?.error) throw new Error(billingResult.error.message || 'Vérifie ton pays.');
                     await recordAcceptance();
-                    const result = await controller.checkout.confirm(options || {});
+                    const result = await controller.actions.confirm(options || {});
                     if (result?.type === 'error' || result?.error) {
                         throw new Error(result?.error?.message || 'Vérifie les informations de paiement.');
                     }

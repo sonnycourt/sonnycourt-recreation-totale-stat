@@ -198,7 +198,10 @@ export function mc2Stripe() {
     process.env.STRIPE_MC2_SECRET_KEY || process.env.STRIPE_SECRET_KEY || '',
   ).trim();
   if (!secretKey) throw new Error('stripe_secret_missing');
-  if (!stripeClient) stripeClient = new Stripe(secretKey, { maxNetworkRetries: 2 });
+  if (!stripeClient) stripeClient = new Stripe(secretKey, {
+    apiVersion: '2025-09-30.clover',
+    maxNetworkRetries: 2,
+  });
   return stripeClient;
 }
 

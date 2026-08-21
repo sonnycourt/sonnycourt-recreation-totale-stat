@@ -88,7 +88,9 @@ assert.equal(onceDocument.schedule.length, 1);
 assert.equal(onceDocument.pricing.remaining_scheduled_cents, 0);
 
 const page = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
-assert.match(page, /js\.stripe\.com\/basil\/stripe\.js/);
+assert.match(page, /js\.stripe\.com\/clover\/stripe\.js/);
+assert.match(page, /clientSecret:\s*data\.client_secret/);
+assert.match(page, /controller\.actions\.confirm/);
 assert.match(page, /checkout_surface:\s*'mc2_session'/);
 assert.match(page, /createPaymentElement/);
 assert.match(page, /createExpressCheckoutElement/);
