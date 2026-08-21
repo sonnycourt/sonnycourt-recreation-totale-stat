@@ -1,0 +1,112 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {
+  MC2_SESSION_MONTHLY_PAYMENT_CENTS,
+  MC2_SESSION_MONTHLY_PAYMENT_COUNT,
+  MC2_SESSION_MONTHLY_PLAN,
+  MC2_SESSION_MONTHLY_TOTAL_CENTS,
+  MC2_SESSION_ONE_TIME_CENTS,
+  MC2_SESSION_ONE_TIME_PLAN,
+  ensureMc2SessionPrices,
+  isValidMc2SessionPrice,
+  mc2SessionPlanConfig,
+  mc2SessionPaymentSchedule,
+} from '../netlify/functions/lib/mc2-stripe.mjs';
+import { mc2SessionMonthlySchedulePhases } from '../netlify/functions/lib/mc2-pay-router.mjs';
+import {
+  buildMc2ContractDocumentSnapshot,
+  mc2PaidSessionIsEligible,
+} from '../netlify/functions/lib/mc2-contract-documents.mjs';
+
+assert.equal(MC2_SESSION_MONTHLY_PAYMENT_CENTS * MC2_SESSION_MONTHLY_PAYMENT_COUNT, MC2_SESSION_MONTHLY_TOTAL_CENTS);
+assert.equal(MC2_SESSION_MONTHLY_TOTAL_CENTS - MC2_SESSION_ONE_TIME_CENTS, 36700);
+assert.equal(mc2SessionPlanConfig('monthly').paymentPlan, MC2_SESSION_MONTHLY_PLAN);
+assert.equal(mc2SessionPlanConfig('once').paymentPlan, MC2_SESSION_ONE_TIME_PLAN);
+assert.equal(mc2SessionPaymentSchedule('monthly')[1].installments, 11);
+assert.equal(mc2SessionPaymentSchedule('once').length, 1);
+
+const product = 'prod_V2GyqoqalbZxqn';
+assert.equal(isValidMc2SessionPrice({
+  product, active: true, type: 'one_time', currency: 'eur', unit_amount: 19700, tax_behavior: 'inclusive',
+}, 'monthly_entry'), true);
+assert.equal(isValidMc2SessionPrice({
+  product, active: true, type: 'recurring', currency: 'eur', unit_amount: 19700,
+  tax_behavior: 'inclusive', recurring: { interval: 'month', interval_count: 1 },
+}, 'monthly_recurring'), true);
+assert.equal(isValidMc2SessionPrice({
+  product, active: true, type: 'one_time', currency: 'eur', unit_amount: 199700, tax_behavior: 'inclusive',
+}, 'one_time'), true);
+
+const createdPrices = [];
+const catalog = await ensureMc2SessionPrices({
+  prices: {
+    list: async () => ({ data: [] }),
+    create: async (params, options) => {
+      createdPrices.push({ params, options });
+      return {
+        id: `price_${params.metadata.price_role}`,
+        product,
+        active: true,
+        type: params.recurring ? 'recurring' : 'one_time',
+        currency: params.currency,
+        unit_amount: params.unit_amount,
+        tax_behavior: params.tax_behavior,
+        lookup_key: params.lookup_key,
+        recurring: params.recurring || null,
+      };
+    },
+  },
+});
+assert.equal(createdPrices.length, 3);
+assert.ok(catalog.monthlyEntry.id && catalog.monthlyRecurring.id && catalog.oneTime.id);
+assert.ok(createdPrices.every((row) => row.options.idempotencyKey.startsWith('mc2-session-price:')));
+
+const phases = mc2SessionMonthlySchedulePhases('price_monthly_197');
+assert.equal(phases.length, 1);
+assert.deepEqual(phases[0].duration, { interval: 'month', interval_count: 11 });
+assert.equal(phases[0].items[0].price, 'price_monthly_197');
+
+const env = {
+  MC2_CONTRACT_VERSION: 'mc2-cgv-test-v1',
+  MC2_TERMS_URL: 'https://sonnycourt.com/cgv/',
+  MC2_TERMS_SNAPSHOT_URL: 'https://sonnycourt.com/cgv/test.pdf',
+  MC2_TERMS_SNAPSHOT_SHA256: 'a'.repeat(64),
+};
+const session = (paymentPlan, amount, total) => ({
+  mode: 'payment', payment_status: 'paid', currency: 'eur', amount_total: amount, created: 1_786_290_000,
+  metadata: { system: 'es2_mc2', payment_plan: paymentPlan, contractual_total_cents: String(total) },
+});
+const monthlySession = session(MC2_SESSION_MONTHLY_PLAN, 19700, 236400);
+const onceSession = session(MC2_SESSION_ONE_TIME_PLAN, 199700, 199700);
+assert.equal(mc2PaidSessionIsEligible(monthlySession), true);
+assert.equal(mc2PaidSessionIsEligible(onceSession), true);
+const monthlyDocument = buildMc2ContractDocumentSnapshot({ session: monthlySession, event: { created: 1_786_290_000 }, env });
+const onceDocument = buildMc2ContractDocumentSnapshot({ session: onceSession, event: { created: 1_786_290_000 }, env });
+assert.equal(monthlyDocument.schedule.length, 12);
+assert.equal(monthlyDocument.schedule.reduce((sum, row) => sum + row.amount_cents, 0), 236400);
+assert.equal(onceDocument.schedule.length, 1);
+assert.equal(onceDocument.pricing.remaining_scheduled_cents, 0);
+
+const page = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+assert.match(page, /js\.stripe\.com\/basil\/stripe\.js/);
+assert.match(page, /checkout_surface:\s*'mc2_session'/);
+assert.match(page, /createPaymentElement/);
+assert.match(page, /createExpressCheckoutElement/);
+assert.match(page, /updateBillingAddress/);
+assert.match(page, /mountLiveInlineCheckout\(reg\)/);
+assert.doesNotMatch(page, /window\.location\.href\s*=\s*'\/commencer\?t='/);
+
+const tokenEndpoint = fs.readFileSync(new URL('../netlify/functions/mc2-create-test-token.js', import.meta.url), 'utf8');
+assert.match(tokenEndpoint, /timingSafeEqual/);
+assert.match(tokenEndpoint, /MC2_TEST_TOKEN_ADMIN_SECRET/);
+assert.match(tokenEndpoint, /randomBytes\(24\)/);
+assert.doesNotMatch(tokenEndpoint, /queueMc2Sms|MailerLite|sendMc2MetaEvents/);
+
+console.log(JSON.stringify({
+  monthly: '197_now_plus_11_monthly',
+  one_time: '1997_once',
+  contract_documents: 'both_plans',
+  payment_element: 'inline_secure',
+  wallets: 'apple_pay_google_pay',
+  redirect_to_checkout: 'removed',
+}, null, 2));

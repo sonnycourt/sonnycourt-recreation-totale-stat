@@ -57,6 +57,7 @@ const previewReviewInitials = (name) => name
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <script is:inline src="https://js.stripe.com/basil/stripe.js"></script>
     <GAConsentMode />
     <script type="text/javascript">
         (function(c,l,a,r,i,t,y){
@@ -868,7 +869,8 @@ const previewReviewInitials = (name) => name
             color: #fff;
             text-align: left;
         }
-        html.mc-preview-dev .preview-checkout { display: block; }
+        html.mc-preview-dev .preview-checkout,
+        .preview-checkout.is-live { display: block; }
         html.mc-preview-dev #offer-cta { display: none !important; }
         .preview-checkout.hidden { display: none !important; }
         .preview-checkout__header {
@@ -1077,6 +1079,17 @@ const previewReviewInitials = (name) => name
             cursor: pointer;
         }
         .preview-payment-switch:hover { color: #dcecff; }
+        .stripe-live-only { display: none; }
+        .preview-checkout.is-live .stripe-live-only { display: block; }
+        .preview-checkout.is-live .preview-fake-only { display: none !important; }
+        .preview-stripe-loading { min-height: 96px; padding: 28px 12px; color: #aebfd4; font-size: 0.74rem; text-align: center; }
+        .preview-stripe-error { min-height: 18px; margin: 10px 2px 0; color: #fda4af; font-size: 0.7rem; line-height: 1.45; text-align: center; }
+        .preview-stripe-wallet[hidden], .preview-stripe-separator[hidden] { display: none; }
+        .preview-stripe-wallet { margin-bottom: 12px; }
+        .preview-stripe-separator { display: flex; align-items: center; gap: 10px; margin: 12px 0; color: #71849b; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; }
+        .preview-stripe-separator::before, .preview-stripe-separator::after { content: ''; flex: 1; height: 1px; background: rgba(145, 177, 217, 0.2); }
+        .preview-cgv input { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; accent-color: #3b82f6; }
+        .preview-pay-btn:disabled { opacity: 0.55; cursor: wait; }
         .preview-includes {
             display: grid;
             grid-template-columns: 1fr;
@@ -1734,7 +1747,7 @@ const previewReviewInitials = (name) => name
                     </div>
                 </header>
                 <div class="preview-checkout__body">
-                    <div id="preview-payment" class="preview-payment">
+                    <form id="preview-payment" class="preview-payment" novalidate>
                         <div class="preview-seat-badge" aria-label="Quatorze places disponibles sur quinze">
                             <span>Places encore disponibles pour cette session</span>
                             <strong>14 <small>/ 15</small></strong>
@@ -1742,21 +1755,27 @@ const previewReviewInitials = (name) => name
                         <div class="preview-identity">
                             <div class="preview-identity__field">
                                 <label for="preview-first-name">Prénom</label>
-                                <input id="preview-first-name" type="text" value="Preview" autocomplete="given-name" />
+                                <input id="preview-first-name" type="text" value="Preview" autocomplete="given-name" readonly />
                             </div>
                             <div class="preview-identity__field">
                                 <label for="preview-email">Email</label>
-                                <input id="preview-email" type="email" value="preview@sonnycourt.com" autocomplete="email" />
+                                <input id="preview-email" type="email" value="preview@sonnycourt.com" autocomplete="email" readonly />
                             </div>
                         </div>
                         <div class="preview-payment__head">
                             <p class="preview-payment__label">Carte bancaire</p>
                             <div class="preview-payment__cards" aria-hidden="true"><span>VISA</span><span>MC</span><span>AMEX</span></div>
                         </div>
-                        <div class="preview-card-field">Numéro de carte</div>
-                        <div class="preview-card-row">
+                        <div class="preview-fake-only preview-card-field">Numéro de carte</div>
+                        <div class="preview-fake-only preview-card-row">
                             <div class="preview-card-mini">MM / AA</div>
                             <div class="preview-card-mini">CVC</div>
+                        </div>
+                        <div class="stripe-live-only">
+                            <div id="preview-stripe-wallet" class="preview-stripe-wallet" hidden></div>
+                            <div id="preview-stripe-separator" class="preview-stripe-separator" hidden>ou par carte</div>
+                            <div id="preview-stripe-loading" class="preview-stripe-loading">Chargement du paiement sécurisé…</div>
+                            <div id="preview-stripe-payment-element"></div>
                         </div>
                         <div class="preview-country-wrap">
                             <label for="preview-country">Pays</label>
@@ -1764,8 +1783,30 @@ const previewReviewInitials = (name) => name
                                 <option value="CH">Suisse</option>
                                 <option value="FR">France</option>
                                 <option value="BE">Belgique</option>
+                                <option value="LU">Luxembourg</option>
+                                <option value="MC">Monaco</option>
                                 <option value="CA">Canada</option>
-                                <option value="OTHER">Autre</option>
+                                <option value="DE">Allemagne</option>
+                                <option value="AT">Autriche</option>
+                                <option value="ES">Espagne</option>
+                                <option value="IT">Italie</option>
+                                <option value="PT">Portugal</option>
+                                <option value="GB">Royaume-Uni</option>
+                                <option value="IE">Irlande</option>
+                                <option value="NL">Pays-Bas</option>
+                                <option value="US">États-Unis</option>
+                                <option value="MA">Maroc</option>
+                                <option value="DZ">Algérie</option>
+                                <option value="TN">Tunisie</option>
+                                <option value="SN">Sénégal</option>
+                                <option value="CI">Côte d’Ivoire</option>
+                                <option value="CM">Cameroun</option>
+                                <option value="GA">Gabon</option>
+                                <option value="CD">République démocratique du Congo</option>
+                                <option value="CG">République du Congo</option>
+                                <option value="MG">Madagascar</option>
+                                <option value="MU">Maurice</option>
+                                <option value="HT">Haïti</option>
                             </select>
                         </div>
                             <div class="preview-schedule" aria-label="Échéancier de paiement">
@@ -1784,10 +1825,11 @@ const previewReviewInitials = (name) => name
                             </div>
                             <p id="preview-schedule-copy" class="preview-schedule__copy">Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.</p>
                         </div>
-                        <div class="preview-cgv"><span class="preview-cgv__box" aria-hidden="true"></span><span>J’accepte les CGV et l’échéancier correspondant au mode de paiement sélectionné.</span></div>
-                        <button id="preview-pay-btn" class="preview-pay-btn" type="button">Je commence ma transformation</button>
+                        <label class="preview-cgv"><span class="preview-fake-only preview-cgv__box" aria-hidden="true"></span><input id="preview-cgv-checkbox" class="stripe-live-only" type="checkbox" required /><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener" style="color:inherit;">CGV</a> et l’échéancier correspondant au mode de paiement sélectionné.</span></label>
+                        <button id="preview-pay-btn" class="preview-pay-btn" type="submit">Je commence ma transformation</button>
                         <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
-                    </div>
+                        <p id="preview-stripe-error" class="preview-stripe-error stripe-live-only" role="alert"></p>
+                    </form>
                     <div class="preview-guarantee">
                         <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
                         <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
@@ -2375,6 +2417,250 @@ const previewReviewInitials = (name) => name
             zone.classList.remove('hidden');
             void zone.offsetWidth; // reflow needed to trigger animation from display:none
             zone.classList.add('visible');
+        }
+
+        let inlineCheckoutController = null;
+
+        function liveInlineCheckoutRequested(token) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('preview') !== 'dev'
+                || (params.get('stripe') === 'live' && token && token !== 'preview-session');
+        }
+
+        function inlinePlanUi(plan) {
+            const once = plan === 'once';
+            const paymentPanel = document.getElementById('preview-payment');
+            const scheduleCopy = document.getElementById('preview-schedule-copy');
+            const scheduleNowDetail = document.getElementById('preview-schedule-now-detail');
+            const scheduleNowAmount = document.getElementById('preview-schedule-now-amount');
+            const scheduleAnalogy = document.getElementById('preview-schedule-analogy');
+            const paymentSwitch = document.getElementById('preview-payment-switch');
+            paymentPanel?.setAttribute('data-plan', once ? 'once' : 'monthly');
+            if (scheduleNowDetail) scheduleNowDetail.textContent = once ? 'Paiement unique' : 'Première mensualité';
+            if (scheduleNowAmount) scheduleNowAmount.textContent = once ? '1 997 €' : '197 €';
+            if (scheduleCopy) scheduleCopy.textContent = once
+                ? 'Aucun autre prélèvement n’est prévu. Ce paiement en une fois représente une économie de 367 € par rapport au règlement en douze mensualités.'
+                : 'Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.';
+            if (scheduleAnalogy) scheduleAnalogy.style.display = once ? 'none' : 'block';
+            if (paymentSwitch) paymentSwitch.textContent = once
+                ? 'Revenir aux 12 mensualités de 197 €'
+                : 'Payer en une fois et économiser 367 €';
+        }
+
+        async function mountLiveInlineCheckout(reg) {
+            if (!liveInlineCheckoutRequested(reg?.token)) return;
+            const checkoutSection = document.getElementById('preview-checkout');
+            const oldCta = document.getElementById('offer-cta');
+            checkoutSection?.classList.add('is-live');
+            oldCta?.classList.add('hidden');
+            if (inlineCheckoutController?.token === reg.token) return;
+            if (!window.Stripe) throw new Error('Stripe ne peut pas être chargé. Recharge la page.');
+
+            const form = document.getElementById('preview-payment');
+            const firstName = document.getElementById('preview-first-name');
+            const email = document.getElementById('preview-email');
+            const country = document.getElementById('preview-country');
+            const checkbox = document.getElementById('preview-cgv-checkbox');
+            const submit = document.getElementById('preview-pay-btn');
+            const switchButton = document.getElementById('preview-payment-switch');
+            const errorNode = document.getElementById('preview-stripe-error');
+            const loading = document.getElementById('preview-stripe-loading');
+            const walletNode = document.getElementById('preview-stripe-wallet');
+            const walletSeparator = document.getElementById('preview-stripe-separator');
+            const paymentNode = document.getElementById('preview-stripe-payment-element');
+            if (!form || !submit || !paymentNode) return;
+
+            const controller = {
+                token: reg.token,
+                plan: 'monthly',
+                checkout: null,
+                actions: null,
+                paymentElement: null,
+                walletElement: null,
+                checkoutSessionId: '',
+                generation: 0,
+                busy: false,
+                canConfirm: false,
+            };
+            inlineCheckoutController = controller;
+            inlinePlanUi(controller.plan);
+
+            const appearance = {
+                theme: 'night',
+                labels: 'above',
+                variables: {
+                    colorPrimary: '#3b82f6',
+                    colorBackground: '#07172c',
+                    colorText: '#f7fbff',
+                    colorTextSecondary: '#aebfd4',
+                    colorDanger: '#fda4af',
+                    colorSuccess: '#4ade80',
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    borderRadius: '10px',
+                    spacingUnit: '4px',
+                },
+                rules: {
+                    '.Input': { border: '1px solid rgba(145, 177, 217, 0.3)', boxShadow: 'none' },
+                    '.Input:focus': { borderColor: '#60a5fa', boxShadow: '0 0 0 3px rgba(59,130,246,.15)' },
+                    '.Label': { color: '#c6d6e9', fontSize: '12px', fontWeight: '700' },
+                    '.Tab': { border: '1px solid rgba(145, 177, 217, 0.24)', boxShadow: 'none' },
+                    '.Tab--selected': { borderColor: '#60a5fa', boxShadow: '0 0 0 2px rgba(59,130,246,.14)' },
+                    '.TermsText': { color: '#91a5bc', fontSize: '10px' },
+                },
+            };
+
+            function showPaymentError(message) {
+                if (errorNode) errorNode.textContent = message || '';
+            }
+
+            async function createCheckout(plan) {
+                const response = await fetch('/.netlify/functions/mc2-stripe-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: reg.token,
+                        checkout_surface: 'mc2_session',
+                        plan,
+                        nonce: (window.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)),
+                    }),
+                });
+                const data = await response.json().catch(function () { return {}; });
+                if (!response.ok) throw new Error(data.error || 'Le paiement ne peut pas être préparé.');
+                return data;
+            }
+
+            async function mountPlan(plan) {
+                const generation = ++controller.generation;
+                controller.plan = plan;
+                controller.busy = true;
+                controller.canConfirm = false;
+                submit.disabled = true;
+                switchButton.disabled = true;
+                form.classList.add('is-switching');
+                showPaymentError('');
+                if (loading) loading.hidden = false;
+                controller.paymentElement?.unmount?.();
+                controller.walletElement?.unmount?.();
+                paymentNode.replaceChildren();
+                walletNode?.replaceChildren();
+                if (walletNode) walletNode.hidden = true;
+                if (walletSeparator) walletSeparator.hidden = true;
+
+                try {
+                    const data = await createCheckout(plan);
+                    if (generation !== controller.generation) return;
+                    controller.checkoutSessionId = data.checkout_session_id || '';
+                    if (firstName) firstName.value = data.customer?.name || reg.prenom || '';
+                    if (email) email.value = data.customer?.email || '';
+                    const stripe = window.Stripe(data.publishable_key);
+                    const checkout = await stripe.initCheckout({
+                        fetchClientSecret: function () { return Promise.resolve(data.client_secret); },
+                        elementsOptions: { appearance },
+                    });
+                    if (generation !== controller.generation) return;
+                    controller.checkout = checkout;
+                    const actionsResult = await checkout.loadActions();
+                    if (actionsResult.type !== 'success') throw new Error('Le paiement Stripe ne peut pas être initialisé.');
+                    controller.actions = actionsResult.actions;
+                    const paymentElement = checkout.createPaymentElement({
+                        layout: { type: 'accordion', defaultCollapsed: false, radios: 'never', spacedAccordionItems: false },
+                        fields: { billingDetails: { name: 'never', email: 'never', address: 'never' } },
+                    });
+                    paymentElement.mount(paymentNode);
+                    controller.paymentElement = paymentElement;
+                    const walletElement = checkout.createExpressCheckoutElement({
+                        buttonHeight: 48,
+                        layout: { maxColumns: 2, maxRows: 1, overflow: 'never' },
+                        buttonType: { applePay: 'buy', googlePay: 'buy' },
+                        paymentMethods: { applePay: 'auto', googlePay: 'auto', link: 'never', paypal: 'never', amazonPay: 'never', klarna: 'never' },
+                    });
+                    walletElement.on('ready', function (event) {
+                        const available = event?.availablePaymentMethods;
+                        const hasWallet = Boolean(available?.applePay || available?.googlePay);
+                        if (walletNode) walletNode.hidden = !hasWallet;
+                        if (walletSeparator) walletSeparator.hidden = !hasWallet;
+                    });
+                    walletElement.on('confirm', async function (event) {
+                        if (!checkbox?.checked || !country?.value) {
+                            showPaymentError('Sélectionne ton pays et accepte les CGV avant de payer.');
+                            return;
+                        }
+                        await confirmPayment({ expressCheckoutConfirmEvent: event });
+                    });
+                    if (walletNode) walletElement.mount(walletNode);
+                    controller.walletElement = walletElement;
+                    checkout.on('change', function (session) {
+                        if (generation !== controller.generation) return;
+                        controller.canConfirm = Boolean(session.canConfirm);
+                        if (!controller.busy) submit.disabled = !controller.canConfirm;
+                    });
+                    if (loading) loading.hidden = true;
+                } finally {
+                    if (generation === controller.generation) {
+                        controller.busy = false;
+                        submit.disabled = !controller.canConfirm;
+                        switchButton.disabled = false;
+                        form.classList.remove('is-switching');
+                    }
+                }
+            }
+
+            async function recordAcceptance() {
+                const response = await fetch('/.netlify/functions/mc2-contract-acceptance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: reg.token,
+                        checkout_session_id: controller.checkoutSessionId,
+                        accepted: checkbox?.checked === true,
+                    }),
+                });
+                if (!response.ok) throw new Error('La confirmation contractuelle n’a pas pu être enregistrée. Réessaie.');
+            }
+
+            async function confirmPayment(options) {
+                if (controller.busy || !controller.checkout || !controller.actions) return;
+                controller.busy = true;
+                submit.disabled = true;
+                switchButton.disabled = true;
+                showPaymentError('');
+                try {
+                    const billingResult = await controller.actions.updateBillingAddress({
+                        name: firstName?.value || reg.prenom || 'Élève',
+                        address: { country: country.value },
+                    });
+                    if (billingResult?.error) throw new Error(billingResult.error.message || 'Vérifie ton pays.');
+                    await recordAcceptance();
+                    const result = await controller.checkout.confirm(options || {});
+                    if (result?.type === 'error' || result?.error) {
+                        throw new Error(result?.error?.message || 'Vérifie les informations de paiement.');
+                    }
+                } catch (error) {
+                    showPaymentError(error?.message || 'Le paiement n’a pas pu être confirmé.');
+                    controller.busy = false;
+                    submit.disabled = !controller.canConfirm;
+                    switchButton.disabled = false;
+                }
+            }
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                if (!checkbox?.checked || !country?.value) {
+                    showPaymentError('Sélectionne ton pays et accepte les CGV avant de payer.');
+                    return;
+                }
+                confirmPayment();
+            });
+            switchButton.addEventListener('click', function () {
+                if (controller.busy) return;
+                const nextPlan = controller.plan === 'once' ? 'monthly' : 'once';
+                inlinePlanUi(nextPlan);
+                mountPlan(nextPlan).catch(function (error) {
+                    showPaymentError(error?.message || 'Impossible de changer le mode de paiement.');
+                });
+            });
+
+            await mountPlan('monthly');
         }
         function hideOfferZone() {
             const zone = document.getElementById('offer-zone');
@@ -3263,6 +3549,14 @@ const previewReviewInitials = (name) => name
                     }
                     updateCountdown(isCtaActive ? expiryMs : ctaActivationMs, offerIds);
                     setOfferCtaEnabled(isCtaActive);
+                    if (isCtaActive) {
+                        mountLiveInlineCheckout(reg).catch(function (error) {
+                            const checkout = document.getElementById('preview-checkout');
+                            const errorNode = document.getElementById('preview-stripe-error');
+                            checkout?.classList.add('is-live');
+                            if (errorNode) errorNode.textContent = error?.message || 'Le paiement ne peut pas être chargé.';
+                        });
+                    }
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
                         trackWebinaireEvent(reg.token, 'cta_reached').then(function (result) {
@@ -3302,8 +3596,9 @@ const previewReviewInitials = (name) => name
             function scheduleAutoRedirectToOffer() {
                 if (didAutoRedirectToOffer || !reg?.token) return;
                 didAutoRedirectToOffer = true;
-                trackWebinaireEvent(reg.token, 'auto_redirect_to_offer');
-                window.location.href = '/commencer?t=' + encodeURIComponent(reg.token);
+                showOfferZone(reg.token);
+                mountLiveInlineCheckout(reg).catch(function () {});
+                document.getElementById('preview-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             video.addEventListener('timeupdate', function () {
@@ -3691,6 +3986,10 @@ const previewReviewInitials = (name) => name
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
+            var previewParams = new URLSearchParams(window.location.search);
+            var liveStripePreviewToken = previewParams.get('stripe') === 'live'
+                ? String(previewParams.get('t') || previewParams.get('token') || '').trim()
+                : '';
             document.documentElement.classList.add('mc-preview-dev');
             banner.classList.add('is-visible');
 
@@ -3718,7 +4017,7 @@ const previewReviewInitials = (name) => name
                 scheduleAnalogy.style.display = initialOnce ? 'none' : 'block';
             }
             // Keep the offer countdown dans sa position native pour éviter toute régression visuelle.
-            if (paymentSwitch && paymentPanel) {
+            if (paymentSwitch && paymentPanel && !liveStripePreviewToken) {
                 paymentSwitch.addEventListener('click', function () {
                     var once = paymentPanel.getAttribute('data-plan') !== 'once';
                     paymentPanel.classList.add('is-switching');
@@ -3800,7 +4099,7 @@ const previewReviewInitials = (name) => name
                 }
                 currentSessionMs = sessionMs;
                 var reg = {
-                    token: 'preview-session',
+                    token: liveStripePreviewToken || 'preview-session',
                     statut: 'present',
                     prenom: 'Preview',
                     sessionStartsAt: new Date(sessionMs).toISOString(),
@@ -3937,7 +4236,7 @@ const previewReviewInitials = (name) => name
             simulatedNowMs = initNow.getTime();
             simulatedAnchorRealMs = Date.now();
             onInscriptionChange(initNow.getTime());
-            setSimNow(initNow.getTime());
+            setSimNow(liveStripePreviewToken ? getNowPresetMs('cta-active') : initNow.getTime());
 
             setInterval(refreshSummary, 1000);
         }

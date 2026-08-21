@@ -1,4 +1,9 @@
-import { cleanMc2Token, loadMc2Registration, mc2Stripe } from './lib/mc2-stripe.mjs';
+import {
+  MC2_SESSION_ONE_TIME_PLAN,
+  cleanMc2Token,
+  loadMc2Registration,
+  mc2Stripe,
+} from './lib/mc2-stripe.mjs';
 
 const SAFE_INTENT_STATUSES = new Set([
   'canceled',
@@ -67,7 +72,8 @@ export default async (req) => {
       payment_status: session.payment_status,
       amount_total: session.amount_total,
       currency: session.currency,
-      schedule_ready: Boolean(registration?.stripe_subscription_schedule_id),
+      schedule_ready: session.metadata?.payment_plan === MC2_SESSION_ONE_TIME_PLAN
+        || Boolean(registration?.stripe_subscription_schedule_id),
       first_name: registration?.prenom || '',
       phone: registration?.telephone || '',
       country: registration?.pays || '',

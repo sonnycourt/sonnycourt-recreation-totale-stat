@@ -7,6 +7,13 @@ import {
   MC2_INSTALLMENT_OFFSETS_DAYS,
   MC2_PAYMENT_PLAN,
   MC2_STRIPE_INSTALLMENT_PRICE_ID,
+  MC2_SESSION_MONTHLY_PAYMENT_CENTS,
+  MC2_SESSION_MONTHLY_PLAN,
+  MC2_SESSION_MONTHLY_TOTAL_CENTS,
+  MC2_SESSION_ONE_TIME_CENTS,
+  MC2_SESSION_ONE_TIME_PLAN,
+  MC2_SESSION_REMAINING_PAYMENT_COUNT,
+  ensureMc2SessionPrices,
   isValidMc2InstallmentPrice,
   mc2Stripe,
   stripeId,
@@ -117,7 +124,34 @@ export function mc2InstallmentSchedulePhases() {
   }));
 }
 
+export function mc2SessionMonthlySchedulePhases(recurringPriceId) {
+  return [{
+    items: [{ price: recurringPriceId, quantity: 1 }],
+    discounts: [],
+    billing_cycle_anchor: 'phase_start',
+    duration: { interval: 'month', interval_count: MC2_SESSION_REMAINING_PAYMENT_COUNT },
+    proration_behavior: 'none',
+    metadata: metadataFor({
+      payment_plan: MC2_SESSION_MONTHLY_PLAN,
+      installment_stage: 'monthly_197',
+      installment_count: String(MC2_SESSION_REMAINING_PAYMENT_COUNT),
+    }),
+  }];
+}
+
+function addCalendarMonth(epochSeconds) {
+  const source = new Date(Number(epochSeconds) * 1000);
+  const day = source.getUTCDate();
+  source.setUTCDate(1);
+  source.setUTCMonth(source.getUTCMonth() + 1);
+  const lastDay = new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth() + 1, 0)).getUTCDate();
+  source.setUTCDate(Math.min(day, lastDay));
+  return Math.floor(source.getTime() / 1000);
+}
+
 async function createInstallmentSchedule(stripe, session, registration, completedAtEpochSeconds) {
+  const paymentPlan = String(session.metadata?.payment_plan || MC2_PAYMENT_PLAN);
+  if (paymentPlan === MC2_SESSION_ONE_TIME_PLAN) return null;
   if (registration.stripe_subscription_schedule_id) {
     return stripe.subscriptionSchedules.retrieve(registration.stripe_subscription_schedule_id);
   }
@@ -125,13 +159,13 @@ async function createInstallmentSchedule(stripe, session, registration, complete
   const paymentMethodId = stripeId(paymentIntent.payment_method);
   const customerId = stripeId(session.customer) || stripeId(paymentIntent.customer);
   if (!paymentMethodId || !customerId) throw new Error('mc2_saved_payment_method_missing');
-  if (!/^price_[A-Za-z0-9]+$/.test(MC2_STRIPE_INSTALLMENT_PRICE_ID)) {
-    throw new Error('mc2_installment_price_missing');
-  }
-
-  const installmentPrice = await stripe.prices.retrieve(MC2_STRIPE_INSTALLMENT_PRICE_ID);
-  if (!isValidMc2InstallmentPrice(installmentPrice)) {
-    throw new Error('mc2_installment_price_mismatch');
+  let recurringPriceId = MC2_STRIPE_INSTALLMENT_PRICE_ID;
+  if (paymentPlan === MC2_SESSION_MONTHLY_PLAN) {
+    recurringPriceId = (await ensureMc2SessionPrices(stripe)).monthlyRecurring.id;
+  } else {
+    if (!/^price_[A-Za-z0-9]+$/.test(recurringPriceId)) throw new Error('mc2_installment_price_missing');
+    const installmentPrice = await stripe.prices.retrieve(recurringPriceId);
+    if (!isValidMc2InstallmentPrice(installmentPrice)) throw new Error('mc2_installment_price_mismatch');
   }
 
   // Keep the Customer default aligned with the payment method explicitly used
@@ -141,14 +175,20 @@ async function createInstallmentSchedule(stripe, session, registration, complete
     invoice_settings: { default_payment_method: paymentMethodId },
     metadata: metadataFor({
       mc2_token: registration.token,
-      contractual_total_cents: String(MC2_CONTRACT_TOTAL_CENTS),
+      payment_plan: paymentPlan,
+      contractual_total_cents: String(session.metadata?.contractual_total_cents || MC2_CONTRACT_TOTAL_CENTS),
     }),
   }, {
     idempotencyKey: `mc2-customer-payment-method:${session.id}`,
   });
 
   const paidAt = Number(completedAtEpochSeconds || session.created || paymentIntent.created);
-  const startDate = paidAt + (MC2_INSTALLMENT_FIRST_OFFSET_DAYS * DAY_SECONDS);
+  const startDate = paymentPlan === MC2_SESSION_MONTHLY_PLAN
+    ? addCalendarMonth(paidAt)
+    : paidAt + (MC2_INSTALLMENT_FIRST_OFFSET_DAYS * DAY_SECONDS);
+  const phases = paymentPlan === MC2_SESSION_MONTHLY_PLAN
+    ? mc2SessionMonthlySchedulePhases(recurringPriceId)
+    : mc2InstallmentSchedulePhases();
   return stripe.subscriptionSchedules.create({
     customer: customerId,
     start_date: startDate,
@@ -161,14 +201,15 @@ async function createInstallmentSchedule(stripe, session, registration, complete
       automatic_tax: { enabled: true },
       description: 'Échéancier Esprit Subconscient 2.0',
     },
-    phases: mc2InstallmentSchedulePhases().map((phase) => ({
+    phases: phases.map((phase) => ({
       ...phase,
       metadata: metadataFor({ ...phase.metadata, mc2_token: registration.token }),
     })),
     metadata: metadataFor({
       mc2_token: registration.token,
       checkout_session_id: session.id,
-      contractual_total_cents: String(MC2_CONTRACT_TOTAL_CENTS),
+      payment_plan: paymentPlan,
+      contractual_total_cents: String(session.metadata?.contractual_total_cents || MC2_CONTRACT_TOTAL_CENTS),
     }),
   }, {
     idempotencyKey: `mc2-schedule:${session.id}`,
@@ -181,6 +222,21 @@ async function processCheckoutCompleted(stripe, session, event) {
   const token = String(session.metadata.mc2_token || '').trim();
   const registration = await registrationBy(`token=eq.${encodeURIComponent(token)}`);
   if (!registration) throw new Error('mc2_registration_missing');
+  const paymentPlan = String(session.metadata?.payment_plan || '');
+  const isLegacyPlan = paymentPlan === MC2_PAYMENT_PLAN;
+  const isMonthlyPlan = paymentPlan === MC2_SESSION_MONTHLY_PLAN;
+  const isOneTimePlan = paymentPlan === MC2_SESSION_ONE_TIME_PLAN;
+  if (!isLegacyPlan && !isMonthlyPlan && !isOneTimePlan) throw new Error('mc2_payment_plan_invalid');
+  const expectedInitial = isLegacyPlan
+    ? MC2_ENTRY_PAYMENT_CENTS
+    : isMonthlyPlan ? MC2_SESSION_MONTHLY_PAYMENT_CENTS : MC2_SESSION_ONE_TIME_CENTS;
+  const expectedTotal = isLegacyPlan
+    ? MC2_CONTRACT_TOTAL_CENTS
+    : isMonthlyPlan ? MC2_SESSION_MONTHLY_TOTAL_CENTS : MC2_SESSION_ONE_TIME_CENTS;
+  if (Number(session.amount_total || 0) !== expectedInitial
+    || Number(session.metadata?.contractual_total_cents || 0) !== expectedTotal) {
+    throw new Error('mc2_checkout_amount_mismatch');
+  }
   const schedule = await createInstallmentSchedule(stripe, session, registration, event.created);
   const nowIso = new Date().toISOString();
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
@@ -189,13 +245,13 @@ async function processCheckoutCompleted(stripe, session, event) {
     stripe_customer_id: stripeId(session.customer),
     stripe_checkout_session_id: session.id,
     stripe_payment_intent_id: stripeId(session.payment_intent),
-    stripe_subscription_schedule_id: schedule.id,
-    initial_payment_cents: Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS),
-    contractual_total_cents: MC2_CONTRACT_TOTAL_CENTS,
+    stripe_subscription_schedule_id: schedule?.id || null,
+    initial_payment_cents: Number(session.amount_total || expectedInitial),
+    contractual_total_cents: expectedTotal,
     paid_installment_count: Math.max(Number(registration.paid_installment_count || 0), 1),
     paid_total_cents: Math.max(
       Number(registration.paid_total_cents || 0),
-      Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS),
+      Number(session.amount_total || expectedInitial),
     ),
     purchased_at: registration.purchased_at || nowIso,
     last_payment_at: nowIso,
@@ -217,7 +273,7 @@ async function processCheckoutCompleted(stripe, session, event) {
       registration: purchaseRegistration,
       pagePath: '/commencer/succes/',
       eventTime: Number(event.created) || undefined,
-      value: Number(session.amount_total || MC2_ENTRY_PAYMENT_CENTS) / 100,
+      value: Number(session.amount_total || expectedInitial) / 100,
       currency: String(session.currency || 'eur').toUpperCase(),
     });
   } catch (error) {
@@ -264,16 +320,16 @@ async function processCheckoutCompleted(stripe, session, event) {
   if (!buyerGroup.ok) {
     console.error('mc2 purchase MailerLite buyer group:', buyerGroup.error || buyerGroup.skipped);
   }
-  await recordFunnelEvent(token, 'purchase_completed', session.amount_total || MC2_ENTRY_PAYMENT_CENTS, {
+  await recordFunnelEvent(token, 'purchase_completed', session.amount_total || expectedInitial, {
     stripe_event_id: event.id,
     checkout_session_id: session.id,
-    schedule_id: schedule.id,
-    payment_plan: MC2_PAY_METADATA.payment_plan,
+    schedule_id: schedule?.id || null,
+    payment_plan: paymentPlan,
   });
   return {
     status: 'paid',
     token,
-    schedule_id: schedule.id,
+    schedule_id: schedule?.id || null,
     circle_onboarding: circleOnboarding?.status || (mc2CircleEnabled() ? 'deferred' : 'disabled'),
     contract_document: contractDocument.enabled
       ? contractDocument.queued ? 'queued' : 'existing'

@@ -5,6 +5,12 @@ import {
   MC2_INSTALLMENT_CENTS,
   MC2_INSTALLMENT_OFFSETS_DAYS,
   MC2_PAYMENT_PLAN,
+  MC2_SESSION_MONTHLY_PAYMENT_CENTS,
+  MC2_SESSION_MONTHLY_PLAN,
+  MC2_SESSION_MONTHLY_TOTAL_CENTS,
+  MC2_SESSION_ONE_TIME_CENTS,
+  MC2_SESSION_ONE_TIME_PLAN,
+  MC2_SESSION_REMAINING_PAYMENT_COUNT,
 } from './mc2-stripe.mjs';
 import { mc2ContractVersion } from './mc2-collection-case.mjs';
 import { supabaseGet, supabasePost } from './supabase-rest.mjs';
@@ -91,13 +97,73 @@ export function validateMc2ContractDocumentReadiness(env = process.env) {
 }
 
 export function mc2PaidSessionIsEligible(session = {}) {
-  return session.mode === 'payment'
-    && session.payment_status === 'paid'
-    && session.metadata?.system === MC2_SYSTEM
-    && session.metadata?.payment_plan === MC2_PAYMENT_PLAN
-    && Number(session.metadata?.contractual_total_cents || 0) === MC2_CONTRACT_TOTAL_CENTS
-    && Number(session.amount_total || 0) === MC2_ENTRY_PAYMENT_CENTS
-    && String(session.currency || '').toLowerCase() === 'eur';
+  if (session.mode !== 'payment'
+    || session.payment_status !== 'paid'
+    || session.metadata?.system !== MC2_SYSTEM) return false;
+  if (String(session.currency || '').toLowerCase() !== 'eur') return false;
+  const plan = session.metadata?.payment_plan;
+  const total = Number(session.metadata?.contractual_total_cents || 0);
+  const initial = Number(session.amount_total || 0);
+  return (plan === MC2_PAYMENT_PLAN && total === MC2_CONTRACT_TOTAL_CENTS && initial === MC2_ENTRY_PAYMENT_CENTS)
+    || (plan === MC2_SESSION_MONTHLY_PLAN && total === MC2_SESSION_MONTHLY_TOTAL_CENTS && initial === MC2_SESSION_MONTHLY_PAYMENT_CENTS)
+    || (plan === MC2_SESSION_ONE_TIME_PLAN && total === MC2_SESSION_ONE_TIME_CENTS && initial === MC2_SESSION_ONE_TIME_CENTS);
+}
+
+function addMonths(date, months) {
+  const next = new Date(date.getTime());
+  const day = next.getUTCDate();
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+  next.setUTCDate(Math.min(day, lastDay));
+  return next;
+}
+
+function pricingForSession(session, purchasedAt) {
+  const paymentPlan = session.metadata.payment_plan;
+  const purchaseDate = new Date(purchasedAt);
+  if (paymentPlan === MC2_SESSION_ONE_TIME_PLAN) {
+    return {
+      purchaseType: 'achat unique réglé en une fois',
+      totalCents: MC2_SESSION_ONE_TIME_CENTS,
+      initialCents: MC2_SESSION_ONE_TIME_CENTS,
+      schedule: [{
+        sequence: 0, label: 'Paiement unique', due_offset_days: 0, due_at: purchasedAt,
+        amount_cents: MC2_SESSION_ONE_TIME_CENTS, status_at_purchase: 'paid',
+      }],
+    };
+  }
+  if (paymentPlan === MC2_SESSION_MONTHLY_PLAN) {
+    return {
+      purchaseType: 'achat unique avec paiement en douze mensualités',
+      totalCents: MC2_SESSION_MONTHLY_TOTAL_CENTS,
+      initialCents: MC2_SESSION_MONTHLY_PAYMENT_CENTS,
+      schedule: [{
+        sequence: 0, label: 'Première mensualité', due_offset_months: 0, due_at: purchasedAt,
+        amount_cents: MC2_SESSION_MONTHLY_PAYMENT_CENTS, status_at_purchase: 'paid',
+      }, ...Array.from({ length: MC2_SESSION_REMAINING_PAYMENT_COUNT }, (_, index) => ({
+        sequence: index + 1,
+        label: `Mensualité ${index + 2}`,
+        due_offset_months: index + 1,
+        due_at: addMonths(purchaseDate, index + 1).toISOString(),
+        amount_cents: MC2_SESSION_MONTHLY_PAYMENT_CENTS,
+        status_at_purchase: 'scheduled',
+      }))],
+    };
+  }
+  return {
+    purchaseType: 'achat unique avec paiement fractionné',
+    totalCents: MC2_CONTRACT_TOTAL_CENTS,
+    initialCents: MC2_ENTRY_PAYMENT_CENTS,
+    schedule: [{
+      sequence: 0, label: 'Paiement initial', due_offset_days: 0, due_at: purchasedAt,
+      amount_cents: MC2_ENTRY_PAYMENT_CENTS, status_at_purchase: 'paid',
+    }, ...MC2_INSTALLMENT_OFFSETS_DAYS.map((offset, index) => ({
+      sequence: index + 1, label: `Échéance ${index + 1}`, due_offset_days: offset,
+      due_at: new Date(purchaseDate.getTime() + offset * DAY_MS).toISOString(),
+      amount_cents: MC2_INSTALLMENT_CENTS, status_at_purchase: 'scheduled',
+    }))],
+  };
 }
 
 export function buildMc2ContractDocumentSnapshot({ session, event, env = process.env } = {}) {
@@ -108,17 +174,12 @@ export function buildMc2ContractDocumentSnapshot({ session, event, env = process
   const purchasedAt = isoFromStripe(event?.created) || isoFromStripe(session.created);
   if (!purchasedAt) throw new Error('mc2_contract_purchase_date_missing');
   const purchaseTime = new Date(purchasedAt).getTime();
-  const schedule = [{
-    sequence: 0, label: 'Paiement initial', due_offset_days: 0, due_at: purchasedAt,
-    amount_cents: MC2_ENTRY_PAYMENT_CENTS, status_at_purchase: 'paid',
-  }, ...MC2_INSTALLMENT_OFFSETS_DAYS.map((offset, index) => ({
-    sequence: index + 1, label: `Échéance ${index + 1}`, due_offset_days: offset,
-    due_at: new Date(purchaseTime + offset * DAY_MS).toISOString(),
-    amount_cents: MC2_INSTALLMENT_CENTS, status_at_purchase: 'scheduled',
-  }))];
+  const pricing = pricingForSession(session, purchasedAt);
 
   return {
-    schema_version: 'mc2-contract-document-v1',
+    schema_version: session.metadata.payment_plan === MC2_PAYMENT_PLAN
+      ? 'mc2-contract-document-v1'
+      : 'mc2-contract-document-v2',
     document_reference: referenceFor(purchasedAt),
     issued_at: purchasedAt,
     purchased_at: purchasedAt,
@@ -126,17 +187,17 @@ export function buildMc2ContractDocumentSnapshot({ session, event, env = process
     product: {
       key: MC2_PRODUCT_KEY,
       name: 'Esprit Subconscient 2.0',
-      purchase_type: 'achat unique avec paiement fractionné',
+      purchase_type: pricing.purchaseType,
       renewal: false,
     },
     pricing: {
       currency: 'eur',
-      total_cents: MC2_CONTRACT_TOTAL_CENTS,
-      paid_at_purchase_cents: MC2_ENTRY_PAYMENT_CENTS,
-      remaining_scheduled_cents: MC2_CONTRACT_TOTAL_CENTS - MC2_ENTRY_PAYMENT_CENTS,
-      payment_plan: MC2_PAYMENT_PLAN,
+      total_cents: pricing.totalCents,
+      paid_at_purchase_cents: pricing.initialCents,
+      remaining_scheduled_cents: pricing.totalCents - pricing.initialCents,
+      payment_plan: session.metadata.payment_plan,
     },
-    schedule,
+    schedule: pricing.schedule,
     seller: {
       legal_name: 'ArgEntrepreneur Sàrl',
       address: 'Chemin du Marais 13, 1040 Echallens, Suisse',
@@ -158,14 +219,21 @@ export function buildMc2ContractDocumentSnapshot({ session, event, env = process
 }
 
 function publicSnapshotIsValid(snapshot = {}) {
-  return snapshot.schema_version === 'mc2-contract-document-v1'
+  const supportedPlan = snapshot.pricing?.payment_plan === MC2_PAYMENT_PLAN
+    || snapshot.pricing?.payment_plan === MC2_SESSION_MONTHLY_PLAN
+    || snapshot.pricing?.payment_plan === MC2_SESSION_ONE_TIME_PLAN;
+  const scheduleTotal = Array.isArray(snapshot.schedule)
+    ? snapshot.schedule.reduce((total, row) => total + Number(row?.amount_cents || 0), 0)
+    : 0;
+  return ['mc2-contract-document-v1', 'mc2-contract-document-v2'].includes(snapshot.schema_version)
     && snapshot.verified_paid_at_creation === true
     && snapshot.product?.key === MC2_PRODUCT_KEY
-    && snapshot.pricing?.payment_plan === MC2_PAYMENT_PLAN
-    && Number(snapshot.pricing?.total_cents || 0) === MC2_CONTRACT_TOTAL_CENTS
-    && Number(snapshot.pricing?.paid_at_purchase_cents || 0) === MC2_ENTRY_PAYMENT_CENTS
+    && supportedPlan
+    && Number(snapshot.pricing?.total_cents || 0) > 0
+    && Number(snapshot.pricing?.paid_at_purchase_cents || 0) > 0
     && Array.isArray(snapshot.schedule)
-    && snapshot.schedule.length === 5;
+    && snapshot.schedule.length > 0
+    && scheduleTotal === Number(snapshot.pricing?.total_cents || 0);
 }
 
 async function contractDocumentByRegistrationToken(token) {
