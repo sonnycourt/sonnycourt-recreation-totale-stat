@@ -5,25 +5,56 @@ export const MC2_SESSION_HALF_WINDOW_MS = 12 * 60 * 60 * 1000;
 const minute = 60 * 1000;
 const hour = 60 * minute;
 
-// 10 places partent pendant les 12 premières heures, puis les 5 dernières
-// restent disponibles pendant la seconde moitié de la fenêtre. La dernière
-// place reste achetable jusqu'à l'expiration exacte du countdown.
+// Source de vérité du simulateur MODE TEST. Les offsets sont tous calculés à
+// partir de l'apparition/activation du CTA. La dernière place reste achetable
+// jusqu'à l'expiration exacte du countdown, 24 heures après le CTA.
 export const MC2_SESSION_PURCHASE_TIMELINE = [
-  { name: 'Sophie', flag: '🇧🇪', offsetMs: 5 * minute },
-  { name: 'Nicolas', flag: '🇨🇭', offsetMs: 22 * minute },
-  { name: 'Thomas', flag: '🇫🇷', offsetMs: 47 * minute },
-  { name: 'Gabrielle', flag: '🇨🇦', offsetMs: 1 * hour + 25 * minute },
-  { name: 'Charlotte', flag: '🇧🇪', offsetMs: 2 * hour + 15 * minute },
-  { name: 'Vanessa', flag: '🇨🇭', offsetMs: 3 * hour + 25 * minute },
-  { name: 'Julien', flag: '🇫🇷', offsetMs: 4 * hour + 55 * minute },
-  { name: 'Manon', flag: '🇫🇷', offsetMs: 6 * hour + 40 * minute },
-  { name: 'Arnaud', flag: '🇧🇪', offsetMs: 9 * hour + 5 * minute },
-  { name: 'Clara', flag: '🇩🇪', offsetMs: 11 * hour + 50 * minute },
-  { name: 'Hugo', flag: '🇧🇪', offsetMs: 14 * hour + 24 * minute },
-  { name: 'Margot', flag: '🇨🇭', offsetMs: 16 * hour + 48 * minute },
-  { name: 'Pierre', flag: '🇫🇷', offsetMs: 19 * hour + 12 * minute },
-  { name: 'Oceane', flag: '🇨🇦', offsetMs: 21 * hour + 36 * minute },
+  { name: 'Sophie', gender: 'female', flag: '🇧🇪', offsetMs: 3 * minute },
+  { name: 'Nicolas', gender: 'male', flag: '🇨🇭', offsetMs: 5 * minute },
+  { name: 'Thomas', gender: 'male', flag: '🇫🇷', offsetMs: 12 * minute },
+  { name: 'Gabrielle', gender: 'female', flag: '🇨🇦', offsetMs: 13 * minute },
+  { name: 'Charlotte', gender: 'female', flag: '🇧🇪', offsetMs: 17 * minute },
+  { name: 'Vanessa', gender: 'female', flag: '🇨🇭', offsetMs: 49 * minute },
+  { name: 'Julien', gender: 'male', flag: '🇫🇷', offsetMs: 1 * hour + 10 * minute },
+  { name: 'Manon', gender: 'female', flag: '🇫🇷', offsetMs: 3 * hour + 15 * minute },
+  { name: 'Arnaud', gender: 'male', flag: '🇧🇪', offsetMs: 8 * hour + 30 * minute },
+  { name: 'Clara', gender: 'female', flag: '🇩🇪', offsetMs: 12 * hour },
+  { name: 'Hugo', gender: 'male', flag: '🇧🇪', offsetMs: 13 * hour + 30 * minute },
+  { name: 'Margot', gender: 'female', flag: '🇨🇭', offsetMs: 16 * hour },
+  { name: 'Pierre', gender: 'male', flag: '🇫🇷', offsetMs: 19 * hour + 30 * minute },
+  { name: 'Océane', gender: 'female', flag: '🇨🇦', offsetMs: 23 * hour },
 ];
+
+export function getMc2SessionRegistrationAction(purchase) {
+  return purchase?.gender === 'female' ? 's’est inscrite' : 's’est inscrit';
+}
+
+function getCalendarDateKey(timestampMs, timeZone) {
+  const formatter = new Intl.DateTimeFormat('fr-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date(timestampMs));
+}
+
+export function formatMc2SessionRelativeTime(nowMs, referenceMs, timeZone = 'Europe/Paris') {
+  const now = Number(nowMs);
+  const reference = Number(referenceMs);
+  if (!Number.isFinite(now) || !Number.isFinite(reference)) return '';
+
+  const elapsedMs = Math.max(0, now - reference);
+  if (elapsedMs < hour) {
+    const elapsedMinutes = Math.max(1, Math.floor(elapsedMs / minute));
+    return `il y a ${elapsedMinutes} minute${elapsedMinutes === 1 ? '' : 's'}`;
+  }
+  if (elapsedMs === hour) return 'il y a 1 heure';
+
+  return getCalendarDateKey(now, timeZone) === getCalendarDateKey(reference, timeZone)
+    ? 'aujourd’hui'
+    : 'hier';
+}
 
 export function getMc2SessionSoldCount(nowMs, windowStartMs) {
   const now = Number(nowMs);
