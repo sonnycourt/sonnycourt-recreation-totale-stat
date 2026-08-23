@@ -31,10 +31,13 @@ export default async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const email = String(body?.email || '').trim().toLowerCase().slice(0, 320);
-    const allowedPaths = new Set(['/commencer/', '/mc2/confirmation/', '/mc2/session/']);
+    const allowedPaths = new Set(['/commencer/', '/mc2/confirmation/', '/mc2/session/', '/offre/']);
     const pagePath = allowedPaths.has(String(body?.page_path || '')) ? String(body.page_path) : '/mc2/confirmation/';
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return jsonResponse(400, { error: 'Entre une adresse email valide.' });
+    }
+    if (pagePath === '/offre/' && String(process.env.MC2_OFFER_RECOVERY_EMAIL_ENABLED || '').toLowerCase() !== 'true') {
+      return jsonResponse(503, { error: 'La récupération de l’offre par email sera bientôt disponible.' });
     }
 
     const result = await supabaseGet(
