@@ -222,6 +222,58 @@ const previewReviewInitials = (name) => name
             color: #fff;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 10px 20px rgba(2, 6, 23, 0.35);
         }
+        .dev-prospect-btn {
+            flex: 1 1 155px;
+            min-height: 38px;
+            padding: 7px 10px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.18s ease;
+        }
+        .dev-prospect-btn--present {
+            color: #bbf7d0;
+            border: 1px solid rgba(34, 197, 94, 0.42);
+            background: rgba(34, 197, 94, 0.1);
+        }
+        .dev-prospect-btn--absent {
+            color: #fde68a;
+            border: 1px solid rgba(245, 158, 11, 0.42);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .dev-prospect-btn--present.is-active {
+            color: #fff;
+            background: rgba(22, 163, 74, 0.42);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22);
+        }
+        .dev-prospect-btn--absent.is-active {
+            color: #fff;
+            background: rgba(217, 119, 6, 0.42);
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22);
+        }
+        .dev-timeline-group {
+            margin-top: 8px;
+            padding: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.38);
+        }
+        .dev-timeline-group__label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.66rem;
+            font-weight: 850;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+        .dev-timeline-group--session .dev-timeline-group__label { color: #93c5fd; }
+        .dev-timeline-group--cta .dev-timeline-group__label { color: #c4b5fd; }
+        .dev-timeline-group--return .dev-timeline-group__label { color: #86efac; }
+        .dev-timeline-group--routing .dev-timeline-group__label { color: #fcd34d; }
+        .dev-timeline-group--cta .dev-time-btn { border-color: rgba(139, 92, 246, 0.38); background: rgba(139, 92, 246, 0.14); }
+        .dev-timeline-group--return .dev-time-btn { border-color: rgba(34, 197, 94, 0.36); background: rgba(34, 197, 94, 0.11); }
+        .dev-timeline-group--routing .dev-time-btn { border-color: rgba(245, 158, 11, 0.36); background: rgba(245, 158, 11, 0.1); }
         .dev-time-now {
             margin-left: auto;
             font-size: 0.78rem;
@@ -1693,6 +1745,57 @@ const previewReviewInitials = (name) => name
             font-size: 1rem;
         }
         .session-ended-note.is-visible { display: block; }
+        .return-buyer-hero {
+            display: none;
+            max-width: 900px;
+            margin: 8px auto 20px;
+            padding: 10px 12px 0;
+            text-align: center;
+        }
+        .return-buyer-hero.is-visible { display: block; }
+        .return-buyer-hero h1 {
+            margin: 0;
+            padding: 0;
+            background: none;
+            -webkit-background-clip: initial;
+            background-clip: initial;
+            -webkit-text-fill-color: currentColor;
+            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: clamp(1.55rem, 4.4vw, 2.8rem);
+            font-weight: 800;
+            line-height: 1.08;
+            letter-spacing: -0.035em;
+            text-wrap: balance;
+        }
+        .return-buyer-hero__ended,
+        .return-buyer-hero__start { display: block; }
+        .return-buyer-hero__ended { color: #ef4444; }
+        .return-buyer-hero__start { margin-top: 7px; color: #fff; }
+        .return-buyer-hero__arrow {
+            display: block;
+            margin-top: 12px;
+            color: #fff;
+            font-size: 2rem;
+            font-weight: 300;
+            line-height: 1;
+            animation: returnArrow 1.5s ease-in-out infinite;
+        }
+        @keyframes returnArrow {
+            0%, 100% { transform: translateY(0); opacity: 0.62; }
+            50% { transform: translateY(6px); opacity: 1; }
+        }
+        .player-row.is-return-hidden,
+        .screen-main-header.is-return-hidden,
+        .session-ended-note.is-return-hidden { display: none !important; }
+        .offer-zone.is-returning-buyer { padding-top: 0; }
+        @media (max-width: 767px) {
+            .return-buyer-hero {
+                margin-top: 0;
+                margin-bottom: 12px;
+                padding: 8px 6px 0;
+            }
+        }
         .count-card {
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--border);
@@ -1749,46 +1852,60 @@ const previewReviewInitials = (name) => name
         <button id="dev-time-toggle" class="dev-time-toggle" type="button" aria-expanded="true" aria-controls="dev-time-banner" aria-label="Masquer la simulation temps" title="Masquer la simulation temps">−</button>
         <p class="dev-time-title">Simulation temps (preview uniquement)</p>
 
-        <div class="dev-section">
-            <label class="dev-label">Inscrit le :</label>
+        <input id="dev-inscription-input" type="hidden" />
+        <input id="dev-time-input" type="hidden" />
+
+        <div class="dev-section dev-section--prospect">
+            <label class="dev-label">Situation du prospect</label>
             <div class="dev-time-row">
-                <input id="dev-inscription-input" class="dev-time-input" type="datetime-local" />
-                <button class="dev-time-btn" data-insc-preset="mon-10" type="button">Lundi 10h</button>
-                <button class="dev-time-btn" data-insc-preset="wed-14" type="button">Mercredi 14h</button>
-                <button class="dev-time-btn" data-insc-preset="thu-18" type="button">Jeudi 18h</button>
-                <button class="dev-time-btn" data-insc-preset="thu-1930" type="button">Jeudi 19h30</button>
-                <button class="dev-time-btn" data-insc-preset="fri-10" type="button">Vendredi 10h</button>
-                <button class="dev-time-btn" data-insc-preset="sat-15" type="button">Samedi 15h</button>
+                <button class="dev-prospect-btn dev-prospect-btn--present is-active" data-prospect-preset="present" type="button">✓ Participant présent</button>
+                <button class="dev-prospect-btn dev-prospect-btn--absent" data-prospect-preset="absent" type="button">↗ Absent / sans présence</button>
             </div>
         </div>
 
         <div class="dev-section">
-            <label class="dev-label">Heure actuelle :</label>
-            <div class="dev-time-row">
-                <input id="dev-time-input" class="dev-time-input" type="datetime-local" />
-                <button class="dev-time-btn" data-now-preset="session-m60" type="button">Session -60min</button>
-                <button class="dev-time-btn" data-now-preset="session-m30" type="button">Session -30min</button>
-                <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
-                <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
-                <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +20min (cutoff)</button>
-                <button class="dev-time-btn" data-now-preset="cta-m10s" type="button">Bouton -10s</button>
-                <button class="dev-time-btn" data-now-preset="cta-now" type="button">Bouton grisé (1:20)</button>
-                <button class="dev-time-btn" data-now-preset="cta-mid" type="button">Countdown 0:40</button>
-                <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">Activation -5s</button>
-                <button class="dev-time-btn" data-now-preset="cta-active" type="button">Bouton actif (0:00)</button>
-                <button class="dev-time-btn" data-now-preset="offer-h12" type="button">Offre H+12 (5 places)</button>
-                <button class="dev-time-btn" data-now-preset="offer-h23" type="button">Offre H+23 (1 place)</button>
-                <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo -1s (1:31:48)</button>
-                <button class="dev-time-btn" data-now-preset="webinaire-ended" type="button">Webinaire terminé</button>
-                <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire (replay)</button>
-                <button class="dev-time-btn" data-now-preset="expired" type="button">Expiré dim 23h30</button>
+            <label class="dev-label">Timeline relative à la session</label>
+            <div class="dev-timeline-group dev-timeline-group--session">
+                <span class="dev-timeline-group__label">Autour du direct</span>
+                <div class="dev-time-row">
+                    <button class="dev-time-btn" data-now-preset="session-m60" type="button">Session −60min</button>
+                    <button class="dev-time-btn" data-now-preset="session-m30" type="button">Session −30min</button>
+                    <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
+                    <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
+                    <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +20min · cutoff</button>
+                </div>
+            </div>
+            <div class="dev-timeline-group dev-timeline-group--cta">
+                <span class="dev-timeline-group__label">Apparition du CTA</span>
+                <div class="dev-time-row">
+                    <button class="dev-time-btn" data-now-preset="cta-m10s" type="button">CTA −10s</button>
+                    <button class="dev-time-btn" data-now-preset="cta-now" type="button">CTA visible · grisé</button>
+                    <button class="dev-time-btn" data-now-preset="cta-mid" type="button">CTA grisé · 0:40</button>
+                    <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">CTA actif −5s</button>
+                    <button class="dev-time-btn" data-now-preset="cta-active" type="button">CTA actif · 0:00</button>
+                </div>
+            </div>
+            <div class="dev-timeline-group dev-timeline-group--return">
+                <span class="dev-timeline-group__label">Retour après la masterclass</span>
+                <div class="dev-time-row">
+                    <button class="dev-time-btn" data-now-preset="offer-h12" type="button">CTA +12h · 5 places</button>
+                    <button class="dev-time-btn" data-now-preset="offer-h23" type="button">CTA +23h · 1 place</button>
+                    <button class="dev-time-btn" data-now-preset="expired" type="button">CTA terminé · H+24</button>
+                </div>
+            </div>
+            <div class="dev-timeline-group dev-timeline-group--routing">
+                <span class="dev-timeline-group__label">Contrôles de routage</span>
+                <div class="dev-time-row">
+                    <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo −1s</button>
+                    <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire → replay</button>
+                </div>
             </div>
         </div>
 
         <div class="dev-summary" id="dev-summary">
-            <span id="dev-sum-inscription"></span>
-            <span id="dev-sum-session"></span>
-            <span id="dev-sum-now"></span>
+            <span id="dev-sum-inscription" hidden></span>
+            <span id="dev-sum-session" hidden></span>
+            <span id="dev-sum-now" hidden></span>
             <span id="dev-sum-state"></span>
         </div>
     </div>
@@ -1829,7 +1946,7 @@ const previewReviewInitials = (name) => name
     </section>
 
     <section id="screen-main" class="screen">
-        <div class="screen-main-header">
+        <div id="screen-main-header" class="screen-main-header">
             <div class="badge">DIFFUSION EN DIRECT</div>
             <h1>Masterclass Esprit Subconscient 2.0</h1>
             <p class="subtitle">Reprogramme ton subconscient et manifeste la vie de tes rêves</p>
@@ -1845,8 +1962,15 @@ const previewReviewInitials = (name) => name
         </div>
     </div>
 
+        <section id="return-buyer-hero" class="return-buyer-hero" aria-live="polite">
+            <h1>
+                <span class="return-buyer-hero__ended">LA MASTERCLASS EST TERMINÉE</span>
+                <span class="return-buyer-hero__start">MAIS TA TRANSFORMATION COMMENCE MAINTENANT.</span>
+            </h1>
+            <span class="return-buyer-hero__arrow" aria-hidden="true">↓</span>
+        </section>
         <p id="session-ended-note" class="session-ended-note">La masterclass est terminée</p>
-        <div class="player-row">
+        <div id="player-row" class="player-row">
         <div class="video-shell">
             <div class="video-container" id="video-container">
                 <video id="masterclass-video" preload="metadata" playsinline controlslist="nodownload noremoteplayback nofullscreen" oncontextmenu="return false;"></video>
@@ -2670,6 +2794,10 @@ const previewReviewInitials = (name) => name
                 if (event.origin !== 'https://sonnycourt.spiffy.co') return;
                 const frame = slot.querySelector('iframe.preview-spiffy-frame');
                 if (!frame || event.source !== frame.contentWindow) return;
+                if (event.data?.type === 'es2:spiffy-validation-focus') {
+                    slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
                 if (event.data?.type !== 'es2:spiffy-height') return;
                 const height = Math.min(1100, Math.max(280, Number(event.data.height) || 0));
                 paymentPanel.classList.add('is-spiffy-themed');
@@ -2779,6 +2907,7 @@ const previewReviewInitials = (name) => name
             function syncMcUnavailableUi(on) {
                 const ov = document.getElementById('mc-unavailable-overlay');
                 if (!ov) return;
+                if (on) setReturningBuyerUi(false);
                 ov.classList.toggle('is-visible', Boolean(on));
                 ov.setAttribute('aria-hidden', on ? 'false' : 'true');
                 const v = document.getElementById('masterclass-video');
@@ -2788,6 +2917,7 @@ const previewReviewInitials = (name) => name
             function syncMcLateUi(on) {
                 const ov = document.getElementById('mc-late-overlay');
                 if (!ov) return;
+                if (on) setReturningBuyerUi(false);
                 ov.classList.toggle('is-visible', Boolean(on));
                 ov.setAttribute('aria-hidden', on ? 'false' : 'true');
                 const v = document.getElementById('masterclass-video');
@@ -2797,6 +2927,7 @@ const previewReviewInitials = (name) => name
             function syncMcEndedGateUi(on) {
                 const ov = document.getElementById('mc-broadcast-ended-overlay');
                 if (!ov) return;
+                if (on) setReturningBuyerUi(false);
                 ov.classList.toggle('is-visible', Boolean(on));
                 ov.setAttribute('aria-hidden', on ? 'false' : 'true');
                 refreshMcPageLock();
@@ -2904,6 +3035,9 @@ const previewReviewInitials = (name) => name
             const fullscreenBtn = document.getElementById('fullscreenBtnDesktop');
             const preLive = document.getElementById('pre-live-countdown');
             const endedNote = document.getElementById('session-ended-note');
+            const screenMainHeader = document.getElementById('screen-main-header');
+            const playerRow = document.getElementById('player-row');
+            const returnBuyerHero = document.getElementById('return-buyer-hero');
             const volumeIcon = document.getElementById('icon-volume');
             const muteIcon = document.getElementById('icon-mute');
             const playOverlayLabel = document.getElementById('playOverlayLabel');
@@ -2955,7 +3089,7 @@ const previewReviewInitials = (name) => name
             }
             let ctaAuditEl = null;
             function mountCtaAudit() {
-                if (!isPreviewPage) return;
+                if (!isPreviewPage || new URLSearchParams(window.location.search).get('audit') !== '1') return;
                 if (ctaAuditEl) return;
                 const existing = document.getElementById('dev-cta-audit');
                 if (existing) {
@@ -2983,8 +3117,8 @@ const previewReviewInitials = (name) => name
                 ctaAuditEl.textContent = [
                     `sessionStartsAt : ${formatAuditDate(sessionStartMs)}`,
                     `début vidéo : ${formatAuditDate(liveStartMs)}`,
-                    `bouton grisé : ${formatAuditDate(ctaAppearMs)}`,
-                    `bouton actif : ${formatAuditDate(ctaActivationMs)}`,
+                    `CTA grisé : ${formatAuditDate(ctaAppearMs)}`,
+                    `CTA actif : ${formatAuditDate(ctaActivationMs)}`,
                     `fin vidéo : ${formatAuditDate(videoEndMs)}`,
                     `état CTA : ${ctaState}`,
                     `countdown : ${countdownLabel}`,
@@ -3451,12 +3585,29 @@ const previewReviewInitials = (name) => name
                 updatePlayOverlayLabel();
                 updateLiveJumpUi();
                 if (keepOfferVisible) {
+                    setReturningBuyerUi(true);
                     showOfferZone(reg.token);
-                    updateCountdown(ctaActivationMs, offerIds);
+                    const activeOfferExpiryMs = Number.isFinite(expiryMs)
+                        ? expiryMs
+                        : ctaActivationMs + MC2_SESSION_OFFER_DURATION_MS;
+                    updateCountdown(activeOfferExpiryMs, offerIds);
                     setOfferCtaEnabled(true);
+                    mountLiveInlineCheckout(reg).catch(function (error) {
+                        const errorNode = document.getElementById('preview-spiffy-error');
+                        if (errorNode) errorNode.textContent = error?.message || 'Le paiement ne peut pas être chargé.';
+                    });
                 } else {
+                    setReturningBuyerUi(false);
                     hideOfferZone();
                 }
+            }
+            function setReturningBuyerUi(on) {
+                const active = Boolean(on);
+                returnBuyerHero?.classList.toggle('is-visible', active);
+                screenMainHeader?.classList.toggle('is-return-hidden', active);
+                playerRow?.classList.toggle('is-return-hidden', active);
+                endedNote?.classList.toggle('is-return-hidden', active);
+                document.getElementById('offer-zone')?.classList.toggle('is-returning-buyer', active);
             }
             function showEndedState() {
                 syncMcEndedGateUi(true);
@@ -3465,6 +3616,7 @@ const previewReviewInitials = (name) => name
 
             function activateLiveJoinState() {
                 if (isSessionEnded) return;
+                setReturningBuyerUi(false);
                 liveStarted = true;
                 if (endedNote) endedNote.classList.remove('is-visible');
                 if (preLive) preLive.style.display = 'none';
@@ -3572,7 +3724,9 @@ const previewReviewInitials = (name) => name
                 }
 
                 if (now >= broadcastEndMs) {
-                    const isPresentUser = hasJoinedSession || reg.attendedLive === true;
+                    const isPresentUser = hasJoinedSession
+                        || reg.attendedLive === true
+                        || (isPreviewPage && window.__mcSessionDevPresentPreview === true);
                     if (isPresentUser) {
                         const durationSec = getVideoDurationSeconds();
                         const atFileEnd = Number.isFinite(video.currentTime)
@@ -4057,10 +4211,10 @@ const previewReviewInitials = (name) => name
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
             if (videoElapsed < CTA_APPEAR_SECONDS) return 'Live';
-            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'Bouton grisé';
-            if (videoElapsed < getVideoDurationSeconds()) return 'Bouton actif';
-            if (nowMs < offerExpiresMs) return 'Vidéo terminée / Replay';
-            return 'Expiré';
+            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'CTA grisé';
+            if (videoElapsed < getVideoDurationSeconds()) return 'CTA actif';
+            if (nowMs < offerExpiresMs) return 'Masterclass terminée · CTA actif';
+            return 'CTA terminé';
         }
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
@@ -4120,38 +4274,39 @@ const previewReviewInitials = (name) => name
 
             var inscBtns = Array.from(banner.querySelectorAll('[data-insc-preset]'));
             var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
+            var prospectBtns = Array.from(banner.querySelectorAll('[data-prospect-preset]'));
 
             var currentSessionMs = 0;
             var currentMounted = null;
+            var devProspectPresent = true;
 
             function setActiveInsc(key) { inscBtns.forEach(function(b) { b.classList.toggle('is-active', b.getAttribute('data-insc-preset') === key); }); }
             function setActiveNow(key)  { nowBtns.forEach(function(b)  { b.classList.toggle('is-active', b.getAttribute('data-now-preset') === key); }); }
+            function setActiveProspect(key) { prospectBtns.forEach(function(b) { b.classList.toggle('is-active', b.getAttribute('data-prospect-preset') === key); }); }
+
+            function syncDevProspectFlags(nowMs) {
+                try {
+                    window.__mcSessionDevPresentPreview = devProspectPresent;
+                    window.__mcSessionDevLatePreview = !devProspectPresent
+                        && Number.isFinite(currentSessionMs)
+                        && nowMs >= currentSessionMs + LATE_DIRECT_AFTER_SESSION_MS;
+                } catch (e) {}
+            }
 
             function refreshSummary() {
                 var nowMs = getNowMs();
                 sumInsc.textContent = 'Inscrit le : ' + devFormatParis(new Date(inscInput.value).getTime());
                 sumSession.textContent = 'Session : ' + devFormatParis(currentSessionMs);
                 sumNow.textContent = 'Heure simulée : ' + devFormatParis(nowMs);
-                var liveStart = currentSessionMs - LIVE_VIDEO_LEAD_MS;
-                var appearAt = liveStart + CTA_APPEAR_SECONDS * 1000;
-                var activeAt = liveStart + CTA_ACTIVATE_SECONDS * 1000;
-                var remaining = Math.max(0, Math.ceil((activeAt - nowMs) / 1000));
-                var ctaStatus = nowMs < appearAt
-                    ? 'caché'
-                    : (nowMs < activeAt
-                        ? 'grisé · ' + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60)
-                        : 'actif · 00:00');
-                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span> · CTA : <span class="dev-state-val">' + ctaStatus + '</span>';
+                sumState.innerHTML = 'État : <span class="dev-state-val">' + devGetState(currentSessionMs, nowMs) + '</span>';
             }
 
             function remountWithSession(sessionMs, offerMs) {
-                try {
-                    window.__mcSessionDevLatePreview = false;
-                } catch (e) {}
                 if (currentMounted && typeof currentMounted.destroy === 'function') {
                     currentMounted.destroy();
                 }
                 currentSessionMs = sessionMs;
+                syncDevProspectFlags(getNowMs());
                 var previewCtaActivationMs = sessionMs - LIVE_VIDEO_LEAD_MS + CTA_ACTIVATE_SECONDS * 1000;
                 var reg = {
                     token: liveCheckoutPreviewToken || 'preview-session',
@@ -4251,10 +4406,6 @@ const previewReviewInitials = (name) => name
                 if (key === 'expired') {
                     return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_OFFER_DURATION_MS + 30 * 60 * 1000;
                 }
-                if (key === 'webinaire-ended') {
-                    var durSec = getVideoDurationSeconds();
-                    return currentSessionMs - LIVE_VIDEO_LEAD_MS + durSec * 1000 + 90 * 1000;
-                }
                 if (key === 'late-arrival') {
                     return currentSessionMs + LATE_DIRECT_AFTER_SESSION_MS + 3 * 60 * 1000;
                 }
@@ -4266,24 +4417,29 @@ const previewReviewInitials = (name) => name
                     var key = btn.getAttribute('data-now-preset');
                     var ms = getNowPresetMs(key);
                     if (!ms) return;
+                    if (key === 'late-arrival') {
+                        devProspectPresent = false;
+                        setActiveProspect('absent');
+                    }
                     setActiveNow(key);
-                    try {
-                        if (key === 'late-arrival') {
-                            window.__mcSessionDevLatePreview = true;
-                        } else {
-                            window.__mcSessionDevLatePreview = false;
-                        }
-                    } catch (e) {}
+                    syncDevProspectFlags(ms);
                     setSimNow(ms);
+                });
+            });
+            prospectBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    devProspectPresent = btn.getAttribute('data-prospect-preset') === 'present';
+                    setActiveProspect(devProspectPresent ? 'present' : 'absent');
+                    syncDevProspectFlags(getNowMs());
+                    if (currentMounted) currentMounted.recalcFromSimulatedTime();
+                    refreshSummary();
                 });
             });
             nowInput.addEventListener('change', function() {
                 var ms = new Date(nowInput.value).getTime();
                 if (!Number.isFinite(ms)) return;
                 setActiveNow(null);
-                try {
-                    window.__mcSessionDevLatePreview = false;
-                } catch (e) {}
+                syncDevProspectFlags(ms);
                 setSimNow(ms);
             });
 
@@ -4291,6 +4447,7 @@ const previewReviewInitials = (name) => name
             var initNow = new Date();
             simulatedNowMs = initNow.getTime();
             simulatedAnchorRealMs = Date.now();
+            setActiveProspect('present');
             onInscriptionChange(initNow.getTime());
             setSimNow(liveCheckoutPreviewToken ? getNowPresetMs('cta-active') : initNow.getTime());
 
@@ -4365,11 +4522,9 @@ const previewReviewInitials = (name) => name
                 }
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
-                if (now >= sessionEndsMs && !attendedLive) {
-                    window.__mcSessionForceEndedOverlay = true;
-                }
                 if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
-                    window.__mcSessionForceLateOverlay = true;
+                    window.location.replace('/mc2/replay?t=' + encodeURIComponent(token) + '&reason=late');
+                    return;
                 }
                 showScreen('screen-main');
                 if (now >= liveStartMs) await maybeMarkPresent(reg);

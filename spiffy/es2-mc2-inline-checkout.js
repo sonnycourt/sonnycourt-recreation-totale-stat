@@ -10,6 +10,107 @@
     ? 'once'
     : 'monthly';
 
+  var REQUIRED_FIELDS_MESSAGE = "Make sure you've filled in all required fields correctly";
+
+  function validationMessage(cardInvalid, termsInvalid) {
+    if (cardInvalid && termsInvalid) {
+      return 'Renseigne ta carte bancaire et accepte les CGV pour continuer.';
+    }
+    if (cardInvalid) return 'Renseigne ta carte bancaire pour continuer.';
+    if (termsInvalid) return 'Accepte les CGV pour continuer.';
+    return '';
+  }
+
+  function syncValidationFeedback(root, shouldScroll) {
+    var stripeMethod = root.querySelector('.payment-type--stripe.payment-type--selected');
+    var stripeField = root.querySelector('.StripeElement');
+    var termsInput = root.querySelector('.terms .custom-control-input');
+    var termsSection = termsInput ? termsInput.closest('.section.block') : null;
+    var feedback = root.querySelector('[data-es2-validation-feedback="true"]');
+    var validationActive = root.getAttribute('data-es2-validation-active') === 'true';
+
+    if (!feedback && stripeField) {
+      feedback = document.createElement('p');
+      feedback.className = 'es2-inline-validation-feedback';
+      feedback.setAttribute('data-es2-validation-feedback', 'true');
+      feedback.setAttribute('role', 'alert');
+      feedback.setAttribute('aria-live', 'polite');
+      stripeField.insertAdjacentElement('afterend', feedback);
+    }
+
+    var cardInvalid = Boolean(
+      validationActive
+      && stripeMethod
+      && stripeField
+      && !stripeField.classList.contains('StripeElement--complete')
+    );
+    var termsInvalid = Boolean(validationActive && termsInput && !termsInput.checked);
+    var message = validationMessage(cardInvalid, termsInvalid);
+
+    if (stripeField) {
+      if (cardInvalid) stripeField.setAttribute('data-es2-attention', 'true');
+      else stripeField.removeAttribute('data-es2-attention');
+    }
+    if (termsSection) {
+      if (termsInvalid) termsSection.setAttribute('data-es2-attention', 'true');
+      else termsSection.removeAttribute('data-es2-attention');
+    }
+    if (feedback && feedback.textContent !== message) feedback.textContent = message;
+
+    if (!message) root.removeAttribute('data-es2-validation-active');
+
+    if (shouldScroll && message) {
+      var target = cardInvalid ? stripeField : termsSection;
+      if (target) {
+        window.setTimeout(function () {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          window.parent.postMessage({ type: 'es2:spiffy-validation-focus' }, '*');
+        }, 20);
+      }
+    }
+  }
+
+  function translateNativeValidation(root) {
+    Array.prototype.forEach.call(document.querySelectorAll('[role="alert"]'), function (alert) {
+      var text = (alert.textContent || '').replace(/×/g, '').trim();
+      if (text !== REQUIRED_FIELDS_MESSAGE) return;
+      var messageNode = Array.prototype.slice.call(alert.querySelectorAll('span')).find(function (node) {
+        return (node.textContent || '').trim() === REQUIRED_FIELDS_MESSAGE;
+      });
+      if (messageNode) messageNode.textContent = 'Vérifie les informations demandées pour continuer.';
+      alert.setAttribute('data-es2-native-validation', 'true');
+      root.setAttribute('data-es2-validation-active', 'true');
+      syncValidationFeedback(root, false);
+    });
+  }
+
+  function bindValidationExperience(root) {
+    var checkoutButton = root.querySelector('.btn--checkout');
+    if (checkoutButton && checkoutButton.getAttribute('data-es2-validation-bound') !== 'true') {
+      checkoutButton.setAttribute('data-es2-validation-bound', 'true');
+      checkoutButton.addEventListener('click', function () {
+        root.setAttribute('data-es2-validation-active', 'true');
+        window.setTimeout(function () {
+          syncValidationFeedback(root, true);
+          translateNativeValidation(root);
+        }, 40);
+      });
+    }
+
+    var termsInput = root.querySelector('.terms .custom-control-input');
+    if (termsInput && termsInput.getAttribute('data-es2-validation-bound') !== 'true') {
+      termsInput.setAttribute('data-es2-validation-bound', 'true');
+      termsInput.addEventListener('change', function () {
+        syncValidationFeedback(root, false);
+      });
+    }
+
+    translateNativeValidation(root);
+    if (root.getAttribute('data-es2-validation-active') === 'true') {
+      syncValidationFeedback(root, false);
+    }
+  }
+
   function applyInlineExperience() {
     var root = document.querySelector('.checkout');
     if (!root) return false;
@@ -106,6 +207,8 @@
       }
     }
 
+    bindValidationExperience(root);
+
     return true;
   }
 
@@ -126,7 +229,12 @@
     new MutationObserver(function () {
       applyInlineExperience();
       reportHeight();
-    }).observe(document.querySelector('.checkout'), { childList: true, subtree: true });
+    }).observe(document.querySelector('.checkout'), {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: true,
+      subtree: true
+    });
   }
 
   if (document.readyState === 'loading') {

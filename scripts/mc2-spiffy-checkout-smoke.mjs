@@ -8,6 +8,7 @@ const legacySuccess = await fs.readFile(new URL('../src/pages/es2-derniere-etape
 const billing = await fs.readFile(new URL('../netlify/functions/mc2-billing-info.js', import.meta.url), 'utf8');
 const inlineCss = await fs.readFile(new URL('../spiffy/es2-mc2-inline-overrides.css', import.meta.url), 'utf8');
 const inlineJs = await fs.readFile(new URL('../spiffy/es2-mc2-inline-checkout.js', import.meta.url), 'utf8');
+const validationPatch = await fs.readFile(new URL('../spiffy/es2-mc2-validation-feedback.html', import.meta.url), 'utf8');
 
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
 assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1'/);
@@ -27,6 +28,7 @@ assert.match(page, /const email = String\(reg\.email \|\| ''\)\.trim\(\)/);
 assert.match(page, /const country = String\(reg\.pays \|\| ''\)\.trim\(\)/);
 assert.match(page, /url\.searchParams\.set\(['"]es2_plan['"],\s*plan\)/);
 assert.match(page, /event\.data\?\.type !== ['"]es2:spiffy-height['"]/);
+assert.match(page, /event\.data\?\.type === ['"]es2:spiffy-validation-focus['"]/);
 
 assert.match(inlineCss, /\.checkout\[data-es2-inline="true"\]/);
 assert.match(inlineCss, /\.payment-type--paypal/);
@@ -47,6 +49,14 @@ assert.match(inlineJs, /separator\.insertAdjacentElement\('afterend', paypalProx
 assert.match(inlineJs, /if \(source\) source\.click\(\)/);
 assert.match(inlineJs, /if \(checkoutButton\) checkoutButton\.click\(\)/);
 assert.match(inlineJs, /es2:spiffy-height/);
+assert.match(inlineJs, /Renseigne ta carte bancaire et accepte les CGV pour continuer\./);
+assert.match(inlineJs, /data-es2-validation-active/);
+assert.match(inlineJs, /StripeElement--complete/);
+assert.match(inlineCss, /StripeElement\[data-es2-attention="true"\]/);
+assert.match(inlineCss, /data-es2-native-validation/);
+assert.match(validationPatch, /Renseigne ta carte bancaire et accepte les CGV pour continuer\./);
+assert.match(validationPatch, /es2:spiffy-validation-focus/);
+assert.match(validationPatch, /data-es2-native-validation/);
 assert.match(inlineJs, /termsSections\[termsSections\.length - 1\]/);
 assert.match(inlineJs, /checkoutRow\.style\.setProperty\('margin-left', '0', 'important'\)/);
 assert.match(inlineJs, /root\.getBoundingClientRect\(\)\.bottom/);
