@@ -716,6 +716,7 @@ const previewReviewInitials = (name) => name
             transform: translateY(0);
         }
         .purchase-toast__content {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -769,6 +770,16 @@ const previewReviewInitials = (name) => name
             margin-top: 2px;
             color: #ffffff !important;
             font-weight: 400 !important;
+        }
+        .purchase-toast__test-mode {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            color: rgba(191, 219, 254, 0.52);
+            font-size: 8px;
+            font-weight: 850;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
         .offer-zone {
@@ -919,38 +930,42 @@ const previewReviewInitials = (name) => name
         }
         .preview-checkout__subtitle strong { color: #fff; font-weight: 900; }
         .preview-seat-badge {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            width: 100%;
-            margin-bottom: 18px;
-            padding: 12px 15px;
-            border: 1px solid rgba(248, 113, 113, 0.42);
+            display: grid;
+            justify-items: center;
+            gap: 7px;
+            width: min(100%, 270px);
+            margin-top: 18px;
+            padding: 13px 18px 12px;
+            border: 1px solid rgba(248, 113, 113, 0.34);
             border-radius: 12px;
-            background: linear-gradient(135deg, rgba(112, 25, 29, 0.44), rgba(71, 18, 25, 0.34));
-            box-shadow: 0 10px 24px rgba(48, 5, 11, 0.18), inset 0 1px rgba(255, 255, 255, 0.035);
+            background: rgba(127, 29, 29, 0.15);
             box-sizing: border-box;
-            text-align: left;
+            text-align: center;
         }
-        .preview-seat-badge span { color: rgba(255, 232, 234, 0.9); font-size: 0.65rem; font-weight: 850; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.065em; }
-        .preview-seat-badge strong { flex: 0 0 auto; color: #fff; font-size: 1.2rem; line-height: 1; font-weight: 950; letter-spacing: -0.03em; white-space: nowrap; }
-        .preview-seat-badge strong small { color: rgba(255, 224, 226, 0.72); font-size: 0.68rem; font-weight: 800; letter-spacing: 0; }
+        .preview-seat-badge__label { color: rgba(255, 232, 234, 0.84); font-size: 0.64rem; font-weight: 850; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.055em; }
+        .preview-seat-badge strong { color: #fff; font-size: 1.7rem; line-height: 1; font-weight: 950; letter-spacing: -0.04em; white-space: nowrap; }
+        .preview-seat-badge strong small { color: rgba(254, 202, 202, 0.65); font-size: 0.82rem; font-weight: 800; letter-spacing: 0; }
         .preview-checkout__body {
             padding: 24px 28px 28px;
-            background: linear-gradient(180deg, #09192e 0%, #071426 100%);
+            background: #08172b;
         }
         .preview-payment {
             scroll-margin-top: 20px;
-            padding: 20px;
-            border: 1px solid rgba(143, 190, 250, 0.22);
-            border-radius: 16px;
-            background: linear-gradient(155deg, rgba(18, 42, 72, 0.98), rgba(10, 27, 51, 0.98));
-            box-shadow: 0 18px 46px rgba(0, 5, 18, 0.32), inset 0 1px rgba(255, 255, 255, 0.045);
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
             color: #f4f8ff;
             transition: opacity 0.18s ease, transform 0.18s ease;
         }
         .preview-payment.is-switching { opacity: 0.45; transform: translateX(-5px); }
+        .preview-spiffy-payment-label {
+            margin: 13px 0 8px;
+            color: #eaf3ff;
+            font-size: .78rem;
+            font-weight: 850;
+        }
         .preview-identity {
             display: grid;
             grid-template-columns: 0.78fr 1.22fr;
@@ -980,20 +995,27 @@ const previewReviewInitials = (name) => name
         }
         .preview-payment__label { margin: 0; font-size: 0.92rem; font-weight: 850; }
         .preview-spiffy-slot {
-            min-height: 610px;
+            min-height: 0;
             overflow: hidden;
-            border: 1px solid rgba(145, 177, 217, 0.22);
-            border-radius: 14px;
-            background: #111a30;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
         }
         .preview-spiffy-slot spiffy-checkout { display: block; width: 100%; }
         .preview-spiffy-frame {
             display: block;
             width: 100%;
-            min-height: 950px;
+            min-height: 0;
             border: 0;
-            background: #111a30;
+            background: transparent;
         }
+        .preview-payment.is-spiffy-themed .preview-spiffy-slot {
+            overflow: visible;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+        .preview-payment.is-spiffy-themed > .preview-schedule { display: none; }
         .preview-spiffy-loading {
             display: grid;
             min-height: 160px;
@@ -1031,36 +1053,43 @@ const previewReviewInitials = (name) => name
             background: rgba(3, 15, 32, 0.52);
         }
         .preview-schedule__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(154, 188, 231, 0.15); }
-        .preview-schedule__title { margin: 0; color: #d8e4f2; font-size: 0.76rem; font-weight: 850; }
+        .preview-schedule__title { margin: 0; color: #d8e4f2; font-size: 0.76rem; font-weight: 850; letter-spacing: 0.035em; text-transform: uppercase; }
         .preview-schedule__head small { color: #6eb1ff; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; }
-        .preview-schedule__today { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; margin-top: 9px; padding: 8px 11px; color: #eaf4ff; background: linear-gradient(135deg, rgba(24, 91, 174, 0.72), rgba(17, 59, 112, 0.72)); border: 1px solid rgba(105, 177, 255, 0.55); border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 8px 20px rgba(0, 43, 99, 0.24); }
+        .preview-schedule__today { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; margin-top: 9px; padding: 8px 11px; color: #dce8f6; background: rgba(255,255,255,.025); border: 1px solid rgba(143, 190, 250, 0.14); border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,.025); }
         .preview-schedule__today-main { display: flex; align-items: center; gap: 9px; }
-        .preview-schedule__dot { width: 8px; height: 8px; flex: 0 0 auto; background: #69b4ff; border: 2px solid #173e6d; border-radius: 50%; box-shadow: 0 0 0 1px #69b4ff, 0 0 0 4px rgba(105,180,255,.12); }
         .preview-schedule__today strong { display: block; font-size: 0.82rem; font-weight: 900; }
         .preview-schedule__today small { display: block; margin-top: 2px; color: #afc9e9; font-size: 0.58rem; font-weight: 650; }
         .preview-schedule__amount { color: #fff; font-size: 0.93rem; font-weight: 900; white-space: nowrap; }
-                .preview-schedule__copy { margin: 11px 2px 0; color: #aebfd4; font-size: 0.68rem; line-height: 1.56; }
+        .preview-schedule__next { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 45px; margin-top: 8px; padding: 7px 10px; color: #c5d3e4; background: rgba(255,255,255,.025); border: 1px solid rgba(143, 190, 250, 0.12); border-radius: 8px; }
+        .preview-schedule__next[hidden] { display: none; }
+        .preview-schedule__next-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
+        .preview-schedule__next strong { display: block; color: #c5d3e4; font-size: 0.7rem; font-weight: 800; }
+        .preview-schedule__next small { display: block; margin-top: 1px; color: #8197b2; font-size: 0.53rem; font-weight: 650; }
+        .preview-schedule__next-amount { color: #aebfd4 !important; font-size: 0.72rem !important; font-weight: 800 !important; white-space: nowrap; }
         .preview-schedule__amount-stack { display: grid; justify-items: end; gap: 2px; flex: 0 0 auto; }
-        .preview-schedule__amount-note { color: #b8d0f0; font-size: 0.55rem; font-weight: 700; white-space: nowrap; }
+        .preview-schedule__analogy { display: block; flex: 0 0 auto; margin: 0; color: #bfd4ed; font-size: clamp(0.94rem, 2vw, 1.1rem); font-weight: 900; line-height: 1; text-align: right; letter-spacing: -0.018em; white-space: nowrap; }
         .preview-guarantee {
             display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 14px;
-            align-items: center;
-            margin-top: 17px;
-            padding: 18px 20px;
+            justify-items: center;
+            gap: 9px;
+            width: fit-content;
+            max-width: min(100%, 390px);
+            margin: 18px auto 0;
+            padding: 18px 24px;
             color: #effff7;
             background:
-                radial-gradient(circle at 7% 0%, rgba(74, 222, 128, 0.2), transparent 39%),
-                linear-gradient(135deg, rgba(13, 77, 54, 0.9), rgba(7, 43, 34, 0.9));
-            border: 1px solid rgba(74, 222, 128, 0.5);
-            border-radius: 16px;
-            box-shadow: 0 16px 34px rgba(0, 25, 15, 0.34), inset 0 1px rgba(220, 252, 231, 0.1);
+                radial-gradient(circle at 50% 0%, rgba(74, 222, 128, 0.18), transparent 48%),
+                rgba(7, 55, 39, 0.76);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            border-radius: 15px;
+            box-shadow: 0 12px 28px rgba(0, 25, 15, 0.25), inset 0 1px rgba(220, 252, 231, 0.08);
+            box-sizing: border-box;
+            text-align: center;
         }
         .preview-guarantee__badge {
             display: grid;
-            width: 56px;
-            height: 56px;
+            width: 50px;
+            height: 50px;
             place-items: center;
             color: #063d28;
             background: linear-gradient(145deg, #bbf7d0, #4ade80);
@@ -1070,9 +1099,36 @@ const previewReviewInitials = (name) => name
             font-weight: 950;
             box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25), inset 0 1px rgba(255, 255, 255, 0.65);
         }
-        .preview-guarantee__kicker { display: block; margin-bottom: 3px; color: #86efac; font-size: 0.55rem; font-weight: 950; letter-spacing: 0.12em; text-transform: uppercase; }
+        .preview-guarantee__kicker { display: block; margin-bottom: 4px; color: #86efac; font-size: 0.55rem; font-weight: 950; letter-spacing: 0.12em; text-transform: uppercase; }
         .preview-guarantee strong { display: block; color: #f0fdf4; font-size: 0.98rem; font-weight: 950; letter-spacing: 0.005em; }
         .preview-guarantee p { margin: 5px 0 0; color: #bbf7d0; font-size: 0.66rem; line-height: 1.45; }
+        .preview-checkout-review {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            gap: 13px;
+            align-items: center;
+            width: min(100%, 460px);
+            margin: 2.25rem auto 0;
+            padding: 13px 15px;
+            color: #e8f1fb;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(143, 190, 250, 0.16);
+            border-radius: 14px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .preview-checkout-review img {
+            display: block;
+            width: 58px;
+            height: 58px;
+            object-fit: cover;
+            border: 2px solid rgba(191, 212, 237, 0.42);
+            border-radius: 50%;
+            box-shadow: 0 7px 18px rgba(0, 4, 14, 0.32);
+        }
+        .preview-checkout-review blockquote { margin: 0; color: #b8c7d9; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.82rem; font-style: italic; font-weight: 500; line-height: 1.45; }
+        .preview-checkout-review cite { display: block; margin-top: 6px; color: #9fb7d3; font-family: Inter, sans-serif; font-size: 0.64rem; font-style: normal; font-weight: 800; letter-spacing: 0.035em; }
+        .preview-checkout-review + .preview-guarantee { margin-top: 2rem; }
         .preview-cgv {
             display: flex;
             align-items: flex-start;
@@ -1095,7 +1151,19 @@ const previewReviewInitials = (name) => name
             font-weight: 900;
             letter-spacing: 0.01em;
             cursor: pointer;
+            transform-origin: center;
+            animation: previewPayNudge 4.8s ease-in-out infinite;
+            will-change: transform;
         }
+        @keyframes previewPayNudge {
+            0%, 70%, 100% { transform: translateY(0) scale(1); }
+            74% { transform: translateY(-3px) scale(1.012); }
+            78% { transform: translateY(0) scale(0.998); }
+            82% { transform: translateY(-1px) scale(1.006); }
+            86% { transform: translateY(0) scale(1); }
+        }
+        .preview-pay-btn:hover, .preview-pay-btn:focus-visible { animation-play-state: paused; transform: translateY(-1px); }
+        @media (prefers-reduced-motion: reduce) { .preview-pay-btn { animation: none; } }
         .preview-payment-switch {
             display: block;
             width: 100%;
@@ -1136,20 +1204,63 @@ const previewReviewInitials = (name) => name
         .preview-includes__urgency {
             grid-column: 1 / -1;
             display: grid;
-            grid-template-columns: minmax(0, 360px);
+            grid-template-columns: minmax(0, 1fr);
+            align-items: center;
+            justify-content: center;
+            justify-self: center;
+            gap: 11px;
+            width: min(100%, 400px);
+            padding: 3px 0;
+            box-sizing: border-box;
+        }
+        .preview-includes__urgency-copy {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            width: 100%;
-            padding: 0 0 3px;
-            box-sizing: border-box;
+            margin: 0;
+            color: rgba(255, 232, 234, 0.88);
+            font-size: 0.62rem;
+            font-weight: 850;
+            line-height: 1.35;
+            letter-spacing: 0.1em;
+            text-align: center;
+            text-transform: uppercase;
         }
-        .preview-includes__urgency-copy { margin: 0; color: rgba(226, 232, 240, 0.72); font-size: 0.62rem; font-weight: 850; line-height: 1.35; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; }
+        .preview-includes__urgency-copy::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            flex: 0 0 auto;
+            border-radius: 999px;
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.72);
+        }
         .preview-includes__countdown-slot { width: 100%; min-width: 0; }
         .preview-includes__countdown-slot .countdown { width: 100%; max-width: none; gap: 6px; }
-        .preview-includes__countdown-slot .count-card { padding: 7px 2px; background: rgba(255, 255, 255, 0.045); border-radius: 10px; }
-        .preview-includes__countdown-slot .count-value { font-size: 1rem; }
+        .preview-includes__countdown-slot .count-card {
+            display: grid;
+            gap: 6px;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+        }
+        .preview-includes__countdown-slot .count-value {
+            display: grid;
+            min-height: 46px;
+            place-items: center;
+            padding: 6px 2px;
+            background: linear-gradient(180deg, rgba(127, 29, 29, 0.28), rgba(69, 10, 10, 0.17));
+            border: 1px solid rgba(248, 113, 113, 0.42);
+            border-radius: 10px;
+            font-size: 1rem;
+            line-height: 1;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+        }
         .preview-includes__countdown-slot .count-label {
+            display: block;
+            color: rgba(254, 202, 202, 0.68);
             font-size: clamp(0.47rem, 1.6vw, 0.54rem);
             letter-spacing: 0.2px;
             white-space: nowrap;
@@ -1168,8 +1279,11 @@ const previewReviewInitials = (name) => name
             text-transform: uppercase;
             text-shadow: 0 8px 24px rgba(0, 5, 17, 0.38);
         }
-        .preview-obtain__volume { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; margin: 9px 0 0; color: rgba(203, 220, 242, 0.72); font-size: 0.64rem; }
-        .preview-obtain__volume strong { padding: 5px 9px; color: #dbeafe; background: rgba(37, 99, 235, 0.17); border: 1px solid rgba(96, 165, 250, 0.24); border-radius: 999px; }
+        .preview-obtain__volume { display: flex; flex-direction: column; align-items: center; gap: 7px; margin: 9px 0 0; font-size: 0.64rem; }
+        .preview-obtain__volume-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; }
+        .preview-obtain__volume span { padding: 5px 9px; color: #dbeafe; background: rgba(37, 99, 235, 0.17); border: 1px solid rgba(96, 165, 250, 0.24); border-radius: 999px; font-weight: 750; }
+        .preview-obtain__volume .preview-obtain__volume-gold { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; color: #ffedbd; background: linear-gradient(135deg, rgba(180, 124, 23, 0.3), rgba(114, 72, 9, 0.24)); border-color: rgba(245, 190, 75, 0.48); box-shadow: inset 0 1px 0 rgba(255, 241, 195, 0.08); }
+        .preview-obtain__volume-gold svg { width: 13px; height: 13px; flex: 0 0 auto; color: #ffd66b; filter: drop-shadow(0 0 5px rgba(245, 190, 75, 0.3)); }
         .preview-obtain__list { padding: 5px 21px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 16px; }
         .preview-obtain__item { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 13px; align-items: start; padding: 15px 0; }
         .preview-obtain__item + .preview-obtain__item { border-top: 1px solid rgba(255, 255, 255, 0.055); }
@@ -1198,6 +1312,37 @@ const previewReviewInitials = (name) => name
         }
         .preview-obtain__cta:hover { filter: brightness(1.06); }
         .preview-obtain__cta:focus-visible { outline: 3px solid rgba(147, 197, 253, 0.55); outline-offset: 3px; }
+        .preview-next-step {
+            width: min(600px, 100%);
+            margin: 22px auto 0;
+            padding: 20px 12px 0;
+            border-top: 1px solid rgba(96, 165, 250, 0.2);
+            text-align: center;
+        }
+        .preview-next-step__eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 9px;
+            color: #93c5fd;
+            font-size: 0.67rem;
+            font-weight: 900;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+        .preview-next-step__eyebrow::before {
+            content: '✦';
+            color: #60a5fa;
+            font-size: 0.76rem;
+        }
+        .preview-next-step p {
+            margin: 0;
+            color: rgba(210, 222, 239, 0.68);
+            font-size: 0.75rem;
+            line-height: 1.62;
+        }
+        .preview-next-step p + p { margin-top: 7px; }
+        .preview-next-step strong { color: #f8fbff; font-weight: 800; }
         .preview-reviews {
             display: none;
             width: 100%;
@@ -1265,15 +1410,18 @@ const previewReviewInitials = (name) => name
         .preview-reviews-dialog__disclosure { flex: 0 0 auto; margin: 0; padding: 12px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
         @media (max-width: 760px) {
             .preview-checkout__header { grid-template-columns: 1fr; gap: 14px; padding: 21px 18px 18px; }
-            .preview-seat-badge { gap: 12px; margin-bottom: 15px; padding: 11px 12px; }
+            .preview-seat-badge { width: min(86%, 250px); gap: 6px; margin-top: 14px; padding: 12px 14px 11px; }
             .preview-checkout__body { padding: 16px; }
-            .preview-payment { padding: 16px; }
-            .preview-guarantee { padding: 15px 16px; }
-            .preview-guarantee__badge { width: 48px; height: 48px; }
+            .preview-payment { padding: 0; }
+            .preview-guarantee { max-width: min(100%, 340px); padding: 16px 18px; }
+            .preview-guarantee__badge { width: 46px; height: 46px; }
+            .preview-checkout-review { grid-template-columns: 52px minmax(0, 1fr); width: min(100%, 390px); padding: 12px 13px; }
+            .preview-checkout-review img { width: 52px; height: 52px; }
             .preview-identity { grid-template-columns: 1fr; }
             .preview-includes { grid-template-columns: 1fr; padding: 22px 18px 25px; }
-            .preview-includes__urgency { grid-template-columns: 1fr; gap: 7px; padding: 0 0 3px; }
+            .preview-includes__urgency { grid-template-columns: 1fr; gap: 9px; width: min(100%, 380px); padding: 3px 0; }
             .preview-includes__urgency-copy { text-align: center; }
+            .preview-includes__countdown-slot .count-value { min-height: 42px; }
             .preview-includes__visual { max-width: 360px; }
             .preview-obtain__list { padding: 4px 14px; }
             .preview-obtain__item { grid-template-columns: 23px minmax(0, 1fr); gap: 11px; padding: 14px 0; }
@@ -1628,6 +1776,8 @@ const previewReviewInitials = (name) => name
                 <button class="dev-time-btn" data-now-preset="cta-mid" type="button">Countdown 0:40</button>
                 <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">Activation -5s</button>
                 <button class="dev-time-btn" data-now-preset="cta-active" type="button">Bouton actif (0:00)</button>
+                <button class="dev-time-btn" data-now-preset="offer-h12" type="button">Offre H+12 (5 places)</button>
+                <button class="dev-time-btn" data-now-preset="offer-h23" type="button">Offre H+23 (1 place)</button>
                 <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo -1s (1:31:48)</button>
                 <button class="dev-time-btn" data-now-preset="webinaire-ended" type="button">Webinaire terminé</button>
                 <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire (replay)</button>
@@ -1774,6 +1924,10 @@ const previewReviewInitials = (name) => name
                 </div>
             </div>
             <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">S’inscrire à Esprit Subconscient 2.0</a>
+            <div id="preview-seat-badge" class="preview-seat-badge" aria-label="Quinze places disponibles sur quinze">
+                <span class="preview-seat-badge__label">Places restantes pour cette session</span>
+                <strong><span id="preview-scarcity-places">15</span> <small>/ <span id="preview-scarcity-total">15</span></small></strong>
+            </div>
             <section id="preview-checkout" class="preview-checkout" aria-label="Aperçu du futur paiement intégré">
                 <header class="preview-checkout__header">
                     <div>
@@ -1783,35 +1937,31 @@ const previewReviewInitials = (name) => name
                 </header>
                 <div class="preview-checkout__body">
                     <div id="preview-payment" class="preview-payment" data-plan="monthly">
-                        <div class="preview-seat-badge" aria-label="Quatorze places disponibles sur quinze">
-                            <span>Places encore disponibles pour cette session</span>
-                            <strong>14 <small>/ 15</small></strong>
+                        <div class="preview-schedule" aria-label="Échéancier de paiement">
+                            <div class="preview-schedule__today">
+                                <span class="preview-schedule__today-main">
+                                    <span><strong id="preview-schedule-plan-label">12 mensualités de 197 €</strong></span>
+                                </span>
+                                <span id="preview-schedule-analogy" class="preview-schedule__analogy">≈ 6 € par jour</span>
+                            </div>
                         </div>
+                        <p class="preview-spiffy-payment-label">Carte bancaire</p>
                         <div id="preview-spiffy-slot" class="preview-spiffy-slot" aria-live="polite">
                             <div class="preview-spiffy-loading">Chargement du formulaire d’inscription…</div>
                         </div>
-                        <div class="preview-schedule" aria-label="Échéancier de paiement">
-                            <div class="preview-schedule__head">
-                                <p class="preview-schedule__title">Informations relatives au règlement</p>
-                            </div>
-                            <div class="preview-schedule__today">
-                                <span class="preview-schedule__today-main">
-                                    <span class="preview-schedule__dot" aria-hidden="true"></span>
-                                    <span><strong>Aujourd’hui</strong><small id="preview-schedule-now-detail">Première mensualité</small></span>
-                                </span>
-                                <span class="preview-schedule__amount-stack">
-                                    <strong id="preview-schedule-now-amount" class="preview-schedule__amount">197 €</strong>
-                                    <small id="preview-schedule-analogy" class="preview-schedule__amount-note">environ 6 € par jour</small>
-                                </span>
-                            </div>
-                            <p id="preview-schedule-copy" class="preview-schedule__copy">Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.</p>
-                        </div>
                         <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
+                        <figure class="preview-checkout-review">
+                            <img src="/media/reviews/es2-morgane-levavi.webp" alt="Morgane" width="512" height="512" loading="lazy" decoding="async" />
+                            <figcaption>
+                                <blockquote>« La formation est bien, mais ça marche vraiment et c’est ça qui est exceptionnel ! »</blockquote>
+                                <cite>Morgane</cite>
+                            </figcaption>
+                        </figure>
+                        <div class="preview-guarantee">
+                            <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
+                            <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
+                        </div>
                         <p id="preview-spiffy-error" class="preview-spiffy-error" role="alert"></p>
-                    </div>
-                    <div class="preview-guarantee">
-                        <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
-                        <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
                     </div>
                 </div>
                 <div class="preview-includes">
@@ -1832,7 +1982,10 @@ const previewReviewInitials = (name) => name
                     <div class="preview-obtain">
                         <div class="preview-obtain__heading">
                             <h3>CE QUE TU VAS OBTENIR AVEC<br />ESPRIT SUBCONSCIENT 2.0</h3>
-                            <p class="preview-obtain__volume"><strong>36h+ de contenus</strong><span>Un parcours guidé de 6 mois · 15 minutes par jour</span></p>
+                            <div class="preview-obtain__volume">
+                                <div class="preview-obtain__volume-row"><span>36h+ de contenus</span><span>Parcours guidé sur 6 mois</span><span>15 minutes par jour</span></div>
+                                <span class="preview-obtain__volume-gold"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5L3 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Consultation privée avec Sonny</span>
+                            </div>
                         </div>
                         <div class="preview-obtain__list">
                             <div class="preview-obtain__item">
@@ -1869,6 +2022,11 @@ const previewReviewInitials = (name) => name
                             </div>
                         </div>
                         <a id="preview-obtain-cta" class="preview-obtain__cta" href="#preview-spiffy-slot">Je commence ma transformation</a>
+                        <div class="preview-next-step">
+                            <span class="preview-next-step__eyebrow">Juste après ton inscription</span>
+                            <p>Tu reçois immédiatement ton accès privé à <strong>Esprit Subconscient 2.0</strong>, à ta première leçon et à l’application Morpho.</p>
+                            <p>Ensuite, une nouvelle leçon se débloque chaque jour pour te guider, étape après étape, <strong>de ta situation actuelle vers la manifestation de ce que tu veux vraiment.</strong></p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1945,6 +2103,7 @@ const previewReviewInitials = (name) => name
 
         <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
             <div class="purchase-toast__content">
+                <span id="purchase-toast-test-mode" class="purchase-toast__test-mode">Mode test</span>
                 <div class="purchase-toast__thumb-wrap">
                     <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
                     <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
@@ -1985,7 +2144,12 @@ const previewReviewInitials = (name) => name
     <script>
         // @ts-nocheck
         import Hls from 'hls.js';
-        import { startScarcityEngine, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
+        import {
+            MC2_SESSION_HALF_WINDOW_MS,
+            MC2_SESSION_OFFER_DURATION_MS,
+            MC2_SESSION_TOTAL_SEATS,
+            startMc2SessionScarcity,
+        } from '../../lib/mc2-session-scarcity.mjs';
         const TOKEN_KEY = 'mc2_registration_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
         const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
@@ -1993,7 +2157,7 @@ const previewReviewInitials = (name) => name
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
         const CTA_APPEAR_SECONDS = 90 * 60 + 13; // apparition à 1h30m13s dans la nouvelle vidéo live
         const CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // le bouton est immédiatement cliquable à son apparition
-        const SESSION_SCARCITY_DELAY_MS = 60 * 1000; // garde CTA + 30 places pendant 60s
+        const PURCHASE_TOAST_TEST_MODE = true; // TEMPORAIRE : événements simulés clairement marqués « MODE TEST »
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
         const FREEZE_RECOVERY_ENABLED = true;
         // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
@@ -2312,25 +2476,38 @@ const previewReviewInitials = (name) => name
             };
         }
 
-        function initPurchaseToasts(sessionStartMs, options) {
+        function initPurchaseToasts(ctaActivationMs, options) {
             const toast = document.getElementById('purchase-toast');
             const text = document.getElementById('purchase-toast-text');
             const flagEl = document.getElementById('purchase-toast-flag');
+            const testModeEl = document.getElementById('purchase-toast-test-mode');
             if (!toast || !text || !flagEl) return { recalc: () => {}, destroy: () => {} };
 
             const setSeatsLeft = typeof options?.setSeatsLeft === 'function' ? options.setSeatsLeft : () => {};
+            const demoMode = options?.demo === true;
+            const showTestMode = options?.showTestMode === true;
+            const demoPurchases = [
+                { name: 'Sophie', flag: '🇧🇪' },
+                { name: 'Nicolas', flag: '🇨🇭' },
+                { name: 'Thomas', flag: '🇫🇷' },
+                { name: 'Gabrielle', flag: '🇨🇦' },
+                { name: 'Charlotte', flag: '🇧🇪' },
+                { name: 'Vanessa', flag: '🇨🇭' },
+            ];
             let hideTimer = null;
+            let demoTimer = null;
+            let demoIndex = 0;
             let engine = null;
 
             const isEnded = typeof options?.isEnded === 'function' ? options.isEnded : () => false;
 
             function shouldRun() {
-                const elapsedSec = Math.max(0, Math.floor((getNowMs() - sessionStartMs) / 1000));
-                return elapsedSec >= CTA_APPEAR_SECONDS && !isEnded();
+                return getNowMs() >= ctaActivationMs && !isEnded();
             }
 
             function hideNow() {
                 toast.classList.remove('show');
+                toast.setAttribute('aria-hidden', 'true');
                 if (hideTimer) {
                     clearTimeout(hideTimer);
                     hideTimer = null;
@@ -2344,45 +2521,67 @@ const previewReviewInitials = (name) => name
                 }
                 flagEl.textContent = purchase.flag;
                 text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                if (testModeEl) testModeEl.hidden = !showTestMode;
+                toast.hidden = false;
+                toast.setAttribute('aria-hidden', 'false');
                 toast.classList.add('show');
                 if (hideTimer) clearTimeout(hideTimer);
                 hideTimer = setTimeout(() => {
-                    toast.classList.remove('show');
+                    hideNow();
                 }, 4000);
+            }
+
+            function scheduleDemo(delayMs) {
+                if (!demoMode) return;
+                if (demoTimer) clearTimeout(demoTimer);
+                demoTimer = setTimeout(function emitDemoPurchase() {
+                    if (!shouldRun()) {
+                        hideNow();
+                        scheduleDemo(1000);
+                        return;
+                    }
+                    const purchase = demoPurchases[demoIndex % demoPurchases.length];
+                    demoIndex += 1;
+                    showPurchase(purchase);
+                    scheduleDemo(14000 + Math.floor(Math.random() * 7000));
+                }, delayMs);
             }
 
             function startEngine() {
                 if (engine) engine.stop();
-                const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
-                engine = startScarcityEngine({
-                    now: function () {
-                        return getNowMs() - SESSION_SCARCITY_DELAY_MS;
-                    },
+                engine = startMc2SessionScarcity({
+                    now: getNowMs,
                     isActive: shouldRun,
-                    windowStartMs: options?.windowStartMs,
-                    windowEndMs: options?.windowEndMs,
-                    onSeatsLeft: function (seatsLeft, _soldCount, phase) {
-                        setSeatsLeft(seatsLeft, phase);
+                    windowStartMs: ctaActivationMs,
+                    onSeatsLeft: function (seatsLeft) {
+                        setSeatsLeft(seatsLeft);
                     },
                     onNotification: function (purchase) {
                         showPurchase(purchase);
                     },
-                    debug,
                 });
+                if (demoMode) {
+                    toast.hidden = false;
+                    scheduleDemo(2200);
+                }
             }
 
             startEngine();
             return {
                 recalc: function () {
-                    if (engine && typeof engine.debugSnapshot === 'function') {
-                        const snap = engine.debugSnapshot();
-                        setSeatsLeft(snap.seatsLeft, snap.phase);
+                    if (engine && typeof engine.recalc === 'function') engine.recalc();
+                    if (demoMode) {
+                        hideNow();
+                        scheduleDemo(1200);
                     }
                 },
                 destroy: function () {
                     if (engine) engine.stop();
                     engine = null;
+                    if (demoTimer) clearTimeout(demoTimer);
+                    demoTimer = null;
                     hideNow();
+                    toast.hidden = true;
                 },
             };
         }
@@ -2403,17 +2602,11 @@ const previewReviewInitials = (name) => name
         function inlinePlanUi(plan) {
             const once = plan === 'once';
             const paymentPanel = document.getElementById('preview-payment');
-            const scheduleCopy = document.getElementById('preview-schedule-copy');
-            const scheduleNowDetail = document.getElementById('preview-schedule-now-detail');
-            const scheduleNowAmount = document.getElementById('preview-schedule-now-amount');
+            const schedulePlanLabel = document.getElementById('preview-schedule-plan-label');
             const scheduleAnalogy = document.getElementById('preview-schedule-analogy');
             const paymentSwitch = document.getElementById('preview-payment-switch');
             paymentPanel?.setAttribute('data-plan', once ? 'once' : 'monthly');
-            if (scheduleNowDetail) scheduleNowDetail.textContent = once ? 'Paiement unique' : 'Première mensualité';
-            if (scheduleNowAmount) scheduleNowAmount.textContent = once ? '1 997 €' : '197 €';
-            if (scheduleCopy) scheduleCopy.textContent = once
-                ? 'Aucun autre prélèvement n’est prévu. Ce paiement en une fois représente une économie de 367 € par rapport au règlement en douze mensualités.'
-                : 'Ensuite, onze échéances distinctes de 197 € seront dues et prélevées mensuellement.';
+            if (schedulePlanLabel) schedulePlanLabel.textContent = once ? 'Paiement unique de 1 997 €' : '12 mensualités de 197 €';
             if (scheduleAnalogy) scheduleAnalogy.style.display = once ? 'none' : 'block';
             if (paymentSwitch) paymentSwitch.textContent = once
                 ? 'Revenir aux 12 mensualités de 197 €'
@@ -2423,6 +2616,11 @@ const previewReviewInitials = (name) => name
         const SPIFFY_CHECKOUT_URLS = Object.freeze({
             monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1',
             once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34',
+        });
+
+        const SPIFFY_PREVIEW_CHECKOUT_URLS = Object.freeze({
+            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1',
+            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1',
         });
 
         async function mountLiveInlineCheckout(reg) {
@@ -2452,12 +2650,33 @@ const previewReviewInitials = (name) => name
             }
 
             function buildCheckoutUrl(plan) {
-                const url = new URL(SPIFFY_CHECKOUT_URLS[plan]);
-                if (reg.prenom) url.searchParams.set('name_first', reg.prenom);
-                if (reg.email) url.searchParams.set('email', reg.email);
-                if (reg.pays && reg.pays !== 'Autre') url.searchParams.set('country', reg.pays);
+                const isLocalPreview = new URLSearchParams(window.location.search).get('preview') === 'dev'
+                    && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+                const checkoutUrls = isLocalPreview ? SPIFFY_PREVIEW_CHECKOUT_URLS : SPIFFY_CHECKOUT_URLS;
+                const url = new URL(checkoutUrls[plan]);
+                url.searchParams.set('es2_plan', plan);
+                const hasDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+                url.searchParams.set('es2_view', hasDesktopPointer ? 'desktop' : 'compact');
+                const firstName = String(reg.prenom || '').trim();
+                const email = String(reg.email || '').trim();
+                const country = String(reg.pays || '').trim();
+                if (firstName) url.searchParams.set('name_first', firstName);
+                if (email) url.searchParams.set('email', email);
+                if (country && country !== 'Autre pays' && country !== 'Autre') url.searchParams.set('country', country);
                 return url;
             }
+
+            function syncLocalFrameHeight(event) {
+                if (event.origin !== 'https://sonnycourt.spiffy.co') return;
+                const frame = slot.querySelector('iframe.preview-spiffy-frame');
+                if (!frame || event.source !== frame.contentWindow) return;
+                if (event.data?.type !== 'es2:spiffy-height') return;
+                const height = Math.min(1100, Math.max(280, Number(event.data.height) || 0));
+                paymentPanel.classList.add('is-spiffy-themed');
+                frame.style.height = `${height}px`;
+                slot.style.minHeight = `${height}px`;
+            }
+            window.addEventListener('message', syncLocalFrameHeight);
 
             function mountPlan(plan) {
                 const generation = ++controller.generation;
@@ -2485,7 +2704,7 @@ const previewReviewInitials = (name) => name
                         : 'Paiement mensuel Esprit Subconscient 2.0';
                     frame.setAttribute('allow', 'payment');
                     frame.setAttribute('loading', 'eager');
-                    frame.style.cssText = 'display:block;width:100%;height:950px;border:0;background:#111a30;';
+                    frame.style.cssText = 'display:block;width:100%;height:520px;border:0;background:transparent;';
                     slot.appendChild(frame);
                 } else {
                     const checkout = document.createElement('spiffy-checkout');
@@ -2527,6 +2746,7 @@ const previewReviewInitials = (name) => name
             const offerCountdownEl = document.getElementById('offer-countdown');
             const offerScarcityEl = document.getElementById('scarcity-card');
             const offerCtaNode = document.getElementById('offer-cta');
+            const previewSeatBadge = document.getElementById('preview-seat-badge');
             const previewCheckoutNode = document.getElementById('preview-checkout');
             const offerExpiredStateEl = document.getElementById('offer-expired-state');
             let isOfferExpired = false;
@@ -2544,6 +2764,7 @@ const previewReviewInitials = (name) => name
                 if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
                 if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
+                if (previewSeatBadge) previewSeatBadge.hidden = isOfferExpired;
                 if (previewCheckoutNode) previewCheckoutNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
                 if (isOfferExpired) setOfferCtaEnabled(false);
@@ -2693,12 +2914,12 @@ const previewReviewInitials = (name) => name
             const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
             const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
             const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
+            const previewScarcityPlacesEl = document.getElementById('preview-scarcity-places');
+            const previewScarcityTotalEl = document.getElementById('preview-scarcity-total');
             const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
             const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
                 ? sessionEndsRawMs
                 : (sessionStartMs + (90 * 60 * 1000));
-            const scarcityWindowStartMs = sessionStartMs + SCARCITY_WINDOW_START_AFTER_SESSION_MS;
-            const scarcityWindowEndMs = expiryMs;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
 
@@ -2837,14 +3058,18 @@ const previewReviewInitials = (name) => name
                 trackWebinaireEvent(reg.token, 'session_joined');
             }
 
-            function setScarcitySeats(seatsLeft, phase) {
-                const isPhase2 = phase === 'phase2';
-                const denominator = isPhase2 ? 10 : 30;
+            function setScarcitySeats(seatsLeft) {
+                const denominator = MC2_SESSION_TOTAL_SEATS;
                 const seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
                 if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
                 if (scarcityDenominatorEl) scarcityDenominatorEl.textContent = `/ ${denominator}`;
-                if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.toggle('hidden', !isPhase2);
-                if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.toggle('hidden', !isPhase2);
+                if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.add('hidden');
+                if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.add('hidden');
+                if (previewScarcityPlacesEl) previewScarcityPlacesEl.textContent = String(seats);
+                if (previewScarcityTotalEl) previewScarcityTotalEl.textContent = String(denominator);
+                if (previewSeatBadge) {
+                    previewSeatBadge.setAttribute('aria-label', `${seats} place${seats === 1 ? '' : 's'} disponible${seats === 1 ? '' : 's'} sur ${denominator}`);
+                }
                 if (scarcityMeterFillEl) {
                     const pct = (Math.max(0, Math.min(denominator, seats)) / denominator) * 100;
                     scarcityMeterFillEl.style.width = `${pct}%`;
@@ -3391,7 +3616,7 @@ const previewReviewInitials = (name) => name
                     if (isCtaActive && !Number.isFinite(expiryMs)) {
                         // Réponse visuelle immédiate ; le serveur confirme la même ancre,
                         // calculée depuis session_starts_at et 01:30:13.
-                        expiryMs = ctaActivationMs + 60 * 60 * 1000;
+                        expiryMs = ctaActivationMs + MC2_SESSION_OFFER_DURATION_MS;
                     }
                     updateCountdown(isCtaActive ? expiryMs : ctaActivationMs, offerIds);
                     setOfferCtaEnabled(isCtaActive);
@@ -3714,9 +3939,17 @@ const previewReviewInitials = (name) => name
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs);
-            // Le live reste centré sur le contenu : aucune notification d'achat
-            // et aucun moteur de scarcity visible sur cette page.
-            const purchaseToasts = { recalc: function () {}, destroy: function () {} };
+            // La cadence 15 → 5 → 0 est ancrée sur l'apparition du formulaire.
+            // Sur la route normale, les notifications restent explicitement
+            // marquées « MODE TEST » tant que Sonny n'a pas retiré ce mode.
+            const purchaseToastFastDemo = isPreviewPage
+                || new URLSearchParams(window.location.search).get('purchase_demo') === '1';
+            const purchaseToasts = initPurchaseToasts(ctaActivationMs, {
+                demo: purchaseToastFastDemo,
+                showTestMode: PURCHASE_TOAST_TEST_MODE || purchaseToastFastDemo,
+                setSeatsLeft: setScarcitySeats,
+                isEnded: function () { return isSessionEnded || isOfferExpired; },
+            });
 
             return {
                 recalcFromSimulatedTime: function () {
@@ -3819,14 +4052,14 @@ const previewReviewInitials = (name) => name
         function devGetState(sessionMs, nowMs) {
             var elapsed = (nowMs - sessionMs) / 1000;
             var videoElapsed = (nowMs - (sessionMs - LIVE_VIDEO_LEAD_MS)) / 1000;
+            var offerStartsMs = sessionMs - LIVE_VIDEO_LEAD_MS + CTA_ACTIVATE_SECONDS * 1000;
+            var offerExpiresMs = offerStartsMs + MC2_SESSION_OFFER_DURATION_MS;
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
             if (videoElapsed < CTA_APPEAR_SECONDS) return 'Live';
             if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'Bouton grisé';
             if (videoElapsed < getVideoDurationSeconds()) return 'Bouton actif';
-            var endMs = sessionMs + getVideoDurationSeconds() * 1000;
-            var sun23 = sessionMs + (3 * 24 + 3) * 3600 * 1000;
-            if (nowMs < sun23) return 'Vidéo terminée / Replay';
+            if (nowMs < offerExpiresMs) return 'Vidéo terminée / Replay';
             return 'Expiré';
         }
         function initDevBanner() {
@@ -3919,6 +4152,7 @@ const previewReviewInitials = (name) => name
                     currentMounted.destroy();
                 }
                 currentSessionMs = sessionMs;
+                var previewCtaActivationMs = sessionMs - LIVE_VIDEO_LEAD_MS + CTA_ACTIVATE_SECONDS * 1000;
                 var reg = {
                     token: liveCheckoutPreviewToken || 'preview-session',
                     statut: 'present',
@@ -3926,7 +4160,7 @@ const previewReviewInitials = (name) => name
                     email: 'preview@sonnycourt.com',
                     pays: 'France',
                     sessionStartsAt: new Date(sessionMs).toISOString(),
-                    offreExpiresAt: new Date(offerMs).toISOString(),
+                    offreExpiresAt: new Date(previewCtaActivationMs + MC2_SESSION_OFFER_DURATION_MS).toISOString(),
                 };
                 showScreen('screen-main');
                 currentMounted = mountVideoAndOffer(reg);
@@ -4011,12 +4245,11 @@ const previewReviewInitials = (name) => name
                 if (key === 'cta-mid') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 40000;
                 if (key === 'cta-active-m5s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 - 5000;
                 if (key === 'cta-active') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000;
+                if (key === 'offer-h12') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_HALF_WINDOW_MS;
+                if (key === 'offer-h23') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + 23 * 60 * 60 * 1000;
                 if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;
                 if (key === 'expired') {
-                    var p2 = devParisParts(new Date(currentSessionMs));
-                    var sun = devAddDays(p2.year, p2.month, p2.day, 3);
-                    var inst2 = devFindParisInstant(sun.year, sun.month, sun.day, 23);
-                    return inst2 ? inst2.getTime() + 30 * 60 * 1000 : currentSessionMs + 76 * 3600 * 1000;
+                    return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_OFFER_DURATION_MS + 30 * 60 * 1000;
                 }
                 if (key === 'webinaire-ended') {
                     var durSec = getVideoDurationSeconds();
@@ -4064,9 +4297,24 @@ const previewReviewInitials = (name) => name
             setInterval(refreshSummary, 1000);
         }
 
+        function initObtainCtaScroll() {
+            const obtainCta = document.getElementById('preview-obtain-cta');
+            const paymentSlot = document.getElementById('preview-spiffy-slot');
+            if (!obtainCta || !paymentSlot) return;
+            obtainCta.addEventListener('click', function (event) {
+                event.preventDefault();
+                const cardFocusY = window.scrollY + paymentSlot.getBoundingClientRect().top + 72;
+                window.scrollTo({
+                    top: Math.max(0, cardFocusY - window.innerHeight / 2),
+                    behavior: 'smooth',
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', async function () {
             const params = new URLSearchParams(window.location.search);
             const preview = params.get('preview') === 'dev';
+            initObtainCtaScroll();
 
             if (preview) {
                 initDevBanner();

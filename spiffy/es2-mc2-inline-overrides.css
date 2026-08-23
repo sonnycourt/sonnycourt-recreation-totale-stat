@@ -1,0 +1,436 @@
+/*
+ * ES2 / MC2 — finition du checkout Spiffy intégré.
+ * À ajouter APRÈS es2-checkout-theme.css dans une copie dédiée du checkout.
+ * Cette couche rapproche le formulaire du checkout Stripe natif sans modifier
+ * les prix, le processeur, l'échéancier ni la logique d'achat Spiffy.
+ */
+
+.checkout[data-es2-inline="true"] {
+  --es2-inline-bg: #0b1930;
+  --es2-inline-field: #08182d;
+  --es2-inline-border: rgba(117, 161, 215, 0.24);
+  --es2-inline-border-strong: rgba(105, 177, 255, 0.46);
+}
+
+html[data-es2-inline="true"],
+html[data-es2-inline="true"] body {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+html[data-es2-inline="true"] body,
+.checkout[data-es2-inline="true"],
+.checkout[data-es2-inline="true"] .checkout-form,
+.checkout[data-es2-inline="true"] .checkout-form > .container,
+.checkout[data-es2-inline="true"] .checkout-form > .container-fluid {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .checkout__inner > .container > .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .checkout-form {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+}
+
+/* Un seul bloc continu, comme le formulaire Stripe d'origine. */
+.checkout[data-es2-inline="true"] .checkout-form {
+  overflow: visible;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block {
+  margin: 0 !important;
+}
+
+/* Neutralise la grille Bootstrap de Spiffy qui débordait de l’iframe. */
+.checkout[data-es2-inline="true"] .section.block .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block .col,
+.checkout[data-es2-inline="true"] .section.block [class*="col-"] {
+  max-width: 100% !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block > .card {
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.checkout[data-es2-inline="true"] .section__inner,
+.checkout[data-es2-inline="true"] .section__inner.card-body,
+.checkout[data-es2-inline="true"] .section.block:has(.payment-gateway) .section__inner,
+.checkout[data-es2-inline="true"] .section.block:has(.btn--checkout) .section__inner {
+  padding: 0 !important;
+}
+
+/* L’identité est gérée par la page hôte et transmise à Spiffy. */
+.checkout[data-es2-inline="true"] .section.block:has(input[id^="inputText-"]):has(input[id^="contactInfo-"]),
+.checkout[data-es2-inline="true"] .section.block:has(input[name="name_first"]):has(input[type="email"]),
+.checkout[data-es2-inline="true"] .section.block:has(input[placeholder="Prénom"]):has(input[placeholder="Email"]) {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .form-group {
+  margin: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .form-control,
+.checkout[data-es2-inline="true"] .custom-select {
+  min-height: 48px !important;
+  border-color: var(--es2-inline-border) !important;
+  border-radius: 10px !important;
+  background-color: var(--es2-inline-field) !important;
+}
+
+/* Carte : une section dense, française, sans méthode parasite. */
+.checkout[data-es2-inline="true"] .section.block:has(.payment-gateway) {
+  margin: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-gateway {
+  display: grid !important;
+  gap: 10px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--stripe > div,
+.checkout[data-es2-inline="true"] .payment-type--stripe .payment-type__extra {
+  width: 100% !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--stripe {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--stripe > div > .row {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--stripe .payment-type__label {
+  color: #f7fbff !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type__and-more,
+.checkout[data-es2-inline="true"] [data-es2-hide="true"] {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type__extra {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.checkout[data-es2-inline="true"] .StripeElement {
+  width: 100% !important;
+  min-height: 54px !important;
+  padding: 16px 14px !important;
+  border: 1px solid var(--es2-inline-border-strong) !important;
+  border-radius: 11px !important;
+  background: #07172c !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Résumé compact, placé après la carte et avant le consentement. */
+.checkout[data-es2-inline="true"] .es2-inline-plan {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid rgba(143, 190, 250, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-plan__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-plan__row strong {
+  color: #dce8f6;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-plan__row span {
+  flex: 0 0 auto;
+  color: #bfd4ed;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.018em;
+  white-space: nowrap;
+}
+
+/* PayPal reste disponible, mais devient un vrai choix secondaire lisible. */
+.checkout[data-es2-inline="true"] .payment-type--paypal {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 52px !important;
+  margin-top: 10px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  color: #142c8e !important;
+  background: #ffc439 !important;
+  box-shadow: inset 0 -1px 0 rgba(17, 24, 39, 0.18) !important;
+  cursor: pointer;
+}
+
+.checkout[data-es2-inline="true"] [data-es2-paypal-source="true"] {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal:hover,
+.checkout[data-es2-inline="true"] .payment-type--paypal.payment-type--selected {
+  background: #f5b92f !important;
+  box-shadow: inset 0 0 0 2px rgba(20, 44, 142, 0.18) !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal .row {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal h6,
+.checkout[data-es2-inline="true"] .payment-type--paypal label {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal .row {
+  justify-content: center !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal .col-auto {
+  margin: 0 auto !important;
+}
+
+.checkout[data-es2-inline="true"] .payment-type--paypal img,
+.checkout[data-es2-inline="true"] .payment-type--paypal svg {
+  width: 92px !important;
+  max-width: 92px !important;
+  height: auto !important;
+  max-height: 26px !important;
+}
+
+/* Un seul consentement, parfaitement aligné avec sa case. */
+.checkout[data-es2-inline="true"] [data-es2-duplicate-terms="true"] {
+  display: none !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block:has(.terms) {
+  margin-top: 12px !important;
+}
+
+.checkout[data-es2-inline="true"] .terms,
+.checkout[data-es2-inline="true"] .terms fieldset,
+.checkout[data-es2-inline="true"] .terms .form-group,
+.checkout[data-es2-inline="true"] .terms .custom-control {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control {
+  position: relative !important;
+  min-height: 20px !important;
+  padding: 0 0 0 28px !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control-input {
+  position: absolute !important;
+  top: 1px !important;
+  left: 0 !important;
+  z-index: 2 !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control-label {
+  position: static !important;
+  display: block !important;
+  min-height: 20px !important;
+  padding: 1px 0 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control-label::before {
+  top: 1px !important;
+  left: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 1px solid rgba(148, 178, 216, 0.68) !important;
+  border-radius: 4px !important;
+  background: #07172c !important;
+  box-shadow: none !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control-label::after {
+  top: 1px !important;
+  left: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .custom-control-input:checked ~ .custom-control-label::before {
+  border-color: #3b82f6 !important;
+  background: #3b82f6 !important;
+}
+
+.checkout[data-es2-inline="true"] .terms .rendered-content,
+.checkout[data-es2-inline="true"] .terms .rendered-content p {
+  margin: 0 !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block:has(.terms) label {
+  color: rgba(226, 235, 247, 0.82) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block:has(.terms) a {
+  color: #93c5fd !important;
+  font-weight: 750 !important;
+}
+
+.checkout[data-es2-inline="true"] .section.block:has(.btn--checkout) {
+  margin-top: 12px !important;
+}
+
+.checkout[data-es2-inline="true"] .btn--checkout {
+  min-height: 57px !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #4c9aff, #2563eb) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3) !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.005em !important;
+  transform-origin: center;
+  animation: es2-inline-cta-nudge 4.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes es2-inline-cta-nudge {
+  0%, 70%, 100% { transform: translateY(0) scale(1); }
+  74% { transform: translateY(-3px) scale(1.012); }
+  78% { transform: translateY(0) scale(0.998); }
+  82% { transform: translateY(-1px) scale(1.006); }
+  86% { transform: translateY(0) scale(1); }
+}
+
+.checkout[data-es2-inline="true"] .btn--checkout:hover,
+.checkout[data-es2-inline="true"] .btn--checkout:focus-visible {
+  animation-play-state: paused;
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout[data-es2-inline="true"] .btn--checkout { animation: none; }
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-payment-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 4px;
+  color: rgba(196, 210, 230, 0.76);
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-payment-separator::before,
+.checkout[data-es2-inline="true"] .es2-inline-payment-separator::after {
+  flex: 1 1 auto;
+  height: 1px;
+  content: '';
+  background: rgba(137, 170, 214, 0.2);
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-paypal-proxy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  color: #142c8e;
+  background: #ffc439;
+  box-shadow: inset 0 -1px 0 rgba(17, 24, 39, 0.18);
+  cursor: pointer;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-paypal-proxy:hover {
+  background: #f5b92f;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-paypal-proxy span {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.06em;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-paypal-proxy strong {
+  color: #003087;
+  font-style: italic;
+}
+
+.checkout[data-es2-inline="true"] .es2-inline-paypal-proxy em {
+  color: #0070ba;
+  font-style: italic;
+  font-weight: 900;
+}
+
+@media (max-width: 575.98px) {
+  .checkout[data-es2-inline="true"] .checkout-form {
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+}

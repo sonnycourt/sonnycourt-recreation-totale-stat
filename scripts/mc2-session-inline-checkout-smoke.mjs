@@ -92,12 +92,28 @@ assert.match(page, /https:\/\/js\.static\.spiffy\.co\/spiffy\.js/);
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
 assert.match(page, /esprit-subconscient-2-0-2-2-1/);
 assert.match(page, /esprit-subconscient-2-0-34/);
+assert.match(page, /esprit-subconscient-2-0-2-2-1-1/);
+assert.match(page, /esprit-subconscient-2-0-34-1/);
+assert.match(page, /isLocalPreview \? SPIFFY_PREVIEW_CHECKOUT_URLS : SPIFFY_CHECKOUT_URLS/);
 assert.match(page, /document\.createElement\(['"]spiffy-checkout['"]\)/);
 assert.match(page, /document\.createElement\(['"]iframe['"]\)/);
 assert.match(page, /setAttribute\(['"]allow['"],\s*['"]payment['"]\)/);
-assert.match(page, /url\.searchParams\.set\(['"]name_first['"],\s*reg\.prenom\)/);
-assert.match(page, /url\.searchParams\.set\(['"]email['"],\s*reg\.email\)/);
+assert.match(page, /url\.searchParams\.set\(['"]name_first['"],\s*firstName\)/);
+assert.match(page, /url\.searchParams\.set\(['"]email['"],\s*email\)/);
+assert.match(page, /url\.searchParams\.set\(['"]country['"],\s*country\)/);
+assert.doesNotMatch(page, /id="preview-spiffy-first-name"/);
+assert.doesNotMatch(page, /id="preview-spiffy-email"/);
+assert.doesNotMatch(page, /id="preview-spiffy-country"/);
+assert.match(page, /const firstName = String\(reg\.prenom \|\| ''\)\.trim\(\)/);
+assert.match(page, /const email = String\(reg\.email \|\| ''\)\.trim\(\)/);
+assert.match(page, /const country = String\(reg\.pays \|\| ''\)\.trim\(\)/);
 assert.match(page, /mountLiveInlineCheckout\(reg\)/);
+assert.match(page, /12 mensualités de 197 €/);
+assert.doesNotMatch(page, />Ton plan de paiement</);
+assert.match(page, /es2-morgane-levavi\.webp/);
+assert.match(page, /ça marche vraiment et c’est ça qui est exceptionnel/);
+assert.doesNotMatch(page, /Première mensualité prélevée aujourd’hui/);
+assert.doesNotMatch(page, /id="preview-schedule-next"/);
 assert.doesNotMatch(page, /window\.location\.href\s*=\s*'\/commencer\?t='/);
 
 const tokenEndpoint = fs.readFileSync(new URL('../netlify/functions/mc2-create-test-token.js', import.meta.url), 'utf8');
@@ -107,7 +123,7 @@ assert.match(tokenEndpoint, /randomBytes\(24\)/);
 assert.doesNotMatch(tokenEndpoint, /queueMc2Sms|MailerLite|sendMc2MetaEvents/);
 
 console.log(JSON.stringify({
-  monthly: '197_now_plus_11_monthly',
+  monthly: '12x197_monthly_clear_summary',
   one_time: '1997_once',
   contract_documents: 'both_plans',
   payment_provider: 'spiffy_embedded',
