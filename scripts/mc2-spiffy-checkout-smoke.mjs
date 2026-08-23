@@ -49,12 +49,14 @@ assert.match(inlineJs, /separator\.insertAdjacentElement\('afterend', paypalProx
 assert.match(inlineJs, /if \(source\) source\.click\(\)/);
 assert.match(inlineJs, /if \(checkoutButton\) checkoutButton\.click\(\)/);
 assert.match(inlineJs, /es2:spiffy-height/);
-assert.match(inlineJs, /Renseigne ta carte bancaire et accepte les CGV pour continuer\./);
+assert.match(inlineJs, /Renseigne ta carte bancaire\./);
+assert.match(inlineJs, /data-es2-toggle-bound/);
 assert.match(inlineJs, /data-es2-validation-active/);
 assert.match(inlineJs, /StripeElement--complete/);
 assert.match(inlineCss, /StripeElement\[data-es2-attention="true"\]/);
 assert.match(inlineCss, /data-es2-native-validation/);
-assert.match(validationPatch, /Renseigne ta carte bancaire et accepte les CGV pour continuer\./);
+assert.match(validationPatch, /Renseigne ta carte bancaire\./);
+assert.match(validationPatch, /data-es2-toggle-bound/);
 assert.match(validationPatch, /es2:spiffy-validation-focus/);
 assert.match(validationPatch, /data-es2-native-validation/);
 assert.match(inlineJs, /termsSections\[termsSections\.length - 1\]/);

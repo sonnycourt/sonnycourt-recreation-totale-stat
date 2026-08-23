@@ -13,12 +13,28 @@
   var REQUIRED_FIELDS_MESSAGE = "Make sure you've filled in all required fields correctly";
 
   function validationMessage(cardInvalid, termsInvalid) {
-    if (cardInvalid && termsInvalid) {
-      return 'Renseigne ta carte bancaire et accepte les CGV pour continuer.';
-    }
-    if (cardInvalid) return 'Renseigne ta carte bancaire pour continuer.';
+    if (cardInvalid) return 'Renseigne ta carte bancaire.';
     if (termsInvalid) return 'Accepte les CGV pour continuer.';
     return '';
+  }
+
+  function bindTermsToggle(root, termsInput) {
+    var control = termsInput ? termsInput.closest('.custom-control') : null;
+    if (!control || control.getAttribute('data-es2-toggle-bound') === 'true') return;
+    control.setAttribute('data-es2-toggle-bound', 'true');
+    control.setAttribute('data-es2-checked-state', termsInput.checked ? 'true' : 'false');
+    control.addEventListener('click', function (event) {
+      var link = event.target && event.target.closest ? event.target.closest('a') : null;
+      if (link) return;
+      var nextChecked = control.getAttribute('data-es2-checked-state') !== 'true';
+      event.preventDefault();
+      window.setTimeout(function () {
+        termsInput.checked = nextChecked;
+        control.setAttribute('data-es2-checked-state', nextChecked ? 'true' : 'false');
+        termsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        termsInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }, 0);
+    }, true);
   }
 
   function syncValidationFeedback(root, shouldScroll) {
@@ -104,6 +120,7 @@
         syncValidationFeedback(root, false);
       });
     }
+    bindTermsToggle(root, termsInput);
 
     translateNativeValidation(root);
     if (root.getAttribute('data-es2-validation-active') === 'true') {
