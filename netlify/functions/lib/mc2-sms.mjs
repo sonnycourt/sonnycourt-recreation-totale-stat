@@ -8,6 +8,7 @@ import {
 } from './mc2-sms-country-filter.mjs';
 
 const MAX_ATTEMPTS = 3;
+export const MC2_OFFER_SMS_STALE_MS = 10 * 60 * 1000;
 const LIVE_CODE_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 function clean(value, max = 500) {
@@ -43,6 +44,12 @@ export function normalizeMc2Phone(value, country = '') {
 
 export function mc2SmsEnabled() {
   return clean(process.env.MC2_SMS_ENABLED, 10).toLowerCase() === 'true';
+}
+
+// Indépendant du rappel LIVE : une publication du code ne peut pas activer
+// le nouveau message commercial sans validation explicite de sa copie.
+export function mc2OfferH1SmsEnabled() {
+  return clean(process.env.MC2_OFFER_H1_SMS_ENABLED, 10).toLowerCase() === 'true';
 }
 
 export function generateMc2LiveCode() {
@@ -128,10 +135,10 @@ function liveUrl(liveCode, token) {
   return code ? `${origin}/live/${code}` : sessionUrl(token);
 }
 
-function checkoutUrl(liveCode) {
+function offerUrl(liveCode, token) {
   const origin = clean(process.env.MC2_PUBLIC_ORIGIN || 'https://sonnycourt.com', 240).replace(/\/$/, '');
   const code = clean(liveCode, 5);
-  return code ? `${origin}/commencer/${code}` : '';
+  return code ? `${origin}/offre/${code}` : sessionUrl(token);
 }
 
 export function mc2SmsMessage(type, token, options = {}) {
@@ -139,7 +146,7 @@ export function mc2SmsMessage(type, token, options = {}) {
     return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.liveCode, token)}`;
   }
   if (type === 'offer_deadline') {
-    return `DERNIERE CHANCE !\nIl ne te reste plus que 15 minutes pour t'inscrire à Esprit Subconscient 2.0\nClique ici :\n${checkoutUrl(options.liveCode)}`;
+    return `DERNIERE HEURE !\nIl ne reste plus qu'une heure pour rejoindre Esprit Subconscient 2.0.\nInscris-toi ici :\n${offerUrl(options.liveCode, token)}`;
   }
   return '';
 }
@@ -148,13 +155,13 @@ async function findMc2LiveCode(token) {
   const safeToken = clean(token, 128);
   if (!safeToken) return '';
   const result = await supabaseGet(
-    `mc2_sms_jobs?token=eq.${encodeURIComponent(safeToken)}&message_type=eq.session_live&live_code=not.is.null&select=live_code&order=created_at.desc&limit=1`,
+    `mc2_sms_jobs?token=eq.${encodeURIComponent(safeToken)}&live_code=not.is.null&select=live_code&order=created_at.asc&limit=1`,
   );
   const code = result.ok && Array.isArray(result.data) ? clean(result.data[0]?.live_code, 5) : '';
   return /^[A-Za-z0-9]{5}$/.test(code) ? code : '';
 }
 
-async function ensureMc2LiveCode(job) {
+async function ensureMc2ShortCode(job) {
   const current = clean(job?.live_code, 5);
   if (/^[A-Za-z0-9]{5}$/.test(current)) return current;
 
@@ -167,9 +174,30 @@ async function ensureMc2LiveCode(job) {
     );
     const row = updated.ok && Array.isArray(updated.data) ? updated.data[0] : null;
     if (row?.live_code) return row.live_code;
-    if (updated.status !== 409) break;
+    if (updated.status !== 409) {
+      const concurrent = await supabaseGet(
+        `mc2_sms_jobs?id=eq.${encodeURIComponent(job.id)}&select=live_code&limit=1`,
+      );
+      const code = concurrent.ok && Array.isArray(concurrent.data)
+        ? clean(concurrent.data[0]?.live_code, 5)
+        : '';
+      return /^[A-Za-z0-9]{5}$/.test(code) ? code : '';
+    }
   }
   return '';
+}
+
+export async function ensureMc2OfferCode(job) {
+  const existing = await findMc2LiveCode(job?.token);
+  if (existing) return existing;
+  const safeToken = clean(job?.token, 128);
+  if (!safeToken) return '';
+  const liveJobs = await supabaseGet(
+    `mc2_sms_jobs?token=eq.${encodeURIComponent(safeToken)}`
+      + '&message_type=eq.session_live&select=id,token,live_code&order=created_at.desc&limit=1',
+  );
+  const liveJob = liveJobs.ok && Array.isArray(liveJobs.data) ? liveJobs.data[0] : null;
+  return ensureMc2ShortCode(liveJob?.id ? liveJob : job);
 }
 
 export async function sendGatewaySms({ phone, message, reference, countryDecision }) {
@@ -225,7 +253,43 @@ async function skipJob(job, reason, metadata = null) {
   return { status: 'skipped', reason, ...(metadata ? { metadata } : {}) };
 }
 
+async function mc2OfferStillEligible(token, now = new Date()) {
+  const safeToken = clean(token, 128);
+  if (!safeToken) return { eligible: false, reason: 'registration_missing' };
+  const result = await supabaseGet(
+    `mc2_registrations?token=eq.${encodeURIComponent(safeToken)}`
+      + '&select=statut,payment_status,offer_expires_at&limit=1',
+  );
+  const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
+  if (!row) return { eligible: false, reason: 'registration_missing' };
+  if (row.statut === 'purchased' || row.payment_status === 'paid') {
+    return { eligible: false, reason: 'already_purchased' };
+  }
+  const expiresAt = new Date(row.offer_expires_at || '').getTime();
+  if (!Number.isFinite(expiresAt) || now.getTime() >= expiresAt) {
+    return { eligible: false, reason: 'offer_expired' };
+  }
+  return { eligible: true };
+}
+
+async function mc2OfferJobStillProcessing(jobId) {
+  if (!jobId) return { active: false, error: 'sms_job_missing' };
+  const result = await supabaseGet(
+    `mc2_sms_jobs?id=eq.${encodeURIComponent(jobId)}&select=status,skip_reason&limit=1`,
+  );
+  if (!result.ok) return { active: false, error: 'sms_job_lookup_failed' };
+  const row = Array.isArray(result.data) ? result.data[0] : null;
+  if (!row) return { active: false, error: 'sms_job_missing' };
+  return {
+    active: row.status === 'processing',
+    reason: clean(row.skip_reason, 160) || 'job_cancelled',
+  };
+}
+
 export async function processMc2SmsJob(job, now = new Date()) {
+  if (job?.message_type === 'offer_deadline' && !mc2OfferH1SmsEnabled()) {
+    return skipJob(job, 'offer_h1_sms_disabled');
+  }
   const claimed = await supabasePatch(
     'mc2_sms_jobs',
     `id=eq.${encodeURIComponent(job.id)}&status=in.(pending,retry)`,
@@ -238,6 +302,9 @@ export async function processMc2SmsJob(job, now = new Date()) {
   );
   const claimedJob = claimed.ok && Array.isArray(claimed.data) ? claimed.data[0] : null;
   if (!claimedJob) return { status: 'not_claimed' };
+  if (job.message_type === 'offer_deadline' && claimedJob.provider_status === 'calling') {
+    return skipJob(job, 'gateway_attempt_already_started');
+  }
 
   const registrationResult = await supabaseGet(
     `mc2_registrations?token=eq.${encodeURIComponent(job.token)}&select=*&limit=1`,
@@ -265,6 +332,10 @@ export async function processMc2SmsJob(job, now = new Date()) {
     }
     const expires = new Date(registration.offer_expires_at).getTime();
     if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
+    const dueAt = new Date(job.due_at).getTime();
+    if (!Number.isFinite(dueAt) || now.getTime() - dueAt > MC2_OFFER_SMS_STALE_MS) {
+      return skipJob(job, 'offer_sms_stale');
+    }
   }
 
   let countryDecision = { enforced: false, eligible: true, reasonCode: 'sms_country_filter_disabled' };
@@ -281,7 +352,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
         token: job.token,
         event_name: 'sms_country_filtered',
         event_value: countryDecision.countryCode || 'unknown',
-        page_path: job.message_type === 'session_live' ? '/masterclass/session/' : '/commencer/',
+        page_path: '/mc2/session/',
         metadata: { sms_job_id: job.id, message_type: job.message_type, ...countryFilter },
         dedupe_key: `sms_job_${job.id}_country_filtered`,
       }, { prefer: 'return=minimal' });
@@ -290,8 +361,8 @@ export async function processMc2SmsJob(job, now = new Date()) {
   }
 
   const liveCode = job.message_type === 'session_live'
-    ? await ensureMc2LiveCode(claimedJob)
-    : await findMc2LiveCode(job.token);
+    ? await ensureMc2ShortCode(claimedJob)
+    : await ensureMc2OfferCode(claimedJob);
   if (!liveCode) {
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
       status: 'retry',
@@ -301,6 +372,38 @@ export async function processMc2SmsJob(job, now = new Date()) {
   }
 
   const message = mc2SmsMessage(job.message_type, job.token, { liveCode });
+  // Une vente peut arriver pendant la résolution du pays ou du lien court.
+  // Cette seconde lecture est volontairement placée au dernier instant avant
+  // l'appel Gateway afin qu'un achat Spiffy/Stripe coupe aussi cette course.
+  if (job.message_type === 'offer_deadline') {
+    const eligibility = await mc2OfferStillEligible(job.token, now);
+    if (!eligibility.eligible) return skipJob(job, eligibility.reason);
+    // Le webhook Spiffy peut annuler le job pendant que ce worker prépare le
+    // message. Relire le statut après la vérification achat ferme cette course
+    // sans dépendre d'une écriture financière dans mc2_registrations.
+    const active = await mc2OfferJobStillProcessing(job.id);
+    if (active.error) {
+      await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
+        status: 'retry',
+        last_error: active.error,
+      });
+      return { status: 'retry' };
+    }
+    if (!active.active) return { status: 'skipped', reason: active.reason };
+    // Marque durablement l'intention AVANT l'appel externe. Si Netlify est
+    // interrompu après cette écriture, la reprise refusera un second appel
+    // Gateway plutôt que de risquer un doublon.
+    const intent = await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
+      provider_status: 'calling',
+    });
+    if (!intent.ok) {
+      await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
+        status: 'retry',
+        last_error: 'gateway_attempt_marker_failed',
+      });
+      return { status: 'retry' };
+    }
+  }
   try {
     const provider = await sendGatewaySms({
       phone,
@@ -320,7 +423,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
       token: job.token,
       event_name: job.message_type === 'session_live' ? 'sms_live_sent' : 'sms_offer_deadline_sent',
       event_value: phone.slice(-4),
-      page_path: job.message_type === 'session_live' ? '/masterclass/session/' : '/commencer/',
+      page_path: '/mc2/session/',
       metadata: {
         sms_job_id: job.id,
         provider: 'gatewayapi',
@@ -331,12 +434,13 @@ export async function processMc2SmsJob(job, now = new Date()) {
     return { status: 'sent' };
   } catch (error) {
     const attempts = Number(claimedJob.attempts || 1);
+    const exhausted = job.message_type === 'offer_deadline' || attempts >= MAX_ATTEMPTS;
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
-      status: attempts >= MAX_ATTEMPTS ? 'skipped' : 'retry',
+      status: exhausted ? 'skipped' : 'retry',
       last_error: clean(error?.message || 'sms_failed', 300),
-      skip_reason: attempts >= MAX_ATTEMPTS ? 'max_attempts' : null,
+      skip_reason: exhausted ? 'max_attempts' : null,
       provider_response: error?.providerResponse || {},
     });
-    return { status: attempts >= MAX_ATTEMPTS ? 'failed_final' : 'retry' };
+    return { status: exhausted ? 'failed_final' : 'retry' };
   }
 }

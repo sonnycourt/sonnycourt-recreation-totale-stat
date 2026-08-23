@@ -1,8 +1,8 @@
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
-import { queueMc2Sms } from './mc2-sms.mjs';
+import { mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
 
 export const MC2_OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
-export const MC2_OFFER_SMS_LEAD_MS = 15 * 60 * 1000;
+export const MC2_OFFER_SMS_LEAD_MS = 60 * 60 * 1000;
 export const MC2_LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
 export const MC2_LIVE_CTA_SECONDS = 97 * 60 + 28;
 
@@ -57,13 +57,15 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
   }
   if (!expiresAt) return { ok: false, error: 'offer_deadline_missing' };
 
-  const queued = await queueMc2Sms({
-    token: safeToken,
-    messageType: 'offer_deadline',
-    dueAt: new Date(expiresAt.getTime() - MC2_OFFER_SMS_LEAD_MS),
-    discriminator: expiresAt.toISOString(),
-  });
-  if (!queued.ok) console.error('MC2 offer SMS queue failed:', queued.error);
+  const queued = mc2OfferH1SmsEnabled()
+    ? await queueMc2Sms({
+      token: safeToken,
+      messageType: 'offer_deadline',
+      dueAt: new Date(expiresAt.getTime() - MC2_OFFER_SMS_LEAD_MS),
+      discriminator: expiresAt.toISOString(),
+    })
+    : { ok: false, disabled: true };
+  if (!queued.ok && !queued.disabled) console.error('MC2 offer SMS queue failed:', queued.error);
 
   return {
     ok: true,
@@ -71,5 +73,6 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
     offerExpiresAt: expiresAt.toISOString(),
     smsDueAt: new Date(expiresAt.getTime() - MC2_OFFER_SMS_LEAD_MS).toISOString(),
     smsQueued: queued.ok,
+    smsDisabled: queued.disabled === true,
   };
 }

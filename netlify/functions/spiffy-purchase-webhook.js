@@ -5,6 +5,7 @@ import { sendMetaEvent } from './lib/meta-capi.mjs';
 import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
 import { cancelMc2ReplayRecoveryJobs } from './lib/mc2-replay-recovery.mjs';
 import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
+import { cancelMc2OfferSmsAfterSpiffyPurchase } from './lib/mc2-spiffy-sms-cancellation.mjs';
 import { excludeWebinarBuyer } from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
@@ -209,6 +210,22 @@ export default async (req) => {
 
     const isRefund = eventType.includes('refund');
     const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
+    const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
+    const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+
+    // Le webhook historique continue de traiter webinaire_registrations plus bas.
+    // Cette branche additionnelle coupe uniquement le SMS H-1 du nouveau funnel
+    // MC2 quand Spiffy confirme une vente de l'un de ses deux checkouts dédiés.
+    if (isSale) {
+      const cancellation = await cancelMc2OfferSmsAfterSpiffyPurchase({
+        payload: body,
+        checkoutId,
+        email,
+      });
+      if (!cancellation.ok) {
+        console.error('spiffy-webhook MC2 SMS cancellation:', cancellation.error);
+      }
+    }
 
     let reg = await supabaseGet(
       `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route&order=created_at.desc&limit=1`,
