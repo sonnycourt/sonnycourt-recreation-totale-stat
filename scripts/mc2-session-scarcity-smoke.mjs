@@ -88,6 +88,11 @@ assert.match(sessionPageSource, /\+ firstNotification\.offsetMs\s*\n\s*- 5000/);
 assert.match(sessionPageSource, /<\/p>\s*<span id="purchase-toast-relative-time" class="purchase-toast__relative-time">il y a 3 minutes<\/span>/);
 assert.match(sessionPageSource, /relativeTimeEl\.textContent = relativeTime/);
 assert.match(sessionPageSource, /grid-template-areas:\s*\n\s*"thumb copy"\s*\n\s*"thumb time"/);
+assert.match(sessionPageSource, /data-now-preset="hearts-cutoff-m5s"[^>]*>Cœurs −5 s avant suppression<\/button>/);
+assert.match(sessionPageSource, /'hearts-cutoff-m5s': LATE_DIRECT_AFTER_SESSION_MS - 5000/);
+assert.match(sessionPageSource, /initHeartColumn\(liveStartMs, sessionStartMs \+ LATE_DIRECT_AFTER_SESSION_MS\)/);
+assert.match(sessionPageSource, /playerRow\.classList\.toggle\('hearts-removed', shouldRemove\)/);
+assert.match(sessionPageSource, /track\.replaceChildren\(\)/);
 
 console.log(JSON.stringify({
   cta_start_15_of_15: 'ok',

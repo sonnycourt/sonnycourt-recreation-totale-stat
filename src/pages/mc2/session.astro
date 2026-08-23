@@ -707,6 +707,16 @@ const previewReviewInitials = (name) => name
             opacity: 1;
             pointer-events: auto;
         }
+        .player-row.hearts-removed {
+            gap: 0;
+        }
+        .player-row.hearts-removed .video-shell {
+            margin-bottom: 0;
+        }
+        .player-row.hearts-removed .heart-column,
+        .heart-column[hidden] {
+            display: none !important;
+        }
         .heart-column__btn {
             position: absolute;
             bottom: 10px;
@@ -1906,6 +1916,7 @@ const previewReviewInitials = (name) => name
                     <button class="dev-time-btn" data-now-preset="session-m30" type="button">Session −30min</button>
                     <button class="dev-time-btn" data-now-preset="session-m15" type="button">Session −15min</button>
                     <button class="dev-time-btn" data-now-preset="session-p2" type="button">Session +2min</button>
+                    <button class="dev-time-btn" data-now-preset="hearts-cutoff-m5s" type="button">Cœurs −5 s avant suppression</button>
                     <button class="dev-time-btn" data-now-preset="session-p15" type="button">Session +20min · cutoff</button>
                 </div>
             </div>
@@ -2411,6 +2422,7 @@ const previewReviewInitials = (name) => name
                 sessionStartsAt: data.sessionStartsAt || data.session_date,
                 sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
                 offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
+                metaTrackingEligible: data?.metaTrackingEligible === true,
                 attendedLive: data?.attended_live === true,
             };
         }
@@ -2516,9 +2528,12 @@ const previewReviewInitials = (name) => name
                 /* ignore */
             }
         }
-        function trackWebinaireEvent(token, eventName, value) {
+        function trackWebinaireEvent(token, eventName, value, eventMeta) {
             if (!token || !eventName) return Promise.resolve(null);
             const payload = { token, event: eventName, meta: { page_path: '/mc2/session/' } };
+            if (eventMeta && typeof eventMeta === 'object') {
+                Object.assign(payload.meta, eventMeta);
+            }
             if (value !== undefined && value !== null) {
                 payload.value = String(value);
                 if (eventName === 'video_checkpoint') {
@@ -2535,6 +2550,50 @@ const previewReviewInitials = (name) => name
             }).then(function (response) {
                 return response.ok ? response.json() : null;
             }).catch(function () { return null; });
+        }
+        const firedMetaBrowserEventIds = new Set();
+        function getOfferViewedEventId(registration) {
+            const sessionKey = String(registration?.sessionStartsAt || 'session');
+            const storageKey = 'mc2_offer_event_id_' + String(registration?.token || '') + '_' + sessionKey;
+            try {
+                const stored = localStorage.getItem(storageKey);
+                if (stored) return stored;
+            } catch {
+                /* Une session sans stockage garde tout de même un ID aléatoire. */
+            }
+            const nonce = window.crypto?.randomUUID
+                ? window.crypto.randomUUID()
+                : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 14);
+            const eventId = 'mc2-offer-' + nonce;
+            try {
+                localStorage.setItem(storageKey, eventId);
+            } catch {
+                /* ignore */
+            }
+            return eventId;
+        }
+        function fireMetaBrowserEvents(events) {
+            if (!Array.isArray(events) || typeof window.fbq !== 'function') return;
+            events.forEach(function (event) {
+                if (event?.eventName !== 'OfferViewed' || !event?.eventId) return;
+                const storageKey = 'mc2_meta_pixel_' + event.eventId;
+                let wasAlreadyFired = firedMetaBrowserEventIds.has(event.eventId);
+                try {
+                    wasAlreadyFired = wasAlreadyFired || localStorage.getItem(storageKey) === '1';
+                } catch {
+                    /* Le Set en mémoire reste disponible si le stockage est bloqué. */
+                }
+                if (wasAlreadyFired) return;
+                window.fbq('trackCustom', event.eventName, {
+                    content_name: event.contentName || 'Masterclass ES2 - Offre',
+                }, { eventID: event.eventId });
+                firedMetaBrowserEventIds.add(event.eventId);
+                try {
+                    localStorage.setItem(storageKey, '1');
+                } catch {
+                    /* ignore */
+                }
+            });
         }
         /* ── Heart Column ── */
         const HEART_SHOW_BEFORE_MS = 15 * 60 * 1000;
@@ -2575,36 +2634,73 @@ const previewReviewInitials = (name) => name
             return 2500 + Math.random() * 1500;
         }
 
-        function initHeartColumn(sessionStartMs) {
+        function initHeartColumn(sessionStartMs, cutoffMs) {
             const col   = document.getElementById('heart-column');
             const track = document.getElementById('heart-track');
             const btn   = document.getElementById('heart-btn');
-            if (!col || !track || !btn) return { recalc: () => {}, destroy: () => {} };
+            const playerRow = document.getElementById('player-row');
+            if (!col || !track || !btn || !playerRow) return { recalc: () => {}, destroy: () => {} };
 
             let timer = null;
             let burstTimers = [];
 
+            function clearHeartActivity() {
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                burstTimers.forEach((burstTimer) => clearTimeout(burstTimer));
+                burstTimers = [];
+                track.replaceChildren();
+            }
+
+            function setRemoved(removed) {
+                const shouldRemove = Boolean(removed);
+                col.hidden = shouldRemove;
+                if (shouldRemove) col.classList.remove('is-visible');
+                col.setAttribute('aria-hidden', shouldRemove ? 'true' : 'false');
+                btn.disabled = shouldRemove;
+                playerRow.classList.toggle('hearts-removed', shouldRemove);
+                if (shouldRemove) clearHeartActivity();
+            }
+
             function spawnBurst() {
                 var count = 3 + Math.floor(Math.random() * 5); // 3-7 cœurs par "personne"
                 for (var i = 0; i < count; i++) {
-                    var t = setTimeout(function() { spawnHeart(track); }, i * (80 + Math.random() * 120));
+                    var t = setTimeout(function() {
+                        if (!col.hidden && getNowMs() < cutoffMs) spawnHeart(track);
+                    }, i * (80 + Math.random() * 120));
                     burstTimers.push(t);
                 }
             }
 
             function scheduleNext() {
                 if (timer) clearTimeout(timer);
+                const untilCutoffMs = cutoffMs - getNowMs();
+                if (untilCutoffMs <= 0) {
+                    setRemoved(true);
+                    return;
+                }
                 var delay = getSimInterval(sessionStartMs);
                 if (delay === null) return;
                 if (delay === -1) { col.classList.remove('is-visible'); return; }
                 timer = setTimeout(function() {
+                    if (getNowMs() >= cutoffMs) {
+                        setRemoved(true);
+                        return;
+                    }
                     if (col.classList.contains('is-visible')) spawnBurst();
                     scheduleNext();
-                }, delay);
+                }, Math.max(25, Math.min(delay, untilCutoffMs)));
             }
 
             function updateVisibility() {
                 const now = getNowMs();
+                if (now >= cutoffMs) {
+                    setRemoved(true);
+                    return;
+                }
+                setRemoved(false);
                 const endMs = sessionStartMs + getVideoDurationSeconds() * 1000;
                 if (now >= endMs) {
                     col.classList.remove('is-visible');
@@ -2624,19 +2720,25 @@ const previewReviewInitials = (name) => name
             }
 
             btn.addEventListener('click', () => {
+                if (getNowMs() >= cutoffMs || col.hidden) return;
                 spawnHeart(track);
                 if (timer) clearTimeout(timer);
-                timer = setTimeout(() => { spawnHeart(track); scheduleNext(); }, 300 + Math.random() * 500);
+                const delay = Math.min(300 + Math.random() * 500, Math.max(25, cutoffMs - getNowMs()));
+                timer = setTimeout(() => {
+                    if (getNowMs() >= cutoffMs) {
+                        setRemoved(true);
+                        return;
+                    }
+                    spawnHeart(track);
+                    scheduleNext();
+                }, delay);
             });
 
             updateVisibility();
             return {
                 recalc: updateVisibility,
                 destroy: function () {
-                    if (timer) { clearTimeout(timer); timer = null; }
-                    burstTimers.forEach((t) => clearTimeout(t));
-                    burstTimers = [];
-                    col.classList.remove('is-visible');
+                    setRemoved(true);
                 },
             };
         }
@@ -3799,7 +3901,18 @@ const previewReviewInitials = (name) => name
                     }
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
-                        trackWebinaireEvent(reg.token, 'cta_reached').then(function (result) {
+                        const offerViewedEventId = getOfferViewedEventId(reg);
+                        if (reg.metaTrackingEligible) {
+                            fireMetaBrowserEvents([{
+                                eventName: 'OfferViewed',
+                                eventId: offerViewedEventId,
+                                contentName: 'Masterclass ES2 - Offre',
+                            }]);
+                        }
+                        trackWebinaireEvent(reg.token, 'cta_reached', undefined, {
+                            offer_event_id: offerViewedEventId,
+                        }).then(function (result) {
+                            fireMetaBrowserEvents(result?.metaEvents);
                             const serverExpiry = new Date(result?.offer_expires_at).getTime();
                             if (Number.isFinite(serverExpiry)) expiryMs = serverExpiry;
                             if (!result || result.offer_sms_queued === false) didTrackCtaReached = false;
@@ -4107,7 +4220,7 @@ const previewReviewInitials = (name) => name
             };
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
-            const hearts = initHeartColumn(liveStartMs);
+            const hearts = initHeartColumn(liveStartMs, sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS);
             // Simulateur strictement opt-in : jamais actif par défaut sur la route live.
             // `preview=dev` l'active pour la prévisualisation ; `scarcity_test=1`
             // permet un test explicite sur une URL contrôlée. La timeline versionnée
@@ -4408,6 +4521,7 @@ const previewReviewInitials = (name) => name
                 'session-m30':  -30 * 60 * 1000,
                 'session-m15':  -15 * 60 * 1000,
                 'session-p2':   2 * 60 * 1000,
+                'hearts-cutoff-m5s': LATE_DIRECT_AFTER_SESSION_MS - 5000,
                 'session-p15':  20 * 60 * 1000,
             };
             function getNowPresetMs(key) {

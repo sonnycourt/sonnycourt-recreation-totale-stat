@@ -91,7 +91,9 @@ export function mc2FunnelMetaEvents({ eventName, value, meta = {}, registration 
   if (eventName === 'cta_reached' && !registration.saw_offer) {
     return [{
       eventName: 'OfferViewed',
-      eventId: mc2MetaEventId('offer', token),
+      // L'ID dédié est créé aléatoirement par la session navigateur puis partagé
+      // avec la CAPI. Le fallback conserve le tracking CAPI historique.
+      eventId: clean(meta.offer_event_id, 255) || mc2MetaEventId('offer', token),
       contentName: 'Masterclass ES2 - Offre',
     }];
   }

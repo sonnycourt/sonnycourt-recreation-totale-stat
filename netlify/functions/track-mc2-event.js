@@ -86,6 +86,7 @@ function sanitizeMeta(value) {
     authentication_flow: 48,
     authentication_reason: 100,
     last_stage: 64,
+    offer_event_id: 255,
   })) {
     const text = clean(input[key], limit);
     if (text) output[key] = text;
@@ -221,6 +222,9 @@ export default async (req) => {
       meta,
       registration: row,
     });
+    const browserMetaEvents = meta.offer_event_id
+      ? metaEvents.filter((event) => event.eventId === meta.offer_event_id)
+      : [];
     let offerDeadline = null;
     if (eventName === 'cta_reached') {
       offerDeadline = await ensureMc2OfferDeadline({ token, registration: row, source: 'live' });
@@ -264,6 +268,7 @@ export default async (req) => {
     }
     return jsonResponse(200, {
       ok: true,
+      ...(browserMetaEvents.length > 0 ? { metaEvents: browserMetaEvents } : {}),
       ...(offerDeadline ? {
         offer_activated_at: offerDeadline.activatedAt,
         offer_expires_at: offerDeadline.offerExpiresAt,

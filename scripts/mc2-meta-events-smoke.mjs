@@ -58,9 +58,22 @@ assert.deepEqual(mc2FunnelMetaEvents({
   registration: { ...metaRegistration, watch_max_minutes: 60 },
 }).map((event) => event.eventName), ['QualifiedView75']);
 assert.deepEqual(
-  mc2FunnelMetaEvents({ eventName: 'cta_reached', registration: metaRegistration }).map((event) => event.eventName),
-  ['OfferViewed'],
+  mc2FunnelMetaEvents({
+    eventName: 'cta_reached',
+    meta: { offer_event_id: 'mc2-offer-browser-session' },
+    registration: metaRegistration,
+  }),
+  [{
+    eventName: 'OfferViewed',
+    eventId: 'mc2-offer-browser-session',
+    contentName: 'Masterclass ES2 - Offre',
+  }],
 );
+assert.deepEqual(mc2FunnelMetaEvents({
+  eventName: 'cta_reached',
+  meta: { offer_event_id: 'mc2-offer-browser-session' },
+  registration: { ...metaRegistration, saw_offer: true },
+}), []);
 assert.deepEqual(
   mc2FunnelMetaEvents({ eventName: 'cta_clicked', registration: metaRegistration }).map((event) => event.eventName),
   ['CTA_Clicked'],
@@ -114,6 +127,21 @@ assert.equal(capiBody.data[0].user_data.external_id[0].length, 64);
 assert.equal(capiRequest.options.body.includes('lead@example.com'), false);
 assert.equal(capiRequest.options.body.includes('+33 6 12 34 56 78'), false);
 
+await sendMc2MetaEvents({
+  events: mc2FunnelMetaEvents({
+    eventName: 'cta_reached',
+    meta: { offer_event_id: 'mc2-offer-browser-session' },
+    registration: metaRegistration,
+  }),
+  registration: metaRegistration,
+  req,
+  pagePath: '/mc2/session/',
+});
+const offerCapiBody = JSON.parse(capiRequest.options.body);
+assert.equal(offerCapiBody.data[0].event_name, 'OfferViewed');
+assert.equal(offerCapiBody.data[0].event_id, 'mc2-offer-browser-session');
+assert.equal(offerCapiBody.data[0].event_source_url, 'https://sonnycourt.com/mc2/session/');
+
 process.env.CONTEXT = 'deploy-preview';
 capiRequest = null;
 await sendMc2MetaEvents({
@@ -134,17 +162,29 @@ else process.env.CONTEXT = previousContext;
 const adapter = await readFile(new URL('../src/components/Mc2PaidOptinAdapter.astro', import.meta.url), 'utf8');
 const register = await readFile(new URL('../netlify/functions/register-mc2.js', import.meta.url), 'utf8');
 const tracker = await readFile(new URL('../netlify/functions/track-mc2-event.js', import.meta.url), 'utf8');
+const registrationReader = await readFile(new URL('../netlify/functions/get-mc2-registration.js', import.meta.url), 'utf8');
 const router = await readFile(new URL('../netlify/functions/lib/mc2-pay-router.mjs', import.meta.url), 'utf8');
 const optinTracker = await readFile(new URL('../netlify/functions/track-mc2-optin.js', import.meta.url), 'utf8');
 const organicOptin = await readFile(new URL('../src/pages/mc2/index.astro', import.meta.url), 'utf8');
+const sessionPage = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 
 assert.match(adapter, /fbq\('track', 'Lead',[\s\S]*eventID: event\.eventId/);
 assert.match(adapter, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
 assert.match(register, /completedNow: isComplete && !completedBefore/);
 assert.match(tracker, /mc2FunnelMetaEvents/);
+assert.match(tracker, /browserMetaEvents = meta\.offer_event_id/);
+assert.match(tracker, /metaEvents: browserMetaEvents/);
+assert.match(registrationReader, /metaTrackingEligible: row\.traffic_source === 'meta_ad'/);
 assert.match(router, /eventName: 'Purchase'/);
-assert.match(router, /Number\(session\.amount_total \|\| MC2_ENTRY_PAYMENT_CENTS\) \/ 100/);
+assert.match(router, /value: Number\(session\.amount_total \|\| expectedInitial\) \/ 100/);
 assert.match(optinTracker, /'\/meta\/masterclass\/'/);
 assert.match(organicOptin, /fetch\('\/\.netlify\/functions\/track-mc2-optin'/);
+assert.match(sessionPage, /const offerViewedEventId = getOfferViewedEventId\(reg\)/);
+assert.match(sessionPage, /if \(reg\.metaTrackingEligible\) \{\s*fireMetaBrowserEvents\(\[\{/);
+assert.match(sessionPage, /trackWebinaireEvent\(reg\.token, 'cta_reached', undefined, \{\s*offer_event_id: offerViewedEventId/);
+assert.match(sessionPage, /fireMetaBrowserEvents\(result\?\.metaEvents\)/);
+assert.match(sessionPage, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
+assert.match(sessionPage, /'mc2_offer_event_id_' \+ String\(registration\?\.token/);
+assert.match(sessionPage, /localStorage\.getItem\(storageKey\) === '1'/);
 
 console.log('mc2 meta events smoke: ok');

@@ -47,6 +47,7 @@ export default async (req) => {
       statut: row.statut || 'partial',
       registeredAt: row.registered_at,
       registrationCompletedAt: row.registration_completed_at,
+      metaTrackingEligible: row.traffic_source === 'meta_ad',
       attended_live: row.attended_live === true,
       watchFirstSecondLive: row.watch_first_second_live,
       watchMaxSecondsLive: row.watch_max_seconds_live || 0,
