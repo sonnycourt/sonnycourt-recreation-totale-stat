@@ -100,15 +100,35 @@ export function startMc2SessionScarcity(options = {}) {
     lastSoldCount = soldCount;
   }
 
+  let timer = null;
+
+  function scheduleNextTick() {
+    if (timer) clearTimeout(timer);
+    const nowMs = now();
+    const elapsedMs = Math.max(0, nowMs - windowStartMs);
+    const nextPurchase = MC2_SESSION_PURCHASE_TIMELINE.find((purchase) => purchase.offsetMs > elapsedMs);
+    // Le contrôle à 1 seconde garde le compteur réactif. À l'approche d'un
+    // palier, on s'aligne directement sur son timestamp pour que la place et
+    // la notification changent dans le même tick, sans dérive de setInterval.
+    const untilNextPurchaseMs = nextPurchase ? nextPurchase.offsetMs - elapsedMs : 1000;
+    const delayMs = Math.max(25, Math.min(1000, untilNextPurchaseMs));
+    timer = setTimeout(() => {
+      tick();
+      scheduleNextTick();
+    }, delayMs);
+  }
+
   tick({ emitNotification: false });
-  const timer = setInterval(() => tick(), 1000);
+  scheduleNextTick();
 
   return {
     recalc() {
       tick({ emitNotification: false });
+      scheduleNextTick();
     },
     stop() {
-      clearInterval(timer);
+      if (timer) clearTimeout(timer);
+      timer = null;
     },
     debugSnapshot() {
       const nowMs = now();

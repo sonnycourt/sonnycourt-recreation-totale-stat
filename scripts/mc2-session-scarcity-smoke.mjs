@@ -39,6 +39,10 @@ assert.ok(MC2_SESSION_PURCHASE_TIMELINE.every((item, index, list) => index === 0
 
 assert.equal(getMc2SessionSeatsLeft(start - 1, start), 15);
 assert.equal(getMc2SessionSeatsLeft(start, start), 15);
+const notificationPreviewStart = start + MC2_SESSION_PURCHASE_TIMELINE[0].offsetMs - 5_000;
+assert.equal(getMc2SessionSeatsLeft(notificationPreviewStart, start), 15);
+assert.equal(getMc2SessionSeatsLeft(notificationPreviewStart + 4_999, start), 15);
+assert.equal(getMc2SessionSeatsLeft(notificationPreviewStart + 5_000, start), 14);
 assert.equal(getMc2SessionSeatsLeft(start + 3 * minute - 1, start), 15);
 assert.equal(getMc2SessionSeatsLeft(start + 3 * minute, start), 14);
 assert.equal(getMc2SessionSeatsLeft(start + 5 * minute, start), 13);
@@ -78,6 +82,9 @@ assert.match(sessionPageSource, /get\('scarcity_test'\) === '1'/);
 assert.match(sessionPageSource, /isPreviewPage\s*\n\s*\|\| new URLSearchParams/);
 assert.doesNotMatch(sessionPageSource, /purchaseToastFastDemo|scheduleDemo|purchase_demo/);
 assert.match(sessionPageSource, />MODE TEST<\/span>/);
+assert.match(sessionPageSource, /data-now-preset="notification-m5s"[^>]*>Notification −5s · 15→14<\/button>/);
+assert.match(sessionPageSource, /firstNotification = MC2_SESSION_PURCHASE_TIMELINE\[0\]/);
+assert.match(sessionPageSource, /\+ firstNotification\.offsetMs\s*\n\s*- 5000/);
 
 console.log(JSON.stringify({
   cta_start_15_of_15: 'ok',

@@ -1890,6 +1890,7 @@ const previewReviewInitials = (name) => name
                     <button class="dev-time-btn" data-now-preset="cta-mid" type="button">CTA grisé · 0:40</button>
                     <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">CTA actif −5s</button>
                     <button class="dev-time-btn" data-now-preset="cta-active" type="button">CTA actif · 0:00</button>
+                    <button class="dev-time-btn" data-now-preset="notification-m5s" type="button">Notification −5s · 15→14</button>
                 </div>
             </div>
             <div class="dev-timeline-group dev-timeline-group--return">
@@ -2278,6 +2279,7 @@ const previewReviewInitials = (name) => name
         import {
             MC2_SESSION_HALF_WINDOW_MS,
             MC2_SESSION_OFFER_DURATION_MS,
+            MC2_SESSION_PURCHASE_TIMELINE,
             MC2_SESSION_TOTAL_SEATS,
             formatMc2SessionRelativeTime,
             getMc2SessionRegistrationAction,
@@ -4383,6 +4385,13 @@ const previewReviewInitials = (name) => name
                 if (key === 'cta-mid') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 40000;
                 if (key === 'cta-active-m5s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 - 5000;
                 if (key === 'cta-active') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000;
+                if (key === 'notification-m5s') {
+                    const firstNotification = MC2_SESSION_PURCHASE_TIMELINE[0];
+                    return (currentSessionMs - LIVE_VIDEO_LEAD_MS)
+                        + CTA_ACTIVATE_SECONDS * 1000
+                        + firstNotification.offsetMs
+                        - 5000;
+                }
                 if (key === 'offer-h12') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_HALF_WINDOW_MS;
                 if (key === 'offer-h23') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + 23 * 60 * 60 * 1000;
                 if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;
