@@ -85,6 +85,9 @@ assert.match(sessionPageSource, />MODE TEST<\/span>/);
 assert.match(sessionPageSource, /data-now-preset="notification-m5s"[^>]*>Notification −5s · 15→14<\/button>/);
 assert.match(sessionPageSource, /firstNotification = MC2_SESSION_PURCHASE_TIMELINE\[0\]/);
 assert.match(sessionPageSource, /\+ firstNotification\.offsetMs\s*\n\s*- 5000/);
+assert.match(sessionPageSource, /<\/p>\s*<span id="purchase-toast-relative-time" class="purchase-toast__relative-time">il y a 3 minutes<\/span>/);
+assert.match(sessionPageSource, /relativeTimeEl\.textContent = relativeTime/);
+assert.match(sessionPageSource, /grid-template-areas:\s*\n\s*"thumb copy"\s*\n\s*"thumb time"/);
 
 console.log(JSON.stringify({
   cta_start_15_of_15: 'ok',

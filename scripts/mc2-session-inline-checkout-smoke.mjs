@@ -110,7 +110,7 @@ assert.match(page, /const country = String\(reg\.pays \|\| ''\)\.trim\(\)/);
 assert.match(page, /mountLiveInlineCheckout\(reg\)/);
 assert.match(page, /12 mensualités de 197 €/);
 assert.doesNotMatch(page, />Ton plan de paiement</);
-assert.match(page, /es2-morgane-levavi\.webp/);
+assert.match(page, /src="\/media\/reviews\/es2-morgane-levavi\.webp" alt="Morgane" width="256" height="256"/);
 assert.match(page, /ça marche vraiment et c’est ça qui est exceptionnel/);
 assert.doesNotMatch(page, /Première mensualité prélevée aujourd’hui/);
 assert.doesNotMatch(page, /id="preview-schedule-next"/);
