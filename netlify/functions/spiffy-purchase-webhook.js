@@ -5,6 +5,7 @@ import { sendMetaEvent } from './lib/meta-capi.mjs';
 import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
 import { cancelMc2ReplayRecoveryJobs } from './lib/mc2-replay-recovery.mjs';
 import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
+import { excludeWebinarBuyer } from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -256,6 +257,10 @@ export default async (req) => {
 
     if (isSale) {
       await removeFromCheckoutAbandonGroup(email, process.env.MAILERLITE_API_KEY);
+      const exclusion = await excludeWebinarBuyer(email, 'acheteur_es');
+      if (!exclusion.ok) {
+        console.error('spiffy-webhook: exclusion acheteur impossible', exclusion.status, exclusion.error);
+      }
     }
 
     if (isMc2Purchase) {

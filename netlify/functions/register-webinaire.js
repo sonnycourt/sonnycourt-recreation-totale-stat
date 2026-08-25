@@ -9,6 +9,11 @@ import { upsertWebinaireSubscriber, getWebinaireGroupEnv, assignEs2SegmentGroups
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
+import {
+  excludeWebinarAttendee,
+  isWebinarBuyerStatus,
+  isWebinarRegistrationExclusion,
+} from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -161,8 +166,9 @@ export default async (req) => {
     const ex = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison`,
     );
-    if (ex.ok && Array.isArray(ex.data) && ex.data.length > 0) {
-      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: ex.data[0].raison });
+    const exclusion = ex.ok && Array.isArray(ex.data) ? ex.data[0] || null : null;
+    if (exclusion && !isWebinarRegistrationExclusion(exclusion.raison)) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
     }
 
     const existing = await supabaseGet(
@@ -170,6 +176,9 @@ export default async (req) => {
     );
     if (existing.ok && Array.isArray(existing.data) && existing.data.length > 0) {
       const e = existing.data[0];
+      if (isWebinarBuyerStatus(e)) {
+        return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion?.raison || 'acheteur_es' });
+      }
       const patchBody = {};
       if (prenom && prenom !== (e.prenom || '')) patchBody.prenom = prenom;
       if (hasPhonePayload) {
@@ -244,7 +253,15 @@ export default async (req) => {
 
       await fireTikTokCompleteRegistration();
       await fireMetaLead();
+      const exclusionSaved = await excludeWebinarAttendee(email, 'inscrit_webinaire');
+      if (!exclusionSaved.ok) {
+        console.error('Webinaire registration exclusion failed:', exclusionSaved.status, exclusionSaved.error);
+      }
       return jsonResponse(200, buildAlreadyRegisteredResponse(e));
+    }
+
+    if (exclusion) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
     }
 
     const token = generateToken();
@@ -301,6 +318,10 @@ export default async (req) => {
           Array.isArray(existingAfterConflict.data) &&
           existingAfterConflict.data.length > 0
         ) {
+          const exclusionSaved = await excludeWebinarAttendee(email, 'inscrit_webinaire');
+          if (!exclusionSaved.ok) {
+            console.error('Webinaire registration exclusion failed:', exclusionSaved.status, exclusionSaved.error);
+          }
           return jsonResponse(200, buildAlreadyRegisteredResponse(existingAfterConflict.data[0]));
         }
       }
@@ -309,6 +330,11 @@ export default async (req) => {
         error: 'Erreur enregistrement',
         details: process.env.NETLIFY_DEV ? ins.error : undefined,
       });
+    }
+
+    const exclusionSaved = await excludeWebinarAttendee(email, 'inscrit_webinaire');
+    if (!exclusionSaved.ok) {
+      console.error('Webinaire registration exclusion failed:', exclusionSaved.status, exclusionSaved.error);
     }
 
     const apiKey = process.env.MAILERLITE_API_KEY;

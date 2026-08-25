@@ -5,6 +5,7 @@ import {
   mc2FunnelMetaEvents,
   sendMc2MetaEvents,
 } from './lib/mc2-meta-events.mjs';
+import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
 
 const EVENTS = new Set(['replay_started', 'replay_progress', 'cta_reached']);
 
@@ -45,6 +46,12 @@ export default async (req) => {
       if (!offerDeadline.ok) return json(500, { error: 'Expiration de l’offre non initialisée' });
     }
     await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(access.registration.token)}`, patch);
+    if (event === 'replay_started') {
+      const exclusion = await excludeWebinarAttendee(access.registration.email, 'participant_mc2');
+      if (!exclusion.ok) {
+        console.error('MC2 replay exclusion failed:', exclusion.status, exclusion.error);
+      }
+    }
     if (event === 'replay_progress') {
       await supabasePatch(
         'mc2_registrations',

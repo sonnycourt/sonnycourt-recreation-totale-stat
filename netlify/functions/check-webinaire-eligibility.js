@@ -1,4 +1,8 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import {
+  isWebinarBuyerStatus,
+  isWebinarRegistrationExclusion,
+} from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -34,11 +38,12 @@ export default async (req) => {
     const ex = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=raison`,
     );
-    if (ex.ok && Array.isArray(ex.data) && ex.data.length > 0) {
+    const exclusion = ex.ok && Array.isArray(ex.data) ? ex.data[0] || null : null;
+    if (exclusion && !isWebinarRegistrationExclusion(exclusion.raison)) {
       return jsonResponse(200, {
         eligible: false,
         reason: 'excluded',
-        exclusion_raison: ex.data[0].raison || null,
+        exclusion_raison: exclusion.raison || null,
       });
     }
 
@@ -47,6 +52,13 @@ export default async (req) => {
     );
     if (reg.ok && Array.isArray(reg.data) && reg.data.length > 0) {
       const r = reg.data[0];
+      if (isWebinarBuyerStatus(r)) {
+        return jsonResponse(200, {
+          eligible: false,
+          reason: 'excluded',
+          exclusion_raison: exclusion?.raison || 'acheteur_es',
+        });
+      }
       return jsonResponse(200, {
         eligible: false,
         reason: 'already_registered',
@@ -55,6 +67,14 @@ export default async (req) => {
         session_date: r.session_date,
         session_ends_at: r.session_ends_at,
         offre_expires_at: r.offre_expires_at,
+      });
+    }
+
+    if (exclusion) {
+      return jsonResponse(200, {
+        eligible: false,
+        reason: 'excluded',
+        exclusion_raison: exclusion.raison || null,
       });
     }
 

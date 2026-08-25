@@ -1,4 +1,8 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import {
+  isWebinarBuyerStatus,
+  isWebinarRegistrationExclusion,
+} from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -25,18 +29,26 @@ export default async (req) => {
     const exclusions = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,
     );
-    if (exclusions.ok && Array.isArray(exclusions.data) && exclusions.data.length > 0) {
-      return jsonResponse(200, { eligible: false, reason: 'excluded' });
-    }
+    const exclusion = exclusions.ok && Array.isArray(exclusions.data)
+      ? exclusions.data[0] || null
+      : null;
 
     const existing = await supabaseGet(
-      `mc2_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut,session_starts_at,session_ends_at,offer_expires_at&limit=1`,
+      `mc2_registrations?email=eq.${encodeURIComponent(email)}`
+        + '&select=token,statut,payment_status,purchased_at,registration_completed_at,session_starts_at,session_ends_at,offer_expires_at&limit=1',
     );
     if (!existing.ok) return jsonResponse(500, { error: 'Erreur base de données MC2' });
 
     const row = Array.isArray(existing.data) ? existing.data[0] : null;
-    const sessionEnd = row ? new Date(row.session_ends_at).getTime() : 0;
-    if (row && Number.isFinite(sessionEnd) && Date.now() < sessionEnd) {
+    if (row && isWebinarBuyerStatus(row)) {
+      return jsonResponse(200, { eligible: false, reason: 'excluded' });
+    }
+    if (exclusion && !isWebinarRegistrationExclusion(exclusion.raison)) {
+      return jsonResponse(200, { eligible: false, reason: 'excluded' });
+    }
+    const completed = Boolean(row?.registration_completed_at)
+      || ['registered', 'present'].includes(String(row?.statut || '').toLowerCase());
+    if (row && completed) {
       return jsonResponse(200, {
         eligible: false,
         reason: 'already_registered',
@@ -47,6 +59,16 @@ export default async (req) => {
         offre_expires_at: row.offer_expires_at,
       });
     }
+
+    const legacy = await supabaseGet(
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut&limit=1`,
+    );
+    if (!legacy.ok) return jsonResponse(500, { error: 'Erreur base de données webinaire' });
+    if (Array.isArray(legacy.data) && legacy.data.length > 0) {
+      return jsonResponse(200, { eligible: false, reason: 'excluded' });
+    }
+
+    if (exclusion) return jsonResponse(200, { eligible: false, reason: 'excluded' });
 
     return jsonResponse(200, { eligible: true });
   } catch (error) {

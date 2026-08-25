@@ -1,6 +1,27 @@
 import { getSupabaseConfig, supabaseHeaders } from './supabase-rest.mjs';
 
-export async function excludeWebinarAttendee(email, raison) {
+const REGISTRATION_REASONS = new Set([
+  'inscrit_webinaire',
+  'inscrit_mc2',
+  'participant_webinaire',
+  'participant_mc2',
+]);
+
+export function isWebinarRegistrationExclusion(reason) {
+  return REGISTRATION_REASONS.has(String(reason || '').trim().toLowerCase());
+}
+
+export function isWebinarBuyerStatus(row = {}) {
+  const status = String(row.statut || row.status || '').trim().toLowerCase();
+  const paymentStatus = String(row.payment_status || '').trim().toLowerCase();
+  return status === 'acheteur'
+    || status === 'purchased'
+    || row.purchased === true
+    || Boolean(row.purchased_at)
+    || ['paid', 'succeeded', 'active', 'complete', 'completed'].includes(paymentStatus);
+}
+
+async function saveWebinarExclusion(email, raison, replaceExisting = false) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail || !normalizedEmail.includes('@')) {
     return { ok: false, status: 400, error: 'Email invalide' };
@@ -14,7 +35,7 @@ export async function excludeWebinarAttendee(email, raison) {
     {
       method: 'POST',
       headers: supabaseHeaders({
-        Prefer: 'resolution=ignore-duplicates,return=minimal',
+        Prefer: `resolution=${replaceExisting ? 'merge' : 'ignore'}-duplicates,return=minimal`,
       }),
       body: JSON.stringify({
         email: normalizedEmail,
@@ -28,4 +49,12 @@ export async function excludeWebinarAttendee(email, raison) {
     status: response.status,
     error: response.ok ? null : await response.text(),
   };
+}
+
+export async function excludeWebinarAttendee(email, raison) {
+  return saveWebinarExclusion(email, raison, false);
+}
+
+export async function excludeWebinarBuyer(email, raison = 'acheteur_es') {
+  return saveWebinarExclusion(email, raison, true);
 }

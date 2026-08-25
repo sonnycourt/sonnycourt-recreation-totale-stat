@@ -8,6 +8,11 @@ import {
   mc2RegistrationMetaEvents,
   sendMc2MetaEvents,
 } from './lib/mc2-meta-events.mjs';
+import {
+  excludeWebinarAttendee,
+  isWebinarBuyerStatus,
+  isWebinarRegistrationExclusion,
+} from './lib/webinaire-exclusions.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -46,6 +51,20 @@ function registrationResponse(row, alreadyRegistered = false, metaEvents = []) {
     redirectTo: `/mc2/confirmation?t=${encodeURIComponent(row.token)}`,
     ...(metaEvents.length > 0 ? { metaEvents } : {}),
   };
+}
+
+function isCompletedMc2Registration(row = {}) {
+  return Boolean(row.registration_completed_at)
+    || ['registered', 'present'].includes(String(row.statut || '').trim().toLowerCase())
+    || isWebinarBuyerStatus(row);
+}
+
+async function persistMc2RegistrationExclusion(row) {
+  if (!row?.email || !isCompletedMc2Registration(row)) return;
+  const result = await excludeWebinarAttendee(row.email, 'inscrit_mc2');
+  if (!result.ok) {
+    console.error('MC2 registration exclusion failed:', result.status, result.error);
+  }
 }
 
 async function deliverRegistrationMetaEvents(req, row, options) {
@@ -131,13 +150,6 @@ export default async (req) => {
     });
     if (!selection.ok) return jsonResponse(400, { error: selection.error });
 
-    const exclusions = await supabaseGet(
-      `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,
-    );
-    if (exclusions.ok && Array.isArray(exclusions.data) && exclusions.data.length > 0) {
-      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusions.data[0].raison });
-    }
-
     const source = ['meta_ad', 'tiktok_ad', 'instagram_ad'].includes(String(body?.traffic_source || '').trim().toLowerCase())
       ? String(body.traffic_source).trim().toLowerCase()
       : null;
@@ -158,9 +170,38 @@ export default async (req) => {
       return jsonResponse(500, { error: 'Erreur base de données MC2' });
     }
 
-    if (Array.isArray(existing.data) && existing.data.length > 0) {
-      const row = existing.data[0];
-      const completedBefore = Boolean(row.registration_completed_at);
+    const existingRow = Array.isArray(existing.data) ? existing.data[0] || null : null;
+    const exclusions = await supabaseGet(
+      `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,
+    );
+    const exclusion = exclusions.ok && Array.isArray(exclusions.data)
+      ? exclusions.data[0] || null
+      : null;
+    if (existingRow && isWebinarBuyerStatus(existingRow)) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: 'acheteur_es' });
+    }
+    if (exclusion && !isWebinarRegistrationExclusion(exclusion.raison)) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
+    }
+    if (existingRow && isCompletedMc2Registration(existingRow)) {
+      return jsonResponse(409, registrationResponse(existingRow, true));
+    }
+
+    if (exclusion && !existingRow) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
+    }
+
+    const legacy = await supabaseGet(
+      `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut&limit=1`,
+    );
+    if (!legacy.ok) return jsonResponse(500, { error: 'Erreur base de données webinaire' });
+    if (Array.isArray(legacy.data) && legacy.data.length > 0) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: 'inscrit_webinaire' });
+    }
+
+    if (existingRow) {
+      const row = existingRow;
+      const completedBefore = isCompletedMc2Registration(row);
       const patch = {
         prenom,
         ...sessionFields,
@@ -194,6 +235,7 @@ export default async (req) => {
         return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
       }
       const completedRow = { ...row, ...patch };
+      if (isComplete) await persistMc2RegistrationExclusion(completedRow);
       await syncMailerLite(completedRow);
       await queueLiveReminder(completedRow);
       if (isComplete) await queueSessionEmails(completedRow);
@@ -234,6 +276,7 @@ export default async (req) => {
       console.error('MC2 registration insert failed:', inserted.status, inserted.error);
       return jsonResponse(500, { error: 'Erreur enregistrement MC2' });
     }
+    if (isComplete) await persistMc2RegistrationExclusion(row);
     await queueLiveReminder(row);
     await syncMailerLite(row);
     if (isComplete) await queueSessionEmails(row);
