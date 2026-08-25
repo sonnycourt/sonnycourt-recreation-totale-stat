@@ -2951,8 +2951,8 @@ const previewReviewInitials = (name) => name
         }
 
         const SPIFFY_CHECKOUT_URLS = Object.freeze({
-            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1',
-            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34',
+            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1',
+            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1',
         });
 
         const SPIFFY_PREVIEW_CHECKOUT_URLS = Object.freeze({
@@ -3150,10 +3150,11 @@ const previewReviewInitials = (name) => name
             function mountPlan(plan) {
                 if (controller.confirmed) return;
                 const generation = ++controller.generation;
+                const isPlanChange = slot.children.length > 0;
                 controller.plan = plan;
                 controller.busy = true;
                 switchButton.disabled = true;
-                paymentPanel.classList.add('is-switching');
+                if (isPlanChange) paymentPanel.classList.add('is-switching');
                 showPaymentError('');
                 inlinePlanUi(plan);
                 const url = buildCheckoutUrl(plan);
@@ -3192,7 +3193,7 @@ const previewReviewInitials = (name) => name
                     if (generation !== controller.generation) return;
                     controller.busy = false;
                     switchButton.disabled = false;
-                    paymentPanel.classList.remove('is-switching');
+                    if (isPlanChange) paymentPanel.classList.remove('is-switching');
                 }, 180);
             }
 

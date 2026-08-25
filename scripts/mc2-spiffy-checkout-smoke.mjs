@@ -14,10 +14,10 @@ const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-p
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
 assert.match(page, /pageTakeover:\s*false/);
 assert.match(page, /thanksPageTakeover:\s*false/);
-assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1'/);
-assert.match(page, /once:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34'/);
 assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1-1'/);
 assert.match(page, /once:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34-1'/);
+assert.doesNotMatch(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1'/);
+assert.doesNotMatch(page, /once:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34'/);
 assert.match(page, /isLocalPreview \? SPIFFY_PREVIEW_CHECKOUT_URLS : SPIFFY_CHECKOUT_URLS/);
 assert.match(page, /document\.createElement\(['"]spiffy-checkout['"]\)/);
 assert.match(page, /url\.searchParams\.set\(['"]name_first['"],\s*firstName\)/);
