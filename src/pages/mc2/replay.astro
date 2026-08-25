@@ -853,16 +853,6 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
       font-weight: 650;
       white-space: nowrap;
     }
-    .purchase-toast__test-mode {
-      position: absolute;
-      top: 6px;
-      right: 8px;
-      color: rgba(191, 219, 254, 0.52);
-      font-size: 8px;
-      font-weight: 850;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
     .return-buyer-hero {
       display: none;
       max-width: 900px;
@@ -1087,7 +1077,6 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
 
   <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
     <div class="purchase-toast__content">
-      <span id="purchase-toast-test-mode" class="purchase-toast__test-mode" hidden>MODE TEST</span>
       <div class="purchase-toast__thumb-wrap">
         <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
         <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
@@ -1867,9 +1856,7 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
         const actionText = getMc2SessionRegistrationAction(purchase);
         toastText.innerHTML = `<span class="purchase-toast__name">${purchase.name}</span> <span class="purchase-toast__action">${actionText}</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
         const relativeTimeEl = document.getElementById('purchase-toast-relative-time');
-        const testModeEl = document.getElementById('purchase-toast-test-mode');
         if (relativeTimeEl) relativeTimeEl.textContent = formatMc2SessionRelativeTime(getMcWallClockMs(), offerActivationMs);
-        if (testModeEl) testModeEl.hidden = false;
         toast.hidden = false;
         toast.setAttribute('aria-hidden', 'false');
         toast.classList.add('show');
@@ -1884,7 +1871,7 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
         }, 4000);
       }
       function startScarcityEngineIfNeeded() {
-        const enabled = isPreviewDev || new URLSearchParams(window.location.search).get('scarcity_test') === '1';
+        const enabled = true;
         if (!enabled || !ctaActivated || !Number.isFinite(offerActivationMs)) {
           if (scarcityEngine) scarcityEngine.stop();
           scarcityEngine = null;

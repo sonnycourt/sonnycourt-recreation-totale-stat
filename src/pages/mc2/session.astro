@@ -850,17 +850,6 @@ const previewReviewInitials = (name) => name
             letter-spacing: 0.01em;
             white-space: nowrap;
         }
-        .purchase-toast__test-mode {
-            position: absolute;
-            top: 6px;
-            right: 8px;
-            color: rgba(191, 219, 254, 0.52);
-            font-size: 8px;
-            font-weight: 850;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
         .offer-zone {
             min-height: 132px;
             display: flex;
@@ -2291,7 +2280,6 @@ const previewReviewInitials = (name) => name
 
         <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
             <div class="purchase-toast__content">
-                <span id="purchase-toast-test-mode" class="purchase-toast__test-mode" hidden>MODE TEST</span>
                 <div class="purchase-toast__thumb-wrap">
                     <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
                     <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
@@ -2351,7 +2339,7 @@ const previewReviewInitials = (name) => name
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
         const CTA_APPEAR_SECONDS = 97 * 60 + 28; // apparition à 1h37m28s dans la vidéo live
         const CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // le bouton est immédiatement cliquable à son apparition
-        const PURCHASE_TOAST_TEST_MODE = false; // sécurité live : activation uniquement par opt-in explicite
+        const PURCHASE_TOASTS_ENABLED = true;
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
         const FREEZE_RECOVERY_ENABLED = true;
         // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
@@ -2769,12 +2757,10 @@ const previewReviewInitials = (name) => name
             const text = document.getElementById('purchase-toast-text');
             const flagEl = document.getElementById('purchase-toast-flag');
             const relativeTimeEl = document.getElementById('purchase-toast-relative-time');
-            const testModeEl = document.getElementById('purchase-toast-test-mode');
             if (!toast || !text || !flagEl || !relativeTimeEl) return { recalc: () => {}, destroy: () => {} };
 
             const setSeatsLeft = typeof options?.setSeatsLeft === 'function' ? options.setSeatsLeft : () => {};
             const enabled = options?.enabled === true;
-            const showTestMode = options?.showTestMode === true;
             let hideTimer = null;
             let engine = null;
 
@@ -2803,7 +2789,6 @@ const previewReviewInitials = (name) => name
                 const relativeTime = formatMc2SessionRelativeTime(getNowMs(), ctaActivationMs);
                 text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">${action}</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
                 relativeTimeEl.textContent = relativeTime;
-                if (testModeEl) testModeEl.hidden = !showTestMode;
                 toast.hidden = false;
                 toast.setAttribute('aria-hidden', 'false');
                 toast.classList.add('show');
@@ -2817,7 +2802,6 @@ const previewReviewInitials = (name) => name
                 if (!enabled) {
                     hideNow();
                     toast.hidden = true;
-                    if (testModeEl) testModeEl.hidden = true;
                     return;
                 }
                 if (engine) engine.stop();
@@ -4354,16 +4338,8 @@ const previewReviewInitials = (name) => name
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs, sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS);
-            // Simulateur strictement opt-in : jamais actif par défaut sur la route live.
-            // `preview=dev` l'active pour la prévisualisation ; `scarcity_test=1`
-            // permet un test explicite sur une URL contrôlée. La timeline versionnée
-            // reste l'unique source de vérité (aucune boucle demo aléatoire).
-            const scarcityTestMode = PURCHASE_TOAST_TEST_MODE
-                || isPreviewPage
-                || new URLSearchParams(window.location.search).get('scarcity_test') === '1';
             const purchaseToasts = initPurchaseToasts(offerWindowStartMs, {
-                enabled: scarcityTestMode,
-                showTestMode: scarcityTestMode,
+                enabled: PURCHASE_TOASTS_ENABLED,
                 setSeatsLeft: setScarcitySeats,
                 isEnded: function () { return isOfferExpired || (isSessionEnded && !hasPersistedOffer); },
             });

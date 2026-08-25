@@ -77,11 +77,15 @@ assert.equal(formatMc2SessionRelativeTime(
 ), 'hier');
 
 const sessionPageSource = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
-assert.match(sessionPageSource, /const PURCHASE_TOAST_TEST_MODE = false;/);
-assert.match(sessionPageSource, /get\('scarcity_test'\) === '1'/);
-assert.match(sessionPageSource, /isPreviewPage\s*\n\s*\|\| new URLSearchParams/);
+const replayPageSource = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
+assert.match(sessionPageSource, /const PURCHASE_TOASTS_ENABLED = true;/);
+assert.match(sessionPageSource, /enabled: PURCHASE_TOASTS_ENABLED/);
+assert.doesNotMatch(sessionPageSource, /get\('scarcity_test'\) === '1'/);
 assert.doesNotMatch(sessionPageSource, /purchaseToastFastDemo|scheduleDemo|purchase_demo/);
-assert.match(sessionPageSource, />MODE TEST<\/span>/);
+assert.doesNotMatch(sessionPageSource, /MODE TEST|purchase-toast-test-mode/);
+assert.match(replayPageSource, /function startScarcityEngineIfNeeded\(\) \{\s*const enabled = true;/);
+assert.doesNotMatch(replayPageSource, /get\('scarcity_test'\) === '1'/);
+assert.doesNotMatch(replayPageSource, /MODE TEST|purchase-toast-test-mode/);
 assert.match(sessionPageSource, /data-now-preset="notification-m5s"[^>]*>Notification −5s · 15→14<\/button>/);
 assert.match(sessionPageSource, /firstNotification = MC2_SESSION_PURCHASE_TIMELINE\[0\]/);
 assert.match(sessionPageSource, /\+ firstNotification\.offsetMs\s*\n\s*- 5000/);
