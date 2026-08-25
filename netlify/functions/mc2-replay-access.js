@@ -21,8 +21,12 @@ export default async (req) => {
     if (!config.replayUrl) return json(503, { valid: false, reason: 'video_not_configured' });
     return json(200, {
       valid: true,
+      registrationToken: result.registration.token,
       firstName: result.registration.prenom || '',
+      email: result.registration.email || '',
+      country: result.registration.pays || '',
       expiresAt: result.expires.toISOString(),
+      offerExpiresAt: result.registration.offer_expires_at || null,
       resumeSeconds: Number(result.job.resume_seconds || 0),
       videoUrl: config.replayUrl,
       ctaSeconds: config.replayCtaSeconds,
