@@ -2342,6 +2342,7 @@ const previewReviewInitials = (name) => name
             MC2_SESSION_TOTAL_SEATS,
             formatMc2SessionRelativeTime,
             getMc2SessionRegistrationAction,
+            getMc2SessionSeatsLeft,
             startMc2SessionScarcity,
         } from '../../lib/mc2-session-scarcity.mjs';
         const TOKEN_KEY = 'mc2_registration_token';
@@ -2437,9 +2438,12 @@ const previewReviewInitials = (name) => name
                 token,
                 statut: data.statut || 'inscrit',
                 prenom: data.prenom || '',
+                email: data.email || '',
+                pays: data.pays || '',
                 sessionStartsAt: data.sessionStartsAt || data.session_date,
                 sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
                 offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
+                sawOffer: data?.sawOffer === true || data?.saw_offer === true,
                 metaTrackingEligible: data?.metaTrackingEligible === true,
                 attendedLive: data?.attended_live === true,
             };
@@ -2461,7 +2465,7 @@ const previewReviewInitials = (name) => name
                 return { type: 'redirect', url: '/mc2/session?t=' + encodeURIComponent(token) };
             }
             if (now >= lateCutoff && (!Number.isFinite(oe) || now < oe)) {
-                return { type: 'redirect', url: '/mc2/replay?t=' + encodeURIComponent(token) + '&reason=late' };
+                return { type: 'redirect', url: '/.netlify/functions/mc2-replay-enter?t=' + encodeURIComponent(token) };
             }
             return { type: 'block', title: "Cette masterclass n'est plus accessible.", text: '' };
         }
@@ -3086,6 +3090,10 @@ const previewReviewInitials = (name) => name
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
+            const hasPersistedOffer = reg.sawOffer === true && Number.isFinite(expiryMs);
+            const offerWindowStartMs = Number.isFinite(expiryMs)
+                ? expiryMs - MC2_SESSION_OFFER_DURATION_MS
+                : ctaActivationMs;
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
             const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
             const offerCountdownEl = document.getElementById('offer-countdown');
@@ -3160,7 +3168,9 @@ const previewReviewInitials = (name) => name
                 } else {
                     setOfferExpiredState(false);
                     syncMcUnavailableUi(false);
-                    updateCountdown(ctaActivationMs, offerIds);
+                    const countdownTargetMs = Number.isFinite(expiryMs) ? expiryMs : ctaActivationMs;
+                    updateCountdown(countdownTargetMs, offerIds);
+                    setScarcitySeats(getMc2SessionSeatsLeft(now, offerWindowStartMs));
                 }
                 updateCtaAudit();
             };
@@ -3389,8 +3399,9 @@ const previewReviewInitials = (name) => name
             const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
             const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
             const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
-            if (lateReplayLinkEl) lateReplayLinkEl.href = '/mc2/replay?t=' + encodeURIComponent(reg.token) + '&reason=late';
-            if (endedReplayLinkEl) endedReplayLinkEl.href = '/mc2/replay?t=' + encodeURIComponent(reg.token);
+            const replayEntryUrl = '/.netlify/functions/mc2-replay-enter?t=' + encodeURIComponent(reg.token);
+            if (lateReplayLinkEl) lateReplayLinkEl.href = replayEntryUrl;
+            if (endedReplayLinkEl) endedReplayLinkEl.href = replayEntryUrl;
             let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
             let forceEndedOverlay = window.__mcSessionForceEndedOverlay === true;
             mountCtaAudit();
@@ -3876,6 +3887,20 @@ const previewReviewInitials = (name) => name
                 }
                 syncMcUnavailableUi(false);
 
+                // Une offre déjà révélée sur le live ou le replay appartient au
+                // token, pas à la page qui l'a déclenchée. On reprend donc
+                // directement son checkout et son échéance persistée.
+                if (hasPersistedOffer) {
+                    syncMcLateUi(false);
+                    syncMcEndedGateUi(false);
+                    applyInlineEndedUi({
+                        preserveFrame: false,
+                        keepOfferVisible: true,
+                        showInlineNote: false,
+                    });
+                    return;
+                }
+
                 if (forceEndedOverlay) {
                     isLiveJoin = false;
                     syncMcLateUi(false);
@@ -3891,6 +3916,8 @@ const previewReviewInitials = (name) => name
                     isLiveJoin = false;
                     syncMcLateUi(true);
                     syncMcEndedGateUi(false);
+                    setOfferCtaEnabled(false);
+                    hideOfferZone();
                     video.pause();
                     playOverlay.classList.add('hidden');
                     setJoinedControlsVisible(false);
@@ -3983,6 +4010,7 @@ const previewReviewInitials = (name) => name
             }
 
             function updateCtaStateByTime() {
+                if (forceLateOverlay || forceEndedOverlay) return;
                 const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
                 if (elapsedSec >= CTA_APPEAR_SECONDS && !isSessionEnded) {
                     showOfferZone(reg.token);
@@ -4331,11 +4359,11 @@ const previewReviewInitials = (name) => name
             const scarcityTestMode = PURCHASE_TOAST_TEST_MODE
                 || isPreviewPage
                 || new URLSearchParams(window.location.search).get('scarcity_test') === '1';
-            const purchaseToasts = initPurchaseToasts(ctaActivationMs, {
+            const purchaseToasts = initPurchaseToasts(offerWindowStartMs, {
                 enabled: scarcityTestMode,
                 showTestMode: scarcityTestMode,
                 setSeatsLeft: setScarcitySeats,
-                isEnded: function () { return isSessionEnded || isOfferExpired; },
+                isEnded: function () { return isOfferExpired || (isSessionEnded && !hasPersistedOffer); },
             });
 
             return {
@@ -4757,6 +4785,10 @@ const previewReviewInitials = (name) => name
                     ? sessionEndsRawMs
                     : (sessionMs + (90 * 60 * 1000));
                 const attendedLive = data?.attended_live === true;
+                const persistedOfferExpiryMs = reg.offreExpiresAt
+                    ? new Date(reg.offreExpiresAt).getTime()
+                    : NaN;
+                const hasPersistedOffer = reg.sawOffer === true && Number.isFinite(persistedOfferExpiryMs);
 
                 if (!Number.isFinite(sessionMs)) {
                     showBlocked('Erreur', 'Dates de session invalides.');
@@ -4764,10 +4796,9 @@ const previewReviewInitials = (name) => name
                 }
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
-                if (now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS && !attendedLive) {
-                    window.location.replace('/mc2/replay?t=' + encodeURIComponent(token) + '&reason=late');
-                    return;
-                }
+                window.__mcSessionForceLateOverlay = now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS
+                    && !attendedLive
+                    && !hasPersistedOffer;
                 showScreen('screen-main');
                 if (now >= liveStartMs) await maybeMarkPresent(reg);
                 mountVideoAndOffer(reg);
