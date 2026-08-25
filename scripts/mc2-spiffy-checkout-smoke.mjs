@@ -36,7 +36,8 @@ assert.match(page, /event\.data\?\.type === ['"]es2:spiffy-validation-focus['"]/
 assert.doesNotMatch(page, /spiffy\.on\(['"]order:success['"]/);
 assert.doesNotMatch(page, /id="preview-payment-success"/);
 assert.doesNotMatch(page, /id="preview-payment-success-cta"/);
-assert.match(page, /window\.location\.assign\(nextUrl\.toString\(\)\)/);
+assert.match(page, /mountPlan\(nextPlan\)/);
+assert.doesNotMatch(page, /window\.location\.assign\(nextUrl\.toString\(\)\)/);
 
 assert.match(inlineCss, /\.checkout\[data-es2-inline="true"\]/);
 assert.match(inlineCss, /\.payment-type--paypal/);

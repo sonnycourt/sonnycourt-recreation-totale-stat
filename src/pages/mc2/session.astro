@@ -2895,6 +2895,8 @@ const previewReviewInitials = (name) => name
                 provider: 'spiffy',
                 token: reg.token,
                 plan: initialPlan,
+                generation: 0,
+                busy: false,
             };
             inlineCheckoutController = controller;
 
@@ -2954,18 +2956,30 @@ const previewReviewInitials = (name) => name
             window.addEventListener('message', syncLocalFrameHeight);
 
             function mountPlan(plan) {
+                const generation = ++controller.generation;
+                const isPlanChange = generation > 1;
                 controller.plan = plan;
+                controller.busy = true;
+                switchButton.disabled = true;
                 showPaymentError('');
                 inlinePlanUi(plan);
                 slot.classList.remove('is-ready');
                 slot.style.minHeight = '';
                 const url = buildCheckoutUrl(plan);
-                const loader = document.createElement('div');
-                loader.className = 'preview-spiffy-loading';
-                loader.textContent = 'Chargement du formulaire d’inscription…';
-                slot.replaceChildren(loader);
+                if (isPlanChange) {
+                    slot.replaceChildren();
+                } else {
+                    const loader = document.createElement('div');
+                    loader.className = 'preview-spiffy-loading';
+                    loader.textContent = 'Chargement du formulaire d’inscription…';
+                    slot.replaceChildren(loader);
+                }
 
                 const observer = new MutationObserver(function () {
+                    if (generation !== controller.generation) {
+                        observer.disconnect();
+                        return;
+                    }
                     const frame = slot.querySelector('iframe');
                     if (!frame) return;
                     frame.classList.add('preview-spiffy-frame');
@@ -2979,7 +2993,7 @@ const previewReviewInitials = (name) => name
                 if (window.location.protocol === 'http:') {
                     url.searchParams.set('elements', btoa(JSON.stringify({
                         modality: 'inline',
-                        uid: 1,
+                        uid: generation,
                         from: window.location.href,
                         handles: {},
                     })));
@@ -3007,23 +3021,27 @@ const previewReviewInitials = (name) => name
                 });
 
                 window.setTimeout(function () {
+                    if (generation !== controller.generation) return;
                     const frame = slot.querySelector('iframe');
                     if (frame && !slot.classList.contains('is-ready')) revealFrame(frame);
                 }, 6000);
+
+                window.setTimeout(function () {
+                    if (generation !== controller.generation) return;
+                    controller.busy = false;
+                    switchButton.disabled = false;
+                }, 180);
             }
 
             switchButton.addEventListener('click', function () {
+                if (controller.busy) return;
                 const nextPlan = controller.plan === 'once' ? 'monthly' : 'once';
                 trackWebinaireEvent(controller.token, 'checkout_engaged', null, {
                     ...planTrackingMeta(nextPlan),
                     payment_method: 'spiffy',
                     visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
                 });
-                const nextUrl = new URL(window.location.href);
-                if (nextPlan === 'once') nextUrl.searchParams.set('plan', 'once');
-                else nextUrl.searchParams.delete('plan');
-                nextUrl.hash = 'preview-spiffy-slot';
-                window.location.assign(nextUrl.toString());
+                mountPlan(nextPlan);
             });
 
             mountPlan(initialPlan);
