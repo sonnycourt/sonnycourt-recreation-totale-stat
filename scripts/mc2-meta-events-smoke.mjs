@@ -167,6 +167,9 @@ const router = await readFile(new URL('../netlify/functions/lib/mc2-pay-router.m
 const optinTracker = await readFile(new URL('../netlify/functions/track-mc2-optin.js', import.meta.url), 'utf8');
 const organicOptin = await readFile(new URL('../src/pages/mc2/index.astro', import.meta.url), 'utf8');
 const sessionPage = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+const replayPage = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
+const replayTracker = await readFile(new URL('../netlify/functions/mc2-replay-track.js', import.meta.url), 'utf8');
+const replayRecovery = await readFile(new URL('../netlify/functions/lib/mc2-replay-recovery.mjs', import.meta.url), 'utf8');
 
 assert.match(adapter, /fbq\('track', 'Lead',[\s\S]*eventID: event\.eventId/);
 assert.match(adapter, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
@@ -186,5 +189,9 @@ assert.match(sessionPage, /fireMetaBrowserEvents\(result\?\.metaEvents\)/);
 assert.match(sessionPage, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
 assert.match(sessionPage, /'mc2_offer_event_id_' \+ String\(registration\?\.token/);
 assert.match(sessionPage, /localStorage\.getItem\(storageKey\) === '1'/);
+assert.match(replayPage, /trackWebinaireEvent\(token, 'cta_reached'\)/);
+assert.match(replayTracker, /mc2FunnelMetaEvents\(\{[\s\S]*eventName: funnelEventName/);
+assert.match(replayTracker, /sendMc2MetaEvents\(\{[\s\S]*pagePath: '\/mc2\/replay\/'/);
+assert.match(replayRecovery, /select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,/);
 
 console.log('mc2 meta events smoke: ok');

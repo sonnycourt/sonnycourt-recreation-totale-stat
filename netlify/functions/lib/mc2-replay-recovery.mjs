@@ -163,7 +163,7 @@ export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purc
 
 async function loadRegistration(token) {
   const result = await supabaseGet(
-    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,pays,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1`,
+    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1`,
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
