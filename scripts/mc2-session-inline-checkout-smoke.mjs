@@ -116,6 +116,7 @@ assert.match(page, /panels:\s*new Map\(\)/);
 assert.match(page, /activatePlan\(nextPlan, 'checkout_engaged'\)/);
 assert.match(page, /mountPlan\(initialPlan === 'once' \? 'monthly' : 'once'\)/);
 assert.match(page, /panel\.style\.visibility = isActiveOnMount \? 'visible' : 'hidden'/);
+assert.match(page, /candidate\.style\.display = isActive \? 'block' : 'none'/);
 assert.doesNotMatch(page, /window\.location\.assign\(nextUrl\.toString\(\)\)/);
 assert.doesNotMatch(page, /nextUrl\.searchParams\.set\('plan', 'once'\)/);
 assert.match(page, /12 mensualités de 197 €/);
