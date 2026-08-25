@@ -2031,6 +2031,7 @@ const previewReviewInitials = (name) => name
                 <div class="dev-time-row">
                     <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo −1s</button>
                     <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire → replay</button>
+                    <button id="dev-payment-success" class="dev-time-btn" type="button">Après achat ✓</button>
                 </div>
             </div>
         </div>
@@ -3007,7 +3008,7 @@ const previewReviewInitials = (name) => name
                 controller.statusPollTimer = null;
             }
 
-            function showPaymentSuccess(status) {
+            function showPaymentSuccess(status, options = {}) {
                 if (controller.confirmed) return;
                 controller.confirmed = true;
                 controller.confirming = false;
@@ -3019,11 +3020,21 @@ const previewReviewInitials = (name) => name
                     successCta.href = '/commencer/succes/?provider=spiffy&t=' + encodeURIComponent(controller.token);
                 }
                 showPaymentError('');
-                trackWebinaireEvent(controller.token, 'purchase_completed', null, {
-                    ...planTrackingMeta(controller.plan),
-                    payment_method: 'spiffy',
-                    intent_status: String(status?.payment_status || 'paid'),
-                });
+                if (options.simulated !== true) {
+                    trackWebinaireEvent(controller.token, 'purchase_completed', null, {
+                        ...planTrackingMeta(controller.plan),
+                        payment_method: 'spiffy',
+                        intent_status: String(status?.payment_status || 'paid'),
+                    });
+                }
+            }
+
+            if (new URLSearchParams(window.location.search).get('preview') === 'dev') {
+                window.__mc2PreviewPaymentSuccess = function () {
+                    if (inlineCheckoutController !== controller) return false;
+                    showPaymentSuccess({ payment_status: 'paid' }, { simulated: true });
+                    return true;
+                };
             }
 
             async function verifyPaymentStatus() {
@@ -4625,6 +4636,7 @@ const previewReviewInitials = (name) => name
             var inscBtns = Array.from(banner.querySelectorAll('[data-insc-preset]'));
             var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
             var prospectBtns = Array.from(banner.querySelectorAll('[data-prospect-preset]'));
+            var paymentSuccessBtn = document.getElementById('dev-payment-success');
 
             var currentSessionMs = 0;
             var currentMounted = null;
@@ -4784,6 +4796,30 @@ const previewReviewInitials = (name) => name
                     setSimNow(ms);
                 });
             });
+            if (paymentSuccessBtn) {
+                paymentSuccessBtn.addEventListener('click', function () {
+                    var ctaActiveMs = (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + 1000;
+                    setActiveNow('cta-active');
+                    syncDevProspectFlags(ctaActiveMs);
+                    setSimNow(ctaActiveMs);
+
+                    var attempts = 0;
+                    function revealPostPurchaseState() {
+                        attempts += 1;
+                        var reveal = window.__mc2PreviewPaymentSuccess;
+                        if (typeof reveal === 'function' && reveal() === true) {
+                            paymentSuccessBtn.classList.add('is-active');
+                            document.getElementById('preview-payment-success')?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                            });
+                            return;
+                        }
+                        if (attempts < 40) window.setTimeout(revealPostPurchaseState, 100);
+                    }
+                    revealPostPurchaseState();
+                });
+            }
             prospectBtns.forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     devProspectPresent = btn.getAttribute('data-prospect-preset') === 'present';
