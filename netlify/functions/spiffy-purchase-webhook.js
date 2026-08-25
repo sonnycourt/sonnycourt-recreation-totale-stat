@@ -3,6 +3,8 @@ import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mj
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
 import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
+import { cancelMc2ReplayRecoveryJobs } from './lib/mc2-replay-recovery.mjs';
+import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -115,6 +117,52 @@ function findAmountEur(data) {
   return null;
 }
 
+const MC2_SPIFFY_CHECKOUT_SLUGS = Object.freeze({
+  monthly: [
+    'esprit-subconscient-2-0-2-2-1',
+    'esprit-subconscient-2-0-2-2-1-1',
+  ],
+  once: [
+    'esprit-subconscient-2-0-34',
+    'esprit-subconscient-2-0-34-1',
+  ],
+});
+
+const MC2_SPIFFY_PLANS = Object.freeze({
+  monthly: { initialCents: 19_700, contractualTotalCents: 236_400, paymentMode: 'spiffy_12x197' },
+  once: { initialCents: 199_700, contractualTotalCents: 199_700, paymentMode: 'spiffy_one_time_1997' },
+});
+
+function amountMatches(actual, expected) {
+  return Number.isFinite(Number(actual)) && Math.abs(Number(actual) - expected) < 0.02;
+}
+
+function mc2PlanFromPurchase(body, amount, registration) {
+  const haystack = JSON.stringify(body || {}).toLowerCase();
+  if (MC2_SPIFFY_CHECKOUT_SLUGS.once.some((slug) => haystack.includes(slug))) return 'once';
+  if (MC2_SPIFFY_CHECKOUT_SLUGS.monthly.some((slug) => haystack.includes(slug))) return 'monthly';
+
+  const recentPlan = String(registration?.checkout_last_plan || '').toLowerCase();
+  if (recentPlan === 'once' && amountMatches(amount, 1997)) return 'once';
+  if (recentPlan === 'monthly' && (amountMatches(amount, 197) || amountMatches(amount, 2364))) return 'monthly';
+  if (amountMatches(amount, 1997)) return 'once';
+  if (amountMatches(amount, 197) || amountMatches(amount, 2364)) return 'monthly';
+  return null;
+}
+
+function mc2PurchaseBelongsToRegistration(body, registration, plan) {
+  if (!registration || !plan) return false;
+  const payloadToken = findFirstKey(body, ['mc2_token', 'registration_token', 'client_reference_id']);
+  if (payloadToken && payloadToken === registration.token) return true;
+
+  const haystack = JSON.stringify(body || {}).toLowerCase();
+  if (Object.values(MC2_SPIFFY_CHECKOUT_SLUGS).flat().some((slug) => haystack.includes(slug))) return true;
+
+  const viewedAt = Date.parse(registration.checkout_last_viewed_at || '');
+  const viewedRecently = Number.isFinite(viewedAt) && Date.now() - viewedAt >= 0 && Date.now() - viewedAt <= 48 * 60 * 60 * 1000;
+  return viewedRecently && String(registration.checkout_last_route || '').includes('/mc2/session');
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -170,21 +218,32 @@ export default async (req) => {
       );
     }
     const row = reg.ok && Array.isArray(reg.data) ? reg.data[0] : null;
-    if (!row) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
+
+    let mc2Row = null;
+    if (isSale) {
+      const mc2 = await supabaseGet(
+        `mc2_registrations?email=eq.${encodeURIComponent(email)}`
+          + '&select=token,email,prenom,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,payment_status,statut,purchased_at'
+          + '&order=registered_at.desc&limit=1',
+      );
+      mc2Row = mc2.ok && Array.isArray(mc2.data) ? mc2.data[0] : null;
+    }
+    const mc2Plan = mc2PlanFromPurchase(body, amount, mc2Row);
+    const isMc2Purchase = isSale && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan);
+    if (!row && !isMc2Purchase) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
     const nowIso = new Date().toISOString();
 
     // --- Écriture cockpit (TOUS les leads, organique + pub) ---
-    if (isRefund) {
+    if (row && isRefund) {
       // Le refund n'annule PAS la vente : purchased reste true.
       await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
         refunded: true,
         refunded_at: nowIso,
         ...(amount != null ? { refund_amount: amount } : {}),
       });
-    } else if (isSale) {
+    } else if (row && isSale) {
       // Achat confirmé → sortie du groupe CHECKOUT-ABANDON (coupe la relance).
-      await removeFromCheckoutAbandonGroup(email, process.env.MAILERLITE_API_KEY);
       // Affilié Spiffy = source de vérité pour l'attribution des ventes closers.
       const affiliate = findAffiliate(body);
       await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
@@ -195,7 +254,41 @@ export default async (req) => {
       });
     }
 
-    if (isSale || isRefund) {
+    if (isSale) {
+      await removeFromCheckoutAbandonGroup(email, process.env.MAILERLITE_API_KEY);
+    }
+
+    if (isMc2Purchase) {
+      const plan = MC2_SPIFFY_PLANS[mc2Plan];
+      const purchasedAt = mc2Row.purchased_at || nowIso;
+      const updatedMc2 = await supabasePatch(
+        'mc2_registrations',
+        `token=eq.${encodeURIComponent(mc2Row.token)}`,
+        {
+          statut: 'purchased',
+          payment_status: 'paid',
+          purchased_at: purchasedAt,
+          initial_payment_cents: plan.initialCents,
+          contractual_total_cents: plan.contractualTotalCents,
+          checkout_last_plan: mc2Plan,
+          checkout_last_payment_mode: plan.paymentMode,
+        },
+      );
+      if (!updatedMc2.ok) {
+        console.error('spiffy-webhook: mise a jour MC2 impossible', updatedMc2.status, updatedMc2.error);
+      } else {
+        await Promise.allSettled([
+          cancelMc2OfferSms(mc2Row.token, 'purchase_completed'),
+          cancelMc2ReplayRecoveryJobs({
+            token: mc2Row.token,
+            email: mc2Row.email,
+            reason: 'purchase_completed',
+          }),
+        ]);
+      }
+    }
+
+    if (row && (isSale || isRefund)) {
       const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
       const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
       const eventName = isRefund ? 'refund_completed' : 'purchase_completed';
@@ -223,13 +316,15 @@ export default async (req) => {
     }
 
     // --- CAPI TikTok : seulement la VENTE d'un lead TikTok ---
-    if (isSale && row.traffic_source === 'tiktok_ad' && row.tt_click_id) {
+    const attributionRow = row || (isMc2Purchase ? mc2Row : null);
+
+    if (isSale && attributionRow?.traffic_source === 'tiktok_ad' && attributionRow.tt_click_id) {
       await sendTikTokEvent({
         eventName: 'CompletePayment',
-        eventId: 'purchase-' + row.token, // même id que la détection MailerLite => dédup
-        email: row.email,
-        phone: row.telephone,
-        ttclid: row.tt_click_id,
+        eventId: 'purchase-' + attributionRow.token, // même id que la détection MailerLite => dédup
+        email: attributionRow.email,
+        phone: attributionRow.telephone,
+        ttclid: attributionRow.tt_click_id,
         value: amount || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388,
         currency: 'EUR',
         contentName: 'Esprit Subconscient 2.0',
@@ -237,14 +332,14 @@ export default async (req) => {
     }
 
     // --- CAPI Meta : seulement la VENTE d'un lead Meta ---
-    if (isSale && row.traffic_source === 'meta_ad') {
+    if (isSale && attributionRow?.traffic_source === 'meta_ad') {
       await sendMetaEvent({
         eventName: 'Purchase',
-        eventId: 'purchase-' + row.token, // même id que la détection MailerLite => dédup
-        email: row.email,
-        phone: row.telephone,
-        fbc: row.meta_fbc,
-        fbp: row.meta_fbp,
+        eventId: 'purchase-' + attributionRow.token, // même id que la détection MailerLite => dédup
+        email: attributionRow.email,
+        phone: attributionRow.telephone,
+        fbc: attributionRow.meta_fbc,
+        fbp: attributionRow.meta_fbp,
         value: amount || Number(process.env.META_PURCHASE_VALUE_EUR) || 388,
         currency: 'EUR',
         contentName: 'Esprit Subconscient 2.0',

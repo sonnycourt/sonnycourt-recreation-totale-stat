@@ -9,8 +9,11 @@ const billing = await fs.readFile(new URL('../netlify/functions/mc2-billing-info
 const inlineCss = await fs.readFile(new URL('../spiffy/es2-mc2-inline-overrides.css', import.meta.url), 'utf8');
 const inlineJs = await fs.readFile(new URL('../spiffy/es2-mc2-inline-checkout.js', import.meta.url), 'utf8');
 const validationPatch = await fs.readFile(new URL('../spiffy/es2-mc2-validation-feedback.html', import.meta.url), 'utf8');
+const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-purchase-webhook.js', import.meta.url), 'utf8');
 
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
+assert.match(page, /pageTakeover:\s*false/);
+assert.match(page, /thanksPageTakeover:\s*false/);
 assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1'/);
 assert.match(page, /once:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34'/);
 assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1-1'/);
@@ -27,8 +30,17 @@ assert.match(page, /const firstName = String\(reg\.prenom \|\| ''\)\.trim\(\)/);
 assert.match(page, /const email = String\(reg\.email \|\| ''\)\.trim\(\)/);
 assert.match(page, /const country = String\(reg\.pays \|\| ''\)\.trim\(\)/);
 assert.match(page, /url\.searchParams\.set\(['"]es2_plan['"],\s*plan\)/);
+assert.match(page, /url\.searchParams\.set\(['"]mc2_token['"],\s*reg\.token\)/);
 assert.match(page, /event\.data\?\.type !== ['"]es2:spiffy-height['"]/);
 assert.match(page, /event\.data\?\.type === ['"]es2:spiffy-validation-focus['"]/);
+assert.match(page, /spiffy\.on\(['"]order:success['"],\s*handleSpiffyOrderSuccess\)/);
+assert.match(page, /mc2-spiffy-status\?t=/);
+assert.match(page, /status\?\.paid && status\?\.schedule_ready/);
+assert.match(page, /id="preview-payment-success"/);
+assert.match(page, /id="preview-payment-success-cta"/);
+assert.match(page, /Rejoindre mon espace membre/);
+assert.match(page, /\/commencer\/succes\/\?provider=spiffy&t=/);
+assert.doesNotMatch(page, /window\.location\.(?:assign|replace)\([^)]*commencer\/succes/);
 
 assert.match(inlineCss, /\.checkout\[data-es2-inline="true"\]/);
 assert.match(inlineCss, /\.payment-type--paypal/);
@@ -70,6 +82,13 @@ assert.match(success, /provider,/);
 assert.match(legacySuccess, /commencer\/succes\/\?provider=spiffy/);
 assert.match(billing, /provider === 'spiffy'/);
 assert.match(billing, /registration\.payment_status !== 'paid'/);
+assert.match(purchaseWebhook, /mc2_registrations\?email=eq\./);
+assert.match(purchaseWebhook, /payment_status:\s*'paid'/);
+assert.match(purchaseWebhook, /statut:\s*'purchased'/);
+assert.match(purchaseWebhook, /initial_payment_cents:\s*plan\.initialCents/);
+assert.match(purchaseWebhook, /contractual_total_cents:\s*plan\.contractualTotalCents/);
+assert.match(purchaseWebhook, /cancelMc2OfferSms/);
+assert.match(purchaseWebhook, /cancelMc2ReplayRecoveryJobs/);
 
 const originalFetch = globalThis.fetch;
 const originalUrl = process.env.SUPABASE_URL;
