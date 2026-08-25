@@ -3082,7 +3082,10 @@ const previewReviewInitials = (name) => name
                 isOfferExpired = Boolean(nextExpired);
                 if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
-                if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
+                if (offerCtaNode) {
+                    const hasInlineCheckout = inlineCheckoutController?.provider === 'spiffy';
+                    offerCtaNode.classList.toggle('hidden', isOfferExpired || hasInlineCheckout);
+                }
                 if (previewSeatBadge) previewSeatBadge.hidden = isOfferExpired;
                 if (previewCheckoutNode) previewCheckoutNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);

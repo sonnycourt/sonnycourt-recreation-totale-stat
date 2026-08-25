@@ -124,6 +124,8 @@ assert.match(page, /ça marche vraiment et c’est ça qui est exceptionnel/);
 assert.doesNotMatch(page, /Première mensualité prélevée aujourd’hui/);
 assert.doesNotMatch(page, /id="preview-schedule-next"/);
 assert.doesNotMatch(page, /window\.location\.href\s*=\s*'\/commencer\?t='/);
+assert.match(page, /const hasInlineCheckout = inlineCheckoutController\?\.provider === 'spiffy'/);
+assert.match(page, /offerCtaNode\.classList\.toggle\('hidden', isOfferExpired \|\| hasInlineCheckout\)/);
 
 const tokenEndpoint = fs.readFileSync(new URL('../netlify/functions/mc2-create-test-token.js', import.meta.url), 'utf8');
 assert.match(tokenEndpoint, /timingSafeEqual/);
