@@ -60,11 +60,11 @@ facture PDF officielle reste celle de Stripe et son URL figure dans le snapshot.
 
 ## Blocages connus avant activation
 
-- Le code, la checkout et les CGV sont alignés sur `47 € + 4 × 297 €`
-  à J+14, J+35, J+56 et J+77 (1 235 €). Avant activation, il reste à identifier
-  dans Stripe un Price mensuel actif de 297 € TTC, à renseigner dans
-  `MC2_STRIPE_INSTALLMENT_PRICE_ID`, puis à aligner les variables
-  `MC2_CONTRACT_EXPECTED_*`. Le garde-fou contractuel bloque toute acceptation
+- Le module de recouvrement concerne l'ancien parcours Stripe
+  `47 € + 4 × 297 €` et reste désactivé. Ses variables
+  `MC2_CONTRACT_EXPECTED_*` doivent rester alignées sur ces contrats historiques
+  et ne doivent pas être confondues avec les deux plans Spiffy actuels
+  (1 997 € ou 12 × 197 €). Le garde-fou contractuel bloque toute acceptation
   incohérente.
 - La fonction `mc2-billing-info` est prête à enregistrer l'adresse dans
   `mc2_registrations` et chez Stripe, mais le parcours `/commencer/succes/`

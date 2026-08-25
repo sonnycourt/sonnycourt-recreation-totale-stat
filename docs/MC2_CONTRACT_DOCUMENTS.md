@@ -4,12 +4,11 @@
 
 - Une seule page dynamique : `/documents-contractuels/:token-opaque`.
 - Aucun fichier ni aucune page statique par client.
-- Le document est créé uniquement par le webhook MC2 après un paiement initial
-  Stripe `paid` de 47 €, avec produit, plan, total, devise et métadonnées MC2
-  strictement vérifiés.
-- Le snapshot et sa copie HTML autonome sont stockés immuablement à l’achat :
-  47 € payé, total 1 235 €, puis 4 × 297 € aux dates exactes J+14, J+35,
-  J+56 et J+77.
+- Le document est créé après un paiement MC2 confirmé, avec produit, plan,
+  total, devise et métadonnées MC2 strictement vérifiés.
+- Le snapshot et sa copie HTML autonome sont stockés immuablement à l’achat.
+  Ils reprennent le plan réellement choisi : 1 997 € en une fois ou 12 × 197 €
+  (2 364 € au total).
 - Le lien public ne contient ni identifiant Stripe, ni email, ni token
   d’inscription. La page ne retourne aucune PII client.
 - Entêtes `noindex`, `noarchive`, `no-store`, `no-referrer`, anti-frame et CSP.
@@ -34,11 +33,13 @@ valides, rien ne doit être activé.
 Variables déjà exigées par le contrat MC2 :
 
 ```text
-MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v4
+MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v5
 MC2_TERMS_URL=https://sonnycourt.com/cgv/
-MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v4.pdf
-MC2_TERMS_SNAPSHOT_SHA256=fdc3d84dfa34c036b14559508dc460138284e4417456de7d1914e8766316dcb2
+MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v5.pdf
+MC2_TERMS_SNAPSHOT_SHA256=82fa1f860ff8fc16972aa12fa32a85ca21a0c18131fb7904f7e313d9436963d5
 ```
+
+Les archives v1 à v4 restent immuables pour les commandes antérieures.
 
 ## Email validé
 

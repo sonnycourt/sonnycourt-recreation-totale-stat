@@ -16,6 +16,7 @@ import { mc2SessionMonthlySchedulePhases } from '../netlify/functions/lib/mc2-pa
 import {
   buildMc2ContractDocumentSnapshot,
   mc2PaidSessionIsEligible,
+  renderMc2ContractDocument,
 } from '../netlify/functions/lib/mc2-contract-documents.mjs';
 
 assert.equal(MC2_SESSION_MONTHLY_PAYMENT_CENTS * MC2_SESSION_MONTHLY_PAYMENT_COUNT, MC2_SESSION_MONTHLY_TOTAL_CENTS);
@@ -86,6 +87,23 @@ assert.equal(monthlyDocument.schedule.length, 12);
 assert.equal(monthlyDocument.schedule.reduce((sum, row) => sum + row.amount_cents, 0), 236400);
 assert.equal(onceDocument.schedule.length, 1);
 assert.equal(onceDocument.pricing.remaining_scheduled_cents, 0);
+const monthlyDocumentHtml = renderMc2ContractDocument(monthlyDocument);
+const onceDocumentHtml = renderMc2ContractDocument(onceDocument);
+assert.match(monthlyDocumentHtml, /première mensualité de 197\s*€/i);
+assert.match(monthlyDocumentHtml, /onze mensualités suivantes/i);
+assert.doesNotMatch(monthlyDocumentHtml, /quatre échéances de 297\s*€/i);
+assert.match(onceDocumentHtml, /prix total de 1[\s ]997\s*€ est réglé en une fois/i);
+assert.match(onceDocumentHtml, /achat unique réglé en une fois/i);
+assert.doesNotMatch(onceDocumentHtml, /paiement fractionné/i);
+
+const cgvPage = fs.readFileSync(new URL('../src/pages/cgv.astro', import.meta.url), 'utf8');
+const es2Section = cgvPage.match(/<div class="section" id="es2">([\s\S]*?)<div class="section" id="formations-uniques">/)?.[1] || '';
+assert.match(es2Section, /paiement unique de 1 997 € TTC/);
+assert.match(es2Section, /douze mensualités de 197 € TTC/);
+assert.match(es2Section, /2 364 € TTC/);
+assert.match(es2Section, /économie de <strong>367 € TTC<\/strong>/);
+assert.match(es2Section, /Garantie commerciale « satisfait ou remboursé » pendant 14 jours/);
+assert.doesNotMatch(es2Section, /1 235 €|47 €|297 €/);
 
 const page = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 assert.match(page, /https:\/\/js\.static\.spiffy\.co\/spiffy\.js/);

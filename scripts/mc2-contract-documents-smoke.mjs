@@ -14,12 +14,12 @@ import {
   MC2_PAYMENT_PLAN,
 } from '../netlify/functions/lib/mc2-stripe.mjs';
 
-const termsSha = 'fdc3d84dfa34c036b14559508dc460138284e4417456de7d1914e8766316dcb2';
+const termsSha = '82fa1f860ff8fc16972aa12fa32a85ca21a0c18131fb7904f7e313d9436963d5';
 const env = {
   MC2_CONTRACT_DOCUMENTS_ENABLED: 'true',
-  MC2_CONTRACT_VERSION: 'mc2-cgv-2026-08-v4',
+  MC2_CONTRACT_VERSION: 'mc2-cgv-2026-08-v5',
   MC2_TERMS_URL: 'https://sonnycourt.com/cgv/',
-  MC2_TERMS_SNAPSHOT_URL: 'https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v4.pdf',
+  MC2_TERMS_SNAPSHOT_URL: 'https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v5.pdf',
   MC2_TERMS_SNAPSHOT_SHA256: termsSha,
 };
 const registration = {
@@ -63,7 +63,7 @@ assert.match(html, /Imprimer \/ enregistrer en PDF/);
 assert.match(html, /Télécharger une copie HTML/);
 assert.match(html, /1[\s ]235\s€/);
 assert.match(html, /J\+14, J\+35, J\+56 et J\+77/);
-assert.match(html, /conditions, les modalités et le formulaire type/);
+assert.match(html, /Garantie commerciale de 14 jours et droits légaux applicables/);
 assert.doesNotMatch(html, /Modèle à copier dans un email ou un courrier/);
 assert.doesNotMatch(html, /remboursement/i);
 assert.match(html, /ArgEntrepreneur Sàrl/);

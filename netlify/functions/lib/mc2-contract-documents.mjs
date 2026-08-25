@@ -298,6 +298,11 @@ export function renderMc2ContractDocument(snapshot) {
             <td>${escapeHtml(money(item.amount_cents))}</td>
             <td>${item.status_at_purchase === 'paid' ? 'Payé' : 'À payer'}</td>
           </tr>`).join('');
+  const scheduleNote = snapshot.pricing.payment_plan === MC2_SESSION_ONE_TIME_PLAN
+    ? `Le prix total de ${money(snapshot.pricing.total_cents)} est réglé en une fois à la commande.`
+    : snapshot.pricing.payment_plan === MC2_SESSION_MONTHLY_PLAN
+      ? `La première mensualité de ${money(MC2_SESSION_MONTHLY_PAYMENT_CENTS)} est réglée à la commande. Les onze mensualités suivantes du même montant sont prélevées mensuellement. Le plan s’arrête automatiquement après la douzième mensualité.`
+      : 'Les quatre échéances de 297 € sont prévues à J+14, J+35, J+56 et J+77 à compter du paiement initial. Le plan s’arrête après la quatrième échéance.';
   const controls = `
       <nav class="actions" aria-label="Actions sur le document">
         <button type="button" onclick="window.print()">Imprimer / enregistrer en PDF</button>
@@ -347,7 +352,7 @@ export function renderMc2ContractDocument(snapshot) {
     </header>
 
     <h2>Récapitulatif</h2>
-    <p><strong>${escapeHtml(snapshot.product.name)}</strong><br>Achat unique avec paiement fractionné, sans abonnement ni renouvellement.</p>
+    <p><strong>${escapeHtml(snapshot.product.name)}</strong><br>${escapeHtml(snapshot.product.purchase_type)}, sans abonnement ni renouvellement.</p>
     <div class="summary">
       <div><span>Prix total TTC</span><strong>${escapeHtml(money(snapshot.pricing.total_cents))}</strong></div>
       <div><span>Payé à la commande</span><strong>${escapeHtml(money(snapshot.pricing.paid_at_purchase_cents))}</strong></div>
@@ -360,14 +365,14 @@ export function renderMc2ContractDocument(snapshot) {
       <tbody>${rows}
       </tbody>
     </table>
-    <p class="note">Les quatre échéances de 297 € sont prévues à J+14, J+35, J+56 et J+77 à compter du paiement initial. Le plan s’arrête après la quatrième échéance.</p>
+    <p class="note">${escapeHtml(scheduleNote)}</p>
 
     <h2>Conditions contractuelles</h2>
     <p>Version applicable : <strong>${escapeHtml(snapshot.terms.version)}</strong></p>
     <p><a href="${termsSnapshotUrl}" rel="noopener noreferrer">Consulter la copie archivée des CGV applicables à cette commande</a><br>
     <a href="${termsUrl}" rel="noopener noreferrer">Consulter les CGV actuellement en vigueur</a></p>
     <p class="meta">Empreinte SHA-256 de la copie archivée : ${escapeHtml(snapshot.terms.snapshot_sha256)}</p>
-    <p class="note"><strong>Droit légal de rétractation :</strong> les conditions, les modalités et le formulaire type figurent dans la copie archivée des CGV applicable à cette commande.</p>
+    <p class="note"><strong>Garantie commerciale de 14 jours et droits légaux applicables :</strong> les conditions, les modalités et le formulaire figurent dans la copie archivée des CGV applicable à cette commande.</p>
 
     <h2>Vendeur</h2>
     <p><strong>${escapeHtml(snapshot.seller.legal_name)}</strong><br>
