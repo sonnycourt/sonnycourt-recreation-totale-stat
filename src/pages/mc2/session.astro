@@ -2978,6 +2978,14 @@ const previewReviewInitials = (name) => name
                 const panel = document.createElement('div');
                 panel.className = 'preview-spiffy-plan-panel';
                 panel.dataset.plan = plan;
+                const isActiveOnMount = controller.plan === plan;
+                panel.classList.toggle('is-active', isActiveOnMount);
+                panel.setAttribute('aria-hidden', isActiveOnMount ? 'false' : 'true');
+                panel.toggleAttribute('inert', !isActiveOnMount);
+                panel.style.position = isActiveOnMount ? 'relative' : 'absolute';
+                panel.style.inset = isActiveOnMount ? '' : '0 0 auto';
+                panel.style.visibility = isActiveOnMount ? 'visible' : 'hidden';
+                panel.style.pointerEvents = isActiveOnMount ? 'auto' : 'none';
                 const loader = document.createElement('div');
                 loader.className = 'preview-spiffy-loading';
                 loader.textContent = 'Chargement du formulaire d’inscription…';
