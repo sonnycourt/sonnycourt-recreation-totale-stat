@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import statusHandler from '../netlify/functions/mc2-spiffy-status.js';
 
 const page = await fs.readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+const replay = await fs.readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
 const success = await fs.readFile(new URL('../src/pages/commencer/succes.astro', import.meta.url), 'utf8');
 const legacySuccess = await fs.readFile(new URL('../src/pages/es2-derniere-etape.astro', import.meta.url), 'utf8');
 const billing = await fs.readFile(new URL('../netlify/functions/mc2-billing-info.js', import.meta.url), 'utf8');
@@ -12,6 +13,9 @@ const validationPatch = await fs.readFile(new URL('../spiffy/es2-mc2-validation-
 const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-purchase-webhook.js', import.meta.url), 'utf8');
 
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
+assert.match(replay, /spiffy\.load\(["']sonnycourt["']\)/);
+assert.doesNotMatch(page, /\.crossorigin\s*=\s*["']anonymous["']/);
+assert.doesNotMatch(replay, /\.crossorigin\s*=\s*["']anonymous["']/);
 assert.doesNotMatch(page, /pageTakeover:\s*false/);
 assert.doesNotMatch(page, /thanksPageTakeover:\s*false/);
 assert.match(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-2-2-1-1'/);
@@ -20,6 +24,7 @@ assert.doesNotMatch(page, /monthly:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkou
 assert.doesNotMatch(page, /once:\s*'https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34'/);
 assert.match(page, /isLocalPreview \? SPIFFY_PREVIEW_CHECKOUT_URLS : SPIFFY_CHECKOUT_URLS/);
 assert.match(page, /document\.createElement\(['"]spiffy-checkout['"]\)/);
+assert.match(replay, /document\.createElement\(['"]spiffy-checkout['"]\)/);
 assert.match(page, /url\.searchParams\.set\(['"]name_first['"],\s*firstName\)/);
 assert.match(page, /url\.searchParams\.set\(['"]email['"],\s*email\)/);
 assert.match(page, /url\.searchParams\.set\(['"]country['"],\s*country\)/);
