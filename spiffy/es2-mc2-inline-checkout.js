@@ -182,8 +182,8 @@
       inlinePlan.className = 'es2-inline-plan';
       inlinePlan.setAttribute('data-es2-inline-plan', 'true');
       inlinePlan.innerHTML = plan === 'once'
-        ? '<div class="es2-inline-plan__row"><strong>Paiement unique de 1 997 €</strong></div>'
-        : '<div class="es2-inline-plan__row"><strong>12 mensualités de 197 €</strong><span>≈ 6 € par jour</span></div>';
+        ? '<div class="es2-inline-plan__row"><strong>Paiement unique de 1 997 €</strong><span>≈ 6 € par jour</span></div>'
+        : '<div class="es2-inline-plan__row"><strong>12 mensualités de 197 €</strong><span>≈ 6,50 € par jour</span></div>';
     }
     if (paymentSection && paymentSection.nextElementSibling !== inlinePlan) {
       paymentSection.insertAdjacentElement('afterend', inlinePlan);

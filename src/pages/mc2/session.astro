@@ -67,11 +67,7 @@ const previewReviewInitials = (name) => name
     e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t
     ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
     spiffy.SNIPPET_VERSION="1.1.0";
-    spiffy.config({
-        hideSidebar: true,
-        pageTakeover: false,
-        thanksPageTakeover: false,
-    });
+    spiffy.config({ hideSidebar: true });
     if (window.location.protocol === 'https:') spiffy.load("sonnycourt");
     </script>
     <GAConsentMode />
@@ -1042,90 +1038,6 @@ const previewReviewInitials = (name) => name
             box-shadow: none;
             color: #f4f8ff;
         }
-        .preview-payment.is-switching { opacity: 1; transform: none; }
-        .preview-payment-success {
-            display: none;
-            min-height: 300px;
-            padding: clamp(34px, 7vw, 58px) clamp(18px, 5vw, 42px);
-            border: 1px solid rgba(74, 222, 128, 0.32);
-            border-radius: 18px;
-            background:
-                radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.2), transparent 52%),
-                linear-gradient(145deg, rgba(6, 46, 35, 0.82), rgba(5, 25, 38, 0.96));
-            box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 20px 52px rgba(0, 0, 0, 0.24);
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: #fff;
-            text-align: center;
-        }
-        .preview-payment.is-confirmed > :not(.preview-payment-success) { display: none !important; }
-        .preview-payment.is-confirmed .preview-payment-success { display: flex; }
-        .preview-payment-success__check {
-            display: grid;
-            width: 64px;
-            height: 64px;
-            margin-bottom: 18px;
-            place-items: center;
-            border: 1px solid rgba(134, 239, 172, 0.7);
-            border-radius: 50%;
-            background: linear-gradient(145deg, #4ade80, #16a34a);
-            box-shadow: 0 12px 32px rgba(34, 197, 94, 0.32), inset 0 1px rgba(255, 255, 255, 0.55);
-            color: #052e1b;
-            font-size: 1.7rem;
-            font-weight: 950;
-        }
-        .preview-payment-success__eyebrow {
-            margin: 0 0 8px;
-            color: #86efac;
-            font-size: 0.68rem;
-            font-weight: 900;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-        .preview-payment-success h3 {
-            margin: 0;
-            color: #fff;
-            font-size: clamp(1.55rem, 5vw, 2.15rem);
-            font-weight: 950;
-            letter-spacing: -0.025em;
-            text-transform: uppercase;
-        }
-        .preview-payment-success__copy {
-            max-width: 500px;
-            margin: 13px auto 22px;
-            color: rgba(226, 232, 240, 0.84);
-            font-size: clamp(0.84rem, 2.3vw, 0.98rem);
-            line-height: 1.55;
-        }
-        .preview-payment-success__cta {
-            display: inline-flex;
-            min-height: 52px;
-            padding: 0 24px;
-            align-items: center;
-            justify-content: center;
-            border-radius: 11px;
-            background: linear-gradient(135deg, #60a5fa, #2563eb);
-            box-shadow: 0 14px 34px rgba(37, 99, 235, 0.34);
-            color: #fff;
-            font-size: 0.8rem;
-            font-weight: 950;
-            letter-spacing: 0.025em;
-            text-decoration: none;
-            text-transform: uppercase;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
-        }
-        .preview-payment-success__cta:hover,
-        .preview-payment-success__cta:focus-visible {
-            transform: translateY(-1px);
-            box-shadow: 0 17px 38px rgba(37, 99, 235, 0.42);
-        }
-        .preview-payment-success__note {
-            margin: 13px 0 0;
-            color: rgba(191, 219, 254, 0.66);
-            font-size: 0.68rem;
-            line-height: 1.45;
-        }
         .preview-spiffy-payment-label {
             margin: 13px 0 8px;
             color: #eaf3ff;
@@ -1161,6 +1073,7 @@ const previewReviewInitials = (name) => name
         }
         .preview-payment__label { margin: 0; font-size: 0.92rem; font-weight: 850; }
         .preview-spiffy-slot {
+            position: relative;
             min-height: 0;
             overflow: hidden;
             border: 0;
@@ -1168,6 +1081,15 @@ const previewReviewInitials = (name) => name
             background: transparent;
         }
         .preview-spiffy-slot spiffy-checkout { display: block; width: 100%; }
+        .preview-spiffy-slot iframe {
+            visibility: hidden;
+            opacity: 0;
+        }
+        .preview-spiffy-slot.is-ready iframe {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.12s ease;
+        }
         .preview-spiffy-frame {
             display: block;
             width: 100%;
@@ -2030,7 +1952,6 @@ const previewReviewInitials = (name) => name
                 <div class="dev-time-row">
                     <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo −1s</button>
                     <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire → replay</button>
-                    <button id="dev-payment-success" class="dev-time-btn" type="button">Après achat ✓</button>
                 </div>
             </div>
         </div>
@@ -2219,14 +2140,6 @@ const previewReviewInitials = (name) => name
                             <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
                         </div>
                         <p id="preview-spiffy-error" class="preview-spiffy-error" role="alert"></p>
-                        <div id="preview-payment-success" class="preview-payment-success" role="status" aria-live="polite">
-                            <span class="preview-payment-success__check" aria-hidden="true">✓</span>
-                            <p class="preview-payment-success__eyebrow">Paiement confirmé</p>
-                            <h3>Bienvenue dans Esprit Subconscient 2.0</h3>
-                            <p class="preview-payment-success__copy">Ton accès est prêt. Tu peux continuer la masterclass et rejoindre ton espace membre au moment qui te convient.</p>
-                            <a id="preview-payment-success-cta" class="preview-payment-success__cta" href="/commencer/succes/?provider=spiffy">Rejoindre mon espace membre</a>
-                            <p class="preview-payment-success__note">Une dernière étape te permettra de compléter les coordonnées de ton dossier.</p>
-                        </div>
                     </div>
                 </div>
                 <div class="preview-includes">
@@ -2970,33 +2883,20 @@ const previewReviewInitials = (name) => name
             const switchButton = document.getElementById('preview-payment-switch');
             const errorNode = document.getElementById('preview-spiffy-error');
             const slot = document.getElementById('preview-spiffy-slot');
-            const successCta = document.getElementById('preview-payment-success-cta');
             checkoutSection?.classList.add('is-live');
             oldCta?.classList.add('hidden');
             if (!paymentPanel || !switchButton || !slot) return;
             paymentPanel.classList.add('is-spiffy-themed');
             if (inlineCheckoutController?.provider === 'spiffy' && inlineCheckoutController.token === reg.token) return;
 
+            const requestedPlan = new URLSearchParams(window.location.search).get('plan');
+            const initialPlan = requestedPlan === 'once' ? 'once' : 'monthly';
             const controller = {
                 provider: 'spiffy',
                 token: reg.token,
-                plan: 'monthly',
-                generation: 0,
-                busy: false,
-                confirmed: false,
-                confirming: false,
-                statusRequestInFlight: false,
-                statusPollTimer: null,
-                statusPollStartedAt: 0,
+                plan: initialPlan,
             };
             inlineCheckoutController = controller;
-
-            const checkoutSlugs = new Set([
-                ...Object.values(SPIFFY_CHECKOUT_URLS),
-                ...Object.values(SPIFFY_PREVIEW_CHECKOUT_URLS),
-            ].map(function (checkoutUrl) {
-                return new URL(checkoutUrl).pathname.split('/').filter(Boolean).pop();
-            }));
 
             function planTrackingMeta(plan) {
                 return {
@@ -3004,112 +2904,6 @@ const previewReviewInitials = (name) => name
                     plan: plan,
                     payment_mode: plan === 'once' ? 'spiffy_one_time_1997' : 'spiffy_12x197',
                 };
-            }
-
-            function stopStatusPolling() {
-                if (controller.statusPollTimer) window.clearTimeout(controller.statusPollTimer);
-                controller.statusPollTimer = null;
-            }
-
-            function showPaymentSuccess(status, options = {}) {
-                if (controller.confirmed) return;
-                controller.confirmed = true;
-                controller.confirming = false;
-                stopStatusPolling();
-                paymentPanel.classList.remove('is-switching');
-                paymentPanel.classList.add('is-confirmed');
-                checkoutSection?.classList.add('is-purchased');
-                if (successCta) {
-                    successCta.href = '/commencer/succes/?provider=spiffy&t=' + encodeURIComponent(controller.token);
-                }
-                showPaymentError('');
-                if (options.simulated !== true) {
-                    trackWebinaireEvent(controller.token, 'purchase_completed', null, {
-                        ...planTrackingMeta(controller.plan),
-                        payment_method: 'spiffy',
-                        intent_status: String(status?.payment_status || 'paid'),
-                    });
-                }
-            }
-
-            if (new URLSearchParams(window.location.search).get('preview') === 'dev') {
-                window.__mc2PreviewPaymentSuccess = function () {
-                    if (inlineCheckoutController !== controller) return false;
-                    showPaymentSuccess({ payment_status: 'paid' }, { simulated: true });
-                    return true;
-                };
-            }
-
-            async function verifyPaymentStatus() {
-                if (controller.confirmed || controller.statusRequestInFlight) return controller.confirmed;
-                controller.statusRequestInFlight = true;
-                try {
-                    const response = await fetch('/.netlify/functions/mc2-spiffy-status?t=' + encodeURIComponent(controller.token), {
-                        headers: { Accept: 'application/json' },
-                        cache: 'no-store',
-                    });
-                    if (!response.ok) return false;
-                    const status = await response.json();
-                    if (status?.paid && status?.schedule_ready) {
-                        showPaymentSuccess(status);
-                        return true;
-                    }
-                } catch {
-                    /* Le webhook peut encore être en transit : le prochain passage réessaie. */
-                } finally {
-                    controller.statusRequestInFlight = false;
-                }
-                return false;
-            }
-
-            function continueStatusPolling() {
-                if (controller.confirmed || !controller.confirming) return;
-                if (Date.now() - controller.statusPollStartedAt >= 2 * 60 * 1000) {
-                    controller.confirming = false;
-                    showPaymentError('Ton paiement a été reçu, mais sa confirmation prend plus de temps que prévu. Recharge cette page dans quelques instants.');
-                    return;
-                }
-                controller.statusPollTimer = window.setTimeout(async function () {
-                    const confirmed = await verifyPaymentStatus();
-                    if (!confirmed) continueStatusPolling();
-                }, 1200);
-            }
-
-            function startStatusPolling() {
-                if (controller.confirmed || controller.confirming) return;
-                controller.confirming = true;
-                controller.statusPollStartedAt = Date.now();
-                verifyPaymentStatus().then(function (confirmed) {
-                    if (!confirmed) continueStatusPolling();
-                });
-            }
-
-            function belongsToMountedCheckout(data) {
-                const slug = String(data?.slug || '').trim().toLowerCase();
-                return !slug || checkoutSlugs.has(slug);
-            }
-
-            function handleSpiffyOrderSuccess(data) {
-                if (!belongsToMountedCheckout(data)) return;
-                trackWebinaireEvent(controller.token, 'payment_submitted', null, {
-                    ...planTrackingMeta(controller.plan),
-                    payment_method: 'spiffy',
-                });
-                startStatusPolling();
-            }
-
-            function handleSpiffyOrderError(data) {
-                if (!belongsToMountedCheckout(data)) return;
-                trackWebinaireEvent(controller.token, 'payment_error', null, {
-                    ...planTrackingMeta(controller.plan),
-                    payment_method: 'spiffy',
-                    error_type: 'spiffy_order_error',
-                });
-            }
-
-            if (window.spiffy && typeof window.spiffy.on === 'function') {
-                window.spiffy.on('order:success', handleSpiffyOrderSuccess);
-                window.spiffy.on('order:error', handleSpiffyOrderError);
             }
 
             function showPaymentError(message) {
@@ -3134,44 +2928,58 @@ const previewReviewInitials = (name) => name
                 return url;
             }
 
+            function revealFrame(frame, height) {
+                if (!frame) return;
+                frame.classList.add('preview-spiffy-frame');
+                if (Number.isFinite(height)) {
+                    const safeHeight = Math.min(1100, Math.max(280, height));
+                    frame.style.height = `${safeHeight}px`;
+                    slot.style.minHeight = `${safeHeight}px`;
+                }
+                slot.classList.add('is-ready');
+                slot.querySelector('.preview-spiffy-loading')?.remove();
+            }
+
             function syncLocalFrameHeight(event) {
                 if (event.origin !== 'https://sonnycourt.spiffy.co') return;
-                const frame = slot.querySelector('iframe.preview-spiffy-frame');
+                const frame = slot.querySelector('iframe');
                 if (!frame || event.source !== frame.contentWindow) return;
                 if (event.data?.type === 'es2:spiffy-validation-focus') {
                     slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return;
                 }
                 if (event.data?.type !== 'es2:spiffy-height') return;
-                const height = Math.min(1100, Math.max(280, Number(event.data.height) || 0));
-                paymentPanel.classList.add('is-spiffy-themed');
-                frame.style.height = `${height}px`;
-                slot.style.minHeight = `${height}px`;
+                revealFrame(frame, Number(event.data.height) || 0);
             }
             window.addEventListener('message', syncLocalFrameHeight);
 
             function mountPlan(plan) {
-                if (controller.confirmed) return;
-                const generation = ++controller.generation;
-                const isPlanChange = slot.children.length > 0;
                 controller.plan = plan;
-                controller.busy = true;
-                switchButton.disabled = true;
-                if (isPlanChange) paymentPanel.classList.add('is-switching');
                 showPaymentError('');
                 inlinePlanUi(plan);
+                slot.classList.remove('is-ready');
+                slot.style.minHeight = '';
                 const url = buildCheckoutUrl(plan);
-                slot.replaceChildren();
-                trackWebinaireEvent(controller.token, generation === 1 ? 'checkout_viewed' : 'checkout_engaged', null, {
-                    ...planTrackingMeta(plan),
-                    payment_method: 'spiffy',
-                    visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                const loader = document.createElement('div');
+                loader.className = 'preview-spiffy-loading';
+                loader.textContent = 'Chargement du formulaire d’inscription…';
+                slot.replaceChildren(loader);
+
+                const observer = new MutationObserver(function () {
+                    const frame = slot.querySelector('iframe');
+                    if (!frame) return;
+                    frame.classList.add('preview-spiffy-frame');
+                    frame.title = plan === 'once'
+                        ? 'Paiement unique Esprit Subconscient 2.0'
+                        : 'Paiement mensuel Esprit Subconscient 2.0';
+                    observer.disconnect();
                 });
+                observer.observe(slot, { childList: true, subtree: true });
 
                 if (window.location.protocol === 'http:') {
                     url.searchParams.set('elements', btoa(JSON.stringify({
                         modality: 'inline',
-                        uid: generation,
+                        uid: 1,
                         from: window.location.href,
                         handles: {},
                     })));
@@ -3192,20 +3000,33 @@ const previewReviewInitials = (name) => name
                     slot.appendChild(checkout);
                 }
 
+                trackWebinaireEvent(controller.token, 'checkout_viewed', null, {
+                    ...planTrackingMeta(plan),
+                    payment_method: 'spiffy',
+                    visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                });
+
                 window.setTimeout(function () {
-                    if (generation !== controller.generation) return;
-                    controller.busy = false;
-                    switchButton.disabled = false;
-                    if (isPlanChange) paymentPanel.classList.remove('is-switching');
-                }, 180);
+                    const frame = slot.querySelector('iframe');
+                    if (frame && !slot.classList.contains('is-ready')) revealFrame(frame);
+                }, 6000);
             }
 
             switchButton.addEventListener('click', function () {
-                if (controller.busy) return;
-                mountPlan(controller.plan === 'once' ? 'monthly' : 'once');
+                const nextPlan = controller.plan === 'once' ? 'monthly' : 'once';
+                trackWebinaireEvent(controller.token, 'checkout_engaged', null, {
+                    ...planTrackingMeta(nextPlan),
+                    payment_method: 'spiffy',
+                    visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                });
+                const nextUrl = new URL(window.location.href);
+                if (nextPlan === 'once') nextUrl.searchParams.set('plan', 'once');
+                else nextUrl.searchParams.delete('plan');
+                nextUrl.hash = 'preview-spiffy-slot';
+                window.location.assign(nextUrl.toString());
             });
-            mountPlan('monthly');
-            verifyPaymentStatus();
+
+            mountPlan(initialPlan);
         }
         function hideOfferZone() {
             const zone = document.getElementById('offer-zone');
@@ -4641,7 +4462,6 @@ const previewReviewInitials = (name) => name
             var inscBtns = Array.from(banner.querySelectorAll('[data-insc-preset]'));
             var nowBtns  = Array.from(banner.querySelectorAll('[data-now-preset]'));
             var prospectBtns = Array.from(banner.querySelectorAll('[data-prospect-preset]'));
-            var paymentSuccessBtn = document.getElementById('dev-payment-success');
 
             var currentSessionMs = 0;
             var currentMounted = null;
@@ -4801,30 +4621,6 @@ const previewReviewInitials = (name) => name
                     setSimNow(ms);
                 });
             });
-            if (paymentSuccessBtn) {
-                paymentSuccessBtn.addEventListener('click', function () {
-                    var ctaActiveMs = (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + 1000;
-                    setActiveNow('cta-active');
-                    syncDevProspectFlags(ctaActiveMs);
-                    setSimNow(ctaActiveMs);
-
-                    var attempts = 0;
-                    function revealPostPurchaseState() {
-                        attempts += 1;
-                        var reveal = window.__mc2PreviewPaymentSuccess;
-                        if (typeof reveal === 'function' && reveal() === true) {
-                            paymentSuccessBtn.classList.add('is-active');
-                            document.getElementById('preview-payment-success')?.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center',
-                            });
-                            return;
-                        }
-                        if (attempts < 40) window.setTimeout(revealPostPurchaseState, 100);
-                    }
-                    revealPostPurchaseState();
-                });
-            }
             prospectBtns.forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     devProspectPresent = btn.getAttribute('data-prospect-preset') === 'present';
