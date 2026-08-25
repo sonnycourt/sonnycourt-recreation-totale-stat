@@ -1119,18 +1119,15 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
     let replayRegistrationToken = '';
     const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000;
     const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
-    let CTA_APPEAR_SECONDS = 70 * 60 + 12; // apparition à 1h10m12s dans la nouvelle vidéo replay
+    let CTA_APPEAR_SECONDS = 77 * 60 + 28; // apparition à 1h17m28s dans la vidéo replay
     let CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // immédiatement cliquable à son apparition
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
-    // ROLLBACK 2026-05-29 : la vidéo W4 (sans les 6 min de countdown) a divisé la rétention par 2
-    // (17% atteint CTA vs 37% sur W3 avec la vidéo W2). La transition douce des 6 premières minutes
-    // jouait visiblement un rôle de "rampe d'accès" qu'on n'avait pas anticipé.
-    // On revient à la vidéo W2, en gardant les améliorations UX (pause, overlay scarcity,
-    // bouton plein écran restylé, PDF qui disparaît au CTA).
+    // Le replay retire exactement les 20 premières minutes de countdown du live.
+    // Son CTA est donc synchronisé 20 minutes plus tôt, à 1h17m28s.
     // Replay MC2 en HLS adaptatif via Bunny Stream. La source est indépendante du live
     // et de l'ancien funnel /masterclass afin qu'une mise à jour ne puisse pas les mélanger.
-    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/976fa52b-904d-41bd-9107-e68fbb5d3167/playlist.m3u8';
-    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://vz-601d6eb4-a9a.b-cdn.net/976fa52b-904d-41bd-9107-e68fbb5d3167/play_720p.mp4';
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8';
+    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/play_720p.mp4';
     const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
     function getMcWallClockMs() {

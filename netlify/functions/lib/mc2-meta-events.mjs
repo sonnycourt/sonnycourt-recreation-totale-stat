@@ -1,7 +1,7 @@
 import { sendMetaEvent } from './meta-capi.mjs';
 
 const META_SOURCE = 'meta_ad';
-const DEFAULT_VIDEO_DURATION_SECONDS = 5717;
+const DEFAULT_VIDEO_DURATION_SECONDS = 7103;
 const VIDEO_MILESTONES = [25, 50, 75];
 
 function clean(value, max = 500) {

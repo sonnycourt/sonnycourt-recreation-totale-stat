@@ -42,19 +42,19 @@ assert.deepEqual(mc2FunnelMetaEvents({
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 30,
-  meta: { percent: 31, duration_seconds: 5717 },
+  meta: { percent: 31, duration_seconds: 7103 },
   registration: { ...metaRegistration, watch_max_minutes: 15 },
 }).map((event) => event.eventName), ['QualifiedView25']);
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 60,
-  meta: { percent: 63, duration_seconds: 5717 },
+  meta: { percent: 63, duration_seconds: 7103 },
   registration: { ...metaRegistration, watch_max_minutes: 30 },
 }).map((event) => event.eventName), ['QualifiedView50']);
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 75,
-  meta: { percent: 79, duration_seconds: 5717 },
+  meta: { percent: 79, duration_seconds: 7103 },
   registration: { ...metaRegistration, watch_max_minutes: 60 },
 }).map((event) => event.eventName), ['QualifiedView75']);
 assert.deepEqual(

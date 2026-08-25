@@ -5,7 +5,7 @@ const KEY = 'active-source';
 const FORCE_REFRESH_KEY = 'force-refresh-at';
 
 const PRIMARY_DEFAULT =
-  'https://vz-601d6eb4-a9a.b-cdn.net/950991b8-2093-4637-a8b5-cd8b98a8f819/playlist.m3u8';
+  'https://vz-601d6eb4-a9a.b-cdn.net/eb8f090e-919d-4994-92b9-a9b516b35600/playlist.m3u8';
 const BACKUP_DEFAULT = '';
 
 function normalizeSource(raw) {

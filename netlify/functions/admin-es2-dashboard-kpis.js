@@ -11,10 +11,10 @@ const PAYS_RICHES = ['France', 'Belgique', 'Suisse', 'Canada', 'Luxembourg', 'Mo
 const RETENTION_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 82];
 
 /** Durée + minute d'apparition du CTA pour le format W2 (utilisé par la rétention nouvelle génération à la minute). */
-const W2_LIVE_DURATION_MIN = 101;
-const W2_LIVE_CTA_MIN = 89;
-const W2_REPLAY_DURATION_MIN = 81;
-const W2_REPLAY_CTA_MIN = 69;
+const W2_LIVE_DURATION_MIN = 118;
+const W2_LIVE_CTA_MIN = 97;
+const W2_REPLAY_DURATION_MIN = 98;
+const W2_REPLAY_CTA_MIN = 77;
 
 /** Prix ES2 en € (utilisé pour calculer les valeurs financières par lead). Ajuster ici si le prix change. */
 const ES2_OFFER_PRICE_EUR = 1997;

@@ -42,15 +42,15 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
     beforeCtaDelayMinutes: beforeCtaDelay === '' ? null : positiveInt(beforeCtaDelay, 0, 14 * 24 * 60),
     offerDelayMinutes: offerDelay === '' ? null : positiveInt(offerDelay, 0, 14 * 24 * 60),
     replayAccessHours: positiveInt(env.MC2_REPLAY_ACCESS_HOURS, 48, 30 * 24),
-    // La vidéo live contient 20 min 20 s d'attente que le replay ne contient
+    // La vidéo live contient 20 min d'attente que le replay ne contient
     // pas. On retire donc exactement ce décalage au point de reprise.
-    liveCountdownSeconds: positiveInt(env.MC2_LIVE_COUNTDOWN_SECONDS, 20 * 60 + 20, 60 * 60),
+    liveCountdownSeconds: positiveInt(env.MC2_LIVE_COUNTDOWN_SECONDS, 20 * 60, 60 * 60),
     replayUrl: clean(
       env.MC2_REPLAY_VIDEO_URL
-        || 'https://vz-601d6eb4-a9a.b-cdn.net/976fa52b-904d-41bd-9107-e68fbb5d3167/playlist.m3u8',
+        || 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
       2_000,
     ),
-    replayCtaSeconds: positiveInt(env.MC2_REPLAY_CTA_SECONDS, 70 * 60 + 12, 24 * 60 * 60),
+    replayCtaSeconds: positiveInt(env.MC2_REPLAY_CTA_SECONDS, 77 * 60 + 28, 24 * 60 * 60),
     publicBaseUrl: clean(env.MC2_PUBLIC_BASE_URL || 'https://sonnycourt.com', 500).replace(/\/$/, ''),
     groups: {
       no_show: clean(env.MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW || env.ML_MC2_REPLAY_NO_SHOW, 120),

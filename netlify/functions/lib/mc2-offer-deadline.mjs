@@ -4,7 +4,7 @@ import { queueMc2Sms } from './mc2-sms.mjs';
 export const MC2_OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
 export const MC2_OFFER_SMS_LEAD_MS = 15 * 60 * 1000;
 export const MC2_LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
-export const MC2_LIVE_CTA_SECONDS = 90 * 60 + 13;
+export const MC2_LIVE_CTA_SECONDS = 97 * 60 + 28;
 
 function validDate(value) {
   const date = new Date(value || '');
