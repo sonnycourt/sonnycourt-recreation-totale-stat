@@ -14,6 +14,10 @@ const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-p
 
 assert.match(page, /spiffy\.load\(["']sonnycourt["']\)/);
 assert.match(replay, /spiffy\.load\(["']sonnycourt["']\)/);
+assert.match(page, /mountPlan\(initialPlan === 'once' \? 'monthly' : 'once'\);\s*if \(window\.location\.protocol === 'https:' && window\.spiffy\?\.load\)/);
+assert.match(replay, /mountPlan\(initialPlan === 'once' \? 'monthly' : 'once'\);\s*if \(window\.location\.protocol === 'https:' && window\.spiffy\?\.load\)/);
+assert.doesNotMatch(page, /if \(window\.location\.protocol === 'https:'\) spiffy\.load/);
+assert.doesNotMatch(replay, /if \(window\.location\.protocol === 'https:'\) spiffy\.load/);
 assert.doesNotMatch(page, /\.crossorigin\s*=\s*["']anonymous["']/);
 assert.doesNotMatch(replay, /\.crossorigin\s*=\s*["']anonymous["']/);
 assert.doesNotMatch(page, /pageTakeover:\s*false/);
