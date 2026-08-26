@@ -2332,12 +2332,15 @@ const previewReviewInitials = (name) => name
             getMc2SessionSeatsLeft,
             startMc2SessionScarcity,
         } from '../../lib/mc2-session-scarcity.mjs';
+        import {
+            MC2_LIVE_CTA_SECONDS as CTA_APPEAR_SECONDS,
+            MC2_LIVE_VIDEO_DURATION_SECONDS as VIDEO_DURATION_FALLBACK_SECONDS,
+            MC2_LIVE_VIDEO_LEAD_MS as LIVE_VIDEO_LEAD_MS,
+        } from '../../lib/mc2-timing.mjs';
         const TOKEN_KEY = 'mc2_registration_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
-        const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000; // la vidéo commence 15 min avant session_date (19h45)
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
-        const CTA_APPEAR_SECONDS = 97 * 60 + 28; // apparition à 1h37m28s dans la vidéo live
         const CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // le bouton est immédiatement cliquable à son apparition
         const PURCHASE_TOASTS_ENABLED = true;
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
@@ -2345,7 +2348,6 @@ const previewReviewInitials = (name) => name
         // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
         // 240/360/480/720/1080. La qualité repasse ensuite automatiquement en ABR.
         const HLS_INITIAL_LEVEL = 1;
-        const VIDEO_DURATION_FALLBACK_SECONDS = 7103; // fallback si metadata indisponible (live = 1h58m22,035s, arrondi supérieur)
         let ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
         // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
         // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
@@ -3266,10 +3268,6 @@ const previewReviewInitials = (name) => name
             const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
             const previewScarcityPlacesEl = document.getElementById('preview-scarcity-places');
             const previewScarcityTotalEl = document.getElementById('preview-scarcity-total');
-            const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
-            const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
-                ? sessionEndsRawMs
-                : (sessionStartMs + (90 * 60 * 1000));
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
 
@@ -3286,6 +3284,12 @@ const previewReviewInitials = (name) => name
                     hour12: false,
                 }).format(date).replace(':', ' h ');
                 return dateLabel + ' à ' + timeLabel.replace(/ h 00$/, ' h');
+            }
+
+            function getBroadcastEndMs() {
+                // Le lecteur et le rafraîchissement utilisent la même fin réelle,
+                // indépendamment des anciens session_ends_at stockés à +75 minutes.
+                return liveStartMs + getVideoDurationSeconds() * 1000;
             }
             function formatAuditDate(ms) {
                 if (!Number.isFinite(ms)) return '--';
@@ -3857,7 +3861,7 @@ const previewReviewInitials = (name) => name
 
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
-                const broadcastEndMs = sessionEndsMs;
+                const broadcastEndMs = getBroadcastEndMs();
 
                 // Watchdog: if session is ended, video must stay paused. Always.
                 if (isSessionEnded && !video.paused) {
@@ -4758,10 +4762,6 @@ const previewReviewInitials = (name) => name
 
                 const now = Date.now();
                 const sessionMs = new Date(reg.sessionStartsAt).getTime();
-                const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
-                const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
-                    ? sessionEndsRawMs
-                    : (sessionMs + (90 * 60 * 1000));
                 const attendedLive = data?.attended_live === true;
                 const persistedOfferExpiryMs = reg.offreExpiresAt
                     ? new Date(reg.offreExpiresAt).getTime()

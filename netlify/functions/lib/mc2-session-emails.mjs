@@ -5,6 +5,7 @@ import {
   MC2_SESSION_PURCHASE_TIMELINE,
   MC2_SESSION_TOTAL_SEATS,
 } from '../../../src/lib/mc2-session-scarcity.mjs';
+import { mc2SessionEndsAt } from '../../../src/lib/mc2-timing.mjs';
 
 const SESSION_TYPES = new Set(['registration_confirmation', 'session_reminder_1h']);
 const OFFER_TYPES = new Set(['offer_5_places', 'offer_4h', 'offer_1h']);
@@ -212,7 +213,7 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
     if (rule?.supersededRemainingMs && now >= supersededAt) return skipJob(job, 'message_superseded');
   }
   if (job.message_type === 'session_reminder_1h' && now >= start) return skipJob(job, 'message_expired');
-  if (job.message_type === 'registration_confirmation' && now >= new Date(start.getTime() + 75 * 60_000)) {
+  if (job.message_type === 'registration_confirmation' && now >= mc2SessionEndsAt(start)) {
     return skipJob(job, 'message_expired');
   }
   if (job.message_type === 'session_reminder_1h') {

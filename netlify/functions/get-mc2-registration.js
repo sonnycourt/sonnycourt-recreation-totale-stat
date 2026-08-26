@@ -1,4 +1,5 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -42,7 +43,9 @@ export default async (req) => {
       slotKind: row.slot_kind,
       visitorTimezone: row.visitor_timezone || 'UTC',
       sessionStartsAt: row.session_starts_at,
-      sessionEndsAt: row.session_ends_at,
+      // Contrat normalisé pour les anciennes inscriptions dont la base contient
+      // encore l'ancien end à +75 minutes.
+      sessionEndsAt: mc2SessionEndsAtIso(row.session_starts_at),
       offreExpiresAt: row.offer_expires_at,
       statut: row.statut || 'partial',
       registeredAt: row.registered_at,

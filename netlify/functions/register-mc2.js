@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
+import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 import { queueMc2Sms } from './lib/mc2-sms.mjs';
 import { queueMc2SessionEmails } from './lib/mc2-session-emails.mjs';
 import { upsertWebinaireSubscriber } from './lib/mailerlite-webinaire.mjs';
@@ -45,7 +46,7 @@ function registrationResponse(row, alreadyRegistered = false, metaEvents = []) {
     token: row.token,
     statut: row.statut || 'partial',
     sessionStartsAt: row.session_starts_at,
-    sessionEndsAt: row.session_ends_at,
+    sessionEndsAt: mc2SessionEndsAtIso(row.session_starts_at),
     slotKind: row.slot_kind,
     visitorTimezone: row.visitor_timezone,
     redirectTo: `/mc2/confirmation?t=${encodeURIComponent(row.token)}`,

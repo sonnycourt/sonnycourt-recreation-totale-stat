@@ -1,4 +1,5 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 import {
   isWebinarBuyerStatus,
   isWebinarRegistrationExclusion,
@@ -55,7 +56,7 @@ export default async (req) => {
         token: row.token,
         statut: row.statut,
         session_date: row.session_starts_at,
-        session_ends_at: row.session_ends_at,
+        session_ends_at: mc2SessionEndsAtIso(row.session_starts_at),
         offre_expires_at: row.offer_expires_at,
       });
     }

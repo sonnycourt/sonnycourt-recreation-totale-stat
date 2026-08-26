@@ -1,7 +1,8 @@
 import { sendMetaEvent } from './meta-capi.mjs';
+import { MC2_LIVE_VIDEO_DURATION_SECONDS } from '../../../src/lib/mc2-timing.mjs';
 
 const META_SOURCE = 'meta_ad';
-const DEFAULT_VIDEO_DURATION_SECONDS = 7103;
+const DEFAULT_VIDEO_DURATION_SECONDS = MC2_LIVE_VIDEO_DURATION_SECONDS;
 const VIDEO_MILESTONES = [25, 50, 75];
 
 function clean(value, max = 500) {

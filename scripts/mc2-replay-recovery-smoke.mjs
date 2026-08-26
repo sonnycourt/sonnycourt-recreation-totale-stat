@@ -43,7 +43,9 @@ assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T1
 const left = { ...base, attended_live: true, watch_max_seconds_live: 2_700 };
 assert.equal(mc2RecoverySegment(left), 'left_before_cta');
 assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_500);
-assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T20:15:00.000Z');
+// L'ancien session_ends_at à +75 min est volontairement ignoré : la relance
+// part une heure après la fin réelle de la nouvelle vidéo live.
+assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T20:43:23.000Z');
 
 assert.equal(
   mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_live: 1_200 }, 'left_before_cta', env),

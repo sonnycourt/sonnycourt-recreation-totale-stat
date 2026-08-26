@@ -1,9 +1,13 @@
+import {
+  MC2_SESSION_DURATION_MS,
+  mc2SessionEndsAt,
+} from '../../../src/lib/mc2-timing.mjs';
+
 const QUARTER_MS = 15 * 60 * 1000;
 const JIT_GRACE_MS = 3 * 60 * 1000;
 const JIT_MAX_LEAD_MS = 30 * 60 * 1000;
 const SCHEDULED_MIN_LEAD_MS = 45 * 60 * 1000;
 const SCHEDULED_MAX_LEAD_MS = 6 * 24 * 60 * 60 * 1000;
-const SESSION_DURATION_MS = 75 * 60 * 1000;
 
 export const MC2_SLOT_KINDS = new Set(['jit', 'scheduled']);
 
@@ -76,10 +80,10 @@ export function validateMc2SessionSelection({ sessionStartsAt, slotKind, visitor
     slotKind: kind,
     visitorTimezone: timezone,
     sessionStartsAt: start,
-    sessionEndsAt: new Date(start.getTime() + SESSION_DURATION_MS),
+    sessionEndsAt: mc2SessionEndsAt(start),
   };
 }
 
 export function mc2SessionDurationMs() {
-  return SESSION_DURATION_MS;
+  return MC2_SESSION_DURATION_MS;
 }

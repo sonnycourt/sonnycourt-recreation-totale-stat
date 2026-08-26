@@ -1,11 +1,15 @@
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
 import { mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
 import { queueMc2OfferEmails } from './mc2-session-emails.mjs';
+import {
+  MC2_LIVE_CTA_SECONDS as SHARED_LIVE_CTA_SECONDS,
+  MC2_LIVE_VIDEO_LEAD_MS as SHARED_LIVE_VIDEO_LEAD_MS,
+} from '../../../src/lib/mc2-timing.mjs';
 
 export const MC2_OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
 export const MC2_OFFER_SMS_LEAD_MS = 60 * 60 * 1000;
-export const MC2_LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
-export const MC2_LIVE_CTA_SECONDS = 97 * 60 + 28;
+export const MC2_LIVE_VIDEO_LEAD_MS = SHARED_LIVE_VIDEO_LEAD_MS;
+export const MC2_LIVE_CTA_SECONDS = SHARED_LIVE_CTA_SECONDS;
 
 function validDate(value) {
   const date = new Date(value || '');
@@ -24,7 +28,7 @@ export function mc2LiveCtaAt(registration) {
  * Source de vérité serveur de la fenêtre commerciale MC2.
  *
  * - live : l'ancre est calculée depuis la session enregistrée (non falsifiable
- *   par le navigateur) et correspond exactement à 01:30:13 dans la diffusion ;
+ *   par le navigateur) et correspond exactement à 01:37:28 dans la diffusion ;
  * - replay : l'ancre est la première réception serveur de `cta_reached`.
  *
  * Le PATCH `offer_expires_at=is.null` rend l'initialisation idempotente même si

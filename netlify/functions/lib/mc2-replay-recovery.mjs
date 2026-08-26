@@ -5,6 +5,11 @@ import {
   getMailerLiteSubscriberId,
   removeSubscriberFromGroup,
 } from './mailerlite-webinaire.mjs';
+import {
+  MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS,
+  MC2_REPLAY_CTA_SECONDS,
+  mc2SessionEndsAt,
+} from '../../../src/lib/mc2-timing.mjs';
 
 const VALID_SEGMENTS = new Set(['no_show', 'left_before_cta', 'offer_seen_no_purchase']);
 const ACTIVE_STATUSES = 'pending,retry,processing';
@@ -44,13 +49,17 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
     replayAccessHours: positiveInt(env.MC2_REPLAY_ACCESS_HOURS, 48, 30 * 24),
     // La vidéo live contient 20 min d'attente que le replay ne contient
     // pas. On retire donc exactement ce décalage au point de reprise.
-    liveCountdownSeconds: positiveInt(env.MC2_LIVE_COUNTDOWN_SECONDS, 20 * 60, 60 * 60),
+    liveCountdownSeconds: positiveInt(
+      env.MC2_LIVE_COUNTDOWN_SECONDS,
+      MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS,
+      60 * 60,
+    ),
     replayUrl: clean(
       env.MC2_REPLAY_VIDEO_URL
         || 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
       2_000,
     ),
-    replayCtaSeconds: positiveInt(env.MC2_REPLAY_CTA_SECONDS, 77 * 60 + 28, 24 * 60 * 60),
+    replayCtaSeconds: positiveInt(env.MC2_REPLAY_CTA_SECONDS, MC2_REPLAY_CTA_SECONDS, 24 * 60 * 60),
     publicBaseUrl: clean(env.MC2_PUBLIC_BASE_URL || 'https://sonnycourt.com', 500).replace(/\/$/, ''),
     groups: {
       no_show: clean(env.MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW || env.ML_MC2_REPLAY_NO_SHOW, 120),
@@ -78,10 +87,9 @@ export function mc2RecoverySegment(row = {}) {
 export function mc2RecoveryDueAt(row = {}, segment, env = process.env) {
   const config = mc2ReplayRecoveryConfig(env);
   const start = dateOrNull(row.session_starts_at);
-  // Les créneaux MC2 durent 75 minutes. Le fallback évite une relance à partir
-  // du début si une ancienne ligne n'avait pas encore session_ends_at.
-  const end = dateOrNull(row.session_ends_at)
-    || (start ? new Date(start.getTime() + 75 * 60_000) : null);
+  // Recalcul depuis le début pour neutraliser les anciennes lignes enregistrées
+  // à +75 minutes, qui feraient partir le replay avant la fin de la vidéo live.
+  const end = mc2SessionEndsAt(start);
   if (!start || !VALID_SEGMENTS.has(segment)) return null;
   if (segment === 'no_show') return new Date(start.getTime() + config.noShowDelayMinutes * 60_000);
   if (segment === 'left_before_cta' && config.beforeCtaDelayMinutes != null) {
@@ -177,6 +185,18 @@ async function skipJob(job, reason) {
   return { status: reason === 'purchased' ? 'cancelled' : 'skipped', reason };
 }
 
+async function rescheduleJob(job, dueAt, previousAttempts) {
+  const saved = await supabasePatch('mc2_replay_recovery_jobs', `id=eq.${encode(job.id)}`, {
+    status: 'pending',
+    due_at: dueAt.toISOString(),
+    attempts: previousAttempts,
+    last_attempt_at: null,
+    last_error: null,
+  });
+  if (!saved.ok) throw new Error(`mc2_replay_reschedule_save_${saved.status}`);
+  return { status: 'rescheduled', dueAt: dueAt.toISOString() };
+}
+
 function nextDeliveryAttempt(attempts, now) {
   const delaysMinutes = [5, 30, 120, 360];
   const delay = delaysMinutes[Math.min(Math.max(attempts - 1, 0), delaysMinutes.length - 1)];
@@ -240,6 +260,11 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
   }
   const liveSegment = mc2RecoverySegment(registration);
   if (liveSegment !== job.segment) return skipJob(job, `segment_changed:${liveSegment || 'none'}`);
+  const canonicalDueAt = mc2RecoveryDueAt(registration, liveSegment, env);
+  if (canonicalDueAt && now < canonicalDueAt) {
+    // Corrige aussi les jobs déjà créés avec l'ancien session_ends_at à +75 min.
+    return rescheduleJob(job, canonicalDueAt, Math.max(0, attempts - 1));
+  }
 
   try {
     const config = mc2ReplayRecoveryConfig(env);
