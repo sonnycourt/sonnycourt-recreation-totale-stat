@@ -1,5 +1,6 @@
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
 import { mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
+import { queueMc2OfferEmails } from './mc2-session-emails.mjs';
 
 export const MC2_OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
 export const MC2_OFFER_SMS_LEAD_MS = 60 * 60 * 1000;
@@ -67,6 +68,18 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
     : { ok: false, disabled: true };
   if (!queued.ok && !queued.disabled) console.error('MC2 offer SMS queue failed:', queued.error);
 
+  let emailQueue = { ok: false, enabled: false, queued: 0 };
+  try {
+    emailQueue = await queueMc2OfferEmails({
+      token: safeToken,
+      session_starts_at: registration?.session_starts_at,
+      offer_expires_at: expiresAt.toISOString(),
+    });
+  } catch (error) {
+    // La file email ne doit jamais empêcher l'affichage de l'offre.
+    console.error('MC2 offer email queue failed:', error?.message || error);
+  }
+
   return {
     ok: true,
     activatedAt: activatedAt.toISOString(),
@@ -74,5 +87,7 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
     smsDueAt: new Date(expiresAt.getTime() - MC2_OFFER_SMS_LEAD_MS).toISOString(),
     smsQueued: queued.ok,
     smsDisabled: queued.disabled === true,
+    emailJobsQueued: Number(emailQueue.queued || 0),
+    emailJobsDisabled: emailQueue.enabled === false,
   };
 }

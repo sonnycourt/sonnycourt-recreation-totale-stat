@@ -1,8 +1,24 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { addSubscriberToGroup, getMailerLiteSubscriberId, removeSubscriberFromGroup } from './mailerlite-webinaire.mjs';
+import {
+  MC2_SESSION_OFFER_DURATION_MS,
+  MC2_SESSION_PURCHASE_TIMELINE,
+  MC2_SESSION_TOTAL_SEATS,
+} from '../../../src/lib/mc2-session-scarcity.mjs';
 
-const TYPES = new Set(['registration_confirmation', 'session_reminder_1h']);
+const SESSION_TYPES = new Set(['registration_confirmation', 'session_reminder_1h']);
+const OFFER_TYPES = new Set(['offer_5_places', 'offer_4h', 'offer_1h']);
+const TYPES = new Set([...SESSION_TYPES, ...OFFER_TYPES]);
 const MAX_ATTEMPTS = 5;
+const HOUR_MS = 60 * 60_000;
+const FIVE_PLACES_PURCHASE_INDEX = MC2_SESSION_TOTAL_SEATS - 5 - 1;
+const FIVE_PLACES_OFFSET_MS = MC2_SESSION_PURCHASE_TIMELINE[FIVE_PLACES_PURCHASE_INDEX]?.offsetMs;
+const FIVE_PLACES_REMAINING_MS = MC2_SESSION_OFFER_DURATION_MS - FIVE_PLACES_OFFSET_MS;
+const OFFER_RULES = [
+  { messageType: 'offer_5_places', remainingMs: FIVE_PLACES_REMAINING_MS, supersededRemainingMs: 4 * HOUR_MS },
+  { messageType: 'offer_4h', remainingMs: 4 * HOUR_MS, supersededRemainingMs: HOUR_MS },
+  { messageType: 'offer_1h', remainingMs: HOUR_MS, supersededRemainingMs: 0 },
+];
 const clean = (value, max = 500) => String(value == null ? '' : value).trim().slice(0, max);
 const encode = (value) => encodeURIComponent(clean(value));
 const dateOrNull = (value) => {
@@ -31,6 +47,10 @@ export function mc2SessionEmailsEnabled(env = process.env) {
   return clean(env.MC2_SESSION_EMAILS_ENABLED, 10).toLowerCase() === 'true';
 }
 
+export function mc2OfferEmailsEnabled(env = process.env) {
+  return clean(env.MC2_OFFER_EMAILS_ENABLED, 10).toLowerCase() === 'true';
+}
+
 export function mc2SessionEmailConfig(env = process.env) {
   return {
     publicBaseUrl: clean(env.MC2_PUBLIC_BASE_URL || 'https://sonnycourt.com').replace(/\/$/, ''),
@@ -38,6 +58,9 @@ export function mc2SessionEmailConfig(env = process.env) {
     groups: {
       registration_confirmation: clean(env.MAILERLITE_GROUP_MC2_CONFIRMATION || env.ML_MC2_CONFIRMATION, 120),
       session_reminder_1h: clean(env.MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H || env.ML_MC2_REMINDER_1H, 120),
+      offer_5_places: clean(env.MAILERLITE_GROUP_MC2_OFFER_5_PLACES, 120),
+      offer_4h: clean(env.MAILERLITE_GROUP_MC2_OFFER_4H, 120),
+      offer_1h: clean(env.MAILERLITE_GROUP_MC2_OFFER_1H, 120),
     },
   };
 }
@@ -77,6 +100,34 @@ export async function queueMc2SessionEmails(row, now = new Date(), env = process
   return { ok: true, enabled: true, queued };
 }
 
+export function mc2OfferEmailJobs(row = {}) {
+  const start = dateOrNull(row.session_starts_at);
+  const expiresAt = dateOrNull(row.offer_expires_at);
+  if (!row.token || !start || !expiresAt || !Number.isFinite(FIVE_PLACES_REMAINING_MS)) return [];
+  const token = clean(row.token, 128);
+  const session = start.toISOString();
+  const expiry = expiresAt.toISOString();
+  return OFFER_RULES.map((rule) => ({
+    token,
+    job_key: `mc2_offer_email:${token}:${expiry}:${rule.messageType}`,
+    message_type: rule.messageType,
+    session_starts_at: session,
+    offer_expires_at: expiry,
+    due_at: new Date(expiresAt.getTime() - rule.remainingMs).toISOString(),
+  }));
+}
+
+export async function queueMc2OfferEmails(row, env = process.env) {
+  if (!mc2SessionEmailsEnabled(env)) return { ok: true, enabled: false, queued: 0 };
+  let queued = 0;
+  for (const job of mc2OfferEmailJobs(row)) {
+    const inserted = await supabasePost('mc2_session_email_jobs', job);
+    if (inserted.ok) queued += 1;
+    else if (inserted.status !== 409) throw new Error(`mc2_offer_email_queue_${inserted.status}`);
+  }
+  return { ok: true, enabled: true, queued };
+}
+
 async function ensureSubscriber(registration, apiKey) {
   const existing = await getMailerLiteSubscriberId(registration.email, apiKey);
   if (existing) return existing;
@@ -107,6 +158,8 @@ async function updateSubscriberFields(subscriberId, registration, config) {
       mc2_session_starts_at: start.toISOString(), mc2_session_local_label: local.label,
       mc2_session_kind: registration.slot_kind === 'jit' ? 'just-in-time' : 'scheduled',
       mc2_visitor_timezone: registration.visitor_timezone || 'UTC',
+      mc2_offer_url: `${config.publicBaseUrl}/mc2/session/?t=${encodeURIComponent(registration.token)}`,
+      mc2_offer_expires_at: dateOrNull(registration.offer_expires_at)?.toISOString() || '',
     } }),
   });
   if (!response.ok) throw new Error(`mailerlite_fields_${response.status}`);
@@ -115,7 +168,7 @@ async function updateSubscriberFields(subscriberId, registration, config) {
 async function loadRegistration(token) {
   const result = await supabaseGet(
     `mc2_registrations?token=eq.${encode(token)}`
-      + '&select=token,email,prenom,slot_kind,visitor_timezone,session_starts_at,statut,payment_status,purchased_at&limit=1',
+      + '&select=token,email,prenom,slot_kind,visitor_timezone,session_starts_at,offer_expires_at,saw_offer,statut,payment_status,purchased_at&limit=1',
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -145,7 +198,21 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
   if (!registration) return skipJob(job, 'registration_missing');
   if (currentSession !== dateOrNull(job.session_starts_at)?.toISOString()) return skipJob(job, 'session_rescheduled');
   const start = new Date(currentSession);
-  if (job.message_type === 'session_reminder_1h' ? now >= start : now >= new Date(start.getTime() + 75 * 60_000)) {
+  if (OFFER_TYPES.has(job.message_type)) {
+    if (registration.statut === 'purchased' || registration.payment_status === 'paid' || registration.purchased_at) {
+      return skipJob(job, 'purchase_completed');
+    }
+    const expiry = dateOrNull(registration.offer_expires_at);
+    const jobExpiry = dateOrNull(job.offer_expires_at);
+    if (!registration.saw_offer || !expiry || !jobExpiry) return skipJob(job, 'offer_not_activated');
+    if (expiry.toISOString() !== jobExpiry.toISOString()) return skipJob(job, 'offer_deadline_changed');
+    if (now >= expiry) return skipJob(job, 'offer_expired');
+    const rule = OFFER_RULES.find((item) => item.messageType === job.message_type);
+    const supersededAt = new Date(expiry.getTime() - (rule?.supersededRemainingMs || 0));
+    if (rule?.supersededRemainingMs && now >= supersededAt) return skipJob(job, 'message_superseded');
+  }
+  if (job.message_type === 'session_reminder_1h' && now >= start) return skipJob(job, 'message_expired');
+  if (job.message_type === 'registration_confirmation' && now >= new Date(start.getTime() + 75 * 60_000)) {
     return skipJob(job, 'message_expired');
   }
   if (job.message_type === 'session_reminder_1h') {

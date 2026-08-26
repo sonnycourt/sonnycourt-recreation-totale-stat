@@ -1,5 +1,9 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
-import { mc2SessionEmailsEnabled, processMc2SessionEmailJob } from './lib/mc2-session-emails.mjs';
+import {
+  mc2OfferEmailsEnabled,
+  mc2SessionEmailsEnabled,
+  processMc2SessionEmailJob,
+} from './lib/mc2-session-emails.mjs';
 
 export default async () => {
   if (!mc2SessionEmailsEnabled()) {
@@ -13,6 +17,9 @@ export default async () => {
   );
   const jobs = await supabaseGet(
     `mc2_session_email_jobs?status=in.(pending,retry)&due_at=lte.${encodeURIComponent(now.toISOString())}`
+      + (mc2OfferEmailsEnabled()
+        ? ''
+        : '&message_type=in.(registration_confirmation,session_reminder_1h)')
       + '&select=*&order=due_at.asc&limit=100',
   );
   if (!jobs.ok) throw new Error(`mc2_session_email_jobs_${jobs.status}`);

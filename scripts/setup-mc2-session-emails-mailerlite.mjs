@@ -8,9 +8,13 @@ if (!apiKey) throw new Error('MAILERLITE_API_KEY manquante');
 const wantedGroups = [
   ['MAILERLITE_GROUP_MC2_CONFIRMATION', 'MC2 — Inscription confirmée'],
   ['MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H', 'MC2 — Rappel session — 1 heure'],
+  ['MAILERLITE_GROUP_MC2_OFFER_4H', 'MC2 — Offre — 4 heures restantes'],
+  ['MAILERLITE_GROUP_MC2_OFFER_1H', 'MC2 — Offre — 1 heure restante'],
+  ['MAILERLITE_GROUP_MC2_OFFER_5_PLACES', 'MC2 — Offre — 5 places restantes'],
 ];
 const wantedFields = [
   ['mc2_confirmation_url', 'text'], ['mc2_session_url', 'text'], ['mc2_session_local_label', 'text'],
+  ['mc2_offer_url', 'text'], ['mc2_offer_expires_at', 'text'],
 ];
 async function api(path, options = {}) {
   const response = await fetch(`https://connect.mailerlite.com/api${path}`, {
