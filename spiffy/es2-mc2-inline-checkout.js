@@ -128,6 +128,28 @@
     }
   }
 
+  function syncPaypalProxyState(root) {
+    var paypalSource = root.querySelector('[data-es2-paypal-source="true"]');
+    var paypalProxy = root.querySelector('[data-es2-paypal-proxy="true"]');
+    var separator = root.querySelector('[data-es2-paypal-separator="true"]');
+    if (!paypalProxy || !separator) return;
+
+    var paypalSelected = Boolean(paypalSource && paypalSource.classList.contains('payment-type--selected'));
+    var mode = paypalSelected ? 'return-card' : 'paypal';
+    if (paypalProxy.getAttribute('data-es2-mode') === mode) return;
+
+    paypalProxy.setAttribute('data-es2-mode', mode);
+    if (paypalSelected) {
+      separator.textContent = 'Changer de moyen de paiement';
+      paypalProxy.setAttribute('aria-label', 'Revenir à la carte bancaire');
+      paypalProxy.innerHTML = '<span>Revenir à la carte bancaire</span>';
+    } else {
+      separator.textContent = 'Ou choisir PayPal';
+      paypalProxy.setAttribute('aria-label', 'Payer avec PayPal');
+      paypalProxy.innerHTML = '<span><strong>Pay</strong><em>Pal</em></span>';
+    }
+  }
+
   function applyInlineExperience() {
     var root = document.querySelector('.checkout');
     if (!root) return false;
@@ -208,6 +230,13 @@
         paypalProxy.setAttribute('aria-label', 'Payer avec PayPal');
         paypalProxy.innerHTML = '<span><strong>Pay</strong><em>Pal</em></span>';
         paypalProxy.addEventListener('click', function () {
+          var selectedPaypal = root.querySelector('[data-es2-paypal-source="true"].payment-type--selected');
+          if (selectedPaypal) {
+            var cardSource = root.querySelector('.payment-type--stripe');
+            if (cardSource) cardSource.click();
+            window.setTimeout(function () { syncPaypalProxyState(root); }, 0);
+            return;
+          }
           var termsInput = root.querySelector('.terms .custom-control-input');
           if (termsInput && !termsInput.checked) {
             root.removeAttribute('data-es2-validation-active');
@@ -226,6 +255,7 @@
           var source = root.querySelector('[data-es2-paypal-source="true"]');
           if (source) source.click();
           window.setTimeout(function () {
+            syncPaypalProxyState(root);
             var checkoutButton = root.querySelector('.btn--checkout');
             if (checkoutButton) checkoutButton.click();
           }, 0);
@@ -237,6 +267,7 @@
       if (separator.nextElementSibling !== paypalProxy) {
         separator.insertAdjacentElement('afterend', paypalProxy);
       }
+      syncPaypalProxyState(root);
     }
 
     bindValidationExperience(root);

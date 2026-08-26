@@ -65,10 +65,19 @@ assert.doesNotMatch(inlineJs, /Ton plan de paiement/);
 assert.match(inlineJs, /Ou choisir PayPal/);
 assert.match(inlineJs, /buttonSection\.insertAdjacentElement\('afterend', separator\)/);
 assert.match(inlineJs, /separator\.insertAdjacentElement\('afterend', paypalProxy\)/);
+assert.match(inlineJs, /Revenir à la carte bancaire/);
+assert.match(inlineJs, /Changer de moyen de paiement/);
+assert.match(inlineJs, /if \(selectedPaypal\)/);
+assert.match(inlineJs, /if \(cardSource\) cardSource\.click\(\)/);
+assert.match(inlineJs, /syncPaypalProxyState\(root\)/);
 assert.match(inlineJs, /if \(termsInput && !termsInput\.checked\)/);
 assert.ok(
   inlineJs.indexOf('if (termsInput && !termsInput.checked)') < inlineJs.indexOf('if (source) source.click()'),
   'PayPal doit valider les CGV avant de sélectionner la méthode PayPal',
+);
+assert.ok(
+  inlineJs.indexOf('if (selectedPaypal)') < inlineJs.indexOf('if (termsInput && !termsInput.checked)'),
+  'Le retour à la carte doit rester possible avant toute autre validation',
 );
 assert.match(inlineJs, /if \(source\) source\.click\(\)/);
 assert.match(inlineJs, /if \(checkoutButton\) checkoutButton\.click\(\)/);
