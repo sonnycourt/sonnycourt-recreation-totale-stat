@@ -63,7 +63,15 @@ const previewReviewInitials = (name) => name
                                 <span id="preview-schedule-analogy" class="preview-schedule__analogy">≈ 6,50 € par jour</span>
                             </div>
                         </div>
-                        <p class="preview-spiffy-payment-label">Carte bancaire</p>
+                        <div class="preview-spiffy-payment-heading">
+                            <p class="preview-spiffy-payment-label">Carte bancaire</p>
+                            <div class="preview-payment-brands" aria-label="Paiements acceptés : Mastercard, Visa, Apple Pay et PayPal">
+                                <span class="preview-payment-brand preview-payment-brand--mastercard" role="img" aria-label="Mastercard"></span>
+                                <span class="preview-payment-brand preview-payment-brand--visa" role="img" aria-label="Visa">VISA</span>
+                                <span class="preview-payment-brand preview-payment-brand--apple" role="img" aria-label="Apple Pay"><b></b>Pay</span>
+                                <span class="preview-payment-brand preview-payment-brand--paypal" role="img" aria-label="PayPal">Pay<em>Pal</em></span>
+                            </div>
+                        </div>
                         <div id="preview-spiffy-slot" class="preview-spiffy-slot" aria-live="polite">
                             <div class="preview-spiffy-loading">Chargement du formulaire d’inscription…</div>
                         </div>
@@ -391,11 +399,60 @@ const previewReviewInitials = (name) => name
             box-shadow: none;
             color: #f4f8ff;
         }
-        .preview-spiffy-payment-label {
+        .preview-spiffy-payment-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             margin: 13px 0 8px;
+        }
+        .preview-spiffy-payment-label {
+            margin: 0;
             color: #eaf3ff;
             font-size: .78rem;
             font-weight: 850;
+        }
+        .preview-payment-brands {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .preview-payment-brand {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 24px;
+            min-width: 39px;
+            padding: 0 6px;
+            overflow: hidden;
+            color: #10203b;
+            background: #fff;
+            border: 1px solid rgba(148, 178, 216, .42);
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .16);
+            line-height: 1;
+        }
+        .preview-payment-brand--mastercard { position: relative; min-width: 40px; padding: 0; }
+        .preview-payment-brand--mastercard::before,
+        .preview-payment-brand--mastercard::after {
+            width: 14px;
+            height: 14px;
+            content: '';
+            border-radius: 50%;
+        }
+        .preview-payment-brand--mastercard::before { margin-right: -4px; background: #eb001b; }
+        .preview-payment-brand--mastercard::after { background: #f79e1b; mix-blend-mode: multiply; }
+        .preview-payment-brand--visa { color: #1434cb; font-size: 12px; font-style: italic; font-weight: 950; letter-spacing: -.08em; }
+        .preview-payment-brand--apple { color: #050505; font-size: 11px; font-weight: 800; letter-spacing: -.04em; }
+        .preview-payment-brand--apple b { margin-right: 2px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 15px; font-weight: 700; }
+        .preview-payment-brand--paypal { min-width: 43px; color: #003087; font-size: 10px; font-style: italic; font-weight: 900; letter-spacing: -.06em; }
+        .preview-payment-brand--paypal em { color: #0070ba; font-style: inherit; }
+        @media (max-width: 480px) {
+            .preview-spiffy-payment-heading { gap: 8px; }
+            .preview-payment-brands { gap: 3px; }
+            .preview-payment-brand { height: 22px; min-width: 34px; padding: 0 4px; }
+            .preview-payment-brand--mastercard { min-width: 35px; padding: 0; }
+            .preview-payment-brand--paypal { min-width: 39px; }
         }
         .preview-identity {
             display: grid;
@@ -972,3 +1029,39 @@ const previewReviewInitials = (name) => name
             letter-spacing: 0.55px;
         }
 </style>
+
+<script is:inline>
+    (function () {
+        function initPreviewReviews() {
+            var dialog = document.getElementById('preview-reviews-dialog');
+            var openButton = document.getElementById('preview-open-reviews');
+            var closeButton = document.getElementById('preview-close-reviews');
+            if (!dialog || !openButton || openButton.dataset.reviewsReady === 'true') return;
+
+            openButton.dataset.reviewsReady = 'true';
+            openButton.addEventListener('click', function () { dialog.showModal(); });
+            if (closeButton) closeButton.addEventListener('click', function () { dialog.close(); });
+            dialog.addEventListener('click', function (event) {
+                if (event.target === dialog) dialog.close();
+            });
+
+            var filters = Array.from(dialog.querySelectorAll('[data-preview-review-filter]'));
+            var items = Array.from(dialog.querySelectorAll('[data-preview-review-rating]'));
+            filters.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var rating = button.getAttribute('data-preview-review-filter');
+                    filters.forEach(function (filter) { filter.classList.toggle('is-active', filter === button); });
+                    items.forEach(function (item) {
+                        item.hidden = rating !== 'all' && item.getAttribute('data-preview-review-rating') !== rating;
+                    });
+                });
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPreviewReviews, { once: true });
+        } else {
+            initPreviewReviews();
+        }
+    })();
+</script>
