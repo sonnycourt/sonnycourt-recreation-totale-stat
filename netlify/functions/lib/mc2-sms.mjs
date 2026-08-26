@@ -333,7 +333,11 @@ export async function processMc2SmsJob(job, now = new Date()) {
     const expires = new Date(registration.offer_expires_at).getTime();
     if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
     const dueAt = new Date(job.due_at).getTime();
-    if (!Number.isFinite(dueAt) || now.getTime() - dueAt > MC2_OFFER_SMS_STALE_MS) {
+    const expectedDueAt = expires - 60 * 60 * 1000;
+    if (!Number.isFinite(dueAt) || Math.abs(dueAt - expectedDueAt) > 60 * 1000) {
+      return skipJob(job, 'offer_sms_legacy_schedule');
+    }
+    if (now.getTime() - dueAt > MC2_OFFER_SMS_STALE_MS) {
       return skipJob(job, 'offer_sms_stale');
     }
   }

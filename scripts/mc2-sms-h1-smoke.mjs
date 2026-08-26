@@ -252,6 +252,36 @@ try {
   assert.equal(stale.reason, 'offer_sms_stale');
   assert.equal(staleSkip.skip_reason, 'offer_sms_stale');
 
+  let legacySkip = null;
+  globalThis.fetch = async (url, options = {}) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith('/mc2_registrations')) return json([{
+      token,
+      telephone: '+41789482376',
+      pays: 'Suisse',
+      sms_consent_at: '2026-08-20T10:00:00.000Z',
+      statut: 'registered',
+      offer_expires_at: '2026-08-23T11:00:00.000Z',
+    }]);
+    if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
+      const body = JSON.parse(options.body || '{}');
+      if (body.status === 'processing') return json([{ id: 17, token, message_type: 'offer_deadline', attempts: 1 }]);
+      legacySkip = body;
+      return json([{ id: 17, ...body }]);
+    }
+    throw new Error(`unexpected network call ${url}`);
+  };
+  const legacy = await processMc2SmsJob({
+    id: 17,
+    token,
+    message_type: 'offer_deadline',
+    attempts: 0,
+    due_at: '2026-08-23T10:45:00.000Z',
+  }, new Date('2026-08-23T10:45:00.000Z'));
+  assert.equal(legacy.status, 'skipped');
+  assert.equal(legacy.reason, 'offer_sms_legacy_schedule');
+  assert.equal(legacySkip.skip_reason, 'offer_sms_legacy_schedule');
+
   const source = await fs.readFile(new URL('../netlify/functions/lib/mc2-sms.mjs', import.meta.url), 'utf8');
   assert.match(source, /page_path:\s*'\/mc2\/session\/'/);
   assert.match(source, /MC2_OFFER_H1_SMS_ENABLED/);
