@@ -65,6 +65,11 @@ assert.doesNotMatch(inlineJs, /Ton plan de paiement/);
 assert.match(inlineJs, /Ou choisir PayPal/);
 assert.match(inlineJs, /buttonSection\.insertAdjacentElement\('afterend', separator\)/);
 assert.match(inlineJs, /separator\.insertAdjacentElement\('afterend', paypalProxy\)/);
+assert.match(inlineJs, /if \(termsInput && !termsInput\.checked\)/);
+assert.ok(
+  inlineJs.indexOf('if (termsInput && !termsInput.checked)') < inlineJs.indexOf('if (source) source.click()'),
+  'PayPal doit valider les CGV avant de sélectionner la méthode PayPal',
+);
 assert.match(inlineJs, /if \(source\) source\.click\(\)/);
 assert.match(inlineJs, /if \(checkoutButton\) checkoutButton\.click\(\)/);
 assert.match(inlineJs, /es2:spiffy-height/);

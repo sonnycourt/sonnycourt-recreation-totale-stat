@@ -208,6 +208,21 @@
         paypalProxy.setAttribute('aria-label', 'Payer avec PayPal');
         paypalProxy.innerHTML = '<span><strong>Pay</strong><em>Pal</em></span>';
         paypalProxy.addEventListener('click', function () {
+          var termsInput = root.querySelector('.terms .custom-control-input');
+          if (termsInput && !termsInput.checked) {
+            root.removeAttribute('data-es2-validation-active');
+            var stripeField = root.querySelector('.StripeElement');
+            var feedback = root.querySelector('[data-es2-validation-feedback="true"]');
+            var termsSection = termsInput.closest('.section.block');
+            if (stripeField) stripeField.removeAttribute('data-es2-attention');
+            if (feedback) feedback.textContent = '';
+            if (termsSection) termsSection.setAttribute('data-es2-attention', 'true');
+            window.setTimeout(function () {
+              if (termsSection) termsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              window.parent.postMessage({ type: 'es2:spiffy-validation-focus' }, '*');
+            }, 20);
+            return;
+          }
           var source = root.querySelector('[data-es2-paypal-source="true"]');
           if (source) source.click();
           window.setTimeout(function () {
