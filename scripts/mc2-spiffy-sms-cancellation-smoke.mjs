@@ -51,7 +51,7 @@ try {
   assert.match(webhook, /cancelMc2OfferSmsAfterSpiffyPurchase/);
   assert.ok(
     webhook.indexOf('cancelMc2OfferSmsAfterSpiffyPurchase')
-      < webhook.indexOf('if \(!row\) return jsonResponse'),
+      < webhook.indexOf('if (!row && !isMc2Purchase) return jsonResponse'),
     'l’annulation MC2 doit précéder la sortie du chemin historique',
   );
 } finally {
@@ -63,4 +63,3 @@ try {
 }
 
 console.log('MC2 Spiffy SMS cancellation smoke: OK');
-
