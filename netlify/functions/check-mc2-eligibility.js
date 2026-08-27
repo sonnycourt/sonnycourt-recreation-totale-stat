@@ -1,6 +1,7 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
 import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 import {
+  isMc2ReactivatedNoShow,
   isWebinarBuyerStatus,
   isWebinarRegistrationExclusion,
 } from './lib/webinaire-exclusions.mjs';
@@ -41,10 +42,11 @@ export default async (req) => {
     if (!existing.ok) return jsonResponse(500, { error: 'Erreur base de données MC2' });
 
     const row = Array.isArray(existing.data) ? existing.data[0] : null;
+    const reactivatedNoShow = isMc2ReactivatedNoShow(exclusion?.raison);
     if (row && isWebinarBuyerStatus(row)) {
       return jsonResponse(200, { eligible: false, reason: 'excluded' });
     }
-    if (exclusion && !isWebinarRegistrationExclusion(exclusion.raison)) {
+    if (exclusion && !reactivatedNoShow && !isWebinarRegistrationExclusion(exclusion.raison)) {
       return jsonResponse(200, { eligible: false, reason: 'excluded' });
     }
     const completed = Boolean(row?.registration_completed_at)
@@ -65,11 +67,13 @@ export default async (req) => {
       `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut&limit=1`,
     );
     if (!legacy.ok) return jsonResponse(500, { error: 'Erreur base de données webinaire' });
-    if (Array.isArray(legacy.data) && legacy.data.length > 0) {
+    if (Array.isArray(legacy.data) && legacy.data.length > 0 && !reactivatedNoShow) {
       return jsonResponse(200, { eligible: false, reason: 'excluded' });
     }
 
-    if (exclusion) return jsonResponse(200, { eligible: false, reason: 'excluded' });
+    if (exclusion && !reactivatedNoShow) {
+      return jsonResponse(200, { eligible: false, reason: 'excluded' });
+    }
 
     return jsonResponse(200, { eligible: true });
   } catch (error) {

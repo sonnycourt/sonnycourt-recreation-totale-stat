@@ -7,8 +7,14 @@ const REGISTRATION_REASONS = new Set([
   'participant_mc2',
 ]);
 
+const MC2_REACTIVATED_NO_SHOW_REASON = 'no_show_reactive_mc2';
+
 export function isWebinarRegistrationExclusion(reason) {
   return REGISTRATION_REASONS.has(String(reason || '').trim().toLowerCase());
+}
+
+export function isMc2ReactivatedNoShow(reason) {
+  return String(reason || '').trim().toLowerCase() === MC2_REACTIVATED_NO_SHOW_REASON;
 }
 
 export function isWebinarBuyerStatus(row = {}) {
@@ -56,5 +62,9 @@ export async function excludeWebinarAttendee(email, raison) {
 }
 
 export async function excludeWebinarBuyer(email, raison = 'acheteur_es') {
+  return saveWebinarExclusion(email, raison, true);
+}
+
+export async function replaceWebinarExclusion(email, raison) {
   return saveWebinarExclusion(email, raison, true);
 }

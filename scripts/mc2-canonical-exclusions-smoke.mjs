@@ -53,6 +53,14 @@ scenario = { exclusions: [], mc2: [], legacy: [{ token: 'legacy-token', statut: 
 result = await post(checkMc2Eligibility);
 assert.equal(result.body.reason, 'excluded');
 
+scenario = {
+  exclusions: [{ raison: 'no_show_reactive_mc2' }],
+  mc2: [],
+  legacy: [{ token: 'legacy-token', statut: 'no-show' }],
+};
+result = await post(checkMc2Eligibility);
+assert.equal(result.body.eligible, true);
+
 scenario = { exclusions: [], mc2: [], legacy: [] };
 result = await post(checkMc2Eligibility);
 assert.equal(result.body.eligible, true);
@@ -95,11 +103,42 @@ const registerBody = await registerResponse.json();
 assert.equal(registerBody.token, 'mc2-token');
 assert.equal(requests.some((request) => request.method === 'PATCH'), false);
 
+scenario = {
+  exclusions: [{ raison: 'no_show_reactive_mc2' }],
+  mc2: [],
+  legacy: [{ token: 'legacy-token', statut: 'no-show' }],
+};
+requests = [];
+const reactivatedResponse = await registerMc2(new Request('https://sonnycourt.com/.netlify/functions/register-mc2', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'reactivated@example.com',
+    prenom: 'Réactivé',
+    telephone: '+213555000000',
+    pays: 'Algérie',
+    creneau: 'jit',
+    session_starts_at: new Date(nextQuarterMs).toISOString(),
+    slot_kind: 'jit',
+    visitor_timezone: 'UTC',
+  }),
+}));
+assert.equal(reactivatedResponse.status, 200);
+const reactivatedBody = await reactivatedResponse.json();
+assert.equal(reactivatedBody.success, true);
+assert.notEqual(reactivatedBody.token, 'legacy-token');
+assert.equal(requests.some((request) => request.method === 'POST' && request.url.includes('/mc2_registrations')), true);
+const reactivationExclusion = requests.find((request) => (
+  request.method === 'POST' && request.url.includes('/webinaire_exclusions?on_conflict=email')
+));
+assert.ok(reactivationExclusion);
+assert.equal(JSON.parse(reactivationExclusion.body).raison, 'inscrit_mc2');
+
 const registerMc2Source = await readFile(new URL('../netlify/functions/register-mc2.js', import.meta.url), 'utf8');
 const registerLegacy = await readFile(new URL('../netlify/functions/register-webinaire.js', import.meta.url), 'utf8');
 const backfill = await readFile(new URL('../sql/webinaire_exclusions_canonical_backfill.sql', import.meta.url), 'utf8');
 assert.match(registerMc2Source, /return jsonResponse\(409, registrationResponse\(existingRow, true\)\)/);
-assert.match(registerMc2Source, /persistMc2RegistrationExclusion\(completedRow\)/);
+assert.match(registerMc2Source, /persistMc2RegistrationExclusion\(completedRow, \{ reactivatedNoShow \}\)/);
 assert.match(registerMc2Source, /webinaire_registrations\?email=eq\./);
 assert.match(registerLegacy, /excludeWebinarAttendee\(email, 'inscrit_webinaire'\)/);
 assert.match(backfill, /on conflict \(email\) do update/);
@@ -109,6 +148,7 @@ console.log(JSON.stringify({
   canonical_table: 'webinaire_exclusions',
   mc2_completed_registration: 'existing_token_preserved',
   legacy_registration: 'blocks_mc2_registration',
+  reactivated_no_show: 'receives_new_mc2_token',
   replay_and_buyers: 'dynamic_exclusion',
   historical_backfill: 'idempotent_sql',
 }, null, 2));
