@@ -69,6 +69,28 @@ assert.deepEqual(
     contentName: 'Masterclass ES2 - Offre',
   }],
 );
+const organicRegistration = {
+  ...metaRegistration,
+  traffic_source: null,
+  meta_fbc: null,
+  meta_fbp: null,
+};
+assert.deepEqual(
+  mc2FunnelMetaEvents({
+    eventName: 'cta_reached',
+    meta: { offer_event_id: 'mc2-offer-organic-session' },
+    registration: organicRegistration,
+  }),
+  [{
+    eventName: 'OfferViewed',
+    eventId: 'mc2-offer-organic-session',
+    contentName: 'Masterclass ES2 - Offre',
+  }],
+);
+assert.deepEqual(mc2FunnelMetaEvents({
+  eventName: 'session_joined',
+  registration: organicRegistration,
+}), []);
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'cta_reached',
   meta: { offer_event_id: 'mc2-offer-browser-session' },
@@ -142,6 +164,34 @@ assert.equal(offerCapiBody.data[0].event_name, 'OfferViewed');
 assert.equal(offerCapiBody.data[0].event_id, 'mc2-offer-browser-session');
 assert.equal(offerCapiBody.data[0].event_source_url, 'https://sonnycourt.com/mc2/session/');
 
+capiRequest = null;
+await sendMc2MetaEvents({
+  events: mc2FunnelMetaEvents({
+    eventName: 'cta_reached',
+    meta: { offer_event_id: 'mc2-offer-organic-session' },
+    registration: organicRegistration,
+  }),
+  registration: organicRegistration,
+  req,
+  pagePath: '/mc2/replay/',
+});
+const organicOfferCapiBody = JSON.parse(capiRequest.options.body);
+assert.equal(organicOfferCapiBody.data[0].event_name, 'OfferViewed');
+assert.equal(organicOfferCapiBody.data[0].event_id, 'mc2-offer-organic-session');
+assert.equal(organicOfferCapiBody.data[0].event_source_url, 'https://sonnycourt.com/mc2/replay/');
+
+capiRequest = null;
+await sendMc2MetaEvents({
+  events: [{
+    eventName: 'Lead',
+    eventId: 'organic-lead-must-not-send',
+    contentName: 'Masterclass ES2',
+  }],
+  registration: organicRegistration,
+  req,
+});
+assert.equal(capiRequest, null);
+
 process.env.CONTEXT = 'deploy-preview';
 capiRequest = null;
 await sendMc2MetaEvents({
@@ -170,6 +220,7 @@ const sessionPage = await readFile(new URL('../src/pages/mc2/session.astro', imp
 const replayPage = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
 const replayTracker = await readFile(new URL('../netlify/functions/mc2-replay-track.js', import.meta.url), 'utf8');
 const replayRecovery = await readFile(new URL('../netlify/functions/lib/mc2-replay-recovery.mjs', import.meta.url), 'utf8');
+const offerBackfill = await readFile(new URL('../netlify/functions/admin-mc2-meta-offer-backfill.js', import.meta.url), 'utf8');
 
 assert.match(adapter, /fbq\('track', 'Lead',[\s\S]*eventID: event\.eventId/);
 assert.match(adapter, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
@@ -193,5 +244,9 @@ assert.match(replayPage, /trackWebinaireEvent\(token, 'cta_reached'\)/);
 assert.match(replayTracker, /mc2FunnelMetaEvents\(\{[\s\S]*eventName: funnelEventName/);
 assert.match(replayTracker, /sendMc2MetaEvents\(\{[\s\S]*pagePath: '\/mc2\/replay\/'/);
 assert.match(replayRecovery, /select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,/);
+assert.match(offerBackfill, /getSessionFromRequest\(req\)/);
+assert.match(offerBackfill, /const MAX_EXPECTED = 5/);
+assert.match(offerBackfill, /registration\.saw_offer !== true \|\| purchased\(registration\)/);
+assert.match(offerBackfill, /eventName: 'OfferViewed'/);
 
 console.log('mc2 meta events smoke: ok');

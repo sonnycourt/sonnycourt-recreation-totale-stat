@@ -65,9 +65,23 @@ function previousProgressPercent(row, meta = {}) {
 }
 
 export function mc2FunnelMetaEvents({ eventName, value, meta = {}, registration } = {}) {
-  if (!isMc2MetaRegistration(registration)) return [];
   const token = registrationToken(registration);
   if (!token) return [];
+
+  // L'audience de retargeting doit inclure toute personne réellement exposée
+  // à l'offre, quelle que soit sa source d'acquisition. Tous les autres
+  // événements Meta restent réservés au trafic Meta.
+  if (eventName === 'cta_reached' && !registration.saw_offer) {
+    return [{
+      eventName: 'OfferViewed',
+      // L'ID dédié est créé aléatoirement par la session navigateur puis partagé
+      // avec la CAPI. Le fallback conserve le tracking CAPI historique.
+      eventId: clean(meta.offer_event_id, 255) || mc2MetaEventId('offer', token),
+      contentName: 'Masterclass ES2 - Offre',
+    }];
+  }
+
+  if (!isMc2MetaRegistration(registration)) return [];
 
   if (eventName === 'session_joined' && !registration.attended_live) {
     return [{
@@ -87,16 +101,6 @@ export function mc2FunnelMetaEvents({ eventName, value, meta = {}, registration 
         eventId: mc2MetaEventId(`view-${milestone}`, token),
         contentName: `Masterclass ES2 - ${milestone}%`,
       }));
-  }
-
-  if (eventName === 'cta_reached' && !registration.saw_offer) {
-    return [{
-      eventName: 'OfferViewed',
-      // L'ID dédié est créé aléatoirement par la session navigateur puis partagé
-      // avec la CAPI. Le fallback conserve le tracking CAPI historique.
-      eventId: clean(meta.offer_event_id, 255) || mc2MetaEventId('offer', token),
-      contentName: 'Masterclass ES2 - Offre',
-    }];
   }
 
   if (eventName === 'cta_clicked' && !registration.clicked_cta) {
@@ -143,9 +147,13 @@ export async function sendMc2MetaEvents({
   currency,
   eventTime,
 } = {}) {
-  if (!isMc2MetaRegistration(registration) || !Array.isArray(events) || events.length === 0) return [];
+  if (!Array.isArray(events) || events.length === 0) return [];
+  const eligibleEvents = events.filter((event) => (
+    event?.eventName === 'OfferViewed' || isMc2MetaRegistration(registration)
+  ));
+  if (eligibleEvents.length === 0) return [];
   const context = mc2MetaRequestContext(req, pagePath);
-  return Promise.all(events.map((event) => sendMetaEvent({
+  return Promise.all(eligibleEvents.map((event) => sendMetaEvent({
     eventName: event.eventName,
     eventId: event.eventId,
     email: registration.email,
