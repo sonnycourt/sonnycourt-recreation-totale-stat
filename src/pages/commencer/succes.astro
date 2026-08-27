@@ -86,6 +86,8 @@ const currentYear = new Date().getFullYear();
       const title = document.querySelector('#status-title');
       const copy = document.querySelector('#status-copy');
       const byId = (id) => document.getElementById(id);
+      const PAYMENT_STATUS_MAX_ATTEMPTS = 15;
+      const PAYMENT_STATUS_RETRY_MS = 2000;
 
       function trackAuthentication(authentication) {
         if (local || !token || !authentication || (!authentication.attempted && authentication.state !== 'required')) return;
@@ -132,7 +134,7 @@ const currentYear = new Date().getFullYear();
       async function verifyPayment() {
         if (local) return revealForm({ first_name: 'Sonny', phone: '+41 78 000 00 00', country: 'CH' });
         if (!token || (provider === 'stripe' && !sessionId)) throw new Error('Confirmation incomplète.');
-        for (let attempt = 0; attempt < 10; attempt += 1) {
+        for (let attempt = 0; attempt < PAYMENT_STATUS_MAX_ATTEMPTS; attempt += 1) {
           const statusUrl = provider === 'spiffy'
             ? `/.netlify/functions/mc2-spiffy-status?t=${encodeURIComponent(token)}`
             : `/.netlify/functions/mc2-stripe-status?session_id=${encodeURIComponent(sessionId)}&t=${encodeURIComponent(token)}`;
@@ -141,8 +143,10 @@ const currentYear = new Date().getFullYear();
           if (!response.ok) throw new Error(data.error || 'Paiement introuvable.');
           trackAuthentication(data.authentication);
           if (data.paid && data.schedule_ready) return revealForm(data);
-          if (!data.paid) throw new Error('Le paiement n’est pas confirmé.');
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          loading.textContent = 'Confirmation du paiement en cours…';
+          if (attempt < PAYMENT_STATUS_MAX_ATTEMPTS - 1) {
+            await new Promise((resolve) => setTimeout(resolve, PAYMENT_STATUS_RETRY_MS));
+          }
         }
         throw new Error('La confirmation prend un peu plus de temps. Recharge cette page dans un instant.');
       }
