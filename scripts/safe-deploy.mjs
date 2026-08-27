@@ -127,9 +127,10 @@ function htmlFileForRoute(routePath) {
 function assertCriticalBuild() {
   const errors = [];
   for (const route of config.routes) {
-    const file = htmlFileForRoute(route.path);
+    const checkedPath = route.redirectTo || route.path;
+    const file = htmlFileForRoute(checkedPath);
     if (!file) {
-      errors.push(`${route.path} n'existe pas dans le build`);
+      errors.push(`${checkedPath} n'existe pas dans le build`);
       continue;
     }
     const html = readFileSync(file, 'utf8');
@@ -162,6 +163,15 @@ async function assertCriticalUrl(baseUrl) {
     if (!response.ok) {
       errors.push(`${route.path} répond ${response.status}`);
       continue;
+    }
+    if (route.redirectTo) {
+      const finalUrl = new URL(response.url);
+      if (!response.redirected || finalUrl.pathname !== route.redirectTo) {
+        errors.push(`${route.path} ne redirige pas vers ${route.redirectTo}`);
+      }
+      if (!finalUrl.searchParams.has('safe_deploy_check')) {
+        errors.push(`${route.path} perd ses paramètres pendant la redirection`);
+      }
     }
     for (const marker of route.contains) {
       if (!html.includes(marker)) {
