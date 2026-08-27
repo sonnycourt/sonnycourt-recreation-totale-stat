@@ -59,7 +59,9 @@ try {
     statut: 'registered',
     offer_expires_at: '2020-08-23T16:00:00.000Z',
   }] });
-  assert.equal(expired.status, 410);
+  assert.equal(expired.status, 302);
+  assert.equal(expired.headers.get('location'), `/mc2/session/?t=${token}`);
+  assert.match(expired.headers.get('set-cookie') || '', new RegExp(`mc2_registration_token=${token}`));
 
   const purchased = await run({ registrations: [{
     token,

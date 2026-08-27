@@ -50,7 +50,11 @@ export default async (req) => {
     const registration = registrations.data[0];
     const expiresAt = new Date(registration.offer_expires_at || '').getTime();
     if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
-      return response(410, 'Cette offre a expiré.');
+      const token = encodeURIComponent(job.token);
+      return response(302, 'Redirection…', {
+        Location: `/mc2/session/?t=${token}`,
+        'Set-Cookie': `mc2_registration_token=${token}; Path=/; Max-Age=2592000; SameSite=Lax; Secure`,
+      });
     }
 
     await supabasePost('mc2_funnel_events', {
