@@ -7,6 +7,8 @@ import {
 } from '../netlify/functions/lib/mc2-spiffy-sms-cancellation.mjs';
 
 assert.equal(mc2SpiffyCheckoutIds({}).has('39495'), true);
+assert.equal(mc2SpiffyCheckoutIds({}).has('40006'), true);
+assert.equal(mc2SpiffyCheckoutIds({}).has('40007'), true);
 assert.equal(isMc2SpiffyCheckout({ checkoutId: '39498', payload: {}, env: {} }), true);
 assert.equal(isMc2SpiffyCheckout({
   payload: { checkout_url: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34' },
@@ -21,11 +23,13 @@ process.env.SUPABASE_URL = 'https://supabase.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role';
 const token = '12345678-1234-1234-1234-123456789012';
 let cancellationPatch = null;
+let registrationLookupUrl = '';
 
 globalThis.fetch = async (url, options = {}) => {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith('/mc2_registrations')) {
     assert.equal(options.method, undefined);
+    registrationLookupUrl = parsed.href;
     return Response.json([{ token }]);
   }
   if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
@@ -37,15 +41,17 @@ globalThis.fetch = async (url, options = {}) => {
 
 try {
   const result = await cancelMc2OfferSmsAfterSpiffyPurchase({
-    checkoutId: '39495',
-    payload: { checkout_id: '39495' },
+    checkoutId: '40006',
+    payload: { checkout_id: '40006', mc2_token: token },
     email: 'Client@Example.com',
+    token,
     env: {},
   });
   assert.equal(result.ok, true);
   assert.equal(result.cancelled, true);
   assert.equal(cancellationPatch.status, 'skipped');
   assert.equal(cancellationPatch.skip_reason, 'spiffy_purchase_completed');
+  assert.match(registrationLookupUrl, /token=eq\./);
 
   const webhook = await fs.readFile(new URL('../netlify/functions/spiffy-purchase-webhook.js', import.meta.url), 'utf8');
   assert.match(webhook, /cancelMc2OfferSmsAfterSpiffyPurchase/);

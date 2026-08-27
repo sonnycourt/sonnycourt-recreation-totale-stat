@@ -109,14 +109,35 @@ function findAffiliate(obj, depth = 0) {
   return null;
 }
 
-/** Montant en euros depuis champs probables (gère cents si > 10000). */
+/** Montant en euros depuis les champs Spiffy (les champs *_amount sont en centimes). */
 function findAmountEur(data) {
-  const candidates = [data?.total, data?.amount, data?.amount_total, data?.grand_total, data?.subtotal];
-  for (const c of candidates) {
+  const centCandidates = [
+    data?.order_total,
+    data?.payment_amount,
+    data?.payment_amount_paid,
+    data?.payment_plan_amount,
+    data?.subscription_amount,
+    data?.amount_total,
+  ];
+  for (const c of centCandidates) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n / 100;
+  }
+  const euroCandidates = [data?.total, data?.amount, data?.grand_total, data?.subtotal];
+  for (const c of euroCandidates) {
     const n = Number(c);
     if (Number.isFinite(n) && n > 0) return n > 10000 ? n / 100 : n;
   }
   return null;
+}
+
+function cleanMc2Token(value) {
+  const token = typeof value === 'string' ? value.trim() : '';
+  return /^[a-zA-Z0-9_-]{16,160}$/.test(token) ? token : '';
+}
+
+function findMc2Token(body) {
+  return cleanMc2Token(findFirstKey(body, ['mc2_token', 'registration_token', 'client_reference_id']));
 }
 
 const MC2_SPIFFY_CHECKOUT_SLUGS = Object.freeze({
@@ -135,11 +156,18 @@ const MC2_SPIFFY_PLANS = Object.freeze({
   once: { initialCents: 199_700, contractualTotalCents: 199_700, paymentMode: 'spiffy_one_time_1997' },
 });
 
+const MC2_SPIFFY_CHECKOUT_PLANS = Object.freeze({
+  '40006': 'monthly',
+  '40007': 'once',
+});
+
 function amountMatches(actual, expected) {
   return Number.isFinite(Number(actual)) && Math.abs(Number(actual) - expected) < 0.02;
 }
 
-function mc2PlanFromPurchase(body, amount, registration) {
+function mc2PlanFromPurchase(body, amount, registration, checkoutId) {
+  const checkoutPlan = MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')];
+  if (checkoutPlan) return checkoutPlan;
   const haystack = JSON.stringify(body || {}).toLowerCase();
   if (MC2_SPIFFY_CHECKOUT_SLUGS.once.some((slug) => haystack.includes(slug))) return 'once';
   if (MC2_SPIFFY_CHECKOUT_SLUGS.monthly.some((slug) => haystack.includes(slug))) return 'monthly';
@@ -152,10 +180,12 @@ function mc2PlanFromPurchase(body, amount, registration) {
   return null;
 }
 
-function mc2PurchaseBelongsToRegistration(body, registration, plan) {
+function mc2PurchaseBelongsToRegistration(body, registration, plan, checkoutId) {
   if (!registration || !plan) return false;
-  const payloadToken = findFirstKey(body, ['mc2_token', 'registration_token', 'client_reference_id']);
-  if (payloadToken && payloadToken === registration.token) return true;
+  const payloadToken = findMc2Token(body);
+  if (payloadToken) return payloadToken === registration.token;
+
+  if (MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')]) return true;
 
   const haystack = JSON.stringify(body || {}).toLowerCase();
   if (Object.values(MC2_SPIFFY_CHECKOUT_SLUGS).flat().some((slug) => haystack.includes(slug))) return true;
@@ -199,7 +229,9 @@ export default async (req) => {
     let body = {};
     try { body = JSON.parse(rawBody); } catch { body = {}; }
     const data = body?.data || body;
-    const eventType = String(body?.event || body?.type || data?.event || '').toLowerCase();
+    const eventType = String(
+      body?.event || body?.event_name || body?.type || data?.event || data?.event_name || '',
+    ).toLowerCase();
     const email = (findEmail(body) || '').trim().toLowerCase();
     const amount = findAmountEur(data);
 
@@ -212,6 +244,7 @@ export default async (req) => {
     const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
     const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
     const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+    const payloadToken = findMc2Token(body);
 
     // Le webhook historique continue de traiter webinaire_registrations plus bas.
     // Cette branche additionnelle coupe uniquement le SMS H-1 du nouveau funnel
@@ -221,6 +254,7 @@ export default async (req) => {
         payload: body,
         checkoutId,
         email,
+        token: payloadToken,
       });
       if (!cancellation.ok) {
         console.error('spiffy-webhook MC2 SMS cancellation:', cancellation.error);
@@ -239,15 +273,23 @@ export default async (req) => {
 
     let mc2Row = null;
     if (isSale) {
-      const mc2 = await supabaseGet(
-        `mc2_registrations?email=eq.${encodeURIComponent(email)}`
-          + '&select=token,email,prenom,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,payment_status,statut,purchased_at'
-          + '&order=registered_at.desc&limit=1',
-      );
+      const mc2Select = 'token,email,prenom,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,payment_status,statut,purchased_at';
+      let mc2 = payloadToken
+        ? await supabaseGet(
+          `mc2_registrations?token=eq.${encodeURIComponent(payloadToken)}&select=${mc2Select}&limit=1`,
+        )
+        : { ok: true, data: [] };
+      if (!payloadToken && mc2.ok && (!Array.isArray(mc2.data) || !mc2.data[0])) {
+        mc2 = await supabaseGet(
+          `mc2_registrations?email=eq.${encodeURIComponent(email)}`
+            + `&select=${mc2Select}&order=registered_at.desc&limit=1`,
+        );
+      }
       mc2Row = mc2.ok && Array.isArray(mc2.data) ? mc2.data[0] : null;
     }
-    const mc2Plan = mc2PlanFromPurchase(body, amount, mc2Row);
-    const isMc2Purchase = isSale && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan);
+    const mc2Plan = mc2PlanFromPurchase(body, amount, mc2Row, checkoutId);
+    const isMc2Purchase = isSale
+      && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan, checkoutId);
     if (!row && !isMc2Purchase) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
     const nowIso = new Date().toISOString();
@@ -273,8 +315,9 @@ export default async (req) => {
     }
 
     if (isSale) {
-      await removeFromCheckoutAbandonGroup(email, process.env.MAILERLITE_API_KEY);
-      const exclusion = await excludeWebinarBuyer(email, 'acheteur_es');
+      const registeredEmail = isMc2Purchase ? mc2Row.email : email;
+      await removeFromCheckoutAbandonGroup(registeredEmail, process.env.MAILERLITE_API_KEY);
+      const exclusion = await excludeWebinarBuyer(registeredEmail, 'acheteur_es');
       if (!exclusion.ok) {
         console.error('spiffy-webhook: exclusion acheteur impossible', exclusion.status, exclusion.error);
       }
