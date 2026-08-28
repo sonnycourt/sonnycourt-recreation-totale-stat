@@ -18,6 +18,44 @@ export type PromoFormationKey =
   | "neuroIa"
   | "systemeViral";
 
+export const promoThemeStyles: Record<PromoTheme, {
+  bg: string;
+  accent: string;
+  btn: string;
+  btnText: string;
+}> = {
+  red: {
+    bg: "linear-gradient(105deg, #8b0e3a 0%, #b31950 40%, #c6284a 100%)",
+    accent: "linear-gradient(100deg, #ffffff 0%, #ffd5e0 70%)",
+    btn: "#ffd166",
+    btnText: "#7c0a2a",
+  },
+  purple: {
+    bg: "linear-gradient(105deg, #2d1b69 0%, #5b2d8e 40%, #7c3aed 100%)",
+    accent: "linear-gradient(100deg, #ffffff 0%, #d8b4fe 70%)",
+    btn: "linear-gradient(135deg, #ffcf40 0%, #ff8c1a 100%)",
+    btnText: "#3a1500",
+  },
+  gold: {
+    bg: "linear-gradient(105deg, #1a1a1a 0%, #2d2306 40%, #44370a 100%)",
+    accent: "linear-gradient(100deg, #ffd700 0%, #ffec80 70%)",
+    btn: "#ffd700",
+    btnText: "#1a1a1a",
+  },
+  green: {
+    bg: "linear-gradient(180deg, #0b3d2e 0%, #166534 45%, #34a853 100%)",
+    accent: "linear-gradient(100deg, #ecfdf5 0%, #bbf7d0 70%)",
+    btn: "#dcfce7",
+    btnText: "#14532d",
+  },
+  summer: {
+    bg: "linear-gradient(180deg, #0b3d2e 0%, #166534 45%, #34a853 100%)",
+    accent: "linear-gradient(100deg, #ecfdf5 0%, #bbf7d0 70%)",
+    btn: "#dcfce7",
+    btnText: "#14532d",
+  },
+};
+
 const formationLabels: Record<PromoFormationKey, string> = {
   manifest: "Manifest",
   espritSubconscient: "Esprit Subconscient",

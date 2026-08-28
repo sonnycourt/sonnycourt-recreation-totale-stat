@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PromoBanner from '../components/PromoBanner.astro';
-import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo } from '../config/promo';
+import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo, promoThemeStyles } from '../config/promo';
+const promoTheme = promoThemeStyles[promo.theme];
 ---
 
 <Layout title="Esprit Subconscient - 21 Jours pour Reprogrammer ton Subconscient" description="Libère-toi de tes blocages inconscients et transforme ta vie en 21 jours. Formation complète pour reprogrammer ton subconscient." showHeader={false} showFooter={false}>
@@ -12,6 +13,10 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
     data-active={isPromoActiveFor('espritSubconscient').toString()}
     data-promo-label={getPromoLabel()}
     data-banner-message={getPromoBannerMessage()}
+    data-theme-bg={promoTheme.bg}
+    data-theme-accent={promoTheme.accent}
+    data-theme-btn={promoTheme.btn}
+    data-theme-btn-text={promoTheme.btnText}
     data-checkout-code={getPromoCheckoutCode('espritSubconscient')}
     data-price-original={promo.formations.espritSubconscient.priceOriginal}
     data-price-promo={promo.formations.espritSubconscient.pricePromo}
@@ -5380,15 +5385,12 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
   document.querySelectorAll('.price-old, .final-price-old').forEach(function(el) { if (priceOriginal) el.textContent = priceOriginal + '€'; });
   document.querySelectorAll('.price-new, .final-price-new').forEach(function(el) { if (pricePromo) el.textContent = pricePromo + '€'; });
 
-  var themes = {
-    gold: {
-      bg: 'linear-gradient(105deg, #2d1b69 0%, #5b2d8e 40%, #7c3aed 100%)',
-      accent: 'linear-gradient(100deg, #ffffff 0%, #d8b4fe 70%)',
-      btn: 'linear-gradient(135deg, #ffcf40 0%, #ff8c1a 100%)',
-      btnText: '#3a1500'
-    }
+  var t = {
+    bg: promoConfig.dataset.themeBg,
+    accent: promoConfig.dataset.themeAccent,
+    btn: promoConfig.dataset.themeBtn,
+    btnText: promoConfig.dataset.themeBtnText
   };
-  var t = themes.gold;
 
   var banner = document.createElement('div');
   banner.id = 'promo-banner-dynamic';
