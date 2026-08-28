@@ -1361,6 +1361,66 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
                 if (errorNode) errorNode.textContent = message || '';
             }
 
+            function trackCheckoutActuallySeen() {
+                if (controller.checkoutActuallySeenStarted) return;
+                controller.checkoutActuallySeenStarted = true;
+                let dwellTimer = null;
+                let observer = null;
+
+                function isCheckoutVisibleOnScreen() {
+                    if (document.visibilityState !== 'visible') return false;
+                    const rect = slot.getBoundingClientRect();
+                    const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+                    const visibleWidth = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
+                    return visibleHeight >= Math.max(80, Math.min(140, window.innerHeight * 0.2))
+                        && visibleWidth >= Math.max(120, Math.min(240, window.innerWidth * 0.5));
+                }
+
+                function stopDwell() {
+                    if (dwellTimer) window.clearTimeout(dwellTimer);
+                    dwellTimer = null;
+                }
+
+                function finish() {
+                    stopDwell();
+                    observer?.disconnect();
+                    window.removeEventListener('scroll', schedule, true);
+                    window.removeEventListener('resize', schedule);
+                    document.removeEventListener('visibilitychange', schedule);
+                }
+
+                function confirm() {
+                    dwellTimer = null;
+                    if (!isCheckoutVisibleOnScreen()) return;
+                    finish();
+                    trackWebinaireEvent(controller.token, 'checkout_actually_seen', null, {
+                        ...planTrackingMeta(controller.plan),
+                        payment_method: 'spiffy',
+                        visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                        viewport_width: window.innerWidth,
+                        viewport_height: window.innerHeight,
+                    });
+                }
+
+                function schedule() {
+                    if (!isCheckoutVisibleOnScreen()) {
+                        stopDwell();
+                        return;
+                    }
+                    if (!dwellTimer) dwellTimer = window.setTimeout(confirm, 1000);
+                }
+
+                if ('IntersectionObserver' in window) {
+                    observer = new IntersectionObserver(schedule, { threshold: [0, 0.05, 0.15, 0.3] });
+                    observer.observe(slot);
+                } else {
+                    window.addEventListener('scroll', schedule, { passive: true, capture: true });
+                    window.addEventListener('resize', schedule, { passive: true });
+                }
+                document.addEventListener('visibilitychange', schedule);
+                window.setTimeout(schedule, 0);
+            }
+
             function buildCheckoutUrl(plan) {
                 const isLocalPreview = new URLSearchParams(window.location.search).get('preview') === 'dev'
                     && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
@@ -1511,6 +1571,7 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
             slot.replaceChildren();
             activatePlan(initialPlan, 'checkout_viewed');
             mountPlan(initialPlan === 'once' ? 'monthly' : 'once');
+            trackCheckoutActuallySeen();
             if (window.location.protocol === 'https:' && window.spiffy?.load) {
                 window.spiffy.load('sonnycourt');
             }

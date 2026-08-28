@@ -28,6 +28,11 @@ const payload = summarizeMc2Cockpit({
   scheduledRegistrations: [
     { ...baseRegistration, token: 'c', slot_kind: 'scheduled', session_starts_at: '2026-08-28T13:00:00.000Z', session_ends_at: '2026-08-28T14:45:00.000Z' },
   ],
+  checkoutActuallySeenEvents: [
+    { token: 'a' },
+    { token: 'a' },
+    { token: 'outside-recent-cohort' },
+  ],
 });
 
 assert.equal(payload.presence.waiting, 1);
@@ -39,14 +44,26 @@ assert.equal(payload.presence.activeUnclassified, 0);
 assert.equal(payload.funnel24h.registrations, 3);
 assert.equal(payload.funnel24h.offer, 1);
 assert.equal(payload.funnel24h.checkout, 2);
+assert.equal(payload.funnel24h.checkoutActuallySeen, 1);
 assert.equal(payload.funnel24h.purchases, 1);
 assert.equal(payload.scheduledSessions.length, 1);
 assert.equal(payload.scheduledSessions[0].waitingNow, 1);
 
 const dashboard = fs.readFileSync(new URL('../src/pages/es-cockpit/dashboard.astro', import.meta.url), 'utf8');
+const sessionPage = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+const replayPage = fs.readFileSync(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
+const cockpitApi = fs.readFileSync(new URL('../netlify/functions/admin-mc2-cockpit-status.js', import.meta.url), 'utf8');
 assert.match(dashboard, /id: 'mc2', label: 'MC2 Live'/);
 assert.match(dashboard, /admin-mc2-cockpit-status/);
 assert.match(dashboard, /mc2-watching-session/);
 assert.match(dashboard, /mc2-scheduled-sessions/);
+assert.match(dashboard, /mc2-funnel-checkout-seen/);
+for (const page of [sessionPage, replayPage]) {
+  assert.match(page, /trackCheckoutActuallySeen/);
+  assert.match(page, /'checkout_actually_seen'/);
+  assert.match(page, /document\.visibilityState !== 'visible'/);
+  assert.match(page, /window\.setTimeout\(confirm, 1000\)/);
+}
+assert.match(cockpitApi, /event_name=eq\.checkout_actually_seen/);
 
 console.log('mc2 cockpit smoke: ok');

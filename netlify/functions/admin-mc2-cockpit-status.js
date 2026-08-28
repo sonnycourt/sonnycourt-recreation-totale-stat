@@ -32,13 +32,14 @@ export default async (req) => {
       'payment_status', 'purchased_at', 'registered_at',
     ].join(',');
 
-    const [presenceResult, recentResult, scheduledResult] = await Promise.all([
+    const [presenceResult, recentResult, scheduledResult, checkoutActuallySeenResult] = await Promise.all([
       supabaseGet(`mc2_presence?updated_at=gte.${encodeURIComponent(activeSince)}&select=token,stage,current_second,is_playing,mode,updated_at&order=updated_at.desc&limit=2000`),
       supabaseGet(`mc2_registrations?registered_at=gte.${encodeURIComponent(recentSince)}&select=${registrationSelect}&order=registered_at.desc&limit=3000`),
       supabaseGet(`mc2_registrations?slot_kind=eq.scheduled&session_starts_at=gte.${encodeURIComponent(scheduleFrom)}&session_starts_at=lte.${encodeURIComponent(scheduleTo)}&select=${registrationSelect}&order=session_starts_at.asc&limit=3000`),
+      supabaseGet(`mc2_funnel_events?event_name=eq.checkout_actually_seen&occurred_at=gte.${encodeURIComponent(recentSince)}&select=token&limit=3000`),
     ]);
 
-    if (!presenceResult.ok || !recentResult.ok || !scheduledResult.ok) {
+    if (!presenceResult.ok || !recentResult.ok || !scheduledResult.ok || !checkoutActuallySeenResult.ok) {
       return json(503, { error: 'Les données MC2 sont momentanément indisponibles.' });
     }
 
@@ -46,6 +47,9 @@ export default async (req) => {
       presenceRows: Array.isArray(presenceResult.data) ? presenceResult.data : [],
       recentRegistrations: Array.isArray(recentResult.data) ? recentResult.data : [],
       scheduledRegistrations: Array.isArray(scheduledResult.data) ? scheduledResult.data : [],
+      checkoutActuallySeenEvents: Array.isArray(checkoutActuallySeenResult.data)
+        ? checkoutActuallySeenResult.data
+        : [],
       now,
     }));
   } catch (error) {

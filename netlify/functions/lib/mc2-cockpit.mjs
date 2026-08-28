@@ -40,6 +40,7 @@ export function summarizeMc2Cockpit({
   presenceRows = [],
   recentRegistrations = [],
   scheduledRegistrations = [],
+  checkoutActuallySeenEvents = [],
   now = new Date(),
 } = {}) {
   const nowMs = now.getTime();
@@ -59,6 +60,14 @@ export function summarizeMc2Cockpit({
   const activeUnclassified = Math.max(0, real.length - activeJit.length - activeScheduled.length);
 
   const recentComplete = recentRegistrations.filter(completed);
+  const recentCompleteTokens = new Set(
+    recentComplete.map((row) => String(row?.token || '').trim()).filter(Boolean),
+  );
+  const checkoutActuallySeenTokens = new Set(
+    checkoutActuallySeenEvents
+      .map((row) => String(row?.token || '').trim())
+      .filter((token) => token && recentCompleteTokens.has(token)),
+  );
   const funnel24h = {
     registrations: recentComplete.length,
     attended: recentComplete.filter((row) => row?.attended_live === true
@@ -68,6 +77,7 @@ export function summarizeMc2Cockpit({
     checkout: recentComplete.filter((row) => int(row?.checkout_view_count) > 0
       || row?.checkout_clicked === true
       || row?.checkout_engaged === true).length,
+    checkoutActuallySeen: checkoutActuallySeenTokens.size,
     checkoutEngaged: recentComplete.filter((row) => row?.checkout_engaged === true).length,
     purchases: recentComplete.filter(purchased).length,
   };
