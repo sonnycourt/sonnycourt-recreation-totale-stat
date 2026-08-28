@@ -84,7 +84,7 @@ export const promo = {
   ] as PromoFormationKey[],
 
   // Nom affiché
-  name: "La Reprise",
+  name: "La Rentrée",
   emoji: "🚀",
   discount: 60,
   packDiscount: 70,
@@ -95,12 +95,12 @@ export const promo = {
   start: "2026-08-28T17:00:00",
 
   // Textes affichés
-  badgeText: "OFFRE DE LA REPRISE -60%",
-  packBadgeText: "OFFRE DE LA REPRISE -70%",
-  bannerMessage: "pour reprendre avec une longueur d'avance",
-  singleBannerMessage: "sur Manifest pour repartir du bon pied",
+  badgeText: "OFFRE DE LA RENTRÉE -60%",
+  packBadgeText: "OFFRE DE LA RENTRÉE -70%",
+  bannerMessage: "pour attaquer la rentrée avec une longueur d'avance",
+  singleBannerMessage: "sur Manifest pour démarrer la rentrée du bon pied",
 
-  // Rouge = énergie, urgence et dernière ligne droite de la reprise
+  // Rouge = énergie, urgence et dernière ligne droite de la rentrée
   theme: "red" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
@@ -139,9 +139,9 @@ export const promo = {
       installmentCount: 6,
       installmentPrice: 293,
       checkoutCode: "FB1MILLION",
-      badgeText: "OFFRE DE LA REPRISE -60%",
+      badgeText: "OFFRE DE LA RENTRÉE -60%",
       banner: {
-        label: "🚀 LA REPRISE",
+        label: "🚀 LA RENTRÉE",
         highlight: "-60% sur la formation complète",
         btnText: "Rejoindre Système Viral →",
       },
