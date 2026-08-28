@@ -5372,7 +5372,11 @@ const promoTheme = promoThemeStyles[promo.theme];
   // Remplacer tous les liens checkout par le lien promo
   var promoLabel = promoConfig.dataset.promoLabel || '';
   var bannerMessage = promoConfig.dataset.bannerMessage || 'sur toutes les formations';
-  var promoCheckout = 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient?code=OFFRE60POURCENT#pop';
+  var checkoutCode = promoConfig.dataset.checkoutCode || '';
+  var checkoutBase = 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient#pop';
+  var promoCheckout = checkoutCode
+    ? checkoutBase.replace('#pop', '?code=' + encodeURIComponent(checkoutCode) + '#pop')
+    : checkoutBase;
   document.querySelectorAll('a[href*="spiffy.co/checkout/esprit-subconscient"]').forEach(function(el) {
     el.setAttribute('href', promoCheckout);
   });
