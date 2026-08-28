@@ -22,6 +22,7 @@ const ALLOWED_EVENTS = new Set([
   'sales_section_viewed',
   'checkout_clicked',
   'checkout_viewed',
+  'checkout_actually_seen',
   'checkout_engaged',
   'stripe_element_ready',
   'payment_details_started',
@@ -94,7 +95,10 @@ function sanitizeMeta(value) {
   if (input.percent != null) output.percent = positiveInt(input.percent, 100);
   if (input.duration_seconds != null) output.duration_seconds = positiveInt(input.duration_seconds, 86400);
   if (input.active_seconds != null) output.active_seconds = positiveInt(input.active_seconds, 86400);
+  if (input.viewport_width != null) output.viewport_width = positiveInt(input.viewport_width, 10000);
+  if (input.viewport_height != null) output.viewport_height = positiveInt(input.viewport_height, 10000);
   if (typeof input.checkout_enabled === 'boolean') output.checkout_enabled = input.checkout_enabled;
+  if (typeof input.fullscreen === 'boolean') output.fullscreen = input.fullscreen;
   if (typeof input.stripe_ready === 'boolean') output.stripe_ready = input.stripe_ready;
   if (typeof input.payment_details_started === 'boolean') output.payment_details_started = input.payment_details_started;
   if (typeof input.payment_details_complete === 'boolean') output.payment_details_complete = input.payment_details_complete;
@@ -125,7 +129,7 @@ function dedupeKey(eventName, value, meta) {
       : '';
     return `${eventName}_${clean(meta.visit_id, 100)}${suffix}`;
   }
-  if (['confirmation_viewed', 'workbook_opened', 'calendar_downloaded', 'session_joined', 'cta_reached'].includes(eventName)) {
+  if (['confirmation_viewed', 'workbook_opened', 'calendar_downloaded', 'session_joined', 'cta_reached', 'checkout_actually_seen'].includes(eventName)) {
     return eventName;
   }
   return null;
