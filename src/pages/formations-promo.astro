@@ -248,6 +248,56 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
 })();
 </script>
 
+<script is:inline>
+(function() {
+  function initFreeVideoHintPosition() {
+    var hint = document.querySelector('.free-video-hint');
+    var cookieBanner = document.getElementById('cookieBanner');
+    if (!hint || !cookieBanner) return;
+
+    function updatePosition() {
+      var isVisible = !cookieBanner.hasAttribute('hidden')
+        && window.getComputedStyle(cookieBanner).display !== 'none';
+
+      if (!isVisible) {
+        hint.style.removeProperty('--free-video-hint-bottom');
+        return;
+      }
+
+      var cookieRect = cookieBanner.getBoundingClientRect();
+      if (!cookieRect.height) {
+        hint.style.removeProperty('--free-video-hint-bottom');
+        return;
+      }
+
+      var gap = 10;
+      var liftedBottom = Math.ceil(window.innerHeight - cookieRect.top + gap);
+      hint.style.setProperty('--free-video-hint-bottom', liftedBottom + 'px');
+    }
+
+    var mutationObserver = new MutationObserver(updatePosition);
+    mutationObserver.observe(cookieBanner, {
+      attributes: true,
+      attributeFilter: ['hidden', 'style', 'class']
+    });
+
+    if ('ResizeObserver' in window) {
+      var resizeObserver = new ResizeObserver(updatePosition);
+      resizeObserver.observe(cookieBanner);
+    }
+
+    window.addEventListener('resize', updatePosition, { passive: true });
+    window.requestAnimationFrame(updatePosition);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFreeVideoHintPosition);
+  } else {
+    initFreeVideoHintPosition();
+  }
+})();
+</script>
+
 <!-- Start of Async ProveSource Code -->
 <script is:inline>
 !function(o,i){window.provesrc&&window.console&&console.error&&console.error("ProveSource is included twice in this page."),window.provesrc={dq:[],display:function(){this.dq.push(arguments)}},o._provesrcAsyncInit=function(){window.provesrc.init({apiKey:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOiI1ZWIxNDZlZWI2MTA2YzIxNzYzNDFiM2YiLCJpYXQiOjE1ODg2NzYzMzR9.qpFyCznmnc15rh4QVR5ziDpOwO_TnrsIr5Yc4-KXxRc",v:"0.0.4"})};var r=i.createElement("script");r.type="text/javascript",r.async=!0,r["ch"+"ar"+"set"]="UTF-8",r.src="https://cdn.provesrc.com/provesrc.js";var e=i.getElementsByTagName("script")[0];e.parentNode.insertBefore(r,e)}(window,document);
@@ -978,9 +1028,10 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
   }
 
   .free-video-hint {
+    --free-video-hint-resting-bottom: 14px;
     position: fixed;
     left: 50%;
-    bottom: 14px;
+    bottom: var(--free-video-hint-bottom, var(--free-video-hint-resting-bottom));
     transform: translateX(-50%);
     width: min(920px, calc(100vw - 24px));
     display: flex;
@@ -993,7 +1044,8 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     background: linear-gradient(135deg, rgba(17, 24, 39, 0.78), rgba(22, 101, 52, 0.65));
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
     backdrop-filter: blur(8px);
-    z-index: 99990;
+    z-index: 1999;
+    transition: bottom 0.22s ease;
   }
 
   .free-video-hint-content {
@@ -1037,10 +1089,10 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     }
 
     .free-video-hint {
+      --free-video-hint-resting-bottom: 8px;
       width: calc(100vw - 16px);
       left: 8px;
       right: 8px;
-      bottom: 8px;
       transform: none;
       align-items: flex-start;
       padding: 12px;
