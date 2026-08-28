@@ -4,6 +4,7 @@ import '../../styles/admin-es2.css';
 const tabs = [
   { id: 'overview', label: "Vue d'ensemble" },
   { id: 'compare', label: 'Comparatif' },
+  { id: 'mc2', label: 'MC2 Live' },
   { id: 'ops', label: 'Ops / Debug' },
 ];
 ---
@@ -312,6 +313,87 @@ const tabs = [
                     </div>
                     <p id="compare-empty" class="hidden text-xs text-slate-500">Aucune donnée.</p>
                   </div>
+                </div>
+              ) : t.id === 'mc2' ? (
+                <div class="space-y-4" id="mc2-cockpit">
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p class="text-xs uppercase tracking-wider text-blue-400">Temps réel</p>
+                        <h3 class="text-sm font-semibold text-white">Activité du funnel MC2</h3>
+                        <p class="mt-1 text-xs text-slate-500">Actualisation automatique toutes les 10 secondes · données de production en lecture seule.</p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button id="mc2-refresh" type="button" class="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-500">Actualiser</button>
+                        <span id="mc2-updated" class="text-xs text-slate-500">—</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs text-slate-500">En attente maintenant</p>
+                      <p id="mc2-waiting" class="mt-1 text-3xl font-semibold text-white">0</p>
+                      <p class="mt-1 text-[11px] text-slate-500">Page ouverte avant le démarrage</p>
+                    </div>
+                    <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                      <p class="text-xs text-emerald-300">Regardent la session</p>
+                      <p id="mc2-watching-session" class="mt-1 text-3xl font-semibold text-white">0</p>
+                      <p class="mt-1 text-[11px] text-slate-500">Vidéo réellement en lecture</p>
+                    </div>
+                    <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4">
+                      <p class="text-xs text-violet-300">Regardent le replay</p>
+                      <p id="mc2-watching-replay" class="mt-1 text-3xl font-semibold text-white">0</p>
+                      <p class="mt-1 text-[11px] text-slate-500">Replay réellement en lecture</p>
+                    </div>
+                    <div class="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
+                      <p class="text-xs text-blue-300">Actifs MC2</p>
+                      <p id="mc2-active-total" class="mt-1 text-3xl font-semibold text-white">0</p>
+                      <p class="mt-1 text-[11px] text-slate-500">Tous les signaux reçus depuis 90 s</p>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 xl:grid-cols-[1.4fr_1fr]">
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Parcours des dernières 24 heures</p>
+                        <p class="mt-1 text-xs text-slate-500">Une vue simple de l'inscription jusqu'à l'achat.</p>
+                      </div>
+                      <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Inscrits</p><p id="mc2-funnel-registrations" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Ont lancé une vidéo</p><p id="mc2-funnel-attended" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Ont atteint l'offre</p><p id="mc2-funnel-offer" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Checkout chargé</p><p id="mc2-funnel-checkout" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Checkout engagé</p><p id="mc2-funnel-engaged" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                        <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p class="text-[11px] text-slate-500">Achats</p><p id="mc2-funnel-purchases" class="mt-1 text-xl font-semibold text-white">0</p></div>
+                      </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <p class="text-xs uppercase tracking-wider text-slate-500">Lecture actuelle</p>
+                      <div class="mt-3 space-y-2 text-xs text-slate-400">
+                        <div class="flex justify-between gap-4"><span>Actifs Just in Time</span><strong id="mc2-active-jit" class="text-slate-200">0</strong></div>
+                        <div class="flex justify-between gap-4"><span>Actifs sessions programmées</span><strong id="mc2-active-scheduled" class="text-slate-200">0</strong></div>
+                        <div class="flex justify-between gap-4"><span>Actifs non classés</span><strong id="mc2-active-unclassified" class="text-slate-200">0</strong></div>
+                        <div class="flex justify-between gap-4"><span>Position médiane session</span><strong id="mc2-session-median" class="text-slate-200">—</strong></div>
+                        <div class="flex justify-between gap-4"><span>Position médiane replay</span><strong id="mc2-replay-median" class="text-slate-200">—</strong></div>
+                        <div class="flex justify-between gap-4"><span>Dernier signal</span><strong id="mc2-last-signal" class="text-slate-200">—</strong></div>
+                        <div class="flex justify-between gap-4 border-t border-slate-800 pt-2"><span>Tests exclus des compteurs</span><strong id="mc2-tests" class="text-slate-500">0</strong></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <div>
+                      <p class="text-xs uppercase tracking-wider text-slate-500">Sessions programmées</p>
+                      <p class="mt-1 text-xs text-slate-500">Créneaux partagés prévus sur les sept prochains jours. Les sessions Just in Time restent individuelles.</p>
+                    </div>
+                    <div id="mc2-scheduled-sessions" class="mt-4 grid gap-2 lg:grid-cols-2">
+                      <p class="text-xs text-slate-500">Chargement…</p>
+                    </div>
+                  </div>
+
+                  <p id="mc2-error" class="hidden text-xs text-red-400"></p>
                 </div>
               ) : t.id === 'ops' ? (
                 <div class="space-y-4" id="ops-cockpit">
@@ -644,6 +726,7 @@ const tabs = [
         const idx = tabIds.indexOf(targetId);
         if (idx >= 0) titleEl.textContent = tabLabels[idx];
         if (targetId === 'overview') refreshOverviewKpis();
+        if (targetId === 'mc2') startMc2Polling();
         if (targetId === 'ops') startOpsPolling();
         // Persiste l'onglet actif dans l'URL pour qu'un refresh garde l'utilisateur
         // sur le même onglet (et que le lien soit partageable / bookmarkable).
@@ -666,6 +749,8 @@ const tabs = [
 
       let opsPollingTimer = null;
       let opsBusy = false;
+      let mc2PollingTimer = null;
+      let mc2Busy = false;
       let overviewBusy = false;
       let overviewSessionsHydrated = false;
       let streamCounterTimer = null;
@@ -1532,6 +1617,118 @@ const tabs = [
         return dt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
       }
 
+      function setMc2RefreshLoading(isLoading) {
+        const btn = document.getElementById('mc2-refresh');
+        if (!btn) return;
+        if (!btn.dataset.idleLabel) btn.dataset.idleLabel = btn.textContent || 'Actualiser';
+        btn.disabled = isLoading;
+        btn.textContent = isLoading ? 'Chargement…' : (btn.dataset.idleLabel || 'Actualiser');
+        btn.classList.toggle('opacity-60', isLoading);
+      }
+
+      function renderMc2ScheduledSessions(items) {
+        const root = document.getElementById('mc2-scheduled-sessions');
+        if (!root) return;
+        root.innerHTML = '';
+        const list = Array.isArray(items) ? items : [];
+        if (!list.length) {
+          const empty = document.createElement('p');
+          empty.className = 'text-xs text-slate-500';
+          empty.textContent = 'Aucune session programmée sur les sept prochains jours.';
+          root.appendChild(empty);
+          return;
+        }
+        const nowMs = Date.now();
+        for (const item of list) {
+          const startMs = new Date(item?.startsAt || '').getTime();
+          const endMs = new Date(item?.endsAt || '').getTime();
+          const isLive = Number.isFinite(startMs) && Number.isFinite(endMs) && startMs <= nowMs && endMs > nowMs;
+          const diffMinutes = Number.isFinite(startMs) ? Math.max(0, Math.ceil((startMs - nowMs) / 60000)) : null;
+          let timing = 'Date inconnue';
+          if (isLive) timing = 'En cours';
+          else if (diffMinutes != null && diffMinutes < 60) timing = `Dans ${diffMinutes} min`;
+          else if (diffMinutes != null && diffMinutes < 1440) timing = `Dans ${Math.ceil(diffMinutes / 60)} h`;
+          else if (diffMinutes != null) timing = `Dans ${Math.ceil(diffMinutes / 1440)} j`;
+
+          const card = document.createElement('div');
+          card.className = 'rounded-lg border border-slate-800 bg-slate-950/70 p-3';
+          const top = document.createElement('div');
+          top.className = 'flex items-start justify-between gap-3';
+          const date = document.createElement('p');
+          date.className = 'text-sm font-medium text-slate-200';
+          date.textContent = formatShortIso(item?.startsAt);
+          const badge = document.createElement('span');
+          badge.className = isLive
+            ? 'rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-emerald-200'
+            : 'rounded-full border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-blue-200';
+          badge.textContent = timing;
+          top.append(date, badge);
+
+          const metrics = document.createElement('p');
+          metrics.className = 'mt-2 text-xs text-slate-400';
+          metrics.textContent = `${Number(item?.registrations || 0)} inscrit(s) · ${Number(item?.waitingNow || 0)} en attente · ${Number(item?.watchingNow || 0)} en lecture`;
+          card.append(top, metrics);
+          root.appendChild(card);
+        }
+      }
+
+      async function refreshMc2Status(options = {}) {
+        const manual = options?.manual === true;
+        if (mc2Busy) return;
+        const root = document.getElementById('mc2-cockpit');
+        if (!root || root.closest('.hidden')) return;
+        mc2Busy = true;
+        if (manual) setMc2RefreshLoading(true);
+        const errEl = document.getElementById('mc2-error');
+        if (errEl) {
+          errEl.classList.add('hidden');
+          errEl.textContent = '';
+        }
+        try {
+          const response = await fetch('/.netlify/functions/admin-mc2-cockpit-status', { credentials: 'same-origin' });
+          const data = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(data?.error || 'Données MC2 indisponibles.');
+
+          document.getElementById('mc2-waiting').textContent = String(data?.presence?.waiting || 0);
+          document.getElementById('mc2-watching-session').textContent = String(data?.presence?.watchingSession || 0);
+          document.getElementById('mc2-watching-replay').textContent = String(data?.presence?.watchingReplay || 0);
+          document.getElementById('mc2-active-total').textContent = String(data?.presence?.activeTotal || 0);
+          document.getElementById('mc2-active-jit').textContent = String(data?.presence?.activeJit || 0);
+          document.getElementById('mc2-active-scheduled').textContent = String(data?.presence?.activeScheduled || 0);
+          document.getElementById('mc2-active-unclassified').textContent = String(data?.presence?.activeUnclassified || 0);
+          document.getElementById('mc2-session-median').textContent = formatSecond(data?.presence?.sessionMedianSecond);
+          document.getElementById('mc2-replay-median').textContent = formatSecond(data?.presence?.replayMedianSecond);
+          document.getElementById('mc2-tests').textContent = String(data?.presence?.tests || 0);
+          document.getElementById('mc2-last-signal').textContent = data?.presence?.lastSignalAt
+            ? new Date(data.presence.lastSignalAt).toLocaleTimeString('fr-FR')
+            : '—';
+
+          document.getElementById('mc2-funnel-registrations').textContent = String(data?.funnel24h?.registrations || 0);
+          document.getElementById('mc2-funnel-attended').textContent = String(data?.funnel24h?.attended || 0);
+          document.getElementById('mc2-funnel-offer').textContent = String(data?.funnel24h?.offer || 0);
+          document.getElementById('mc2-funnel-checkout').textContent = String(data?.funnel24h?.checkout || 0);
+          document.getElementById('mc2-funnel-engaged').textContent = String(data?.funnel24h?.checkoutEngaged || 0);
+          document.getElementById('mc2-funnel-purchases').textContent = String(data?.funnel24h?.purchases || 0);
+          renderMc2ScheduledSessions(data?.scheduledSessions);
+
+          const updated = document.getElementById('mc2-updated');
+          if (updated) updated.textContent = `MAJ ${new Date(data?.generatedAt || Date.now()).toLocaleTimeString('fr-FR')}`;
+        } catch (error) {
+          if (errEl) {
+            errEl.textContent = error?.message || 'Erreur MC2.';
+            errEl.classList.remove('hidden');
+          }
+        } finally {
+          mc2Busy = false;
+          if (manual) setMc2RefreshLoading(false);
+        }
+      }
+
+      function startMc2Polling() {
+        refreshMc2Status();
+        if (!mc2PollingTimer) mc2PollingTimer = setInterval(refreshMc2Status, 10000);
+      }
+
       function formatHistoryLabel(value) {
         if (!value) return '—';
         const dt = new Date(value);
@@ -1914,6 +2111,12 @@ const tabs = [
       if (opsRefreshBtn) {
         opsRefreshBtn.addEventListener('click', function () {
           refreshOpsStatus({ manual: true });
+        });
+      }
+      const mc2RefreshBtn = document.getElementById('mc2-refresh');
+      if (mc2RefreshBtn) {
+        mc2RefreshBtn.addEventListener('click', function () {
+          refreshMc2Status({ manual: true });
         });
       }
       const opsPrimaryBtn = document.getElementById('ops-switch-primary');
