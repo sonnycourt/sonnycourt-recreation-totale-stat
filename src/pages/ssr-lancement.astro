@@ -3,7 +3,8 @@
 import BlackFridayBanner from '../components/BlackFridayBanner.astro';
 import GAConsentMode from '../components/GAConsentMode.astro';
 import PromoBanner from '../components/PromoBanner.astro';
-import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo } from '../config/promo';
+import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActiveFor, promo, promoThemeStyles } from '../config/promo';
+const promoTheme = promoThemeStyles[promo.theme];
 ---
 <head>
     <meta charset="UTF-8">
@@ -3643,6 +3644,10 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
       data-active={isPromoActiveFor('ssrLancement').toString()}
       data-promo-label={getPromoLabel()}
       data-banner-message={getPromoBannerMessage()}
+      data-theme-bg={promoTheme.bg}
+      data-theme-accent={promoTheme.accent}
+      data-theme-btn={promoTheme.btn}
+      data-theme-btn-text={promoTheme.btnText}
       data-checkout-code={getPromoCheckoutCode('ssrLancement')}
       data-price-original={promo.formations.ssrLancement.priceOriginal}
       data-price-promo={promo.formations.ssrLancement.pricePromo}
@@ -6074,7 +6079,7 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
         var installmentEl = document.querySelector('.price-installments');
         if (installmentEl) installmentEl.textContent = 'Ou ' + installmentCount + ' paiements de ' + installmentPrice + '€';
       }
-      var t = { bg: 'linear-gradient(105deg, #2d1b69 0%, #5b2d8e 40%, #7c3aed 100%)', accent: 'linear-gradient(100deg, #ffffff 0%, #d8b4fe 70%)', btn: 'linear-gradient(135deg, #ffcf40 0%, #ff8c1a 100%)', btnText: '#3a1500' };
+      var t = { bg: promoConfig.dataset.themeBg, accent: promoConfig.dataset.themeAccent, btn: promoConfig.dataset.themeBtn, btnText: promoConfig.dataset.themeBtnText };
       var banner = document.createElement('div');
       banner.id = 'promo-banner-dynamic';
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;width:100%;background:' + t.bg + ';border-bottom:1px solid rgba(255,255,255,0.08);min-height:64px;z-index:99999;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;';
@@ -6098,4 +6103,3 @@ import { getPromoBannerMessage, getPromoCheckoutCode, getPromoLabel, isPromoActi
     </script>
     </body>
     </html>
-

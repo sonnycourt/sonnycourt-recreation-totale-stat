@@ -1,7 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PromoBanner from '../components/PromoBanner.astro';
-import { getPromoBannerMessage, isPromoActiveFor, promo } from '../config/promo';
+import { getPromoBannerMessage, isPromoActiveFor, promo, promoThemeStyles } from '../config/promo';
+
+const promoTheme = promoThemeStyles[promo.theme];
 
 const showEspritSubconscient = isPromoActiveFor('espritSubconscient');
 const showManifest = isPromoActiveFor('manifest');
@@ -30,7 +32,7 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
       </div>
 
       <div class="hero-content">
-        <h1>{promo.emoji} {promo.name} -{promo.discount}%</h1>
+        <h1>Offre Reprise -{promo.discount}%</h1>
         <p class="hero-subtitle">
           Offre spéciale — {getPromoBannerMessage()} à -{promo.discount}%.
         </p>
@@ -40,6 +42,20 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     <!-- Formations Grid -->
     <section class="formations-grid" id="formations-grid">
       <div class="container">
+          <a
+            href="/pack-complet-promo/"
+            class="pack-spotlight"
+            aria-label={`Découvrir le Pack Complet à -${promo.packDiscount}%`}
+            style={`--pack-promo-bg: ${promoTheme.bg}; --pack-promo-accent: ${promoTheme.accent}; --pack-promo-btn: ${promoTheme.btn}; --pack-promo-btn-text: ${promoTheme.btnText};`}
+          >
+          <div class="pack-spotlight-copy">
+            <span class="pack-spotlight-eyebrow">Le meilleur deal de la Reprise</span>
+            <strong><span>-{promo.packDiscount}%</span> sur l'offre complète</strong>
+            <small>Toutes mes formations réunies dans un seul Pack, avec accès à vie.</small>
+          </div>
+          <span class="pack-spotlight-cta">Découvrir le Pack Complet →</span>
+        </a>
+
         <div class="levels-note">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="note-icon"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
           <span>
@@ -197,7 +213,7 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
               <li>Accès à la communauté privée "Team Système Viral"</li>
             </ul>
             <a href="https://systemeviral.com/offre-speciale-promo/" class="cta-button cta-button-green">
-              Profiter de l'offre -75%
+              Profiter de l'offre -{promo.discount}%
             </a>
           </div>
         </div>
@@ -405,6 +421,93 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     display: grid;
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+
+  .pack-spotlight {
+    grid-column: 1 / -1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    overflow: hidden;
+    padding: 24px 28px;
+    color: #fff;
+    text-decoration: none;
+    background: var(--pack-promo-bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: none;
+    transition: transform 0.2s ease;
+  }
+
+  .pack-spotlight:hover {
+    transform: translateY(-2px);
+  }
+
+  .pack-spotlight-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    text-align: left;
+  }
+
+  .pack-spotlight-eyebrow {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .pack-spotlight strong {
+    font-size: clamp(24px, 4vw, 38px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .pack-spotlight strong span {
+    color: transparent;
+    background: var(--pack-promo-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    font-size: 1.16em;
+  }
+
+  .pack-spotlight small {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .pack-spotlight-cta {
+    flex-shrink: 0;
+    padding: 13px 18px;
+    color: var(--pack-promo-btn-text);
+    background: var(--pack-promo-btn);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 700px) {
+    .pack-spotlight {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 21px 20px;
+      text-align: center;
+    }
+
+    .pack-spotlight-copy {
+      align-items: center;
+      text-align: center;
+    }
+
+    .pack-spotlight-cta {
+      text-align: center;
+    }
   }
 
   .levels-note {
@@ -1075,4 +1178,3 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
   }
 
 </style>
-
