@@ -52,7 +52,7 @@ export const promo = {
   packDiscount: 70,
 
   // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS, heure locale du visiteur)
-  deadline: "2026-08-31T23:59:00",
+  deadline: "2026-09-01T23:59:00",
   // Date/heure de début de la promo (utilisée pour la descente globale des places sur Manifest)
   start: "2026-08-28T17:00:00",
 
@@ -62,8 +62,8 @@ export const promo = {
   bannerMessage: "pour reprendre avec une longueur d'avance",
   singleBannerMessage: "sur Manifest pour repartir du bon pied",
 
-  // Vert = nouveau départ, énergie et progression pour la reprise
-  theme: "green" as PromoTheme,
+  // Rouge = énergie, urgence et dernière ligne droite de la reprise
+  theme: "red" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
   formations: {
