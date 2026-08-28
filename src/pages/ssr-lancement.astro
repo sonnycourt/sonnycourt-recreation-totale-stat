@@ -6061,8 +6061,11 @@ const promoTheme = promoThemeStyles[promo.theme];
       if (!active || Date.now() >= deadline) { window.location.href = '/fin-promo/'; return; }
       var promoLabel = promoConfig.dataset.promoLabel || '';
       var bannerMessage = promoConfig.dataset.bannerMessage || 'sur toutes les formations';
-      var checkoutBase = 'https://sonnycourt.spiffy.co/checkout/souhaits-realises?code=OFFRE60POURCENT#pop';
-      var promoCheckout = checkoutBase;
+      var checkoutCode = promoConfig.dataset.checkoutCode || '';
+      var checkoutBase = 'https://sonnycourt.spiffy.co/checkout/souhaits-realises#pop';
+      var promoCheckout = checkoutCode
+        ? checkoutBase.replace('#pop', '?code=' + encodeURIComponent(checkoutCode) + '#pop')
+        : checkoutBase;
       document.querySelectorAll('a[href*="spiffy.co/checkout/souhaits-realises"]').forEach(function(el) { el.setAttribute('href', promoCheckout); });
 
       // Remplacer les prix
