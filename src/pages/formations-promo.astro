@@ -1,7 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PromoBanner from '../components/PromoBanner.astro';
-import { getPromoBannerMessage, isPromoActiveFor, promo } from '../config/promo';
+import { getPromoBannerMessage, isPromoActiveFor, promo, promoThemeStyles } from '../config/promo';
+
+const promoTheme = promoThemeStyles[promo.theme];
 
 const showEspritSubconscient = isPromoActiveFor('espritSubconscient');
 const showManifest = isPromoActiveFor('manifest');
@@ -40,7 +42,12 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     <!-- Formations Grid -->
     <section class="formations-grid" id="formations-grid">
       <div class="container">
-        <a href="/pack-complet-promo/" class="pack-spotlight" aria-label={`Découvrir le Pack Complet à -${promo.packDiscount}%`}>
+          <a
+            href="/pack-complet-promo/"
+            class="pack-spotlight"
+            aria-label={`Découvrir le Pack Complet à -${promo.packDiscount}%`}
+            style={`--pack-promo-bg: ${promoTheme.bg}; --pack-promo-accent: ${promoTheme.accent}; --pack-promo-btn: ${promoTheme.btn}; --pack-promo-btn-text: ${promoTheme.btnText};`}
+          >
           <div class="pack-spotlight-copy">
             <span class="pack-spotlight-eyebrow">Le meilleur deal de la Reprise</span>
             <strong><span>-{promo.packDiscount}%</span> sur l'offre complète</strong>
@@ -427,18 +434,15 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
     padding: 24px 28px;
     color: #fff;
     text-decoration: none;
-    background:
-      radial-gradient(circle at 10% 0%, rgba(255, 209, 102, 0.22), transparent 42%),
-      linear-gradient(105deg, rgba(139, 14, 58, 0.98), rgba(198, 40, 74, 0.94));
-    border: 1px solid rgba(255, 209, 102, 0.5);
+    background: var(--pack-promo-bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
-    box-shadow: 0 18px 50px rgba(139, 14, 58, 0.28);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+    transition: transform 0.2s ease;
   }
 
   .pack-spotlight:hover {
     transform: translateY(-2px);
-    box-shadow: 0 22px 60px rgba(198, 40, 74, 0.36);
   }
 
   .pack-spotlight-copy {
@@ -450,7 +454,7 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
   }
 
   .pack-spotlight-eyebrow {
-    color: #ffd166;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 1.5px;
@@ -464,7 +468,10 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
   }
 
   .pack-spotlight strong span {
-    color: #ffd166;
+    color: transparent;
+    background: var(--pack-promo-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
     font-size: 1.16em;
   }
 
@@ -477,8 +484,8 @@ const showSystemeViral = isPromoActiveFor('systemeViral');
   .pack-spotlight-cta {
     flex-shrink: 0;
     padding: 13px 18px;
-    color: #7c0a2a;
-    background: #ffd166;
+    color: var(--pack-promo-btn-text);
+    background: var(--pack-promo-btn);
     border-radius: 10px;
     font-size: 14px;
     font-weight: 800;
