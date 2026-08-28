@@ -46,22 +46,24 @@ export const promo = {
   ] as PromoFormationKey[],
 
   // Nom affiché
-  name: "Demi-Million Instagram",
-  emoji: "🎉",
+  name: "La Reprise",
+  emoji: "🚀",
   discount: 60,
+  packDiscount: 70,
 
   // Date/heure de fin (format: YYYY-MM-DDTHH:MM:SS, heure locale du visiteur)
-  deadline: "2026-07-05T23:00:00",
+  deadline: "2026-08-31T23:59:00",
   // Date/heure de début de la promo (utilisée pour la descente globale des places sur Manifest)
-  start: "2026-07-01T17:33:00",
+  start: "2026-08-28T17:00:00",
 
   // Textes affichés
-  badgeText: "DEMI-MILLION INSTAGRAM -60%",
-  bannerMessage: "sur toutes les formations",
-  singleBannerMessage: "sur Manifest",
+  badgeText: "OFFRE DE LA REPRISE -60%",
+  packBadgeText: "OFFRE DE LA REPRISE -70%",
+  bannerMessage: "pour reprendre avec une longueur d'avance",
+  singleBannerMessage: "sur Manifest pour repartir du bon pied",
 
-  // Thème couleur du banner (violet = rappel des couleurs Instagram)
-  theme: "purple" as PromoTheme,
+  // Vert = nouveau départ, énergie et progression pour la reprise
+  theme: "green" as PromoTheme,
 
   // Prix promo par formation (modifiables sans toucher aux pages)
   formations: {
@@ -99,9 +101,9 @@ export const promo = {
       installmentCount: 6,
       installmentPrice: 293,
       checkoutCode: "FB1MILLION",
-      badgeText: "DEMI-MILLION INSTAGRAM -60%",
+      badgeText: "OFFRE DE LA REPRISE -60%",
       banner: {
-        label: "🎉 DEMI-MILLION INSTAGRAM",
+        label: "🚀 LA REPRISE",
         highlight: "-60% sur la formation complète",
         btnText: "Rejoindre Système Viral →",
       },
