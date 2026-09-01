@@ -2464,6 +2464,17 @@ const previewReviewInitials = (name) => name
             if (backLink) backLink.style.display = '';
             showScreen('screen-blocked');
         }
+        function showSiteOverload() {
+            const screen = document.getElementById('screen-blocked');
+            const badge = screen?.querySelector('.badge');
+            if (badge) badge.textContent = 'Incident temporaire';
+            showBlocked(
+                'Le site est momentanément surchargé.',
+                'Impossible de charger la masterclass pour le moment. Merci de réessayer plus tard.'
+            );
+            const backLink = document.getElementById('blocked-back-link');
+            if (backLink) backLink.style.display = 'none';
+        }
         function showBuyerBlocked() {
             document.getElementById('blocked-title').textContent = "Tu fais déjà partie d'Esprit Subconscient 2.0 !";
             document.getElementById('blocked-text').textContent = 'Accède à ta formation sur Volt.';
@@ -4879,6 +4890,10 @@ const previewReviewInitials = (name) => name
                 setTokenEverywhere(token);
                 const reg = normalizeReg(data, token);
                 trackWebinaireEvent(token, 'session_page_viewed');
+                if (String(data.statut || '').toLowerCase() === 'expired') {
+                    showSiteOverload();
+                    return;
+                }
                 if (isBuyer(data) || isBuyer(reg)) {
                     showBuyerBlocked();
                     return;
