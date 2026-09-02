@@ -22,9 +22,18 @@ assert.match(offer, /data-monthly-checkout="https:\/\/sonnycourt\.spiffy\.co\/ch
 assert.match(offer, /data-once-checkout="https:\/\/sonnycourt\.spiffy\.co\/checkout\/esprit-subconscient-2-0-34-1"/);
 assert.match(offer, /data-payment-plan="once" aria-pressed="true"/);
 assert.match(offer, /data-payment-plan="three" aria-pressed="false"/);
-assert.match(offer, /Paiement en 3 fois/);
+assert.match(offer, /Versement unique/);
+assert.match(offer, /Versement en 3 fois/);
 assert.match(offer, /3 × 767 €/);
 assert.match(offer, /let activePlan = 'once'/);
+assert.match(offer, /const planPanels = new Map\(\)/);
+assert.match(offer, /Object\.keys\(plans\)\.map\(createPlanPanel\)/);
+assert.match(offer, /panel\.hidden = !selected/);
+assert.doesNotMatch(offer, /replaceCheckoutChildren/);
+assert.ok(
+  offer.indexOf("window.spiffy.load('sonnycourt')") > offer.indexOf('Object.keys(plans).map(createPlanPanel)'),
+  'Spiffy doit être chargé seulement après le montage des deux formulaires',
+);
 assert.match(offer, /document\.createElement\(['"]spiffy-checkout['"]\)/);
 assert.match(offer, /document\.createElement\(['"]iframe['"]\)/);
 assert.match(offer, /frame\.setAttribute\(['"]allow['"], ['"]payment['"]\)/);
