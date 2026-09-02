@@ -6,8 +6,8 @@ import {
   MC2_LIVE_VIDEO_LEAD_MS as SHARED_LIVE_VIDEO_LEAD_MS,
 } from '../../../src/lib/mc2-timing.mjs';
 
-export const MC2_OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
-export const MC2_OFFER_SMS_LEAD_MS = 60 * 60 * 1000;
+export const MC2_OFFER_DURATION_MS = 72 * 60 * 60 * 1000;
+export const MC2_OFFER_SMS_LEAD_MS = 4 * 60 * 60 * 1000;
 export const MC2_LIVE_VIDEO_LEAD_MS = SHARED_LIVE_VIDEO_LEAD_MS;
 export const MC2_LIVE_CTA_SECONDS = SHARED_LIVE_CTA_SECONDS;
 
@@ -39,7 +39,7 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
   if (!safeToken) return { ok: false, error: 'token_missing' };
 
   let expiresAt = validDate(registration?.offer_expires_at);
-  let activatedAt = source === 'live' ? mc2LiveCtaAt(registration) : validDate(now);
+  let activatedAt = source === 'live' ? validDate(registration?.session_starts_at) : validDate(now);
   if (!activatedAt) activatedAt = validDate(now);
 
   if (!expiresAt) {

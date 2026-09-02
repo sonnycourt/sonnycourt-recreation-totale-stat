@@ -112,6 +112,39 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             margin: 0;
             -webkit-overflow-scrolling: touch;
         }
+        .dev-time-banner.is-collapsed {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 999px;
+        }
+        .dev-time-banner.is-collapsed > :not(.dev-time-toggle) {
+            display: none;
+        }
+        .dev-time-toggle {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            z-index: 1;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid rgba(147, 197, 253, 0.5);
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #dbeafe;
+            font: 700 16px/1 sans-serif;
+            cursor: pointer;
+        }
+        .dev-time-banner.is-collapsed .dev-time-toggle {
+            inset: 0;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            background: transparent;
+            color: #60a5fa;
+        }
         .dev-time-title {
             font-size: 0.78rem;
             color: var(--accent);
@@ -1107,6 +1140,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <div class="bg-gradient"></div>
 
     <div id="dev-time-banner" class="dev-time-banner">
+        <button id="dev-time-toggle" class="dev-time-toggle" type="button" aria-expanded="true" aria-controls="dev-time-banner" aria-label="Masquer la simulation temps" title="Masquer la simulation temps">−</button>
         <p class="dev-time-title">Simulation temps (preview uniquement)</p>
 
         <div class="dev-section">
@@ -3068,6 +3102,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
             banner.classList.add('is-visible');
+
+            var toggle = document.getElementById('dev-time-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    var collapsed = banner.classList.toggle('is-collapsed');
+                    toggle.textContent = collapsed ? '+' : '−';
+                    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                    toggle.setAttribute('aria-label', collapsed ? 'Afficher la simulation temps' : 'Masquer la simulation temps');
+                    toggle.title = collapsed ? 'Afficher la simulation temps' : 'Masquer la simulation temps';
+                });
+            }
 
             var inscInput = document.getElementById('dev-inscription-input');
             var nowInput  = document.getElementById('dev-time-input');

@@ -146,7 +146,7 @@ export function mc2SmsMessage(type, token, options = {}) {
     return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.liveCode, token)}`;
   }
   if (type === 'offer_deadline') {
-    return `DERNIERE HEURE !\nIl ne reste plus qu'une heure pour rejoindre Esprit Subconscient 2.0.\nInscris-toi ici :\n${offerUrl(options.liveCode, token)}`;
+    return `DERNIERE CHANCE !\nTon offre Esprit Subconscient 2.0 expire dans 4 heures.\nPrends ta place ici :\n${offerUrl(options.liveCode, token)}`;
   }
   return '';
 }

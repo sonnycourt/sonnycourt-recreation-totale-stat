@@ -1,0 +1,2783 @@
+---
+// Atelier local pour construire visuellement le deal MC2.
+// Cette page n'est liée depuis aucune page du funnel. Le formulaire charge les
+// checkouts Spiffy réels déjà utilisés par ES2 afin de pouvoir les peaufiner localement.
+import reviewsData from '../data/reviews.json';
+import reviewConversionOrder from '../data/review-conversion-order.json';
+
+const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
+const previewCheckoutReviews = reviewsData.reviews
+  .filter((review) => Boolean(review.first_name))
+  .sort((a, b) => (previewReviewOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (previewReviewOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+const previewRatedReviews = previewCheckoutReviews.filter((review) => Number.isFinite(review.rating));
+const previewReviewAverage = previewRatedReviews.reduce((total, review) => total + review.rating, 0) / previewRatedReviews.length;
+const previewReviewAverageLabel = previewReviewAverage.toFixed(1).replace('.', ',');
+const previewReviewAveragePercent = (previewReviewAverage / 5) * 100;
+const previewRatingCounts = previewRatedReviews.reduce((counts, review) => {
+  counts[review.rating] = (counts[review.rating] || 0) + 1;
+  return counts;
+}, {});
+const previewRatingFilterValues = Object.keys(previewRatingCounts).map(Number).sort((a, b) => b - a);
+const previewReviewInitials = (name) => name
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0])
+  .join('')
+  .toUpperCase();
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Atelier Deal — Esprit Subconscient 2.0</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script is:inline>
+      "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+      if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
+      ;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+      return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+      f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+      spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+      e.async=!0,e.crossorigin="anonymous",e.src="https://js.static.spiffy.co/spiffy.js?a="+t
+      ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+      spiffy.SNIPPET_VERSION="1.1.0";
+      spiffy.config({ hideSidebar: false });
+      spiffy.load("sonnycourt");
+    </script>
+    <style>
+      * { box-sizing: border-box; }
+      html { background: #070b16; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: #fff;
+        background:
+          radial-gradient(circle at 50% -8%, rgba(37, 99, 235, 0.17), transparent 34rem),
+          linear-gradient(180deg, #070b16 0%, #090d1a 100%);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, input { font: inherit; }
+      .workbench {
+        width: min(100%, 1040px);
+        margin: 0 auto;
+        padding: 46px 20px 100px;
+      }
+      .local-label {
+        width: fit-content;
+        margin: 0 auto 28px;
+        padding: 7px 11px;
+        border: 1px solid rgba(96, 165, 250, 0.24);
+        border-radius: 999px;
+        color: rgba(191, 219, 254, 0.72);
+        background: rgba(30, 64, 175, 0.12);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .deal-sticky-cta {
+        position: fixed;
+        right: clamp(16px, 2.4vw, 30px);
+        bottom: calc(clamp(16px, 2.4vw, 30px) + env(safe-area-inset-bottom, 0px));
+        z-index: 90;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 54px;
+        padding: 15px 22px;
+        color: #fff;
+        border: 1px solid rgba(147, 197, 253, 0.5);
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 58%, #1d4ed8 100%);
+        box-shadow: 0 16px 38px rgba(29, 78, 216, 0.38), inset 0 1px rgba(255, 255, 255, 0.22);
+        font-size: 0.95rem;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(14px) scale(0.97);
+        transition: opacity 220ms ease, transform 220ms ease, visibility 220ms ease, box-shadow 180ms ease;
+      }
+      .deal-sticky-cta.is-visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+      .deal-sticky-cta:hover {
+        box-shadow: 0 18px 44px rgba(29, 78, 216, 0.5), inset 0 1px rgba(255, 255, 255, 0.28);
+        transform: translateY(-2px) scale(1.01);
+      }
+      .deal-sticky-cta:focus-visible {
+        outline: 3px solid rgba(147, 197, 253, 0.72);
+        outline-offset: 4px;
+      }
+      .deal-summary__checkout {
+        margin: 20px calc(var(--deal-summary-padding) * -1) calc(var(--deal-summary-padding) * -1);
+        padding: clamp(28px, 4vw, 38px) var(--deal-summary-padding) clamp(30px, 4.5vw, 42px);
+        scroll-margin-top: 28px;
+        border-top: 1px solid #dbe4ee;
+        background: #f7f9fc;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.9);
+      }
+      .checkout-customer-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .checkout-customer-field {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+      .checkout-customer-field > span { color: #52657d; font-size: 0.62rem; font-weight: 800; }
+      .checkout-customer-field input {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 13px;
+        color: #122039;
+        border: 1px solid #cbd8e6;
+        border-radius: 10px;
+        outline: 0;
+        background: #fff;
+        font: inherit;
+        font-size: 0.78rem;
+        box-sizing: border-box;
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+      .checkout-customer-field input::placeholder { color: #8999aa; }
+      .checkout-customer-field input:focus {
+        border-color: #4f91ed;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(56, 132, 234, 0.12);
+      }
+      .checkout-payment-brands {
+        position: absolute;
+        z-index: 4;
+        top: 82px;
+        right: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+        min-height: 24px;
+        margin: 0;
+        pointer-events: none;
+      }
+      .payment-plan-selector {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+        padding: 8px;
+        border: 1px solid #d4deea;
+        border-radius: 15px;
+        background: #edf2f7;
+      }
+      .payment-plan-option {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        min-height: 70px;
+        padding: 12px 15px;
+        color: #5c6f85;
+        border: 1px solid #d6e0ea;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+      .payment-plan-option:hover { border-color: #94bff4; }
+      .payment-plan-option:focus-visible { outline: 3px solid rgba(71, 143, 255, 0.42); outline-offset: 2px; }
+      .payment-plan-option.is-selected {
+        color: #123f78;
+        border-color: #4f91ed;
+        background: linear-gradient(135deg, #edf6ff, #e1efff);
+        box-shadow: inset 0 0 0 1px rgba(79, 145, 237, 0.1), 0 8px 22px rgba(38, 97, 174, 0.1);
+      }
+      .payment-plan-option span {
+        font-size: 0.68rem;
+        font-weight: 750;
+        line-height: 1.2;
+      }
+      .payment-plan-option__top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 5px 8px;
+      }
+      .payment-plan-option__badge {
+        padding: 4px 7px;
+        color: #1d5fae;
+        border: 1px solid #b9d5f7;
+        border-radius: 999px;
+        background: #dcecff;
+        font-size: 0.48rem;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .payment-plan-option strong {
+        color: inherit;
+        font-size: clamp(1rem, 2vw, 1.18rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.025em;
+      }
+      .deal-spiffy-checkout {
+        position: relative;
+        width: 100%;
+        min-height: 0;
+        margin-top: 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+      .deal-spiffy-checkout spiffy-checkout,
+      .deal-spiffy-checkout iframe {
+        display: block;
+        width: 100%;
+        border: 0;
+        background: transparent;
+      }
+      .deal-spiffy-checkout__loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #667a91;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+      .deal-spiffy-checkout__loading::before {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        border: 2px solid rgba(147, 197, 253, 0.18);
+        border-top-color: #60a5fa;
+        border-radius: 50%;
+        content: "";
+        animation: deal-checkout-spin 700ms linear infinite;
+      }
+      @keyframes deal-checkout-spin { to { transform: rotate(360deg); } }
+      .payment-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 13px 0 8px;
+      }
+      .payment-heading p { margin: 0; color: #eaf3ff; font-size: 0.78rem; font-weight: 850; }
+      .payment-brands { display: flex; align-items: center; gap: 5px; }
+      .payment-brand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 39px;
+        height: 24px;
+        padding: 0 6px;
+        color: #10203b;
+        border: 1px solid rgba(148, 178, 216, 0.42);
+        border-radius: 5px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+        line-height: 1;
+      }
+      .payment-brand--mastercard { position: relative; min-width: 40px; padding: 0; }
+      .payment-brand--mastercard::before,
+      .payment-brand--mastercard::after { width: 14px; height: 14px; content: ""; border-radius: 50%; }
+      .payment-brand--mastercard::before { margin-right: -4px; background: #eb001b; }
+      .payment-brand--mastercard::after { background: #f79e1b; mix-blend-mode: multiply; }
+      .payment-brand--visa { color: #1434cb; font-size: 12px; font-style: italic; font-weight: 950; letter-spacing: -0.08em; }
+      .payment-brand--apple { color: #050505; font-size: 11px; font-weight: 800; letter-spacing: -0.04em; }
+      .payment-brand--apple b { margin-right: 2px; font-family: -apple-system, sans-serif; font-size: 15px; }
+      .payment-brand--paypal { min-width: 43px; color: #003087; font-size: 10px; font-style: italic; font-weight: 900; letter-spacing: -0.06em; }
+      .payment-brand--paypal em { color: #0070ba; font-style: inherit; }
+      .card-field {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        min-height: 54px;
+        padding: 0 14px;
+        color: #71849c;
+        border: 1px solid rgba(84, 145, 222, 0.7);
+        border-radius: 10px;
+        background: #07172c;
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.16);
+        font-size: 0.8rem;
+      }
+      .card-field span:nth-child(2), .card-field span:nth-child(3) { margin-left: 14px; color: #91a4bc; }
+      .terms {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin: 13px 1px;
+        color: #aebfd3;
+        font-size: 0.71rem;
+        line-height: 1.42;
+      }
+      .terms input { width: 15px; height: 15px; flex: 0 0 auto; margin: 1px 0 0; accent-color: #3b82f6; }
+      .pay-button {
+        width: 100%;
+        min-height: 56px;
+        border: 0;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+        font-size: 0.9rem;
+        font-weight: 900;
+      }
+      .paypal-separator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 13px 0 10px;
+        color: #71849b;
+        font-size: 0.58rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .paypal-separator::before, .paypal-separator::after { height: 1px; flex: 1; content: ""; background: rgba(145, 177, 217, 0.2); }
+      .paypal-button {
+        width: 100%;
+        min-height: 50px;
+        border: 0;
+        border-radius: 11px;
+        color: #003087;
+        background: #ffc439;
+        font-size: 1.2rem;
+        font-style: italic;
+        font-weight: 900;
+      }
+      .preview-checkout-review {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 13px;
+        align-items: center;
+        width: min(100%, 460px);
+        margin: 2.25rem auto 0;
+        padding: 13px 15px;
+        color: #e8f1fb;
+        border: 1px solid rgba(143, 190, 250, 0.16);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.025);
+      }
+      .preview-checkout-review img {
+        display: block;
+        width: 58px;
+        height: 58px;
+        object-fit: cover;
+        border: 2px solid rgba(191, 212, 237, 0.42);
+        border-radius: 50%;
+        box-shadow: 0 7px 18px rgba(0, 4, 14, 0.32);
+      }
+      .preview-checkout-review blockquote { margin: 0; color: #b8c7d9; font-size: 0.82rem; font-style: italic; font-weight: 500; line-height: 1.45; }
+      .preview-checkout-review cite { display: block; margin-top: 6px; color: #9fb7d3; font-size: 0.64rem; font-style: normal; font-weight: 800; }
+      .preview-guarantee {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        width: min(100%, 620px);
+        margin: 2.5rem auto 0;
+        padding: clamp(28px, 5vw, 46px) clamp(20px, 5vw, 48px) clamp(26px, 4vw, 38px);
+        overflow: hidden;
+        color: #effff7;
+        border: 1px solid rgba(221, 183, 92, 0.58);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 50% 112%, rgba(210, 164, 65, 0.2), transparent 42%),
+          linear-gradient(145deg, rgba(39, 30, 18, 0.98), rgba(19, 17, 15, 0.99) 52%, rgba(12, 12, 12, 0.99));
+        box-shadow:
+          0 0 0 5px rgba(212, 175, 87, 0.045),
+          0 24px 70px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 236, 185, 0.16);
+        text-align: center;
+      }
+      .preview-guarantee::before {
+        position: absolute;
+        z-index: -1;
+        width: 480px;
+        height: 480px;
+        border: 1px solid rgba(212, 175, 87, 0.08);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(212, 175, 87, 0.08), transparent 64%);
+        content: "";
+        inset: auto auto -300px 50%;
+        transform: translateX(-50%);
+      }
+      .preview-guarantee::after {
+        position: absolute;
+        z-index: -1;
+        content: "";
+        inset: 9px;
+        border: 1px solid rgba(244, 210, 132, 0.1);
+        border-radius: 17px;
+        pointer-events: none;
+      }
+      .preview-guarantee__seal {
+        display: block;
+        width: clamp(148px, 29vw, 190px);
+        height: auto;
+        margin-top: 0;
+        filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.4));
+      }
+      .preview-guarantee__kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 13px;
+        padding: 7px 13px;
+        color: #f8df9c;
+        border: 1px solid rgba(212, 175, 87, 0.36);
+        border-radius: 999px;
+        background: rgba(212, 175, 87, 0.08);
+        box-shadow: none;
+        font-size: 0.7rem;
+        font-weight: 850;
+        letter-spacing: 0.025em;
+        text-transform: uppercase;
+      }
+      .preview-guarantee strong {
+        display: grid;
+        gap: 2px;
+        color: #fffaf0;
+        font-size: clamp(1.35rem, 3.6vw, 2rem);
+        font-weight: 950;
+        letter-spacing: -0.035em;
+        line-height: 1.05;
+        text-wrap: balance;
+      }
+      .preview-guarantee strong span:last-child {
+        color: #e4bd62;
+        font-size: 1.08em;
+        text-shadow: 0 0 28px rgba(212, 175, 87, 0.2);
+      }
+      .preview-guarantee p {
+        max-width: 460px;
+        margin: 16px auto 0;
+        color: #e8dfcf;
+        font-size: clamp(0.78rem, 1.8vw, 0.92rem);
+        font-weight: 650;
+        line-height: 1.6;
+        text-wrap: balance;
+      }
+      .preview-guarantee p b { color: #fff; font-weight: 900; }
+      .preview-guarantee p.preview-guarantee__regret {
+        margin: -2px auto 5px;
+        color: #e4bd62;
+        font-family: 'Caveat', 'Segoe Print', cursive;
+        font-size: clamp(1.15rem, 3vw, 1.45rem);
+        font-weight: 700;
+        line-height: 1.15;
+        transform: rotate(-1deg);
+      }
+      .preview-guarantee p.preview-guarantee__condition {
+        margin-top: 0;
+        color: rgba(232, 223, 207, 0.72);
+        font-size: clamp(0.7rem, 1.55vw, 0.8rem);
+        font-weight: 400;
+      }
+      .es2-bonus-section {
+        width: 100%;
+        max-width: 900px;
+        margin: clamp(46px, 6vw, 72px) auto 0;
+        text-align: left;
+      }
+      .es2-bonus-kicker {
+        margin: 0 0 8px;
+        color: rgba(147, 197, 253, 0.7);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .es2-bonus-title {
+        margin: 0 0 10px;
+        color: #fff;
+        font-size: clamp(1.35rem, 2.8vw, 2rem);
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        line-height: 1.3;
+      }
+      .es2-bonus-title__accent { color: #60a5fa; }
+      .es2-bonus-exclusivity {
+        margin: 0 0 clamp(32px, 5vw, 48px);
+        color: rgba(219, 234, 254, 0.64);
+        font-size: clamp(0.76rem, 1.2vw, 0.9rem);
+        font-weight: 650;
+        line-height: 1.45;
+      }
+      .es2-bonus-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+      .es2-bonus-card {
+        --bonus-accent: #60a5fa;
+        --bonus-pad-x: clamp(25px, 3.5vw, 34px);
+        --bonus-pad-y: clamp(25px, 3.5vw, 34px);
+        position: relative;
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr) auto;
+        min-height: 0;
+        gap: clamp(24px, 3.5vw, 34px);
+        align-items: start;
+        padding: var(--bonus-pad-y) var(--bonus-pad-x);
+        overflow: hidden;
+        border: 1px solid rgba(96, 165, 250, 0.34);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.25), transparent 44%),
+          linear-gradient(145deg, rgba(18, 55, 104, 0.78), rgba(7, 20, 41, 0.98));
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.05), 0 18px 44px rgba(0, 0, 0, 0.16);
+      }
+      .es2-bonus-card.is-sold-out {
+        --bonus-accent: #94a3b8;
+        border-color: rgba(148, 163, 184, 0.28);
+        background:
+          radial-gradient(circle at 100% 0%, rgba(148, 163, 184, 0.14), transparent 44%),
+          linear-gradient(145deg, rgba(46, 55, 69, 0.78), rgba(18, 24, 34, 0.98));
+      }
+      .es2-bonus-card.is-sold-out .es2-bonus-gift {
+        opacity: 0.62;
+        filter: grayscale(1) drop-shadow(0 9px 12px rgba(0, 0, 0, 0.24));
+      }
+      .es2-bonus-visual {
+        display: flex;
+        grid-column: 1;
+        grid-row: 1;
+        align-self: stretch;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+        padding-right: 24px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .es2-bonus-index {
+        display: grid;
+        width: 100%;
+        gap: 4px;
+        justify-items: center;
+        color: var(--bonus-accent);
+        line-height: 1;
+        text-align: center;
+      }
+      .es2-bonus-index span {
+        display: block;
+        font-size: 0.61rem;
+        font-weight: 850;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+      .es2-bonus-index strong {
+        display: block;
+        width: 2.15ch;
+        font-size: clamp(2.2rem, 4vw, 3rem);
+        font-feature-settings: "tnum" 1;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.035em;
+        text-align: center;
+      }
+      .es2-bonus-body { grid-column: 2; grid-row: 1; align-self: center; min-width: 0; }
+      .es2-bonus-aside {
+        display: flex;
+        grid-column: 3;
+        grid-row: 1;
+        align-self: stretch;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+        gap: 12px;
+        min-width: 112px;
+      }
+      .es2-bonus-gift {
+        display: block;
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        object-fit: contain;
+        filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.3));
+      }
+      .es2-bonus-name {
+        margin: 0 0 clamp(8px, 1.2vw, 14px);
+        color: #f1f5f9;
+        font-size: clamp(1.08rem, 1.6vw, 1.3rem);
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .es2-bonus-card--limited { grid-template-rows: auto auto; }
+      .es2-bonus-card--proof { grid-template-rows: auto auto auto; }
+      .es2-bonus-proof {
+        grid-column: 2 / -1;
+        grid-row: 2;
+        width: min(100%, 680px);
+        margin: 0;
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, 0.2);
+        border-radius: 14px;
+        background: #f4f1e9;
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+      }
+      .es2-bonus-proof img { display: block; width: 100%; height: auto; }
+      .es2-bonus-card--proof .es2-bonus-availability { grid-row: 3; }
+      .es2-bonus-card--illustrated { grid-template-rows: auto auto; }
+      .es2-bonus-illustration {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 325px);
+        height: auto;
+        margin: 2px auto -4px;
+        filter: drop-shadow(0 22px 28px rgba(0, 0, 0, 0.3));
+      }
+      .es2-bonus-availability {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        margin: 2px calc(var(--bonus-pad-x) * -1) calc(var(--bonus-pad-y) * -1);
+        padding: 15px var(--bonus-pad-x);
+        border-top: 1px solid rgba(248, 113, 113, 0.22);
+        background: #030711;
+      }
+      .es2-bonus-availability__copy { display: grid; gap: 4px; min-width: 0; }
+      .es2-bonus-availability__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #fb7185;
+        font-size: 0.57rem;
+        font-weight: 820;
+        letter-spacing: 0.075em;
+        text-transform: uppercase;
+      }
+      .es2-bonus-availability__label::before {
+        width: 5px;
+        height: 5px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #fb7185;
+        box-shadow: 0 0 10px rgba(251, 113, 133, 0.48);
+        content: "";
+      }
+      .es2-bonus-availability__label--available { color: #4ade80; }
+      .es2-bonus-availability__label--available::before {
+        background: #4ade80;
+        box-shadow: 0 0 10px rgba(74, 222, 128, 0.48);
+      }
+      .es2-bonus-availability strong {
+        color: #f8fafc;
+        font-size: clamp(0.76rem, 1.2vw, 0.88rem);
+        font-weight: 780;
+        line-height: 1.35;
+      }
+      .es2-bonus-availability--dynamic .es2-bonus-availability__copy {
+        display: flex;
+        align-items: center;
+        gap: 10px 14px;
+        flex-wrap: wrap;
+      }
+      .es2-bonus-availability__dynamic-copy {
+        margin: 0;
+        color: rgba(226, 232, 240, 0.76);
+        font-size: clamp(0.73rem, 1.1vw, 0.84rem);
+        font-weight: 680;
+        line-height: 1.4;
+      }
+      .es2-bonus-availability__count {
+        min-width: 72px;
+        padding: 8px 11px;
+        color: #fecaca;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        border-radius: 9px;
+        background: rgba(127, 29, 29, 0.22);
+        font-size: 0.72rem;
+        font-feature-settings: "tnum" 1;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.04em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+      .es2-bonus-availability.is-sold-out strong { color: rgba(248, 250, 252, 0.55); }
+      .es2-bonus-availability.is-sold-out .es2-bonus-availability__count {
+        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.24);
+        background: rgba(127, 29, 29, 0.2);
+      }
+      .es2-bonus-desc {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.48);
+        font-size: clamp(0.84rem, 1.1vw, 0.94rem);
+        line-height: 1.65;
+      }
+      .es2-app-availability { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 20px; }
+      .es2-bonus-card--morpho { grid-template-rows: auto auto; }
+      .es2-bonus-card--morpho .es2-app-availability { grid-column: 2 / -1; grid-row: 2; width: fit-content; max-width: 100%; justify-content: flex-end; justify-self: end; margin-top: 0; text-align: right; }
+      .es2-bonus-card--morpho .es2-app-availability__label { text-align: right; }
+      .es2-bonus-card--morpho .es2-app-availability__available { justify-content: flex-start; text-align: left; }
+      .es2-bonus-card--morpho-proof { grid-template-rows: auto auto auto; }
+      .es2-morpho-phone {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 3;
+        width: min(100%, 494px);
+        height: auto;
+        margin: 10px auto -4px;
+        filter: drop-shadow(0 22px 30px rgba(0, 0, 0, 0.3));
+      }
+      .es2-bonus-card--volt-proof { grid-template-rows: auto auto; }
+      .es2-bonus-card--books-proof { grid-template-rows: auto auto; }
+      .es2-bonus-card--consultation-proof { grid-template-rows: auto auto auto; }
+      .es2-bonus-card--consultation-proof .es2-bonus-availability { grid-row: 3; }
+      .es2-consultation-message {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 308px);
+        height: auto;
+        margin: 12px auto -6px;
+        filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.34));
+      }
+      .es2-books-illustration {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 252px);
+        height: auto;
+        margin: 10px auto -6px;
+        filter: drop-shadow(0 24px 32px rgba(0, 0, 0, 0.34));
+      }
+      .es2-volt-macbook {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 405px);
+        height: auto;
+        margin: 12px auto -8px;
+        filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.34));
+      }
+      .es2-bonus-card--method-x-proof { grid-template-rows: auto auto; }
+      .es2-method-x-visual {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 560px);
+        height: auto;
+        margin: 14px auto -2px;
+        border: 1px solid rgba(96, 165, 250, 0.24);
+        border-radius: 14px;
+        box-shadow: 0 24px 38px rgba(0, 0, 0, 0.34);
+      }
+      .es2-app-availability__label { width: 100%; color: rgba(191, 219, 254, 0.56); font-size: 0.62rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+      .es2-app-badge { display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; color: rgba(255, 255, 255, 0.82); border: 1px solid rgba(147, 197, 253, 0.18); border-radius: 8px; background: rgba(4, 11, 24, 0.52); font-size: 0.76rem; font-weight: 750; }
+      .es2-app-badge svg { display: block; width: 26px; height: 26px; flex: 0 0 auto; }
+      .es2-app-availability__available { display: flex; width: 100%; gap: 6px; align-items: center; margin-top: 4px; margin-bottom: 6px; color: rgba(219, 234, 254, 0.72); font-size: 0.68rem; font-weight: 720; }
+      .es2-app-availability__available::before { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 999px; background: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.46); content: ""; }
+      .es2-bonus-included { display: flex; gap: 8px; align-items: flex-start; margin-top: 17px; color: rgba(219, 234, 254, 0.76); font-size: 0.72rem; font-weight: 740; line-height: 1.5; }
+      .es2-bonus-included::before { display: grid; width: 17px; height: 17px; flex: 0 0 auto; place-items: center; color: #052e20; border-radius: 999px; background: #4ade80; box-shadow: 0 0 10px rgba(74, 222, 128, 0.32); content: "✓"; font-size: 0.68rem; font-weight: 950; }
+      .es2-bonus-method-badge { display: inline-flex; width: fit-content; margin: 0 0 13px; padding: 6px 10px; color: #dbeafe; border: 1px solid rgba(147, 197, 253, 0.28); border-radius: 999px; background: rgba(37, 99, 235, 0.16); box-shadow: inset 0 1px rgba(255, 255, 255, 0.05); font-size: 0.61rem; font-weight: 880; letter-spacing: 0.09em; text-transform: uppercase; }
+      .es2-bonus-val {
+        display: block;
+        flex-shrink: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        text-align: center;
+      }
+      .es2-bonus-val-label { display: block; margin-bottom: 2px; color: rgba(255, 255, 255, 0.4); font-size: 0.7rem; font-weight: 650; }
+      .es2-bonus-val-amount { display: block; color: #fff; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 850; letter-spacing: -0.035em; line-height: 1.1; }
+      .deal-scarcity {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        width: 100%;
+        max-width: 820px;
+        margin: clamp(42px, 6vw, 66px) auto 0;
+        overflow: hidden;
+        color: #fff;
+        border: 1px solid rgba(248, 113, 113, 0.42);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 0% 50%, rgba(248, 113, 113, 0.12), transparent 42%),
+          linear-gradient(135deg, rgba(67, 12, 20, 0.96), rgba(26, 8, 14, 0.99));
+        box-shadow: 0 16px 42px rgba(69, 10, 10, 0.22), inset 0 1px rgba(254, 202, 202, 0.08);
+      }
+      .deal-scarcity__timer,
+      .deal-scarcity__places {
+        display: flex;
+        align-items: center;
+        gap: clamp(14px, 2.5vw, 24px);
+        padding: clamp(18px, 2.8vw, 25px) clamp(20px, 3.5vw, 31px);
+      }
+      .deal-scarcity__title {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding: clamp(22px, 3.5vw, 30px) clamp(20px, 3.5vw, 31px) 0;
+        color: #fb7185;
+        font-size: clamp(1.65rem, 4vw, 2.5rem);
+        font-weight: 950;
+        letter-spacing: -0.045em;
+        line-height: 1;
+        text-align: center;
+        text-transform: uppercase;
+      }
+      .deal-scarcity__timer {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      .deal-scarcity__places {
+        justify-content: center;
+        flex-direction: column;
+        gap: 5px;
+        border-left: 1px solid rgba(254, 202, 202, 0.14);
+        text-align: center;
+      }
+      .deal-scarcity__label {
+        color: rgba(254, 226, 226, 0.68);
+        font-size: 0.65rem;
+        font-weight: 820;
+        letter-spacing: 0.07em;
+        line-height: 1.35;
+        text-transform: uppercase;
+      }
+      .deal-flip-clock {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .deal-flip-unit {
+        display: grid;
+        justify-items: center;
+        gap: 7px;
+      }
+      .deal-flip-card {
+        position: relative;
+        display: grid;
+        min-width: 56px;
+        min-height: 58px;
+        padding: 10px 9px;
+        overflow: hidden;
+        place-items: center;
+        color: #fff;
+        border: 1px solid rgba(254, 202, 202, 0.18);
+        border-radius: 8px;
+        background:
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.11) 0 49%, rgba(0, 0, 0, 0.12) 49% 51%, rgba(255, 255, 255, 0.045) 51% 100%);
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 7px 16px rgba(0, 0, 0, 0.18);
+        font-size: clamp(1.45rem, 3.2vw, 2rem);
+        font-feature-settings: "tnum" 1;
+        font-variant-numeric: tabular-nums;
+        font-weight: 920;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        transform-style: preserve-3d;
+      }
+      .deal-flip-card::after {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        left: 0;
+        height: 1px;
+        background: rgba(0, 0, 0, 0.38);
+        box-shadow: 0 1px rgba(255, 255, 255, 0.055);
+        content: "";
+      }
+      .deal-flip-card.is-ticking { animation: deal-flip-tick 0.34s ease; }
+      .deal-flip-unit small {
+        color: rgba(254, 226, 226, 0.55);
+        font-size: 0.53rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      @keyframes deal-flip-tick {
+        0% { transform: perspective(260px) rotateX(0); }
+        45% { transform: perspective(260px) rotateX(-16deg); }
+        100% { transform: perspective(260px) rotateX(0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .deal-flip-card.is-ticking { animation: none; }
+      }
+      .deal-scarcity__places strong {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        color: #fb7185;
+        font-size: clamp(2rem, 4.8vw, 3rem);
+        font-weight: 920;
+        letter-spacing: -0.055em;
+        line-height: 1;
+      }
+      .deal-scarcity__places strong small {
+        color: rgba(254, 202, 202, 0.72);
+        font-size: 0.46em;
+        font-weight: 850;
+        letter-spacing: -0.02em;
+      }
+      .deal-scarcity__places p { margin: 0; color: rgba(254, 226, 226, 0.72); font-size: 0.75rem; font-weight: 700; line-height: 1.35; }
+      .deal-summary {
+        --deal-summary-padding: clamp(30px, 5vw, 50px);
+        width: 100%;
+        max-width: 820px;
+        margin: 14px auto 0;
+        padding: var(--deal-summary-padding);
+        overflow: hidden;
+        border: 1px solid rgba(248, 113, 113, 0.34);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.16), transparent 42%),
+          linear-gradient(155deg, rgba(22, 18, 25, 0.98), rgba(5, 8, 16, 0.995) 68%);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.36), inset 0 1px rgba(255, 255, 255, 0.06);
+        text-align: left;
+      }
+      .deal-summary h3 {
+        margin: 0 0 27px;
+        color: #fff;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        font-weight: 880;
+        letter-spacing: -0.04em;
+        line-height: 1.12;
+        text-align: center;
+        text-wrap: balance;
+      }
+      .deal-summary__title-accent { color: #fb7185; }
+      .deal-summary__rows { display: grid; gap: 0; }
+      .deal-summary__row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 15px 0;
+        color: rgba(226, 232, 240, 0.63);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: clamp(0.82rem, 1.4vw, 0.95rem);
+      }
+      .deal-summary__row strong { color: #fff; font-size: clamp(1.05rem, 2vw, 1.28rem); font-weight: 850; white-space: nowrap; }
+      .deal-summary__total {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: clamp(25px, 4vw, 36px) 0;
+        color: #f8fafc;
+      }
+      .deal-summary__total-copy { display: grid; gap: 5px; }
+      .deal-summary__total-label { color: #f8fafc; font-size: clamp(0.92rem, 1.6vw, 1.08rem); font-weight: 780; }
+      .deal-summary__total-note { color: rgba(248, 250, 252, 0.43); font-size: 0.75rem; }
+      .deal-summary__anchor {
+        position: relative;
+        display: inline-block;
+        color: rgba(254, 226, 226, 0.72);
+        font-size: clamp(2.55rem, 6.5vw, 4.35rem);
+        font-weight: 920;
+        letter-spacing: -0.07em;
+        line-height: 0.95;
+        white-space: nowrap;
+      }
+      .deal-summary__anchor::after {
+        position: absolute;
+        top: 49%;
+        right: -4%;
+        left: -4%;
+        height: clamp(3px, 0.55vw, 6px);
+        border-radius: 999px;
+        background: linear-gradient(90deg, #ef4444, #fb7185);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.36);
+        content: "";
+        transform: rotate(-5deg);
+      }
+      .deal-summary__bridge {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: -3px 0 14px;
+        color: #fca5a5;
+        font-size: 0.7rem;
+        font-weight: 850;
+        letter-spacing: 0.075em;
+        text-transform: uppercase;
+      }
+      .deal-summary__bridge::before,
+      .deal-summary__bridge::after { height: 1px; background: rgba(248, 113, 113, 0.24); content: ""; }
+      .deal-summary__bridge::before { width: 26px; }
+      .deal-summary__bridge::after { flex: 1; }
+      .deal-summary__today {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: clamp(23px, 3.5vw, 31px);
+        border: 1px solid rgba(248, 113, 113, 0.48);
+        border-radius: 19px;
+        background:
+          radial-gradient(circle at 100% 0%, rgba(251, 113, 133, 0.22), transparent 43%),
+          linear-gradient(135deg, rgba(127, 29, 29, 0.86), rgba(54, 11, 18, 0.97));
+        box-shadow: 0 18px 42px rgba(69, 10, 10, 0.3), inset 0 1px rgba(254, 202, 202, 0.12);
+      }
+      .deal-summary__today-label { display: block; margin-bottom: 5px; color: #fecaca; font-size: 0.68rem; font-weight: 850; letter-spacing: 0.075em; text-transform: uppercase; }
+      .deal-summary__today p { margin: 0; color: rgba(254, 226, 226, 0.62); font-size: 0.78rem; line-height: 1.45; }
+      .deal-summary__price { padding-left: clamp(18px, 3vw, 28px); color: #fff; border-left: 1px solid rgba(254, 202, 202, 0.18); font-size: clamp(2.65rem, 6vw, 4rem); font-weight: 920; letter-spacing: -0.07em; line-height: 0.95; text-shadow: 0 4px 24px rgba(127, 29, 29, 0.42); white-space: nowrap; }
+      .deal-summary__checkout-cue {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin: 15px 0 -5px;
+        color: #fff;
+        font-size: clamp(0.9rem, 1.5vw, 1.02rem);
+        font-weight: 900;
+        letter-spacing: 0.02em;
+      }
+      .deal-summary__checkout-cue span {
+        display: inline-block;
+        color: #f87171;
+        font-size: 1.75rem;
+        line-height: 1;
+        animation: deal-checkout-cue 1.25s ease-in-out infinite;
+      }
+      @keyframes deal-checkout-cue {
+        0%, 100% { transform: translateY(-2px); }
+        50% { transform: translateY(3px); }
+      }
+      .core-value-section {
+        width: 100%;
+        max-width: 900px;
+        margin: clamp(72px, 10vw, 120px) auto 0;
+        text-align: left;
+      }
+      .core-value-kicker {
+        margin: 0 0 9px;
+        color: #d8b45f;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .core-value-title {
+        max-width: 680px;
+        margin: 0;
+        color: #fff;
+        font-size: clamp(1.55rem, 3.4vw, 2.45rem);
+        font-weight: 850;
+        letter-spacing: -0.035em;
+        line-height: 1.12;
+        text-wrap: balance;
+      }
+      .core-value-title__accent { color: #60a5fa; }
+      .core-value-intro {
+        max-width: 660px;
+        margin: 15px 0 30px;
+        color: rgba(226, 232, 240, 0.58);
+        font-size: clamp(0.88rem, 1.4vw, 1rem);
+        line-height: 1.65;
+      }
+      .coach-comparison {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid rgba(203, 213, 225, 0.22);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 0% 0%, rgba(148, 163, 184, 0.11), transparent 46%),
+          linear-gradient(135deg, rgba(38, 46, 59, 0.92), rgba(22, 28, 39, 0.97));
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18), inset 0 1px rgba(255, 255, 255, 0.055);
+      }
+      .core-value-separator {
+        width: min(74%, 560px);
+        height: 1px;
+        margin: clamp(30px, 4vw, 42px) auto clamp(26px, 3.5vw, 36px);
+        background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
+      }
+      .coach-comparison > div { padding: clamp(24px, 3.5vw, 34px); }
+      .coach-comparison__label {
+        display: block;
+        margin-bottom: 7px;
+        color: rgba(203, 213, 225, 0.58);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .coach-comparison strong { display: block; color: #f8fafc; font-size: clamp(1rem, 2vw, 1.25rem); line-height: 1.35; }
+      .coach-comparison p { margin: 6px 0 0; color: rgba(226, 232, 240, 0.52); font-size: 0.82rem; line-height: 1.5; }
+      .coach-comparison__price {
+        display: grid;
+        align-self: stretch;
+        min-width: clamp(190px, 26vw, 245px);
+        padding: clamp(24px, 3.5vw, 34px);
+        place-items: center;
+        color: rgba(248, 250, 252, 0.9);
+        border-left: 1px solid rgba(226, 232, 240, 0.14);
+        background: linear-gradient(145deg, rgba(226, 232, 240, 0.105), rgba(148, 163, 184, 0.045));
+        font-size: clamp(2rem, 5vw, 3.15rem);
+        font-weight: 900;
+        letter-spacing: -0.055em;
+        white-space: nowrap;
+      }
+      .core-modules {
+        display: grid;
+        gap: 10px;
+      }
+      .core-module {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        padding: 20px 24px;
+        border: 1px solid rgba(255, 255, 255, 0.075);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.027);
+      }
+      .core-module__index {
+        display: block;
+        margin-bottom: 6px;
+        color: #93c5fd;
+        font-size: 0.61rem;
+        font-weight: 850;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+      .core-module h3 { margin: 0; color: #f1f5f9; font-size: clamp(1rem, 1.6vw, 1.12rem); font-weight: 760; }
+      .core-module p { margin: 4px 0 0; color: rgba(226, 232, 240, 0.45); font-size: 0.76rem; line-height: 1.45; }
+      .core-module__value { display: grid; gap: 4px; justify-items: end; text-align: right; white-space: nowrap; }
+      .core-module__value span { color: rgba(226, 232, 240, 0.42); font-size: 0.61rem; font-weight: 700; letter-spacing: 0.02em; }
+      .core-module__value strong { color: rgba(255, 255, 255, 0.9); font-size: clamp(1.05rem, 2vw, 1.3rem); font-weight: 850; }
+      .core-total {
+        margin-top: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(96, 165, 250, 0.22);
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(16, 47, 93, 0.72), rgba(7, 22, 42, 0.92));
+      }
+      .core-total__value-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: clamp(24px, 4vw, 48px);
+        align-items: center;
+        padding: clamp(22px, 3vw, 30px);
+      }
+      .core-total__label { display: block; margin-bottom: 5px; color: #93c5fd; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+      .core-total strong { display: block; color: #fff; font-size: clamp(1rem, 2vw, 1.24rem); }
+      .core-total p { margin: 5px 0 0; color: rgba(191, 219, 254, 0.54); font-size: 0.78rem; }
+      .core-total__price {
+        position: relative;
+        display: inline-block;
+        color: rgba(226, 232, 240, 0.52);
+        font-size: clamp(2rem, 5vw, 3.1rem);
+        font-weight: 820;
+        letter-spacing: -0.035em;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .core-total__price::after {
+        position: absolute;
+        top: 50%;
+        right: -5%;
+        left: -5%;
+        height: 2px;
+        background: #f87171;
+        box-shadow: 0 0 9px rgba(248, 113, 113, 0.34);
+        content: "";
+        transform: rotate(-5deg);
+      }
+      .core-total__today-label {
+        display: block;
+        margin: 0 0 4px;
+        color: #93c5fd;
+        font-size: 0.61rem;
+        font-weight: 850;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .core-total__today {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: clamp(24px, 4vw, 48px);
+        align-items: center;
+        padding: clamp(20px, 2.7vw, 27px) clamp(22px, 3vw, 30px);
+        border-top: 1px solid rgba(147, 197, 253, 0.18);
+        background: linear-gradient(110deg, rgba(37, 99, 235, 0.2), rgba(30, 64, 175, 0.08));
+      }
+      .core-total__today-price { color: #fff; font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 920; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; }
+      .core-total__installments { display: block; color: rgba(191, 219, 254, 0.58); font-size: 0.7rem; font-weight: 650; }
+      .core-price-cta {
+        display: flex;
+        width: min(100%, 430px);
+        min-height: 54px;
+        align-items: center;
+        justify-content: center;
+        margin: 26px auto 0;
+        padding: 14px 24px;
+        color: #fff;
+        border: 1px solid rgba(147, 197, 253, 0.38);
+        border-radius: 13px;
+        background: linear-gradient(145deg, #3b82f6, #2563eb);
+        box-shadow: 0 15px 34px rgba(37, 99, 235, 0.3), inset 0 1px rgba(255, 255, 255, 0.22);
+        cursor: pointer;
+        font-size: clamp(0.86rem, 1.7vw, 1rem);
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      }
+      .core-price-cta:hover {
+        filter: brightness(1.08);
+        box-shadow: 0 18px 42px rgba(37, 99, 235, 0.42), inset 0 1px rgba(255, 255, 255, 0.28);
+        transform: translateY(-2px);
+      }
+      .core-price-cta:focus-visible { outline: 3px solid rgba(96, 165, 250, 0.58); outline-offset: 4px; }
+      .core-guarantee-reminder {
+        display: flex;
+        width: min(100%, 620px);
+        gap: 13px;
+        align-items: center;
+        justify-content: center;
+        margin: 38px auto -12px;
+        padding: 11px 18px;
+        color: #fff8e5;
+        border: 1px solid rgba(226, 187, 91, 0.3);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(80, 57, 15, 0.3), rgba(24, 19, 10, 0.72));
+        box-shadow: inset 0 1px rgba(255, 248, 220, 0.04);
+      }
+      .core-guarantee-reminder img { width: 44px; height: 44px; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 5px 9px rgba(0, 0, 0, 0.3)); }
+      .core-guarantee-reminder__copy { display: grid; gap: 2px; }
+      .core-guarantee-reminder__copy span { color: #dfbd69; font-size: 0.58rem; font-weight: 850; letter-spacing: 0.1em; text-transform: uppercase; }
+      .core-guarantee-reminder__copy strong { color: #fff8e7; font-size: clamp(0.82rem, 1.4vw, 0.96rem); font-weight: 820; line-height: 1.3; }
+      .video-reviews-section {
+        width: 100%;
+        max-width: 900px;
+        margin: clamp(72px, 9vw, 108px) auto 0;
+        text-align: center;
+      }
+      .video-reviews-kicker {
+        display: block;
+        margin-bottom: 10px;
+        color: #60a5fa;
+        font-size: 0.68rem;
+        font-weight: 850;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+      .video-reviews-title {
+        max-width: 680px;
+        margin: 0 auto;
+        color: #fff;
+        font-size: clamp(1.55rem, 3.5vw, 2.5rem);
+        font-weight: 860;
+        letter-spacing: -0.04em;
+        line-height: 1.12;
+        text-wrap: balance;
+      }
+      .video-reviews-title__accent { color: #60a5fa; }
+      .video-reviews-player {
+        position: relative;
+        margin-top: clamp(28px, 4vw, 40px);
+        padding: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(96, 165, 250, 0.32);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 82% 0%, rgba(59, 130, 246, 0.2), transparent 38%),
+          linear-gradient(145deg, rgba(15, 40, 77, 0.94), rgba(4, 13, 29, 0.98));
+        box-shadow: 0 30px 72px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.07);
+      }
+      .video-reviews-player::before {
+        position: absolute;
+        top: 0;
+        right: 16%;
+        left: 16%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.9), transparent);
+        box-shadow: 0 0 18px rgba(59, 130, 246, 0.72);
+        content: "";
+      }
+      .video-reviews-player__bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 5px 6px 13px;
+        color: rgba(219, 234, 254, 0.54);
+        font-size: 0.61rem;
+        font-weight: 760;
+        letter-spacing: 0.04em;
+      }
+      .video-reviews-player__bar strong {
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+        color: rgba(239, 246, 255, 0.82);
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .video-reviews-player__bar strong::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #60a5fa;
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.8);
+        content: "";
+      }
+      .video-reviews-player__frame {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border: 1px solid rgba(147, 197, 253, 0.17);
+        border-radius: 14px;
+        background: #020712;
+      }
+      .video-reviews-player__frame video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        object-fit: contain;
+      }
+      .video-reviews-media {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        color: #fff;
+        background: #000;
+      }
+      .video-reviews-media::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 108px;
+        pointer-events: none;
+        background: linear-gradient(transparent, rgba(0, 4, 13, 0.88));
+        content: "";
+      }
+      .video-reviews-media__big-play {
+        position: absolute;
+        z-index: 3;
+        top: 50%;
+        left: 50%;
+        display: grid;
+        width: clamp(62px, 8vw, 80px);
+        height: clamp(62px, 8vw, 80px);
+        padding: 0;
+        place-items: center;
+        color: #fff;
+        border: 1px solid rgba(191, 219, 254, 0.45);
+        border-radius: 999px;
+        background: linear-gradient(145deg, #60a5fa, #2563eb);
+        box-shadow: 0 14px 34px rgba(29, 78, 216, 0.48), inset 0 1px rgba(255, 255, 255, 0.26);
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+      .video-reviews-media__big-play:hover { transform: translate(-50%, -50%) scale(1.06); }
+      .video-reviews-media__big-play svg { width: 31%; height: 31%; margin-left: 5%; fill: currentColor; }
+      .video-reviews-media.is-playing .video-reviews-media__big-play { opacity: 0; pointer-events: none; }
+      .video-reviews-controls {
+        position: absolute;
+        z-index: 4;
+        right: 14px;
+        bottom: 10px;
+        left: 14px;
+        display: grid;
+        gap: 7px;
+      }
+      .video-reviews-controls__row {
+        display: flex;
+        min-width: 0;
+        gap: 8px;
+        align-items: center;
+      }
+      .video-reviews-controls button {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        padding: 0;
+        place-items: center;
+        color: #eff6ff;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+        transition: color 150ms ease, background 150ms ease;
+      }
+      .video-reviews-controls button:hover { color: #93c5fd; background: rgba(59, 130, 246, 0.2); }
+      .video-reviews-controls button:focus-visible,
+      .video-reviews-media__big-play:focus-visible { outline: 3px solid rgba(96, 165, 250, 0.72); outline-offset: 2px; }
+      .video-reviews-controls button svg { width: 20px; height: 20px; fill: currentColor; }
+      .video-reviews-controls__toggle .icon-pause,
+      .video-reviews-controls__mute .icon-muted { display: none; }
+      .video-reviews-media.is-playing .video-reviews-controls__toggle .icon-play { display: none; }
+      .video-reviews-media.is-playing .video-reviews-controls__toggle .icon-pause { display: block; }
+      .video-reviews-media.is-muted .video-reviews-controls__mute .icon-volume { display: none; }
+      .video-reviews-media.is-muted .video-reviews-controls__mute .icon-muted { display: block; }
+      .video-reviews-controls__time {
+        min-width: 70px;
+        color: rgba(239, 246, 255, 0.9);
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+        text-align: left;
+      }
+      .video-reviews-controls__spacer { flex: 1 1 auto; }
+      .video-reviews-range {
+        --range-progress: 0%;
+        height: 16px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        cursor: pointer;
+        appearance: none;
+      }
+      .video-reviews-range::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #3b82f6 0 var(--range-progress), rgba(219, 234, 254, 0.28) var(--range-progress) 100%);
+      }
+      .video-reviews-range::-moz-range-track {
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(219, 234, 254, 0.28);
+      }
+      .video-reviews-range::-moz-range-progress { height: 4px; border-radius: 999px; background: #3b82f6; }
+      .video-reviews-range::-webkit-slider-thumb {
+        width: 13px;
+        height: 13px;
+        margin-top: -4.5px;
+        border: 2px solid #dbeafe;
+        border-radius: 999px;
+        background: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+        appearance: none;
+      }
+      .video-reviews-range::-moz-range-thumb {
+        width: 10px;
+        height: 10px;
+        border: 2px solid #dbeafe;
+        border-radius: 999px;
+        background: #3b82f6;
+      }
+      .video-reviews-controls__progress { width: 100%; }
+      .video-reviews-controls__volume { width: 78px; }
+      @media (max-width: 600px) {
+        .video-reviews-controls { right: 9px; bottom: 7px; left: 9px; gap: 3px; }
+        .video-reviews-controls button { width: 31px; height: 31px; }
+        .video-reviews-controls__time { min-width: 58px; font-size: 0.64rem; }
+        .video-reviews-controls__volume { width: 55px; }
+      }
+      .video-reviews-all {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        width: min(100%, 570px);
+        gap: 17px;
+        align-items: center;
+        margin: 18px auto 0;
+        padding: 15px 18px;
+        color: #fff;
+        border: 1px solid rgba(147, 197, 253, 0.2);
+        border-radius: 14px;
+        background: rgba(10, 29, 57, 0.78);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        text-align: left;
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+      }
+      .video-reviews-all:hover { border-color: rgba(147, 197, 253, 0.38); background: rgba(13, 41, 82, 0.88); transform: translateY(-2px); }
+      .video-reviews-all:focus-visible { outline: 3px solid rgba(96, 165, 250, 0.52); outline-offset: 3px; }
+      .video-reviews-all__score { color: #fff; font-size: 1.75rem; font-weight: 880; letter-spacing: -0.055em; line-height: 1; }
+      .video-reviews-all__score small { margin-left: 2px; color: rgba(219, 234, 254, 0.48); font-size: 0.66rem; letter-spacing: 0; }
+      .video-reviews-all__copy { display: grid; gap: 3px; min-width: 0; }
+      .video-reviews-all__stars { color: #f3d58d; font-size: 0.78rem; letter-spacing: 2px; line-height: 1; }
+      .video-reviews-all__copy strong { color: rgba(239, 246, 255, 0.88); font-size: 0.73rem; line-height: 1.35; }
+      .video-reviews-all__arrow { display: grid; width: 31px; height: 31px; place-items: center; color: #dbeafe; border: 1px solid rgba(147, 197, 253, 0.22); border-radius: 999px; background: rgba(37, 99, 235, 0.16); font-size: 1rem; }
+      .two-paths-section {
+        width: 100%;
+        max-width: 900px;
+        margin: clamp(72px, 10vw, 120px) auto 0;
+        text-align: center;
+      }
+      .two-paths-kicker {
+        margin: 0 0 9px;
+        color: #93c5fd;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      .two-paths-title {
+        max-width: 720px;
+        margin: 0 auto;
+        color: #fff;
+        font-size: clamp(1.65rem, 3.7vw, 2.65rem);
+        font-weight: 880;
+        letter-spacing: -0.045em;
+        line-height: 1.08;
+        text-wrap: balance;
+      }
+      .two-paths-title__accent { color: #60a5fa; }
+      .two-paths-intro {
+        max-width: 690px;
+        margin: 16px auto 10px;
+        color: rgba(226, 232, 240, 0.58);
+        font-size: clamp(0.88rem, 1.4vw, 1rem);
+        line-height: 1.65;
+        text-wrap: balance;
+      }
+      .paths-fork {
+        width: 100%;
+        height: 112px;
+        margin: 4px auto -1px;
+      }
+      .paths-fork svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .two-paths-grid {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+        align-items: stretch;
+        text-align: left;
+      }
+      .path-card {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+        align-content: stretch;
+        min-height: 100%;
+        padding: clamp(25px, 4vw, 38px);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 19px;
+        background: rgba(255, 255, 255, 0.027);
+      }
+      .path-card--guided {
+        border-color: rgba(96, 165, 250, 0.42);
+        background:
+          radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.2), transparent 42%),
+          linear-gradient(145deg, rgba(16, 47, 93, 0.72), rgba(7, 22, 42, 0.95));
+        box-shadow: 0 22px 60px rgba(0, 7, 24, 0.35), inset 0 1px rgba(255, 255, 255, 0.07);
+      }
+      .path-card__number {
+        display: inline-grid;
+        width: 38px;
+        height: 38px;
+        margin-bottom: 17px;
+        place-items: center;
+        color: rgba(226, 232, 240, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.06);
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+      .path-card--guided .path-card__number { color: #dbeafe; border-color: rgba(96, 165, 250, 0.3); background: rgba(37, 99, 235, 0.15); }
+      .path-card__guarantee { color: #e8c56d; font-weight: 500; }
+      .path-card__label {
+        display: block;
+        margin-bottom: 8px;
+        color: rgba(226, 232, 240, 0.42);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .path-card--guided .path-card__label { color: #93c5fd; }
+      .path-card h3 {
+        margin: 0;
+        color: #f8fafc;
+        font-size: clamp(1.25rem, 2.5vw, 1.7rem);
+        font-weight: 850;
+        letter-spacing: -0.035em;
+        line-height: 1.12;
+      }
+      .path-card__lead {
+        margin: 14px 0 0;
+        color: rgba(226, 232, 240, 0.58);
+        font-size: clamp(0.84rem, 1.2vw, 0.94rem);
+        line-height: 1.65;
+      }
+      .path-card--guided .path-card__lead { color: rgba(219, 234, 254, 0.76); }
+      .path-card__route {
+        width: 100%;
+        height: 178px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+      }
+      .path-card__route svg { display: block; width: 100%; height: 100%; overflow: visible; }
+      .route-label {
+        font-family: Inter, sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .two-paths-cost {
+        max-width: 790px;
+        margin: clamp(42px, 6vw, 64px) auto 0;
+        padding: clamp(24px, 4vw, 34px);
+        color: rgba(226, 232, 240, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.025);
+        text-align: left;
+      }
+      .two-paths-cost h3 {
+        max-width: 610px;
+        margin: 0 auto;
+        color: #f8fafc;
+        font-size: clamp(1.35rem, 2.8vw, 2rem);
+        font-weight: 880;
+        letter-spacing: -0.04em;
+        line-height: 1.12;
+        text-align: center;
+        text-wrap: balance;
+      }
+      .two-paths-cost h3 span { color: #f87171; }
+      .two-paths-cost ul {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 20px;
+        margin: 24px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .two-paths-cost li {
+        position: relative;
+        margin: 0;
+        padding: 14px 15px 14px 34px;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 12px;
+        background: rgba(2, 8, 23, 0.28);
+        font-size: clamp(0.82rem, 1.2vw, 0.91rem);
+        line-height: 1.55;
+      }
+      .two-paths-cost li::before {
+        position: absolute;
+        top: 21px;
+        left: 16px;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #f87171;
+        box-shadow: 0 0 12px rgba(248, 113, 113, 0.42);
+        content: "";
+      }
+      .two-paths-cost__final {
+        max-width: 690px;
+        margin: 18px auto 0;
+        padding-top: 0;
+        color: #f4cf79;
+        border-top: 0;
+        font-size: clamp(0.96rem, 1.65vw, 1.12rem);
+        font-weight: 850;
+        line-height: 1.5;
+        text-align: center;
+        text-wrap: balance;
+      }
+      .two-paths-cost__final-light {
+        color: rgba(226, 232, 240, 0.66);
+        font-weight: 560;
+      }
+      .two-paths-cost__cta {
+        display: flex;
+        width: fit-content;
+        min-height: 52px;
+        align-items: center;
+        justify-content: center;
+        margin: 22px auto 0;
+        padding: 14px clamp(22px, 4vw, 34px);
+        color: #171208;
+        border: 1px solid #f7dc94;
+        border-radius: 12px;
+        background: linear-gradient(145deg, #f8dc8e, #d9ad45);
+        box-shadow: 0 13px 30px rgba(216, 180, 95, 0.24), inset 0 1px rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        font-size: clamp(0.78rem, 1.5vw, 0.92rem);
+        font-weight: 900;
+        letter-spacing: 0.015em;
+        text-transform: uppercase;
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      }
+      .two-paths-cost__cta:hover {
+        filter: brightness(1.06);
+        box-shadow: 0 17px 38px rgba(216, 180, 95, 0.34), inset 0 1px rgba(255, 255, 255, 0.56);
+        transform: translateY(-2px);
+      }
+      .two-paths-cost__cta:focus-visible { outline: 3px solid rgba(244, 207, 121, 0.48); outline-offset: 4px; }
+      .preview-reviews {
+        display: block;
+        width: 100%;
+        max-width: 760px;
+        margin: clamp(72px, 10vw, 120px) auto 0;
+      }
+      .preview-reviews--checkout {
+        max-width: 100%;
+        margin: 22px auto 0;
+      }
+      .preview-reviews--checkout .video-reviews-all { margin-top: 0; }
+      .deal-summary__checkout .video-reviews-all {
+        color: #122039;
+        border-color: #d5e0ec;
+        background: #fff;
+        box-shadow: 0 12px 30px rgba(27, 55, 91, 0.09), inset 0 1px rgba(255, 255, 255, 0.9);
+      }
+      .deal-summary__checkout .video-reviews-all:hover { border-color: #9dc1ec; background: #f9fbfe; }
+      .deal-summary__checkout .video-reviews-all__score { color: #142b49; }
+      .deal-summary__checkout .video-reviews-all__score small { color: #8291a3; }
+      .deal-summary__checkout .video-reviews-all__copy strong { color: #43566e; }
+      .deal-summary__checkout .video-reviews-all__arrow {
+        color: #235faa;
+        border-color: #c4d8ee;
+        background: #edf5ff;
+      }
+      .preview-reviews-summary {
+        position: relative;
+        display: block;
+        width: min(570px, 100%);
+        margin: 0 auto;
+        padding: 24px 25px 21px;
+        overflow: hidden;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        background: radial-gradient(circle at 88% 8%, rgba(100, 183, 255, 0.22), transparent 33%), linear-gradient(145deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.025));
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.07), 0 28px 65px rgba(0, 0, 0, 0.24);
+        cursor: pointer;
+        text-align: left;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .preview-reviews-summary:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.27); box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 33px 72px rgba(0, 0, 0, 0.28); }
+      .preview-reviews-summary:focus-visible { outline: 3px solid rgba(91, 177, 255, 0.5); outline-offset: 3px; }
+      .preview-reviews-summary__eyebrow { display: block; color: rgba(226, 232, 240, 0.62); font-size: 8.5px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
+      .preview-reviews-summary__main { display: flex; align-items: center; gap: 21px; margin-top: 13px; }
+      .preview-reviews-summary__score { flex: 0 0 auto; color: #fff; font-size: 44px; font-weight: 780; line-height: 1; letter-spacing: -0.06em; }
+      .preview-reviews-summary__score small { margin-left: 3px; color: rgba(226, 232, 240, 0.58); font-size: 13px; font-weight: 650; letter-spacing: 0; }
+      .preview-reviews-summary__rating { display: grid; gap: 3px; min-width: 0; }
+      .preview-reviews-summary__rating strong { color: #f8fafc; font-size: 11px; }
+      .preview-star-meter { position: relative; display: inline-block; width: max-content; color: rgba(255, 255, 255, 0.18); font-size: 16px; line-height: 1; letter-spacing: 2px; }
+      .preview-star-meter > span:last-child { position: absolute; inset: 0 auto 0 0; overflow: hidden; color: #f3d58d; white-space: nowrap; filter: drop-shadow(0 2px 7px rgba(243, 213, 141, 0.16)); }
+      .preview-reviews-summary__footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 17px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
+      .preview-reviews-summary__footer > strong { color: rgba(241, 245, 249, 0.88); font-size: 9px; font-weight: 780; letter-spacing: 0.02em; }
+      .preview-reviews-summary__avatars { display: flex; padding-left: 8px; }
+      .preview-reviews-summary__avatars img { width: 29px; height: 29px; margin-left: -8px; object-fit: cover; background: #dbeafe; border: 2px solid #0d2342; border-radius: 50%; }
+      .preview-reviews-dialog { width: min(760px, calc(100% - 32px)); height: min(860px, calc(100dvh - 34px)); margin: auto; padding: 0; overflow: hidden; color: #122039; background: #f7f9fc; border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 24px; box-shadow: 0 36px 120px rgba(0, 0, 0, 0.48); text-align: left; }
+      .preview-reviews-dialog::backdrop { background: rgba(1, 8, 20, 0.72); backdrop-filter: blur(5px); }
+      .preview-reviews-dialog[open] { display: flex; flex-direction: column; }
+      .preview-reviews-dialog__top { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 27px 22px; color: #fff; background: linear-gradient(135deg, #071b39, #0a3a78); border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+      .preview-reviews-dialog__eyebrow { display: block; margin-bottom: 5px; color: rgba(204, 226, 255, 0.65); font-size: 8px; font-weight: 850; letter-spacing: 0.15em; text-transform: uppercase; }
+      .preview-reviews-dialog__top h2 { margin: 0; color: #fff; font-size: 25px; letter-spacing: -0.04em; }
+      .preview-reviews-dialog__close { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0 0 3px; place-items: center; color: rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 50%; cursor: pointer; font-size: 25px; line-height: 1; }
+      .preview-reviews-dialog__scorebar { display: grid; flex: 0 0 auto; grid-template-columns: auto 1fr; gap: 17px; align-items: center; padding: 20px 27px; background: #fff; border-bottom: 1px solid #e4e9f1; }
+      .preview-reviews-dialog__scorebar > strong { font-size: 38px; line-height: 1; letter-spacing: -0.06em; }
+      .preview-reviews-dialog__scorebar > strong small { margin-left: 3px; color: #7e899b; font-size: 12px; letter-spacing: 0; }
+      .preview-reviews-dialog__scorebar .preview-star-meter { color: #dfe4eb; }
+      .preview-reviews-dialog__scorebar p { margin: 5px 0 0; color: #6d788a; font-size: 9px; }
+      .preview-reviews-dialog__filters { display: flex; flex: 0 0 auto; gap: 7px; padding: 13px 27px; overflow-x: auto; background: #f7f9fc; border-bottom: 1px solid #e2e7ef; scrollbar-width: none; }
+      .preview-reviews-dialog__filters button { padding: 8px 12px; color: #526076; background: #fff; border: 1px solid #dfe5ee; border-radius: 999px; cursor: pointer; font-size: 9px; white-space: nowrap; }
+      .preview-reviews-dialog__filters button.is-active { color: #fff; background: #0c4e9e; border-color: #0c4e9e; }
+      .preview-reviews-list { display: grid; flex: 1 1 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; min-height: 0; padding: 17px 20px 21px; overflow-y: auto; }
+      .preview-review-item { padding: 16px; background: #fff; border: 1px solid #e3e8f0; border-radius: 14px; box-shadow: 0 8px 24px rgba(19, 38, 68, 0.045); }
+      .preview-review-item[hidden] { display: none; }
+      .preview-review-item__head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 9px; align-items: center; }
+      .preview-review-item__head img, .preview-review-item__initials { display: grid; width: 36px; height: 36px; place-items: center; object-fit: cover; color: #0b467e; background: linear-gradient(145deg, #e6f2ff, #c4def8); border: 1px solid #d3e0ee; border-radius: 50%; font-size: 10px; font-weight: 850; }
+      .preview-review-item__head > span:not(.preview-review-item__initials) { display: grid; gap: 2px; min-width: 0; }
+      .preview-review-item__head strong { color: #17263e; font-size: 10px; }
+      .preview-review-item__head small { color: #8893a4; font-size: 7.5px; }
+      .preview-review-item__head b { color: #d6a93f; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+      .preview-review-item__head b i { color: #dfe4eb; font-style: normal; }
+      .preview-review-item__unrated { padding: 5px 7px; color: #66758b !important; background: #f2f5f8; border: 1px solid #e2e7ee; border-radius: 999px; font-size: 7px !important; letter-spacing: 0 !important; }
+      .preview-review-item > p { margin: 13px 0 0; color: #4e5d72; font-family: Georgia, "Times New Roman", serif; font-size: 10.5px; line-height: 1.62; }
+      .preview-review-reply { margin-top: 13px; padding: 11px 12px; color: #34445b; border-left: 3px solid #3b82f6; border-radius: 0 9px 9px 0; background: #eef5ff; }
+      .preview-review-reply strong { display: block; margin-bottom: 5px; color: #17549a; font-size: 8px; font-weight: 850; letter-spacing: 0.055em; text-transform: uppercase; }
+      .preview-review-reply p { margin: 0; font-size: 9px; line-height: 1.55; }
+      .preview-reviews-dialog__disclosure { flex: 0 0 auto; margin: 0; padding: 12px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
+      @media (max-width: 640px) {
+        .checkout-payment-brands { top: 160px; }
+        .deal-sticky-cta {
+          right: 12px;
+          bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+          min-height: 50px;
+          padding: 13px 17px;
+          border-radius: 12px;
+          font-size: 0.86rem;
+        }
+        .workbench { padding: 26px 12px 72px; }
+        .deal-summary__checkout { padding: 18px 16px 22px; }
+        .checkout-customer-fields { grid-template-columns: 1fr; }
+        .payment-heading { align-items: flex-start; flex-direction: column; }
+        .card-field { grid-template-columns: 1fr auto; }
+        .card-field span:nth-child(3) { display: none; }
+        .preview-checkout-review { grid-template-columns: 52px minmax(0, 1fr); padding: 12px 13px; }
+        .preview-checkout-review img { width: 52px; height: 52px; }
+        .video-reviews-player { padding: 7px; border-radius: 17px; }
+        .video-reviews-player__bar { padding: 5px 4px 10px; }
+        .video-reviews-player__bar span { display: none; }
+        .video-reviews-player__frame { border-radius: 11px; }
+        .video-reviews-all { gap: 12px; padding: 13px 14px; }
+        .video-reviews-all__score { font-size: 1.5rem; }
+        .video-reviews-all__copy strong { font-size: 0.67rem; }
+        .es2-bonus-grid { grid-template-columns: 1fr; }
+        .es2-bonus-card { --bonus-pad-x: 22px; --bonus-pad-y: 24px; display: flex; min-height: 0; gap: 18px; padding: var(--bonus-pad-y) var(--bonus-pad-x); flex-direction: column; }
+        .es2-bonus-visual { order: 1; width: 100%; align-self: stretch; align-items: flex-start; padding: 0; border: 0; }
+        .es2-bonus-index { display: flex; width: auto; min-width: 0; gap: 8px; align-items: baseline; justify-items: initial; text-align: left; }
+        .es2-bonus-index span { font-size: 2.35rem; font-weight: 900; letter-spacing: -0.035em; }
+        .es2-bonus-index strong { width: auto; font-size: 2.35rem; }
+        .es2-bonus-body { order: 2; width: 100%; }
+        .es2-bonus-aside { order: 4; width: 100%; min-width: 0; align-self: stretch; align-items: center; flex-direction: row; justify-content: flex-end; gap: 12px; margin-top: 2px; padding-top: 16px; border-top: 1px solid rgba(147, 197, 253, 0.16); }
+        .es2-bonus-gift { order: 2; width: 46px; height: 46px; margin: 0; }
+        .es2-bonus-val { order: 1; text-align: right; }
+        .es2-bonus-val-label { margin-bottom: 3px; }
+        .es2-bonus-card--limited { grid-template-rows: auto auto auto; }
+        .es2-bonus-card--limited .es2-bonus-body { grid-row: 2; }
+        .es2-bonus-card--proof { grid-template-rows: auto auto auto auto; }
+        .es2-bonus-proof { order: 3; width: 100%; }
+        .es2-bonus-card--proof .es2-bonus-availability { grid-row: 4; }
+        .es2-bonus-card--illustrated { grid-template-rows: auto auto auto; }
+        .es2-bonus-illustration { order: 3; width: min(100%, 300px); margin: 0 auto -4px; }
+        .es2-bonus-card--morpho { grid-template-rows: auto auto auto; }
+        .es2-bonus-card--morpho .es2-app-availability { order: 3; width: 100%; justify-content: flex-start; justify-self: auto; text-align: left; }
+        .es2-bonus-card--morpho .es2-app-availability__label { text-align: left; }
+        .es2-bonus-card--morpho-proof { grid-template-rows: auto auto auto auto; }
+        .es2-bonus-card--morpho-proof .es2-morpho-phone { order: 3; width: min(100%, 416px); margin-top: 6px; }
+        .es2-bonus-card--volt-proof { grid-template-rows: auto auto auto; }
+        .es2-bonus-card--volt-proof .es2-volt-macbook { order: 3; width: min(100%, 324px); margin-top: 6px; }
+        .es2-bonus-card--books-proof { grid-template-rows: auto auto auto; }
+        .es2-bonus-card--books-proof .es2-books-illustration { order: 3; width: min(100%, 217px); margin-top: 6px; }
+        .es2-bonus-card--consultation-proof { grid-template-rows: auto auto auto auto; }
+        .es2-bonus-card--consultation-proof .es2-consultation-message { order: 3; width: min(100%, 238px); margin-top: 8px; }
+        .es2-bonus-card--consultation-proof .es2-bonus-availability { grid-row: 4; }
+        .es2-bonus-card--method-x-proof { grid-template-rows: auto auto auto; }
+        .es2-bonus-card--method-x-proof .es2-method-x-visual { order: 3; width: 100%; margin-top: 8px; }
+        .es2-bonus-availability { order: 5; margin-top: 2px; padding: 14px var(--bonus-pad-x); }
+        .es2-bonus-val { display: block; margin: 0; padding: 0; border: 0; }
+        .es2-bonus-val-amount { font-size: 1.3rem; }
+        .deal-scarcity { grid-template-columns: 1fr; }
+        .deal-scarcity__timer { grid-template-columns: 1fr; gap: 14px; }
+        .deal-flip-clock { width: 100%; justify-content: space-between; gap: 6px; }
+        .deal-flip-card { min-width: 50px; min-height: 52px; padding: 8px 7px; }
+        .deal-scarcity__places { justify-content: center; border-top: 1px solid rgba(254, 202, 202, 0.14); border-left: 0; text-align: left; }
+        .deal-summary__today { grid-template-columns: 1fr; }
+        .deal-summary__price { padding: 16px 0 0; border-top: 1px solid rgba(254, 202, 202, 0.18); border-left: 0; }
+        .deal-summary__total { align-items: flex-start; flex-direction: column; gap: 8px; }
+        .coach-comparison { grid-template-columns: 1fr; gap: 0; }
+        .coach-comparison > div { padding: 22px; }
+        .coach-comparison__price { width: 100%; min-width: 0; padding: 20px 22px; border-top: 1px solid rgba(226, 232, 240, 0.14); border-left: 0; }
+        .coach-comparison__price, .core-total__price, .core-total__today-price { font-size: 2.25rem; }
+        .core-total__value-row, .core-total__today { grid-template-columns: 1fr; gap: 16px; }
+        .core-total__price { width: max-content; max-width: 100%; justify-self: start; }
+        .core-total__price::after { right: -4px; left: -4px; }
+        .core-module { grid-template-columns: 1fr; gap: 13px; padding: 18px; }
+        .core-module__value { grid-column: 1; justify-items: start; text-align: left; }
+        .core-module__value strong { font-size: 1rem; }
+        .two-paths-grid { grid-template-columns: 1fr; gap: 46px; }
+        .paths-fork { display: none; }
+        .path-card { padding: 26px 22px; }
+        .two-paths-cost { padding: 24px 20px; }
+        .two-paths-cost ul { grid-template-columns: 1fr; }
+        .preview-reviews { margin-top: 72px; }
+        .preview-reviews-summary { padding: 21px 20px 19px; }
+        .preview-reviews-summary__main { gap: 15px; }
+        .preview-reviews-summary__score { font-size: 39px; }
+        .preview-reviews-dialog { width: calc(100% - 18px); height: calc(100dvh - 18px); border-radius: 19px; }
+        .preview-reviews-dialog__top { padding: 20px 18px 18px; }
+        .preview-reviews-dialog__scorebar { padding: 17px 18px; }
+        .preview-reviews-dialog__filters { padding: 11px 18px; }
+        .preview-reviews-list { grid-template-columns: 1fr; padding: 13px 12px 17px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="workbench">
+      <p class="local-label">Atelier local · Deal MC2</p>
+
+      <section class="core-value-section">
+        <h2 class="core-value-title">Ce que vaut réellement <span class="core-value-title__accent">Esprit Subconscient 2.0</span></h2>
+        <p class="core-value-intro">Voici ce que représente l’accompagnement principal que tu reçois pendant six mois <strong>(sans compter les 7 bonus)</strong>.</p>
+
+        <div class="core-modules">
+          <article class="core-module">
+            <div><span class="core-module__index">Module 1</span><h3>La réalisation</h3><p>Apprends les règles du jeu de la vie et découvre comment ton état intérieur façonne tes résultats, pour ne plus créer par défaut et commencer à choisir consciemment.</p></div>
+            <div class="core-module__value"><span>Valeur individuelle</span><strong>297 €</strong></div>
+          </article>
+          <article class="core-module">
+            <div><span class="core-module__index">Module 2</span><h3>L’immersion</h3><p>Laisse-toi guider par le système qui te ramène chaque jour dans l’état du souhait réalisé, jusqu’à ce qu’il devienne naturel et que tes premières manifestations prennent forme.</p></div>
+            <div class="core-module__value"><span>Valeur individuelle</span><strong>1 497 €</strong></div>
+          </article>
+          <article class="core-module">
+            <div><span class="core-module__index">Module 3</span><h3>La manifestation</h3><p>Continue depuis tes premières manifestations, identifie ce qui les a rendues possibles et reproduis consciemment ce processus pour manifester des résultats encore plus ambitieux.</p></div>
+            <div class="core-module__value"><span>Valeur individuelle</span><strong>1 697 €</strong></div>
+          </article>
+          <article class="core-module">
+            <div><span class="core-module__index">Module 4</span><h3>La libération</h3><p>Construis une structure qui rend tes progrès automatiques, supprime définitivement le besoin de discipline et améliore la qualité de ta vie sous tous ses aspects.</p></div>
+            <div class="core-module__value"><span>Valeur individuelle</span><strong>597 €</strong></div>
+          </article>
+          <article class="core-module">
+            <div><span class="core-module__index">Module 5</span><h3>L’accélération</h3><p>Utilise l’intelligence artificielle et tous les outils à ta disposition pour accélérer tes manifestations, et réaliser 10x plus de ce que tu croyais possible en une vie.</p></div>
+            <div class="core-module__value"><span>Valeur individuelle</span><strong>697 €</strong></div>
+          </article>
+        </div>
+
+        <div class="core-value-separator" aria-hidden="true"></div>
+
+        <div class="coach-comparison">
+          <div>
+            <span class="coach-comparison__label">Le comparatif le plus simple</span>
+            <strong>Une séance de coaching en manifestation par semaine pendant six mois</strong>
+            <p>24 rendez-vous à 250 € la séance d’une heure.</p>
+          </div>
+          <span class="coach-comparison__price">6 000 €</span>
+        </div>
+
+        <div class="core-total">
+          <div class="core-total__value-row">
+            <div>
+              <span class="core-total__label">Valeur du programme complet</span>
+              <strong>Les cinq modules d’Esprit Subconscient 2.0</strong>
+              <p>Sans compter les 7 bonus exclusifs, disponibles uniquement en rejoignant Esprit Subconscient 2.0 maintenant.</p>
+            </div>
+            <span class="core-total__price">4 785 €</span>
+          </div>
+          <div class="core-total__today">
+            <div>
+              <span class="core-total__today-label">En rejoignant aujourd’hui</span>
+              <span class="core-total__installments">Ou 3 mensualités de 767 €.</span>
+            </div>
+            <span class="core-total__today-price">1 997 €</span>
+          </div>
+        </div>
+
+        <button class="core-price-cta" id="core-price-registration-cta" type="button" aria-controls="deal-registration">
+          Je rejoins l’aventure →
+        </button>
+
+        <div class="core-guarantee-reminder" aria-label="Rappel de la garantie manifestation">
+          <img src="/media/deal-guarantee-remboursement.webp" alt="" width="560" height="560" />
+          <div class="core-guarantee-reminder__copy">
+            <span>Garantie manifestation</span>
+            <strong>Soit tu manifestes, soit tu es remboursé.</strong>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="es2-bonus-section">
+        <p class="es2-bonus-kicker">Et en rejoignant aujourd'hui</p>
+        <h2 class="es2-bonus-title">Tu reçois aussi ces <span class="es2-bonus-title__accent">7 BONUS EXCLUSIFS</span></h2>
+        <p class="es2-bonus-exclusivity">Le seul moyen d’obtenir ces bonus est de rejoindre Esprit Subconscient 2.0.</p>
+
+        <div class="es2-bonus-grid">
+          <article class="es2-bonus-card es2-bonus-card--limited es2-bonus-card--proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>01</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">3 coachings manifestation en visio</h3>
+              <p class="es2-bonus-desc">Pendant trois rendez-vous individuels d’une heure chacun en visio, un coach certifié, formé à la méthode Sonny Court et fort d’au moins 10 ans d’expérience en hypnothérapie, prend le temps de comprendre ta situation, tes blocages et ce que tu veux manifester. Tu avances avec un véritable soutien humain et des recommandations personnalisées, sans jamais te retrouver seul.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">750€</span></div>
+            </div>
+            <figure class="es2-bonus-proof">
+              <img src="/media/deal-coaching-team-standards-v2.webp" alt="Standards de sélection de nos coachs certifiés : au moins 10 ans d’expérience en hypnothérapie, Master Coach, Maître Praticien en hypnose ericksonienne et en programmation neurolinguistique" width="1200" height="480" loading="lazy" decoding="async" />
+            </figure>
+            <div class="es2-bonus-availability es2-bonus-availability--dynamic">
+              <div class="es2-bonus-availability__copy">
+                <span class="es2-bonus-availability__label es2-bonus-availability__label--available">Disponible actuellement</span>
+                <p class="es2-bonus-availability__dynamic-copy">Inclus tant qu’il apparaît ici. Peut être retiré selon la disponibilité de nos coachs.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--morpho es2-bonus-card--morpho-proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>02</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">Ton compagnon IA Morpho</h3>
+              <span class="es2-bonus-method-badge">2 ans d’accès</span>
+              <p class="es2-bonus-desc">Réservé aux membres de la formation, Morpho réunit ton journal quotidien, un coach IA basé sur la méthode ES2 qui apprend à te connaître et te répond 24h/24, ainsi qu’un suivi visuel de ta progression. <strong>Aucun autre système de développement personnel francophone ne propose ça.</strong></p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">597€</span></div>
+            </div>
+            <div class="es2-app-availability" aria-label="Application mobile Morpho bientôt disponible sur l’App Store et Google Play">
+              <span class="es2-app-availability__available">Morpho est disponible dès ton inscription.</span>
+              <span class="es2-app-availability__label">Bientôt également disponible sur :</span>
+              <span class="es2-app-badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.22-.07 2.07.67 2.79.67 1.08-.22 2.11-.85 3.27-.77 1.39.11 2.44.66 3.13 1.65-2.87 1.72-2.19 5.5.44 6.56-.53 1.39-1.21 2.77-2.38 3.81l-.01-.01zM12.03 7.25C11.88 5.18 13.57 3.47 15.5 3.3c.27 2.39-2.17 4.17-3.47 3.95z" /></svg>
+                App Store
+              </span>
+              <span class="es2-app-badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#34a853" d="M3.8 2.9 14.4 12 3.8 21.1c-.5-.4-.8-1-.8-1.7V4.6c0-.7.3-1.3.8-1.7z"/><path fill="#4285f4" d="m14.4 12 3.1-2.7-10.8-6c-.8-.4-1.6-.5-2.3-.1L14.4 12z"/><path fill="#fbbc04" d="m14.4 12-10 8.8c.7.4 1.5.3 2.3-.1l10.8-6-3.1-2.7z"/><path fill="#ea4335" d="m17.5 9.3 2.7 1.5c1 .6 1 1.8 0 2.4l-2.7 1.5-3.1-2.7 3.1-2.7z"/></svg>
+                Google Play
+              </span>
+            </div>
+            <img class="es2-morpho-phone" src="/media/deal-morpho-phone-transparent.webp" alt="Aperçu réel de l’application Morpho dans un téléphone" width="1536" height="1024" loading="lazy" decoding="async" />
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--illustrated">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>03</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">33 Success Stories de manifestation</h3>
+              <p class="es2-bonus-desc">Les histoires vraies que tu auras besoin d’entendre lorsque le doute refera surface. Argent, amour, retour d’un ex, santé, réconciliation ou carrière : découvre 33 personnes qui ont manifesté ce qu’elles désiraient, parfois alors que leur situation semblait sans issue. Reviens-y chaque fois que tu doutes pour retrouver la foi, maintenir ton état et te rappeler que si cela a été possible pour elles, ça l’est aussi pour toi.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">197€</span></div>
+            </div>
+            <img class="es2-bonus-illustration" src="/media/deal-success-stories-transparent.webp" alt="Illustration des 33 Success Stories de manifestation" width="1254" height="1254" loading="lazy" decoding="async" />
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--books-proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>04</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">Livres anciens pour manifester l’argent</h3>
+              <p class="es2-bonus-desc">J’ai remué ciel et terre pour retrouver des ouvrages presque introuvables, entièrement consacrés à la manifestation. (Déjà 3 ouvrages pour manifester plus d’argent.) Restaurés et adaptés en livres audio, ils renferment une sagesse oubliée que tu ne retrouveras dans aucun enseignement moderne. Et cette collection continuera de grandir : chaque nouveau trésor que je découvrirai y sera automatiquement ajouté, sans frais supplémentaires.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">497€</span></div>
+            </div>
+            <img class="es2-books-illustration" src="/media/deal-ancient-books-transparent.webp" alt="Trois livres anciens restaurés et adaptés en livres audio" width="900" height="1021" loading="lazy" decoding="async" />
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--limited es2-bonus-card--consultation-proof" data-limited-bonus data-bonus-limit="80">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>05</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">Consultation privée avec Sonny Court</h3>
+              <p class="es2-bonus-desc">Je n’accompagne plus personne en privé. Mon temps ne me le permet plus. Mais pour les 80 premiers membres d’ES2, je ferai une exception. Au jour 30, j’étudierai personnellement ton parcours pour identifier ce qui avance, ce qui te bloque encore et la direction à prendre. Pas une réponse automatique. Mon expérience, appliquée à ta situation.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">1 297€</span></div>
+            </div>
+            <img class="es2-consultation-message" src="/media/deal-sonny-consultation-message-transparent-v3.webp" alt="Notification d’un message personnel de Sonny Court reçue il y a trois minutes" width="714" height="720" loading="lazy" decoding="async" />
+            <div class="es2-bonus-availability">
+              <div class="es2-bonus-availability__copy">
+                <span class="es2-bonus-availability__label">Bonus réservé aux 80 premiers inscrits</span>
+                <strong data-bonus-availability-text>Calcul de la disponibilité…</strong>
+              </div>
+              <span class="es2-bonus-availability__count" data-bonus-availability-count></span>
+            </div>
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--volt-proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>06</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">La communauté Volt (à vie)</h3>
+              <p class="es2-bonus-desc">Rejoins des centaines de personnes qui, comme toi, manifestent leurs désirs et construisent la vie qu’elles veulent vraiment. Ici, tu peux partager tes doutes, tes déclics et tes victoires sans te justifier ni craindre d’être jugé. Volt est une communauté profondément bienveillante où chacun s’entraide, s’encourage et tire les autres vers le haut.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">997€</span></div>
+            </div>
+            <img class="es2-volt-macbook" src="/media/deal-volt-macbook-transparent.webp" alt="Aperçu réel de la communauté Volt sur ordinateur" width="1200" height="840" loading="lazy" decoding="async" />
+          </article>
+
+          <article class="es2-bonus-card es2-bonus-card--method-x-proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>07</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">Ma dernière formation</h3>
+              <span class="es2-bonus-method-badge">La Méthode X</span>
+              <p class="es2-bonus-desc">Fin 2026, je publierai la dernière formation que je créerai de ma vie sur la conscience et la manifestation. Elle ne viendra pas compléter ES2, qui forme déjà un système complet, mais poussera mes enseignements à leur niveau le plus avancé : rendre l’application de la loi de l’attraction aussi structurée, prévisible et fiable que la loi elle-même.</p>
+              <p class="es2-bonus-included">En t’inscrivant aujourd’hui, tu recevras cette formation en avant-première, sans frais supplémentaires.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">1 997€</span></div>
+            </div>
+            <img class="es2-method-x-visual" src="/media/deal-methode-x.webp" alt="Méthode X, la dernière formation" width="1200" height="658" loading="lazy" decoding="async" />
+          </article>
+        </div>
+      </section>
+
+      <section class="deal-scarcity" data-total-places="100" data-remaining-places="27" aria-label="Temps et places restantes pour cette offre">
+        <h2 class="deal-scarcity__title">Offre de lancement</h2>
+        <div class="deal-scarcity__timer">
+          <span class="deal-scarcity__label">Cette offre<br />disparaît dans</span>
+          <div class="deal-flip-clock" id="deal-countdown" data-seconds="259200" aria-label="3 jours restants">
+            <div class="deal-flip-unit"><strong class="deal-flip-card" data-unit="days">03</strong><small>Jours</small></div>
+            <div class="deal-flip-unit"><strong class="deal-flip-card" data-unit="hours">00</strong><small>Heures</small></div>
+            <div class="deal-flip-unit"><strong class="deal-flip-card" data-unit="minutes">00</strong><small>Minutes</small></div>
+            <div class="deal-flip-unit"><strong class="deal-flip-card" data-unit="seconds">00</strong><small>Secondes</small></div>
+          </div>
+        </div>
+        <div class="deal-scarcity__places">
+          <strong><span>27</span><small>/ 100</small></strong>
+          <p>places disponibles</p>
+        </div>
+      </section>
+
+      <section class="deal-summary" aria-label="Récapitulatif de la valeur de l’offre">
+        <h3>Tout ce que tu reçois en rejoignant <span class="deal-summary__title-accent">Esprit Subconscient 2.0</span></h3>
+
+        <div class="deal-summary__rows">
+          <div class="deal-summary__row"><span>La formation complète (5 modules)</span><strong>4 785 €</strong></div>
+          <div class="deal-summary__row"><span>Les 7 bonus exclusifs</span><strong>6 332 €</strong></div>
+        </div>
+
+        <div class="deal-summary__total">
+          <div class="deal-summary__total-copy">
+            <span class="deal-summary__total-label">Valeur totale de tout ce que tu reçois</span>
+            <span class="deal-summary__total-note">(La formation complète et l’intégralité des bonus).</span>
+          </div>
+          <strong class="deal-summary__anchor">11 117 €</strong>
+        </div>
+
+        <div class="deal-summary__bridge">Mais tu ne paies pas 11 117 €</div>
+
+        <div class="deal-summary__today">
+          <div>
+            <span class="deal-summary__today-label">En rejoignant aujourd’hui</span>
+            <p>Ou 3 mensualités de 767 €.</p>
+          </div>
+          <strong class="deal-summary__price">1 997 €</strong>
+        </div>
+
+        <div class="deal-summary__checkout-cue">Inscris-toi maintenant <span aria-hidden="true">↓</span></div>
+
+        <div class="deal-summary__checkout" id="deal-registration" aria-label="Formulaire d’inscription Esprit Subconscient 2.0">
+          <div class="payment-plan-selector" role="group" aria-label="Choisis ton plan de paiement">
+            <button class="payment-plan-option is-selected" type="button" data-payment-plan="once" aria-pressed="true">
+              <span class="payment-plan-option__top">
+                <span>Paiement en une fois</span>
+                <small class="payment-plan-option__badge">Meilleur tarif</small>
+              </span>
+              <strong>1 997 €</strong>
+            </button>
+            <button class="payment-plan-option" type="button" data-payment-plan="three" aria-pressed="false">
+              <span>Paiement en 3 fois</span>
+              <strong>3 × 767 €</strong>
+            </button>
+          </div>
+
+          <div
+            class="deal-spiffy-checkout"
+            id="deal-spiffy-checkout"
+            data-monthly-checkout="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1"
+            data-once-checkout="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1"
+            data-discount-code="OFFRE50POURCENT"
+            aria-label="Paiement sécurisé Esprit Subconscient 2.0"
+          >
+            <div class="checkout-payment-brands payment-brands" aria-label="Moyens de paiement acceptés">
+              <span class="payment-brand payment-brand--mastercard" role="img" aria-label="Mastercard"></span>
+              <span class="payment-brand payment-brand--visa" role="img" aria-label="Visa">VISA</span>
+              <span class="payment-brand payment-brand--apple" role="img" aria-label="Apple Pay"><b></b>Pay</span>
+              <span class="payment-brand payment-brand--paypal" role="img" aria-label="PayPal">Pay<em>Pal</em></span>
+            </div>
+            <div class="deal-spiffy-checkout__loading">Connexion au paiement sécurisé…</div>
+          </div>
+
+          <div class="preview-reviews preview-reviews--checkout">
+            <button type="button" class="video-reviews-all" id="preview-open-reviews" aria-haspopup="dialog">
+              <span class="video-reviews-all__score">{previewReviewAverageLabel}<small>/5</small></span>
+              <span class="video-reviews-all__copy">
+                <span class="video-reviews-all__stars" aria-hidden="true">★★★★★</span>
+                <strong>Voir les {previewCheckoutReviews.length} témoignages authentiques</strong>
+              </span>
+              <span class="video-reviews-all__arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="preview-guarantee">
+        <div>
+          <span class="preview-guarantee__kicker">Garantie manifestation</span>
+          <strong>
+            <span>SOIT TU MANIFESTES.</span>
+            <span>SOIT ON TE REMBOURSE.</span>
+          </strong>
+          <p>Si tu n’as pas manifesté ce que tu veux, tu conserves la formation et les bonus offerts, et je te rembourse intégralement.</p>
+        </div>
+        <img class="preview-guarantee__seal" src="/media/deal-guarantee-remboursement.webp" alt="Sceau Garantie remboursement 100 %" width="560" height="560" />
+        <p class="preview-guarantee__regret">Le seul qui pourrait regretter cette offre, c’est moi !</p>
+        <p class="preview-guarantee__condition">(Une seule condition : suis la formation jusqu’au bout).</p>
+      </div>
+
+      <section class="video-reviews-section" aria-labelledby="video-reviews-title">
+        <span class="video-reviews-kicker">Ne me crois pas sur parole</span>
+        <h2 class="video-reviews-title" id="video-reviews-title">Regarde ce qui est arrivé <span class="video-reviews-title__accent">à ceux qui ont appliqué la méthode</span></h2>
+
+        <div class="video-reviews-player">
+          <div class="video-reviews-player__bar">
+            <strong>Témoignages vidéo</strong>
+            <span>Expériences authentiques de nos membres</span>
+          </div>
+          <div class="video-reviews-player__frame">
+            <div class="video-reviews-media" id="video-reviews-media" data-source="https://vz-601d6eb4-a9a.b-cdn.net/8cff681c-96d3-4bc0-98b6-8936c809957c/playlist.m3u8">
+              <video
+                id="video-reviews-video"
+                preload="metadata"
+                playsinline
+                poster="https://vz-601d6eb4-a9a.b-cdn.net/8cff681c-96d3-4bc0-98b6-8936c809957c/thumbnail.jpg"
+                aria-label="Témoignages vidéo des membres d’Esprit Subconscient 2.0"
+              ></video>
+
+              <button class="video-reviews-media__big-play" type="button" data-video-action="toggle" aria-label="Lire la vidéo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+
+              <div class="video-reviews-controls">
+                <input class="video-reviews-range video-reviews-controls__progress" data-video-progress type="range" min="0" max="1000" value="0" aria-label="Progression de la vidéo" />
+                <div class="video-reviews-controls__row">
+                  <button class="video-reviews-controls__toggle" type="button" data-video-action="toggle" aria-label="Lire la vidéo">
+                    <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg>
+                  </button>
+                  <span class="video-reviews-controls__time" data-video-time>0:00 / 11:31</span>
+                  <button class="video-reviews-controls__mute" type="button" data-video-action="mute" aria-label="Couper le son">
+                    <svg class="icon-volume" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.06A4.5 4.5 0 0 0 16.5 12zm0-8.1v2.06a7 7 0 0 1 0 12.08v2.06a9 9 0 0 0 0-16.2z" /></svg>
+                    <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm12.6-.4-1.4 1.4 2 2-2 2 1.4 1.4 2-2 2 2 1.4-1.4-2-2 2-2-1.4-1.4-2 2z" /></svg>
+                  </button>
+                  <input class="video-reviews-range video-reviews-controls__volume" data-video-volume type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+                  <span class="video-reviews-controls__spacer"></span>
+                  <button type="button" data-video-action="pip" aria-label="Afficher l’image dans l’image">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7h-8v6h8V7zm2-4H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3V5h18v14z" /></svg>
+                  </button>
+                  <button type="button" data-video-action="fullscreen" aria-label="Afficher en plein écran">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zm-3-12v2h3v3h2V5h-5z" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="video-reviews-all" id="preview-open-reviews-showcase" type="button" aria-haspopup="dialog">
+          <span class="video-reviews-all__score">{previewReviewAverageLabel}<small>/5</small></span>
+          <span class="video-reviews-all__copy">
+            <span class="video-reviews-all__stars" aria-hidden="true">★★★★★</span>
+            <strong>Voir les {previewCheckoutReviews.length} témoignages authentiques</strong>
+          </span>
+          <span class="video-reviews-all__arrow" aria-hidden="true">→</span>
+        </button>
+      </section>
+
+      <section class="two-paths-section">
+        <p class="two-paths-kicker">À partir d’ici, deux chemins sont possibles</p>
+        <h2 class="two-paths-title">Tu peux essayer seul...<br /><span class="two-paths-title__accent">Ou me laisser te guider jusqu’à ta manifestation !</span></h2>
+        <div class="paths-fork" aria-hidden="true">
+          <svg viewBox="0 0 900 112" preserveAspectRatio="none">
+            <circle cx="450" cy="10" r="5" fill="#cbd5e1" />
+            <path d="M450 15 V34" fill="none" stroke="#cbd5e1" stroke-width="3.2" stroke-linecap="round" />
+            <path d="M450 34 C450 58 214 48 214 99" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="6 7" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M450 34 C450 58 686 48 686 99" fill="none" stroke="#60a5fa" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M205 98 L223 98 L214 112 Z" fill="#64748b" />
+            <path d="M677 98 L695 98 L686 112 Z" fill="#60a5fa" />
+          </svg>
+        </div>
+
+        <div class="two-paths-grid">
+          <article class="path-card">
+            <span class="path-card__number">01</span>
+            <span class="path-card__label">Le chemin seul</span>
+            <h3>Continuer par toi-même</h3>
+            <p class="path-card__lead">Tu dois retrouver seul l’état du souhait réalisé, le préserver malgré les doutes et les circonstances actuelles, puis y revenir après chaque écart.<br /><br />(Long, difficile seul et incertain...)</p>
+            <div class="path-card__route" aria-hidden="true">
+              <svg viewBox="0 0 360 150">
+                <defs><marker id="route-arrow-grey" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#64748b" /></marker></defs>
+                <path d="M8 116 C56 116 46 35 95 35 C142 35 115 118 168 118 C220 118 190 55 242 55 C291 55 293 111 342 111" fill="none" stroke="#64748b" stroke-width="2.2" stroke-dasharray="5 7" marker-end="url(#route-arrow-grey)" />
+                <circle cx="95" cy="35" r="5" fill="#111827" stroke="#94a3b8" stroke-width="2" />
+                <circle cx="168" cy="118" r="5" fill="#111827" stroke="#94a3b8" stroke-width="2" />
+                <circle cx="242" cy="55" r="5" fill="#111827" stroke="#94a3b8" stroke-width="2" />
+                <text class="route-label" x="70" y="18" fill="#94a3b8">DOUTE</text>
+                <text class="route-label" x="126" y="145" fill="#94a3b8">RETOUR</text>
+                <text class="route-label" x="205" y="36" fill="#94a3b8">SE RECENTRER</text>
+              </svg>
+            </div>
+          </article>
+
+          <article class="path-card path-card--guided">
+            <span class="path-card__number">02</span>
+            <span class="path-card__label">Le chemin avec Esprit Subconscient 2.0</span>
+            <h3>Être guidé jusqu’à ta manifestation</h3>
+            <p class="path-card__lead">Esprit Subconscient 2.0 te ramène chaque jour dans l’état du souhait réalisé et t’y maintient jusqu’à ce que ta manifestation prenne forme dans le monde physique.<br /><br /><span class="path-card__guarantee">(Tu manifestes ou je te rembourse...)</span></p>
+            <div class="path-card__route" aria-hidden="true">
+              <svg viewBox="0 0 360 150">
+                <defs>
+                  <linearGradient id="guided-route" x1="8" y1="116" x2="342" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#3b82f6"/><stop offset="0.7" stop-color="#60a5fa"/><stop offset="1" stop-color="#f4cf79"/></linearGradient>
+                  <marker id="route-arrow-gold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#f4cf79" /></marker>
+                </defs>
+                <path d="M8 116 C72 116 78 92 130 92 C182 92 184 65 235 65 C286 65 292 36 342 36" fill="none" stroke="url(#guided-route)" stroke-width="3" marker-end="url(#route-arrow-gold)" />
+                <circle cx="130" cy="92" r="6" fill="#0b1f3a" stroke="#60a5fa" stroke-width="2.5" />
+                <circle cx="235" cy="65" r="6" fill="#0b1f3a" stroke="#60a5fa" stroke-width="2.5" />
+                <circle cx="334" cy="36" r="10" fill="rgba(244,207,121,.12)" stroke="#f4cf79" stroke-width="2.5" />
+                <text class="route-label" x="105" y="120" fill="#93c5fd">L’ÉTAT</text>
+                <text class="route-label" x="202" y="48" fill="#93c5fd">MAINTENU</text>
+                <text class="route-label" x="250" y="16" fill="#f4cf79">MANIFESTATION</text>
+              </svg>
+            </div>
+          </article>
+        </div>
+
+        <div class="two-paths-cost">
+          <h3>Le véritable prix de <span>l’indécision</span></h3>
+          <ul>
+            <li>Continuer à perdre du temps en cherchant la prochaine solution rapide.</li>
+            <li>Sacrifier des moments précieux à l’anxiété et au mal-être. Ce qui attire toujours plus d’anxiété et de mal-être.</li>
+            <li>Te réfugier dans les distractions plutôt que de régler le problème de fond.</li>
+            <li>Croire que tu économises de l’argent alors que tu perds ton temps et ton énergie, précisément ce qui te permet d’en gagner.</li>
+          </ul>
+          <p class="two-paths-cost__final"><span class="two-paths-cost__final-light">Continuer seul te demandera de payer le prix de cette indécision tous les jours.</span><br /><br />T’inscrire te demande une simple décision aujourd’hui.</p>
+          <button class="two-paths-cost__cta" id="two-paths-registration-cta" type="button" aria-controls="deal-registration">
+            Je commence ma transformation →
+          </button>
+        </div>
+      </section>
+
+      <dialog class="preview-reviews-dialog" id="preview-reviews-dialog" aria-labelledby="preview-reviews-dialog-title">
+        <div class="preview-reviews-dialog__top">
+          <div><span class="preview-reviews-dialog__eyebrow">Témoignages authentiques</span><h2 id="preview-reviews-dialog-title">Avis des participants</h2></div>
+          <button type="button" class="preview-reviews-dialog__close" id="preview-close-reviews" aria-label="Fermer">×</button>
+        </div>
+        <div class="preview-reviews-dialog__scorebar">
+          <strong>{previewReviewAverageLabel}<small>/5</small></strong>
+          <div>
+            <span class="preview-star-meter" aria-label={`Note moyenne : ${previewReviewAverageLabel} sur 5`}>
+              <span aria-hidden="true">★★★★★</span>
+              <span aria-hidden="true" style={`width: ${previewReviewAveragePercent}%`}>★★★★★</span>
+            </span>
+            <p>{previewRatedReviews.length} avis notés sur {previewCheckoutReviews.length} témoignages</p>
+          </div>
+        </div>
+        <div class="preview-reviews-dialog__filters" aria-label="Filtrer les témoignages">
+          <button type="button" class="is-active" data-preview-review-filter="all">Tous</button>
+          {previewRatingFilterValues.map((rating) => <button type="button" data-preview-review-filter={rating}>{rating} étoile{rating > 1 ? 's' : ''}</button>)}
+          <button type="button" data-preview-review-filter="unrated">Sans note</button>
+        </div>
+        <div class="preview-reviews-list">
+          {previewCheckoutReviews.map((review) => (
+            <article class="preview-review-item" data-preview-review-rating={review.rating ?? 'unrated'}>
+              <div class="preview-review-item__head">
+                {review.source_photo_url ? <img src={review.source_photo_url} alt={review.first_name} loading="lazy" decoding="async" /> : <span class="preview-review-item__initials">{previewReviewInitials(review.first_name)}</span>}
+                <span><strong>{review.first_name}</strong><small>{review.country || 'Participant vérifié'}</small></span>
+                {review.rating ? <b aria-label={`${review.rating} étoiles`}>{'★'.repeat(review.rating)}<i>{'★'.repeat(5 - review.rating)}</i></b> : <b class="preview-review-item__unrated">Témoignage</b>}
+              </div>
+              <p>« {review.review} »</p>
+              {review.id === 'historique-es2-cedric-1-etoile' && (
+                <div class="preview-review-reply">
+                  <strong>Réponse de Sonny Court</strong>
+                  <p>Bonjour Cédric. On a vérifié ton espace membre avant de te répondre : aucun module ouvert à ce jour. Difficile de ne pas aimer un programme qu’on n’a pas commencé. Si quelque chose te bloque pour démarrer, écris-nous et on regarde ensemble ce qui coince vraiment.</p>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+        <p class="preview-reviews-dialog__disclosure">Avis authentiques recueillis auprès de participants à des programmes désormais inclus dans Esprit Subconscient 2.0.</p>
+      </dialog>
+
+    </main>
+    <button class="deal-sticky-cta is-visible" id="deal-sticky-cta" type="button" aria-controls="deal-registration">
+      Je m’inscris ⚡
+    </button>
+    <script is:inline>
+      (() => {
+        const stickyCta = document.getElementById('deal-sticky-cta');
+        const twoPathsCta = document.getElementById('two-paths-registration-cta');
+        const corePriceCta = document.getElementById('core-price-registration-cta');
+        const registration = document.getElementById('deal-registration');
+        const offerZone = document.getElementById('offer-zone');
+        const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        const scrollToRegistration = () => {
+          registration?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+        const syncStickyCta = () => {
+          if (!stickyCta) return;
+          const offerIsVisible = isLocalPreview || !offerZone || offerZone.classList.contains('visible');
+          stickyCta.classList.toggle('is-visible', offerIsVisible);
+        };
+
+        if (stickyCta && registration) {
+          stickyCta.addEventListener('click', scrollToRegistration);
+        }
+        if (twoPathsCta && registration) {
+          twoPathsCta.addEventListener('click', scrollToRegistration);
+        }
+        if (corePriceCta && registration) {
+          corePriceCta.addEventListener('click', scrollToRegistration);
+        }
+
+        if (offerZone) {
+          new MutationObserver(syncStickyCta).observe(offerZone, {
+            attributes: true,
+            attributeFilter: ['class'],
+          });
+        }
+        syncStickyCta();
+
+        const countdown = document.getElementById('deal-countdown');
+        if (!countdown) return;
+
+        const units = {
+          days: countdown.querySelector('[data-unit="days"]'),
+          hours: countdown.querySelector('[data-unit="hours"]'),
+          minutes: countdown.querySelector('[data-unit="minutes"]'),
+          seconds: countdown.querySelector('[data-unit="seconds"]'),
+        };
+        const scarcity = document.querySelector('.deal-scarcity');
+        const totalPlaces = Number(scarcity?.dataset.totalPlaces || 0);
+        const remainingPlaces = Number(scarcity?.dataset.remainingPlaces || 0);
+        const attributedPlaces = Math.max(0, totalPlaces - remainingPlaces);
+
+        document.querySelectorAll('[data-limited-bonus]').forEach((bonus) => {
+          const limit = Number(bonus.dataset.bonusLimit || 0);
+          const available = Math.max(0, limit - attributedPlaces);
+          const availability = bonus.querySelector('.es2-bonus-availability');
+          const text = bonus.querySelector('[data-bonus-availability-text]');
+          const count = bonus.querySelector('[data-bonus-availability-count]');
+          if (!availability || !text || !count) return;
+
+          if (available === 0) {
+            bonus.classList.add('is-sold-out');
+            availability.classList.add('is-sold-out');
+            text.textContent = `Les ${limit} places de ce bonus ont déjà été attribuées.`;
+            count.textContent = 'Épuisé';
+            return;
+          }
+
+          bonus.classList.remove('is-sold-out');
+          availability.classList.remove('is-sold-out');
+          text.textContent = `Plus que ${available} place${available > 1 ? 's' : ''} disponible${available > 1 ? 's' : ''} pour ce bonus.`;
+          count.textContent = `${available} / ${limit}`;
+        });
+
+        const reviewsDialog = document.getElementById('preview-reviews-dialog');
+        const openReviews = document.getElementById('preview-open-reviews');
+        const openReviewsShowcase = document.getElementById('preview-open-reviews-showcase');
+        const closeReviews = document.getElementById('preview-close-reviews');
+        const reviewFilters = Array.from(document.querySelectorAll('[data-preview-review-filter]'));
+        const reviewItems = Array.from(document.querySelectorAll('[data-preview-review-rating]'));
+        [openReviews, openReviewsShowcase].forEach((button) => {
+          if (button && reviewsDialog) button.addEventListener('click', () => reviewsDialog.showModal());
+        });
+        if (closeReviews && reviewsDialog) closeReviews.addEventListener('click', () => reviewsDialog.close());
+        if (reviewsDialog) reviewsDialog.addEventListener('click', (event) => {
+          if (event.target === reviewsDialog) reviewsDialog.close();
+        });
+        reviewFilters.forEach((button) => {
+          button.addEventListener('click', () => {
+            const rating = button.getAttribute('data-preview-review-filter');
+            reviewFilters.forEach((filter) => filter.classList.toggle('is-active', filter === button));
+            reviewItems.forEach((item) => {
+              item.hidden = rating !== 'all' && item.getAttribute('data-preview-review-rating') !== rating;
+            });
+          });
+        });
+
+        let remaining = Number(countdown.dataset.seconds || 0);
+        const pad = (value) => String(value).padStart(2, '0');
+        const updateUnit = (unit, value) => {
+          const node = units[unit];
+          if (!node || node.textContent === value) return;
+          node.textContent = value;
+          node.classList.remove('is-ticking');
+          void node.offsetWidth;
+          node.classList.add('is-ticking');
+        };
+        const render = () => {
+          const days = Math.floor(remaining / 86400);
+          const hours = Math.floor((remaining % 86400) / 3600);
+          const minutes = Math.floor((remaining % 3600) / 60);
+          const seconds = remaining % 60;
+          updateUnit('days', pad(days));
+          updateUnit('hours', pad(hours));
+          updateUnit('minutes', pad(minutes));
+          updateUnit('seconds', pad(seconds));
+          countdown.setAttribute('aria-label', `${days} jours, ${hours} heures, ${minutes} minutes et ${seconds} secondes restantes`);
+        };
+
+        render();
+        window.setInterval(() => {
+          if (remaining <= 0) return;
+          remaining -= 1;
+          render();
+        }, 1000);
+      })();
+    </script>
+    <script is:inline>
+      (() => {
+        const slot = document.getElementById('deal-spiffy-checkout');
+        const planButtons = Array.from(document.querySelectorAll('[data-payment-plan]'));
+        const paymentBrands = slot?.querySelector('.checkout-payment-brands');
+        if (!slot || planButtons.length !== 2) return;
+
+        const visitor = new URLSearchParams(window.location.search);
+
+        const plans = {
+          three: {
+            url: slot.dataset.monthlyCheckout || '',
+          },
+          once: {
+            url: slot.dataset.onceCheckout || '',
+          },
+        };
+        let activePlan = 'once';
+        let activeFrame = null;
+
+        const replaceCheckoutChildren = (...children) => {
+          slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...children] : children));
+        };
+
+        const checkoutUrl = (base) => {
+          const url = new URL(base);
+          url.searchParams.set('code', slot.dataset.discountCode || 'OFFRE50POURCENT');
+          if (visitor.get('country')) url.searchParams.set('country', visitor.get('country'));
+          return url;
+        };
+
+        const mountCheckout = () => {
+          const plan = plans[activePlan];
+          const url = checkoutUrl(plan.url);
+          planButtons.forEach((button) => {
+            const selected = button.dataset.paymentPlan === activePlan;
+            button.classList.toggle('is-selected', selected);
+            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          });
+          slot.setAttribute('aria-busy', 'true');
+
+          if (window.location.protocol === 'http:') {
+            url.searchParams.set('elements', btoa(JSON.stringify({
+              modality: 'inline',
+              uid: 1,
+              from: window.location.href,
+              handles: {},
+            })));
+            const loading = document.createElement('div');
+            loading.className = 'deal-spiffy-checkout__loading';
+            loading.textContent = 'Connexion au paiement sécurisé…';
+            const frame = document.createElement('iframe');
+            activeFrame = frame;
+            frame.src = url.toString();
+            frame.title = activePlan === 'once'
+              ? 'Paiement sécurisé en une fois'
+              : 'Paiement sécurisé en trois fois';
+            frame.setAttribute('allow', 'payment');
+            frame.setAttribute('loading', 'eager');
+            frame.setAttribute('width', '100%');
+            frame.style.display = 'block';
+            frame.style.width = '100%';
+            frame.style.minWidth = '100%';
+            frame.style.maxWidth = 'none';
+            frame.style.border = '0';
+            frame.style.background = 'transparent';
+            frame.style.height = window.matchMedia('(max-width: 700px)').matches ? '520px' : '420px';
+            frame.style.opacity = '0';
+            frame.style.transition = 'opacity 180ms ease';
+            frame.addEventListener('load', () => {
+              loading.remove();
+              frame.style.opacity = '1';
+              slot.setAttribute('aria-busy', 'false');
+            }, { once: true });
+            replaceCheckoutChildren(loading, frame);
+            return;
+          }
+
+          activeFrame = null;
+          const checkout = document.createElement('spiffy-checkout');
+          checkout.setAttribute('url', url.toString());
+          checkout.style.display = 'block';
+          checkout.style.width = '100%';
+          checkout.style.maxWidth = 'none';
+          replaceCheckoutChildren(checkout);
+          slot.setAttribute('aria-busy', 'false');
+        };
+
+        window.addEventListener('message', (event) => {
+          if (!activeFrame || event.origin !== 'https://sonnycourt.spiffy.co') return;
+          let payload = event.data;
+          if (typeof payload === 'string') {
+            try { payload = JSON.parse(payload); } catch { return; }
+          }
+          if (!payload || (payload.event !== 'form:size' && payload.type !== 'es2:spiffy-height')) return;
+          const height = Number(payload.height || (payload.data && payload.data.height));
+          if (!Number.isFinite(height) || height < 180) return;
+          const maxHeight = window.matchMedia('(max-width: 700px)').matches ? 720 : 620;
+          activeFrame.style.height = Math.min(Math.ceil(height), maxHeight) + 'px';
+        });
+
+        planButtons.forEach((button) => button.addEventListener('click', () => {
+          const requestedPlan = button.dataset.paymentPlan;
+          if (!requestedPlan || requestedPlan === activePlan || !plans[requestedPlan]) return;
+          activePlan = requestedPlan;
+          mountCheckout();
+        }));
+
+        mountCheckout();
+      })();
+    </script>
+    <script>
+      import Hls from 'hls.js';
+
+      const media = document.getElementById('video-reviews-media');
+      const video = document.getElementById('video-reviews-video');
+
+      if (media instanceof HTMLElement && video instanceof HTMLVideoElement) {
+        const source = media.dataset.source || '';
+        const progress = media.querySelector('[data-video-progress]');
+        const volume = media.querySelector('[data-video-volume]');
+        const time = media.querySelector('[data-video-time]');
+        const toggleButtons = Array.from(media.querySelectorAll('[data-video-action="toggle"]'));
+        const muteButton = media.querySelector('[data-video-action="mute"]');
+        const pipButton = media.querySelector('[data-video-action="pip"]');
+        const fullscreenButton = media.querySelector('[data-video-action="fullscreen"]');
+        let hls: Hls | null = null;
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = source;
+        } else if (Hls.isSupported()) {
+          hls = new Hls({ enableWorker: true, startLevel: -1 });
+          hls.loadSource(source);
+          hls.attachMedia(video);
+        }
+
+        const formatTime = (seconds: number) => {
+          if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+          const rounded = Math.floor(seconds);
+          const minutes = Math.floor(rounded / 60);
+          return `${minutes}:${String(rounded % 60).padStart(2, '0')}`;
+        };
+
+        const paintRange = (range: HTMLInputElement, ratio: number) => {
+          const bounded = Math.max(0, Math.min(1, ratio));
+          range.style.setProperty('--range-progress', `${bounded * 100}%`);
+        };
+
+        const syncPlayback = () => {
+          const isPlaying = !video.paused && !video.ended;
+          media.classList.toggle('is-playing', isPlaying);
+          toggleButtons.forEach((button) => {
+            button.setAttribute('aria-label', isPlaying ? 'Mettre la vidéo en pause' : 'Lire la vidéo');
+          });
+        };
+
+        const syncTime = () => {
+          const duration = Number.isFinite(video.duration) ? video.duration : 691;
+          const ratio = duration > 0 ? video.currentTime / duration : 0;
+          if (progress instanceof HTMLInputElement) {
+            progress.value = String(Math.round(ratio * 1000));
+            paintRange(progress, ratio);
+          }
+          if (time) time.textContent = `${formatTime(video.currentTime)} / ${formatTime(duration)}`;
+        };
+
+        const syncVolume = () => {
+          const isMuted = video.muted || video.volume === 0;
+          media.classList.toggle('is-muted', isMuted);
+          muteButton?.setAttribute('aria-label', isMuted ? 'Rétablir le son' : 'Couper le son');
+          if (volume instanceof HTMLInputElement) {
+            volume.value = String(isMuted ? 0 : video.volume);
+            paintRange(volume, isMuted ? 0 : video.volume);
+          }
+        };
+
+        const togglePlayback = () => {
+          if (video.paused || video.ended) video.play().catch(() => {});
+          else video.pause();
+        };
+
+        toggleButtons.forEach((button) => button.addEventListener('click', togglePlayback));
+        video.addEventListener('click', togglePlayback);
+        video.addEventListener('play', syncPlayback);
+        video.addEventListener('pause', syncPlayback);
+        video.addEventListener('ended', syncPlayback);
+        video.addEventListener('timeupdate', syncTime);
+        video.addEventListener('durationchange', syncTime);
+        video.addEventListener('volumechange', syncVolume);
+
+        if (progress instanceof HTMLInputElement) {
+          progress.addEventListener('input', () => {
+            const duration = Number.isFinite(video.duration) ? video.duration : 0;
+            if (duration > 0) video.currentTime = (Number(progress.value) / 1000) * duration;
+            paintRange(progress, Number(progress.value) / 1000);
+          });
+        }
+
+        if (volume instanceof HTMLInputElement) {
+          volume.addEventListener('input', () => {
+            video.muted = false;
+            video.volume = Number(volume.value);
+            syncVolume();
+          });
+        }
+
+        muteButton?.addEventListener('click', () => {
+          video.muted = !video.muted;
+          if (!video.muted && video.volume === 0) video.volume = 1;
+        });
+
+        if (!document.pictureInPictureEnabled || !('requestPictureInPicture' in video)) {
+          if (pipButton instanceof HTMLElement) pipButton.hidden = true;
+        } else {
+          pipButton?.addEventListener('click', async () => {
+            try {
+              if (document.pictureInPictureElement) await document.exitPictureInPicture();
+              else await video.requestPictureInPicture();
+            } catch {}
+          });
+        }
+
+        fullscreenButton?.addEventListener('click', async () => {
+          try {
+            if (document.fullscreenElement) await document.exitFullscreen();
+            else await media.requestFullscreen();
+          } catch {}
+        });
+
+        if (volume instanceof HTMLInputElement) paintRange(volume, 1);
+        syncPlayback();
+        syncTime();
+        syncVolume();
+        window.addEventListener('pagehide', () => hls?.destroy(), { once: true });
+      }
+    </script>
+  </body>
+</html>

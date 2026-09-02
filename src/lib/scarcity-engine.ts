@@ -17,9 +17,9 @@ export type ScarcityWindow = {
 
 export type ScarcityPhase = 'phase1' | 'sold_out' | 'phase2';
 export type ScarcityWindowBounds = { startMs: number; endMs: number };
-// Calé sur le CTA de la vidéo W2 : 89m26s après début vidéo (19:45) = 74m26s après l'heure de session (20:00) = 21:14:26.
-// Toutes les notifications scarcity (timeline + rotation "il y a X min") sont automatiquement alignées sur ce nouveau point d'ancrage.
-export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (74 * 60 + 26) * 1000;
+// Calé sur le CTA actuel : 90m13s après le début vidéo, qui commence 15 minutes
+// avant le créneau, soit 75m13s après l'heure de session.
+export const SCARCITY_WINDOW_START_AFTER_SESSION_MS = (75 * 60 + 13) * 1000;
 
 const TZ = 'Europe/Paris';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -185,6 +185,7 @@ type EngineOptions = {
   isActive?: () => boolean;
   windowStartMs?: number;
   windowEndMs?: number;
+  timeline?: Purchase[];
   onSeatsLeft?: (seatsLeft: number, soldCount: number, phase: ScarcityPhase) => void;
   onNotification?: (purchase: Purchase, mode: 'timeline' | 'replay', detail?: string) => void;
   enableReplay?: boolean;
@@ -198,12 +199,47 @@ export function startScarcityEngine(options: EngineOptions = {}) {
   const onNotification = options.onNotification || (() => {});
   const enableReplay = Boolean(options.enableReplay);
   const debug = Boolean(options.debug);
+  const hasCustomTimeline = Array.isArray(options.timeline) && options.timeline.length > 0;
+  const timeline = hasCustomTimeline
+    ? [...(options.timeline || [])]
+        .filter((purchase) => Number.isFinite(purchase.offsetMs) && purchase.offsetMs >= 0)
+        .sort((a, b) => a.offsetMs - b.offsetMs)
+    : WEEKLY_TIMELINE;
   const windowBounds = (Number.isFinite(options.windowStartMs) && Number.isFinite(options.windowEndMs) && Number(options.windowEndMs) > Number(options.windowStartMs))
     ? { startMs: Number(options.windowStartMs), endMs: Number(options.windowEndMs) }
     : null;
 
+  function getTimelineSoldCount(nowMs: number): number {
+    if (!hasCustomTimeline) return getSoldCount(nowMs, windowBounds);
+    const win = resolveWindow(nowMs, windowBounds);
+    if (nowMs < win.startMs) return 0;
+    if (nowMs >= win.endMs) return timeline.length;
+    const elapsed = nowMs - win.startMs;
+    return timeline.filter((purchase) => purchase.offsetMs <= elapsed).length;
+  }
+
+  function getTimelineSeatsLeft(nowMs: number): number {
+    if (!hasCustomTimeline) return getSeatsLeft(nowMs, windowBounds);
+    return Math.max(0, timeline.length - getTimelineSoldCount(nowMs));
+  }
+
+  function getTimelinePhase(nowMs: number): ScarcityPhase {
+    if (!hasCustomTimeline) return getPhase(nowMs, windowBounds);
+    const soldCount = getTimelineSoldCount(nowMs);
+    if (soldCount >= timeline.length) return 'sold_out';
+    return timeline[soldCount]?.phase === 2 ? 'phase2' : 'phase1';
+  }
+
+  function getTimelineNextPurchase(nowMs: number): Purchase | null {
+    if (!hasCustomTimeline) return getNextScheduledPurchase(nowMs, windowBounds);
+    const win = resolveWindow(nowMs, windowBounds);
+    if (nowMs >= win.endMs) return null;
+    const elapsed = nowMs - win.startMs;
+    return timeline.find((purchase) => purchase.offsetMs > elapsed) || null;
+  }
+
   let timer: ReturnType<typeof setInterval> | null = null;
-  let emittedTimelineCount = getSoldCount(now(), windowBounds);
+  let emittedTimelineCount = getTimelineSoldCount(now());
   let lastSeatPushSec = -1;
   let lastReplayName = '';
   let lastTimelineName = '';
@@ -244,9 +280,9 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     const nowMs = now();
     const win = resolveWindow(nowMs, windowBounds);
     const active = isActive() && win.phase === 'active';
-    const soldCount = getSoldCount(nowMs, windowBounds);
-    const seatsLeft = getSeatsLeft(nowMs, windowBounds);
-    const phase = getPhase(nowMs, windowBounds);
+    const soldCount = getTimelineSoldCount(nowMs);
+    const seatsLeft = getTimelineSeatsLeft(nowMs);
+    const phase = getTimelinePhase(nowMs);
 
     const nowSec = Math.floor(nowMs / 1000);
     if (nowSec !== lastSeatPushSec) {
@@ -262,10 +298,19 @@ export function startScarcityEngine(options: EngineOptions = {}) {
       return;
     }
 
+    // Le simulateur de session peut revenir en arrière dans le temps. On recale
+    // alors le curseur pour pouvoir rejouer proprement la notification suivante.
+    if (soldCount < emittedTimelineCount) {
+      emittedTimelineCount = soldCount;
+      nextReplayAt = 0;
+      lastReplayName = '';
+      lastTimelineName = '';
+    }
+
     if (soldCount > emittedTimelineCount) {
       // Emit one purchase at a time in order. No replay.
       const nextIdx = emittedTimelineCount;
-      const nextPurchase = WEEKLY_TIMELINE[nextIdx];
+      const nextPurchase = timeline[nextIdx];
       if (nextPurchase) {
         onNotification(nextPurchase, 'timeline');
         lastTimelineName = nextPurchase.name;
@@ -277,7 +322,7 @@ export function startScarcityEngine(options: EngineOptions = {}) {
 
     // Replay mode is opt-in (for invitation only).
     if (!enableReplay) return;
-    if (soldCount < 10 || soldCount >= TOTAL_SEATS) {
+    if (soldCount < 10 || soldCount >= timeline.length) {
       nextReplayAt = 0;
       return;
     }
@@ -285,7 +330,7 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     if (!nextReplayAt) scheduleReplay(nowMs, seatsLeft, true);
     if (nowMs < nextReplayAt) return;
 
-    const soldPool = WEEKLY_TIMELINE.slice(0, soldCount);
+    const soldPool = timeline.slice(0, soldCount);
     const filtered = soldPool.filter((p) => p.name !== lastReplayName && p.name !== lastTimelineName);
     const candidates = filtered.length ? filtered : soldPool.filter((p) => p.name !== lastReplayName);
     if (!candidates.length) {
@@ -315,19 +360,18 @@ export function startScarcityEngine(options: EngineOptions = {}) {
     debugSnapshot() {
       const n = now();
       const win = resolveWindow(n, windowBounds);
-      const soldCountNow = getSoldCount(n, windowBounds);
+      const soldCountNow = getTimelineSoldCount(n);
       return {
         nowMs: n,
         window: win,
-        phase: getPhase(n, windowBounds),
+        phase: getTimelinePhase(n),
         soldCount: soldCountNow,
-        seatsLeft: getSeatsLeft(n, windowBounds),
-        next: getNextScheduledPurchase(n, windowBounds),
+        seatsLeft: getTimelineSeatsLeft(n),
+        next: getTimelineNextPurchase(n),
         replayEnabled: enableReplay,
-        replayEligible: enableReplay && soldCountNow >= 10 && soldCountNow < TOTAL_SEATS,
+        replayEligible: enableReplay && soldCountNow >= 10 && soldCountNow < timeline.length,
         nextReplayAt,
       };
     }
   };
 }
-

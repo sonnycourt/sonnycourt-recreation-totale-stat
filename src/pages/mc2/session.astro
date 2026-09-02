@@ -1,29 +1,7 @@
 ---
 import GAConsentMode from '../../components/GAConsentMode.astro';
 import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
-import reviewsData from '../../data/reviews.json';
-import reviewConversionOrder from '../../data/review-conversion-order.json';
-
-const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
-const previewCheckoutReviews = reviewsData.reviews
-    .filter((review) => Boolean(review.first_name))
-    .sort((a, b) => (previewReviewOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (previewReviewOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
-const previewRatedReviews = previewCheckoutReviews.filter((review) => Number.isFinite(review.rating));
-const previewReviewAverage = previewRatedReviews.reduce((total, review) => total + review.rating, 0) / previewRatedReviews.length;
-const previewReviewAverageLabel = previewReviewAverage.toFixed(1).replace('.', ',');
-const previewReviewAveragePercent = (previewReviewAverage / 5) * 100;
-const previewRatingCounts = previewRatedReviews.reduce((counts, review) => {
-    counts[review.rating] = (counts[review.rating] || 0) + 1;
-    return counts;
-}, {});
-const previewRatingFilterValues = Object.keys(previewRatingCounts).map(Number).sort((a, b) => b - a);
-const previewReviewInitials = (name) => name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
+import DealOffer from '../../components/mc2/DealOffer.astro';
 ---
 
 <!DOCTYPE html>
@@ -55,20 +33,8 @@ const previewReviewInitials = (name) => name
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-    <script is:inline>
-    "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
-    if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
-    ;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
-    return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
-    f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
-    spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
-    e.async=!0,e.src="https://js.static.spiffy.co/spiffy.js?a="+t
-    ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
-    spiffy.SNIPPET_VERSION="1.1.0";
-    spiffy.config({ hideSidebar: true });
-    </script>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <GAConsentMode />
     <script type="text/javascript">
         (function(c,l,a,r,i,t,y){
@@ -907,8 +873,12 @@ const previewReviewInitials = (name) => name
         .offer-zone.visible {
             display: flex;
             opacity: 1;
-            transform: translateY(0);
-            animation: ctaFadeIn 0.4s ease forwards;
+            transform: none;
+            animation: offerZoneFadeIn 0.4s ease forwards;
+        }
+        @keyframes offerZoneFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
         @keyframes ctaFadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -1868,7 +1838,10 @@ const previewReviewInitials = (name) => name
         }
         .return-buyer-hero__ended,
         .return-buyer-hero__start { display: block; }
-        .return-buyer-hero__ended { color: #ef4444; }
+        .return-buyer-hero__ended {
+            color: #fb7185 !important;
+            -webkit-text-fill-color: #fb7185 !important;
+        }
         .return-buyer-hero__start { margin-top: 7px; color: #fff; }
         .return-buyer-hero__arrow {
             display: block;
@@ -1879,6 +1852,43 @@ const previewReviewInitials = (name) => name
             line-height: 1;
             animation: returnArrow 1.5s ease-in-out infinite;
         }
+        .return-buyer-scarcity {
+            width: 100%;
+            max-width: 820px;
+            margin: 20px auto 0;
+            text-align: left;
+        }
+        .return-buyer-scarcity:empty { display: none; }
+        .return-buyer-offer-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: min(100%, 420px);
+            min-height: 58px;
+            margin: 20px auto 0;
+            padding: 15px 24px;
+            color: #fff;
+            border: 1px solid rgba(254, 202, 202, 0.52);
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+            box-shadow: 0 15px 34px rgba(220, 38, 38, 0.3), inset 0 1px rgba(255, 255, 255, 0.2);
+            font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+            font-weight: 900;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+        }
+        .return-buyer-offer-cta:hover {
+            filter: brightness(1.07);
+            transform: translateY(-2px);
+            box-shadow: 0 18px 40px rgba(220, 38, 38, 0.38), inset 0 1px rgba(255, 255, 255, 0.24);
+        }
+        .return-buyer-offer-cta:focus-visible {
+            outline: 3px solid rgba(251, 113, 133, 0.48);
+            outline-offset: 4px;
+        }
+        .return-buyer-offer-cta.hidden { display: none; }
         @keyframes returnArrow {
             0%, 100% { transform: translateY(0); opacity: 0.62; }
             50% { transform: translateY(6px); opacity: 1; }
@@ -1893,6 +1903,7 @@ const previewReviewInitials = (name) => name
                 margin-bottom: 12px;
                 padding: 8px 6px 0;
             }
+            .return-buyer-scarcity { margin-top: 16px; }
         }
         .count-card {
             background: rgba(255, 255, 255, 0.06);
@@ -1932,9 +1943,9 @@ const previewReviewInitials = (name) => name
             .purchase-toast {
                 left: 10px;
                 right: 10px;
-                top: 10px;
-                bottom: auto;
-                transform: translateY(-20px);
+                top: auto;
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                transform: translateY(20px);
             }
             .purchase-toast__content {
                 max-width: 100%;
@@ -1982,21 +1993,25 @@ const previewReviewInitials = (name) => name
                     <button class="dev-time-btn" data-now-preset="cta-mid" type="button">CTA grisé · 0:40</button>
                     <button class="dev-time-btn" data-now-preset="cta-active-m5s" type="button">CTA actif −5s</button>
                     <button class="dev-time-btn" data-now-preset="cta-active" type="button">CTA actif · 0:00</button>
-                    <button class="dev-time-btn" data-now-preset="notification-m5s" type="button">Notification −5s · 15→14</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-m1s" type="button">Places +2:59</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p3" type="button">1er achat (+3 min)</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p6" type="button">2e achat (+6 min)</button>
                 </div>
             </div>
             <div class="dev-timeline-group dev-timeline-group--return">
                 <span class="dev-timeline-group__label">Retour après la masterclass</span>
                 <div class="dev-time-row">
-                    <button class="dev-time-btn" data-now-preset="offer-h12" type="button">CTA +12h · 5 places</button>
-                    <button class="dev-time-btn" data-now-preset="offer-h23" type="button">CTA +23h · 1 place</button>
-                    <button class="dev-time-btn" data-now-preset="expired" type="button">CTA terminé · H+24</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p24h" type="button">CTA +24 h · 20 places</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p48h" type="button">CTA +48 h · 5 places</button>
+                    <button class="dev-time-btn" data-now-preset="expiry-m5s" type="button">Expiration −5 s</button>
+                    <button class="dev-time-btn" data-now-preset="expired" type="button">Offre expirée</button>
                 </div>
             </div>
             <div class="dev-timeline-group dev-timeline-group--routing">
                 <span class="dev-timeline-group__label">Contrôles de routage</span>
                 <div class="dev-time-row">
                     <button class="dev-time-btn" data-now-preset="video-end" type="button">Fin vidéo −1s</button>
+                    <button class="dev-time-btn" data-now-preset="webinaire-ended" type="button">Webinaire terminé</button>
                     <button class="dev-time-btn" data-now-preset="late-arrival" type="button">Retardataire → replay</button>
                 </div>
             </div>
@@ -2068,8 +2083,12 @@ const previewReviewInitials = (name) => name
                 <span class="return-buyer-hero__start">MAIS TA TRANSFORMATION COMMENCE MAINTENANT.</span>
             </h1>
             <span class="return-buyer-hero__arrow" aria-hidden="true">↓</span>
+            <div id="return-buyer-scarcity" class="return-buyer-scarcity"></div>
+            <button id="return-buyer-offer-cta" class="return-buyer-offer-cta" type="button" aria-controls="deal-registration">
+                Je prends ma place
+            </button>
         </section>
-        <p id="session-ended-note" class="session-ended-note">La masterclass est terminée</p>
+        <p id="session-ended-note" class="session-ended-note">Le webinaire est terminé, mais ta transformation commence maintenant.</p>
         <div id="player-row" class="player-row">
         <div class="video-shell">
             <div class="video-container" id="video-container">
@@ -2131,197 +2150,9 @@ const previewReviewInitials = (name) => name
         </div>
 
         <div id="offer-zone" class="offer-zone hidden">
-            <div class="scarcity-card" id="scarcity-card" aria-hidden="true" hidden>
-                <p class="scarcity-kicker">Nombre de places limitées</p>
-                <p class="scarcity-phase1-total hidden">30 places</p>
-                <p class="scarcity-phase2-note hidden">10 nouvelles places à titre exceptionnel</p>
-                <div class="scarcity-main">
-                    <p class="scarcity-label">Places restantes</p>
-                    <div class="scarcity-value">
-                        <span class="scarcity-number" id="scarcity-places">30</span>
-                        <span class="scarcity-denominator" id="scarcity-denominator">/ 30</span>
-                        <span class="scarcity-unit">places</span>
-                    </div>
-                </div>
-                <div class="scarcity-meter" aria-hidden="true">
-                    <div class="scarcity-meter__fill"></div>
-                </div>
-            </div>
-            <a id="offer-cta" class="offer-cta is-disabled" href="#" aria-disabled="true" tabindex="-1">S’inscrire à Esprit Subconscient 2.0</a>
-            <div id="preview-seat-badge" class="preview-seat-badge" aria-label="Quinze places disponibles sur quinze">
-                <span class="preview-seat-badge__label">Places restantes pour cette session</span>
-                <strong><span id="preview-scarcity-places">15</span> <small>/ <span id="preview-scarcity-total">15</span></small></strong>
-            </div>
-            <section id="preview-checkout" class="preview-checkout" aria-label="Aperçu du futur paiement intégré">
-                <header class="preview-checkout__header">
-                    <div>
-                        <p class="preview-checkout__eyebrow">Esprit Subconscient 2.0</p>
-                        <h2 class="preview-checkout__title">Inscris-toi maintenant</h2>
-                    </div>
-                </header>
-                <div class="preview-checkout__body">
-                    <div id="preview-payment" class="preview-payment" data-plan="monthly">
-                        <div class="preview-schedule" aria-label="Échéancier de paiement">
-                            <div class="preview-schedule__today">
-                                <span class="preview-schedule__today-main">
-                                    <span><strong id="preview-schedule-plan-label">12 mensualités de 197 €</strong></span>
-                                </span>
-                                <span id="preview-schedule-analogy" class="preview-schedule__analogy">≈ 6,50 € par jour</span>
-                            </div>
-                        </div>
-                        <div class="preview-spiffy-payment-heading">
-                            <p class="preview-spiffy-payment-label">Carte bancaire</p>
-                            <div class="preview-payment-brands" aria-label="Paiements acceptés : Mastercard, Visa, Apple Pay et PayPal">
-                                <span class="preview-payment-brand preview-payment-brand--mastercard" role="img" aria-label="Mastercard"></span>
-                                <span class="preview-payment-brand preview-payment-brand--visa" role="img" aria-label="Visa">VISA</span>
-                                <span class="preview-payment-brand preview-payment-brand--apple" role="img" aria-label="Apple Pay"><b></b>Pay</span>
-                                <span class="preview-payment-brand preview-payment-brand--paypal" role="img" aria-label="PayPal">Pay<em>Pal</em></span>
-                            </div>
-                        </div>
-                        <div id="preview-spiffy-slot" class="preview-spiffy-slot" aria-live="polite">
-                            <div class="preview-spiffy-loading">Chargement du formulaire d’inscription…</div>
-                        </div>
-                        <button id="preview-payment-switch" class="preview-payment-switch" type="button">Payer en une fois et économiser 367 €</button>
-                        <figure class="preview-checkout-review">
-                            <img src="/media/reviews/es2-morgane-levavi.webp" alt="Morgane" width="256" height="256" loading="lazy" decoding="async" />
-                            <figcaption>
-                                <blockquote>« La formation est bien, mais ça marche vraiment et c’est ça qui est exceptionnel ! »</blockquote>
-                                <cite>Morgane</cite>
-                            </figcaption>
-                        </figure>
-                        <div class="preview-guarantee">
-                            <span class="preview-guarantee__badge" aria-hidden="true">✓</span>
-                            <div><span class="preview-guarantee__kicker">Garantie satisfaction</span><strong>SATISFAIT OU REMBOURSÉ</strong><p>Teste le programme pendant 14 jours, sans prendre de risque.</p></div>
-                        </div>
-                        <p id="preview-spiffy-error" class="preview-spiffy-error" role="alert"></p>
-                    </div>
-                </div>
-                <div class="preview-includes">
-                    <div class="preview-includes__urgency">
-                        <p class="preview-includes__urgency-copy">Cette offre expire dans</p>
-                        <div id="preview-countdown-slot" class="preview-includes__countdown-slot">
-                            <div id="offer-countdown" class="countdown">
-                                <div class="count-card"><span id="offer-days" class="count-value">00</span><span class="count-label">Jours</span></div>
-                                <div class="count-card"><span id="offer-hours" class="count-value">00</span><span class="count-label">Heures</span></div>
-                                <div class="count-card"><span id="offer-minutes" class="count-value">00</span><span class="count-label">Minutes</span></div>
-                                <div class="count-card"><span id="offer-seconds" class="count-value">00</span><span class="count-label">Secondes</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="preview-includes__visual">
-                        <img src="/media/pages/es2-bundle.webp" alt="Esprit Subconscient 2.0 avec la formation, Morpho et la communauté Volt" />
-                    </div>
-                    <div class="preview-obtain">
-                        <div class="preview-obtain__heading">
-                            <h3>CE QUE TU VAS OBTENIR AVEC<br />ESPRIT SUBCONSCIENT 2.0</h3>
-                            <div class="preview-obtain__volume">
-                                <div class="preview-obtain__volume-row"><span>36h+ de contenus</span><span>Parcours guidé sur 6 mois</span><span>15 minutes par jour</span></div>
-                                <span class="preview-obtain__volume-gold"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5L3 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Consultation privée avec Sonny</span>
-                            </div>
-                        </div>
-                        <div class="preview-obtain__list">
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Un subconscient reprogrammé en profondeur</h4><p>Tu sauras comment accéder à ton subconscient et le reprogrammer pour qu’il travaille pour toi, et non plus contre toi.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>La fin des croyances limitantes qui te sabotent depuis toujours</h4><p>Tu identifieras les vraies racines de tes blocages financiers, amoureux et professionnels, puis tu apprendras à les désamorcer.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>La capacité d’incarner l’état d’être de ton choix</h4><p>Confiance, paix, abondance, magnétisme : tu sauras activer ces états lorsque tu en as besoin.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Une transformation qui s’ancre même pendant ton sommeil</h4><p>Tu utiliseras les moments où ton cerveau est le plus réceptif pour prolonger ta reprogrammation sans effort conscient.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Une clarté mentale nouvelle</h4><p>Tu apprendras à sortir des ruminations, des doutes permanents et des pensées qui tournent en rond.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Le pouvoir de manifester ta nouvelle vie avec précision</h4><p>Tu comprendras ce qui bloque la manifestation et maîtriseras les principes qui gouvernent la création de ta réalité.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Des outils conçus pour t’accompagner toute ta vie</h4><p>Audios guidés, vidéos, exercices accompagnés et mises à jour incluses pour continuer à progresser au-delà des six mois.</p></div>
-                            </div>
-                            <div class="preview-obtain__item">
-                                <span class="preview-obtain__check" aria-hidden="true">✓</span>
-                                <div><h4>Un accompagnement qui reste présent à chaque étape</h4><p>Morpho, ton coach IA pendant 12 mois, ta consultation privée avec Sonny dès J+30 et la communauté privée Volt.</p></div>
-                            </div>
-                        </div>
-                        <a id="preview-obtain-cta" class="preview-obtain__cta" href="#preview-spiffy-slot">Je commence ma transformation</a>
-                        <div class="preview-next-step">
-                            <span class="preview-next-step__eyebrow">Juste après ton inscription</span>
-                            <p>Tu accèdes immédiatement à <strong>Esprit Subconscient 2.0</strong>, à ta première leçon et à l'app Morpho.</p>
-                            <p>Puis, une nouvelle leçon se débloque chaque jour pour te guider vers <strong>ce que tu veux vraiment.</strong></p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-                <div class="preview-reviews">
-                    <button type="button" class="preview-reviews-summary" id="preview-open-reviews" aria-haspopup="dialog">
-                        <span class="preview-reviews-summary__eyebrow">Avis des participants</span>
-                        <span class="preview-reviews-summary__main">
-                            <span class="preview-reviews-summary__score">{previewReviewAverageLabel}<small>/5</small></span>
-                            <span class="preview-reviews-summary__rating">
-                                <span class="preview-star-meter" aria-label={`Note moyenne : ${previewReviewAverageLabel} sur 5`}>
-                                    <span aria-hidden="true">★★★★★</span>
-                                    <span aria-hidden="true" style={`width: ${previewReviewAveragePercent}%`}>★★★★★</span>
-                                </span>
-                                <strong>{previewCheckoutReviews.length} avis authentiques</strong>
-                            </span>
-                        </span>
-                        <span class="preview-reviews-summary__footer">
-                            <span class="preview-reviews-summary__avatars" aria-hidden="true">
-                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/7a97c502-a682-47a4-aec4-2aa2ac563908/malika-modified.png" alt="" />
-                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/e825f3b3-c3b4-49a5-9b69-7c2213b33a11/Melyssa.jpg" alt="" />
-                                <img src="https://files.elfsightcdn.com/eafe4a4d-3436-495d-b748-5bdce62d911d/b94c69cf-4317-41b0-9637-3f8b8b3d6f52/1-1-.png" alt="" />
-                            </span>
-                            <strong>Lire leurs témoignages <span aria-hidden="true">→</span></strong>
-                        </span>
-                    </button>
-                </div>
-
-                <dialog class="preview-reviews-dialog" id="preview-reviews-dialog" aria-labelledby="preview-reviews-dialog-title">
-                    <div class="preview-reviews-dialog__top">
-                        <div><span class="preview-reviews-dialog__eyebrow">Témoignages authentiques</span><h2 id="preview-reviews-dialog-title">Avis des participants</h2></div>
-                        <button type="button" class="preview-reviews-dialog__close" id="preview-close-reviews" aria-label="Fermer">×</button>
-                    </div>
-                    <div class="preview-reviews-dialog__scorebar">
-                        <strong>{previewReviewAverageLabel}<small>/5</small></strong>
-                        <div>
-                            <span class="preview-star-meter" aria-label={`Note moyenne : ${previewReviewAverageLabel} sur 5`}>
-                                <span aria-hidden="true">★★★★★</span>
-                                <span aria-hidden="true" style={`width: ${previewReviewAveragePercent}%`}>★★★★★</span>
-                            </span>
-                            <p>{previewRatedReviews.length} avis notés sur {previewCheckoutReviews.length} témoignages</p>
-                        </div>
-                    </div>
-                    <div class="preview-reviews-dialog__filters" aria-label="Filtrer les témoignages">
-                        <button type="button" class="is-active" data-preview-review-filter="all">Tous</button>
-                        {previewRatingFilterValues.map((rating) => <button type="button" data-preview-review-filter={rating}>{rating} étoile{rating > 1 ? 's' : ''}</button>)}
-                        <button type="button" data-preview-review-filter="unrated">Sans note</button>
-                    </div>
-                    <div class="preview-reviews-list">
-                        {previewCheckoutReviews.map((review) => (
-                            <article class="preview-review-item" data-preview-review-rating={review.rating ?? 'unrated'}>
-                                <div class="preview-review-item__head">
-                                    {review.source_photo_url ? <img src={review.source_photo_url} alt={review.first_name} loading="lazy" decoding="async" /> : <span class="preview-review-item__initials">{previewReviewInitials(review.first_name)}</span>}
-                                    <span><strong>{review.first_name}</strong><small>{review.country || 'Participant vérifié'}</small></span>
-                                    {review.rating ? <b aria-label={`${review.rating} étoiles`}>{'★'.repeat(review.rating)}<i>{'★'.repeat(5 - review.rating)}</i></b> : <b class="preview-review-item__unrated">Témoignage</b>}
-                                </div>
-                                <p>« {review.review} »</p>
-                            </article>
-                        ))}
-                    </div>
-                    <p class="preview-reviews-dialog__disclosure">Avis authentiques recueillis auprès de participants à des programmes désormais inclus dans Esprit Subconscient 2.0.</p>
-                </dialog>
+            <DealOffer />
             <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
-                <p class="offer-expired-title">L’offre Esprit Subconscient 2.0 est désormais fermée</p>
+                <p class="offer-expired-title">L'offre et la masterclass ne sont plus disponibles</p>
                 <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
                 <a class="offer-expired-btn" href="/contact">Contacter le support</a>
                 <p class="offer-expired-email"><a href="mailto:support@sonnycourt.com">support@sonnycourt.com</a></p>
@@ -2334,7 +2165,7 @@ const previewReviewInitials = (name) => name
             <p class="diagnostic-guide-note">Imprime ce PDF avant la diffusion si possible.</p>
         </div>
 
-        <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
+        <div id="purchase-toast" class="purchase-toast" aria-hidden="true">
             <div class="purchase-toast__content">
                 <div class="purchase-toast__thumb-wrap">
                     <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
@@ -2348,7 +2179,7 @@ const previewReviewInitials = (name) => name
 
     <div id="mc-unavailable-overlay" class="mc-gate-overlay" aria-hidden="true">
         <div class="mc-gate-overlay__panel mc-gate-overlay__panel--danger">
-            <p class="mc-gate-overlay__title">L’offre Esprit Subconscient 2.0 est désormais fermée</p>
+            <p class="mc-gate-overlay__title">L'offre et la masterclass ne sont plus disponibles</p>
             <p class="mc-gate-overlay__copy">Si vous avez des questions, contactez le support.</p>
             <div class="mc-gate-overlay__actions">
                 <a class="mc-gate-overlay__btn mc-gate-overlay__btn--support" href="/contact">Contacter le support</a>
@@ -2379,26 +2210,21 @@ const previewReviewInitials = (name) => name
         // @ts-nocheck
         import Hls from 'hls.js';
         import {
-            MC2_SESSION_HALF_WINDOW_MS,
-            MC2_SESSION_OFFER_DURATION_MS,
-            MC2_SESSION_PURCHASE_TIMELINE,
-            MC2_SESSION_TOTAL_SEATS,
-            formatMc2SessionRelativeTime,
-            getMc2SessionRegistrationAction,
-            getMc2SessionSeatsLeft,
-            startMc2SessionScarcity,
-        } from '../../lib/mc2-session-scarcity.mjs';
-        import {
             MC2_LIVE_CTA_SECONDS as CTA_APPEAR_SECONDS,
             MC2_LIVE_VIDEO_DURATION_SECONDS as VIDEO_DURATION_FALLBACK_SECONDS,
             MC2_LIVE_VIDEO_LEAD_MS as LIVE_VIDEO_LEAD_MS,
         } from '../../lib/mc2-timing.mjs';
+        import { startScarcityEngine } from '../../lib/scarcity-engine';
+        import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
         const TOKEN_KEY = 'mc2_registration_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
         const CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // le bouton est immédiatement cliquable à son apparition
-        const PURCHASE_TOASTS_ENABLED = true;
+        const OFFER_DURATION_MS = 72 * 60 * 60 * 1000;
+        const OFFER_TOTAL_SEATS = 100;
+        const OFFER_INITIAL_REMAINING_SEATS = 37;
+        const SESSION_SCARCITY_DELAY_MS = 0;
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
         const FREEZE_RECOVERY_ENABLED = true;
         // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
@@ -2490,15 +2316,20 @@ const previewReviewInitials = (name) => name
             return status === 'acheteur' || status === 'paid' || status === 'purchased';
         }
         function normalizeReg(data, token) {
+            const sessionStartsAt = data.sessionStartsAt || data.session_date;
+            const sessionStartMs = new Date(sessionStartsAt || '').getTime();
+            const serverExpiry = data.offreExpiresAt || data.offre_expires_at;
             return {
                 token,
                 statut: data.statut || 'inscrit',
                 prenom: data.prenom || '',
                 email: data.email || '',
                 pays: data.pays || '',
-                sessionStartsAt: data.sessionStartsAt || data.session_date,
+                sessionStartsAt,
                 sessionEndsAt: data.sessionEndsAt || data.session_ends_at || null,
-                offreExpiresAt: data.offreExpiresAt || data.offre_expires_at,
+                offreExpiresAt: serverExpiry || (Number.isFinite(sessionStartMs)
+                    ? new Date(sessionStartMs + OFFER_DURATION_MS).toISOString()
+                    : null),
                 sawOffer: data?.sawOffer === true || data?.saw_offer === true,
                 metaTrackingEligible: data?.metaTrackingEligible === true,
                 attendedLive: data?.attended_live === true,
@@ -2507,8 +2338,8 @@ const previewReviewInitials = (name) => name
         function decideRouteFromPayload(payload, token) {
             const now = Date.now();
             const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
-            const offerExpiryRaw = payload.offreExpiresAt || payload.offre_expires_at;
-            const oe = offerExpiryRaw ? new Date(offerExpiryRaw).getTime() : NaN;
+            const serverExpiry = new Date(payload.offreExpiresAt || payload.offre_expires_at).getTime();
+            const oe = Number.isFinite(serverExpiry) ? serverExpiry : sd + OFFER_DURATION_MS;
             const liveStart = sd - LIVE_VIDEO_LEAD_MS;
             const lateCutoff = sd + LATE_DIRECT_AFTER_SESSION_MS;
             if (!Number.isFinite(sd)) {
@@ -2821,7 +2652,7 @@ const previewReviewInitials = (name) => name
             };
         }
 
-        function initPurchaseToasts(ctaActivationMs, options) {
+        function initPurchaseToasts(liveStartMs, options) {
             const toast = document.getElementById('purchase-toast');
             const text = document.getElementById('purchase-toast-text');
             const flagEl = document.getElementById('purchase-toast-flag');
@@ -2829,14 +2660,14 @@ const previewReviewInitials = (name) => name
             if (!toast || !text || !flagEl || !relativeTimeEl) return { recalc: () => {}, destroy: () => {} };
 
             const setSeatsLeft = typeof options?.setSeatsLeft === 'function' ? options.setSeatsLeft : () => {};
-            const enabled = options?.enabled === true;
             let hideTimer = null;
             let engine = null;
 
             const isEnded = typeof options?.isEnded === 'function' ? options.isEnded : () => false;
 
             function shouldRun() {
-                return getNowMs() >= ctaActivationMs && !isEnded();
+                const elapsedSec = Math.max(0, Math.floor((getNowMs() - liveStartMs) / 1000));
+                return elapsedSec >= CTA_APPEAR_SECONDS && !isEnded();
             }
 
             function hideNow() {
@@ -2854,10 +2685,8 @@ const previewReviewInitials = (name) => name
                     return;
                 }
                 flagEl.textContent = purchase.flag;
-                const action = getMc2SessionRegistrationAction(purchase);
-                const relativeTime = formatMc2SessionRelativeTime(getNowMs(), ctaActivationMs);
-                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">${action}</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
-                relativeTimeEl.textContent = relativeTime;
+                text.innerHTML = `<span class="purchase-toast__name" style="color:#60a5fa;font-weight:900;">${purchase.name}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course" style="color:#ffffff;font-weight:400;">Esprit Subconscient 2.0</span>`;
+                relativeTimeEl.textContent = "à l'instant";
                 toast.hidden = false;
                 toast.setAttribute('aria-hidden', 'false');
                 toast.classList.add('show');
@@ -2868,29 +2697,33 @@ const previewReviewInitials = (name) => name
             }
 
             function startEngine() {
-                if (!enabled) {
-                    hideNow();
-                    toast.hidden = true;
-                    return;
-                }
                 if (engine) engine.stop();
-                engine = startMc2SessionScarcity({
-                    now: getNowMs,
+                const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
+                engine = startScarcityEngine({
+                    now: function () {
+                        return getNowMs() - SESSION_SCARCITY_DELAY_MS;
+                    },
                     isActive: shouldRun,
-                    windowStartMs: ctaActivationMs,
-                    onSeatsLeft: function (seatsLeft) {
-                        setSeatsLeft(seatsLeft);
+                    windowStartMs: options?.windowStartMs,
+                    windowEndMs: options?.windowEndMs,
+                    timeline: options?.timeline,
+                    onSeatsLeft: function (seatsLeft, soldCount, phase) {
+                        setSeatsLeft(seatsLeft, phase, soldCount);
                     },
                     onNotification: function (purchase) {
                         showPurchase(purchase);
                     },
+                    debug,
                 });
             }
 
             startEngine();
             return {
                 recalc: function () {
-                    if (engine && typeof engine.recalc === 'function') engine.recalc();
+                    if (engine && typeof engine.debugSnapshot === 'function') {
+                        const snap = engine.debugSnapshot();
+                        setSeatsLeft(snap.seatsLeft, snap.phase, snap.soldCount);
+                    }
                 },
                 destroy: function () {
                     if (engine) engine.stop();
@@ -2905,8 +2738,6 @@ const previewReviewInitials = (name) => name
         function showOfferZone(token) {
             const zone = document.getElementById('offer-zone');
             if (!zone || zone.classList.contains('visible')) return;
-            const cta = document.getElementById('offer-cta');
-            cta.href = '/commencer?t=' + encodeURIComponent(token);
             zone.classList.remove('hidden');
             void zone.offsetWidth; // reflow needed to trigger animation from display:none
             zone.classList.add('visible');
@@ -3204,39 +3035,44 @@ const previewReviewInitials = (name) => name
             // inscription fraîche n'a volontairement pas d'expiration.
             let expiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
             const sessionStartMs = new Date(reg.sessionStartsAt).getTime();
+            if (!Number.isFinite(expiryMs) && Number.isFinite(sessionStartMs)) {
+                expiryMs = sessionStartMs + OFFER_DURATION_MS;
+            }
             const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
             const ctaActivationMs = liveStartMs + CTA_ACTIVATE_SECONDS * 1000;
             const hasPersistedOffer = reg.sawOffer === true && Number.isFinite(expiryMs);
-            const offerWindowStartMs = Number.isFinite(expiryMs)
-                ? expiryMs - MC2_SESSION_OFFER_DURATION_MS
-                : ctaActivationMs;
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
-            const offerIds = { days: 'offer-days', hours: 'offer-hours', minutes: 'offer-minutes', seconds: 'offer-seconds' };
-            const offerCountdownEl = document.getElementById('offer-countdown');
-            const offerScarcityEl = document.getElementById('scarcity-card');
-            const offerCtaNode = document.getElementById('offer-cta');
-            const previewSeatBadge = document.getElementById('preview-seat-badge');
-            const previewCheckoutNode = document.getElementById('preview-checkout');
+            const offerCountdownEl = document.getElementById('deal-countdown');
+            const offerScarcityEl = document.querySelector('.deal-scarcity');
+            const offerCtaNode = document.getElementById('deal-sticky-cta');
+            const previewCheckoutNode = document.getElementById('deal-offer-content');
             const offerExpiredStateEl = document.getElementById('offer-expired-state');
             let isOfferExpired = false;
+            let isOfferSoldOut = false;
+
+            window.dispatchEvent(new CustomEvent('mc2:deal-registration', {
+                detail: { firstName: reg.prenom || '', email: reg.email || '' },
+            }));
+
+            function syncDealCountdown(targetMs) {
+                const remainingSeconds = Math.max(0, Math.ceil((targetMs - getNowMs()) / 1000));
+                window.__mc2DealOffer?.setCountdownSeconds?.(remainingSeconds);
+            }
 
             function setOfferCtaEnabled(enabled) {
                 if (!offerCtaNode) return;
                 const isEnabled = Boolean(enabled) && !isOfferExpired;
-                offerCtaNode.classList.toggle('is-disabled', !isEnabled);
                 offerCtaNode.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
                 offerCtaNode.setAttribute('tabindex', isEnabled ? '0' : '-1');
+                offerCtaNode.disabled = !isEnabled;
             }
 
             function setOfferExpiredState(nextExpired) {
                 isOfferExpired = Boolean(nextExpired);
                 if (offerCountdownEl) offerCountdownEl.classList.toggle('hidden', isOfferExpired);
                 if (offerScarcityEl) offerScarcityEl.classList.toggle('hidden', isOfferExpired);
-                if (offerCtaNode) {
-                    const hasInlineCheckout = inlineCheckoutController?.provider === 'spiffy';
-                    offerCtaNode.classList.toggle('hidden', isOfferExpired || hasInlineCheckout);
-                }
-                if (previewSeatBadge) previewSeatBadge.hidden = isOfferExpired;
+                if (offerCtaNode) offerCtaNode.classList.toggle('hidden', isOfferExpired);
+                if (returnBuyerOfferCta) returnBuyerOfferCta.classList.toggle('hidden', isOfferExpired);
                 if (previewCheckoutNode) previewCheckoutNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
                 if (isOfferExpired) setOfferCtaEnabled(false);
@@ -3278,15 +3114,13 @@ const previewReviewInitials = (name) => name
             }
             const tick = () => {
                 const now = getNowMs();
-                if (Number.isFinite(expiryMs) && now >= expiryMs) {
+                if (isOfferSoldOut || (Number.isFinite(expiryMs) && now >= expiryMs)) {
                     setOfferExpiredState(true);
                     syncMcUnavailableUi(true);
                 } else {
                     setOfferExpiredState(false);
                     syncMcUnavailableUi(false);
-                    const countdownTargetMs = Number.isFinite(expiryMs) ? expiryMs : ctaActivationMs;
-                    updateCountdown(countdownTargetMs, offerIds);
-                    setScarcitySeats(getMc2SessionSeatsLeft(now, offerWindowStartMs));
+                    syncDealCountdown(expiryMs);
                 }
                 updateCtaAudit();
             };
@@ -3372,6 +3206,7 @@ const previewReviewInitials = (name) => name
                 }
             }
             const videoContainer = document.getElementById('video-container');
+            const playerRow = document.getElementById('player-row');
             const videoControls = document.getElementById('videoControls');
             const waiting = document.getElementById('video-waiting');
             const playOverlay = document.getElementById('playOverlay');
@@ -3382,22 +3217,34 @@ const previewReviewInitials = (name) => name
             const preLive = document.getElementById('pre-live-countdown');
             const endedNote = document.getElementById('session-ended-note');
             const screenMainHeader = document.getElementById('screen-main-header');
-            const playerRow = document.getElementById('player-row');
             const returnBuyerHero = document.getElementById('return-buyer-hero');
+            const returnBuyerEndedTitle = returnBuyerHero?.querySelector('.return-buyer-hero__ended');
+            const returnBuyerScarcity = document.getElementById('return-buyer-scarcity');
+            const returnBuyerOfferCta = document.getElementById('return-buyer-offer-cta');
+            let returnBuyerScarcityObserver = null;
+            let returnBuyerScarcityFrame = 0;
             const volumeIcon = document.getElementById('icon-volume');
             const muteIcon = document.getElementById('icon-mute');
             const playOverlayLabel = document.getElementById('playOverlayLabel');
             const rewind15Btn = document.getElementById('rewind15Btn');
             const liveJumpBtn = document.getElementById('liveJumpBtn');
-            const scarcityPlacesEl = document.getElementById('scarcity-places');
-            const scarcityDenominatorEl = document.getElementById('scarcity-denominator');
-            const scarcityMeterFillEl = document.querySelector('.scarcity-meter__fill');
-            const scarcityPhase1TotalEl = document.querySelector('.scarcity-phase1-total');
-            const scarcityPhase2NoteEl = document.querySelector('.scarcity-phase2-note');
-            const previewScarcityPlacesEl = document.getElementById('preview-scarcity-places');
-            const previewScarcityTotalEl = document.getElementById('preview-scarcity-total');
+            const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
+            const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
+                ? sessionEndsRawMs
+                : (liveStartMs + getVideoDurationSeconds() * 1000);
+            // Les places commencent uniquement au CTA, tandis que l'échéance de l'offre
+            // reste ancrée au début réel de la session.
+            const scarcityWindowStartMs = liveStartMs + CTA_APPEAR_SECONDS * 1000;
+            const scarcityWindowEndMs = expiryMs;
             const hideCountdownMs = liveStartMs + LIVE_GRACE_HIDE_COUNTDOWN_MS;
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
+
+            returnBuyerOfferCta?.addEventListener('click', function () {
+                document.getElementById('deal-registration')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            });
 
             function formatSessionLocalLabel(ms) {
                 const date = new Date(ms);
@@ -3541,21 +3388,17 @@ const previewReviewInitials = (name) => name
                 trackWebinaireEvent(reg.token, 'session_joined');
             }
 
-            function setScarcitySeats(seatsLeft) {
-                const denominator = MC2_SESSION_TOTAL_SEATS;
-                const seats = Math.max(0, Math.min(denominator, Number(seatsLeft) || 0));
-                if (scarcityPlacesEl) scarcityPlacesEl.textContent = String(seats);
-                if (scarcityDenominatorEl) scarcityDenominatorEl.textContent = `/ ${denominator}`;
-                if (scarcityPhase1TotalEl) scarcityPhase1TotalEl.classList.add('hidden');
-                if (scarcityPhase2NoteEl) scarcityPhase2NoteEl.classList.add('hidden');
-                if (previewScarcityPlacesEl) previewScarcityPlacesEl.textContent = String(seats);
-                if (previewScarcityTotalEl) previewScarcityTotalEl.textContent = String(denominator);
-                if (previewSeatBadge) {
-                    previewSeatBadge.setAttribute('aria-label', `${seats} place${seats === 1 ? '' : 's'} disponible${seats === 1 ? '' : 's'} sur ${denominator}`);
-                }
-                if (scarcityMeterFillEl) {
-                    const pct = (Math.max(0, Math.min(denominator, seats)) / denominator) * 100;
-                    scarcityMeterFillEl.style.width = `${pct}%`;
+            function setScarcitySeats(_engineSeatsLeft, _phase, soldCount) {
+                const placesConsumed = Math.max(0, Math.min(
+                    OFFER_INITIAL_REMAINING_SEATS,
+                    Number(soldCount) || 0,
+                ));
+                const seats = Math.max(0, OFFER_INITIAL_REMAINING_SEATS - placesConsumed);
+                window.__mc2DealOffer?.setPlaces?.(OFFER_TOTAL_SEATS, seats);
+                if (seats <= 0) {
+                    isOfferSoldOut = true;
+                    setOfferExpiredState(true);
+                    syncMcUnavailableUi(true);
                 }
             }
 
@@ -3936,15 +3779,8 @@ const previewReviewInitials = (name) => name
                 if (keepOfferVisible) {
                     setReturningBuyerUi(true);
                     showOfferZone(reg.token);
-                    const activeOfferExpiryMs = Number.isFinite(expiryMs)
-                        ? expiryMs
-                        : ctaActivationMs + MC2_SESSION_OFFER_DURATION_MS;
-                    updateCountdown(activeOfferExpiryMs, offerIds);
+                    syncDealCountdown(expiryMs);
                     setOfferCtaEnabled(true);
-                    mountLiveInlineCheckout(reg).catch(function (error) {
-                        const errorNode = document.getElementById('preview-spiffy-error');
-                        if (errorNode) errorNode.textContent = error?.message || 'Le paiement ne peut pas être chargé.';
-                    });
                 } else {
                     setReturningBuyerUi(false);
                     hideOfferZone();
@@ -3952,11 +3788,64 @@ const previewReviewInitials = (name) => name
             }
             function setReturningBuyerUi(on) {
                 const active = Boolean(on);
+                if (active && returnBuyerEndedTitle) {
+                    const launchOfferTitle = document.querySelector('#deal-offer-content .deal-scarcity__title');
+                    const launchOfferColor = launchOfferTitle
+                        ? getComputedStyle(launchOfferTitle).color
+                        : 'rgb(251, 113, 133)';
+                    returnBuyerEndedTitle.style.setProperty('color', launchOfferColor, 'important');
+                    returnBuyerEndedTitle.style.setProperty('-webkit-text-fill-color', launchOfferColor, 'important');
+                }
                 returnBuyerHero?.classList.toggle('is-visible', active);
                 screenMainHeader?.classList.toggle('is-return-hidden', active);
                 playerRow?.classList.toggle('is-return-hidden', active);
                 endedNote?.classList.toggle('is-return-hidden', active);
                 document.getElementById('offer-zone')?.classList.toggle('is-returning-buyer', active);
+                if (active) {
+                    observeReturningBuyerScarcity();
+                    scheduleReturningBuyerScarcitySync();
+                } else {
+                    returnBuyerScarcityObserver?.disconnect();
+                    returnBuyerScarcityObserver = null;
+                    if (returnBuyerScarcityFrame) cancelAnimationFrame(returnBuyerScarcityFrame);
+                    returnBuyerScarcityFrame = 0;
+                    returnBuyerScarcity?.replaceChildren();
+                }
+            }
+            function renderReturningBuyerScarcity() {
+                if (!returnBuyerScarcity || !returnBuyerHero?.classList.contains('is-visible')) return;
+                const source = document.querySelector('#deal-offer-content .deal-scarcity');
+                if (!source) {
+                    returnBuyerScarcity.replaceChildren();
+                    return;
+                }
+
+                const duplicate = source.cloneNode(true);
+                duplicate.classList.add('deal-scarcity--return-duplicate');
+                duplicate.style.margin = '0 auto';
+                duplicate.setAttribute('aria-live', 'off');
+                duplicate.querySelectorAll('[id]').forEach(function (node) {
+                    node.id = `return-buyer-${node.id}`;
+                });
+                returnBuyerScarcity.replaceChildren(duplicate);
+            }
+            function scheduleReturningBuyerScarcitySync() {
+                if (returnBuyerScarcityFrame) return;
+                returnBuyerScarcityFrame = requestAnimationFrame(function () {
+                    returnBuyerScarcityFrame = 0;
+                    renderReturningBuyerScarcity();
+                });
+            }
+            function observeReturningBuyerScarcity() {
+                const source = document.querySelector('#deal-offer-content .deal-scarcity');
+                if (!source || returnBuyerScarcityObserver) return;
+                returnBuyerScarcityObserver = new MutationObserver(scheduleReturningBuyerScarcitySync);
+                returnBuyerScarcityObserver.observe(source, {
+                    attributes: true,
+                    childList: true,
+                    characterData: true,
+                    subtree: true,
+                });
             }
             function showEndedState() {
                 syncMcEndedGateUi(true);
@@ -4104,7 +3993,7 @@ const previewReviewInitials = (name) => name
                             applyInlineEndedUi({
                                 preserveFrame: false,
                                 keepOfferVisible: true,
-                                showInlineNote: false,
+                                showInlineNote: true,
                             });
                         } else {
                             syncMcEndedGateUi(false);
@@ -4134,20 +4023,10 @@ const previewReviewInitials = (name) => name
                     showOfferZone(reg.token);
                     const isCtaActive = elapsedSec >= CTA_ACTIVATE_SECONDS;
                     if (isCtaActive && !Number.isFinite(expiryMs)) {
-                        // Réponse visuelle immédiate ; le serveur confirme la même ancre,
-                        // calculée depuis session_starts_at et 01:30:13.
-                        expiryMs = ctaActivationMs + MC2_SESSION_OFFER_DURATION_MS;
+                        expiryMs = sessionStartMs + OFFER_DURATION_MS;
                     }
-                    updateCountdown(isCtaActive ? expiryMs : ctaActivationMs, offerIds);
+                    syncDealCountdown(isCtaActive ? expiryMs : ctaActivationMs);
                     setOfferCtaEnabled(isCtaActive);
-                    if (isCtaActive) {
-                        mountLiveInlineCheckout(reg).catch(function (error) {
-                            const checkout = document.getElementById('preview-checkout');
-                            const errorNode = document.getElementById('preview-spiffy-error');
-                            checkout?.classList.add('is-live');
-                            if (errorNode) errorNode.textContent = error?.message || 'Le paiement ne peut pas être chargé.';
-                        });
-                    }
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
                         const offerViewedEventId = getOfferViewedEventId(reg);
@@ -4188,19 +4067,19 @@ const previewReviewInitials = (name) => name
                     applyInlineEndedUi({
                         preserveFrame: false,
                         keepOfferVisible: true,
-                        showInlineNote: false,
+                        showInlineNote: true,
                     });
                 } else {
                     showEndedState();
                 }
             }
 
-            function scheduleAutoRedirectToOffer() {
+            function settleOnInlineOffer() {
                 if (didAutoRedirectToOffer || !reg?.token) return;
                 didAutoRedirectToOffer = true;
                 showOfferZone(reg.token);
-                mountLiveInlineCheckout(reg).catch(function () {});
-                document.getElementById('preview-checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                syncDealCountdown(expiryMs);
+                document.getElementById('offer-zone')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             video.addEventListener('timeupdate', function () {
@@ -4219,7 +4098,7 @@ const previewReviewInitials = (name) => name
             video.addEventListener('ended', function () {
                 applyVideoEndedState();
                 if (hasJoinedSession || reg.attendedLive === true) {
-                    scheduleAutoRedirectToOffer();
+                    settleOnInlineOffer();
                 }
             });
             video.addEventListener('seeking', function () {
@@ -4287,16 +4166,35 @@ const previewReviewInitials = (name) => name
                 video.muted = video.volume === 0;
                 syncIcons();
             });
-            const offerCtaEl = document.getElementById('offer-cta');
-            if (offerCtaEl) {
+            const offerCtaElements = [
+                document.getElementById('deal-sticky-cta'),
+                document.getElementById('core-price-registration-cta'),
+                document.getElementById('two-paths-registration-cta'),
+            ].filter(Boolean);
+            offerCtaElements.forEach(function (offerCtaEl) {
                 offerCtaEl.addEventListener('click', function (event) {
                     if (offerCtaEl.getAttribute('aria-disabled') === 'true') {
                         event.preventDefault();
                         return;
                     }
                     trackWebinaireEvent(reg.token, 'cta_clicked');
+                    trackWebinaireEvent(reg.token, 'checkout_clicked', null, {
+                        button_id: offerCtaEl.id || 'deal-cta',
+                        plan: 'once',
+                        payment_mode: '1',
+                    });
                 });
-            }
+            });
+            document.querySelectorAll('[data-payment-plan]').forEach(function (planButton) {
+                planButton.addEventListener('click', function () {
+                    const plan = planButton.dataset.paymentPlan === 'three' ? 'three' : 'once';
+                    trackWebinaireEvent(reg.token, 'checkout_viewed', null, {
+                        button_id: planButton.id || 'payment-plan-' + plan,
+                        plan,
+                        payment_mode: plan === 'three' ? '3' : '1',
+                    });
+                });
+            });
             if (fullscreenBtn) {
                 fullscreenBtn.addEventListener('click', function () {
                     if (!document.fullscreenElement && videoContainer.requestFullscreen) {
@@ -4470,16 +4368,27 @@ const previewReviewInitials = (name) => name
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs, sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS);
-            const purchaseToasts = initPurchaseToasts(offerWindowStartMs, {
-                enabled: PURCHASE_TOASTS_ENABLED,
+            const purchaseToasts = initPurchaseToasts(liveStartMs, {
+                windowStartMs: scarcityWindowStartMs,
+                windowEndMs: scarcityWindowEndMs,
+                timeline: createMc2OfferTimeline(scarcityWindowEndMs - scarcityWindowStartMs),
                 setSeatsLeft: setScarcitySeats,
-                isEnded: function () { return isOfferExpired || (isSessionEnded && !hasPersistedOffer); },
+                isEnded: function () { return isOfferExpired; },
             });
 
             return {
+                forceInlineEndedState: function () {
+                    syncMcEndedGateUi(false);
+                    applyInlineEndedUi({
+                        preserveFrame: false,
+                        keepOfferVisible: true,
+                        showInlineNote: true,
+                    });
+                },
                 recalcFromSimulatedTime: function () {
                     hasAppliedLiveOffset = false;
                     isSessionEnded = false;
+                    setReturningBuyerUi(false);
                     syncMcUnavailableUi(false);
                     syncMcLateUi(false);
                     syncMcEndedGateUi(false);
@@ -4567,8 +4476,9 @@ const previewReviewInitials = (name) => name
                 targetThu = devAddDays(thu.year, thu.month, thu.day, 7);
             }
             var sessionStart = devFindParisInstant(targetThu.year, targetThu.month, targetThu.day, 20);
-            var sun = devAddDays(targetThu.year, targetThu.month, targetThu.day, 3);
-            var offerExpiry = devFindParisInstant(sun.year, sun.month, sun.day, 23);
+            var offerExpiry = sessionStart
+                ? new Date(sessionStart.getTime() + OFFER_DURATION_MS)
+                : null;
             return { sessionStart: sessionStart, offerExpiry: offerExpiry };
         }
         function devFormatParis(ms) {
@@ -4577,15 +4487,14 @@ const previewReviewInitials = (name) => name
         function devGetState(sessionMs, nowMs) {
             var elapsed = (nowMs - sessionMs) / 1000;
             var videoElapsed = (nowMs - (sessionMs - LIVE_VIDEO_LEAD_MS)) / 1000;
-            var offerStartsMs = sessionMs - LIVE_VIDEO_LEAD_MS + CTA_ACTIVATE_SECONDS * 1000;
-            var offerExpiresMs = offerStartsMs + MC2_SESSION_OFFER_DURATION_MS;
             if (elapsed < -900) return 'Attente';
             if (elapsed < 0)    return 'Pré-live';
             if (videoElapsed < CTA_APPEAR_SECONDS) return 'Live';
-            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'CTA grisé';
-            if (videoElapsed < getVideoDurationSeconds()) return 'CTA actif';
-            if (nowMs < offerExpiresMs) return 'Masterclass terminée · CTA actif';
-            return 'CTA terminé';
+            if (videoElapsed < CTA_ACTIVATE_SECONDS) return 'Bouton grisé';
+            if (videoElapsed < getVideoDurationSeconds()) return 'Bouton actif';
+            var offerExpiryMs = sessionMs + OFFER_DURATION_MS;
+            if (nowMs < offerExpiryMs) return 'Vidéo terminée / Replay';
+            return 'Expiré';
         }
         function initDevBanner() {
             var banner = document.getElementById('dev-time-banner');
@@ -4629,6 +4538,7 @@ const previewReviewInitials = (name) => name
             var prospectBtns = Array.from(banner.querySelectorAll('[data-prospect-preset]'));
 
             var currentSessionMs = 0;
+            var currentOfferExpiryMs = 0;
             var currentMounted = null;
             var devProspectPresent = true;
 
@@ -4658,8 +4568,8 @@ const previewReviewInitials = (name) => name
                     currentMounted.destroy();
                 }
                 currentSessionMs = sessionMs;
+                currentOfferExpiryMs = offerMs;
                 syncDevProspectFlags(getNowMs());
-                var previewCtaActivationMs = sessionMs - LIVE_VIDEO_LEAD_MS + CTA_ACTIVATE_SECONDS * 1000;
                 var reg = {
                     token: liveCheckoutPreviewToken || 'preview-session',
                     statut: 'present',
@@ -4667,7 +4577,8 @@ const previewReviewInitials = (name) => name
                     email: 'preview@sonnycourt.com',
                     pays: 'France',
                     sessionStartsAt: new Date(sessionMs).toISOString(),
-                    offreExpiresAt: new Date(previewCtaActivationMs + MC2_SESSION_OFFER_DURATION_MS).toISOString(),
+                    sessionEndsAt: new Date(sessionMs - LIVE_VIDEO_LEAD_MS + getVideoDurationSeconds() * 1000).toISOString(),
+                    offreExpiresAt: new Date(offerMs).toISOString(),
                 };
                 showScreen('screen-main');
                 currentMounted = mountVideoAndOffer(reg);
@@ -4753,18 +4664,17 @@ const previewReviewInitials = (name) => name
                 if (key === 'cta-mid') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 40000;
                 if (key === 'cta-active-m5s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 - 5000;
                 if (key === 'cta-active') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000;
-                if (key === 'notification-m5s') {
-                    const firstNotification = MC2_SESSION_PURCHASE_TIMELINE[0];
-                    return (currentSessionMs - LIVE_VIDEO_LEAD_MS)
-                        + CTA_ACTIVATE_SECONDS * 1000
-                        + firstNotification.offsetMs
-                        - 5000;
-                }
-                if (key === 'offer-h12') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_HALF_WINDOW_MS;
-                if (key === 'offer-h23') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + 23 * 60 * 60 * 1000;
+                if (key === 'scarcity-m1s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 3 * 60 * 1000 - 1000;
+                if (key === 'scarcity-p3') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 3 * 60 * 1000;
+                if (key === 'scarcity-p6') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 6 * 60 * 1000;
+                if (key === 'scarcity-p24h') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 24 * 60 * 60 * 1000;
+                if (key === 'scarcity-p48h') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 48 * 60 * 60 * 1000;
                 if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;
-                if (key === 'expired') {
-                    return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_ACTIVATE_SECONDS * 1000 + MC2_SESSION_OFFER_DURATION_MS + 30 * 60 * 1000;
+                if (key === 'expiry-m5s') return currentOfferExpiryMs - 5000;
+                if (key === 'expired') return currentOfferExpiryMs;
+                if (key === 'webinaire-ended') {
+                    var durSec = getVideoDurationSeconds();
+                    return currentSessionMs - LIVE_VIDEO_LEAD_MS + durSec * 1000 + 90 * 1000;
                 }
                 if (key === 'late-arrival') {
                     return currentSessionMs + LATE_DIRECT_AFTER_SESSION_MS + 3 * 60 * 1000;
@@ -4784,6 +4694,9 @@ const previewReviewInitials = (name) => name
                     setActiveNow(key);
                     syncDevProspectFlags(ms);
                     setSimNow(ms);
+                    if (key === 'webinaire-ended' && currentMounted && typeof currentMounted.forceInlineEndedState === 'function') {
+                        currentMounted.forceInlineEndedState();
+                    }
                 });
             });
             prospectBtns.forEach(function(btn) {
@@ -4854,11 +4767,9 @@ const previewReviewInitials = (name) => name
             });
         }
 
-        document.addEventListener('DOMContentLoaded', async function () {
+        async function initializeSessionPage() {
             const params = new URLSearchParams(window.location.search);
             const preview = params.get('preview') === 'dev';
-            initObtainCtaScroll();
-            initPreviewReviews();
 
             if (preview) {
                 initDevBanner();
@@ -4922,7 +4833,13 @@ const previewReviewInitials = (name) => name
             } catch (e) {
                 showBlocked('Erreur', 'Impossible de charger la session pour le moment.');
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSessionPage, { once: true });
+        } else {
+            initializeSessionPage();
+        }
     </script>
     <script>document.documentElement.classList.add('ready');</script>
 </body>

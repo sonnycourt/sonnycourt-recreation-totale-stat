@@ -78,19 +78,26 @@ assert.equal(formatMc2SessionRelativeTime(
 
 const sessionPageSource = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 const replayPageSource = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
-assert.match(sessionPageSource, /const PURCHASE_TOASTS_ENABLED = true;/);
-assert.match(sessionPageSource, /enabled: PURCHASE_TOASTS_ENABLED/);
+const offerTimelineSource = await readFile(new URL('../src/data/mc2-offer-timeline.ts', import.meta.url), 'utf8');
+assert.match(sessionPageSource, /import \{ startScarcityEngine \} from ['"]\.\.\/\.\.\/lib\/scarcity-engine['"]/);
+assert.match(sessionPageSource, /import \{ createMc2OfferTimeline \} from ['"]\.\.\/\.\.\/data\/mc2-offer-timeline['"]/);
+assert.match(sessionPageSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
+assert.match(sessionPageSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
+assert.match(offerTimelineSource, /3 \* MINUTE_MS,\s*\n\s*6 \* MINUTE_MS,/);
+assert.match(offerTimelineSource, /17 places sont attribuées entre le CTA et H\+24 : 37 → 20/);
+assert.match(offerTimelineSource, /15 places supplémentaires sont attribuées entre H\+24 et H\+48 : 20 → 5/);
+assert.match(offerTimelineSource, /const FINAL_PHASE_FRACTIONS = \[0\.2, 0\.4, 0\.6, 0\.8, 1\]/);
 assert.doesNotMatch(sessionPageSource, /get\('scarcity_test'\) === '1'/);
 assert.doesNotMatch(sessionPageSource, /purchaseToastFastDemo|scheduleDemo|purchase_demo/);
 assert.doesNotMatch(sessionPageSource, /MODE TEST|purchase-toast-test-mode/);
 assert.match(replayPageSource, /function startScarcityEngineIfNeeded\(\) \{\s*const enabled = true;/);
 assert.doesNotMatch(replayPageSource, /get\('scarcity_test'\) === '1'/);
 assert.doesNotMatch(replayPageSource, /MODE TEST|purchase-toast-test-mode/);
-assert.match(sessionPageSource, /data-now-preset="notification-m5s"[^>]*>Notification −5s · 15→14<\/button>/);
-assert.match(sessionPageSource, /firstNotification = MC2_SESSION_PURCHASE_TIMELINE\[0\]/);
-assert.match(sessionPageSource, /\+ firstNotification\.offsetMs\s*\n\s*- 5000/);
-assert.match(sessionPageSource, /<\/p>\s*<span id="purchase-toast-relative-time" class="purchase-toast__relative-time">il y a 3 minutes<\/span>/);
-assert.match(sessionPageSource, /relativeTimeEl\.textContent = relativeTime/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p3"[^>]*>1er achat \(\+3 min\)<\/button>/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p6"[^>]*>2e achat \(\+6 min\)<\/button>/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p24h"[^>]*>CTA \+24 h · 20 places<\/button>/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p48h"[^>]*>CTA \+48 h · 5 places<\/button>/);
+assert.match(sessionPageSource, /relativeTimeEl\.textContent = "à l'instant"/);
 assert.match(sessionPageSource, /grid-template-areas:\s*\n\s*"thumb copy"\s*\n\s*"thumb time"/);
 assert.match(sessionPageSource, /data-now-preset="hearts-cutoff-m5s"[^>]*>Cœurs −5 s avant suppression<\/button>/);
 assert.match(sessionPageSource, /'hearts-cutoff-m5s': LATE_DIRECT_AFTER_SESSION_MS - 5000/);
@@ -99,8 +106,8 @@ assert.match(sessionPageSource, /playerRow\.classList\.toggle\('hearts-removed',
 assert.match(sessionPageSource, /track\.replaceChildren\(\)/);
 
 console.log(JSON.stringify({
-  cta_start_15_of_15: 'ok',
-  h12_5_of_15: 'ok',
-  h23_1_of_15: 'ok',
-  h24_closed: 'ok',
+  cta_start_37_of_100: 'ok',
+  h24_20_of_100: 'ok',
+  h48_5_of_100: 'ok',
+  final_phase_to_zero: 'ok',
 }, null, 2));

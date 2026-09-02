@@ -30,7 +30,7 @@ const registration = {
   meta_fbc: null,
   meta_fbp: null,
   checkout_last_plan: 'monthly',
-  checkout_last_payment_mode: 'spiffy_12x197',
+  checkout_last_payment_mode: 'spiffy_3x767',
   checkout_last_route: '/mc2/session/',
   checkout_last_viewed_at: new Date().toISOString(),
   payment_status: 'pending',
@@ -75,7 +75,7 @@ try {
   const payload = {
     event_name: 'order:success',
     order_id: 2492404,
-    order_total: 236400,
+    order_total: 230100,
     checkout: {
       checkout_id: 40006,
       url_slug: 'esprit-subconscient-2-0-2-2-1-1',
@@ -97,9 +97,10 @@ try {
   assert.ok(mc2Lookups.every((url) => url.includes(`token=eq.${token}`)));
   assert.equal(registrationPatch?.statut, 'purchased');
   assert.equal(registrationPatch?.payment_status, 'paid');
-  assert.equal(registrationPatch?.initial_payment_cents, 19700);
-  assert.equal(registrationPatch?.contractual_total_cents, 236400);
+  assert.equal(registrationPatch?.initial_payment_cents, 76700);
+  assert.equal(registrationPatch?.contractual_total_cents, 230100);
   assert.equal(registrationPatch?.checkout_last_plan, 'monthly');
+  assert.equal(registrationPatch?.checkout_last_payment_mode, 'spiffy_3x767');
 } finally {
   globalThis.fetch = originalFetch;
   for (const [key, value] of Object.entries(originalEnv)) {

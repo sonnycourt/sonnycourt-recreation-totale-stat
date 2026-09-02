@@ -22,7 +22,7 @@ const base = {
 };
 const env = {
   MC2_REPLAY_NO_SHOW_DELAY_MINUTES: '1320',
-  MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES: '60',
+  MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES: '90',
   MC2_OFFER_FOLLOWUP_DELAY_MINUTES: '15',
   MC2_REPLAY_ACCESS_HOURS: '48',
   MC2_LIVE_COUNTDOWN_SECONDS: '1200',
@@ -40,12 +40,19 @@ assert.equal(
 assert.equal(mc2RecoverySegment(base), 'no_show');
 assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T16:00:00.000Z');
 
-const left = { ...base, attended_live: true, watch_max_seconds_live: 2_700 };
+const left = {
+  ...base,
+  attended_live: true,
+  watch_max_seconds_live: 2_700,
+  last_presence_at: '2026-08-12T18:20:00.000Z',
+};
 assert.equal(mc2RecoverySegment(left), 'left_before_cta');
 assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_500);
-// L'ancien session_ends_at à +75 min est volontairement ignoré : la relance
-// part une heure après la fin réelle de la nouvelle vidéo live.
-assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T20:43:23.000Z');
+assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T19:50:00.000Z');
+assert.equal(
+  mc2RecoveryDueAt({ ...left, last_presence_at: null }, 'left_before_cta', env).toISOString(),
+  '2026-08-12T21:13:23.000Z',
+);
 
 assert.equal(
   mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_live: 1_200 }, 'left_before_cta', env),

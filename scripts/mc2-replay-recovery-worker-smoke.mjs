@@ -18,6 +18,7 @@ const job = {
 };
 let purchased = false;
 let subscriberExists = true;
+let registrationOverrides = {};
 const calls = [];
 
 function response(data, status = 200) {
@@ -47,6 +48,7 @@ globalThis.fetch = async (input, options = {}) => {
       statut: purchased ? 'purchased' : 'registered',
       payment_status: purchased ? 'paid' : null,
       purchased_at: purchased ? now.toISOString() : null,
+      ...registrationOverrides,
     }]);
   }
   if (url.host === 'connect.mailerlite.com') {
@@ -106,9 +108,29 @@ const rescheduled = await processMc2ReplayRecoveryJob({
 assert.equal(rescheduled.status, 'skipped');
 assert.equal(rescheduled.reason, 'session_rescheduled');
 
+calls.length = 0;
+registrationOverrides = {
+  attended_live: true,
+  watch_max_seconds_live: 1_200,
+  last_presence_at: '2026-08-13T15:30:00.000Z',
+};
+const postponed = await processMc2ReplayRecoveryJob({
+  ...job,
+  id: 96,
+  segment: 'left_before_cta',
+}, now, env);
+assert.equal(postponed.status, 'rescheduled');
+assert.equal(postponed.reason, 'viewer_still_active');
+assert.equal(postponed.dueAt, '2026-08-13T17:00:00.000Z');
+assert(calls.some((call) => call.host === 'supabase.test'
+  && call.body?.status === 'pending'
+  && call.body?.due_at === '2026-08-13T17:00:00.000Z'));
+assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false);
+
 console.log(JSON.stringify({
   mailerlite_delivery: 'ok',
   buyer_suppression: 'ok',
   reschedule_suppression: 'ok',
+  active_viewer_postponement: 'ok',
   access_expiry_48h: 'ok',
 }, null, 2));

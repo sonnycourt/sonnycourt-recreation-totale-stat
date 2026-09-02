@@ -40,7 +40,7 @@ export function mc2ReplayRecoveryEnabled(env = process.env) {
 }
 
 export function mc2ReplayRecoveryConfig(env = process.env) {
-  const beforeCtaDelay = clean(env.MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES ?? '60', 20);
+  const beforeCtaDelay = clean(env.MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES ?? '90', 20);
   const offerDelay = clean(env.MC2_OFFER_FOLLOWUP_DELAY_MINUTES ?? '5', 20);
   return {
     noShowDelayMinutes: positiveInt(env.MC2_REPLAY_NO_SHOW_DELAY_MINUTES, 22 * 60, 14 * 24 * 60),
@@ -93,7 +93,12 @@ export function mc2RecoveryDueAt(row = {}, segment, env = process.env) {
   if (!start || !VALID_SEGMENTS.has(segment)) return null;
   if (segment === 'no_show') return new Date(start.getTime() + config.noShowDelayMinutes * 60_000);
   if (segment === 'left_before_cta' && config.beforeCtaDelayMinutes != null) {
-    return new Date(end.getTime() + config.beforeCtaDelayMinutes * 60_000);
+    // Une personne partie en cours de route est relancée à partir de sa
+    // dernière présence réelle, et non arbitrairement à la fin du webinaire.
+    // Les anciennes inscriptions sans présence enregistrée gardent le fallback
+    // historique sur la fin de session.
+    const abandonmentAnchor = dateOrNull(row.last_presence_at) || end;
+    return new Date(abandonmentAnchor.getTime() + config.beforeCtaDelayMinutes * 60_000);
   }
   if (segment === 'offer_seen_no_purchase' && config.offerDelayMinutes != null) {
     const offerExpires = dateOrNull(row.offer_expires_at);
@@ -171,7 +176,7 @@ export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purc
 
 async function loadRegistration(token) {
   const result = await supabaseGet(
-    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1`,
+    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,last_presence_at,statut,payment_status,purchased_at&limit=1`,
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -263,11 +268,31 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
   const canonicalDueAt = mc2RecoveryDueAt(registration, liveSegment, env);
   if (canonicalDueAt && now < canonicalDueAt) {
     // Corrige aussi les jobs déjà créés avec l'ancien session_ends_at à +75 min.
-    return rescheduleJob(job, canonicalDueAt, Math.max(0, attempts - 1));
+    const rescheduled = await rescheduleJob(job, canonicalDueAt, Math.max(0, attempts - 1));
+    return liveSegment === 'left_before_cta'
+      ? { ...rescheduled, reason: 'viewer_still_active' }
+      : rescheduled;
   }
 
   try {
     const config = mc2ReplayRecoveryConfig(env);
+    // Le job initial peut avoir été créé pendant que la personne regardait
+    // encore. On recalcule donc son échéance avec la dernière présence connue
+    // juste avant l'envoi, afin de garantir 90 minutes de vraie absence.
+    if (job.segment === 'left_before_cta') {
+      const refreshedDueAt = mc2RecoveryDueAt(registration, job.segment, env);
+      if (refreshedDueAt && refreshedDueAt.getTime() > now.getTime()) {
+        const rescheduled = await supabasePatch('mc2_replay_recovery_jobs', `id=eq.${encode(job.id)}`, {
+          status: 'pending',
+          attempts: positiveInt(job.attempts, 0, MAX_DELIVERY_ATTEMPTS),
+          due_at: refreshedDueAt.toISOString(),
+          last_attempt_at: null,
+          last_error: null,
+        });
+        if (!rescheduled.ok) throw new Error(`mc2_replay_reschedule_${rescheduled.status}`);
+        return { status: 'rescheduled', reason: 'viewer_still_active', dueAt: refreshedDueAt.toISOString() };
+      }
+    }
     const apiKey = clean(env.MAILERLITE_API_KEY, 1_000);
     const groupId = config.groups[job.segment];
     if (!apiKey) throw new Error('mailerlite_api_key_missing');

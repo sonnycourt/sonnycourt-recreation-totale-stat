@@ -152,7 +152,7 @@ const MC2_SPIFFY_CHECKOUT_SLUGS = Object.freeze({
 });
 
 const MC2_SPIFFY_PLANS = Object.freeze({
-  monthly: { initialCents: 19_700, contractualTotalCents: 236_400, paymentMode: 'spiffy_12x197' },
+  monthly: { initialCents: 76_700, contractualTotalCents: 230_100, paymentMode: 'spiffy_3x767' },
   once: { initialCents: 199_700, contractualTotalCents: 199_700, paymentMode: 'spiffy_one_time_1997' },
 });
 
@@ -174,9 +174,9 @@ function mc2PlanFromPurchase(body, amount, registration, checkoutId) {
 
   const recentPlan = String(registration?.checkout_last_plan || '').toLowerCase();
   if (recentPlan === 'once' && amountMatches(amount, 1997)) return 'once';
-  if (recentPlan === 'monthly' && (amountMatches(amount, 197) || amountMatches(amount, 2364))) return 'monthly';
+  if (recentPlan === 'monthly' && (amountMatches(amount, 767) || amountMatches(amount, 2301))) return 'monthly';
   if (amountMatches(amount, 1997)) return 'once';
-  if (amountMatches(amount, 197) || amountMatches(amount, 2364)) return 'monthly';
+  if (amountMatches(amount, 767) || amountMatches(amount, 2301)) return 'monthly';
   return null;
 }
 

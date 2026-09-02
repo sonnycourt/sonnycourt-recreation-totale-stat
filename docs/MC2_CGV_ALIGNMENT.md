@@ -3,10 +3,10 @@
 ## Offre Esprit Subconscient 2.0 en vigueur
 
 - Paiement unique : **1 997 € TTC**.
-- Paiement mensuel : **12 × 197 € TTC**, soit **2 364 € TTC**.
+- Paiement fractionné : **3 × 767 € TTC**, soit **2 301 € TTC**.
 - La première mensualité est débitée à la commande, puis les onze suivantes
   sont prélevées mensuellement.
-- Le paiement unique économise **367 € TTC** par rapport aux douze mensualités.
+- Le paiement unique économise **304 € TTC** par rapport aux trois mensualités.
 - Achat unique, sans abonnement et sans renouvellement.
 - Garantie commerciale de 14 jours : remboursement des sommes encaissées,
   annulation des mensualités futures et retrait des accès.

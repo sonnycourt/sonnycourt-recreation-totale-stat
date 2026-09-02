@@ -15,8 +15,8 @@
 | Segment | Condition de vérité | Délai par défaut | Destination |
 | --- | --- | --- | --- |
 | No-show | `attended_live=false`, non acheteur | session + 22 h | Replay personnel 48 h |
-| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | fin de session + 60 min | Replay 48 h, reprise au point live moins 20 min |
-| Offre vue | `saw_offer=true`, non acheteur | fin de session + 15 min | Offre directe, sans replay |
+| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | dernière présence + 90 min | Replay 48 h, reprise au point live moins 20 min |
+| Offre vue | `saw_offer=true`, non acheteur | expiration de l’offre + 5 min | Offre directe, sans replay |
 | Acheteur | statut/paiement/`purchased_at` | immédiat | Toute relance annulée et groupes retirés |
 
 Le worker revalide le segment et l'achat juste avant chaque livraison. Une
@@ -70,8 +70,8 @@ Valeurs optionnelles avec défauts :
 
 ```text
 MC2_REPLAY_NO_SHOW_DELAY_MINUTES=1320
-MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES=60
-MC2_OFFER_FOLLOWUP_DELAY_MINUTES=15
+MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES=90
+MC2_OFFER_FOLLOWUP_DELAY_MINUTES=5
 MC2_REPLAY_ACCESS_HOURS=48
 MC2_LIVE_COUNTDOWN_SECONDS=1200
 MC2_PUBLIC_BASE_URL=https://sonnycourt.com
@@ -111,7 +111,7 @@ dans MailerLite ni envoyé par le code.
 - [ ] Email abandon avant CTA : objet, formulation du point de reprise et bouton.
 - [ ] Email offre vue sans achat : objet, urgence et bouton offre.
 - [ ] Vérifier expéditeur, adresse de réponse et désinscription.
-- [ ] Vérifier les délais : 22 h / 60 min / 15 min.
+- [ ] Vérifier les délais : 22 h / 90 min / 15 min.
 - [ ] Vérifier l'URL vidéo et la seconde exacte du CTA.
 - [ ] Test sandbox avec trois contacts réservés, puis contrôle de l'exclusion acheteur.
 - [ ] Seulement après ces validations : passer le flag à `true`.
