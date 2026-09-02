@@ -24,16 +24,21 @@ assert.equal(new Set(jobs.map((job) => job.job_key)).size, 2);
 
 const offerRegistration = {
   ...scheduled,
-  offer_expires_at: '2026-08-14T20:00:00.000Z',
+  offer_expires_at: '2026-08-16T09:00:00.000Z',
   saw_offer: true,
 };
 const offerJobs = mc2OfferEmailJobs(offerRegistration);
 assert.deepEqual(offerJobs.map((item) => item.message_type), ['offer_5_places', 'offer_4h', 'offer_1h']);
 assert.deepEqual(offerJobs.map((item) => item.due_at), [
-  '2026-08-14T08:00:00.000Z',
-  '2026-08-14T16:00:00.000Z',
-  '2026-08-14T19:00:00.000Z',
+  '2026-08-15T10:22:28.000Z',
+  '2026-08-16T05:00:00.000Z',
+  '2026-08-16T08:00:00.000Z',
 ]);
+const replayOfferJobs = mc2OfferEmailJobs({
+  ...offerRegistration,
+  offer_cta_at: '2026-08-13T12:00:00.000Z',
+});
+assert.equal(replayOfferJobs[0].due_at, '2026-08-15T12:00:00.000Z');
 assert.equal(new Set(offerJobs.map((item) => item.job_key)).size, 3);
 
 process.env.SUPABASE_URL = 'https://supabase.test';
@@ -91,17 +96,17 @@ const offerEnv = {
 calls.length = 0;
 assert.equal((await processMc2SessionEmailJob(
   { id: 3, attempts: 0, status: 'pending', ...offerJobs[0] },
-  new Date('2026-08-14T08:00:00Z'),
+  new Date('2026-08-15T10:22:28Z'),
   offerEnv,
 )).status, 'delivered');
 const offerFields = calls.find((call) => call.host === 'connect.mailerlite.com' && call.method === 'PUT')?.body?.fields;
 assert.equal(offerFields.mc2_offer_url, 'https://sonnycourt.com/mc2/session/?t=token-11');
-assert.equal(offerFields.mc2_offer_expires_at, '2026-08-14T20:00:00.000Z');
+assert.equal(offerFields.mc2_offer_expires_at, '2026-08-16T09:00:00.000Z');
 
 calls.length = 0;
 const superseded = await processMc2SessionEmailJob(
   { id: 4, attempts: 0, status: 'pending', ...offerJobs[0] },
-  new Date('2026-08-14T16:00:00Z'),
+  new Date('2026-08-16T05:00:00Z'),
   offerEnv,
 );
 assert.deepEqual(superseded, { status: 'skipped', reason: 'message_superseded' });
@@ -111,7 +116,7 @@ registrationFixture = { ...registrationFixture, statut: 'purchased', payment_sta
 calls.length = 0;
 const purchased = await processMc2SessionEmailJob(
   { id: 5, attempts: 0, status: 'pending', ...offerJobs[2] },
-  new Date('2026-08-14T19:00:00Z'),
+  new Date('2026-08-16T08:00:00Z'),
   { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_1H: 'group-one-hour' },
 );
 assert.deepEqual(purchased, { status: 'skipped', reason: 'purchase_completed' });

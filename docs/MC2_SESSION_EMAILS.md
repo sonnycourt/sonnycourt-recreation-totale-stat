@@ -8,9 +8,10 @@
 - Anti-doublon : `token + session + type`.
 - Session déplacée : l'ancien job est ignoré.
 - CTA atteint sur le live ou le replay : trois jobs personnels sont créés à
-  partir de `offer_expires_at`.
-- « 5 places restantes » : 12 heures après le CTA, exactement au palier de la
-  timeline visible, donc 12 heures avant l'expiration.
+  partir du passage du CTA et de `offer_expires_at`.
+- « 5 places restantes » : 48 heures après le CTA, exactement au palier de la
+  timeline visible. Pour le live actuel, cela correspond à environ 49 h 22
+  après l'heure annoncée de la session.
 - « 4 heures restantes » et « 1 heure restante » : respectivement H-4 et H-1.
 - Un acheteur est exclu juste avant l'ajout au groupe. Une relance devenue
   obsolète est ignorée au lieu d'être envoyée en retard.

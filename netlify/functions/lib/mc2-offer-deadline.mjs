@@ -74,10 +74,12 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
 
   let emailQueue = { ok: false, enabled: false, queued: 0 };
   try {
+    const offerCtaAt = source === 'live' ? mc2LiveCtaAt(registration) : validDate(now);
     emailQueue = await queueMc2OfferEmails({
       token: safeToken,
       session_starts_at: registration?.session_starts_at,
       offer_expires_at: expiresAt.toISOString(),
+      offer_cta_at: offerCtaAt?.toISOString(),
     });
   } catch (error) {
     // La file email ne doit jamais empêcher l'affichage de l'offre.
