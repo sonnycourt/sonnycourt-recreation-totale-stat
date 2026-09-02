@@ -7,7 +7,9 @@ const sessionSource = fs.readFileSync(path.join(root, 'src/pages/mc2/session.ast
 
 assert.match(sessionSource, /reg\.sawOffer === true && Number\.isFinite\(expiryMs\)/);
 assert.match(sessionSource, /keepOfferVisible: true/);
-assert.match(sessionSource, /getMc2SessionSeatsLeft\(now, offerWindowStartMs\)/);
+assert.match(sessionSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
+assert.match(sessionSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
+assert.match(sessionSource, /const seats = Math\.max\(0, OFFER_INITIAL_REMAINING_SEATS - placesConsumed\)/);
 assert.match(sessionSource, /mc2-replay-enter\?t=/);
 assert.doesNotMatch(sessionSource, /window\.location\.replace\('\/mc2\/replay\?t=/);
 

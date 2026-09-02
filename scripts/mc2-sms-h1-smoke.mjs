@@ -12,11 +12,11 @@ import { MC2_OFFER_SMS_LEAD_MS } from '../netlify/functions/lib/mc2-offer-deadli
 
 const code = 'A1b2C';
 const token = '12345678-1234-1234-1234-123456789012';
-const expected = "DERNIERE HEURE !\nIl ne reste plus qu'une heure pour rejoindre Esprit Subconscient 2.0.\nInscris-toi ici :\nhttps://sonnycourt.com/offre/A1b2C";
+const expected = "DERNIERE CHANCE !\nTon offre Esprit Subconscient 2.0 expire dans 4 heures.\nPrends ta place ici :\nhttps://sonnycourt.com/offre/A1b2C";
 assert.equal(mc2SmsMessage('offer_deadline', token, { liveCode: code }), expected);
-assert.equal(expected.length, 139);
+assert.equal(expected.length, 130);
 assert.equal(estimateMc2SmsSegments(expected), 1);
-assert.equal(MC2_OFFER_SMS_LEAD_MS, 60 * 60 * 1000);
+assert.equal(MC2_OFFER_SMS_LEAD_MS, 4 * 60 * 60 * 1000);
 assert.equal(MC2_OFFER_SMS_STALE_MS, 10 * 60 * 1000);
 
 const originalFetch = globalThis.fetch;
@@ -65,7 +65,7 @@ try {
       sms_consent_at: '2026-08-20T10:00:00.000Z',
       statut: 'registered',
       payment_status: null,
-      offer_expires_at: '2026-08-23T11:00:00.000Z',
+      offer_expires_at: '2026-08-23T14:00:00.000Z',
     }]);
     if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
       const body = JSON.parse(options.body || '{}');
@@ -111,7 +111,7 @@ try {
         sms_consent_at: '2026-08-20T10:00:00.000Z',
         statut: eligibilityReads === 1 ? 'registered' : 'purchased',
         payment_status: eligibilityReads === 1 ? null : 'paid',
-        offer_expires_at: '2026-08-23T11:00:00.000Z',
+        offer_expires_at: '2026-08-23T14:00:00.000Z',
       }]);
     }
     if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
@@ -192,7 +192,7 @@ try {
         sms_consent_at: '2026-08-20T10:00:00.000Z',
         statut: 'registered',
         payment_status: null,
-        offer_expires_at: '2026-08-23T11:00:00.000Z',
+        offer_expires_at: '2026-08-23T14:00:00.000Z',
       }]);
     }
     if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
@@ -231,7 +231,7 @@ try {
       pays: 'Suisse',
       sms_consent_at: '2026-08-20T10:00:00.000Z',
       statut: 'registered',
-      offer_expires_at: '2026-08-23T11:00:00.000Z',
+      offer_expires_at: '2026-08-23T14:00:00.000Z',
     }]);
     if (parsed.pathname.endsWith('/mc2_sms_jobs') && options.method === 'PATCH') {
       const body = JSON.parse(options.body || '{}');
@@ -293,4 +293,4 @@ try {
   Object.assign(process.env, originalEnv);
 }
 
-console.log('MC2 SMS H-1 smoke: OK');
+console.log('MC2 SMS H-4 smoke: OK');

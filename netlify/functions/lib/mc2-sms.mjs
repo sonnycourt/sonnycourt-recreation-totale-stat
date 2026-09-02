@@ -9,6 +9,7 @@ import {
 
 const MAX_ATTEMPTS = 3;
 export const MC2_OFFER_SMS_STALE_MS = 10 * 60 * 1000;
+export const MC2_OFFER_SMS_LEAD_MS = 4 * 60 * 60 * 1000;
 const LIVE_CODE_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 function clean(value, max = 500) {
@@ -333,7 +334,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     const expires = new Date(registration.offer_expires_at).getTime();
     if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
     const dueAt = new Date(job.due_at).getTime();
-    const expectedDueAt = expires - 60 * 60 * 1000;
+    const expectedDueAt = expires - MC2_OFFER_SMS_LEAD_MS;
     if (!Number.isFinite(dueAt) || Math.abs(dueAt - expectedDueAt) > 60 * 1000) {
       return skipJob(job, 'offer_sms_legacy_schedule');
     }

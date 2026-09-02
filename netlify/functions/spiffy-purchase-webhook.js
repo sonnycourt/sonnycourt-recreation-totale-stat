@@ -247,7 +247,7 @@ export default async (req) => {
     const payloadToken = findMc2Token(body);
 
     // Le webhook historique continue de traiter webinaire_registrations plus bas.
-    // Cette branche additionnelle coupe uniquement le SMS H-1 du nouveau funnel
+    // Cette branche additionnelle coupe uniquement le SMS H-4 du nouveau funnel
     // MC2 quand Spiffy confirme une vente de l'un de ses deux checkouts dédiés.
     if (isSale) {
       const cancellation = await cancelMc2OfferSmsAfterSpiffyPurchase({

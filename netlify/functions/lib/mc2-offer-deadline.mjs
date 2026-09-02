@@ -1,5 +1,5 @@
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
-import { mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
+import { MC2_OFFER_SMS_LEAD_MS, mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
 import { queueMc2OfferEmails } from './mc2-session-emails.mjs';
 import {
   MC2_LIVE_CTA_SECONDS as SHARED_LIVE_CTA_SECONDS,
@@ -7,7 +7,7 @@ import {
 } from '../../../src/lib/mc2-timing.mjs';
 
 export const MC2_OFFER_DURATION_MS = 72 * 60 * 60 * 1000;
-export const MC2_OFFER_SMS_LEAD_MS = 4 * 60 * 60 * 1000;
+export { MC2_OFFER_SMS_LEAD_MS };
 export const MC2_LIVE_VIDEO_LEAD_MS = SHARED_LIVE_VIDEO_LEAD_MS;
 export const MC2_LIVE_CTA_SECONDS = SHARED_LIVE_CTA_SECONDS;
 
