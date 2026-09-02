@@ -35,7 +35,6 @@ const previewReviewInitials = (name) => name
       ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
       spiffy.SNIPPET_VERSION="1.1.0";
       spiffy.config({ hideSidebar: false });
-      spiffy.load("sonnycourt");
     </script>
 
 <style>
@@ -2175,16 +2174,16 @@ const previewReviewInitials = (name) => name
         <div class="deal-summary__checkout-cue">Inscris-toi maintenant <span aria-hidden="true">↓</span></div>
 
         <div class="deal-summary__checkout" id="deal-registration" aria-label="Formulaire d’inscription Esprit Subconscient 2.0">
-          <div class="payment-plan-selector" role="group" aria-label="Choisis ton plan de paiement">
+          <div class="payment-plan-selector" role="group" aria-label="Choisis ton mode de versement">
             <button class="payment-plan-option is-selected" type="button" data-payment-plan="once" aria-pressed="true">
               <span class="payment-plan-option__top">
-                <span>Paiement en une fois</span>
+                <span>Versement unique</span>
                 <small class="payment-plan-option__badge">Meilleur tarif</small>
               </span>
               <strong>1 997 €</strong>
             </button>
             <button class="payment-plan-option" type="button" data-payment-plan="three" aria-pressed="false">
-              <span>Paiement en 3 fois</span>
+              <span>Versement en 3 fois</span>
               <strong>3 × 767 €</strong>
             </button>
           </div>
@@ -2559,21 +2558,16 @@ const previewReviewInitials = (name) => name
         const mc2Token = visitor.get('t') || visitor.get('token') || '';
 
         const plans = {
-          three: {
-            url: slot.dataset.monthlyCheckout || '',
-          },
           once: {
             url: slot.dataset.onceCheckout || '',
           },
+          three: {
+            url: slot.dataset.monthlyCheckout || '',
+          },
         };
         let activePlan = 'once';
-        let activeFrame = null;
-        let visibleFrame = null;
-        let pendingFrame = null;
-
-        const replaceCheckoutChildren = (...children) => {
-          slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...children] : children));
-        };
+        const planPanels = new Map();
+        const checkoutFrames = new Map();
 
         const checkoutUrl = (base) => {
           const url = new URL(base);
@@ -2586,38 +2580,26 @@ const previewReviewInitials = (name) => name
           return url;
         };
 
-        const mountCheckout = () => {
-          const plan = plans[activePlan];
+        const createPlanPanel = (planName) => {
+          const plan = plans[planName];
           const url = checkoutUrl(plan.url);
-          planButtons.forEach((button) => {
-            const selected = button.dataset.paymentPlan === activePlan;
-            button.classList.toggle('is-selected', selected);
-            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-          });
-          slot.setAttribute('aria-busy', 'true');
+          const panel = document.createElement('div');
+          panel.className = 'deal-spiffy-checkout__plan';
+          panel.dataset.checkoutPlan = planName;
+          panel.setAttribute('aria-hidden', planName === activePlan ? 'false' : 'true');
 
           if (window.location.protocol === 'http:') {
             url.searchParams.set('elements', btoa(JSON.stringify({
               modality: 'inline',
-              uid: 1,
+              uid: planName === 'once' ? 1 : 2,
               from: window.location.href,
               handles: {},
             })));
-            const previousFrame = visibleFrame;
-            if (pendingFrame && pendingFrame !== previousFrame) pendingFrame.remove();
-
-            const loading = previousFrame ? null : document.createElement('div');
-            if (loading) {
-              loading.className = 'deal-spiffy-checkout__loading';
-              loading.textContent = 'Connexion au paiement sécurisé…';
-            }
             const frame = document.createElement('iframe');
-            pendingFrame = frame;
-            activeFrame = frame;
             frame.src = url.toString();
-            frame.title = activePlan === 'once'
-              ? 'Paiement sécurisé en une fois'
-              : 'Paiement sécurisé en trois fois';
+            frame.title = planName === 'once'
+              ? 'Paiement sécurisé en un versement'
+              : 'Paiement sécurisé en trois versements';
             frame.setAttribute('allow', 'payment');
             frame.setAttribute('loading', 'eager');
             frame.setAttribute('width', '100%');
@@ -2630,54 +2612,44 @@ const previewReviewInitials = (name) => name
             frame.style.height = window.matchMedia('(max-width: 700px)').matches ? '520px' : '420px';
             frame.style.opacity = '0';
             frame.style.transition = 'opacity 180ms ease';
-
-            if (previousFrame) {
-              slot.style.height = `${Math.ceil(previousFrame.getBoundingClientRect().height)}px`;
-              frame.style.position = 'absolute';
-              frame.style.inset = '0';
-              frame.style.zIndex = '2';
-              frame.style.pointerEvents = 'none';
-              slot.append(frame);
-            } else {
-              replaceCheckoutChildren(loading, frame);
-            }
-
             frame.addEventListener('load', () => {
-              if (pendingFrame !== frame) {
-                frame.remove();
-                return;
-              }
-              loading?.remove();
               frame.style.opacity = '1';
-              window.setTimeout(() => {
-                if (pendingFrame !== frame) return;
-                previousFrame?.remove();
-                frame.style.position = '';
-                frame.style.inset = '';
-                frame.style.zIndex = '';
-                frame.style.pointerEvents = '';
-                slot.style.height = '';
-                visibleFrame = frame;
-                pendingFrame = null;
-                slot.setAttribute('aria-busy', 'false');
-              }, previousFrame ? 190 : 0);
-            }, { once: true });
-            return;
+              if (planName === activePlan) slot.setAttribute('aria-busy', 'false');
+            });
+            panel.append(frame);
+            checkoutFrames.set(planName, frame);
+          } else {
+            const checkout = document.createElement('spiffy-checkout');
+            checkout.setAttribute('url', url.toString());
+            checkout.style.display = 'block';
+            checkout.style.width = '100%';
+            checkout.style.maxWidth = 'none';
+            panel.append(checkout);
           }
 
-          activeFrame = null;
-          const checkout = document.createElement('spiffy-checkout');
-          checkout.setAttribute('url', url.toString());
-          checkout.style.display = 'block';
-          checkout.style.width = '100%';
-          checkout.style.maxWidth = 'none';
-          replaceCheckoutChildren(checkout);
+          planPanels.set(planName, panel);
+          return panel;
+        };
+
+        const selectPlan = (planName) => {
+          activePlan = planName;
+          planButtons.forEach((button) => {
+            const selected = button.dataset.paymentPlan === activePlan;
+            button.classList.toggle('is-selected', selected);
+            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          });
+          planPanels.forEach((panel, name) => {
+            const selected = name === activePlan;
+            panel.classList.toggle('is-active', selected);
+            panel.hidden = !selected;
+            panel.setAttribute('aria-hidden', selected ? 'false' : 'true');
+          });
           slot.setAttribute('aria-busy', 'false');
         };
 
         window.addEventListener('message', (event) => {
-          if (!activeFrame || event.origin !== 'https://sonnycourt.spiffy.co') return;
-          const messageFrame = [pendingFrame, visibleFrame].find((frame) => frame?.contentWindow === event.source);
+          if (event.origin !== 'https://sonnycourt.spiffy.co') return;
+          const messageFrame = Array.from(checkoutFrames.values()).find((frame) => frame.contentWindow === event.source);
           if (!messageFrame) return;
           let payload = event.data;
           if (typeof payload === 'string') {
@@ -2693,11 +2665,15 @@ const previewReviewInitials = (name) => name
         planButtons.forEach((button) => button.addEventListener('click', () => {
           const requestedPlan = button.dataset.paymentPlan;
           if (!requestedPlan || requestedPlan === activePlan || !plans[requestedPlan]) return;
-          activePlan = requestedPlan;
-          mountCheckout();
+          selectPlan(requestedPlan);
         }));
 
-        mountCheckout();
+        const panels = Object.keys(plans).map(createPlanPanel);
+        slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...panels] : panels));
+        selectPlan(activePlan);
+        if (window.location.protocol !== 'http:' && window.spiffy?.load) {
+          window.spiffy.load('sonnycourt');
+        }
       })();
     </script>
     <script>
