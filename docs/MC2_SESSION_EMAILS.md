@@ -7,8 +7,9 @@
 - Inscription moins de 65 minutes avant : pas de rappel H-1 en doublon.
 - Anti-doublon : `token + session + type`.
 - Session déplacée : l'ancien job est ignoré.
-- CTA atteint sur le live ou le replay : trois jobs personnels sont créés à
-  partir du passage du CTA et de `offer_expires_at`.
+- CTA atteint sur le live ou le replay : six jobs personnels sont créés sur la
+  chronologie globale du CTA et de `offer_expires_at`.
+- Séquence de conversion : CTA + 90 min, +12 h et +36 h.
 - « 5 places restantes » : 48 heures après le CTA, exactement au palier de la
   timeline visible. Pour le live actuel, cela correspond à environ 49 h 22
   après l'heure annoncée de la session.
@@ -26,6 +27,9 @@
 
 ## Groupes MailerLite de rareté
 
+- `MC2 — Offre — suivi 90 minutes`
+- `MC2 — Offre — consultations 12 heures`
+- `MC2 — Offre — preuve 36 heures`
 - `MC2 — Offre — 5 places restantes`
 - `MC2 — Offre — 4 heures restantes`
 - `MC2 — Offre — 1 heure restante`
@@ -59,6 +63,9 @@ Rejoins ta session ici :
 MC2_SESSION_EMAILS_ENABLED=true
 MAILERLITE_GROUP_MC2_CONFIRMATION=
 MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H=
+MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M=
+MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H=
+MAILERLITE_GROUP_MC2_OFFER_PROOF_36H=
 MAILERLITE_GROUP_MC2_OFFER_5_PLACES=
 MAILERLITE_GROUP_MC2_OFFER_4H=
 MAILERLITE_GROUP_MC2_OFFER_1H=

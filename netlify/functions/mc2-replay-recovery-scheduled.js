@@ -4,8 +4,9 @@ import {
   mc2ReplayRecoveryConfig,
   mc2ReplayRecoveryEnabled,
   processMc2ReplayRecoveryJob,
-  queueMc2ReplayRecovery,
+  queueMc2ReplayRecoverySequence,
 } from './lib/mc2-replay-recovery.mjs';
+import { mc2OfferExpiresAt } from '../../src/lib/mc2-timing.mjs';
 
 async function loadCandidates(now) {
   const rows = [];
@@ -20,7 +21,7 @@ async function loadCandidates(now) {
         + `&session_starts_at=gt.${encodeURIComponent(lower.toISOString())}`
         + '&statut=not.in.(purchased,expired)'
         + '&or=(payment_status.is.null,payment_status.not.in.(paid,succeeded,active,complete,completed))'
-        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,last_presence_at,statut,payment_status,purchased_at'
+        + '&select=token,email,prenom,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,last_presence_at,statut,payment_status,purchased_at'
         + '&order=session_starts_at.asc&limit=1000',
     );
     if (!result.ok) throw new Error(`mc2_recovery_candidates_${result.status}`);
@@ -43,10 +44,20 @@ export default async () => {
 
   let queued = 0;
   for (const row of candidates) {
-    const segment = mc2RecoverySegment(row);
-    if (!segment) continue;
-    const result = await queueMc2ReplayRecovery(row, segment);
-    if (result.ok && result.created) queued += 1;
+    if (!row.offer_expires_at) {
+      const derivedExpiry = mc2OfferExpiresAt(row.session_starts_at);
+      if (derivedExpiry && derivedExpiry > now) {
+        const saved = await supabasePatch(
+          'mc2_registrations',
+          `token=eq.${encodeURIComponent(row.token)}&offer_expires_at=is.null`,
+          { offer_expires_at: derivedExpiry.toISOString() },
+        );
+        if (saved.ok) row.offer_expires_at = derivedExpiry.toISOString();
+      }
+    }
+    if (!mc2RecoverySegment(row)) continue;
+    const results = await queueMc2ReplayRecoverySequence(row);
+    queued += results.filter((result) => result.ok && result.created).length;
   }
 
   const staleCutoff = new Date(now.getTime() - 5 * 60_000).toISOString();

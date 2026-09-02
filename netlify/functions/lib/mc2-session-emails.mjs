@@ -7,12 +7,22 @@ import {
 } from '../../../src/lib/mc2-timing.mjs';
 
 const SESSION_TYPES = new Set(['registration_confirmation', 'session_reminder_1h']);
-const OFFER_TYPES = new Set(['offer_5_places', 'offer_4h', 'offer_1h']);
+const OFFER_TYPES = new Set([
+  'offer_followup_90m',
+  'offer_consultations_12h',
+  'offer_proof_36h',
+  'offer_5_places',
+  'offer_4h',
+  'offer_1h',
+]);
 const TYPES = new Set([...SESSION_TYPES, ...OFFER_TYPES]);
 const MAX_ATTEMPTS = 5;
 const HOUR_MS = 60 * 60_000;
 const FIVE_PLACES_AFTER_CTA_MS = 48 * HOUR_MS;
 const OFFER_RULES = [
+  { messageType: 'offer_followup_90m', afterCtaMs: 90 * 60_000, supersededAfterCtaMs: 12 * HOUR_MS },
+  { messageType: 'offer_consultations_12h', afterCtaMs: 12 * HOUR_MS, supersededAfterCtaMs: 36 * HOUR_MS },
+  { messageType: 'offer_proof_36h', afterCtaMs: 36 * HOUR_MS, supersededAfterCtaMs: FIVE_PLACES_AFTER_CTA_MS },
   { messageType: 'offer_5_places', afterCtaMs: FIVE_PLACES_AFTER_CTA_MS, supersededRemainingMs: 4 * HOUR_MS },
   { messageType: 'offer_4h', remainingMs: 4 * HOUR_MS, supersededRemainingMs: HOUR_MS },
   { messageType: 'offer_1h', remainingMs: HOUR_MS, supersededRemainingMs: 0 },
@@ -56,6 +66,9 @@ export function mc2SessionEmailConfig(env = process.env) {
     groups: {
       registration_confirmation: clean(env.MAILERLITE_GROUP_MC2_CONFIRMATION || env.ML_MC2_CONFIRMATION, 120),
       session_reminder_1h: clean(env.MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H || env.ML_MC2_REMINDER_1H, 120),
+      offer_followup_90m: clean(env.MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M, 120),
+      offer_consultations_12h: clean(env.MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H, 120),
+      offer_proof_36h: clean(env.MAILERLITE_GROUP_MC2_OFFER_PROOF_36H, 120),
       offer_5_places: clean(env.MAILERLITE_GROUP_MC2_OFFER_5_PLACES, 120),
       offer_4h: clean(env.MAILERLITE_GROUP_MC2_OFFER_4H, 120),
       offer_1h: clean(env.MAILERLITE_GROUP_MC2_OFFER_1H, 120),
@@ -105,8 +118,9 @@ export function mc2OfferEmailJobs(row = {}) {
   const token = clean(row.token, 128);
   const session = start.toISOString();
   const expiry = expiresAt.toISOString();
-  const liveCtaAt = new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
-  const ctaAt = dateOrNull(row.offer_cta_at) || liveCtaAt;
+  // La campagne est globale à la session : voir l'offre plus tard en replay
+  // ne redémarre jamais la séquence à zéro.
+  const ctaAt = new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
   return OFFER_RULES.map((rule) => ({
     token,
     job_key: `mc2_offer_email:${token}:${expiry}:${rule.messageType}`,
@@ -122,7 +136,7 @@ export function mc2OfferEmailJobs(row = {}) {
 }
 
 export async function queueMc2OfferEmails(row, env = process.env) {
-  if (!mc2SessionEmailsEnabled(env)) return { ok: true, enabled: false, queued: 0 };
+  if (!mc2OfferEmailsEnabled(env)) return { ok: true, enabled: false, queued: 0 };
   let queued = 0;
   for (const job of mc2OfferEmailJobs(row)) {
     const inserted = await supabasePost('mc2_session_email_jobs', job);
@@ -212,8 +226,13 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
     if (expiry.toISOString() !== jobExpiry.toISOString()) return skipJob(job, 'offer_deadline_changed');
     if (now >= expiry) return skipJob(job, 'offer_expired');
     const rule = OFFER_RULES.find((item) => item.messageType === job.message_type);
-    const supersededAt = new Date(expiry.getTime() - (rule?.supersededRemainingMs || 0));
-    if (rule?.supersededRemainingMs && now >= supersededAt) return skipJob(job, 'message_superseded');
+    const liveCtaAt = new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
+    const supersededAt = Number.isFinite(rule?.supersededAfterCtaMs)
+      ? new Date(liveCtaAt.getTime() + rule.supersededAfterCtaMs)
+      : Number.isFinite(rule?.supersededRemainingMs) && rule.supersededRemainingMs > 0
+        ? new Date(expiry.getTime() - rule.supersededRemainingMs)
+        : null;
+    if (supersededAt && now >= supersededAt) return skipJob(job, 'message_superseded');
   }
   if (job.message_type === 'session_reminder_1h' && now >= start) return skipJob(job, 'message_expired');
   if (job.message_type === 'registration_confirmation' && now >= mc2SessionEndsAt(start)) {

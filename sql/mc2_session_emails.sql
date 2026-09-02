@@ -6,6 +6,7 @@ create table if not exists public.mc2_session_email_jobs (
   job_key text not null unique,
   message_type text not null check (message_type in (
     'registration_confirmation', 'session_reminder_1h',
+    'offer_followup_90m', 'offer_consultations_12h', 'offer_proof_36h',
     'offer_5_places', 'offer_4h', 'offer_1h'
   )),
   session_starts_at timestamptz not null,
@@ -46,6 +47,7 @@ alter table public.mc2_session_email_jobs
 alter table public.mc2_session_email_jobs
   add constraint mc2_session_email_jobs_message_type_check check (message_type in (
     'registration_confirmation', 'session_reminder_1h',
+    'offer_followup_90m', 'offer_consultations_12h', 'offer_proof_36h',
     'offer_5_places', 'offer_4h', 'offer_1h'
   ));
 create unique index if not exists uq_mc2_session_email_job_key on public.mc2_session_email_jobs (job_key);

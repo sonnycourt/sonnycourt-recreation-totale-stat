@@ -3,6 +3,7 @@ import {
   isMc2Purchased,
   mc2RecoveryDueAt,
   mc2RecoveryJobKey,
+  mc2RecoveryMessageTypes,
   mc2RecoveryResumeSeconds,
   mc2RecoverySegment,
   mc2ReplayRecoveryConfig,
@@ -30,7 +31,7 @@ const env = {
 
 assert.equal(mc2ReplayRecoveryEnabled({ MC2_REPLAY_RECOVERY_ENABLED: 'false' }), false);
 assert.equal(mc2ReplayRecoveryEnabled({ MC2_REPLAY_RECOVERY_ENABLED: 'true' }), true);
-assert.equal(mc2ReplayRecoveryConfig(env).replayAccessHours, 48);
+assert.equal(mc2ReplayRecoveryConfig(env).noShowDelayMinutes, 1_320);
 assert.equal(mc2ReplayRecoveryConfig({}).liveCountdownSeconds, 1_200);
 assert.equal(mc2ReplayRecoveryConfig({}).replayCtaSeconds, 77 * 60 + 28);
 assert.equal(
@@ -39,6 +40,23 @@ assert.equal(
 );
 assert.equal(mc2RecoverySegment(base), 'no_show');
 assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T16:00:00.000Z');
+assert.equal(
+  mc2RecoveryDueAt({ ...base, visitor_timezone: 'Europe/Paris' }, 'no_show', {}).toISOString(),
+  '2026-08-13T07:00:00.000Z',
+);
+
+const withOfferDeadline = { ...base, offer_expires_at: '2026-08-15T18:00:00.000Z' };
+assert.deepEqual(mc2RecoveryMessageTypes(withOfferDeadline, 'no_show'), [
+  'no_show_initial', 'replay_24h', 'replay_4h',
+]);
+assert.equal(
+  mc2RecoveryDueAt(withOfferDeadline, 'no_show', env, 'replay_24h').toISOString(),
+  '2026-08-14T18:00:00.000Z',
+);
+assert.equal(
+  mc2RecoveryDueAt(withOfferDeadline, 'no_show', env, 'replay_4h').toISOString(),
+  '2026-08-15T14:00:00.000Z',
+);
 
 const left = {
   ...base,
@@ -85,6 +103,8 @@ assert.equal(
 console.log(JSON.stringify({
   mc2_replay_recovery_segmentation: 'ok',
   buyer_exclusion: 'ok',
-  real_48h_window: 'ok',
+  replay_deadline_matches_offer: 'ok',
+  smart_no_show_timing: 'ok',
+  replay_reminder_sequence: 'ok',
   idempotent_job_key: 'ok',
 }, null, 2));

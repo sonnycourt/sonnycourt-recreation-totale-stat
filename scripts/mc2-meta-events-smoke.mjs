@@ -225,6 +225,7 @@ const offerBackfill = await readFile(new URL('../netlify/functions/admin-mc2-met
 assert.match(adapter, /fbq\('track', 'Lead',[\s\S]*eventID: event\.eventId/);
 assert.match(adapter, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
 assert.match(register, /completedNow: isComplete && !completedBefore/);
+assert.match(register, /offer_expires_at: mc2OfferExpiresAt\(selection\.sessionStartsAt\)\.toISOString\(\)/);
 assert.match(tracker, /mc2FunnelMetaEvents/);
 assert.match(tracker, /browserMetaEvents = meta\.offer_event_id/);
 assert.match(tracker, /metaEvents: browserMetaEvents/);

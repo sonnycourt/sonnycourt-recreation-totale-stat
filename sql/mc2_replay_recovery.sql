@@ -9,6 +9,11 @@ create table if not exists public.mc2_replay_recovery_jobs (
   session_starts_at timestamptz not null,
   segment text not null
     check (segment in ('no_show', 'left_before_cta', 'offer_seen_no_purchase')),
+  message_type text not null
+    check (message_type in (
+      'no_show_initial', 'left_before_cta_initial', 'offer_expired_downsell',
+      'replay_24h', 'replay_4h'
+    )),
   due_at timestamptz not null,
   status text not null default 'pending'
     check (status in ('pending', 'processing', 'retry', 'delivered', 'skipped', 'cancelled')),
@@ -34,6 +39,7 @@ alter table public.mc2_replay_recovery_jobs
   add column if not exists job_key text,
   add column if not exists session_starts_at timestamptz,
   add column if not exists segment text,
+  add column if not exists message_type text,
   add column if not exists due_at timestamptz,
   add column if not exists status text not null default 'pending',
   add column if not exists attempts integer not null default 0,
@@ -49,6 +55,27 @@ alter table public.mc2_replay_recovery_jobs
   add column if not exists delivered_at timestamptz,
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
+
+-- Les trois types initiaux conservent exactement les groupes et les clés des
+-- jobs historiques. Les deux rappels replay sont les seuls ajouts.
+update public.mc2_replay_recovery_jobs
+set message_type = case segment
+  when 'no_show' then 'no_show_initial'
+  when 'left_before_cta' then 'left_before_cta_initial'
+  when 'offer_seen_no_purchase' then 'offer_expired_downsell'
+end
+where message_type is null;
+
+alter table public.mc2_replay_recovery_jobs
+  alter column message_type set not null;
+
+alter table public.mc2_replay_recovery_jobs
+  drop constraint if exists mc2_replay_recovery_jobs_message_type_check;
+alter table public.mc2_replay_recovery_jobs
+  add constraint mc2_replay_recovery_jobs_message_type_check check (message_type in (
+    'no_show_initial', 'left_before_cta_initial', 'offer_expired_downsell',
+    'replay_24h', 'replay_4h'
+  ));
 
 create unique index if not exists uq_mc2_replay_recovery_job_key
   on public.mc2_replay_recovery_jobs (job_key);

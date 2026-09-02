@@ -16,6 +16,8 @@ const wantedGroups = [
   ['MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW', 'MC2 — Replay — no-show'],
   ['MAILERLITE_GROUP_MC2_REPLAY_BEFORE_CTA', 'MC2 — Replay — parti avant offre'],
   ['MAILERLITE_GROUP_MC2_OFFER_SEEN', 'MC2 — Offre vue — sans achat'],
+  ['MAILERLITE_GROUP_MC2_REPLAY_24H', 'MC2 — Replay — 24 heures restantes'],
+  ['MAILERLITE_GROUP_MC2_REPLAY_4H', 'MC2 — Replay — 4 heures restantes'],
 ];
 const wantedFields = [
   ['mc2_recovery_segment', 'text'],
@@ -39,7 +41,13 @@ async function api(path, options = {}) {
   if (!response.ok) throw new Error(`MailerLite ${response.status}: ${data.message || path}`);
   return data;
 }
-const groups = (await api('/groups?limit=100')).data || [];
+const groups = [];
+let groupCursor = '';
+do {
+  const page = await api(`/groups?limit=100${groupCursor ? `&cursor=${encodeURIComponent(groupCursor)}` : ''}`);
+  groups.push(...(page.data || []));
+  groupCursor = page.links?.next ? new URL(page.links.next).searchParams.get('cursor') || '' : '';
+} while (groupCursor);
 for (const [envName, name] of wantedGroups) {
   let group = groups.find((item) => item.name === name);
   if (!group) group = (await api('/groups', { method: 'POST', body: JSON.stringify({ name }) })).data;

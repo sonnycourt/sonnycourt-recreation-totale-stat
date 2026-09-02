@@ -16,6 +16,10 @@ export const MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS = 20 * 60;
 export const MC2_REPLAY_CTA_SECONDS = MC2_LIVE_CTA_SECONDS
   - MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS;
 
+// La fenêtre commerciale et l'accès replay expirent ensemble, exactement
+// 72 heures après l'heure annoncée de la session.
+export const MC2_OFFER_DURATION_MS = 72 * 60 * 60 * 1000;
+
 function validDate(value) {
   const date = value instanceof Date ? new Date(value.getTime()) : new Date(value || '');
   return Number.isFinite(date.getTime()) ? date : null;
@@ -28,4 +32,9 @@ export function mc2SessionEndsAt(sessionStartsAt) {
 
 export function mc2SessionEndsAtIso(sessionStartsAt) {
   return mc2SessionEndsAt(sessionStartsAt)?.toISOString() || null;
+}
+
+export function mc2OfferExpiresAt(sessionStartsAt) {
+  const start = validDate(sessionStartsAt);
+  return start ? new Date(start.getTime() + MC2_OFFER_DURATION_MS) : null;
 }

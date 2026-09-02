@@ -2,11 +2,13 @@ import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
 import { MC2_OFFER_SMS_LEAD_MS, mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
 import { queueMc2OfferEmails } from './mc2-session-emails.mjs';
 import {
+  MC2_OFFER_DURATION_MS as SHARED_OFFER_DURATION_MS,
   MC2_LIVE_CTA_SECONDS as SHARED_LIVE_CTA_SECONDS,
   MC2_LIVE_VIDEO_LEAD_MS as SHARED_LIVE_VIDEO_LEAD_MS,
+  mc2OfferExpiresAt,
 } from '../../../src/lib/mc2-timing.mjs';
 
-export const MC2_OFFER_DURATION_MS = 72 * 60 * 60 * 1000;
+export const MC2_OFFER_DURATION_MS = SHARED_OFFER_DURATION_MS;
 export { MC2_OFFER_SMS_LEAD_MS };
 export const MC2_LIVE_VIDEO_LEAD_MS = SHARED_LIVE_VIDEO_LEAD_MS;
 export const MC2_LIVE_CTA_SECONDS = SHARED_LIVE_CTA_SECONDS;
@@ -29,7 +31,8 @@ export function mc2LiveCtaAt(registration) {
  *
  * - live : l'ancre est calculée depuis la session enregistrée (non falsifiable
  *   par le navigateur) et correspond exactement à 01:37:28 dans la diffusion ;
- * - replay : l'ancre est la première réception serveur de `cta_reached`.
+ * - replay : le CTA ouvre la même fenêtre commerciale globale, déjà ancrée à
+ *   la session. Il ne redonne jamais 72 heures supplémentaires.
  *
  * Le PATCH `offer_expires_at=is.null` rend l'initialisation idempotente même si
  * plusieurs onglets atteignent le CTA simultanément.
@@ -39,11 +42,12 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
   if (!safeToken) return { ok: false, error: 'token_missing' };
 
   let expiresAt = validDate(registration?.offer_expires_at);
-  let activatedAt = source === 'live' ? validDate(registration?.session_starts_at) : validDate(now);
+  let activatedAt = validDate(registration?.session_starts_at);
   if (!activatedAt) activatedAt = validDate(now);
 
   if (!expiresAt) {
-    const candidate = new Date(activatedAt.getTime() + MC2_OFFER_DURATION_MS).toISOString();
+    const candidate = (mc2OfferExpiresAt(registration?.session_starts_at)
+      || new Date(activatedAt.getTime() + MC2_OFFER_DURATION_MS)).toISOString();
     const saved = await supabasePatch(
       'mc2_registrations',
       `token=eq.${encodeURIComponent(safeToken)}&offer_expires_at=is.null`,
@@ -74,7 +78,9 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
 
   let emailQueue = { ok: false, enabled: false, queued: 0 };
   try {
-    const offerCtaAt = source === 'live' ? mc2LiveCtaAt(registration) : validDate(now);
+    // Une personne qui découvre l'offre en replay rejoint l'étape réelle de la
+    // campagne globale ; la séquence ne redémarre jamais à zéro pour elle.
+    const offerCtaAt = mc2LiveCtaAt(registration) || validDate(now);
     emailQueue = await queueMc2OfferEmails({
       token: safeToken,
       session_starts_at: registration?.session_starts_at,

@@ -28,8 +28,14 @@ const offerRegistration = {
   saw_offer: true,
 };
 const offerJobs = mc2OfferEmailJobs(offerRegistration);
-assert.deepEqual(offerJobs.map((item) => item.message_type), ['offer_5_places', 'offer_4h', 'offer_1h']);
+assert.deepEqual(offerJobs.map((item) => item.message_type), [
+  'offer_followup_90m', 'offer_consultations_12h', 'offer_proof_36h',
+  'offer_5_places', 'offer_4h', 'offer_1h',
+]);
 assert.deepEqual(offerJobs.map((item) => item.due_at), [
+  '2026-08-13T11:52:28.000Z',
+  '2026-08-13T22:22:28.000Z',
+  '2026-08-14T22:22:28.000Z',
   '2026-08-15T10:22:28.000Z',
   '2026-08-16T05:00:00.000Z',
   '2026-08-16T08:00:00.000Z',
@@ -38,8 +44,8 @@ const replayOfferJobs = mc2OfferEmailJobs({
   ...offerRegistration,
   offer_cta_at: '2026-08-13T12:00:00.000Z',
 });
-assert.equal(replayOfferJobs[0].due_at, '2026-08-15T12:00:00.000Z');
-assert.equal(new Set(offerJobs.map((item) => item.job_key)).size, 3);
+assert.equal(replayOfferJobs[0].due_at, '2026-08-13T11:52:28.000Z');
+assert.equal(new Set(offerJobs.map((item) => item.job_key)).size, 6);
 
 process.env.SUPABASE_URL = 'https://supabase.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
@@ -95,7 +101,7 @@ const offerEnv = {
 };
 calls.length = 0;
 assert.equal((await processMc2SessionEmailJob(
-  { id: 3, attempts: 0, status: 'pending', ...offerJobs[0] },
+  { id: 3, attempts: 0, status: 'pending', ...offerJobs[3] },
   new Date('2026-08-15T10:22:28Z'),
   offerEnv,
 )).status, 'delivered');
@@ -105,17 +111,35 @@ assert.equal(offerFields.mc2_offer_expires_at, '2026-08-16T09:00:00.000Z');
 
 calls.length = 0;
 const superseded = await processMc2SessionEmailJob(
-  { id: 4, attempts: 0, status: 'pending', ...offerJobs[0] },
+  { id: 4, attempts: 0, status: 'pending', ...offerJobs[3] },
   new Date('2026-08-16T05:00:00Z'),
   offerEnv,
 );
 assert.deepEqual(superseded, { status: 'skipped', reason: 'message_superseded' });
 assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false);
 
+calls.length = 0;
+const staleFollowup = await processMc2SessionEmailJob(
+  { id: 6, attempts: 0, status: 'pending', ...offerJobs[0] },
+  new Date('2026-08-13T22:22:28Z'),
+  { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M: 'group-followup' },
+);
+assert.deepEqual(staleFollowup, { status: 'skipped', reason: 'message_superseded' });
+assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false);
+
+calls.length = 0;
+const currentStage = await processMc2SessionEmailJob(
+  { id: 7, attempts: 0, status: 'pending', ...offerJobs[1] },
+  new Date('2026-08-14T06:22:28Z'),
+  { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H: 'group-consultations' },
+);
+assert.equal(currentStage.status, 'delivered');
+assert(calls.some((call) => call.host === 'connect.mailerlite.com'));
+
 registrationFixture = { ...registrationFixture, statut: 'purchased', payment_status: 'paid' };
 calls.length = 0;
 const purchased = await processMc2SessionEmailJob(
-  { id: 5, attempts: 0, status: 'pending', ...offerJobs[2] },
+  { id: 5, attempts: 0, status: 'pending', ...offerJobs[5] },
   new Date('2026-08-16T08:00:00Z'),
   { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_1H: 'group-one-hour' },
 );
@@ -125,4 +149,5 @@ console.log(JSON.stringify({
   all_slots_confirmation: 'ok', scheduled_11_20_reminder: 'ok', tokenized_links: 'ok',
   offer_personal_deadlines: 'ok', five_places_timeline: 'ok', buyers_excluded: 'ok',
   stale_messages_skipped: 'ok', idempotence: 'ok', disabled_by_default: 'ok',
+  late_offer_enters_current_stage_only: 'ok',
 }, null, 2));
