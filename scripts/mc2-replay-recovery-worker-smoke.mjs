@@ -69,6 +69,7 @@ globalThis.fetch = async (input, options = {}) => {
 const env = {
   MAILERLITE_API_KEY: 'ml-test',
   MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW: 'group-no-show',
+  MAILERLITE_GROUP_MC2_REPLAY_24H: 'group-replay-24h',
   MC2_PUBLIC_BASE_URL: 'https://sonnycourt.com',
   MC2_REPLAY_ACCESS_HOURS: '48',
 };
@@ -76,7 +77,7 @@ const delivered = await processMc2ReplayRecoveryJob(job, now, env);
 assert.equal(delivered.status, 'delivered');
 const accessPatch = calls.find((call) => call.host === 'supabase.test' && call.body?.access_expires_at);
 assert(accessPatch);
-assert.equal(accessPatch.body.access_expires_at, '2026-08-15T16:00:00.000Z');
+assert.equal(accessPatch.body.access_expires_at, '2026-08-15T18:00:00.000Z');
 assert(calls.some((call) => call.host === 'connect.mailerlite.com' && call.method === 'POST'));
 
 calls.length = 0;
@@ -127,10 +128,47 @@ assert(calls.some((call) => call.host === 'supabase.test'
   && call.body?.due_at === '2026-08-13T17:00:00.000Z'));
 assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false);
 
+calls.length = 0;
+registrationOverrides = {
+  attended_live: true,
+  saw_offer: false,
+  watch_max_seconds_live: 2_700,
+  last_presence_at: '2026-08-13T12:00:00.000Z',
+  offer_expires_at: null,
+};
+const replayReminderNow = new Date('2026-08-14T18:00:00.000Z');
+const replayReminder = await processMc2ReplayRecoveryJob({
+  ...job,
+  id: 97,
+  segment: 'no_show',
+  message_type: 'replay_24h',
+}, replayReminderNow, env);
+assert.equal(replayReminder.status, 'delivered');
+const reminderAccess = calls.find((call) => call.host === 'supabase.test' && call.body?.access_expires_at);
+assert.equal(reminderAccess.body.resume_seconds, 1_500);
+const reminderFields = calls.find((call) => call.host === 'connect.mailerlite.com' && call.method === 'PUT')?.body?.fields;
+assert.equal(reminderFields.mc2_recovery_segment, 'left_before_cta');
+
+calls.length = 0;
+registrationOverrides = {
+  ...registrationOverrides,
+  saw_offer: true,
+};
+const switchedToOffer = await processMc2ReplayRecoveryJob({
+  ...job,
+  id: 98,
+  segment: 'no_show',
+  message_type: 'replay_24h',
+}, now, env);
+assert.match(switchedToOffer.reason, /^segment_changed:/);
+assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false);
+
 console.log(JSON.stringify({
   mailerlite_delivery: 'ok',
   buyer_suppression: 'ok',
   reschedule_suppression: 'ok',
   active_viewer_postponement: 'ok',
-  access_expiry_48h: 'ok',
+  access_expiry_matches_global_replay: 'ok',
+  replay_resume_resegmented_at_send_time: 'ok',
+  replay_sequence_stops_after_offer_seen: 'ok',
 }, null, 2));

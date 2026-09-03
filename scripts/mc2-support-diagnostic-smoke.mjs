@@ -34,8 +34,8 @@ const summary = summarizeMc2SupportDiagnostic({
   events: [
     { event_name: 'session_page_viewed', occurred_at: '2026-08-27T23:59:30.000Z' },
     { event_name: 'session_joined', occurred_at: '2026-08-27T23:59:31.000Z' },
-    { event_name: 'cta_reached', occurred_at: '2026-08-28T01:37:28.000Z' },
-    { event_name: 'checkout_actually_seen', occurred_at: '2026-08-28T01:37:29.000Z' },
+    { event_name: 'cta_reached', occurred_at: '2026-08-28T01:39:00.000Z' },
+    { event_name: 'checkout_actually_seen', occurred_at: '2026-08-28T01:39:01.000Z' },
   ],
   sessionEmails: [
     { message_type: 'registration_confirmation', status: 'delivered', due_at: '2026-08-27T17:35:00.000Z', delivered_at: '2026-08-27T17:35:05.000Z' },

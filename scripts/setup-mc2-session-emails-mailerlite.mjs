@@ -8,6 +8,9 @@ if (!apiKey) throw new Error('MAILERLITE_API_KEY manquante');
 const wantedGroups = [
   ['MAILERLITE_GROUP_MC2_CONFIRMATION', 'MC2 — Inscription confirmée'],
   ['MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H', 'MC2 — Rappel session — 1 heure'],
+  ['MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M', 'MC2 — Offre — suivi 90 minutes'],
+  ['MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H', 'MC2 — Offre — consultations 12 heures'],
+  ['MAILERLITE_GROUP_MC2_OFFER_PROOF_36H', 'MC2 — Offre — preuve 36 heures'],
   ['MAILERLITE_GROUP_MC2_OFFER_4H', 'MC2 — Offre — 4 heures restantes'],
   ['MAILERLITE_GROUP_MC2_OFFER_1H', 'MC2 — Offre — 1 heure restante'],
   ['MAILERLITE_GROUP_MC2_OFFER_5_PLACES', 'MC2 — Offre — 5 places restantes'],

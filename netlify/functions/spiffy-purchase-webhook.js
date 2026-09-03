@@ -7,6 +7,7 @@ import { cancelMc2ReplayRecoveryJobs } from './lib/mc2-replay-recovery.mjs';
 import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
 import { cancelMc2OfferSmsAfterSpiffyPurchase } from './lib/mc2-spiffy-sms-cancellation.mjs';
 import { excludeWebinarBuyer } from './lib/webinaire-exclusions.mjs';
+import { mc2ConsultationBonusTag } from './lib/mc2-consultation-bonus.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -273,7 +274,7 @@ export default async (req) => {
 
     let mc2Row = null;
     if (isSale) {
-      const mc2Select = 'token,email,prenom,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,payment_status,statut,purchased_at';
+      const mc2Select = 'token,email,prenom,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,session_starts_at,offer_expires_at,checkout_last_plan,checkout_last_payment_mode,checkout_last_route,checkout_last_viewed_at,payment_status,statut,purchased_at,purchase_bonus_tag';
       let mc2 = payloadToken
         ? await supabaseGet(
           `mc2_registrations?token=eq.${encodeURIComponent(payloadToken)}&select=${mc2Select}&limit=1`,
@@ -326,6 +327,10 @@ export default async (req) => {
     if (isMc2Purchase) {
       const plan = MC2_SPIFFY_PLANS[mc2Plan];
       const purchasedAt = mc2Row.purchased_at || nowIso;
+      const purchaseBonusTag = mc2Row.purchase_bonus_tag || mc2ConsultationBonusTag({
+        registration: mc2Row,
+        purchasedAt,
+      });
       const updatedMc2 = await supabasePatch(
         'mc2_registrations',
         `token=eq.${encodeURIComponent(mc2Row.token)}`,
@@ -333,6 +338,7 @@ export default async (req) => {
           statut: 'purchased',
           payment_status: 'paid',
           purchased_at: purchasedAt,
+          purchase_bonus_tag: purchaseBonusTag,
           initial_payment_cents: plan.initialCents,
           contractual_total_cents: plan.contractualTotalCents,
           checkout_last_plan: mc2Plan,

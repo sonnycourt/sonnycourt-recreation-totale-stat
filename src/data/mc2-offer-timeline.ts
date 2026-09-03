@@ -46,12 +46,14 @@ const BUYERS: Array<Pick<Purchase, 'name' | 'flag'>> = [
 ];
 
 // 17 places sont attribuées entre le CTA et H+24 : 37 → 20.
-// Les deux premières baisses sont volontairement fixées à +3 min et +6 min.
+// Les quatre premières baisses sont volontairement rapprochées à +3, +6,
+// +7 et +9 min. Le total reste de 17 baisses à H+24 afin de conserver 20/100
+// places globales et 0/80 consultation privée avec Sonny à cette échéance.
 const FIRST_DAY_OFFSETS_MS = [
   3 * MINUTE_MS,
   6 * MINUTE_MS,
-  12 * MINUTE_MS,
-  20 * MINUTE_MS,
+  7 * MINUTE_MS,
+  9 * MINUTE_MS,
   32 * MINUTE_MS,
   48 * MINUTE_MS,
   70 * MINUTE_MS,

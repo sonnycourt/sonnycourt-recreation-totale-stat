@@ -1091,14 +1091,16 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
     import Hls from 'hls.js';
     import { startScarcityEngine, getCurrentWindow, getSoldCount, getSeatsLeft, getPhase, SCARCITY_WINDOW_START_AFTER_SESSION_MS } from '../../lib/scarcity-engine';
     import {
-      MC2_SESSION_OFFER_DURATION_MS,
       MC2_SESSION_PURCHASE_TIMELINE,
       MC2_SESSION_TOTAL_SEATS,
       formatMc2SessionRelativeTime,
       getMc2SessionRegistrationAction,
       startMc2SessionScarcity,
     } from '../../lib/mc2-session-scarcity.mjs';
-    import { MC2_REPLAY_CTA_SECONDS } from '../../lib/mc2-timing.mjs';
+    import {
+      MC2_REPLAY_CTA_SECONDS,
+      MC2_REPLAY_OFFER_DURATION_MS,
+    } from '../../lib/mc2-timing.mjs';
 
     // MC2 conserve strictement le lecteur et l'UI éprouvés du replay
     // historique. Seule cette couche d'accès/traçage est adaptée.
@@ -1112,11 +1114,11 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
     let CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // immédiatement cliquable à son apparition
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
     // Le replay retire exactement les 20 premières minutes de countdown du live.
-    // Son CTA est donc synchronisé 20 minutes plus tôt, à 1h17m28s.
+    // Son CTA est donc synchronisé 20 minutes plus tôt, à 1h19m00s.
     // Replay MC2 en HLS adaptatif via Bunny Stream. La source est indépendante du live
     // et de l'ancien funnel /masterclass afin qu'une mise à jour ne puisse pas les mélanger.
-    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8';
-    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/play_720p.mp4';
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8';
+    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/play_720p.mp4';
     const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
     function getMcWallClockMs() {
@@ -1979,7 +1981,7 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
         }
         ctaActivated = true;
         if (!Number.isFinite(offerActivationMs)) offerActivationMs = getMcWallClockMs();
-        if (!Number.isFinite(offerExpiryMs)) offerExpiryMs = offerActivationMs + MC2_SESSION_OFFER_DURATION_MS;
+        if (!Number.isFinite(offerExpiryMs)) offerExpiryMs = offerActivationMs + MC2_REPLAY_OFFER_DURATION_MS;
         setOfferCtaEnabled(true);
         updateCtaUnlockCountdown();
         syncOfferDeadline();
@@ -2442,7 +2444,7 @@ import Mc2InlineOffer from '../../components/Mc2InlineOffer.astro';
             jumpToSeconds(CTA_ACTIVATE_SECONDS + 1);
             previewOfferStateOverride = null;
             if (!Number.isFinite(offerActivationMs)) offerActivationMs = getMcWallClockMs();
-            offerExpiryMs = offerActivationMs + MC2_SESSION_OFFER_DURATION_MS;
+            offerExpiryMs = offerActivationMs + MC2_REPLAY_OFFER_DURATION_MS;
             setPreviewWallClockAbsolute(offerActivationMs + offsetMs);
             if (scarcityEngine) scarcityEngine.stop();
             scarcityEngine = null;

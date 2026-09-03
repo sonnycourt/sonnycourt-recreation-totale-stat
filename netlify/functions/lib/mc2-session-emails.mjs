@@ -1,22 +1,29 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
 import { addSubscriberToGroup, getMailerLiteSubscriberId, removeSubscriberFromGroup } from './mailerlite-webinaire.mjs';
 import {
-  MC2_SESSION_OFFER_DURATION_MS,
-  MC2_SESSION_PURCHASE_TIMELINE,
-  MC2_SESSION_TOTAL_SEATS,
-} from '../../../src/lib/mc2-session-scarcity.mjs';
-import { mc2SessionEndsAt } from '../../../src/lib/mc2-timing.mjs';
+  MC2_LIVE_CTA_SECONDS,
+  MC2_LIVE_VIDEO_LEAD_MS,
+  mc2SessionEndsAt,
+} from '../../../src/lib/mc2-timing.mjs';
 
 const SESSION_TYPES = new Set(['registration_confirmation', 'session_reminder_1h']);
-const OFFER_TYPES = new Set(['offer_5_places', 'offer_4h', 'offer_1h']);
+const OFFER_TYPES = new Set([
+  'offer_followup_90m',
+  'offer_consultations_12h',
+  'offer_proof_36h',
+  'offer_5_places',
+  'offer_4h',
+  'offer_1h',
+]);
 const TYPES = new Set([...SESSION_TYPES, ...OFFER_TYPES]);
 const MAX_ATTEMPTS = 5;
 const HOUR_MS = 60 * 60_000;
-const FIVE_PLACES_PURCHASE_INDEX = MC2_SESSION_TOTAL_SEATS - 5 - 1;
-const FIVE_PLACES_OFFSET_MS = MC2_SESSION_PURCHASE_TIMELINE[FIVE_PLACES_PURCHASE_INDEX]?.offsetMs;
-const FIVE_PLACES_REMAINING_MS = MC2_SESSION_OFFER_DURATION_MS - FIVE_PLACES_OFFSET_MS;
+const FIVE_PLACES_AFTER_CTA_MS = 48 * HOUR_MS;
 const OFFER_RULES = [
-  { messageType: 'offer_5_places', remainingMs: FIVE_PLACES_REMAINING_MS, supersededRemainingMs: 4 * HOUR_MS },
+  { messageType: 'offer_followup_90m', afterCtaMs: 90 * 60_000, supersededAfterCtaMs: 12 * HOUR_MS },
+  { messageType: 'offer_consultations_12h', afterCtaMs: 12 * HOUR_MS, supersededAfterCtaMs: 36 * HOUR_MS },
+  { messageType: 'offer_proof_36h', afterCtaMs: 36 * HOUR_MS, supersededAfterCtaMs: FIVE_PLACES_AFTER_CTA_MS },
+  { messageType: 'offer_5_places', afterCtaMs: FIVE_PLACES_AFTER_CTA_MS, supersededRemainingMs: 4 * HOUR_MS },
   { messageType: 'offer_4h', remainingMs: 4 * HOUR_MS, supersededRemainingMs: HOUR_MS },
   { messageType: 'offer_1h', remainingMs: HOUR_MS, supersededRemainingMs: 0 },
 ];
@@ -59,6 +66,9 @@ export function mc2SessionEmailConfig(env = process.env) {
     groups: {
       registration_confirmation: clean(env.MAILERLITE_GROUP_MC2_CONFIRMATION || env.ML_MC2_CONFIRMATION, 120),
       session_reminder_1h: clean(env.MAILERLITE_GROUP_MC2_SESSION_REMINDER_1H || env.ML_MC2_REMINDER_1H, 120),
+      offer_followup_90m: clean(env.MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M, 120),
+      offer_consultations_12h: clean(env.MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H, 120),
+      offer_proof_36h: clean(env.MAILERLITE_GROUP_MC2_OFFER_PROOF_36H, 120),
       offer_5_places: clean(env.MAILERLITE_GROUP_MC2_OFFER_5_PLACES, 120),
       offer_4h: clean(env.MAILERLITE_GROUP_MC2_OFFER_4H, 120),
       offer_1h: clean(env.MAILERLITE_GROUP_MC2_OFFER_1H, 120),
@@ -104,22 +114,30 @@ export async function queueMc2SessionEmails(row, now = new Date(), env = process
 export function mc2OfferEmailJobs(row = {}) {
   const start = dateOrNull(row.session_starts_at);
   const expiresAt = dateOrNull(row.offer_expires_at);
-  if (!row.token || !start || !expiresAt || !Number.isFinite(FIVE_PLACES_REMAINING_MS)) return [];
+  if (!row.token || !start || !expiresAt) return [];
   const token = clean(row.token, 128);
   const session = start.toISOString();
   const expiry = expiresAt.toISOString();
+  // Le live utilise son CTA canonique ; le replay transmet le premier CTA
+  // réellement atteint. Dans les deux cas, cette ancre ne change plus.
+  const ctaAt = dateOrNull(row.offer_cta_at)
+    || new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
   return OFFER_RULES.map((rule) => ({
     token,
     job_key: `mc2_offer_email:${token}:${expiry}:${rule.messageType}`,
     message_type: rule.messageType,
     session_starts_at: session,
     offer_expires_at: expiry,
-    due_at: new Date(expiresAt.getTime() - rule.remainingMs).toISOString(),
+    due_at: new Date(
+      Number.isFinite(rule.afterCtaMs)
+        ? ctaAt.getTime() + rule.afterCtaMs
+        : expiresAt.getTime() - rule.remainingMs,
+    ).toISOString(),
   }));
 }
 
 export async function queueMc2OfferEmails(row, env = process.env) {
-  if (!mc2SessionEmailsEnabled(env)) return { ok: true, enabled: false, queued: 0 };
+  if (!mc2OfferEmailsEnabled(env)) return { ok: true, enabled: false, queued: 0 };
   let queued = 0;
   for (const job of mc2OfferEmailJobs(row)) {
     const inserted = await supabasePost('mc2_session_email_jobs', job);
@@ -209,8 +227,18 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
     if (expiry.toISOString() !== jobExpiry.toISOString()) return skipJob(job, 'offer_deadline_changed');
     if (now >= expiry) return skipJob(job, 'offer_expired');
     const rule = OFFER_RULES.find((item) => item.messageType === job.message_type);
-    const supersededAt = new Date(expiry.getTime() - (rule?.supersededRemainingMs || 0));
-    if (rule?.supersededRemainingMs && now >= supersededAt) return skipJob(job, 'message_superseded');
+    // Pour les messages relatifs au CTA, leur propre échéance permet de
+    // retrouver l'ancre sans ajouter une seconde source de vérité en base.
+    const jobDueAt = dateOrNull(job.due_at);
+    const offerCtaAt = Number.isFinite(rule?.afterCtaMs) && jobDueAt
+      ? new Date(jobDueAt.getTime() - rule.afterCtaMs)
+      : null;
+    const supersededAt = Number.isFinite(rule?.supersededAfterCtaMs) && offerCtaAt
+      ? new Date(offerCtaAt.getTime() + rule.supersededAfterCtaMs)
+      : Number.isFinite(rule?.supersededRemainingMs) && rule.supersededRemainingMs > 0
+        ? new Date(expiry.getTime() - rule.supersededRemainingMs)
+        : null;
+    if (supersededAt && now >= supersededAt) return skipJob(job, 'message_superseded');
   }
   if (job.message_type === 'session_reminder_1h' && now >= start) return skipJob(job, 'message_expired');
   if (job.message_type === 'registration_confirmation' && now >= mc2SessionEndsAt(start)) {

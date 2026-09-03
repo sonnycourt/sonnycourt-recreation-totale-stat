@@ -8,13 +8,14 @@
   sont prélevées mensuellement.
 - Le paiement unique économise **304 € TTC** par rapport aux trois mensualités.
 - Achat unique, sans abonnement et sans renouvellement.
-- **Garantie Manifestation pendant un an** : la seule condition d’éligibilité
-  est de terminer l’intégralité du parcours principal avant le premier
-  anniversaire de la commande.
-- Les bonus, séances facultatives, résultats financiers et justificatifs de
-  résultat ne sont pas exigés. La progression est vérifiée côté plateforme.
-- Une demande recevable rembourse toutes les sommes encaissées, annule les
-  mensualités futures et ne retire pas les accès numériques déjà accordés.
+- **Garantie Manifestation pendant douze (12) mois à compter de la date
+  d’achat** : la seule condition d’éligibilité est de terminer l’intégralité du
+  parcours principal avant l’expiration de ce délai.
+- Lors de la demande, l’achèvement intégral est vérifié exclusivement dans le
+  tableau de bord de la plateforme. Aucun autre critère ni justificatif
+  supplémentaire n’est demandé au client.
+- Une demande recevable rembourse toutes les sommes encaissées et ne retire pas
+  les accès numériques déjà accordés.
 
 Les checkouts Spiffy intégrés à `/mc2/session/` et `/mc2/replay/` affichent et
 encaissent ces deux options. Le plan choisi, son prix total et son échéancier

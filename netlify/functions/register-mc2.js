@@ -165,6 +165,9 @@ export default async (req) => {
       visitor_timezone: selection.visitorTimezone,
       session_starts_at: selection.sessionStartsAt.toISOString(),
       session_ends_at: selection.sessionEndsAt.toISOString(),
+      // L'échéance commerciale n'existe qu'au premier CTA réellement vu.
+      // Le replay conserve séparément son échéance dérivée de la session.
+      offer_expires_at: null,
     };
 
     const existing = await supabaseGet(

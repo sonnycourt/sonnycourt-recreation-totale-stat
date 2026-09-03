@@ -83,7 +83,7 @@ assert.match(sessionPageSource, /import \{ startScarcityEngine \} from ['"]\.\.\
 assert.match(sessionPageSource, /import \{ createMc2OfferTimeline \} from ['"]\.\.\/\.\.\/data\/mc2-offer-timeline['"]/);
 assert.match(sessionPageSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
 assert.match(sessionPageSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
-assert.match(offerTimelineSource, /3 \* MINUTE_MS,\s*\n\s*6 \* MINUTE_MS,/);
+assert.match(offerTimelineSource, /3 \* MINUTE_MS,\s*\n\s*6 \* MINUTE_MS,\s*\n\s*7 \* MINUTE_MS,\s*\n\s*9 \* MINUTE_MS,/);
 assert.match(offerTimelineSource, /17 places sont attribuées entre le CTA et H\+24 : 37 → 20/);
 assert.match(offerTimelineSource, /15 places supplémentaires sont attribuées entre H\+24 et H\+48 : 20 → 5/);
 assert.match(offerTimelineSource, /const FINAL_PHASE_FRACTIONS = \[0\.2, 0\.4, 0\.6, 0\.8, 1\]/);
@@ -95,6 +95,8 @@ assert.doesNotMatch(replayPageSource, /get\('scarcity_test'\) === '1'/);
 assert.doesNotMatch(replayPageSource, /MODE TEST|purchase-toast-test-mode/);
 assert.match(sessionPageSource, /data-now-preset="scarcity-p3"[^>]*>1er achat \(\+3 min\)<\/button>/);
 assert.match(sessionPageSource, /data-now-preset="scarcity-p6"[^>]*>2e achat \(\+6 min\)<\/button>/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p7"[^>]*>3e achat \(\+7 min\)<\/button>/);
+assert.match(sessionPageSource, /data-now-preset="scarcity-p9"[^>]*>4e achat \(\+9 min\)<\/button>/);
 assert.match(sessionPageSource, /data-now-preset="scarcity-p24h"[^>]*>CTA \+24 h · 20 places<\/button>/);
 assert.match(sessionPageSource, /data-now-preset="scarcity-p48h"[^>]*>CTA \+48 h · 5 places<\/button>/);
 assert.match(sessionPageSource, /relativeTimeEl\.textContent = "à l'instant"/);

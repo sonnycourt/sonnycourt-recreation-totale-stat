@@ -130,10 +130,39 @@ alter table public.mc2_registrations
   add column if not exists paid_installment_count integer not null default 0,
   add column if not exists paid_total_cents integer not null default 0,
   add column if not exists purchased_at timestamptz,
+  add column if not exists purchase_bonus_tag text,
   add column if not exists last_payment_at timestamptz,
   add column if not exists payment_failed_at timestamptz,
   add column if not exists last_presence_at timestamptz,
   add column if not exists last_event_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mc2_registrations_purchase_bonus_tag_check'
+      and conrelid = 'public.mc2_registrations'::regclass
+  ) then
+    alter table public.mc2_registrations
+      add constraint mc2_registrations_purchase_bonus_tag_check
+      check (
+        purchase_bonus_tag is null
+        or purchase_bonus_tag in ('avec_consultation_sonny', 'sans_consultation_sonny')
+      ) not valid;
+  end if;
+end
+$$;
+
+alter table public.mc2_registrations
+  validate constraint mc2_registrations_purchase_bonus_tag_check;
+
+create index if not exists idx_mc2_registrations_purchase_bonus_tag
+  on public.mc2_registrations (purchase_bonus_tag, purchased_at desc)
+  where purchased_at is not null;
+
+comment on column public.mc2_registrations.purchase_bonus_tag is
+  'Statut figé lors du premier achat MC2 : avec_consultation_sonny avant CTA + 24 h, sinon sans_consultation_sonny.';
 
 create unique index if not exists idx_mc2_registrations_stripe_checkout
   on public.mc2_registrations (stripe_checkout_session_id)

@@ -6,9 +6,18 @@ import {
 } from './lib/mc2-session-emails.mjs';
 
 export default async () => {
-  if (!mc2SessionEmailsEnabled()) {
+  const sessionEmailsEnabled = mc2SessionEmailsEnabled();
+  const offerEmailsEnabled = mc2OfferEmailsEnabled();
+  if (!sessionEmailsEnabled && !offerEmailsEnabled) {
     return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
   }
+  const enabledTypes = [
+    ...(sessionEmailsEnabled ? ['registration_confirmation', 'session_reminder_1h'] : []),
+    ...(offerEmailsEnabled ? [
+      'offer_followup_90m', 'offer_consultations_12h', 'offer_proof_36h',
+      'offer_5_places', 'offer_4h', 'offer_1h',
+    ] : []),
+  ];
   const now = new Date();
   await supabasePatch(
     'mc2_session_email_jobs',
@@ -17,13 +26,21 @@ export default async () => {
   );
   const jobs = await supabaseGet(
     `mc2_session_email_jobs?status=in.(pending,retry)&due_at=lte.${encodeURIComponent(now.toISOString())}`
-      + (mc2OfferEmailsEnabled()
-        ? ''
-        : '&message_type=in.(registration_confirmation,session_reminder_1h)')
+      + `&message_type=in.(${enabledTypes.join(',')})`
       + '&select=*&order=due_at.asc&limit=100',
   );
   if (!jobs.ok) throw new Error(`mc2_session_email_jobs_${jobs.status}`);
   const results = [];
   for (const job of jobs.data || []) results.push({ id: job.id, ...(await processMc2SessionEmailJob(job, now)) });
-  return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: true, processed: results.length, results }) };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ok: true,
+      enabled: true,
+      sessionEmailsEnabled,
+      offerEmailsEnabled,
+      processed: results.length,
+      results,
+    }),
+  };
 };
