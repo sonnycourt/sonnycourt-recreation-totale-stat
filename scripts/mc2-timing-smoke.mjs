@@ -47,6 +47,9 @@ assert.doesNotMatch(sessionPage, /new Date\(reg\.sessionEndsAt/);
 assert.doesNotMatch(sessionPage, /sessionStartMs \+ \(90 \* 60 \* 1000\)/);
 assert.match(confirmationPage, /MC2_SESSION_DURATION_MS as SESSION_DURATION_MS/);
 assert.doesNotMatch(confirmationPage, /75 \* 60 \* 1000/);
+assert.doesNotMatch(confirmationPage, /attemptDesktopAutoplay|desktopAutoplay/);
+assert.doesNotMatch(confirmationPage, /<video[^>]*\bautoplay\b/i);
+assert.match(confirmationPage, /startButton\.addEventListener\('click', playWithSound\)/);
 assert.match(getRegistration, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 assert.match(eligibility, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 
@@ -55,4 +58,5 @@ console.log(JSON.stringify({
   stale_75_minute_end_ignored_by_live_page: 'ok',
   existing_registration_contract_normalized: 'ok',
   live_replay_cta_alignment: 'ok',
+  confirmation_video_click_to_play_only: 'ok',
 }, null, 2));
