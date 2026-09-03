@@ -50,7 +50,9 @@ assert.match(es2Section, /paiement unique de 1 997 € TTC/);
 assert.match(es2Section, /trois mensualités de 767 € TTC/);
 assert.match(es2Section, /2 301 € TTC/);
 assert.match(es2Section, /économie de <strong>304 € TTC<\/strong>/);
-assert.match(es2Section, /Garantie commerciale « satisfait ou remboursé » pendant 14 jours/);
+assert.match(es2Section, /Garantie commerciale « Garantie Manifestation » pendant un an/);
+assert.match(es2Section, /Une seule condition, simple et vérifiable/);
+assert.match(es2Section, /Aucune justification du résultat obtenu ou non obtenu/);
 
 // La session utilise exactement le composant d'offre approuvé et son checkout Spiffy.
 const page = fs.readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
