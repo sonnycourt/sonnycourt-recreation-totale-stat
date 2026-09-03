@@ -882,9 +882,6 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 const fullscreenButton = document.getElementById('confirmation-video-fullscreen');
                 if (!frame || !video || !startButton || !toggleButton || !progress || !time || !muteButton || !unmuteButton || !fullscreenButton) return;
 
-                const desktopAutoplay = window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)').matches
-                    && (navigator.maxTouchPoints || 0) === 0;
-
                 function formatVideoTime(seconds) {
                     if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
                     const minutes = Math.floor(seconds / 60);
@@ -915,22 +912,6 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                     } catch (error) {
                         refreshPlaybackState();
                     }
-                }
-
-                async function attemptDesktopAutoplay() {
-                    if (!desktopAutoplay) return;
-                    video.muted = false;
-                    try {
-                        await video.play();
-                    } catch (withSoundError) {
-                        try {
-                            video.muted = true;
-                            await video.play();
-                        } catch (mutedError) {
-                            video.muted = false;
-                        }
-                    }
-                    refreshPlaybackState();
                 }
 
                 function togglePlayback() {
@@ -976,7 +957,6 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
 
                 refreshTime();
                 refreshPlaybackState();
-                attemptDesktopAutoplay();
             }
 
             async function readServerSession() {
