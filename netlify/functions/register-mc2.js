@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
-import { mc2OfferExpiresAt, mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
+import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 import { queueMc2Sms } from './lib/mc2-sms.mjs';
 import { queueMc2SessionEmails } from './lib/mc2-session-emails.mjs';
 import { upsertWebinaireSubscriber } from './lib/mailerlite-webinaire.mjs';
@@ -165,7 +165,9 @@ export default async (req) => {
       visitor_timezone: selection.visitorTimezone,
       session_starts_at: selection.sessionStartsAt.toISOString(),
       session_ends_at: selection.sessionEndsAt.toISOString(),
-      offer_expires_at: mc2OfferExpiresAt(selection.sessionStartsAt).toISOString(),
+      // L'échéance commerciale n'existe qu'au premier CTA réellement vu.
+      // Le replay conserve séparément son échéance dérivée de la session.
+      offer_expires_at: null,
     };
 
     const existing = await supabaseGet(

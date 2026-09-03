@@ -42,20 +42,20 @@ assert.deepEqual(mc2FunnelMetaEvents({
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 30,
-  meta: { percent: 31, duration_seconds: 7103 },
+  meta: { percent: 31, duration_seconds: 8048 },
   registration: { ...metaRegistration, watch_max_minutes: 15 },
 }).map((event) => event.eventName), ['QualifiedView25']);
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 60,
-  meta: { percent: 63, duration_seconds: 7103 },
-  registration: { ...metaRegistration, watch_max_minutes: 30 },
+  meta: { percent: 63, duration_seconds: 8048 },
+  registration: { ...metaRegistration, watch_max_minutes: 34 },
 }).map((event) => event.eventName), ['QualifiedView50']);
 assert.deepEqual(mc2FunnelMetaEvents({
   eventName: 'video_checkpoint',
   value: 75,
-  meta: { percent: 79, duration_seconds: 7103 },
-  registration: { ...metaRegistration, watch_max_minutes: 60 },
+  meta: { percent: 79, duration_seconds: 8048 },
+  registration: { ...metaRegistration, watch_max_minutes: 68 },
 }).map((event) => event.eventName), ['QualifiedView75']);
 assert.deepEqual(
   mc2FunnelMetaEvents({
@@ -225,7 +225,7 @@ const offerBackfill = await readFile(new URL('../netlify/functions/admin-mc2-met
 assert.match(adapter, /fbq\('track', 'Lead',[\s\S]*eventID: event\.eventId/);
 assert.match(adapter, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
 assert.match(register, /completedNow: isComplete && !completedBefore/);
-assert.match(register, /offer_expires_at: mc2OfferExpiresAt\(selection\.sessionStartsAt\)\.toISOString\(\)/);
+assert.match(register, /offer_expires_at: null/);
 assert.match(tracker, /mc2FunnelMetaEvents/);
 assert.match(tracker, /browserMetaEvents = meta\.offer_event_id/);
 assert.match(tracker, /metaEvents: browserMetaEvents/);

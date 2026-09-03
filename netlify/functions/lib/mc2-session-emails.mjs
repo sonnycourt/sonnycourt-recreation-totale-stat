@@ -118,9 +118,10 @@ export function mc2OfferEmailJobs(row = {}) {
   const token = clean(row.token, 128);
   const session = start.toISOString();
   const expiry = expiresAt.toISOString();
-  // La campagne est globale à la session : voir l'offre plus tard en replay
-  // ne redémarre jamais la séquence à zéro.
-  const ctaAt = new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
+  // Le live utilise son CTA canonique ; le replay transmet le premier CTA
+  // réellement atteint. Dans les deux cas, cette ancre ne change plus.
+  const ctaAt = dateOrNull(row.offer_cta_at)
+    || new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
   return OFFER_RULES.map((rule) => ({
     token,
     job_key: `mc2_offer_email:${token}:${expiry}:${rule.messageType}`,
@@ -226,9 +227,14 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
     if (expiry.toISOString() !== jobExpiry.toISOString()) return skipJob(job, 'offer_deadline_changed');
     if (now >= expiry) return skipJob(job, 'offer_expired');
     const rule = OFFER_RULES.find((item) => item.messageType === job.message_type);
-    const liveCtaAt = new Date(start.getTime() - MC2_LIVE_VIDEO_LEAD_MS + MC2_LIVE_CTA_SECONDS * 1000);
-    const supersededAt = Number.isFinite(rule?.supersededAfterCtaMs)
-      ? new Date(liveCtaAt.getTime() + rule.supersededAfterCtaMs)
+    // Pour les messages relatifs au CTA, leur propre échéance permet de
+    // retrouver l'ancre sans ajouter une seconde source de vérité en base.
+    const jobDueAt = dateOrNull(job.due_at);
+    const offerCtaAt = Number.isFinite(rule?.afterCtaMs) && jobDueAt
+      ? new Date(jobDueAt.getTime() - rule.afterCtaMs)
+      : null;
+    const supersededAt = Number.isFinite(rule?.supersededAfterCtaMs) && offerCtaAt
+      ? new Date(offerCtaAt.getTime() + rule.supersededAfterCtaMs)
       : Number.isFinite(rule?.supersededRemainingMs) && rule.supersededRemainingMs > 0
         ? new Date(expiry.getTime() - rule.supersededRemainingMs)
         : null;

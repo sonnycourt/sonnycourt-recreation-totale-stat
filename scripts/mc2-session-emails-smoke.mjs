@@ -33,10 +33,10 @@ assert.deepEqual(offerJobs.map((item) => item.message_type), [
   'offer_5_places', 'offer_4h', 'offer_1h',
 ]);
 assert.deepEqual(offerJobs.map((item) => item.due_at), [
-  '2026-08-13T11:52:28.000Z',
-  '2026-08-13T22:22:28.000Z',
-  '2026-08-14T22:22:28.000Z',
-  '2026-08-15T10:22:28.000Z',
+  '2026-08-13T11:54:00.000Z',
+  '2026-08-13T22:24:00.000Z',
+  '2026-08-14T22:24:00.000Z',
+  '2026-08-15T10:24:00.000Z',
   '2026-08-16T05:00:00.000Z',
   '2026-08-16T08:00:00.000Z',
 ]);
@@ -44,7 +44,8 @@ const replayOfferJobs = mc2OfferEmailJobs({
   ...offerRegistration,
   offer_cta_at: '2026-08-13T12:00:00.000Z',
 });
-assert.equal(replayOfferJobs[0].due_at, '2026-08-13T11:52:28.000Z');
+assert.equal(replayOfferJobs[0].due_at, '2026-08-13T13:30:00.000Z');
+assert.equal(replayOfferJobs[3].due_at, '2026-08-15T12:00:00.000Z');
 assert.equal(new Set(offerJobs.map((item) => item.job_key)).size, 6);
 
 process.env.SUPABASE_URL = 'https://supabase.test';
@@ -102,7 +103,7 @@ const offerEnv = {
 calls.length = 0;
 assert.equal((await processMc2SessionEmailJob(
   { id: 3, attempts: 0, status: 'pending', ...offerJobs[3] },
-  new Date('2026-08-15T10:22:28Z'),
+  new Date('2026-08-15T10:24:00Z'),
   offerEnv,
 )).status, 'delivered');
 const offerFields = calls.find((call) => call.host === 'connect.mailerlite.com' && call.method === 'PUT')?.body?.fields;
@@ -121,7 +122,7 @@ assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false
 calls.length = 0;
 const staleFollowup = await processMc2SessionEmailJob(
   { id: 6, attempts: 0, status: 'pending', ...offerJobs[0] },
-  new Date('2026-08-13T22:22:28Z'),
+  new Date('2026-08-13T22:24:00Z'),
   { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M: 'group-followup' },
 );
 assert.deepEqual(staleFollowup, { status: 'skipped', reason: 'message_superseded' });
@@ -130,7 +131,7 @@ assert.equal(calls.some((call) => call.host === 'connect.mailerlite.com'), false
 calls.length = 0;
 const currentStage = await processMc2SessionEmailJob(
   { id: 7, attempts: 0, status: 'pending', ...offerJobs[1] },
-  new Date('2026-08-14T06:22:28Z'),
+  new Date('2026-08-14T06:24:00Z'),
   { ...offerEnv, MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H: 'group-consultations' },
 );
 assert.equal(currentStage.status, 'delivered');
@@ -149,5 +150,5 @@ console.log(JSON.stringify({
   all_slots_confirmation: 'ok', scheduled_11_20_reminder: 'ok', tokenized_links: 'ok',
   offer_personal_deadlines: 'ok', five_places_timeline: 'ok', buyers_excluded: 'ok',
   stale_messages_skipped: 'ok', idempotence: 'ok', disabled_by_default: 'ok',
-  late_offer_enters_current_stage_only: 'ok',
+  replay_offer_uses_personal_cta: 'ok',
 }, null, 2));

@@ -1996,6 +1996,8 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
                     <button class="dev-time-btn" data-now-preset="scarcity-m1s" type="button">Places +2:59</button>
                     <button class="dev-time-btn" data-now-preset="scarcity-p3" type="button">1er achat (+3 min)</button>
                     <button class="dev-time-btn" data-now-preset="scarcity-p6" type="button">2e achat (+6 min)</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p7" type="button">3e achat (+7 min)</button>
+                    <button class="dev-time-btn" data-now-preset="scarcity-p9" type="button">4e achat (+9 min)</button>
                 </div>
             </div>
             <div class="dev-timeline-group dev-timeline-group--return">
@@ -2234,7 +2236,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
         // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
         // le backup instantané via le cockpit (switch_backup).
-        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/eb8f090e-919d-4994-92b9-a9b516b35600/playlist.m3u8';
+        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/b253a12e-7673-4447-ba19-1b868051efd6/playlist.m3u8';
         let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
@@ -3228,10 +3230,6 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
             const playOverlayLabel = document.getElementById('playOverlayLabel');
             const rewind15Btn = document.getElementById('rewind15Btn');
             const liveJumpBtn = document.getElementById('liveJumpBtn');
-            const sessionEndsRawMs = new Date(reg.sessionEndsAt || '').getTime();
-            const sessionEndsMs = Number.isFinite(sessionEndsRawMs)
-                ? sessionEndsRawMs
-                : (liveStartMs + getVideoDurationSeconds() * 1000);
             // Les places commencent uniquement au CTA, tandis que l'échéance de l'offre
             // reste ancrée au début réel de la session.
             const scarcityWindowStartMs = liveStartMs + CTA_APPEAR_SECONDS * 1000;
@@ -4667,6 +4665,8 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
                 if (key === 'scarcity-m1s') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 3 * 60 * 1000 - 1000;
                 if (key === 'scarcity-p3') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 3 * 60 * 1000;
                 if (key === 'scarcity-p6') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 6 * 60 * 1000;
+                if (key === 'scarcity-p7') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 7 * 60 * 1000;
+                if (key === 'scarcity-p9') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 9 * 60 * 1000;
                 if (key === 'scarcity-p24h') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 24 * 60 * 60 * 1000;
                 if (key === 'scarcity-p48h') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + CTA_APPEAR_SECONDS * 1000 + 48 * 60 * 60 * 1000;
                 if (key === 'video-end') return (currentSessionMs - LIVE_VIDEO_LEAD_MS) + getVideoDurationSeconds() * 1000 - 1000;

@@ -1,48 +1,87 @@
-# Séquence email MC2 — fenêtre globale de 72 heures
+# MC2 — emails, automations et chronologie directe/replay
+
+Dernier audit : **3 septembre 2026**
+
+Ce fichier est la source de vérité à relire avant toute activation. Il regroupe
+la chronologie, les dix emails, les identifiants MailerLite et la procédure de
+mise en ligne.
 
 ## Statut de sécurité
 
-Toutes les nouvelles automations et toutes les réécritures décrites ici doivent
-rester **désactivées** tant que Sonny n'a pas validé chaque email. Aucun test ne
-doit être envoyé à un vrai prospect.
+- Les dix nouveaux workflows MailerLite sont complets et **désactivés**.
+- Aucun email de cette nouvelle séquence n'a été envoyé à un prospect.
+- Les cinq workflows historiques restent actifs jusqu'au basculement final.
+- Les cinq remplacements ne doivent jamais être actifs en même temps que leurs
+  versions historiques.
+- `MC2 — Offre expirée — Downsell SSR` reste séparé et inchangé.
+- Le SQL de transition doit être exécuté manuellement par Sonny ; il n'a pas
+  été exécuté par Codex.
 
-L'automation existante `MC2 — Offre expirée — Downsell SSR`, déclenchée par le
-groupe `MC2 — Offre vue — sans achat`, reste inchangée. Ce groupe ne doit jamais
-servir à une relance avant expiration.
+## Règle centrale
 
-## Source de vérité et transitions
+Le replay et l'offre ont désormais deux échéances différentes :
 
-- L'offre et le replay expirent ensemble, 72 heures après l'heure annoncée de
-  la session.
-- La chronologie commerciale commence au CTA global de la session, même si le
-  prospect découvre l'offre plus tard en replay.
-- Un achat annule les jobs restants et retire le contact des groupes
-  déclencheurs MC2.
-- Tant que le CTA n'est pas atteint, un contact reçoit la séquence replay.
-- Dès que le CTA est atteint, les rappels replay encore en attente sont ignorés
-  et la séquence offre prend le relais à son étape chronologique réelle.
-- Les jobs ont une clé unique par inscription, session et message : un retry ne
-  peut pas déclencher un second email.
+- **Replay :** il expire 72 heures après l'heure officielle de la session.
+- **Offre vue pendant le direct :** elle expire 72 heures après l'heure
+  officielle de la session.
+- **Offre découverte en replay :** au premier CTA, elle reçoit une échéance
+  personnelle égale à `CTA réel + (72 h - durée de vidéo avant le CTA)`.
+- Avec le CTA replay actuel à `01:19:00`, le prospect découvre donc environ
+  `70:41:00` de décision, jamais « 3 jours pile ».
+- Une pause ou une absence avant le CTA ne consomme pas le temps commercial.
+- Dès que le CTA a été atteint, l'échéance `offer_expires_at` devient immuable
+  et le countdown ne se met plus jamais en pause.
+- Si la vidéo change, `MC2_REPLAY_CTA_SECONDS` doit être ajusté : toute la
+  chronologie personnelle s'adaptera automatiquement.
+
+## Scénarios en langage simple
+
+| Scénario | Ce qui se passe |
+|---|---|
+| CTA vu pendant le direct | L'offre conserve l'échéance globale de la session. |
+| Arrivée tardive pendant le direct | Le prospect rejoint le direct au moment en cours et garde la même échéance globale. |
+| Départ avant le CTA | Un email permet de reprendre la vidéo ; aucune offre personnelle n'est encore créée. |
+| No-show qui regarde le replay | Son offre personnelle est créée seulement lorsqu'il atteint réellement le CTA. |
+| Pause du replay avant le CTA | La pause ne réduit pas le temps accordé pour décider. |
+| CTA atteint très tard dans le replay | Le prospect reçoit quand même sa fenêtre personnelle d'environ 70 h 42. |
+| Retour après avoir vu le CTA | L'ancienne échéance est reprise ; elle n'est jamais réinitialisée. |
+| Départ après le CTA | Le countdown et la séquence commerciale continuent pendant son absence. |
+| Replay expiré sans CTA | La vidéo ferme et aucune séquence d'offre n'est créée. |
+| Replay expiré après CTA | La vidéo ferme, mais l'offre déjà découverte reste accessible jusqu'à son échéance personnelle. |
+| Achat | Tous les jobs restants sont annulés et les groupes déclencheurs sont retirés. |
+| Offre expirée sans achat | Le downsell SSR existant est déclenché cinq minutes après l'échéance personnelle. |
+
+## Source de vérité technique
+
+- `offer_expires_at` est l'unique échéance commerciale immuable.
+- L'échéance replay est dérivée de `session_starts_at + 72 h` ; elle ne dépend
+  plus de `offer_expires_at`.
+- Le premier CTA crée les jobs offre à partir de son heure réelle.
+- MailerLite ne contient aucun délai : notre backend ajoute le prospect au bon
+  groupe exactement au moment prévu.
+- Chaque job est unique par token, session, échéance et type de message.
+- Avant chaque ajout à un groupe, le backend revérifie l'achat, le segment,
+  l'échéance et la pertinence du message.
+- Un message devenu obsolète est ignoré ; aucune rafale de rattrapage ne part.
 
 ## Chronologie finale
 
-| Audience | Moment | Type interne | Groupe MailerLite |
-|---|---:|---|---|
-| No-show | Session 11 h : 14 h ; session 20 h : lendemain 9 h | `no_show_initial` | MC2 — Replay — no-show |
-| Parti avant CTA | 90 min après la dernière présence | `left_before_cta_initial` | MC2 — Replay — parti avant offre |
-| Replay non terminé | Expiration - 24 h | `replay_24h` | MC2 — Replay — 24 heures restantes |
-| Replay non terminé | Expiration - 4 h | `replay_4h` | MC2 — Replay — 4 heures restantes |
-| Offre vue sans achat | CTA + 90 min | `offer_followup_90m` | MC2 — Offre — suivi 90 minutes |
-| Offre vue sans achat | CTA + 12 h | `offer_consultations_12h` | MC2 — Offre — consultations 12 heures |
-| Offre vue sans achat | CTA + 36 h | `offer_proof_36h` | MC2 — Offre — preuve 36 heures |
-| Offre vue sans achat | CTA + 48 h | `offer_5_places` | MC2 — Offre — 5 places restantes |
-| Offre vue sans achat | Expiration - 4 h | `offer_4h` | MC2 — Offre — 4 heures restantes |
-| Offre vue sans achat | Expiration - 1 h | `offer_1h` | MC2 — Offre — 1 heure restante |
-| Offre expirée sans achat | Expiration + 5 min | `offer_expired_downsell` | MC2 — Offre vue — sans achat |
+| # | Audience | Moment exact | Type interne | Groupe MailerLite |
+|---:|---|---:|---|---|
+| 1 | No-show | Session 11 h : 14 h ; session 20 h : lendemain 9 h | `no_show_initial` | MC2 — Replay — no-show |
+| 2 | Parti avant CTA | 90 min après la dernière présence réelle | `left_before_cta_initial` | MC2 — Replay — parti avant offre |
+| 3 | Replay non terminé | Échéance replay - 24 h | `replay_24h` | MC2 — Replay — 24 heures restantes |
+| 4 | Replay non terminé | Échéance replay - 4 h | `replay_4h` | MC2 — Replay — 4 heures restantes |
+| 5 | Offre vue sans achat | Premier CTA + 90 min | `offer_followup_90m` | MC2 — Offre — suivi 90 minutes |
+| 6 | Offre vue sans achat | Premier CTA + 12 h | `offer_consultations_12h` | MC2 — Offre — consultations 12 heures |
+| 7 | Offre vue sans achat | Premier CTA + 36 h | `offer_proof_36h` | MC2 — Offre — preuve 36 heures |
+| 8 | Offre vue sans achat | Premier CTA + 48 h | `offer_5_places` | MC2 — Offre — 5 places restantes |
+| 9 | Offre vue sans achat | Échéance personnelle - 4 h | `offer_4h` | MC2 — Offre — 4 heures restantes |
+| 10 | Offre vue sans achat | Échéance personnelle - 1 h | `offer_1h` | MC2 — Offre — 1 heure restante |
+| — | Offre expirée sans achat | Échéance personnelle + 5 min | `offer_expired_downsell` | MC2 — Offre vue — sans achat |
 
-Les emails CTA + 90 min, +12 h et +36 h sont mutuellement périmables : un
-prospect qui découvre l'offre tard ne reçoit jamais une rafale d'anciens
-messages. Il entre au message encore pertinent à ce moment-là.
+Les rappels replay s'arrêtent dès que le CTA est vu. La séquence offre prend
+alors le relais depuis le premier CTA réel, en direct ou en replay.
 
 ## Emails à valider
 
@@ -63,14 +102,14 @@ Cette masterclass te montre pourquoi vouloir plus fort ne suffit pas, et comment
 reprogrammer ce qui te ramène aujourd'hui vers les mêmes blocages.
 
 Je t'ai réservé un accès personnel. Il démarre au début de la masterclass et
-reste disponible jusqu'à la fin de ton offre.
+reste disponible jusqu'à l'échéance affichée sur ta page.
 
 **CTA : JE REGARDE LA MASTERCLASS**
 
 Lien : `{$mc2_replay_url}`
 
-Le replay et l'offre expireront ensemble. Le compteur affiché sur ta page fait
-foi.
+Si tu vas jusqu'à l'offre, le temps accordé pour décider commencera seulement
+lorsqu'elle te sera présentée.
 
 Sonny 🦋
 
@@ -124,11 +163,11 @@ Sonny 🦋
 
 **Objet :** Plus que 4 heures pour voir la fin
 
-**Préheader :** Après, le replay et l'offre disparaissent ensemble.
+**Préheader :** Après, ton accès au replay disparaît.
 
 Bonjour {$name},
 
-Dans 4 heures, ton replay et l'offre présentée à la fin disparaîtront ensemble.
+Dans 4 heures, ton accès au replay disparaîtra.
 
 Tu n'as pas besoin de dégager une nouvelle journée. Tu as seulement besoin de
 reprendre là où tu en es et de décider après avoir vu toute la démonstration —
@@ -154,8 +193,9 @@ toi avant de commencer.
 Tu dois seulement décider si tu préfères continuer avec les mêmes automatismes,
 ou tester sérieusement un système conçu pour les reprogrammer.
 
-Tu disposes de 14 jours pour le faire sans prendre le risque de rester coincé
-avec une décision qui ne te convient pas.
+Tu as un an pour aller au bout de la formation. Et si, une fois au bout, tu
+n'as pas manifesté ce que tu veux, la Garantie Manifestation te rembourse
+intégralement. Une seule condition : terminer la formation.
 
 **CTA : JE COMMENCE MA TRANSFORMATION**
 
@@ -276,7 +316,7 @@ Bonjour {$name},
 Dans une heure, ton accès à l'offre disparaîtra.
 
 Je ne vais pas inventer un nouvel argument à la dernière minute. Tu as vu la
-méthode, l'accompagnement, les bonus et la garantie de 14 jours.
+méthode, l'accompagnement, les bonus et la Garantie Manifestation pendant un an.
 
 Il ne reste qu'une question : est-ce que tu veux continuer comme avant, ou
 prendre aujourd'hui la décision qui peut enfin changer la suite ?
@@ -287,31 +327,119 @@ Lien : `{$mc2_offer_url}`
 
 Sonny 🦋
 
-## Variables d'environnement à renseigner avant activation
+## État MailerLite vérifié
+
+Les dix workflows suivants possèdent un seul déclencheur « rejoint le groupe »,
+un seul email immédiat et aucun délai interne. Ils sont tous inactifs.
+
+| Workflow préparé | ID workflow | ID email |
+|---|---:|---:|
+| MC2 — Offre — Suivi 90 minutes | `197533272531535502` | `197533525445969046` |
+| MC2 — Offre — Consultations 12 heures | `197534166720447818` | `197534167024535046` |
+| MC2 — Offre — Preuve 36 heures | `197534185955525715` | `197534186438919359` |
+| MC2 — Replay — 24 heures restantes | `197534191078868144` | `197534191983789427` |
+| MC2 — Replay — 4 heures restantes | `197534196224231154` | `197534196337477380` |
+| REMPLACEMENT — MC2 — Replay — No-show | `197534198446162949` | `197534199542973664` |
+| REMPLACEMENT — MC2 — Replay — Parti avant CTA | `197534200641881500` | `197534201053971940` |
+| REMPLACEMENT — MC2 — Offre — 5 places restantes | `197534202855425571` | `197534203335673417` |
+| REMPLACEMENT — MC2 — Offre — 4 heures restantes | `197534204986132253` | `197534206585210598` |
+| REMPLACEMENT — MC2 — Offre — 1 heure restante | `197534207164024247` | `197534207502714673` |
+
+### Corrections appliquées le 3 septembre
+
+- Email no-show : suppression de la fausse affirmation selon laquelle le replay
+  et l'offre expirent ensemble.
+- Email replay H-4 : le préheader et le corps parlent désormais uniquement de
+  l'expiration du replay.
+- Les deux emails corrigés ont été relus directement dans l'éditeur MailerLite ;
+  leurs CTA pointent toujours vers `{$mc2_replay_url}`.
+- Les huit autres corps et leurs liens ont été audités sans modification.
+
+### Workflows historiques à remplacer au basculement
+
+| Workflow historique actif | ID historique | Remplacement inactif |
+|---|---:|---:|
+| MC2 — Replay — No-show | `195693524899857672` | `197534198446162949` |
+| MC2 — Replay — Parti avant CTA | `195693799687587517` | `197534200641881500` |
+| MC2 - 5 places restantes | `196804801045989309` | `197534202855425571` |
+| MC2 - 4 heures restantes | `196773823356340182` | `197534204986132253` |
+| MC2 - 1 heure restante | `196774788275898273` | `197534207164024247` |
+
+Le downsell `MC2 — Offre expirée — Downsell SSR`
+(`195694015866209539`) ne doit pas être désactivé ni remplacé.
+
+## Groupes et variables d'environnement
+
+### Nouveaux groupes déjà créés
 
 ```text
-MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M=
-MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H=
-MAILERLITE_GROUP_MC2_OFFER_PROOF_36H=
-MAILERLITE_GROUP_MC2_REPLAY_24H=
-MAILERLITE_GROUP_MC2_REPLAY_4H=
+MAILERLITE_GROUP_MC2_OFFER_FOLLOWUP_90M=197533153062028679
+MAILERLITE_GROUP_MC2_OFFER_CONSULTATIONS_12H=197533206100051950
+MAILERLITE_GROUP_MC2_OFFER_PROOF_36H=197533216282773033
+MAILERLITE_GROUP_MC2_REPLAY_24H=197533224933524566
+MAILERLITE_GROUP_MC2_REPLAY_4H=197533234002658403
 ```
 
-Les identifiants des groupes existants doivent être repris tels quels. Aucun
-groupe historique ne doit être recréé.
+### Groupes historiques à réutiliser
 
-## Contrôle final dans MailerLite
+```text
+MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW=195693118191830886
+MAILERLITE_GROUP_MC2_REPLAY_BEFORE_CTA=195693118582948971
+MAILERLITE_GROUP_MC2_OFFER_5_PLACES=196865277497968364
+MAILERLITE_GROUP_MC2_OFFER_4H=196865277172909150
+MAILERLITE_GROUP_MC2_OFFER_1H=196865277333341742
+```
 
-1. Vérifier que les cinq nouveaux groupes existent une seule fois.
-2. Vérifier que chaque automation a pour unique déclencheur « rejoint le
-   groupe », sans délai interne MailerLite.
-3. Vérifier que « Répéter l'automation » est désactivé.
-4. Vérifier que les cinq nouvelles automations sont désactivées.
-5. Vérifier les objets, préheaders, expéditeur et adresse de réponse.
-6. Cliquer chaque CTA en prévisualisation et confirmer la variable attendue.
-7. Vérifier sur mobile et desktop qu'aucun bouton n'est tronqué.
-8. Vérifier que le downsell SSR existant n'a subi aucune modification.
-9. Après validation de Sonny, exécuter le SQL idempotent, renseigner les IDs de
-   groupes, puis seulement activer les flags backend et les automations.
-10. Tester avec des contacts internes uniquement : no-show, départ avant CTA,
-    offre vue, achat avant échéance et expiration sans achat.
+### Flags backend
+
+Ils restent désactivés jusqu'à la validation finale des messages et du parcours :
+
+```text
+MC2_REPLAY_RECOVERY_ENABLED=false
+MC2_OFFER_EMAILS_ENABLED=false
+```
+
+## SQL de transition
+
+Fichier à exécuter manuellement dans Supabase avant le basculement :
+
+`sql/mc2_personal_offer_deadline.sql`
+
+Il efface uniquement les anciennes échéances préattribuées aux inscriptions
+encore actives qui n'ont jamais vu le CTA. Il ne touche ni aux acheteurs, ni aux
+offres déjà découvertes, ni aux inscriptions dont le replay est déjà expiré.
+
+## Checklist de relecture par Sonny
+
+Pour chaque email :
+
+1. Lire l'objet et le préheader.
+2. Lire le corps sur desktop et mobile.
+3. Vérifier le ton, chaque promesse et chaque chiffre.
+4. Cliquer le CTA en prévisualisation et vérifier la variable attendue.
+5. Vérifier l'expéditeur `Sonny Court <info@sonnycourt.com>`.
+
+Pour la chronologie :
+
+1. Direct : vérifier que le CTA reprend l'échéance session + 72 h.
+2. Replay : vérifier qu'un premier CTA affiche environ 70 h 42 restantes.
+3. Recharger après le CTA : vérifier que l'échéance ne change pas.
+4. Quitter avant CTA puis reprendre : vérifier qu'aucune durée commerciale n'a
+   été consommée pendant l'absence.
+5. Vérifier les rappels replay H-24 et H-4 sur l'échéance globale.
+6. Vérifier les emails offre à CTA +90 min, +12 h, +36 h, +48 h, H-4 et H-1.
+7. Acheter avant une échéance : vérifier l'annulation de tous les jobs restants.
+8. Expirer sans achat : vérifier le downsell cinq minutes plus tard.
+
+## Ordre de mise en ligne
+
+1. Sonny valide les dix messages dans ce fichier.
+2. Sonny exécute `sql/mc2_personal_offer_deadline.sql` dans Supabase.
+3. Renseigner et vérifier tous les IDs de groupes en production.
+4. Déployer le backend et les pages par `npm run deploy:production` uniquement.
+5. Tester avec des contacts internes : direct, no-show, départ avant CTA, CTA
+   replay tardif, achat et expiration.
+6. Mettre en pause les cinq workflows historiques à remplacer.
+7. Activer les dix nouveaux workflows MailerLite.
+8. Activer `MC2_REPLAY_RECOVERY_ENABLED` et `MC2_OFFER_EMAILS_ENABLED`.
+9. Vérifier qu'aucun prospect ne peut recevoir les deux versions d'un email.

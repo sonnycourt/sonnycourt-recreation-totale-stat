@@ -134,14 +134,15 @@ registrationOverrides = {
   saw_offer: false,
   watch_max_seconds_live: 2_700,
   last_presence_at: '2026-08-13T12:00:00.000Z',
-  offer_expires_at: '2026-08-14T16:00:00.000Z',
+  offer_expires_at: null,
 };
+const replayReminderNow = new Date('2026-08-14T18:00:00.000Z');
 const replayReminder = await processMc2ReplayRecoveryJob({
   ...job,
   id: 97,
   segment: 'no_show',
   message_type: 'replay_24h',
-}, now, env);
+}, replayReminderNow, env);
 assert.equal(replayReminder.status, 'delivered');
 const reminderAccess = calls.find((call) => call.host === 'supabase.test' && call.body?.access_expires_at);
 assert.equal(reminderAccess.body.resume_seconds, 1_500);
@@ -167,7 +168,7 @@ console.log(JSON.stringify({
   buyer_suppression: 'ok',
   reschedule_suppression: 'ok',
   active_viewer_postponement: 'ok',
-  access_expiry_matches_offer: 'ok',
+  access_expiry_matches_global_replay: 'ok',
   replay_resume_resegmented_at_send_time: 'ok',
   replay_sequence_stops_after_offer_seen: 'ok',
 }, null, 2));

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { isMc2Purchased, mc2RecoveryResumeSeconds } from './lib/mc2-replay-recovery.mjs';
-import { mc2OfferExpiresAt } from '../../src/lib/mc2-timing.mjs';
+import { mc2ReplayExpiresAt } from '../../src/lib/mc2-timing.mjs';
 
 const DIRECT_LATE_CUTOFF_MS = 20 * 60 * 1000;
 
@@ -54,10 +54,8 @@ export default async (req) => {
       return redirectTo('/mc2/session/?t=' + encodeURIComponent(token));
     }
 
-    const accessExpiresAt = new Date(registration.offer_expires_at || '')
-      .getTime() > 0
-      ? new Date(registration.offer_expires_at)
-      : mc2OfferExpiresAt(registration.session_starts_at);
+    const accessExpiresAt = mc2ReplayExpiresAt(registration.session_starts_at);
+    if (!accessExpiresAt) return response(404, 'Session invalide.');
     if (now >= accessExpiresAt) return response(410, 'Le replay n’est plus disponible.');
 
     const sessionKey = new Date(sessionStartMs).toISOString();

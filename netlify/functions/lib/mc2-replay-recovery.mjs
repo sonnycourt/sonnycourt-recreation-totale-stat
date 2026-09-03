@@ -8,7 +8,7 @@ import {
 import {
   MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS,
   MC2_REPLAY_CTA_SECONDS,
-  mc2OfferExpiresAt,
+  mc2ReplayExpiresAt,
   mc2SessionEndsAt,
 } from '../../../src/lib/mc2-timing.mjs';
 import { mc2SessionEmailConfig } from './mc2-session-emails.mjs';
@@ -26,6 +26,11 @@ const VALID_MESSAGE_TYPES = new Set([
 ]);
 const ACTIVE_STATUSES = 'pending,retry,processing';
 const MAX_DELIVERY_ATTEMPTS = 5;
+const REPLAY_VIDEO_DEFAULT =
+  'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8';
+const LEGACY_REPLAY_VIDEO =
+  'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8';
+const LEGACY_REPLAY_CTA_SECONDS = 4_648;
 
 function clean(value, max = 500) {
   return String(value == null ? '' : value).trim().slice(0, max);
@@ -55,6 +60,12 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
   const noShowDelay = clean(env.MC2_REPLAY_NO_SHOW_DELAY_MINUTES, 20);
   const beforeCtaDelay = clean(env.MC2_REPLAY_BEFORE_CTA_DELAY_MINUTES ?? '90', 20);
   const offerDelay = clean(env.MC2_OFFER_FOLLOWUP_DELAY_MINUTES ?? '5', 20);
+  const configuredReplayUrl = clean(env.MC2_REPLAY_VIDEO_URL, 2_000);
+  const configuredReplayCtaSeconds = positiveInt(
+    env.MC2_REPLAY_CTA_SECONDS,
+    MC2_REPLAY_CTA_SECONDS,
+    24 * 60 * 60,
+  );
   return {
     // Sans override, le no-show part à 14 h pour une session de 11 h et à
     // 9 h le lendemain pour une session de 20 h (heure du prospect).
@@ -68,12 +79,15 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
       MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS,
       60 * 60,
     ),
-    replayUrl: clean(
-      env.MC2_REPLAY_VIDEO_URL
-        || 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
-      2_000,
-    ),
-    replayCtaSeconds: positiveInt(env.MC2_REPLAY_CTA_SECONDS, MC2_REPLAY_CTA_SECONDS, 24 * 60 * 60),
+    // Les deux anciennes valeurs existent encore dans l'environnement Netlify.
+    // On les traite comme des valeurs héritées afin qu'elles ne puissent pas
+    // écraser la migration lors du prochain déploiement.
+    replayUrl: configuredReplayUrl && configuredReplayUrl !== LEGACY_REPLAY_VIDEO
+      ? configuredReplayUrl
+      : REPLAY_VIDEO_DEFAULT,
+    replayCtaSeconds: configuredReplayCtaSeconds === LEGACY_REPLAY_CTA_SECONDS
+      ? MC2_REPLAY_CTA_SECONDS
+      : configuredReplayCtaSeconds,
     publicBaseUrl: clean(env.MC2_PUBLIC_BASE_URL || 'https://sonnycourt.com', 500).replace(/\/$/, ''),
     groups: {
       no_show: clean(env.MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW || env.ML_MC2_REPLAY_NO_SHOW, 120),
@@ -114,7 +128,7 @@ function noShowDelayMinutes(row, config) {
 export function mc2RecoveryMessageTypes(row = {}, segment = mc2RecoverySegment(row)) {
   if (!VALID_SEGMENTS.has(segment) || isMc2Purchased(row)) return [];
   const types = [mc2RecoveryInitialMessageType(segment)].filter(Boolean);
-  if (segment !== 'offer_seen_no_purchase' && dateOrNull(row.offer_expires_at)) {
+  if (segment !== 'offer_seen_no_purchase' && mc2ReplayExpiresAt(row.session_starts_at)) {
     types.push('replay_24h', 'replay_4h');
   }
   return types;
@@ -148,10 +162,10 @@ export function mc2RecoveryDueAt(
   const end = mc2SessionEndsAt(start);
   if (!start || !VALID_SEGMENTS.has(segment) || !VALID_MESSAGE_TYPES.has(messageType)) return null;
   if (messageType === 'replay_24h' || messageType === 'replay_4h') {
-    const offerExpires = dateOrNull(row.offer_expires_at);
-    if (!offerExpires) return null;
+    const replayExpires = mc2ReplayExpiresAt(row.session_starts_at);
+    if (!replayExpires) return null;
     const hours = messageType === 'replay_24h' ? 24 : 4;
-    return new Date(offerExpires.getTime() - hours * 60 * 60_000);
+    return new Date(replayExpires.getTime() - hours * 60 * 60_000);
   }
   if (messageType === 'no_show_initial' && segment === 'no_show') {
     return new Date(start.getTime() + noShowDelayMinutes(row, config) * 60_000);
@@ -414,15 +428,15 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
     const subscriberId = await ensureMailerLiteSubscriber(registration, apiKey);
     const accessCode = clean(job.access_code, 128) || crypto.randomBytes(24).toString('base64url');
     const hasReplay = messageType !== 'offer_expired_downsell';
-    const offerExpiresAt = dateOrNull(registration.offer_expires_at)
-      || mc2OfferExpiresAt(registration.session_starts_at);
-    if (hasReplay && (!offerExpiresAt || now >= offerExpiresAt)) return skipJob(job, 'offer_expired');
+    const replayExpiresAt = mc2ReplayExpiresAt(registration.session_starts_at);
+    if (hasReplay && (!replayExpiresAt || now >= replayExpiresAt)) return skipJob(job, 'replay_expired');
     const replayUrl = hasReplay
       ? `${config.publicBaseUrl}/mc2/replay/?access=${encodeURIComponent(accessCode)}`
       : '';
     const offerUrl = `${config.publicBaseUrl}/mc2/session/?t=${encodeURIComponent(registration.token)}`;
-    // Les liens de replay partagent l'échéance commerciale canonique.
-    const expiresAt = offerExpiresAt || now;
+    const expiresAt = hasReplay
+      ? replayExpiresAt
+      : (dateOrNull(registration.offer_expires_at) || now);
 
     const accessSaved = await supabasePatch('mc2_replay_recovery_jobs', `id=eq.${encode(job.id)}`, {
       access_code: accessCode,

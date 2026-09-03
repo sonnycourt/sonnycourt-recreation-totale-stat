@@ -5,6 +5,8 @@ const KEY = 'active-source';
 const FORCE_REFRESH_KEY = 'force-refresh-at';
 
 const PRIMARY_DEFAULT =
+  'https://vz-601d6eb4-a9a.b-cdn.net/b253a12e-7673-4447-ba19-1b868051efd6/playlist.m3u8';
+const LEGACY_PRIMARY =
   'https://vz-601d6eb4-a9a.b-cdn.net/eb8f090e-919d-4994-92b9-a9b516b35600/playlist.m3u8';
 const BACKUP_DEFAULT = '';
 
@@ -13,8 +15,13 @@ function normalizeSource(raw) {
 }
 
 export function getMc2VideoSources(env = process.env) {
+  const configuredPrimary = String(env.MC2_LIVE_VIDEO_URL_PRIMARY || '').trim();
   return {
-    primary: env.MC2_LIVE_VIDEO_URL_PRIMARY || PRIMARY_DEFAULT,
+    // Empêche l'ancienne variable Netlify de réinjecter silencieusement la
+    // vidéo remplacée. Une future URL différente reste utilisable par le cockpit.
+    primary: configuredPrimary && configuredPrimary !== LEGACY_PRIMARY
+      ? configuredPrimary
+      : PRIMARY_DEFAULT,
     backup: env.MC2_LIVE_VIDEO_URL_BACKUP || BACKUP_DEFAULT,
   };
 }

@@ -36,6 +36,9 @@ const registration = {
   payment_status: 'pending',
   statut: 'registered',
   purchased_at: null,
+  purchase_bonus_tag: null,
+  session_starts_at: new Date(Date.now() - (2 * 60 * 60 * 1000)).toISOString(),
+  offer_expires_at: new Date(Date.now() + (70 * 60 * 60 * 1000)).toISOString(),
 };
 
 globalThis.fetch = async (url, options = {}) => {
@@ -101,6 +104,7 @@ try {
   assert.equal(registrationPatch?.contractual_total_cents, 230100);
   assert.equal(registrationPatch?.checkout_last_plan, 'monthly');
   assert.equal(registrationPatch?.checkout_last_payment_mode, 'spiffy_3x767');
+  assert.equal(registrationPatch?.purchase_bonus_tag, 'avec_consultation_sonny');
 } finally {
   globalThis.fetch = originalFetch;
   for (const [key, value] of Object.entries(originalEnv)) {

@@ -14,9 +14,9 @@
 
 | Segment | Condition de vérité | Délai par défaut | Destination |
 | --- | --- | --- | --- |
-| No-show | `attended_live=false`, non acheteur | 14 h après une session de 11 h ; 9 h le lendemain après une session de 20 h | Replay personnel jusqu'à l'expiration de l'offre |
-| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | dernière présence + 90 min | Replay jusqu'à l'expiration, reprise au point live moins 20 min |
-| Replay non terminé | `saw_offer=false`, non acheteur | expiration - 24 h puis - 4 h | Même replay personnel |
+| No-show | `attended_live=false`, non acheteur | 14 h après une session de 11 h ; 9 h le lendemain après une session de 20 h | Replay personnel jusqu'à l'échéance globale du replay |
+| Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | dernière présence + 90 min | Replay jusqu'à son échéance globale, reprise au point live moins 20 min |
+| Replay non terminé | `saw_offer=false`, non acheteur | échéance replay - 24 h puis - 4 h | Même replay personnel |
 | Offre vue | `saw_offer=true`, non acheteur | expiration de l’offre + 5 min | Offre directe, sans replay |
 | Acheteur | statut/paiement/`purchased_at` | immédiat | Toute relance annulée et groupes retirés |
 
@@ -43,8 +43,9 @@ produit une nouvelle clé métier.
   les états responsive et le watchdog anti-freeze de `/masterclass/replay/`.
   Aucun nouveau design ni nouvelle direction artistique n'a été introduit.
 - Code opaque aléatoire de 192 bits ; le token d'inscription n'est pas exposé.
-- L'accès replay expire exactement avec l'offre, 72 heures après la session,
-  et cette échéance est validée côté serveur à chaque chargement et événement.
+- L'accès replay expire 72 heures après la session, indépendamment de l'offre.
+- Si le CTA est atteint en replay, une échéance commerciale personnelle est
+  créée à partir de ce CTA, après déduction de la durée de vidéo déjà vue.
 - Un achat invalide aussi l'accès replay.
 - L'URL vidéo et la seconde du CTA viennent des variables d'environnement.
 
@@ -55,7 +56,7 @@ Obligatoires avant activation :
 ```text
 MC2_REPLAY_RECOVERY_ENABLED=false
 MC2_REPLAY_VIDEO_URL=
-MC2_REPLAY_CTA_SECONDS=4648
+MC2_REPLAY_CTA_SECONDS=4740
 MAILERLITE_GROUP_MC2_REPLAY_NO_SHOW=
 MAILERLITE_GROUP_MC2_REPLAY_BEFORE_CTA=
 MAILERLITE_GROUP_MC2_OFFER_SEEN=

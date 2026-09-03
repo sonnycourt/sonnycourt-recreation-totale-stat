@@ -44,6 +44,7 @@ import {
   persistMc2PaymentAttempt,
   queueMc2CollectionCase,
 } from './mc2-collection-case.mjs';
+import { mc2ConsultationBonusTag } from './mc2-consultation-bonus.mjs';
 
 const DAY_SECONDS = 24 * 60 * 60;
 const MC2_SYSTEM = 'es2_mc2';
@@ -239,6 +240,11 @@ async function processCheckoutCompleted(stripe, session, event) {
   }
   const schedule = await createInstallmentSchedule(stripe, session, registration, event.created);
   const nowIso = new Date().toISOString();
+  const purchasedAt = registration.purchased_at || nowIso;
+  const purchaseBonusTag = registration.purchase_bonus_tag || mc2ConsultationBonusTag({
+    registration,
+    purchasedAt,
+  });
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
     statut: 'purchased',
     payment_status: 'paid',
@@ -253,7 +259,8 @@ async function processCheckoutCompleted(stripe, session, event) {
       Number(registration.paid_total_cents || 0),
       Number(session.amount_total || expectedInitial),
     ),
-    purchased_at: registration.purchased_at || nowIso,
+    purchased_at: purchasedAt,
+    purchase_bonus_tag: purchaseBonusTag,
     last_payment_at: nowIso,
     last_event_at: nowIso,
   });
