@@ -1,12 +1,10 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { mc2DunningEnabled, processMc2DunningJob } from './lib/mc2-payment-recovery.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   if (!mc2DunningEnabled()) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true, enabled: false, processed: 0 }),
-    };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
 
   const now = new Date();
@@ -27,16 +25,13 @@ export default async () => {
     results.push({ id: job.id, ...(await processMc2DunningJob(job, { now })) });
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      ok: true,
-      enabled: true,
-      processed: results.length,
-      sent: results.filter((item) => item.status === 'sent').length,
-      retried: results.filter((item) => item.status === 'retry').length,
-      skipped: results.filter((item) => item.status === 'skipped').length,
-      results,
-    }),
-  };
+  return scheduledJson({
+    ok: true,
+    enabled: true,
+    processed: results.length,
+    sent: results.filter((item) => item.status === 'sent').length,
+    retried: results.filter((item) => item.status === 'retry').length,
+    skipped: results.filter((item) => item.status === 'skipped').length,
+    results,
+  });
 };

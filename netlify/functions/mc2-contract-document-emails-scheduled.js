@@ -3,10 +3,11 @@ import {
   mc2ContractDocumentEmailsEnabled,
   processMc2ContractDocumentEmail,
 } from './lib/mc2-contract-document-email.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   if (!mc2ContractDocumentEmailsEnabled()) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
   const now = new Date();
   await supabasePatch(
@@ -25,9 +26,5 @@ export default async () => {
   for (const job of jobs.data || []) {
     results.push({ id: job.id, ...(await processMc2ContractDocumentEmail(job, now)) });
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ ok: true, enabled: true, processed: results.length, results }),
-  };
+  return scheduledJson({ ok: true, enabled: true, processed: results.length, results });
 };
-

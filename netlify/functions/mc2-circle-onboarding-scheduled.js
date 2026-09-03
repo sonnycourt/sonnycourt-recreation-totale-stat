@@ -3,10 +3,11 @@ import {
   mc2CircleEnabled,
   processMc2CircleOnboardingJob,
 } from './lib/mc2-circle-onboarding.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   if (!mc2CircleEnabled()) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
 
   const now = new Date();
@@ -36,16 +37,13 @@ export default async () => {
   for (const job of jobs.data || []) {
     results.push({ id: job.id, ...(await processMc2CircleOnboardingJob(job, { now })) });
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      ok: true,
-      enabled: true,
-      processed: results.length,
-      succeeded: results.filter((item) => item.status === 'succeeded').length,
-      retrying: results.filter((item) => item.status === 'retry').length,
-      failed: results.filter((item) => item.status === 'failed').length,
-      results,
-    }),
-  };
+  return scheduledJson({
+    ok: true,
+    enabled: true,
+    processed: results.length,
+    succeeded: results.filter((item) => item.status === 'succeeded').length,
+    retrying: results.filter((item) => item.status === 'retry').length,
+    failed: results.filter((item) => item.status === 'failed').length,
+    results,
+  });
 };

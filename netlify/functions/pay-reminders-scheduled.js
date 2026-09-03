@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch, supabaseUpsert } from './lib/supabase-rest.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 function clean(value, max = 2_000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -42,7 +43,7 @@ async function sendReminder(rule, alert) {
 export default async () => {
   const rules = await supabaseGet('pay_automation_rules?rule_key=eq.failed_payment_first_reminder&active=eq.true&select=*&limit=1');
   const rule = rules.ok && Array.isArray(rules.data) ? rules.data[0] : null;
-  if (!rule) return { statusCode: 200, body: JSON.stringify({ ok: true, sent: 0, reason: 'rule_disabled' }) };
+  if (!rule) return scheduledJson({ ok: true, sent: 0, reason: 'rule_disabled' });
   const alertsResult = await supabaseGet('pay_alerts?alert_type=eq.payment_failed&status=eq.open&customer_email=not.is.null&select=provider,external_id,customer_email,amount_minor,currency,occurred_at&order=occurred_at.asc&limit=100');
   if (!alertsResult.ok) throw new Error('pay_alerts_unavailable');
   const threshold = Date.now() - Math.max(0, Number(rule.delay_minutes || 0)) * 60_000;
@@ -66,5 +67,5 @@ export default async () => {
       await supabasePatch('pay_email_deliveries', `id=eq.${encodeURIComponent(row.id)}`, { status: 'failed', error_code: clean(error?.message, 160) || 'email_failed' });
     }
   }
-  return { statusCode: 200, body: JSON.stringify({ ok: true, sent, inspected: alerts.length }) };
+  return scheduledJson({ ok: true, sent, inspected: alerts.length });
 };

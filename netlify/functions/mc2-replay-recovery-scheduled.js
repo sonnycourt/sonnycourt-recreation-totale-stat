@@ -6,6 +6,7 @@ import {
   processMc2ReplayRecoveryJob,
   queueMc2ReplayRecoverySequence,
 } from './lib/mc2-replay-recovery.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 async function loadCandidates(now) {
   const rows = [];
@@ -31,7 +32,7 @@ async function loadCandidates(now) {
 
 export default async () => {
   if (!mc2ReplayRecoveryEnabled()) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, queued: 0, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, queued: 0, processed: 0 });
   }
 
   const now = new Date();
@@ -63,8 +64,5 @@ export default async () => {
   for (const job of jobs.data || []) {
     results.push({ id: job.id, ...(await processMc2ReplayRecoveryJob(job, now)) });
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ ok: true, enabled: true, queued, processed: results.length, results }),
-  };
+  return scheduledJson({ ok: true, enabled: true, queued, processed: results.length, results });
 };

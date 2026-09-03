@@ -265,7 +265,7 @@ export default async (req) => {
     read(`mc2_stripe_webhook_events?processed_at=gte.${encodeURIComponent(since)}&select=event_type,livemode,processed_at&order=processed_at.desc&limit=500`),
     read('mc2_sms_jobs?select=status,due_at,attempts,last_error,last_attempt_at,sent_at,updated_at&order=updated_at.desc&limit=1000'),
     read('mc2_session_email_jobs?select=status,due_at,attempts,last_error,last_attempt_at,delivered_at,updated_at&order=updated_at.desc&limit=1000'),
-    read('mc2_replay_recovery_jobs?select=status,due_at,attempts,last_error,last_attempt_at,delivered_at,updated_at&order=updated_at.desc&limit=1000'),
+    read('mc2_replay_recovery_jobs?select=message_type,status,due_at,attempts,last_error,last_attempt_at,delivered_at,updated_at&order=updated_at.desc&limit=1000'),
     read('mc2_dunning_jobs?select=status,due_at,attempts,last_error,last_attempt_at,sent_at,updated_at&order=updated_at.desc&limit=1000'),
     read('mc2_circle_onboarding_jobs?select=status,next_attempt_at,attempts,last_error,last_attempt_at,succeeded_at,failed_at,updated_at&order=updated_at.desc&limit=1000'),
     read('mc2_contract_documents?select=notification_status,notification_due_at,notification_attempts,notification_last_error,notification_last_attempt_at,notification_delivered_at,updated_at&order=updated_at.desc&limit=1000'),

@@ -1,9 +1,10 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { mc2SmsEnabled, processMc2SmsJob } from './lib/mc2-sms.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   if (!mc2SmsEnabled()) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
 
   const now = new Date();
@@ -23,15 +24,12 @@ export default async () => {
     results.push({ id: job.id, ...(await processMc2SmsJob(job, now)) });
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      ok: true,
-      enabled: true,
-      processed: results.length,
-      sent: results.filter((item) => item.status === 'sent').length,
-      skipped: results.filter((item) => item.status === 'skipped').length,
-      results,
-    }),
-  };
+  return scheduledJson({
+    ok: true,
+    enabled: true,
+    processed: results.length,
+    sent: results.filter((item) => item.status === 'sent').length,
+    skipped: results.filter((item) => item.status === 'skipped').length,
+    results,
+  });
 };

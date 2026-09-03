@@ -1,9 +1,10 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { mc2CollectionEnabled, prepareMc2CollectionCase } from './lib/mc2-collection-case.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   if (!mc2CollectionEnabled()) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
   const now = new Date();
   const stale = new Date(now.getTime() - 15 * 60_000).toISOString();
@@ -21,15 +22,12 @@ export default async () => {
   for (const job of jobs.data || []) {
     results.push({ id: job.id, ...(await prepareMc2CollectionCase(job, { now })) });
   }
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      ok: true,
-      enabled: true,
-      processed: results.length,
-      completed: results.filter((item) => item.status === 'completed').length,
-      needs_retry: results.filter((item) => item.status === 'retry').length,
-      results,
-    }),
-  };
+  return scheduledJson({
+    ok: true,
+    enabled: true,
+    processed: results.length,
+    completed: results.filter((item) => item.status === 'completed').length,
+    needs_retry: results.filter((item) => item.status === 'retry').length,
+    results,
+  });
 };

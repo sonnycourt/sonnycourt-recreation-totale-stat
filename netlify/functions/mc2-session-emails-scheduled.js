@@ -4,12 +4,13 @@ import {
   mc2SessionEmailsEnabled,
   processMc2SessionEmailJob,
 } from './lib/mc2-session-emails.mjs';
+import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
   const sessionEmailsEnabled = mc2SessionEmailsEnabled();
   const offerEmailsEnabled = mc2OfferEmailsEnabled();
   if (!sessionEmailsEnabled && !offerEmailsEnabled) {
-    return { statusCode: 200, body: JSON.stringify({ ok: true, enabled: false, processed: 0 }) };
+    return scheduledJson({ ok: true, enabled: false, processed: 0 });
   }
   const enabledTypes = [
     ...(sessionEmailsEnabled ? ['registration_confirmation', 'session_reminder_1h'] : []),
@@ -32,15 +33,12 @@ export default async () => {
   if (!jobs.ok) throw new Error(`mc2_session_email_jobs_${jobs.status}`);
   const results = [];
   for (const job of jobs.data || []) results.push({ id: job.id, ...(await processMc2SessionEmailJob(job, now)) });
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      ok: true,
-      enabled: true,
-      sessionEmailsEnabled,
-      offerEmailsEnabled,
-      processed: results.length,
-      results,
-    }),
-  };
+  return scheduledJson({
+    ok: true,
+    enabled: true,
+    sessionEmailsEnabled,
+    offerEmailsEnabled,
+    processed: results.length,
+    results,
+  });
 };

@@ -16,7 +16,9 @@ globalThis.fetch = async (input, options = {}) => {
 
 process.env.MC2_SESSION_EMAILS_ENABLED = 'false';
 process.env.MC2_OFFER_EMAILS_ENABLED = 'true';
-let result = JSON.parse((await runWorker()).body);
+let response = await runWorker();
+assert.ok(response instanceof Response);
+let result = await response.json();
 assert.equal(result.sessionEmailsEnabled, false);
 assert.equal(result.offerEmailsEnabled, true);
 let dueQuery = queries.find((item) => item.method === 'GET')?.url || '';
@@ -26,7 +28,9 @@ assert.doesNotMatch(dueQuery, /registration_confirmation/);
 queries.length = 0;
 process.env.MC2_SESSION_EMAILS_ENABLED = 'true';
 process.env.MC2_OFFER_EMAILS_ENABLED = 'false';
-result = JSON.parse((await runWorker()).body);
+response = await runWorker();
+assert.ok(response instanceof Response);
+result = await response.json();
 assert.equal(result.sessionEmailsEnabled, true);
 assert.equal(result.offerEmailsEnabled, false);
 dueQuery = queries.find((item) => item.method === 'GET')?.url || '';
@@ -36,7 +40,9 @@ assert.doesNotMatch(dueQuery, /offer_followup_90m/);
 queries.length = 0;
 process.env.MC2_SESSION_EMAILS_ENABLED = 'false';
 process.env.MC2_OFFER_EMAILS_ENABLED = 'false';
-result = JSON.parse((await runWorker()).body);
+response = await runWorker();
+assert.ok(response instanceof Response);
+result = await response.json();
 assert.equal(result.enabled, false);
 assert.equal(queries.length, 0);
 
