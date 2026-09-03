@@ -3,7 +3,7 @@ import path from 'node:path';
 import puppeteer from 'puppeteer';
 
 const sourceUrl = process.env.MC2_CGV_SOURCE_URL || 'http://127.0.0.1:4351/cgv/';
-const outputPath = path.resolve('public/legal-archives/mc2-cgv-2026-08-v5.pdf');
+const outputPath = path.resolve('public/legal-archives/mc2-cgv-2026-09-v6.pdf');
 
 await fs.mkdir(path.dirname(outputPath), { recursive: true });
 

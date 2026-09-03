@@ -4,12 +4,17 @@
 
 - Paiement unique : **1 997 € TTC**.
 - Paiement fractionné : **3 × 767 € TTC**, soit **2 301 € TTC**.
-- La première mensualité est débitée à la commande, puis les onze suivantes
+- La première mensualité est débitée à la commande, puis les deux suivantes
   sont prélevées mensuellement.
 - Le paiement unique économise **304 € TTC** par rapport aux trois mensualités.
 - Achat unique, sans abonnement et sans renouvellement.
-- Garantie commerciale de 14 jours : remboursement des sommes encaissées,
-  annulation des mensualités futures et retrait des accès.
+- **Garantie Manifestation pendant un an** : la seule condition d’éligibilité
+  est de terminer l’intégralité du parcours principal avant le premier
+  anniversaire de la commande.
+- Les bonus, séances facultatives, résultats financiers et justificatifs de
+  résultat ne sont pas exigés. La progression est vérifiée côté plateforme.
+- Une demande recevable rembourse toutes les sommes encaissées, annule les
+  mensualités futures et ne retire pas les accès numériques déjà accordés.
 
 Les checkouts Spiffy intégrés à `/mc2/session/` et `/mc2/replay/` affichent et
 encaissent ces deux options. Le plan choisi, son prix total et son échéancier
@@ -28,7 +33,7 @@ sont repris dans la preuve contractuelle associée à la commande.
 ## Variables contractuelles
 
 ```text
-MC2_CONTRACT_VERSION=mc2-cgv-2026-08-v5
+MC2_CONTRACT_VERSION=mc2-cgv-2026-09-v6
 MC2_TERMS_URL=https://sonnycourt.com/cgv/
 MC2_CONTRACT_ACCEPTANCE_TEXT=J’accepte les CGV et l’échéancier clairement indiqué ci-dessus.
 ```
@@ -36,8 +41,8 @@ MC2_CONTRACT_ACCEPTANCE_TEXT=J’accepte les CGV et l’échéancier clairement 
 Une copie figée de la version acceptée est conservée :
 
 ```text
-MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-08-v5.pdf
-MC2_TERMS_SNAPSHOT_SHA256=82fa1f860ff8fc16972aa12fa32a85ca21a0c18131fb7904f7e313d9436963d5
+MC2_TERMS_SNAPSHOT_URL=https://sonnycourt.com/legal-archives/mc2-cgv-2026-09-v6.pdf
+MC2_TERMS_SNAPSHOT_SHA256=dc19e5a898ca584149a7bc48e2a3093f1786c47571ab5c08e186067681fb6fc2
 ```
 
 Les variables `MC2_CONTRACT_EXPECTED_*` et les anciennes archives restent

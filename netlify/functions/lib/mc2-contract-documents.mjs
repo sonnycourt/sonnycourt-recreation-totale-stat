@@ -210,9 +210,11 @@ export function buildMc2ContractDocumentSnapshot({ session, event, env = process
       snapshot_url: config.termsSnapshotUrl,
       snapshot_sha256: config.termsSnapshotSha256,
     },
-    withdrawal: {
-      period_days: 14,
-      deadline_at: new Date(purchaseTime + 14 * DAY_MS).toISOString(),
+    commercial_guarantee: {
+      name: 'Garantie Manifestation',
+      duration_months: 12,
+      deadline_at: addMonths(new Date(purchaseTime), 12).toISOString(),
+      eligibility: 'complete_core_training',
       contact_email: 'support@sonnycourt.com',
     },
   };
@@ -303,6 +305,9 @@ export function renderMc2ContractDocument(snapshot) {
     : snapshot.pricing.payment_plan === MC2_SESSION_MONTHLY_PLAN
       ? `La première mensualité de ${money(MC2_SESSION_MONTHLY_PAYMENT_CENTS)} est réglée à la commande. Les onze mensualités suivantes du même montant sont prélevées mensuellement. Le plan s’arrête automatiquement après la douzième mensualité.`
       : 'Les quatre échéances de 297 € sont prévues à J+14, J+35, J+56 et J+77 à compter du paiement initial. Le plan s’arrête après la quatrième échéance.';
+  const guaranteeNote = snapshot.commercial_guarantee?.name === 'Garantie Manifestation'
+    ? `Garantie Manifestation valable jusqu’au ${publicDate(snapshot.commercial_guarantee.deadline_at)} et droits légaux applicables : la seule condition d’éligibilité est de terminer l’intégralité de la formation principale. Les modalités complètes figurent dans la copie archivée des CGV applicable à cette commande.`
+    : 'Garantie commerciale de 14 jours et droits légaux applicables : les conditions, les modalités et le formulaire figurent dans la copie archivée des CGV applicable à cette commande.';
   const controls = `
       <nav class="actions" aria-label="Actions sur le document">
         <button type="button" onclick="window.print()">Imprimer / enregistrer en PDF</button>
@@ -372,7 +377,7 @@ export function renderMc2ContractDocument(snapshot) {
     <p><a href="${termsSnapshotUrl}" rel="noopener noreferrer">Consulter la copie archivée des CGV applicables à cette commande</a><br>
     <a href="${termsUrl}" rel="noopener noreferrer">Consulter les CGV actuellement en vigueur</a></p>
     <p class="meta">Empreinte SHA-256 de la copie archivée : ${escapeHtml(snapshot.terms.snapshot_sha256)}</p>
-    <p class="note"><strong>Garantie commerciale de 14 jours et droits légaux applicables :</strong> les conditions, les modalités et le formulaire figurent dans la copie archivée des CGV applicable à cette commande.</p>
+    <p class="note"><strong>${escapeHtml(guaranteeNote)}</strong></p>
 
     <h2>Vendeur</h2>
     <p><strong>${escapeHtml(snapshot.seller.legal_name)}</strong><br>
