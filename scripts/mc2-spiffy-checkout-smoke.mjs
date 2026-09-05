@@ -15,7 +15,7 @@ const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-p
 
 // La page session consomme l'offre approuvée, qui possède désormais tout le checkout.
 assert.match(page, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOffer\.astro['"]/);
-assert.match(page, /<DealOffer\s*\/>/);
+assert.match(page, /<DealOffer\s+checkoutEmbedMode=["']iframe["']\s*\/>/);
 assert.match(replay, /<DealOffer\s+checkoutEmbedMode=["']iframe["']\s*\/>/);
 
 // Les deux checkouts réels sont intégrés, avec le comptant présélectionné.
