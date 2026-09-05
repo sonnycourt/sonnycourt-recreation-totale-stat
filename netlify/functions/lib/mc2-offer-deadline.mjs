@@ -50,7 +50,7 @@ export function mc2OfferActivatedAt({ registration, expiresAt, now = new Date() 
  * Source de vérité serveur de la fenêtre commerciale MC2.
  *
  * - live : l'ancre est calculée depuis la session enregistrée (non falsifiable
- *   par le navigateur) et correspond exactement à 01:39:00 dans la diffusion ;
+ *   par le navigateur) et correspond exactement à 01:34:51 dans la diffusion ;
  * - replay : le premier CTA ouvre une échéance personnelle égale à 72 heures
  *   moins la durée de vidéo déjà consommée avant le CTA ; les pauses prises
  *   avant le CTA ne réduisent donc pas l'offre.

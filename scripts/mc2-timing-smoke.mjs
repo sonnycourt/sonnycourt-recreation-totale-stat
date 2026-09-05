@@ -16,16 +16,16 @@ import {
 } from '../netlify/functions/lib/mc2-session.mjs';
 
 assert.equal(MC2_LIVE_VIDEO_LEAD_SECONDS, 15 * 60);
-assert.equal(MC2_LIVE_VIDEO_DURATION_SECONDS, 8_048);
-assert.equal(MC2_SESSION_DURATION_SECONDS, 7_148);
-assert.equal(MC2_SESSION_DURATION_MS, 7_148_000);
-assert.equal(MC2_LIVE_CTA_SECONDS, 99 * 60);
-assert.equal(MC2_REPLAY_CTA_SECONDS, 79 * 60);
+assert.equal(MC2_LIVE_VIDEO_DURATION_SECONDS, 8_041);
+assert.equal(MC2_SESSION_DURATION_SECONDS, 7_141);
+assert.equal(MC2_SESSION_DURATION_MS, 7_141_000);
+assert.equal(MC2_LIVE_CTA_SECONDS, (94 * 60) + 51);
+assert.equal(MC2_REPLAY_CTA_SECONDS, (74 * 60) + 51);
 assert.equal(mc2SessionDurationMs(), MC2_SESSION_DURATION_MS);
 
 const sessionStart = '2026-08-26T18:00:00.000Z';
-assert.equal(mc2SessionEndsAt(sessionStart).toISOString(), '2026-08-26T19:59:08.000Z');
-assert.equal(mc2SessionEndsAtIso(sessionStart), '2026-08-26T19:59:08.000Z');
+assert.equal(mc2SessionEndsAt(sessionStart).toISOString(), '2026-08-26T19:59:01.000Z');
+assert.equal(mc2SessionEndsAtIso(sessionStart), '2026-08-26T19:59:01.000Z');
 assert.equal(mc2SessionEndsAtIso('invalid'), null);
 
 const selection = validateMc2SessionSelection({
@@ -34,7 +34,7 @@ const selection = validateMc2SessionSelection({
   visitorTimezone: 'Europe/Paris',
 }, new Date('2026-08-26T17:50:00.000Z'));
 assert.equal(selection.ok, true);
-assert.equal(selection.sessionEndsAt.toISOString(), '2026-08-26T19:59:08.000Z');
+assert.equal(selection.sessionEndsAt.toISOString(), '2026-08-26T19:59:01.000Z');
 
 const sessionPage = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 const replayPage = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
@@ -57,7 +57,7 @@ assert.match(getRegistration, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 assert.match(eligibility, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 
 assert.match(replayPage, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOffer\.astro['"]/);
-assert.match(replayPage, /<DealOffer\s*\/>/);
+assert.match(replayPage, /<DealOffer\b[^>]*\/>/);
 assert.doesNotMatch(replayPage, /Mc2InlineOffer/);
 assert.match(replayPage, /const OFFER_TOTAL_SEATS = 100/);
 assert.match(replayPage, /const OFFER_INITIAL_REMAINING_SEATS = 37/);
@@ -74,7 +74,7 @@ assert.match(offerTimeline, /20 → 5/);
 assert.match(offerTimeline, /FINAL_PHASE_FRACTIONS = \[0\.2, 0\.4, 0\.6, 0\.8, 1\]/);
 
 console.log(JSON.stringify({
-  canonical_live_end_015908_after_session_start: 'ok',
+  canonical_live_end_015901_after_session_start: 'ok',
   stale_75_minute_end_ignored_by_live_page: 'ok',
   existing_registration_contract_normalized: 'ok',
   live_replay_cta_alignment: 'ok',

@@ -27,10 +27,12 @@ const VALID_MESSAGE_TYPES = new Set([
 const ACTIVE_STATUSES = 'pending,retry,processing';
 const MAX_DELIVERY_ATTEMPTS = 5;
 const REPLAY_VIDEO_DEFAULT =
-  'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8';
-const LEGACY_REPLAY_VIDEO =
-  'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8';
-const LEGACY_REPLAY_CTA_SECONDS = 4_648;
+  'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8';
+const LEGACY_REPLAY_VIDEOS = new Set([
+  'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
+  'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8',
+]);
+const LEGACY_REPLAY_CTA_SECONDS = new Set([4_648, 79 * 60]);
 
 function clean(value, max = 500) {
   return String(value == null ? '' : value).trim().slice(0, max);
@@ -82,10 +84,10 @@ export function mc2ReplayRecoveryConfig(env = process.env) {
     // Les deux anciennes valeurs existent encore dans l'environnement Netlify.
     // On les traite comme des valeurs héritées afin qu'elles ne puissent pas
     // écraser la migration lors du prochain déploiement.
-    replayUrl: configuredReplayUrl && configuredReplayUrl !== LEGACY_REPLAY_VIDEO
+    replayUrl: configuredReplayUrl && !LEGACY_REPLAY_VIDEOS.has(configuredReplayUrl)
       ? configuredReplayUrl
       : REPLAY_VIDEO_DEFAULT,
-    replayCtaSeconds: configuredReplayCtaSeconds === LEGACY_REPLAY_CTA_SECONDS
+    replayCtaSeconds: LEGACY_REPLAY_CTA_SECONDS.has(configuredReplayCtaSeconds)
       ? MC2_REPLAY_CTA_SECONDS
       : configuredReplayCtaSeconds,
     publicBaseUrl: clean(env.MC2_PUBLIC_BASE_URL || 'https://sonnycourt.com', 500).replace(/\/$/, ''),

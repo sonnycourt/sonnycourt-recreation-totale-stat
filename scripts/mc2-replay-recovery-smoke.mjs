@@ -34,17 +34,23 @@ assert.equal(mc2ReplayRecoveryEnabled({ MC2_REPLAY_RECOVERY_ENABLED: 'false' }),
 assert.equal(mc2ReplayRecoveryEnabled({ MC2_REPLAY_RECOVERY_ENABLED: 'true' }), true);
 assert.equal(mc2ReplayRecoveryConfig(env).noShowDelayMinutes, 1_320);
 assert.equal(mc2ReplayRecoveryConfig({}).liveCountdownSeconds, 1_200);
-assert.equal(mc2ReplayRecoveryConfig({}).replayCtaSeconds, 79 * 60);
+assert.equal(mc2ReplayRecoveryConfig({}).replayCtaSeconds, (74 * 60) + 51);
 assert.equal(
   mc2ReplayRecoveryConfig({}).replayUrl,
-  'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8',
+  'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8',
 );
 assert.equal(mc2ReplayRecoveryConfig({
   MC2_REPLAY_CTA_SECONDS: '4648',
-}).replayCtaSeconds, 79 * 60);
+}).replayCtaSeconds, (74 * 60) + 51);
+assert.equal(mc2ReplayRecoveryConfig({
+  MC2_REPLAY_CTA_SECONDS: String(79 * 60),
+}).replayCtaSeconds, (74 * 60) + 51);
 assert.equal(mc2ReplayRecoveryConfig({
   MC2_REPLAY_VIDEO_URL: 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
-}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8');
+}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8');
+assert.equal(mc2ReplayRecoveryConfig({
+  MC2_REPLAY_VIDEO_URL: 'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8',
+}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8');
 assert.equal(mc2RecoverySegment(base), 'no_show');
 assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T16:00:00.000Z');
 assert.equal(
@@ -75,7 +81,7 @@ assert.equal(mc2RecoveryResumeSeconds(left, 'left_before_cta', env), 1_500);
 assert.equal(mc2RecoveryDueAt(left, 'left_before_cta', env).toISOString(), '2026-08-12T19:50:00.000Z');
 assert.equal(
   mc2RecoveryDueAt({ ...left, last_presence_at: null }, 'left_before_cta', env).toISOString(),
-  '2026-08-12T21:29:08.000Z',
+  '2026-08-12T21:29:01.000Z',
 );
 
 assert.equal(
