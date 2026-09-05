@@ -13,7 +13,7 @@ export function formatParisSessionDateYyyyMmDd(isoString) {
   }).format(d);
 }
 
-export async function getMailerLiteSubscriberId(email, apiKey) {
+export async function getMailerLiteSubscriberId(email, apiKey, { signal } = {}) {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
     Accept: 'application/json',
@@ -22,6 +22,7 @@ export async function getMailerLiteSubscriberId(email, apiKey) {
     const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${encodeURIComponent(email)}`, {
       method: 'GET',
       headers,
+      signal,
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -51,7 +52,7 @@ async function getMailerLiteSubscriberSnapshot(email, apiKey) {
   }
 }
 
-export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
+export async function addSubscriberToGroup(subscriberId, groupId, apiKey, { signal } = {}) {
   if (!subscriberId || !groupId) {
     return { assigned: false, alreadyInGroup: false };
   }
@@ -62,6 +63,7 @@ export async function addSubscriberToGroup(subscriberId, groupId, apiKey) {
   const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}/groups/${groupId}`, {
     method: 'POST',
     headers,
+    signal,
   });
   if (!res.ok && res.status !== 422) {
     const err = await res.json().catch(() => ({}));
@@ -247,10 +249,11 @@ export const ES2_SEGMENT_GROUPS = {
   checkoutAbandon: '193700174840727293',
 };
 
-export async function removeSubscriberFromGroup(subscriberId, groupId, apiKey) {
+export async function removeSubscriberFromGroup(subscriberId, groupId, apiKey, { signal } = {}) {
   const res = await fetch(`${MAILERLITE_API_BASE}/subscribers/${subscriberId}/groups/${groupId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+    signal,
   });
   return res.ok || res.status === 404;
 }

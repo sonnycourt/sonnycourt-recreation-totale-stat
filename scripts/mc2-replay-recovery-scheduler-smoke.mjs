@@ -88,6 +88,11 @@ const candidateLoadIndex = calls.findIndex((call) => call.method === 'GET'
   && call.search.includes('session_starts_at=lte'));
 assert(dueLoadIndex >= 0, 'Le worker doit charger les jobs dus.');
 assert(candidateLoadIndex > dueLoadIndex, 'Les jobs dus doivent être traités avant le balayage des candidats.');
+const expiredCleanupIndex = calls.findIndex((call) => call.method === 'PATCH'
+  && call.path.endsWith('/mc2_replay_recovery_jobs')
+  && call.search.includes('session_starts_at=lte'));
+assert(expiredCleanupIndex >= 0 && expiredCleanupIndex < dueLoadIndex,
+  'Les rappels de replay déjà expirés doivent être écartés en une seule opération avant la file due.');
 
 const batchInsert = calls.find((call) => call.method === 'POST'
   && call.path.endsWith('/mc2_replay_recovery_jobs'));
@@ -105,6 +110,7 @@ assert.equal(payload.queued, 3);
 
 console.log(JSON.stringify({
   due_jobs_processed_first: 'ok',
+  expired_replay_backlog_cleaned_first: 'ok',
   candidate_days_loaded_in_parallel: 'ok',
   future_jobs_inserted_in_one_idempotent_batch: 'ok',
 }, null, 2));

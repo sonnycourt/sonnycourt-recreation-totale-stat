@@ -398,7 +398,7 @@ function nextDeliveryAttempt(attempts, now) {
   return new Date(now.getTime() + delay * 60_000).toISOString();
 }
 
-async function updateMailerLiteFields(subscriberId, fields, apiKey) {
+async function updateMailerLiteFields(subscriberId, fields, apiKey, { signal } = {}) {
   const response = await fetch(`https://connect.mailerlite.com/api/subscribers/${subscriberId}`, {
     method: 'PUT',
     headers: {
@@ -407,12 +407,13 @@ async function updateMailerLiteFields(subscriberId, fields, apiKey) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ fields }),
+    signal,
   });
   if (!response.ok) throw new Error(`mailerlite_fields_${response.status}`);
 }
 
-async function ensureMailerLiteSubscriber(registration, apiKey) {
-  const existingId = await getMailerLiteSubscriberId(registration.email, apiKey);
+async function ensureMailerLiteSubscriber(registration, apiKey, { signal } = {}) {
+  const existingId = await getMailerLiteSubscriberId(registration.email, apiKey, { signal });
   if (existingId) return existingId;
   const response = await fetch('https://connect.mailerlite.com/api/subscribers', {
     method: 'POST',
@@ -430,13 +431,14 @@ async function ensureMailerLiteSubscriber(registration, apiKey) {
         name: registration.prenom || '',
       },
     }),
+    signal,
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok || !json?.data?.id) throw new Error(`mailerlite_subscriber_${response.status}`);
   return json.data.id;
 }
 
-export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = process.env) {
+export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = process.env, options = {}) {
   const messageType = clean(job.message_type, 80) || mc2RecoveryInitialMessageType(job.segment);
   if (!VALID_MESSAGE_TYPES.has(messageType)) return { status: 'skipped', reason: 'invalid_message_type' };
   const attempts = positiveInt(job.attempts, 0, MAX_DELIVERY_ATTEMPTS) + 1;
@@ -496,7 +498,8 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
     if (!groupId) throw new Error(`mailerlite_group_missing:${messageType}`);
     if (!registration.email) throw new Error('registration_email_missing');
 
-    const subscriberId = await ensureMailerLiteSubscriber(registration, apiKey);
+    const mailerLiteOptions = { signal: options.mailerLiteSignal };
+    const subscriberId = await ensureMailerLiteSubscriber(registration, apiKey, mailerLiteOptions);
     const accessCode = clean(job.access_code, 128) || crypto.randomBytes(24).toString('base64url');
     const hasReplay = messageType !== 'offer_expired_downsell';
     const replayExpiresAt = mc2ReplayExpiresAt(registration.session_starts_at);
@@ -522,16 +525,16 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
       mc2_replay_expires_at: expiresAt.toISOString(),
       mc2_offer_url: offerUrl,
       mc2_replay_resume_seconds: String(mc2RecoveryResumeSeconds(registration, deliverySegment, env)),
-    }, apiKey);
+    }, apiKey, mailerLiteOptions);
     // Les groupes sont des déclencheurs ponctuels. Au premier essai du job, on
     // force un nouvel événement même si ce contact a déjà traversé ce segment.
     // Aux retries, on ne retire plus le groupe : si l'ajout précédent a déjà
     // déclenché MailerLite, le 422 « déjà membre » empêche un doublon.
     if (attempts === 1) {
-      const removed = await removeSubscriberFromGroup(subscriberId, groupId, apiKey);
+      const removed = await removeSubscriberFromGroup(subscriberId, groupId, apiKey, mailerLiteOptions);
       if (!removed) throw new Error('mailerlite_group_reset_failed');
     }
-    const assigned = await addSubscriberToGroup(subscriberId, groupId, apiKey);
+    const assigned = await addSubscriberToGroup(subscriberId, groupId, apiKey, mailerLiteOptions);
     if (!assigned.assigned && !assigned.alreadyInGroup) throw new Error('mailerlite_group_assignment_failed');
 
     const delivered = await supabasePatch('mc2_replay_recovery_jobs', `id=eq.${encode(job.id)}`, {
