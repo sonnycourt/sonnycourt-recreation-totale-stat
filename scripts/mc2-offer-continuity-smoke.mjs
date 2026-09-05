@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const sessionSource = fs.readFileSync(path.join(root, 'src/pages/mc2/session.astro'), 'utf8');
+const replaySource = fs.readFileSync(path.join(root, 'src/pages/mc2/replay.astro'), 'utf8');
 
 assert.match(sessionSource, /reg\.sawOffer === true && Number\.isFinite\(expiryMs\)/);
 assert.match(sessionSource, /keepOfferVisible: true/);
@@ -12,6 +13,13 @@ assert.match(sessionSource, /timeline: createMc2OfferTimeline\(scarcityWindowEnd
 assert.match(sessionSource, /const seats = Math\.max\(0, OFFER_INITIAL_REMAINING_SEATS - placesConsumed\)/);
 assert.match(sessionSource, /mc2-replay-enter\?t=/);
 assert.doesNotMatch(sessionSource, /window\.location\.replace\('\/mc2\/replay\?t=/);
+assert.match(replaySource, /\.offer-zone\.visible\s*\{[\s\S]*?transform:\s*none;/);
+assert.match(replaySource, /animation:\s*offerZoneFadeIn\s+0\.4s\s+ease\s+forwards;/);
+assert.doesNotMatch(
+  replaySource,
+  /\.offer-zone\.visible\s*\{[\s\S]*?animation:\s*ctaFadeIn/,
+  'Le bloc offre du replay ne doit jamais créer un contenant transformé autour du CTA fixed.',
+);
 
 const token = '15f15f15-15f1-45f1-85f1-15f15f15f15f';
 const now = Date.now();
