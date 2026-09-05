@@ -34,7 +34,7 @@ export default async (req) => {
 
     const registrationResult = await supabaseGet(
       `mc2_registrations?token=eq.${encodeURIComponent(token)}`
-        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,statut,payment_status,purchased_at&limit=1',
+        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1',
     );
     const registration = registrationResult.ok && Array.isArray(registrationResult.data)
       ? registrationResult.data[0] || null

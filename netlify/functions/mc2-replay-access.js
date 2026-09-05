@@ -1,4 +1,8 @@
-import { loadMc2ReplayAccess, mc2ReplayRecoveryConfig } from './lib/mc2-replay-recovery.mjs';
+import {
+  loadMc2ReplayAccess,
+  mc2EffectiveReplayResumeSeconds,
+  mc2ReplayRecoveryConfig,
+} from './lib/mc2-replay-recovery.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -27,7 +31,9 @@ export default async (req) => {
       country: result.registration.pays || '',
       expiresAt: result.expires.toISOString(),
       offerExpiresAt: result.registration.offer_expires_at || null,
-      resumeSeconds: Number(result.job.resume_seconds || 0),
+      // Recalculé à chaque ouverture : les anciens liens et les rappels déjà
+      // envoyés reprennent eux aussi le point replay le plus avancé connu.
+      resumeSeconds: mc2EffectiveReplayResumeSeconds(result.registration, result.job),
       videoUrl: config.replayUrl,
       ctaSeconds: config.replayCtaSeconds,
       offerUrl: `/.netlify/functions/mc2-replay-offer?access=${encodeURIComponent(access)}`,

@@ -187,9 +187,21 @@ export function mc2RecoveryDueAt(
 }
 
 export function mc2RecoveryResumeSeconds(row = {}, segment, env = process.env) {
-  if (segment !== 'left_before_cta') return 0;
-  const watched = positiveInt(row.watch_max_seconds_live, 0, 24 * 60 * 60);
-  return Math.max(0, watched - mc2ReplayRecoveryConfig(env).liveCountdownSeconds);
+  if (segment !== 'left_before_cta' && segment !== 'no_show') return 0;
+  const watchedReplay = positiveInt(row.watch_max_seconds_replay, 0, 24 * 60 * 60);
+  const watchedLive = segment === 'left_before_cta'
+    ? positiveInt(row.watch_max_seconds_live, 0, 24 * 60 * 60)
+    : 0;
+  const liveResume = Math.max(0, watchedLive - mc2ReplayRecoveryConfig(env).liveCountdownSeconds);
+  // Les rappels 24 h / 4 h doivent reprendre la progression réellement atteinte
+  // dans le replay, même lorsque le premier accès provenait d'un abandon live.
+  return Math.max(liveResume, watchedReplay);
+}
+
+export function mc2EffectiveReplayResumeSeconds(row = {}, job = {}, env = process.env) {
+  const savedJobResume = positiveInt(job.resume_seconds, 0, 24 * 60 * 60);
+  const segment = VALID_SEGMENTS.has(job.segment) ? job.segment : mc2RecoverySegment(row);
+  return Math.max(savedJobResume, mc2RecoveryResumeSeconds(row, segment, env));
 }
 
 export function mc2RecoveryJobKey(

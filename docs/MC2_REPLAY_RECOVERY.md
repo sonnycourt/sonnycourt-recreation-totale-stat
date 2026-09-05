@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | No-show | `attended_live=false`, non acheteur | 14 h après une session de 11 h ; 9 h le lendemain après une session de 20 h | Replay personnel jusqu'à l'échéance globale du replay |
 | Parti avant CTA | `attended_live=true`, `saw_offer=false`, non acheteur | dernière présence + 90 min | Replay jusqu'à son échéance globale, reprise au point live moins 20 min |
-| Replay non terminé | `saw_offer=false`, non acheteur | échéance replay - 24 h puis - 4 h | Même replay personnel |
+| Replay non terminé | `saw_offer=false`, non acheteur | échéance replay - 24 h puis - 4 h | Même replay personnel, au point replay le plus avancé |
 | Offre vue | `saw_offer=true`, non acheteur | expiration de l’offre + 5 min | Offre directe, sans replay |
 | Acheteur | statut/paiement/`purchased_at` | immédiat | Toute relance annulée et groupes retirés |
 
@@ -48,6 +48,12 @@ produit une nouvelle clé métier.
   créée à partir de ce CTA, après déduction de la durée de vidéo déjà vue.
 - Un achat invalide aussi l'accès replay.
 - L'URL vidéo et la seconde du CTA viennent des variables d'environnement.
+- À chaque ouverture, y compris depuis un ancien lien, le point proposé est le
+  plus avancé entre la reprise live initiale et `watch_max_seconds_replay`.
+- Dès 60 secondes de progression utile, la personne choisit explicitement
+  « Reprendre à MM:SS » ou « Recommencer depuis le début ».
+- Recommencer lance la vidéo à zéro sans effacer la progression serveur : le
+  point le plus avancé reste récupérable lors d'une prochaine ouverture.
 
 ## Variables
 

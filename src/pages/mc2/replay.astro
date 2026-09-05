@@ -246,6 +246,15 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
       max-width: 340px;
     }
     .replay-confirm-btn:hover { background: #1d4ed8; }
+    .replay-confirm-btn.replay-confirm-btn--secondary {
+      margin-top: 10px;
+      border: 1px solid rgba(96,165,250,.55);
+      background: rgba(59,130,246,.12);
+      color: #dbeafe;
+    }
+    .replay-confirm-btn.replay-confirm-btn--secondary:hover {
+      background: rgba(59,130,246,.22);
+    }
     .replay-confirm-sub {
       margin-top: 12px;
       font-size: .78rem;
@@ -1054,20 +1063,23 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
     </section>
   </main>
 
-  <div id="replay-confirm-overlay" class="replay-confirm-overlay hidden" aria-modal="true" role="dialog">
+  <div id="replay-confirm-overlay" class="replay-confirm-overlay hidden" aria-modal="true" aria-labelledby="replay-confirm-title" aria-describedby="replay-confirm-text" role="dialog">
     <div class="replay-confirm-panel">
-      <div class="replay-confirm-icon">⚠️</div>
-      <h2 class="replay-confirm-title">Information importante avant de lancer le replay</h2>
-      <p class="replay-confirm-text">
+      <div id="replay-confirm-icon" class="replay-confirm-icon">⚠️</div>
+      <h2 id="replay-confirm-title" class="replay-confirm-title">Information importante avant de lancer le replay</h2>
+      <p id="replay-confirm-text" class="replay-confirm-text">
         Cette masterclass est une <strong>expérience immersive</strong>. Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>. Exactement comme lors de la diffusion en direct.<br><br>
         Assure-toi d'avoir <strong>ton guide diagnostique</strong>, de quoi écrire, et <strong>1h20 devant toi sans interruption</strong>.<br><br>
-        Si tu quittes en cours de route, tu devras reprendre depuis le début.
+        Si tu quittes en cours de route, ta progression sera conservée.
       </p>
       <a class="replay-confirm-btn" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener" style="background:rgba(59,130,246,.15);border:1px solid rgba(96,165,250,.45);color:#dbeafe;margin-bottom:12px;font-size:.88rem;font-weight:700;">
         📄 Télécharge ton guide diagnostique
       </a>
       <button id="replay-confirm-btn" class="replay-confirm-btn" type="button">
         Je suis prêt(e), lancer le replay
+      </button>
+      <button id="replay-restart-btn" class="replay-confirm-btn replay-confirm-btn--secondary hidden" type="button">
+        Recommencer depuis le début
       </button>
       <p class="replay-confirm-sub">Tu ne pourras pas mettre la vidéo sur pause.</p>
       <button id="replay-confirm-cancel" type="button" style="margin-top:16px;background:none;border:none;color:rgba(226,232,240,.45);font-size:.82rem;cursor:pointer;text-decoration:underline;">Je ne suis pas encore prêt(e)</button>
@@ -2070,24 +2082,53 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
 
       const replayConfirmOverlay = document.getElementById('replay-confirm-overlay');
       const replayConfirmBtn = document.getElementById('replay-confirm-btn');
+      const replayRestartBtn = document.getElementById('replay-restart-btn');
+      const replayConfirmIcon = document.getElementById('replay-confirm-icon');
+      const replayConfirmTitle = document.getElementById('replay-confirm-title');
+      const replayConfirmText = document.getElementById('replay-confirm-text');
       let replayNoPause = true;
       const recoveryResumeSeconds = Math.max(0, Number(reg.resumeSeconds || 0));
+      const MIN_USEFUL_RESUME_SECONDS = 60;
+      const hasUsefulResume = recoveryResumeSeconds >= MIN_USEFUL_RESUME_SECONDS;
 
-      function launchReplayAfterConfirm() {
+      function formatResumeTime(seconds) {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        const minutes = Math.floor(total / 60);
+        return `${minutes}:${String(total % 60).padStart(2, '0')}`;
+      }
+
+      if (hasUsefulResume) {
+        if (replayConfirmIcon) replayConfirmIcon.textContent = '↩️';
+        if (replayConfirmTitle) replayConfirmTitle.textContent = 'Ta progression a été conservée';
+        if (replayConfirmText) {
+          replayConfirmText.innerHTML = 'Tu as déjà commencé cette masterclass. Reprends exactement là où tu t\'es arrêté, ou recommence depuis le début.<br><br>Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>.';
+        }
+        replayConfirmBtn.textContent = `Reprendre à ${formatResumeTime(recoveryResumeSeconds)}`;
+        replayRestartBtn?.classList.remove('hidden');
+        // Le choix est présenté dès l'ouverture d'un replay déjà commencé.
+        replayConfirmOverlay?.classList.remove('hidden');
+      }
+
+      function launchReplayAfterConfirm(startAtSeconds = recoveryResumeSeconds) {
         replayConfirmOverlay?.classList.add('hidden');
         overlay.classList.add('hidden');
-        // Le segment « parti avant CTA » reprend près du dernier point vu.
-        // Le no-show conserve exactement le démarrage historique à 0.
-        const resumeLimit = Number.isFinite(video.duration) && video.duration > 0
-          ? Math.max(0, video.duration - 1)
-          : recoveryResumeSeconds;
-        allowProgrammaticSeek = true;
-        video.currentTime = Math.min(recoveryResumeSeconds, resumeLimit);
-        if (!didTrackReplayStarted) {
-          didTrackReplayStarted = true;
-          trackWebinaireEvent(token, 'replay_started');
+        const requestedStart = Math.max(0, Number(startAtSeconds) || 0);
+
+        function seekAndPlay() {
+          const resumeLimit = Number.isFinite(video.duration) && video.duration > 0
+            ? Math.max(0, video.duration - 1)
+            : requestedStart;
+          allowProgrammaticSeek = true;
+          video.currentTime = Math.min(requestedStart, resumeLimit);
+          setPreviewWallClockFromReplaySeconds(video.currentTime);
+          if (!didTrackReplayStarted) {
+            didTrackReplayStarted = true;
+            trackWebinaireEvent(token, 'replay_started');
+          }
+          video.play().catch(() => {});
         }
-        video.play().catch(() => {});
+        if (video.readyState >= 1) seekAndPlay();
+        else video.addEventListener('loadedmetadata', seekAndPlay, { once: true });
         // Affiche la barre de contrôles uniquement après lancement.
         // On masque le bouton Play (pause désactivée), on garde -15s + Son/volume.
         if (controlsBar) controlsBar.style.display = '';
@@ -2106,7 +2147,12 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         video.play().catch(() => {});
       });
       replayConfirmBtn?.addEventListener('click', () => {
-        launchReplayAfterConfirm();
+        launchReplayAfterConfirm(recoveryResumeSeconds);
+      });
+      replayRestartBtn?.addEventListener('click', () => {
+        // Repartir de zéro ne remet jamais à zéro watch_max_seconds_replay :
+        // la mémoire serveur reste disponible lors d'une prochaine ouverture.
+        launchReplayAfterConfirm(0);
       });
       document.getElementById('replay-confirm-cancel')?.addEventListener('click', () => {
         replayConfirmOverlay?.classList.add('hidden');
@@ -2147,15 +2193,6 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
       video.muted = false;
       volumeRange.value = '80';
       muteBtn.textContent = 'Son';
-      if (maxWatched > 0) {
-        const resumeAt = maxWatched;
-        video.addEventListener('loadedmetadata', () => {
-          const limit = Number.isFinite(video.duration) ? Math.max(0, video.duration - 1) : resumeAt;
-          allowProgrammaticSeek = true;
-          video.currentTime = Math.min(resumeAt, limit);
-          setPreviewWallClockFromReplaySeconds(video.currentTime);
-        }, { once: true });
-      }
       fullscreenBtn.addEventListener('click', () => {
         const box = document.getElementById('video-box');
         if (!document.fullscreenElement) box.requestFullscreen?.().catch(() => {});
@@ -2550,7 +2587,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         pays: 'France',
         sessionStartsAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
         offreExpiresAt: null,
-        resumeSeconds: 0,
+        resumeSeconds: Math.max(0, Number(new URLSearchParams(window.location.search).get('resume')) || 0),
         offerUrl: '#',
       };
     }

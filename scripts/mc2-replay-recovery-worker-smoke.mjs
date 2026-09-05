@@ -133,6 +133,7 @@ registrationOverrides = {
   attended_live: true,
   saw_offer: false,
   watch_max_seconds_live: 2_700,
+  watch_max_seconds_replay: 2_537,
   last_presence_at: '2026-08-13T12:00:00.000Z',
   offer_expires_at: null,
 };
@@ -145,9 +146,10 @@ const replayReminder = await processMc2ReplayRecoveryJob({
 }, replayReminderNow, env);
 assert.equal(replayReminder.status, 'delivered');
 const reminderAccess = calls.find((call) => call.host === 'supabase.test' && call.body?.access_expires_at);
-assert.equal(reminderAccess.body.resume_seconds, 1_500);
+assert.equal(reminderAccess.body.resume_seconds, 2_537);
 const reminderFields = calls.find((call) => call.host === 'connect.mailerlite.com' && call.method === 'PUT')?.body?.fields;
 assert.equal(reminderFields.mc2_recovery_segment, 'left_before_cta');
+assert.equal(reminderFields.mc2_replay_resume_seconds, '2537');
 
 calls.length = 0;
 registrationOverrides = {

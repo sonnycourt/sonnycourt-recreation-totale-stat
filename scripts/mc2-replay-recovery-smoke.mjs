@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   isMc2Purchased,
   mc2RecoveryDueAt,
+  mc2EffectiveReplayResumeSeconds,
   mc2RecoveryJobKey,
   mc2RecoveryMessageTypes,
   mc2RecoveryResumeSeconds,
@@ -85,6 +86,30 @@ assert.equal(
   mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_live: 1_201 }, 'left_before_cta', env),
   1,
 );
+assert.equal(
+  mc2RecoveryResumeSeconds({ ...left, watch_max_seconds_replay: 2_537 }, 'left_before_cta', env),
+  2_537,
+);
+assert.equal(
+  mc2RecoveryResumeSeconds({ ...base, watch_max_seconds_replay: 2_537 }, 'no_show', env),
+  2_537,
+);
+assert.equal(
+  mc2EffectiveReplayResumeSeconds(
+    { ...left, watch_max_seconds_replay: 2_537 },
+    { segment: 'left_before_cta', resume_seconds: 1_500 },
+    env,
+  ),
+  2_537,
+);
+assert.equal(
+  mc2EffectiveReplayResumeSeconds(
+    { ...left, watch_max_seconds_replay: 300 },
+    { segment: 'left_before_cta', resume_seconds: 1_500 },
+    env,
+  ),
+  1_500,
+);
 
 const offer = { ...left, saw_offer: true, offer_expires_at: '2026-08-12T20:15:00.000Z' };
 assert.equal(mc2RecoverySegment(offer), 'offer_seen_no_purchase');
@@ -111,5 +136,6 @@ console.log(JSON.stringify({
   replay_deadline_independent_from_offer: 'ok',
   smart_no_show_timing: 'ok',
   replay_reminder_sequence: 'ok',
+  replay_latest_progress_wins: 'ok',
   idempotent_job_key: 'ok',
 }, null, 2));
