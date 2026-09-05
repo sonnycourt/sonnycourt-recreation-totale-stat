@@ -251,6 +251,63 @@ export async function queueMc2ReplayRecoverySequence(row, env = process.env) {
   return results;
 }
 
+function mc2ReplayRecoveryJobBodies(rows = [], env = process.env) {
+  const bodies = [];
+  for (const row of rows) {
+    const segment = mc2RecoverySegment(row);
+    if (!row?.token || !segment) continue;
+    for (const messageType of mc2RecoveryMessageTypes(row, segment)) {
+      const dueAt = mc2RecoveryDueAt(row, segment, env, messageType);
+      const sessionStartsAt = dateOrNull(row.session_starts_at);
+      if (!dueAt || !sessionStartsAt) continue;
+      bodies.push({
+        token: clean(row.token, 128),
+        job_key: mc2RecoveryJobKey(row, segment, messageType),
+        session_starts_at: sessionStartsAt.toISOString(),
+        segment,
+        message_type: messageType,
+        due_at: dueAt.toISOString(),
+        resume_seconds: mc2RecoveryResumeSeconds(row, segment, env),
+      });
+    }
+  }
+  return bodies;
+}
+
+export async function queueMc2ReplayRecoveryBatch(rows = [], env = process.env) {
+  const bodies = mc2ReplayRecoveryJobBodies(rows, env);
+  if (!bodies.length) return { ok: true, jobs: 0, created: 0 };
+
+  // Une insertion PostgREST par lot remplace jusqu'à plusieurs milliers de
+  // POST séquentiels. La contrainte unique sur job_key rend l'opération
+  // idempotente et ignore proprement les jobs déjà programmés.
+  const batchSize = 500;
+  const batches = [];
+  for (let index = 0; index < bodies.length; index += batchSize) {
+    batches.push(bodies.slice(index, index + batchSize));
+  }
+
+  // Quatre requêtes simultanées gardent une marge confortable sous la limite
+  // d'exécution Netlify sans envoyer une rafale incontrôlée à Supabase.
+  const concurrency = Math.min(4, batches.length);
+  let cursor = 0;
+  let created = 0;
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    while (cursor < batches.length) {
+      const batch = batches[cursor];
+      cursor += 1;
+      const inserted = await supabasePost(
+        'mc2_replay_recovery_jobs?on_conflict=job_key',
+        batch,
+        { prefer: 'resolution=ignore-duplicates,return=representation' },
+      );
+      if (!inserted.ok) throw new Error(`mc2_replay_batch_queue_${inserted.status}`);
+      created += Array.isArray(inserted.data) ? inserted.data.length : 0;
+    }
+  }));
+  return { ok: true, jobs: bodies.length, created };
+}
+
 export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purchase_completed', env = process.env }) {
   const safeToken = clean(token, 128);
   if (!safeToken) return { ok: false, error: 'token_missing' };

@@ -21,13 +21,15 @@ process.env.SUPABASE_URL = 'https://supabase.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test';
 
 const accessCode = 'resume-choice-access-code-1234567890';
+const now = new Date();
+const sessionStartsAt = new Date(now.getTime() - 24 * 60 * 60_000);
 let registration = {
   token: 'resume-choice-registration-token',
   email: 'resume@example.com',
   prenom: 'Camille',
   pays: 'France',
-  session_starts_at: '2026-09-02T18:00:00.000Z',
-  session_ends_at: '2026-09-02T19:39:00.000Z',
+  session_starts_at: sessionStartsAt.toISOString(),
+  session_ends_at: new Date(sessionStartsAt.getTime() + 99 * 60_000).toISOString(),
   offer_expires_at: null,
   attended_live: true,
   saw_offer: false,
@@ -43,8 +45,8 @@ const job = {
   segment: 'left_before_cta',
   status: 'delivered',
   access_code: accessCode,
-  access_starts_at: '2026-09-02T20:00:00.000Z',
-  access_expires_at: '2026-09-05T21:00:00.000Z',
+  access_starts_at: new Date(now.getTime() - 60 * 60_000).toISOString(),
+  access_expires_at: new Date(now.getTime() + 24 * 60 * 60_000).toISOString(),
   resume_seconds: 1_500,
 };
 
