@@ -2,6 +2,12 @@
 import reviewsData from '../../data/reviews.json';
 import reviewConversionOrder from '../../data/review-conversion-order.json';
 
+interface Props {
+  checkoutEmbedMode?: 'auto' | 'iframe';
+}
+
+const { checkoutEmbedMode = 'auto' } = Astro.props;
+
 const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
 const previewCheckoutReviews = reviewsData.reviews
   .filter((review) => Boolean(review.first_name))
@@ -2194,6 +2200,7 @@ const previewReviewInitials = (name) => name
             data-monthly-checkout="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1"
             data-once-checkout="https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1"
             data-discount-code="OFFRE50POURCENT"
+            data-checkout-embed-mode={checkoutEmbedMode}
             aria-label="Paiement sécurisé Esprit Subconscient 2.0"
           >
             <div class="checkout-payment-brands payment-brands" aria-label="Moyens de paiement acceptés">
@@ -2569,6 +2576,8 @@ const previewReviewInitials = (name) => name
         let activePlan = 'once';
         const planPanels = new Map();
         const checkoutFrames = new Map();
+        const useDirectIframe = slot.dataset.checkoutEmbedMode === 'iframe'
+          || window.location.protocol === 'http:';
 
         const checkoutUrl = (base) => {
           const url = new URL(base);
@@ -2589,7 +2598,7 @@ const previewReviewInitials = (name) => name
           panel.dataset.checkoutPlan = planName;
           panel.setAttribute('aria-hidden', planName === activePlan ? 'false' : 'true');
 
-          if (window.location.protocol === 'http:') {
+          if (useDirectIframe) {
             url.searchParams.set('elements', btoa(JSON.stringify({
               modality: 'inline',
               uid: planName === 'once' ? 1 : 2,
@@ -2675,7 +2684,7 @@ const previewReviewInitials = (name) => name
           const panels = Object.keys(plans).map(createPlanPanel);
           slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...panels] : panels));
           selectPlan(activePlan);
-          if (window.location.protocol !== 'http:' && window.spiffy?.load) {
+          if (!useDirectIframe && window.spiffy?.load) {
             window.spiffy.load('sonnycourt');
           }
         };

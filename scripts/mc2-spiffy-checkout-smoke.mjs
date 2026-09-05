@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import statusHandler from '../netlify/functions/mc2-spiffy-status.js';
 
 const page = await fs.readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+const replay = await fs.readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
 const offer = await fs.readFile(new URL('../src/components/mc2/DealOffer.astro', import.meta.url), 'utf8');
 const success = await fs.readFile(new URL('../src/pages/commencer/succes.astro', import.meta.url), 'utf8');
 const legacySuccess = await fs.readFile(new URL('../src/pages/es2-derniere-etape.astro', import.meta.url), 'utf8');
@@ -15,6 +16,7 @@ const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-p
 // La page session consomme l'offre approuvée, qui possède désormais tout le checkout.
 assert.match(page, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOffer\.astro['"]/);
 assert.match(page, /<DealOffer\s*\/>/);
+assert.match(replay, /<DealOffer\s+checkoutEmbedMode=["']iframe["']\s*\/>/);
 
 // Les deux checkouts réels sont intégrés, avec le comptant présélectionné.
 assert.match(offer, /spiffy\.load\(["']sonnycourt["']\)/);
@@ -36,6 +38,10 @@ assert.ok(
 );
 assert.match(offer, /document\.createElement\(['"]spiffy-checkout['"]\)/);
 assert.match(offer, /document\.createElement\(['"]iframe['"]\)/);
+assert.match(offer, /data-checkout-embed-mode=\{checkoutEmbedMode\}/);
+assert.match(offer, /slot\.dataset\.checkoutEmbedMode === ['"]iframe['"]/);
+assert.match(offer, /if \(useDirectIframe\)/);
+assert.match(offer, /if \(!useDirectIframe && window\.spiffy\?\.load\)/);
 assert.match(offer, /frame\.setAttribute\(['"]allow['"], ['"]payment['"]\)/);
 assert.match(offer, /url\.searchParams\.set\(['"]mc2_token['"], mc2Token\)/);
 assert.doesNotMatch(offer, /url\.searchParams\.set\(['"]name_first['"]/);
