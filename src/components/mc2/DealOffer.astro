@@ -2555,7 +2555,8 @@ const previewReviewInitials = (name) => name
         if (!slot || planButtons.length !== 2) return;
 
         const visitor = new URLSearchParams(window.location.search);
-        const mc2Token = visitor.get('t') || visitor.get('token') || '';
+        let mc2Token = visitor.get('t') || visitor.get('token') || '';
+        let visitorCountry = visitor.get('country') || '';
 
         const plans = {
           once: {
@@ -2572,7 +2573,7 @@ const previewReviewInitials = (name) => name
         const checkoutUrl = (base) => {
           const url = new URL(base);
           url.searchParams.set('code', slot.dataset.discountCode || 'OFFRE50POURCENT');
-          if (visitor.get('country')) url.searchParams.set('country', visitor.get('country'));
+          if (visitorCountry) url.searchParams.set('country', visitorCountry);
           if (mc2Token) {
             url.searchParams.set('t', mc2Token);
             url.searchParams.set('mc2_token', mc2Token);
@@ -2668,12 +2669,27 @@ const previewReviewInitials = (name) => name
           selectPlan(requestedPlan);
         }));
 
-        const panels = Object.keys(plans).map(createPlanPanel);
-        slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...panels] : panels));
-        selectPlan(activePlan);
-        if (window.location.protocol !== 'http:' && window.spiffy?.load) {
-          window.spiffy.load('sonnycourt');
-        }
+        const mountCheckoutPanels = () => {
+          planPanels.clear();
+          checkoutFrames.clear();
+          const panels = Object.keys(plans).map(createPlanPanel);
+          slot.replaceChildren(...(paymentBrands ? [paymentBrands, ...panels] : panels));
+          selectPlan(activePlan);
+          if (window.location.protocol !== 'http:' && window.spiffy?.load) {
+            window.spiffy.load('sonnycourt');
+          }
+        };
+
+        window.addEventListener('mc2:deal-registration', (event) => {
+          const nextToken = String(event?.detail?.token || '').trim();
+          const nextCountry = String(event?.detail?.country || '').trim();
+          if (nextToken === mc2Token && nextCountry === visitorCountry) return;
+          mc2Token = nextToken;
+          visitorCountry = nextCountry;
+          mountCheckoutPanels();
+        });
+
+        mountCheckoutPanels();
       })();
     </script>
     <script>

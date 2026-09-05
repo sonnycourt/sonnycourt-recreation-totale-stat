@@ -37,6 +37,9 @@ assert.equal(selection.ok, true);
 assert.equal(selection.sessionEndsAt.toISOString(), '2026-08-26T19:59:08.000Z');
 
 const sessionPage = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
+const replayPage = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
+const dealOffer = await readFile(new URL('../src/components/mc2/DealOffer.astro', import.meta.url), 'utf8');
+const offerTimeline = await readFile(new URL('../src/data/mc2-offer-timeline.ts', import.meta.url), 'utf8');
 const confirmationPage = await readFile(new URL('../src/pages/mc2/confirmation.astro', import.meta.url), 'utf8');
 const getRegistration = await readFile(new URL('../netlify/functions/get-mc2-registration.js', import.meta.url), 'utf8');
 const eligibility = await readFile(new URL('../netlify/functions/check-mc2-eligibility.js', import.meta.url), 'utf8');
@@ -53,10 +56,30 @@ assert.match(confirmationPage, /startButton\.addEventListener\('click', playWith
 assert.match(getRegistration, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 assert.match(eligibility, /mc2SessionEndsAtIso\(row\.session_starts_at\)/);
 
+assert.match(replayPage, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOffer\.astro['"]/);
+assert.match(replayPage, /<DealOffer\s*\/>/);
+assert.doesNotMatch(replayPage, /Mc2InlineOffer/);
+assert.match(replayPage, /const OFFER_TOTAL_SEATS = 100/);
+assert.match(replayPage, /const OFFER_INITIAL_REMAINING_SEATS = 37/);
+assert.match(replayPage, /timeline: createMc2OfferTimeline\(offerExpiryMs - offerActivationMs\)/);
+assert.doesNotMatch(replayPage, /startMc2SessionScarcity/);
+assert.match(replayPage, /document\.getElementById\('deal-registration'\)\?\.scrollIntoView/);
+assert.match(dealOffer, /window\.addEventListener\('mc2:deal-registration'/);
+assert.match(dealOffer, /mc2Token = nextToken/);
+assert.match(dealOffer, /mountCheckoutPanels\(\)/);
+
+assert.match(offerTimeline, /3 \* MINUTE_MS,[\s\S]*6 \* MINUTE_MS,[\s\S]*7 \* MINUTE_MS,[\s\S]*9 \* MINUTE_MS/);
+assert.match(offerTimeline, /37 → 20/);
+assert.match(offerTimeline, /20 → 5/);
+assert.match(offerTimeline, /FINAL_PHASE_FRACTIONS = \[0\.2, 0\.4, 0\.6, 0\.8, 1\]/);
+
 console.log(JSON.stringify({
   canonical_live_end_015908_after_session_start: 'ok',
   stale_75_minute_end_ignored_by_live_page: 'ok',
   existing_registration_contract_normalized: 'ok',
   live_replay_cta_alignment: 'ok',
   confirmation_video_click_to_play_only: 'ok',
+  replay_uses_final_session_offer: 'ok',
+  replay_offer_37_to_20_to_5_to_0: 'ok',
+  replay_checkout_receives_private_token: 'ok',
 }, null, 2));
