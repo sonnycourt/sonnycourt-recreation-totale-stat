@@ -1114,6 +1114,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
     import Hls from 'hls.js';
     import { startScarcityEngine } from '../../lib/scarcity-engine';
     import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
+    import { startMc2OfferObservability } from '../../lib/mc2-offer-observability';
     import {
       MC2_REPLAY_CTA_SECONDS,
       MC2_REPLAY_OFFER_DURATION_MS,
@@ -1978,6 +1979,13 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         syncOfferDeadline();
         offerZone.classList.remove('hidden');
         offerZone.classList.add('visible');
+        startMc2OfferObservability({
+          root: offerZone.querySelector('#deal-offer-content') || offerZone,
+          route: '/mc2/replay/',
+          track: function (eventName, value, metadata) {
+            return trackWebinaireEvent(token, eventName, value, metadata);
+          },
+        });
         expiryBanner.classList.add('hidden');
         setOfferExpiredState(isOfferExpiredNow());
         startScarcityEngineIfNeeded();

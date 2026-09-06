@@ -2218,6 +2218,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         } from '../../lib/mc2-timing.mjs';
         import { startScarcityEngine } from '../../lib/scarcity-engine';
         import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
+        import { startMc2OfferObservability } from '../../lib/mc2-offer-observability';
         const TOKEN_KEY = 'mc2_registration_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
@@ -2743,6 +2744,13 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
             zone.classList.remove('hidden');
             void zone.offsetWidth; // reflow needed to trigger animation from display:none
             zone.classList.add('visible');
+            startMc2OfferObservability({
+                root: zone.querySelector('#deal-offer-content') || zone,
+                route: '/mc2/session/',
+                track: function (eventName, value, metadata) {
+                    return trackWebinaireEvent(token, eventName, value, metadata);
+                },
+            });
         }
 
         let inlineCheckoutController = null;
