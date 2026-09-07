@@ -14,6 +14,7 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { assertLocalDeployDependencies, assertMc2FunctionStartup } from './lib/deploy-runtime-guards.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2] || 'check';
@@ -182,6 +183,7 @@ async function assertCriticalUrl(baseUrl) {
   if (errors.length) {
     fail(`La preview a échoué au contrôle anti-régression :\n- ${errors.join('\n- ')}`);
   }
+  await assertMc2FunctionStartup(baseUrl);
 }
 
 function assertProductionGitState() {
@@ -247,6 +249,7 @@ async function assertNoHistoryRollback(production, candidateCommit) {
 }
 
 function build(baseDeployId) {
+  assertLocalDeployDependencies(root);
   run('npm', ['run', 'build']);
   assertCriticalBuild();
   const manifestDir = join(root, 'dist/.well-known');
