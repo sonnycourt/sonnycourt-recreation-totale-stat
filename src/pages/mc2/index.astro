@@ -1,10 +1,17 @@
 ---
 import GAConsentMode from '../../components/GAConsentMode.astro';
 import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
+
+interface Props {
+    trafficSource?: 'meta_ad' | null;
+    trackingPath?: string;
+}
+
+const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
 ---
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-mc2-source={trafficSource} data-mc2-tracking-path={trackingPath}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2500,6 +2507,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
     <script>
         // @ts-nocheck
+        import { createMc2MetaOptin } from '../../lib/mc2-optin-meta.mjs';
         /** MC2 : planification locale provisoire. Le serveur deviendra la source de vérité à l'étape backend. */
         /** TEMP - supprimer tout le bloc mot de passe avant lancement public */
         const MASTERCLASS_ACCESS_SESSION = 'masterclass_access';
@@ -2513,7 +2521,9 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         const PRE_OPTIN_DELAY_MS = 1200;
         const PRE_OPTIN_FADE_MS = 180;
         const PRE_OPTIN_SUCCESS_MS = 650;
-        const OPTIN_VARIANT = 'v5';
+        const OPTIN_TRAFFIC_SOURCE = document.documentElement.dataset.mc2Source || null;
+        const OPTIN_TRACKING_PATH = document.documentElement.dataset.mc2TrackingPath || '/mc2/';
+        const OPTIN_VARIANT = OPTIN_TRAFFIC_SOURCE === 'meta_ad' ? 'mc2_meta_v5' : 'v5';
         const MC2_JIT_MIN_LEAD_MS = 8 * 60 * 1000;
         const MC2_JIT_GRACE_MS = 3 * 60 * 1000;
         const MC2_FIXED_MIN_LEAD_MS = 60 * 60 * 1000;
@@ -2532,6 +2542,15 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         let preOptinOverlayBusy = false;
         const optinFunnelId = createOptinFunnelId();
         const OPTIN_INTERNAL_TRAFFIC_KEY = 'masterclass_optin_internal';
+        const metaOptin = OPTIN_TRAFFIC_SOURCE === 'meta_ad'
+            ? createMc2MetaOptin({
+                window,
+                document,
+                funnelId: optinFunnelId,
+                variant: OPTIN_VARIANT,
+                disabled: Boolean(window.__MC2_PREVIEW_ONLY__) || isOptinInternalTraffic(),
+            })
+            : null;
 
         function isOptinInternalTraffic() {
             let internalParam = '';
@@ -2581,8 +2600,8 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                     funnel_id: optinFunnelId,
                     event_name: eventName,
                     variant: OPTIN_VARIANT,
-                    path: '/mc2/',
-                    traffic_source: null,
+                    path: OPTIN_TRACKING_PATH,
+                    traffic_source: OPTIN_TRAFFIC_SOURCE,
                     selected_country: state.country || null,
                     session_date: session ? session.toISOString() : null,
                 };
@@ -3537,6 +3556,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                         telephone: state.phone,
                         pays: state.country,
                         sms_consent: true,
+                        ...(metaOptin ? metaOptin.getPayload() : {}),
                     }),
                 });
 
@@ -3561,6 +3581,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                 }
 
                 setTokenEverywhere(result.token);
+                metaOptin?.fireEvents(result.metaEvents);
                 trackOptinEvent('registration_completed');
                 window.location.href = '/mc2/confirmation?t=' + encodeURIComponent(result.token)
                     + (window.__MC2_PREVIEW_ONLY__ ? '&preview=dev' : '');
@@ -3583,6 +3604,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                     session_starts_at: selectedSlot ? selectedSlot.startsAt.toISOString() : null,
                     slot_kind: selectedSlot ? selectedSlot.kind : 'jit',
                     visitor_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                    ...(metaOptin ? metaOptin.getPayload() : {}),
                 }),
             });
             const result = await response.json();
@@ -3593,6 +3615,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                 return { ok: false };
             }
             setTokenEverywhere(result.token);
+            metaOptin?.fireEvents(result.metaEvents);
             return { ok: true, token: result.token };
         }
 
