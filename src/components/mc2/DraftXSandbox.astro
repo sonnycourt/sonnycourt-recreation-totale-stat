@@ -1,0 +1,64 @@
+<!-- This boundary is exclusive to DraftX. Never import it into the real funnel. -->
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https://*.b-cdn.net; connect-src http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://*.b-cdn.net; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'" />
+<script is:inline>
+  (() => {
+    const events = [];
+    const record = (type, detail = {}) => {
+      events.push({ type, detail, at: Date.now() });
+      if (events.length > 500) events.shift();
+    };
+    const memory = new Map();
+    const storage = Object.freeze({
+      getItem: key => memory.has(key) ? memory.get(key) : null,
+      setItem: (key, value) => memory.set(key, String(value)),
+      removeItem: key => memory.delete(key),
+    });
+    window.__mc2DraftX = Object.freeze({ events, record, storage });
+
+    // A real prospect token must never be consumed by this workbench.
+    const url = new URL(location.href);
+    ['t', 'token', 'access', 'checkout', 'email', 'country'].forEach(key => url.searchParams.delete(key));
+    url.searchParams.set('preview', 'dev');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const target = new URL(input instanceof Request ? input.url : String(input), location.href);
+      const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+      const local = target.origin === location.origin;
+      const media = target.protocol === 'https:' && target.hostname.endsWith('.b-cdn.net');
+      if (!['GET', 'HEAD'].includes(method) || target.pathname.startsWith('/.netlify/')
+          || target.pathname.startsWith('/api/') || (!local && !media)) {
+        record('request_blocked', { path: target.pathname, method });
+        return Promise.resolve(new Response(JSON.stringify({ draft: true, valid: false }), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return nativeFetch(input, init);
+    };
+    // Defense in depth: no pixel, analytics beacon or real checkout in this page.
+    try { navigator.sendBeacon = () => { record('beacon_blocked'); return false; }; } catch {}
+    window.fbq = () => {};
+    window.gtag = () => {};
+    window.clarity = () => {};
+
+    document.addEventListener('submit', event => {
+      event.preventDefault();
+      record('form_simulated');
+    }, true);
+    document.addEventListener('click', event => {
+      const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!link) return;
+      const href = link.getAttribute('href') || '';
+      if (href.startsWith('#')) return;
+      const target = new URL(href, location.href);
+      if (target.origin === location.origin && target.pathname.startsWith('/media/')) return;
+      event.preventDefault();
+      record('navigation_simulated', { path: target.pathname });
+      const note = document.getElementById('draftx-status');
+      if (note) note.textContent = 'Navigation simulée : aucun accès au funnel réel.';
+    }, true);
+  })();
+</script>

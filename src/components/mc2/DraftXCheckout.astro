@@ -1,0 +1,51 @@
+<div class="draftx-checkout" data-draftx-checkout>
+  <p class="draftx-checkout__notice">BROUILLON — formulaire simulé, aucun paiement possible.</p>
+  <form autocomplete="off" id="draftx-checkout-form">
+    <div class="draftx-checkout__identity">
+      <input aria-label="Prénom de test" placeholder="Prénom" value="Preview" />
+      <input aria-label="Email de test" placeholder="Email" value="preview@example.invalid" />
+    </div>
+    <label class="draftx-checkout__label">Carte bancaire (simulation)</label>
+    <input aria-label="Carte bancaire de test" value="4242 4242 4242 4242" readonly />
+    <div class="draftx-checkout__identity">
+      <input aria-label="Expiration de test" value="12 / 30" readonly />
+      <input aria-label="Code de sécurité de test" value="123" readonly />
+    </div>
+    <label class="draftx-checkout__terms"><input type="checkbox" /> J’accepte les CGV (simulation).</label>
+    <button class="draftx-checkout__pay" type="submit">JE COMMENCE MA TRANSFORMATION</button>
+    <p class="draftx-checkout__result" role="status" id="draftx-payment-status">Simulation : versement unique de 1 997 €.</p>
+  </form>
+</div>
+<style>
+  .draftx-checkout { padding: 12px 0 4px; color: #17304b; font-family: Inter, sans-serif; }
+  .draftx-checkout__notice { margin: 0 0 14px; text-align: center; font-size: 11px; color: #6b4a08; }
+  .draftx-checkout__identity { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .draftx-checkout input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; padding: 14px 12px; border: 1px solid #cbd8e6; border-radius: 8px; background: #fff; color: #57718d; font: inherit; font-size: 13px; }
+  .draftx-checkout__label { display: block; margin: 12px 0 7px; font-size: 12px; }
+  .draftx-checkout__label + input { margin-bottom: 12px; }
+  .draftx-checkout__terms { display: flex; gap: 8px; align-items: center; margin: 15px 0; font-size: 12px; }
+  .draftx-checkout__terms input { accent-color: #347bea; }
+  .draftx-checkout__pay { width: 100%; padding: 15px 10px; border: 0; border-radius: 7px; background: #347bea; color: white; font-size: 13px; font-weight: 800; cursor: pointer; }
+  .draftx-checkout__result { margin: 12px 0 0; text-align: center; font-size: 12px; }
+  @media(max-width: 480px) { .draftx-checkout__identity { grid-template-columns: 1fr; } }
+</style>
+<script>
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-payment-plan]'));
+  const status = document.getElementById('draftx-payment-status');
+  let activePlan = 'once';
+  buttons.forEach(button => button.addEventListener('click', () => {
+    activePlan = button.dataset.paymentPlan || 'once';
+    buttons.forEach(option => {
+      const selected = option === button;
+      option.classList.toggle('is-selected', selected);
+      option.setAttribute('aria-pressed', String(selected));
+    });
+    if (status) status.textContent = activePlan === 'once'
+      ? 'Simulation : versement unique de 1 997 €.'
+      : 'Simulation : 3 mensualités de 767 €.';
+  }));
+  document.getElementById('draftx-checkout-form')?.addEventListener('submit', event => {
+    event.preventDefault();
+    if (status) status.textContent = 'Test réussi : aucun paiement, aucune inscription ni aucun message envoyé.';
+  });
+</script>
