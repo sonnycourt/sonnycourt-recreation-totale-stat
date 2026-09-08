@@ -8,7 +8,7 @@ const checks = {
   legacy_email_recovery_removed: !source.includes("fetch('/.netlify/functions/check-webinaire-eligibility'"),
   fresh_registration_allowed: source.includes('if (!data.valid || !data.sessionStartsAt)')
     && !source.includes('if (!data.valid || !data.sessionStartsAt || !data.offreExpiresAt)'),
-  checkout_controls_offer_deadline: source.includes("const expiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN"),
+  checkout_controls_offer_deadline: /(?:const|let) expiryMs = reg\.offreExpiresAt \? new Date\(reg\.offreExpiresAt\)\.getTime\(\) : NaN/.test(source),
 };
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);

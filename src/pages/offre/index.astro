@@ -74,7 +74,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
                 <p class="message success" id="offer-success" role="status"></p>
                 <button type="submit" id="offer-submit"><span>RETROUVER MON OFFRE</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
               </form>
-              <p class="privacy">Nous utilisons ton email uniquement pour retrouver ton inscription et t’envoyer ton lien personnel. <a href="/confidentialite/">Politique de confidentialité</a>.</p>
+              <p class="privacy">Nous utilisons ton email uniquement pour retrouver ton inscription et ouvrir ton accès personnel. <a href="/confidentialite/">Politique de confidentialité</a>.</p>
             </div>
             <noscript>Active JavaScript pour retrouver automatiquement ton offre, ou écris-nous à <a href="mailto:support@sonnycourt.com">support@sonnycourt.com</a>.</noscript>
           </div>
@@ -136,6 +136,7 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
         }
         form?.addEventListener('submit',async (event) => {
           event.preventDefault();
+          if (submit?.disabled) return;
           const email = String(emailInput?.value || '').trim().toLowerCase();
           if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { if (errorNode) errorNode.textContent = 'Entre une adresse email valide.'; return; }
           if (errorNode) errorNode.textContent = '';
@@ -144,12 +145,12 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
           try {
             const response = await fetch('/.netlify/functions/request-mc2-access',{ method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ email,page_path: '/offre/' }) });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(data.error || 'Impossible d’envoyer ton lien.');
-            if (successNode) successNode.textContent = String(data.message || 'Si cette adresse correspond à une inscription, ton lien personnel vient d’être envoyé.');
-            if (emailInput) emailInput.disabled = true;
-            if (submit) submit.hidden = true;
+            if (!response.ok) throw new Error(data.error || 'Vérification impossible. Réessaie dans un instant.');
+            const token = String(data.token || '').trim();
+            if (!token || !(await tokenIsValid(token))) throw new Error('Vérification impossible. Réessaie dans un instant.');
+            redirectToOffer(token);
           } catch (error) {
-            if (errorNode) errorNode.textContent = error instanceof Error ? error.message : 'Impossible d’envoyer ton lien.';
+            if (errorNode) errorNode.textContent = error instanceof Error ? error.message : 'Vérification impossible. Réessaie dans un instant.';
             if (submit) submit.disabled = false;
           }
         });

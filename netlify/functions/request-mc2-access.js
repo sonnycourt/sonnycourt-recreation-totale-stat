@@ -13,17 +13,6 @@ function jsonResponse(status, payload) {
   });
 }
 
-function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[character]);
-}
-
-const genericResponse = () => jsonResponse(200, {
-  ok: true,
-  message: 'Si cette adresse correspond à une inscription, ton lien d’accès vient d’être envoyé.',
-});
-
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -31,55 +20,27 @@ export default async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const email = String(body?.email || '').trim().toLowerCase().slice(0, 320);
-    const allowedPaths = new Set(['/commencer/', '/mc2/confirmation/', '/mc2/session/', '/offre/']);
-    const pagePath = allowedPaths.has(String(body?.page_path || '')) ? String(body.page_path) : '/mc2/confirmation/';
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return jsonResponse(400, { error: 'Entre une adresse email valide.' });
     }
-    if (pagePath === '/offre/' && String(process.env.MC2_OFFER_RECOVERY_EMAIL_ENABLED || '').toLowerCase() !== 'true') {
-      return jsonResponse(503, { error: 'La récupération de l’offre par email sera bientôt disponible.' });
-    }
-
+    // Récupération immédiate par email, comme le parcours historique.
+    // Lecture seule : ni nouvel accès, ni prolongation, ni email envoyé.
     const result = await supabaseGet(
-      `mc2_registrations?email=eq.${encodeURIComponent(email)}&select=token,prenom&order=registered_at.desc&limit=1`,
+      `mc2_registrations?email=eq.${encodeURIComponent(email)}&select=token&order=registered_at.desc&limit=1`,
     );
-    const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
-    if (!row?.token) return genericResponse();
-
-    const apiKey = String(process.env.MAILERSEND_API_KEY || '').trim();
-    const senderEmail = String(process.env.PAY_EMAIL_FROM || process.env.COACHING_EMAIL_FROM || 'info@sonnycourt.com').trim();
-    if (!apiKey || !senderEmail) {
-      console.error('request-mc2-access: MailerSend non configuré');
-      return jsonResponse(503, { error: 'L’envoi du lien est momentanément indisponible. Contacte le support.' });
+    if (!result.ok || !Array.isArray(result.data)) {
+      return jsonResponse(503, { error: 'Vérification momentanément indisponible. Réessaie dans un instant.' });
     }
+    const token = String(result.data[0]?.token || '').trim();
+    if (!token) return jsonResponse(404, { error: 'Aucune inscription trouvée avec cet email.' });
 
-    const deployedUrl = process.env.CONTEXT === 'production'
-      ? process.env.URL
-      : (process.env.DEPLOY_PRIME_URL || process.env.URL);
-    const siteUrl = String(deployedUrl || 'https://sonnycourt.com').replace(/\/$/, '');
-    const accessUrl = `${siteUrl}${pagePath}?t=${encodeURIComponent(row.token)}`;
-    const firstName = String(row.prenom || '').trim();
-    const safeName = escapeHtml(firstName || '');
-    const safeUrl = escapeHtml(accessUrl);
-    const response = await fetch('https://api.mailersend.com/v1/email', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: { email: senderEmail, name: process.env.PAY_EMAIL_FROM_NAME || 'Sonny Court' },
-        to: [{ email, name: firstName || undefined }],
-        subject: 'Ton lien d’accès à la masterclass',
-        text: `${firstName ? `Bonjour ${firstName},\n\n` : ''}Voici ton lien personnel pour reprendre ton parcours :\n${accessUrl}\n\nSonny`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0f172a"><p>${safeName ? `Bonjour ${safeName},` : 'Bonjour,'}</p><p>Voici ton lien personnel pour reprendre ton parcours :</p><p style="margin:28px 0"><a href="${safeUrl}" style="display:inline-block;padding:15px 22px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700">REPRENDRE MON PARCOURS</a></p><p style="font-size:13px;color:#64748b">Ce lien est personnel. Ne le partage pas.</p><p>Sonny</p></div>`,
-      }),
+    return jsonResponse(200, {
+      ok: true,
+      token,
+      // Une page ouverte avant la mise à jour attendait un message d'envoi.
+      message: 'Inscription retrouvée. Si cette fenêtre reste affichée, recharge la page puis saisis à nouveau ton email pour ouvrir ton accès.',
     });
-    if (!response.ok) {
-      console.error('request-mc2-access MailerSend:', response.status, await response.text().catch(() => ''));
-      return jsonResponse(503, { error: 'L’envoi du lien est momentanément indisponible. Contacte le support.' });
-    }
-
-    return genericResponse();
-  } catch (error) {
-    console.error('request-mc2-access error:', error);
-    return genericResponse();
+  } catch {
+    return jsonResponse(503, { error: 'Vérification momentanément indisponible. Réessaie dans un instant.' });
   }
 };

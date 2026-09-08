@@ -17,7 +17,7 @@ const { pagePath = '/mc2/' } = Astro.props;
       <input id="mc2-access-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="ton@email.com" required />
       <p class="mc2-access-gate__error" id="mc2-access-error" role="alert"></p>
       <p class="mc2-access-gate__success" id="mc2-access-success" role="status"></p>
-      <button type="submit" id="mc2-access-submit"><span>RECEVOIR MON LIEN D’ACCÈS</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="submit" id="mc2-access-submit"><span>ACCÉDER À MA MASTERCLASS</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </form>
     <p class="mc2-access-gate__support">Besoin d’aide ? <a href="mailto:info@sonnycourt.com">Contacter le support</a></p>
   </section>
@@ -98,14 +98,16 @@ const { pagePath = '/mc2/' } = Astro.props;
   function showError(message) { if (errorNode) errorNode.textContent = message; }
   function showSuccess(message) { if (successNode) successNode.textContent = message; }
 
-  async function requestLink(email) {
+  async function recoverToken(email) {
     const response = await fetch('/.netlify/functions/request-mc2-access', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, page_path: pagePath }),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Impossible d’envoyer ton lien.');
-    return String(data.message || 'Si cette adresse correspond à une inscription, ton lien d’accès vient d’être envoyé.');
+    if (!response.ok) throw new Error(data.error || 'Vérification impossible. Réessaie dans un instant.');
+    const token = String(data.token || '').trim();
+    if (!token || !(await validate(token))) throw new Error('Vérification impossible. Réessaie dans un instant.');
+    return token;
   }
 
   async function resolveAccess() {
@@ -124,20 +126,23 @@ const { pagePath = '/mc2/' } = Astro.props;
       }
 
       showGate();
-      return new Promise(() => {
+      return new Promise((resolve) => {
         form?.addEventListener('submit', async (event) => {
           event.preventDefault();
           const email = String(emailInput?.value || '').trim().toLowerCase();
-          if (!email || !email.includes('@')) { showError('Entre une adresse email valide.'); return; }
+          if (submit?.disabled) return;
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Entre une adresse email valide.'); return; }
           showError(''); showSuccess('');
           if (submit) submit.disabled = true;
           form.classList.add('is-loading');
           try {
-            showSuccess(await requestLink(email));
-            if (emailInput) emailInput.disabled = true;
-            form.classList.add('is-sent');
+            const token = await recoverToken(email);
+            persist(token);
+            hideGate();
+            form.classList.remove('is-loading');
+            resolve(token);
           } catch (error) {
-            showError(error instanceof Error ? error.message : 'Impossible d’envoyer ton lien.');
+            showError(error instanceof Error ? error.message : 'Vérification impossible. Réessaie dans un instant.');
             if (submit) submit.disabled = false;
             form.classList.remove('is-loading');
           }
@@ -172,7 +177,6 @@ const { pagePath = '/mc2/' } = Astro.props;
   #mc2-access-submit { display: flex; width: 100%; min-height: 57px; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 13px; color: #fff; background: linear-gradient(135deg,#3b82f6,#2563eb); box-shadow: 0 14px 36px rgba(37,99,235,.38); font: inherit; font-size: .84rem; font-weight: 850; letter-spacing: .025em; cursor: pointer; }
   #mc2-access-submit svg { width: 19px; height: 19px; } #mc2-access-submit:disabled { opacity: .7; cursor: wait; }
   #mc2-access-form.is-loading #mc2-access-submit span::after { content: '…'; }
-  #mc2-access-form.is-sent #mc2-access-submit { display: none; }
   .mc2-access-gate__support { margin: 18px 0 0; color: rgba(255,255,255,.55); font-size: .75rem; }
   .mc2-access-gate__support a { color: #bfdbfe; font-weight: 700; }
   @media (max-width:560px) { .mc2-access-gate { padding: 15px; } .mc2-access-gate__card { padding: 28px 20px 24px; border-radius: 20px; } }
