@@ -10,8 +10,14 @@ interface Props {
 const { checkoutEmbedMode = 'auto' } = Astro.props;
 
 const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
+const optimizedReviewPhotos = new Map([
+  ['manifest-giuseppe-cc070dcd', '/media/mc2-review-avatar-01.webp'],
+  ['manifest-hassinat-0081daae', '/media/mc2-review-avatar-02.webp'],
+  ['manifest-beven-56df0591', '/media/mc2-review-avatar-03.webp'],
+]);
 const previewCheckoutReviews = reviewsData.reviews
   .filter((review) => Boolean(review.first_name))
+  .map((review) => ({ ...review, source_photo_url: optimizedReviewPhotos.get(review.id) || review.source_photo_url }))
   .sort((a, b) => (previewReviewOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (previewReviewOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
 const previewRatedReviews = previewCheckoutReviews.filter((review) => Number.isFinite(review.rating));
 const previewReviewAverage = previewRatedReviews.reduce((total, review) => total + review.rating, 0) / previewRatedReviews.length;
@@ -2320,7 +2326,7 @@ const previewReviewInitials = (name) => name
 
       <div class="preview-guarantee" id="draftx-guarantee">
         <div>
-          <img class="preview-guarantee__banner" src="/media/draftx-guarantee-6-months.png" alt="Garantie 6 mois" width="2172" height="724" />
+          <img class="preview-guarantee__banner" src="/media/draftx-guarantee-6-months.webp" alt="Garantie 6 mois" width="2172" height="724" />
           <strong>
             <span>SOIT TU MANIFESTES.</span>
             <span>SOIT JE TE REMBOURSE.</span>
