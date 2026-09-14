@@ -142,8 +142,13 @@ import { DRAFTX_PAYMENT_PLANS } from '../../lib/mc2-draftx-checkout.mjs';
   .draftx-checkout__today p { margin: 6px 0 0; min-height: 0; color: #355879; font-size: 0.875rem; line-height: 1.4; }
   .draftx-checkout__card-heading { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 1rem; font-weight: 700; }
   .draftx-checkout__provider { min-width: 0; width: 100%; }
-  :global(.draftx-spiffy-frame) { display: block; width: 100%; max-width: 100%; border: 0; background: #f7f9fc; }
-  :global(.draftx-spiffy-loading) { margin: 0 0 12px; color: #52657d; font-size: 0.875rem; }
+  .draftx-checkout__provider { position: relative; }
+  :global(.draftx-spiffy-frame) { display: block; width: 100%; max-width: 100%; border: 0; background: #f7f9fc; transition: opacity 160ms ease; }
+  :global(.draftx-spiffy-loading) { position: absolute; inset: 0; z-index: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; margin: 0; padding: 24px; border: 1px solid #dce6f2; border-radius: 12px; background: #f7f9fc; color: #52657d; text-align: center; font-size: 0.875rem; }
+  :global(.draftx-spiffy-loading)::before { content: ''; width: 26px; height: 26px; border: 3px solid #dce6f2; border-top-color: #347bea; border-radius: 50%; animation: draftx-payment-loading 800ms linear infinite; }
+  :global([data-spiffy-slot][aria-busy="false"] .draftx-spiffy-loading)::before { display: none; }
+  @keyframes draftx-payment-loading { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { :global(.draftx-spiffy-frame) { transition: none; } :global(.draftx-spiffy-loading)::before { animation: none; } }
   .draftx-checkout__card-details { margin-top: 14px; margin-bottom: 0; }
   .draftx-checkout__terms { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0; font-size: 0.875rem; line-height: 1.5; cursor: pointer; }
   .draftx-checkout__terms input { flex: 0 0 18px; height: 18px; margin-top: 2px; accent-color: #347bea; }

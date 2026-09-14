@@ -61,10 +61,41 @@ export function mountDraftXSpiffy(slot, plan, identity) {
   frame.setAttribute('allow', 'payment');
   frame.setAttribute('referrerpolicy', 'no-referrer');
   frame.className = 'draftx-spiffy-frame';
-  frame.style.height = '420px';
+  // Reserve the payment area without exposing Spiffy's unstyled bootstrap.
+  frame.style.height = '320px';
+  frame.style.opacity = '0';
+  frame.style.pointerEvents = 'none';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('tabindex', '-1');
   const url = buildDraftXSpiffyUrl(plan, identity, view.location.href);
   frame.src = url.toString();
   let loaded = false;
+  let ready = false;
+  let measuredHeight = 0;
+  let revealTimer;
+  let revealEarliest = 0;
+  let revealDeadline = 0;
+  let destroyed = false;
+  const scheduleReveal = () => {
+    if (!ready || !measuredHeight || loaded || destroyed) return;
+    view.clearTimeout(revealTimer);
+    // A short quiet period absorbs startup resizes; the deadline prevents
+    // an animated provider element from keeping a ready checkout hidden.
+    const now = Date.now();
+    const delay = Math.min(Math.max(250, revealEarliest - now), Math.max(0, revealDeadline - now));
+    revealTimer = view.setTimeout(() => {
+      if (destroyed) return;
+      loaded = true;
+      view.clearTimeout(timeout);
+      frame.style.height = `${measuredHeight}px`;
+      frame.style.opacity = '1';
+      frame.style.pointerEvents = 'auto';
+      frame.setAttribute('aria-hidden', 'false');
+      frame.setAttribute('tabindex', '0');
+      status.remove();
+      slot.setAttribute('aria-busy', 'false');
+    }, delay);
+  };
   slot.setAttribute('aria-busy', 'true');
   const onMessage = event => {
     const message = trustedSpiffyMessage(event, frame);
@@ -78,29 +109,47 @@ export function mountDraftXSpiffy(slot, plan, identity) {
       view.location.assign(destination.toString());
       return;
     }
-    if (message.height) frame.style.height = `${message.height}px`;
+    if (message.height) {
+      const changed = measuredHeight !== message.height;
+      measuredHeight = message.height;
+      if (loaded) frame.style.height = `${measuredHeight}px`;
+      else if (changed) scheduleReveal();
+    }
     if (message.ready) {
-      loaded = true;
-      view.clearTimeout(timeout);
-      status.remove();
-      slot.setAttribute('aria-busy', 'false');
+      if (!ready) {
+        ready = true;
+        revealEarliest = Date.now() + 700;
+        revealDeadline = Date.now() + 1800;
+      }
       slot.dataset.identityTransmitted = String(message.identityReady);
+      scheduleReveal();
     }
   };
   view.addEventListener('message', onMessage);
-  const timeout = view.setTimeout(() => {
+  const showTimeout = () => {
     if (loaded) return;
     status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
     const retry = doc.createElement('button');
     retry.type = 'button';
     retry.textContent = 'Réessayer';
-    retry.addEventListener('click', () => { frame.src = url.toString(); });
+    retry.addEventListener('click', () => {
+      view.clearTimeout(revealTimer);
+      ready = false;
+      measuredHeight = 0;
+      status.textContent = 'Connexion au paiement sécurisé…';
+      slot.setAttribute('aria-busy', 'true');
+      timeout = view.setTimeout(showTimeout, 20000);
+      frame.src = url.toString();
+    });
     status.append(retry);
     slot.setAttribute('aria-busy', 'false');
-  }, 20000);
+  };
+  let timeout = view.setTimeout(showTimeout, 20000);
   slot.replaceChildren(status, frame);
   return {
     destroy() {
+      destroyed = true;
+      view.clearTimeout(revealTimer);
       view.clearTimeout(timeout);
       view.removeEventListener('message', onMessage);
       slot.replaceChildren();
