@@ -233,12 +233,16 @@ export default async (req) => {
 
     let body = {};
     try { body = JSON.parse(rawBody); } catch { body = {}; }
-    const data = body?.data || body;
+    const data = body?.data?.object || body?.data || body;
     const eventType = String(
       body?.event || body?.event_name || body?.type || data?.event || data?.event_name || '',
     ).toLowerCase();
     const email = (findEmail(body) || '').trim().toLowerCase();
-    const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+    // API v2 embeds the order in data.object and identifies its checkout by
+    // checkout.id, not checkout_id. Never recursively match a generic id.
+    const checkoutId = data?.checkout?.id != null
+      ? String(data.checkout.id)
+      : findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
     const deferredPlan = ['twelve', 'six'].includes(MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')]);
     // J0 is a completed order, not an installment collected at J+7. Never
     // substitute the recurring price or the contractual total for today's 0 €.
@@ -253,7 +257,9 @@ export default async (req) => {
     const isSale = !isRefund && (deferredPlan
       ? eventType === 'order:success'
       : (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success')));
-    const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
+    const orderId = eventType.startsWith('order:') && data?.id != null
+      ? String(data.id)
+      : findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
     if (deferredPlan && !isRefund && (!isSale || !orderId)) return jsonResponse(200, { ok: true, skipped: 'not_initial_order_success' });
     const payloadToken = findMc2Token(body);
 

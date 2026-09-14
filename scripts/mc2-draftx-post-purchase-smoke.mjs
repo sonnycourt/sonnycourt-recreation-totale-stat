@@ -142,6 +142,29 @@ try {
     assert.equal(missingConfirmation.email, undefined);
     assert.deepEqual(unexpected, []);
   }
+  // Sanitized shape of the real Spiffy API v2 order:success notification.
+  for (const [id, plan] of [[40406, 'twelve'], [40422, 'six']]) {
+    reset();
+    const payload = { type: 'order:success', api_version: 'v2', data: { object: {
+      id: 900001, checkout: { id }, customer: { email: registration.email, name_first: 'Léa' },
+      display_total: 0, payment_status: 'trialing', payments: [],
+      subscriptions: [{ status: 'trialing', trial_days: 7 }],
+    } } };
+    const result = await (await webhook(request('spiffy-purchase-webhook', payload))).json();
+    assert.equal(result.type, 'sale', 'The real v2 nested checkout.id must be recognized');
+    assert.equal(registration.checkout_last_plan, plan);
+    assert.equal(events[0].metadata.order_id, '900001');
+    assert.equal(events[0].metadata.amount_cents, 0);
+    assert.equal((await (await status(request(`mc2-spiffy-status?t=${token}&order=900001`))).json()).schedule_ready, true);
+    await webhook(request('spiffy-purchase-webhook', payload));
+    assert.equal(events.length, 1);
+    for (const type of ['order:pending', 'order:failed', 'subscription:payment_success']) {
+      reset();
+      await webhook(request('spiffy-purchase-webhook', { ...payload, type }));
+      assert.equal(patches.length, 0);
+      assert.equal(events.length, 0);
+    }
+  }
   const page = readFileSync(new URL('../src/pages/commencer/succes.astro', import.meta.url), 'utf8');
   assert.match(page, /id="purchase-email"[^>]*readonly/);
   assert.match(page, /params\.get\('mc2_token'\)/);
