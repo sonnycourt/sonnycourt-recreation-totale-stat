@@ -1,14 +1,13 @@
 ---
-import DraftXSandbox from '../../components/mc2/DraftXSandbox.astro';
-import Mc2Tracking from '../../components/mc2/Mc2Tracking.astro';
-import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
+import GAConsentMode from '../../components/GAConsentMode.astro';
+import DealOffer from '../../components/mc2/DealOffer.astro';
 ---
 
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <DraftXSandbox production />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
   <meta name="referrer" content="no-referrer" />
   <!-- Retire le code personnel de la barre avant Meta/Clarity et le conserve
        localement pour la validation serveur qui suit. -->
@@ -23,7 +22,22 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       }
     } catch {}
   </script>
-  <Mc2Tracking />
+  <!-- Meta Pixel (base PageView) -->
+  <script type="text/javascript">
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '3367958190030822');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=3367958190030822&ev=PageView&noscript=1"/></noscript>
+  <!-- Meta Pixel End -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Replay - Masterclass Esprit Subconscient 2.0</title>
   <meta name="description" content="Accède au replay de la masterclass Esprit Subconscient 2.0." />
@@ -35,6 +49,26 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+  <script is:inline>
+  "use strict";!function(i,t){var f=t.spiffy=t.spiffy||[];if(!f.init){
+  if(f.invoked)return void(t.console&&console.error&&console.warn("Spiffy Elements included twice."))
+  ;f.invoked=!0,f.methods=["identify","config","debug","off","on"],f.factory=function(i){
+  return function(){var t=Array.prototype.slice.call(arguments);return t.unshift(i),f.push(t),f}},
+  f.methods.forEach(function(i){spiffy[i]=f.factory(i)}),f.load=function(t,f){if(!spiffy.ACCOUNT){
+  spiffy.ACCOUNT=t,spiffy.DOMAIN=f;var e=i.createElement("script");e.type="text/javascript",
+  e.async=!0,e.src="https://js.static.spiffy.co/spiffy.js?a="+t
+  ;var n=i.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)}}}}(document,window),
+  spiffy.SNIPPET_VERSION="1.1.0";
+  spiffy.config({ hideSidebar: true });
+  </script>
+  <GAConsentMode />
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wkawxw5jtq");
+  </script>
   <style>
     html { opacity: 0; background-color: #06060f; }
     html.ready { opacity: 1; transition: opacity .15s ease; }
@@ -1079,19 +1113,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
   <script>
     // @ts-nocheck
     import Hls from 'hls.js';
-    import {
-      MC2_DRAFTX_REPLAY_HLS_URL, MC2_DRAFTX_REPLAY_MP4_URL, MC2_DRAFTX_REPLAY_ENTRY,
-    } from '../../lib/mc2-media.mjs';
-    const isDraftPreview = Boolean(window.__mc2DraftX);
-    const pageStorage = window.__mc2DraftX?.storage || localStorage;
-    const previewClockStorage = window.__mc2DraftX?.storage || sessionStorage;
-    import { startScarcityEngine } from '../../lib/mc2-draftx-scarcity-engine';
-    import { createMc2OfferTimeline } from '../../data/mc2-draftx-offer-timeline';
-    import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
+    import { startScarcityEngine } from '../../lib/scarcity-engine';
+    import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
+    import { startMc2OfferObservability } from '../../lib/mc2-offer-observability';
     import {
       MC2_REPLAY_CTA_SECONDS,
       MC2_REPLAY_OFFER_DURATION_MS,
-    } from '../../lib/mc2-timing.mjs';
+    } from '../../lib/mc2-legacy-timing.mjs';
 
     // MC2 conserve strictement le lecteur et l'UI éprouvés du replay
     // historique. Seule cette couche d'accès/traçage est adaptée.
@@ -1107,18 +1135,18 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     const OFFER_INITIAL_REMAINING_SEATS = 37;
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
     // Le replay retire exactement les 20 premières minutes de countdown du live.
-    // W13B : offre à 1h14m50s dans le replay (1h34m50s dans le live).
+    // Son CTA est donc synchronisé 20 minutes plus tôt, à 1h19m00s.
     // Replay MC2 en HLS adaptatif via Bunny Stream. La source est indépendante du live
     // et de l'ancien funnel /masterclass afin qu'une mise à jour ne puisse pas les mélanger.
-    const VIDEO_SOURCE_URL_PRIMARY = MC2_DRAFTX_REPLAY_HLS_URL;
-    const VIDEO_SOURCE_URL_MP4_FALLBACK = MC2_DRAFTX_REPLAY_MP4_URL;
-    const DEV_CLOCK_KEY = 'es2_mc_draftx_replay_clock';
+    const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8';
+    const VIDEO_SOURCE_URL_MP4_FALLBACK = 'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/play_720p.mp4';
+    const DEV_CLOCK_KEY = 'es2_mc_dev_clock';
 
     function getMcWallClockMs() {
       try {
         const params = new URLSearchParams(window.location.search);
         if (params.get('preview') === 'dev') {
-          const raw = previewClockStorage.getItem(DEV_CLOCK_KEY);
+          const raw = sessionStorage.getItem(DEV_CLOCK_KEY);
           if (raw) {
             const c = JSON.parse(raw);
             if (Number.isFinite(c.simulatedNowMs) && Number.isFinite(c.simulatedAnchorRealMs)) {
@@ -1188,13 +1216,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     }
 
     function setTokenEverywhere(token) {
-      pageStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(TOKEN_KEY, token);
     }
     function clearTokenEverywhere() {
-      pageStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
     }
     function getStoredToken() {
-      const t = (pageStorage.getItem(TOKEN_KEY) || '').trim();
+      const t = (localStorage.getItem(TOKEN_KEY) || '').trim();
       return t;
     }
     function show(screenId) {
@@ -1231,8 +1259,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     function fetchVideoSource() {
       // Le replay a sa propre URL (playlist HLS Bunny Stream). On n'interroge
       // PAS /webinaire-video-config qui pilote le LIVE (session.astro).
-      // Access remains shared, but its legacy video config cannot overwrite DraftX.
-      return VIDEO_SOURCE_URL_PRIMARY;
+      return recoveryConfig?.videoUrl || VIDEO_SOURCE_URL_PRIMARY;
     }
     async function sendPresencePing(token, stage, currentSecond) {
       if (!recoveryAccessCode) return;
@@ -1281,6 +1308,297 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         }),
       }).then((response) => response.ok ? response.json() : null).catch(() => null);
     }
+
+        function showOfferZone(token) {
+            const zone = document.getElementById('offer-zone');
+            if (!zone || zone.classList.contains('visible')) return;
+            const cta = document.getElementById('offer-cta');
+            cta.href = '/commencer?t=' + encodeURIComponent(token);
+            zone.classList.remove('hidden');
+            void zone.offsetWidth; // reflow needed to trigger animation from display:none
+            zone.classList.add('visible');
+        }
+
+        let inlineCheckoutController = null;
+
+        function inlinePlanUi(plan) {
+            const once = plan === 'once';
+            const paymentPanel = document.getElementById('preview-payment');
+            const schedulePlanLabel = document.getElementById('preview-schedule-plan-label');
+            const scheduleAnalogy = document.getElementById('preview-schedule-analogy');
+            const paymentSwitch = document.getElementById('preview-payment-switch');
+            paymentPanel?.setAttribute('data-plan', once ? 'once' : 'monthly');
+            if (schedulePlanLabel) schedulePlanLabel.textContent = once ? 'Paiement unique de 1 997 €' : '12 mensualités de 197 €';
+            if (scheduleAnalogy) {
+                scheduleAnalogy.textContent = once ? '≈ 6 € par jour' : '≈ 6,50 € par jour';
+                scheduleAnalogy.style.display = 'block';
+            }
+            if (paymentSwitch) paymentSwitch.textContent = once
+                ? 'Revenir aux 12 mensualités de 197 €'
+                : 'Payer en une fois et économiser 367 €';
+        }
+
+        const SPIFFY_CHECKOUT_URLS = Object.freeze({
+            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1',
+            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1',
+        });
+
+        const SPIFFY_PREVIEW_CHECKOUT_URLS = Object.freeze({
+            monthly: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1',
+            once: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1',
+        });
+
+        async function mountReplayInlineCheckout(reg) {
+            if (!reg?.token) return;
+            const checkoutSection = document.getElementById('preview-checkout');
+            const oldCta = document.getElementById('offer-cta');
+            const paymentPanel = document.getElementById('preview-payment');
+            const switchButton = document.getElementById('preview-payment-switch');
+            const errorNode = document.getElementById('preview-spiffy-error');
+            const slot = document.getElementById('preview-spiffy-slot');
+            checkoutSection?.classList.add('is-live');
+            oldCta?.classList.add('hidden');
+            if (!paymentPanel || !switchButton || !slot) return;
+            paymentPanel.classList.add('is-spiffy-themed');
+            if (inlineCheckoutController?.provider === 'spiffy' && inlineCheckoutController.token === reg.token) return;
+
+            const requestedPlan = new URLSearchParams(window.location.search).get('plan');
+            const initialPlan = requestedPlan === 'once' ? 'once' : 'monthly';
+            const controller = {
+                provider: 'spiffy',
+                token: reg.token,
+                plan: initialPlan,
+                panels: new Map(),
+            };
+            inlineCheckoutController = controller;
+
+            function planTrackingMeta(plan) {
+                return {
+                    route: '/mc2/replay/',
+                    plan: plan,
+                    payment_mode: plan === 'once' ? 'spiffy_one_time_1997' : 'spiffy_12x197',
+                };
+            }
+
+            function showPaymentError(message) {
+                if (errorNode) errorNode.textContent = message || '';
+            }
+
+            function trackCheckoutActuallySeen() {
+                if (controller.checkoutActuallySeenStarted) return;
+                controller.checkoutActuallySeenStarted = true;
+                let dwellTimer = null;
+                let observer = null;
+
+                function isCheckoutVisibleOnScreen() {
+                    if (document.visibilityState !== 'visible') return false;
+                    const rect = slot.getBoundingClientRect();
+                    const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+                    const visibleWidth = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
+                    return visibleHeight >= Math.max(80, Math.min(140, window.innerHeight * 0.2))
+                        && visibleWidth >= Math.max(120, Math.min(240, window.innerWidth * 0.5));
+                }
+
+                function stopDwell() {
+                    if (dwellTimer) window.clearTimeout(dwellTimer);
+                    dwellTimer = null;
+                }
+
+                function finish() {
+                    stopDwell();
+                    observer?.disconnect();
+                    window.removeEventListener('scroll', schedule, true);
+                    window.removeEventListener('resize', schedule);
+                    document.removeEventListener('visibilitychange', schedule);
+                }
+
+                function confirm() {
+                    dwellTimer = null;
+                    if (!isCheckoutVisibleOnScreen()) return;
+                    finish();
+                    trackWebinaireEvent(controller.token, 'checkout_actually_seen', null, {
+                        ...planTrackingMeta(controller.plan),
+                        payment_method: 'spiffy',
+                        visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                        viewport_width: window.innerWidth,
+                        viewport_height: window.innerHeight,
+                    });
+                }
+
+                function schedule() {
+                    if (!isCheckoutVisibleOnScreen()) {
+                        stopDwell();
+                        return;
+                    }
+                    if (!dwellTimer) dwellTimer = window.setTimeout(confirm, 1000);
+                }
+
+                if ('IntersectionObserver' in window) {
+                    observer = new IntersectionObserver(schedule, { threshold: [0, 0.05, 0.15, 0.3] });
+                    observer.observe(slot);
+                } else {
+                    window.addEventListener('scroll', schedule, { passive: true, capture: true });
+                    window.addEventListener('resize', schedule, { passive: true });
+                }
+                document.addEventListener('visibilitychange', schedule);
+                window.setTimeout(schedule, 0);
+            }
+
+            function buildCheckoutUrl(plan) {
+                const isLocalPreview = new URLSearchParams(window.location.search).get('preview') === 'dev'
+                    && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+                const checkoutUrls = isLocalPreview ? SPIFFY_PREVIEW_CHECKOUT_URLS : SPIFFY_CHECKOUT_URLS;
+                const url = new URL(checkoutUrls[plan]);
+                url.searchParams.set('es2_plan', plan);
+                url.searchParams.set('mc2_token', reg.token);
+                const hasDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+                url.searchParams.set('es2_view', hasDesktopPointer ? 'desktop' : 'compact');
+                const firstName = String(reg.prenom || '').trim();
+                const email = String(reg.email || '').trim();
+                const country = String(reg.pays || '').trim();
+                if (firstName) url.searchParams.set('name_first', firstName);
+                if (email) url.searchParams.set('email', email);
+                if (country && country !== 'Autre pays' && country !== 'Autre') url.searchParams.set('country', country);
+                return url;
+            }
+
+            function revealFrame(frame, height) {
+                if (!frame) return;
+                const panel = frame.closest('.preview-spiffy-plan-panel');
+                if (!panel) return;
+                frame.classList.add('preview-spiffy-frame');
+                if (Number.isFinite(height)) {
+                    const safeHeight = Math.min(1100, Math.max(280, height));
+                    frame.style.height = `${safeHeight}px`;
+                    panel.dataset.frameHeight = String(safeHeight);
+                    if (panel.classList.contains('is-active')) slot.style.minHeight = `${safeHeight}px`;
+                }
+                panel.classList.add('is-ready');
+                panel.querySelector('.preview-spiffy-loading')?.remove();
+            }
+
+            function syncLocalFrameHeight(event) {
+                if (event.origin !== 'https://sonnycourt.spiffy.co') return;
+                const frame = Array.from(slot.querySelectorAll('iframe')).find(function (candidate) {
+                    return event.source === candidate.contentWindow;
+                });
+                if (!frame) return;
+                const panel = frame.closest('.preview-spiffy-plan-panel');
+                if (event.data?.type === 'es2:spiffy-validation-focus') {
+                    if (panel?.classList.contains('is-active')) {
+                        slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+                if (event.data?.type !== 'es2:spiffy-height') return;
+                revealFrame(frame, Number(event.data.height) || 0);
+            }
+            window.addEventListener('message', syncLocalFrameHeight);
+
+            function mountPlan(plan) {
+                if (controller.panels.has(plan)) return controller.panels.get(plan);
+                const url = buildCheckoutUrl(plan);
+                const panel = document.createElement('div');
+                panel.className = 'preview-spiffy-plan-panel';
+                panel.dataset.plan = plan;
+                const isActiveOnMount = controller.plan === plan;
+                panel.classList.toggle('is-active', isActiveOnMount);
+                panel.setAttribute('aria-hidden', isActiveOnMount ? 'false' : 'true');
+                panel.toggleAttribute('inert', !isActiveOnMount);
+                panel.style.display = isActiveOnMount ? 'block' : 'none';
+                panel.style.position = isActiveOnMount ? 'relative' : 'absolute';
+                panel.style.inset = isActiveOnMount ? '' : '0 0 auto';
+                panel.style.visibility = isActiveOnMount ? 'visible' : 'hidden';
+                panel.style.pointerEvents = isActiveOnMount ? 'auto' : 'none';
+                const loader = document.createElement('div');
+                loader.className = 'preview-spiffy-loading';
+                loader.textContent = 'Chargement du formulaire d’inscription…';
+                panel.appendChild(loader);
+                slot.appendChild(panel);
+                controller.panels.set(plan, panel);
+
+                const observer = new MutationObserver(function () {
+                    const frame = panel.querySelector('iframe');
+                    if (!frame) return;
+                    frame.classList.add('preview-spiffy-frame');
+                    frame.title = plan === 'once'
+                        ? 'Paiement unique Esprit Subconscient 2.0'
+                        : 'Paiement mensuel Esprit Subconscient 2.0';
+                    observer.disconnect();
+                });
+                observer.observe(slot, { childList: true, subtree: true });
+
+                if (window.location.protocol === 'http:') {
+                    url.searchParams.set('elements', btoa(JSON.stringify({
+                        modality: 'inline',
+                        uid: plan === 'once' ? 2 : 1,
+                        from: window.location.href,
+                        handles: {},
+                    })));
+                    const frame = document.createElement('iframe');
+                    frame.className = 'preview-spiffy-frame';
+                    frame.src = url.toString();
+                    frame.title = plan === 'once'
+                        ? 'Paiement unique Esprit Subconscient 2.0'
+                        : 'Paiement mensuel Esprit Subconscient 2.0';
+                    frame.setAttribute('allow', 'payment');
+                    frame.setAttribute('loading', 'eager');
+                    frame.style.cssText = 'display:block;width:100%;height:520px;border:0;background:transparent;';
+                    panel.appendChild(frame);
+                } else {
+                    const checkout = document.createElement('spiffy-checkout');
+                    checkout.setAttribute('url', url.toString());
+                    checkout.style.cssText = 'display:block;width:100%;';
+                    panel.appendChild(checkout);
+                }
+
+                window.setTimeout(function () {
+                    const frame = panel.querySelector('iframe');
+                    if (frame && !panel.classList.contains('is-ready')) revealFrame(frame);
+                }, 6000);
+                return panel;
+            }
+
+            function activatePlan(plan, eventName) {
+                const panel = mountPlan(plan);
+                controller.plan = plan;
+                showPaymentError('');
+                inlinePlanUi(plan);
+                controller.panels.forEach(function (candidate, candidatePlan) {
+                    const isActive = candidatePlan === plan;
+                    candidate.classList.toggle('is-active', isActive);
+                    candidate.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+                    candidate.toggleAttribute('inert', !isActive);
+                    candidate.style.display = isActive ? 'block' : 'none';
+                    candidate.style.position = isActive ? 'relative' : 'absolute';
+                    candidate.style.inset = isActive ? '' : '0 0 auto';
+                    candidate.style.visibility = isActive ? 'visible' : 'hidden';
+                    candidate.style.pointerEvents = isActive ? 'auto' : 'none';
+                });
+                const frameHeight = Number(panel.dataset.frameHeight);
+                if (Number.isFinite(frameHeight) && frameHeight > 0) {
+                    slot.style.minHeight = `${frameHeight}px`;
+                }
+                trackWebinaireEvent(controller.token, eventName, null, {
+                    ...planTrackingMeta(plan),
+                    payment_method: 'spiffy',
+                    visit_id: 'mc2-inline-' + controller.token.slice(0, 12),
+                });
+            }
+
+            switchButton.addEventListener('click', function () {
+                const nextPlan = controller.plan === 'once' ? 'monthly' : 'once';
+                activatePlan(nextPlan, 'checkout_engaged');
+            });
+
+            slot.replaceChildren();
+            activatePlan(initialPlan, 'checkout_viewed');
+            mountPlan(initialPlan === 'once' ? 'monthly' : 'once');
+            trackCheckoutActuallySeen();
+            if (window.location.protocol === 'https:' && window.spiffy?.load) {
+                window.spiffy.load('sonnycourt');
+            }
+        }
 
     function mountReplay(reg, token) {
       const video = document.getElementById('replay-video');
@@ -1349,7 +1667,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       // d'échéance. `new Date(null)` vaut 1970 et fermerait donc le checkout
       // immédiatement pour un replay neuf.
       let offerExpiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
-      const isPreviewDev = isDraftPreview;
+      const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
       let maxWatched = Math.max(0, Number(reg.resumeSeconds || 0));
       let ctaActivated = false;
       let offerActivationMs = NaN;
@@ -1371,24 +1689,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       let soldOutExpired = false;
       let mobileControlsHideTimer = null;
       const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
-
-      const draftxCheckout = document.querySelector('[data-draftx-checkout]');
-      if (draftxCheckout) {
-        draftxCheckout.dataset.prefillFirstName = reg.prenom || '';
-        draftxCheckout.dataset.prefillEmail = reg.email || '';
-        draftxCheckout.dataset.registrationToken = isDraftPreview ? '' : (reg.token || token);
-      }
-      window.dispatchEvent(new CustomEvent('mc2:draftx-registration', {
-        detail: { firstName: reg.prenom || '', email: reg.email || '', registrationToken: isDraftPreview ? '' : (reg.token || token) },
-      }));
-      function setDraftXAvailability(enabled) {
-        const available = Boolean(enabled) && !isOfferExpiredNow();
-        if (draftxCheckout && draftxCheckout.dataset.checkoutAvailable !== String(available)) {
-          draftxCheckout.dataset.checkoutAvailable = String(available);
-          window.dispatchEvent(new CustomEvent('mc2:draftx-availability', { detail: { available } }));
-        }
-      }
-      setDraftXAvailability(false);
 
       window.dispatchEvent(new CustomEvent('mc2:deal-registration', {
         detail: {
@@ -1458,13 +1758,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           simulatedAnchorRealMs: Date.now(),
         };
         try {
-          previewClockStorage.setItem(DEV_CLOCK_KEY, JSON.stringify(payload));
+          sessionStorage.setItem(DEV_CLOCK_KEY, JSON.stringify(payload));
         } catch {}
       }
       function setPreviewWallClockAbsolute(ms) {
         if (!isPreviewDev || !Number.isFinite(ms)) return;
         try {
-          previewClockStorage.setItem(DEV_CLOCK_KEY, JSON.stringify({
+          sessionStorage.setItem(DEV_CLOCK_KEY, JSON.stringify({
             simulatedNowMs: ms,
             simulatedAnchorRealMs: Date.now(),
           }));
@@ -1564,14 +1864,12 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           scarcityEngine = null;
         }
         if (expired) {
-          setDraftXAvailability(false);
           const v = document.getElementById('replay-video');
           if (v) v.pause();
         }
       }
       function setOfferExpiredState(expired) {
         const isExpired = Boolean(expired);
-        setDraftXAvailability(ctaActivated && !isExpired);
         if (offerCountdownGrid) offerCountdownGrid.classList.toggle('hidden', isExpired);
         if (offerScarcityCard) offerScarcityCard.classList.toggle('hidden', isExpired);
         if (offerCta) {
@@ -1582,7 +1880,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         if (offerExpiredState) offerExpiredState.classList.toggle('hidden', !isExpired);
       }
       function setOfferCtaEnabled(enabled) {
-        setDraftXAvailability(enabled);
         if (!offerCta) return;
         const isEnabled = Boolean(enabled) && !isOfferExpiredNow();
         offerCta.disabled = !isEnabled;
@@ -1793,7 +2090,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         document.getElementById('diagnostic-guide-zone')?.classList.add('is-return-hidden');
         offerZone.classList.add('is-returning-buyer');
         activateOfferAndScarcity();
-        document.getElementById('return-buyer-hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('deal-registration')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
       const replayConfirmOverlay = document.getElementById('replay-confirm-overlay');
@@ -2144,7 +2441,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         }
         // If no shared preview clock exists yet, seed it from replay start.
         try {
-          const rawClock = previewClockStorage.getItem(DEV_CLOCK_KEY);
+          const rawClock = sessionStorage.getItem(DEV_CLOCK_KEY);
           if (!rawClock) setPreviewWallClockFromReplaySeconds(0);
         } catch {}
         document.querySelectorAll('[data-jump-seconds]').forEach((btn) => {
@@ -2264,7 +2561,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       recoveryAccessCode = token;
       recoveryConfig = data;
       replayRegistrationToken = String(data.registrationToken || '').trim();
-      // W13B uses its own offer cue, independent of the historical replay response.
+      const configuredCtaSeconds = Number(data.ctaSeconds);
+      if (Number.isFinite(configuredCtaSeconds) && configuredCtaSeconds > 0) {
+        CTA_ACTIVATE_SECONDS = Math.floor(configuredCtaSeconds);
+        CTA_APPEAR_SECONDS = CTA_ACTIVATE_SECONDS;
+      }
       return {
         valid: true,
         token: replayRegistrationToken,
@@ -2275,7 +2576,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         offreExpiresAt: data.offerExpiresAt,
         accessExpiresAt: data.expiresAt,
         resumeSeconds: Number(data.resumeSeconds || 0),
-        offerUrl: '/mc2/session/?t=' + encodeURIComponent(replayRegistrationToken),
+        offerUrl: data.offerUrl,
       };
     }
     function isBuyer(payload) {
@@ -2295,7 +2596,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         token: replayRegistrationToken,
         statut: 'registered',
         prenom: 'Preview',
-        email: 'preview@example.invalid',
+        email: 'preview@sonnycourt.com',
         pays: 'France',
         sessionStartsAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
         offreExpiresAt: null,
@@ -2350,12 +2651,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
-      const isPreviewDev = isDraftPreview;
-      const registrationToken = (params.get('t') || params.get('token') || '').trim();
-      if (!isPreviewDev && registrationToken) {
-        window.location.replace(MC2_DRAFTX_REPLAY_ENTRY + encodeURIComponent(registrationToken));
-        return;
-      }
+      const isPreviewDev = params.get('preview') === 'dev';
       let token = (params.get('access') || '').trim() || getStoredToken();
       let data = null;
 

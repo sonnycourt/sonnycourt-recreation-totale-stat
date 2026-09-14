@@ -12,10 +12,10 @@ import { MC2_REPLAY_OFFER_DURATION_MS } from '../src/lib/mc2-timing.mjs';
 import { getMc2VideoSources } from '../netlify/functions/lib/mc2-video-config.mjs';
 import { mc2SmsMessage } from '../netlify/functions/lib/mc2-sms.mjs';
 
-assert.equal(MC2_LIVE_CTA_SECONDS, (94 * 60) + 51);
+assert.equal(MC2_LIVE_CTA_SECONDS, (94 * 60) + 50);
 assert.equal(MC2_LIVE_VIDEO_LEAD_MS, 15 * 60 * 1000);
 assert.equal(MC2_OFFER_DURATION_MS, 72 * 60 * 60 * 1000);
-assert.equal(MC2_REPLAY_OFFER_DURATION_MS, (72 * 60 * 60 - ((74 * 60) + 51)) * 1000);
+assert.equal(MC2_REPLAY_OFFER_DURATION_MS, (72 * 60 * 60 - ((74 * 60) + 50)) * 1000);
 assert.equal(MC2_OFFER_SMS_LEAD_MS, 4 * 60 * 60 * 1000);
 assert.equal(
   getMc2VideoSources({}).primary,
@@ -35,7 +35,7 @@ assert.equal(
 );
 
 const activatedAt = mc2LiveCtaAt({ session_starts_at: '2026-08-13T18:00:00.000Z' });
-assert.equal(activatedAt.toISOString(), '2026-08-13T19:19:51.000Z');
+assert.equal(activatedAt.toISOString(), '2026-08-13T19:19:50.000Z');
 
 const sessionStartsAt = new Date('2026-08-13T18:00:00.000Z');
 assert.equal(
@@ -49,7 +49,7 @@ const replayDeadline = mc2OfferDeadlineCandidate({
   source: 'replay',
   now: replayCtaAt,
 });
-assert.equal(replayDeadline.toISOString(), '2026-08-18T10:45:09.000Z');
+assert.equal(replayDeadline.toISOString(), '2026-08-18T10:45:10.000Z');
 assert.equal(mc2OfferActivatedAt({
   registration: { session_starts_at: sessionStartsAt.toISOString() },
   expiresAt: replayDeadline,
@@ -69,7 +69,7 @@ assert.match(deadlineMessage, /\/offre\/A1b2C/);
 assert.doesNotMatch(deadlineMessage, /15 minutes/);
 
 console.log(JSON.stringify({
-  cta_live_013451: 'ok',
+  cta_live_013450: 'ok',
   offer_window_live_72h_from_session: 'ok',
   offer_window_replay_72h_minus_pre_cta: 'ok',
   sms_deadline_minus_4h: 'ok',

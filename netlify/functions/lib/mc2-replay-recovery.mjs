@@ -27,12 +27,13 @@ const VALID_MESSAGE_TYPES = new Set([
 const ACTIVE_STATUSES = 'pending,retry,processing';
 const MAX_DELIVERY_ATTEMPTS = 5;
 const REPLAY_VIDEO_DEFAULT =
-  'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8';
+  'https://vz-601d6eb4-a9a.b-cdn.net/e538dedd-26e0-4b69-9900-13a7ec8a37f8/playlist.m3u8';
 const LEGACY_REPLAY_VIDEOS = new Set([
+  'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8',
   'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
   'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8',
 ]);
-const LEGACY_REPLAY_CTA_SECONDS = new Set([4_648, 79 * 60]);
+const LEGACY_REPLAY_CTA_SECONDS = new Set([4_648, 79 * 60, 4_491]);
 
 function clean(value, max = 500) {
   return String(value == null ? '' : value).trim().slice(0, max);

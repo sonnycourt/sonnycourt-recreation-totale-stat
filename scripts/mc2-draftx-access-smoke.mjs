@@ -4,7 +4,7 @@ import { runInNewContext } from 'node:vm';
 
 // Run the actual page bootstrap with fake MC2 responses. No service or customer writes.
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const page = read('src/pages/mc2/draftx.astro');
+const page = read(process.env.MC2_SESSION_TEST_PAGE || 'src/pages/mc2/draftx.astro');
 const sandbox = read('src/components/mc2/DraftXSandbox.astro').match(/<script is:inline>([\s\S]*?)<\/script>/)[1];
 function isolate(href) {
   let nativeCalls = 0;

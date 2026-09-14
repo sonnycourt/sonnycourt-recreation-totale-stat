@@ -24,9 +24,9 @@ assert.match(replay, /mc2:draftx-availability/);
 assert.match(replay, /launchReplayAfterConfirm\(recoveryResumeSeconds\)/);
 assert.match(replay, /launchReplayAfterConfirm\(0\)/);
 assert.doesNotMatch(replay, /connect\.facebook|clarity\.ms|spiffy\.load\(/);
-assert.match(read('src/pages/mc2/session.astro'), /f0f337ba-a2f9-4b20-a20a-6704320edb6d/);
-assert.match(read('src/pages/mc2/replay.astro'), /b7d49161-940c-4305-8706-d56da93effc2/);
-assert.doesNotMatch(read('src/pages/mc2/session.astro'), /mc2-draftx-media/);
+assert.match(read('src/pages/mc2/session-archive.astro'), /f0f337ba-a2f9-4b20-a20a-6704320edb6d/);
+assert.match(read('src/pages/mc2/replay-archive.astro'), /b7d49161-940c-4305-8706-d56da93effc2/);
+assert.doesNotMatch(read('src/pages/mc2/session-archive.astro'), /mc2-draftx-media/);
 
 const update = replay.match(/      function updateCtaStateByVideoTime\(\) \{[\s\S]*?\n      \}/)?.[0];
 assert.ok(update);
