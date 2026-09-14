@@ -29,7 +29,11 @@ export default async (req) => {
   if (req.method !== 'GET') return response(405, 'Méthode non autorisée.');
 
   try {
-    const token = cleanToken(new URL(req.url).searchParams.get('t'));
+    const params = new URL(req.url).searchParams;
+    const token = cleanToken(params.get('t'));
+    const isDraftX = params.get('variant') === 'draftx';
+    const sessionPath = isDraftX ? '/mc2/draftx/' : '/mc2/session/';
+    const replayPath = isDraftX ? '/mc2/draftx/replay/' : '/mc2/replay/';
     if (!token) return response(404, 'Lien invalide.');
 
     const registrationResult = await supabaseGet(
@@ -40,7 +44,7 @@ export default async (req) => {
       ? registrationResult.data[0] || null
       : null;
     if (!registration) return response(404, 'Lien invalide.');
-    if (isMc2Purchased(registration)) return redirectTo('/mc2/session/?t=' + encodeURIComponent(token));
+    if (isMc2Purchased(registration)) return redirectTo(sessionPath + '?t=' + encodeURIComponent(token));
 
     const now = new Date();
     const sessionStartMs = new Date(registration.session_starts_at || '').getTime();
@@ -48,10 +52,10 @@ export default async (req) => {
 
     const offerExpiryMs = new Date(registration.offer_expires_at || '').getTime();
     if (registration.saw_offer === true && Number.isFinite(offerExpiryMs)) {
-      return redirectTo('/mc2/session/?t=' + encodeURIComponent(token));
+      return redirectTo(sessionPath + '?t=' + encodeURIComponent(token));
     }
     if (now.getTime() < sessionStartMs + DIRECT_LATE_CUTOFF_MS) {
-      return redirectTo('/mc2/session/?t=' + encodeURIComponent(token));
+      return redirectTo(sessionPath + '?t=' + encodeURIComponent(token));
     }
 
     const accessExpiresAt = mc2ReplayExpiresAt(registration.session_starts_at);
@@ -92,7 +96,7 @@ export default async (req) => {
       : await supabasePost('mc2_replay_recovery_jobs', replayJob);
     if (!saved.ok) throw new Error(`mc2_direct_replay_save_${saved.status}`);
 
-    return redirectTo('/mc2/replay/?access=' + encodeURIComponent(accessCode));
+    return redirectTo(replayPath + '?access=' + encodeURIComponent(accessCode));
   } catch (error) {
     console.error('mc2-replay-enter:', error);
     return response(500, 'Accès replay momentanément indisponible.');

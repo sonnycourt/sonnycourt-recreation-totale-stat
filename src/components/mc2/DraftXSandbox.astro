@@ -1,9 +1,17 @@
-<!-- This boundary is exclusive to DraftX. Never import it into the real funnel. -->
+<!-- DraftX preview isolation is opt-in. A personal link always uses MC2 access. -->
 <meta name="robots" content="noindex, nofollow, noarchive" />
 <meta name="referrer" content="no-referrer" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https://*.b-cdn.net; connect-src http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://*.b-cdn.net; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https://*.b-cdn.net; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://*.b-cdn.net; worker-src 'self' blob:; frame-src 'self' https://sonnycourt.spiffy.co; object-src 'none'; form-action 'none'; base-uri 'self'" />
 <script is:inline>
   (() => {
+    const url = new URL(location.href);
+    const personalLink = Boolean((url.searchParams.get('t') || url.searchParams.get('token') || url.searchParams.get('access') || '').trim());
+    if (personalLink || url.searchParams.get('preview') !== 'dev') {
+      // A token must never inherit a demo clock or bypass the registration gate.
+      ['preview', 'state', 'checkout'].forEach(key => url.searchParams.delete(key));
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+      return;
+    }
     const events = [];
     const record = (type, detail = {}) => {
       events.push({ type, detail, at: Date.now() });
@@ -17,8 +25,7 @@
     });
     window.__mc2DraftX = Object.freeze({ events, record, storage });
 
-    // A real prospect token must never be consumed by this workbench.
-    const url = new URL(location.href);
+    // Explicit demo mode does not consume cookies, stored registrations or tokens.
     ['t', 'token', 'access', 'checkout', 'email', 'country'].forEach(key => url.searchParams.delete(key));
     url.searchParams.set('preview', 'dev');
     history.replaceState(null, '', url.pathname + url.search + url.hash);
@@ -38,7 +45,8 @@
       }
       return nativeFetch(input, init);
     };
-    // Defense in depth: no pixel, analytics beacon or real checkout in this page.
+    // No pixel or analytics on the host. User-approved payments run only inside
+    // the isolated Spiffy iframe; this page never handles card data.
     try { navigator.sendBeacon = () => { record('beacon_blocked'); return false; }; } catch {}
     window.fbq = () => {};
     window.gtag = () => {};
@@ -55,6 +63,11 @@
       if (href.startsWith('#')) return;
       const target = new URL(href, location.href);
       if (target.origin === location.origin && target.pathname.startsWith('/media/')) return;
+      if (target.origin === location.origin && target.pathname.startsWith('/mc2/draftx/')
+          && target.searchParams.get('preview') === 'dev'
+          && !['t', 'token', 'access'].some(key => target.searchParams.has(key))) return;
+      if (target.origin === location.origin && target.pathname === '/cgv/' && !target.search) return;
+      if (target.origin === location.origin && target.pathname === '/mc2/draftx/cgv/' && !target.search) return;
       event.preventDefault();
       record('navigation_simulated', { path: target.pathname });
       const note = document.getElementById('draftx-status');

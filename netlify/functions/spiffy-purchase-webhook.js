@@ -155,11 +155,15 @@ const MC2_SPIFFY_CHECKOUT_SLUGS = Object.freeze({
 const MC2_SPIFFY_PLANS = Object.freeze({
   monthly: { initialCents: 76_700, contractualTotalCents: 230_100, paymentMode: 'spiffy_3x767' },
   once: { initialCents: 199_700, contractualTotalCents: 199_700, paymentMode: 'spiffy_one_time_1997' },
+  twelve: { initialCents: 0, contractualTotalCents: 236_400, paymentMode: 'spiffy_j7_12x197' },
+  six: { initialCents: 0, contractualTotalCents: 208_200, paymentMode: 'spiffy_j7_6x347' },
 });
 
 const MC2_SPIFFY_CHECKOUT_PLANS = Object.freeze({
   '40006': 'monthly',
   '40007': 'once',
+  '40406': 'twelve',
+  '40422': 'six',
 });
 
 function amountMatches(actual, expected) {
@@ -234,7 +238,11 @@ export default async (req) => {
       body?.event || body?.event_name || body?.type || data?.event || data?.event_name || '',
     ).toLowerCase();
     const email = (findEmail(body) || '').trim().toLowerCase();
-    const amount = findAmountEur(data);
+    const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+    const deferredPlan = ['twelve', 'six'].includes(MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')]);
+    // J0 is a completed order, not an installment collected at J+7. Never
+    // substitute the recurring price or the contractual total for today's 0 €.
+    const amount = deferredPlan && eventType === 'order:success' ? 0 : findAmountEur(data);
 
     // Log brut (1res ventes) pour affiner la structure réelle Spiffy si besoin.
     console.log('spiffy-webhook event=%s email=%s amount=%s', eventType || '?', email || 'none', amount ?? '?');
@@ -242,9 +250,11 @@ export default async (req) => {
     if (!email) return jsonResponse(200, { ok: true, skipped: 'no_email' });
 
     const isRefund = eventType.includes('refund');
-    const isSale = !isRefund && (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success'));
+    const isSale = !isRefund && (deferredPlan
+      ? eventType === 'order:success'
+      : (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success')));
     const orderId = findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
-    const checkoutId = findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
+    if (deferredPlan && !isRefund && (!isSale || !orderId)) return jsonResponse(200, { ok: true, skipped: 'not_initial_order_success' });
     const payloadToken = findMc2Token(body);
 
     // Le webhook historique continue de traiter webinaire_registrations plus bas.
@@ -327,6 +337,29 @@ export default async (req) => {
     if (isMc2Purchase) {
       const plan = MC2_SPIFFY_PLANS[mc2Plan];
       const purchasedAt = mc2Row.purchased_at || nowIso;
+      if (deferredPlan) {
+        // Reuse the existing server-only event store and its unique dedupe key.
+        // Preserve the opt-in identity; the purchase email is immutable here.
+        const purchaseEvent = await supabasePost('mc2_funnel_events', {
+          token: mc2Row.token,
+          event_name: 'purchase_completed',
+          event_value: '0',
+          page_path: '/spiffy-webhook',
+          dedupe_key: `spiffy_order_${orderId}`,
+          metadata: {
+            provider: 'spiffy', order_id: orderId, checkout_id: checkoutId,
+            purchase_email: email,
+            purchase_first_name: findFirstKey(body, ['name_first', 'first_name']) || mc2Row.prenom || '',
+            plan: mc2Plan, payment_mode: plan.paymentMode,
+            amount_cents: 0, contractual_total_cents: plan.contractualTotalCents,
+            terms_version: 'mc2-cgv-2026-09-v7',
+            terms_url: 'https://sonnycourt.com/mc2/draftx/cgv/',
+          },
+        });
+        if (!purchaseEvent.ok && purchaseEvent.status !== 409) {
+          return jsonResponse(503, { ok: false, error: 'purchase_record_unavailable' });
+        }
+      }
       const purchaseBonusTag = mc2Row.purchase_bonus_tag || mc2ConsultationBonusTag({
         registration: mc2Row,
         purchasedAt,
@@ -347,6 +380,7 @@ export default async (req) => {
       );
       if (!updatedMc2.ok) {
         console.error('spiffy-webhook: mise a jour MC2 impossible', updatedMc2.status, updatedMc2.error);
+        if (deferredPlan) return jsonResponse(503, { ok: false, error: 'purchase_update_unavailable' });
       } else {
         await Promise.allSettled([
           cancelMc2OfferSms(mc2Row.token, 'purchase_completed'),
@@ -396,7 +430,7 @@ export default async (req) => {
         email: attributionRow.email,
         phone: attributionRow.telephone,
         ttclid: attributionRow.tt_click_id,
-        value: amount || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388,
+        value: deferredPlan ? 0 : amount || Number(process.env.TIKTOK_PURCHASE_VALUE_EUR) || 388,
         currency: 'EUR',
         contentName: 'Esprit Subconscient 2.0',
       });
@@ -411,7 +445,7 @@ export default async (req) => {
         phone: attributionRow.telephone,
         fbc: attributionRow.meta_fbc,
         fbp: attributionRow.meta_fbp,
-        value: amount || Number(process.env.META_PURCHASE_VALUE_EUR) || 388,
+        value: deferredPlan ? 0 : amount || Number(process.env.META_PURCHASE_VALUE_EUR) || 388,
         currency: 'EUR',
         contentName: 'Esprit Subconscient 2.0',
       });

@@ -1,4 +1,5 @@
 import { getMc2ForceRefreshAt, resolveMc2VideoConfig } from './lib/mc2-video-config.mjs';
+import { MC2_DRAFTX_LIVE_HLS_URL } from '../../src/lib/mc2-draftx-media.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -13,6 +14,13 @@ function jsonResponse(status, payload) {
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'GET') return jsonResponse(405, { error: 'Method not allowed' });
+  if (new URL(req.url).searchParams.get('variant') === 'draftx') {
+    return jsonResponse(200, {
+      ok: true, variant: 'draftx', activeSource: 'primary',
+      activeUrl: MC2_DRAFTX_LIVE_HLS_URL, hasBackup: false,
+      playbackCommand: null, forceRefreshAt: null,
+    });
+  }
 
   try {
     const cfg = await resolveMc2VideoConfig();

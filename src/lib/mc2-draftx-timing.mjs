@@ -1,17 +1,18 @@
 export const MC2_LIVE_VIDEO_LEAD_SECONDS = 15 * 60;
 export const MC2_LIVE_VIDEO_LEAD_MS = MC2_LIVE_VIDEO_LEAD_SECONDS * 1000;
 
-// Durée réelle arrondie au supérieur de la vidéo live Bunny actuellement diffusée.
-export const MC2_LIVE_VIDEO_DURATION_SECONDS = 8_041;
+// W13B : 7 919,95 s live / 6 718,69 s replay, manifestes Bunny du 14/09/2026.
+export const MC2_LIVE_VIDEO_DURATION_SECONDS = 7_920;
+export const MC2_REPLAY_VIDEO_DURATION_SECONDS = 6_719;
 export const MC2_LIVE_VIDEO_DURATION_MS = MC2_LIVE_VIDEO_DURATION_SECONDS * 1000;
 
 // session_starts_at correspond à l'heure annoncée, alors que la vidéo démarre
-// quinze minutes plus tôt. La fin canonique est donc à +1 h 59 min 01 s.
+// quinze minutes plus tôt. La fin canonique est donc à +1 h 57 min.
 export const MC2_SESSION_DURATION_SECONDS = MC2_LIVE_VIDEO_DURATION_SECONDS
   - MC2_LIVE_VIDEO_LEAD_SECONDS;
 export const MC2_SESSION_DURATION_MS = MC2_SESSION_DURATION_SECONDS * 1000;
 
-export const MC2_LIVE_CTA_SECONDS = (94 * 60) + 51;
+export const MC2_LIVE_CTA_SECONDS = (94 * 60) + 50;
 export const MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS = 20 * 60;
 export const MC2_REPLAY_CTA_SECONDS = MC2_LIVE_CTA_SECONDS
   - MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS;

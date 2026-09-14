@@ -71,6 +71,7 @@ const previewReviewInitials = (name) => name
         text-transform: uppercase;
       }
       .deal-sticky-cta {
+        box-sizing: border-box;
         position: fixed;
         right: clamp(16px, 2.4vw, 30px);
         bottom: calc(clamp(16px, 2.4vw, 30px) + env(safe-area-inset-bottom, 0px));
@@ -78,14 +79,16 @@ const previewReviewInitials = (name) => name
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 54px;
-        padding: 15px 22px;
+        min-height: 72px;
+        max-width: calc(100% - 32px);
+        padding: 20px 30px;
         color: #fff;
         border: 1px solid rgba(147, 197, 253, 0.5);
         border-radius: 14px;
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 58%, #1d4ed8 100%);
         box-shadow: 0 16px 38px rgba(29, 78, 216, 0.38), inset 0 1px rgba(255, 255, 255, 0.22);
-        font-size: 0.95rem;
+        font-size: 1.2rem;
+        line-height: 1.35;
         font-weight: 900;
         letter-spacing: -0.01em;
         cursor: pointer;
@@ -150,10 +153,7 @@ const previewReviewInitials = (name) => name
         box-shadow: 0 0 0 3px rgba(56, 132, 234, 0.12);
       }
       .checkout-payment-brands {
-        position: absolute;
-        z-index: 4;
-        top: 82px;
-        right: 2px;
+        position: static;
         display: flex;
         align-items: center;
         justify-content: flex-end;
@@ -166,6 +166,7 @@ const previewReviewInitials = (name) => name
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+        margin-top: 24px;
         margin-bottom: 14px;
         padding: 8px;
         border: 1px solid #d4deea;
@@ -173,6 +174,7 @@ const previewReviewInitials = (name) => name
         background: #edf2f7;
       }
       .payment-plan-option {
+        position: relative;
         display: grid;
         gap: 5px;
         min-width: 0;
@@ -183,8 +185,11 @@ const previewReviewInitials = (name) => name
         border-radius: 10px;
         background: #fff;
         cursor: pointer;
-        text-align: left;
+        text-align: center;
         transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+      @media (max-width: 600px) {
+        .payment-plan-selector { grid-template-columns: 1fr; row-gap: 40px; }
       }
       .payment-plan-option:hover { border-color: #94bff4; }
       .payment-plan-option:focus-visible { outline: 3px solid rgba(71, 143, 255, 0.42); outline-offset: 2px; }
@@ -207,12 +212,17 @@ const previewReviewInitials = (name) => name
         gap: 5px 8px;
       }
       .payment-plan-option__badge {
-        padding: 4px 7px;
-        color: #1d5fae;
-        border: 1px solid #b9d5f7;
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 7px 12px;
+        color: #592600;
+        border: 1px solid #ffab4b;
         border-radius: 999px;
-        background: #dcecff;
-        font-size: 0.48rem;
+        background: linear-gradient(135deg, #ffdd83, #ffac4b);
+        box-shadow: 0 4px 12px rgba(232, 119, 26, 0.22);
+        font-size: 0.56rem;
         font-weight: 900;
         line-height: 1;
         letter-spacing: 0.07em;
@@ -221,7 +231,7 @@ const previewReviewInitials = (name) => name
       }
       .payment-plan-option strong {
         color: inherit;
-        font-size: clamp(1rem, 2vw, 1.18rem);
+        font-size: clamp(1.65rem, 3vw, 2rem);
         font-weight: 900;
         line-height: 1;
         letter-spacing: -0.025em;
@@ -379,6 +389,8 @@ const previewReviewInitials = (name) => name
       .preview-checkout-review blockquote { margin: 0; color: #b8c7d9; font-size: 0.82rem; font-style: italic; font-weight: 500; line-height: 1.45; }
       .preview-checkout-review cite { display: block; margin-top: 6px; color: #9fb7d3; font-size: 0.64rem; font-style: normal; font-weight: 800; }
       .preview-guarantee {
+        --guarantee-pad-x: clamp(20px, 5vw, 48px);
+        --guarantee-pad-bottom: clamp(26px, 4vw, 38px);
         position: relative;
         isolation: isolate;
         display: grid;
@@ -386,8 +398,8 @@ const previewReviewInitials = (name) => name
         gap: 14px;
         width: min(100%, 720px);
         margin: 2.5rem auto 0;
-        padding: clamp(28px, 5vw, 46px) clamp(20px, 5vw, 48px) clamp(26px, 4vw, 38px);
-        overflow: hidden;
+        padding: clamp(28px, 5vw, 46px) var(--guarantee-pad-x) var(--guarantee-pad-bottom);
+        overflow: clip;
         color: #effff7;
         border: 1px solid rgba(221, 183, 92, 0.58);
         border-radius: 24px;
@@ -427,6 +439,14 @@ const previewReviewInitials = (name) => name
         height: auto;
         margin-top: 0;
         filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.4));
+      }
+      .preview-guarantee__banner {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 0 auto 20px;
+        border-radius: 16px;
+        mix-blend-mode: lighten;
       }
       .preview-guarantee__kicker {
         display: inline-flex;
@@ -478,13 +498,73 @@ const previewReviewInitials = (name) => name
         line-height: 1.15;
         transform: rotate(-1deg);
       }
+      .preview-guarantee__annex {
+        width: calc(100% + var(--guarantee-pad-x) + var(--guarantee-pad-x));
+        margin-top: 16px;
+        margin-bottom: calc(-1 * var(--guarantee-pad-bottom));
+        padding: clamp(24px, 4vw, 32px) var(--guarantee-pad-x);
+        border-top: 1px solid rgba(212, 175, 87, 0.3);
+        background: #090a0c;
+        text-align: left;
+      }
+      .preview-guarantee__steps {
+        display: grid;
+        gap: 24px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .preview-guarantee__step {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 13px;
+        align-items: start;
+      }
+      .preview-guarantee__number {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(228, 189, 98, 0.35);
+        border-radius: 50%;
+        color: #e4bd62;
+        background: rgba(228, 189, 98, 0.08);
+        font-size: 0.85rem;
+        font-weight: 800;
+      }
+      .preview-guarantee__step h3 {
+        margin: 4px 0 7px;
+        color: #f4d58b;
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.4;
+      }
+      .preview-guarantee .preview-guarantee__step p {
+        max-width: none;
+        margin: 0;
+        color: #c8c5bf;
+        font-size: 0.82rem;
+        font-weight: 450;
+        line-height: 1.65;
+        text-wrap: pretty;
+      }
+      .preview-guarantee .preview-guarantee__step p + p { margin-top: 10px; }
+      .preview-guarantee__step a {
+        color: #f4d58b;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .preview-guarantee__step a:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 3px;
+      }
       .preview-guarantee p.preview-guarantee__condition {
         max-width: none;
         margin-top: 0;
         color: rgba(232, 223, 207, 0.72);
         font-size: clamp(0.7rem, 1.55vw, 0.8rem);
         font-weight: 400;
-        white-space: nowrap;
+        white-space: normal;
       }
       .preview-guarantee__validity {
         display: inline-flex;
@@ -639,6 +719,17 @@ const previewReviewInitials = (name) => name
         width: 60px;
         height: 60px;
         margin: 0 auto;
+        object-fit: contain;
+        filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.3));
+      }
+      .es2-bonus-card--trauma-pack { grid-template-rows: auto auto; }
+      .es2-bonus-pack {
+        display: block;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: min(100%, 190px);
+        height: auto;
+        margin: 10px auto -4px;
         object-fit: contain;
         filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.3));
       }
@@ -1063,7 +1154,25 @@ const previewReviewInitials = (name) => name
       }
       .deal-summary__today-label { display: block; margin-bottom: 5px; color: #fecaca; font-size: 0.68rem; font-weight: 850; letter-spacing: 0.075em; text-transform: uppercase; }
       .deal-summary__today p { margin: 0; color: rgba(254, 226, 226, 0.62); font-size: 0.78rem; line-height: 1.45; }
-      .deal-summary__price { padding-left: clamp(18px, 3vw, 28px); color: #fff; border-left: 1px solid rgba(254, 202, 202, 0.18); font-size: clamp(2.65rem, 6vw, 4rem); font-weight: 920; letter-spacing: -0.07em; line-height: 0.95; text-shadow: 0 4px 24px rgba(127, 29, 29, 0.42); white-space: nowrap; }
+      .deal-summary__price { padding-left: clamp(18px, 3vw, 28px); color: #fff; border-left: 1px solid rgba(254, 202, 202, 0.18); font-size: clamp(2.65rem, 6vw, 4rem); font-weight: 920; letter-spacing: -0.07em; line-height: 0.95; text-shadow: 0 4px 24px rgba(127, 29, 29, 0.42); white-space: nowrap; text-align: center; }
+      .deal-summary__price small { display: block; margin-top: 9px; color: #fecaca; font-size: 0.78rem; font-weight: 650; letter-spacing: 0; line-height: 1.3; text-align: center; }
+      .deal-summary__price .deal-summary__installments { margin-top: 12px; color: #fb7185; font-size: clamp(0.875rem, 1.7vw, 1rem); font-weight: 800; white-space: normal; }
+      .deal-summary__price .deal-summary__daily { font-size: 1.05rem; white-space: normal; }
+      .draftx-daily-card {
+        margin: 28px auto 0;
+        padding: clamp(26px, 4vw, 40px) clamp(18px, 4vw, 40px);
+        border: 1px solid #282828;
+        border-radius: 24px;
+        background: linear-gradient(145deg, #141414 0%, #090909 100%);
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .draftx-daily-comparison { display: grid; justify-items: center; gap: 18px; max-width: 620px; margin: 0 auto; text-align: center; }
+      .draftx-daily-comparison img { display: block; width: 190px; max-width: 100%; height: auto; }
+      .draftx-daily-comparison .draftx-daily-comparison__title { margin: 0; color: #fff3e2; font-size: clamp(1.35rem, 2.8vw, 1.75rem); font-weight: 850; line-height: 1.25; letter-spacing: -0.025em; text-align: center; text-wrap: balance; }
+      .draftx-daily-comparison__continuation { display: block; color: #c9c4bc; font-size: clamp(1rem, 1.8vw, 1.125rem); font-weight: 500; line-height: 1.5; letter-spacing: 0; }
+      .draftx-daily-comparison__price { display: block; margin-top: 12px; color: #fff3e2; font-size: clamp(1.25rem, 3.2vw, 2rem); font-weight: 850; line-height: 1.25; letter-spacing: -0.025em; }
+      .draftx-daily-comparison__price-line { display: block; }
+      .draftx-daily-comparison__daily { margin: 0; color: #bfdbfe; font-size: 1.05rem; font-weight: 650; line-height: 1.3; }
       .deal-summary__checkout-cue {
         display: flex;
         align-items: center;
@@ -1179,6 +1288,15 @@ const previewReviewInitials = (name) => name
         border-radius: 13px;
         background: rgba(255, 255, 255, 0.027);
       }
+      .core-module--illustrated {
+        grid-template-columns: minmax(0, 1fr) 110px;
+      }
+      .core-module--illustrated .core-module__value { justify-items: center; text-align: center; }
+      .core-module__pack {
+        display: block;
+        width: 110px;
+        height: auto;
+      }
       .core-module__index {
         display: block;
         margin-bottom: 6px;
@@ -1250,24 +1368,29 @@ const previewReviewInitials = (name) => name
         border-top: 1px solid rgba(147, 197, 253, 0.18);
         background: linear-gradient(110deg, rgba(37, 99, 235, 0.2), rgba(30, 64, 175, 0.08));
       }
-      .core-total__today-price { color: #fff; font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 920; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; }
+      .core-total__today-price { color: #fff; font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 920; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; text-align: center; }
+      .core-total__today-price small { display: block; margin-top: 9px; color: #bfdbfe; font-size: 0.78rem; font-weight: 650; letter-spacing: 0; line-height: 1.3; text-align: center; }
+      .core-total__today-price .core-total__future { margin-top: 12px; color: #93c5fd; font-size: clamp(0.875rem, 1.7vw, 1rem); font-weight: 800; white-space: normal; }
       .core-total__installments { display: block; color: rgba(191, 219, 254, 0.58); font-size: 0.7rem; font-weight: 650; }
       .core-price-cta {
+        box-sizing: border-box;
         display: flex;
-        width: min(100%, 430px);
-        min-height: 54px;
+        width: min(100%, 640px);
+        min-height: 84px;
         align-items: center;
         justify-content: center;
-        margin: 26px auto 0;
-        padding: 14px 24px;
+        margin: 32px auto 0;
+        padding: 24px 28px;
         color: #fff;
         border: 1px solid rgba(147, 197, 253, 0.38);
-        border-radius: 13px;
+        border-radius: 16px;
         background: linear-gradient(145deg, #3b82f6, #2563eb);
         box-shadow: 0 15px 34px rgba(37, 99, 235, 0.3), inset 0 1px rgba(255, 255, 255, 0.22);
         cursor: pointer;
-        font-size: clamp(0.86rem, 1.7vw, 1rem);
+        font-size: clamp(1.25rem, 2.6vw, 1.5rem);
         font-weight: 900;
+        line-height: 1.35;
+        text-wrap: balance;
         letter-spacing: 0.01em;
         transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
       }
@@ -1597,6 +1720,22 @@ const previewReviewInitials = (name) => name
         align-items: stretch;
         text-align: left;
       }
+      .after-signup {
+        margin-top: 28px;
+        padding: clamp(24px, 4vw, 36px);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        border-radius: 19px;
+        background: radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.13), transparent 65%), linear-gradient(145deg, #101c33, #091323);
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+      }
+      .after-signup__title { margin: 0 0 28px; color: #f8fafc; font-size: clamp(1.2rem, 2.6vw, 1.65rem); font-weight: 850; letter-spacing: -0.035em; line-height: 1.2; text-wrap: balance; }
+      .after-signup__title span { color: #60a5fa; }
+      .after-signup__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; padding: 0; list-style: none; text-align: left; }
+      .after-signup__step { min-width: 0; }
+      .after-signup__step + .after-signup__step { padding-left: 24px; border-left: 1px solid rgba(147, 197, 253, 0.15); }
+      .after-signup__number { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 14px; border: 1px solid rgba(96, 165, 250, 0.4); border-radius: 50%; background: rgba(59, 130, 246, 0.14); color: #93c5fd; font-size: 0.75rem; font-weight: 800; }
+      .after-signup__step h4 { margin: 0 0 9px; color: #f1f5f9; font-size: 0.94rem; font-weight: 750; line-height: 1.35; letter-spacing: -0.02em; }
+      .after-signup__step p { margin: 0; color: #b2c3db; font-size: 0.8rem; line-height: 1.6; }
       .path-card {
         position: relative;
         display: grid;
@@ -1671,99 +1810,6 @@ const previewReviewInitials = (name) => name
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
-      .two-paths-cost {
-        max-width: 790px;
-        margin: clamp(42px, 6vw, 64px) auto 0;
-        padding: clamp(24px, 4vw, 34px);
-        color: rgba(226, 232, 240, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.025);
-        text-align: left;
-      }
-      .two-paths-cost h3 {
-        max-width: 610px;
-        margin: 0 auto;
-        color: #f8fafc;
-        font-size: clamp(1.35rem, 2.8vw, 2rem);
-        font-weight: 880;
-        letter-spacing: -0.04em;
-        line-height: 1.12;
-        text-align: center;
-        text-wrap: balance;
-      }
-      .two-paths-cost h3 span { color: #f87171; }
-      .two-paths-cost ul {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px 20px;
-        margin: 24px 0 0;
-        padding: 0;
-        list-style: none;
-      }
-      .two-paths-cost li {
-        position: relative;
-        margin: 0;
-        padding: 14px 15px 14px 34px;
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 12px;
-        background: rgba(2, 8, 23, 0.28);
-        font-size: clamp(0.82rem, 1.2vw, 0.91rem);
-        line-height: 1.55;
-      }
-      .two-paths-cost li::before {
-        position: absolute;
-        top: 21px;
-        left: 16px;
-        width: 6px;
-        height: 6px;
-        border-radius: 999px;
-        background: #f87171;
-        box-shadow: 0 0 12px rgba(248, 113, 113, 0.42);
-        content: "";
-      }
-      .two-paths-cost__final {
-        max-width: 690px;
-        margin: 18px auto 0;
-        padding-top: 0;
-        color: #f4cf79;
-        border-top: 0;
-        font-size: clamp(0.96rem, 1.65vw, 1.12rem);
-        font-weight: 850;
-        line-height: 1.5;
-        text-align: center;
-        text-wrap: balance;
-      }
-      .two-paths-cost__final-light {
-        color: rgba(226, 232, 240, 0.66);
-        font-weight: 560;
-      }
-      .two-paths-cost__cta {
-        display: flex;
-        width: fit-content;
-        min-height: 52px;
-        align-items: center;
-        justify-content: center;
-        margin: 22px auto 0;
-        padding: 14px clamp(22px, 4vw, 34px);
-        color: #171208;
-        border: 1px solid #f7dc94;
-        border-radius: 12px;
-        background: linear-gradient(145deg, #f8dc8e, #d9ad45);
-        box-shadow: 0 13px 30px rgba(216, 180, 95, 0.24), inset 0 1px rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-        font-size: clamp(0.78rem, 1.5vw, 0.92rem);
-        font-weight: 900;
-        letter-spacing: 0.015em;
-        text-transform: uppercase;
-        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
-      }
-      .two-paths-cost__cta:hover {
-        filter: brightness(1.06);
-        box-shadow: 0 17px 38px rgba(216, 180, 95, 0.34), inset 0 1px rgba(255, 255, 255, 0.56);
-        transform: translateY(-2px);
-      }
-      .two-paths-cost__cta:focus-visible { outline: 3px solid rgba(244, 207, 121, 0.48); outline-offset: 4px; }
       .preview-reviews {
         display: block;
         width: 100%;
@@ -1852,14 +1898,14 @@ const previewReviewInitials = (name) => name
       .preview-review-reply p { margin: 0; font-size: 9px; line-height: 1.55; }
       .preview-reviews-dialog__disclosure { flex: 0 0 auto; margin: 0; padding: 12px 24px; color: #8a94a4; background: #f7f9fc; border-top: 1px solid #e2e7ef; font-size: 8px; line-height: 1.45; text-align: center; }
       @media (max-width: 640px) {
-        .checkout-payment-brands { top: 160px; }
         .deal-sticky-cta {
           right: 12px;
           bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-          min-height: 50px;
-          padding: 13px 17px;
-          border-radius: 12px;
-          font-size: 0.86rem;
+          min-height: 64px;
+          max-width: calc(100% - 24px);
+          padding: 18px 24px;
+          border-radius: 14px;
+          font-size: 1.075rem;
         }
         .workbench { padding: 26px 12px 72px; }
         .deal-summary__checkout { padding: 18px 16px 22px; }
@@ -1885,6 +1931,7 @@ const previewReviewInitials = (name) => name
         .es2-bonus-body { order: 2; width: 100%; }
         .es2-bonus-aside { order: 4; width: 100%; min-width: 0; align-self: stretch; align-items: center; flex-direction: row; justify-content: flex-end; gap: 12px; margin-top: 2px; padding-top: 16px; border-top: 1px solid rgba(147, 197, 253, 0.16); }
         .es2-bonus-gift { order: 2; width: 46px; height: 46px; margin: 0; }
+        .es2-bonus-pack { order: 3; width: min(100%, 168px); margin-top: 6px; }
         .es2-bonus-val { order: 1; text-align: right; }
         .es2-bonus-val-label { margin-bottom: 3px; }
         .es2-bonus-card--limited { grid-template-rows: auto auto auto; }
@@ -1927,13 +1974,19 @@ const previewReviewInitials = (name) => name
         .core-total__price { width: max-content; max-width: 100%; justify-self: start; }
         .core-total__price::after { right: -4px; left: -4px; }
         .core-module { grid-template-columns: 1fr; gap: 13px; padding: 18px; }
+        .core-module__pack { width: 140px; justify-self: center; }
         .core-module__value { grid-column: 1; justify-items: start; text-align: left; }
         .core-module__value strong { font-size: 1rem; }
         .two-paths-grid { grid-template-columns: 1fr; gap: 46px; }
+        .after-signup { margin-top: 24px; padding: 24px 20px; }
+        .after-signup__title { margin-bottom: 24px; }
+        .after-signup__steps { grid-template-columns: 1fr; gap: 20px; }
+        .after-signup__step { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; }
+        .after-signup__step + .after-signup__step { padding: 20px 0 0; border-left: 0; border-top: 1px solid rgba(147, 197, 253, 0.15); }
+        .after-signup__number { grid-column: 1; grid-row: 1 / 3; width: 32px; height: 32px; margin: 0; }
+        .after-signup__step h4, .after-signup__step p { grid-column: 2; }
         .paths-fork { display: none; }
         .path-card { padding: 26px 22px; }
-        .two-paths-cost { padding: 24px 20px; }
-        .two-paths-cost ul { grid-template-columns: 1fr; }
         .preview-reviews { margin-top: 72px; }
         .preview-reviews-summary { padding: 21px 20px 19px; }
         .preview-reviews-summary__main { gap: 15px; }
@@ -1949,28 +2002,43 @@ const previewReviewInitials = (name) => name
 <main id="deal-offer-content" class="workbench">
       <section class="core-value-section">
         <h2 class="core-value-title">Ce que vaut réellement <span class="core-value-title__accent">Esprit Subconscient 2.0</span></h2>
-        <p class="core-value-intro">Voici ce que représente l’accompagnement principal que tu reçois pendant six mois <strong>(sans compter les 7 bonus)</strong>.</p>
+        <p class="core-value-intro">Voici ce que représente l’accompagnement principal que tu reçois pendant six mois <strong>(sans compter les 5 bonus)</strong>.</p>
 
         <div class="core-modules">
-          <article class="core-module">
+          <article class="core-module core-module--illustrated">
             <div><span class="core-module__index">Module 1</span><h3>La réalisation</h3><p>Apprends les règles du jeu de la vie et découvre comment ton état intérieur façonne tes résultats, pour ne plus créer par défaut et commencer à choisir consciemment.</p></div>
-            <div class="core-module__value"><span>Valeur individuelle</span><strong>297 €</strong></div>
+            <div class="core-module__value">
+              <img class="core-module__pack" src="/media/draftx-module-1.webp" alt="Pack Module 1 — La réalisation" width="480" height="720" loading="lazy" decoding="async" />
+              <span>Valeur individuelle</span><strong>297 €</strong>
+            </div>
           </article>
-          <article class="core-module">
+          <article class="core-module core-module--illustrated">
             <div><span class="core-module__index">Module 2</span><h3>L’immersion</h3><p>Laisse-toi guider par le système qui te ramène chaque jour dans l’état du souhait réalisé, jusqu’à ce qu’il devienne naturel et que tes premières manifestations prennent forme.</p></div>
-            <div class="core-module__value"><span>Valeur individuelle</span><strong>1 497 €</strong></div>
+            <div class="core-module__value">
+              <img class="core-module__pack" src="/media/draftx-module-2-immersion.webp" alt="Pack Module 2 — L’immersion" width="480" height="720" loading="lazy" decoding="async" />
+              <span>Valeur individuelle</span><strong>1 497 €</strong>
+            </div>
           </article>
-          <article class="core-module">
+          <article class="core-module core-module--illustrated">
             <div><span class="core-module__index">Module 3</span><h3>La manifestation</h3><p>Continue depuis tes premières manifestations, identifie ce qui les a rendues possibles et reproduis consciemment ce processus pour manifester des résultats encore plus ambitieux.</p></div>
-            <div class="core-module__value"><span>Valeur individuelle</span><strong>1 697 €</strong></div>
+            <div class="core-module__value">
+              <img class="core-module__pack" src="/media/draftx-module-3.webp" alt="Pack Module 3 — La manifestation" width="480" height="720" loading="lazy" decoding="async" />
+              <span>Valeur individuelle</span><strong>1 697 €</strong>
+            </div>
           </article>
-          <article class="core-module">
+          <article class="core-module core-module--illustrated">
             <div><span class="core-module__index">Module 4</span><h3>La libération</h3><p>Construis une structure qui rend tes progrès automatiques, supprime définitivement le besoin de discipline et améliore la qualité de ta vie sous tous ses aspects.</p></div>
-            <div class="core-module__value"><span>Valeur individuelle</span><strong>597 €</strong></div>
+            <div class="core-module__value">
+              <img class="core-module__pack" src="/media/draftx-module-4.webp" alt="Pack Module 4 — La libération" width="480" height="720" loading="lazy" decoding="async" />
+              <span>Valeur individuelle</span><strong>597 €</strong>
+            </div>
           </article>
-          <article class="core-module">
+          <article class="core-module core-module--illustrated">
             <div><span class="core-module__index">Module 5</span><h3>L’accélération</h3><p>Utilise l’intelligence artificielle et tous les outils à ta disposition pour accélérer tes manifestations, et réaliser 10x plus de ce que tu croyais possible en une vie.</p></div>
-            <div class="core-module__value"><span>Valeur individuelle</span><strong>697 €</strong></div>
+            <div class="core-module__value">
+              <img class="core-module__pack" src="/media/draftx-module-5-levitation.webp" alt="Pack Module 5 — L’accélération" width="480" height="720" loading="lazy" decoding="async" />
+              <span>Valeur individuelle</span><strong>697 €</strong>
+            </div>
           </article>
         </div>
 
@@ -1990,21 +2058,34 @@ const previewReviewInitials = (name) => name
             <div>
               <span class="core-total__label">Valeur du programme complet</span>
               <strong>Les cinq modules d’Esprit Subconscient 2.0</strong>
-              <p>Sans compter les 7 bonus exclusifs, disponibles uniquement en rejoignant Esprit Subconscient 2.0 maintenant.</p>
+              <p>Sans compter les 5 bonus exclusifs, disponibles uniquement en rejoignant Esprit Subconscient 2.0 maintenant.</p>
             </div>
             <span class="core-total__price">4 785 €</span>
           </div>
           <div class="core-total__today">
             <div>
-              <span class="core-total__today-label">En rejoignant aujourd’hui</span>
-              <span class="core-total__installments">Ou 3 mensualités de 767 €.</span>
+              <span class="core-total__today-label">Ta transformation commence aujourd’hui</span>
+              <span class="core-total__installments">Premier versement dans 7 jours.</span>
             </div>
-            <span class="core-total__today-price">1 997 €</span>
+            <span class="core-total__today-price">0 €<small>aujourd’hui</small><small class="core-total__future">Puis 197 €/mois sur une année.</small></span>
           </div>
         </div>
 
-        <button class="core-price-cta" id="core-price-registration-cta" type="button" aria-controls="deal-registration">
-          Je rejoins l’aventure →
+        <div class="draftx-daily-card">
+        <figure class="draftx-daily-comparison">
+          <figcaption><h3 class="draftx-daily-comparison__title">
+            <span class="draftx-daily-comparison__continuation">Après 7 jours, ta transformation continue…</span>
+            <span class="draftx-daily-comparison__price">
+              <span class="draftx-daily-comparison__price-line">Pour le prix d’un café</span>
+              <span class="draftx-daily-comparison__price-line">et d’un croissant par jour.</span>
+            </span>
+          </h3></figcaption>
+          <img src="/media/draftx-cafe-croissant-objects.png" alt="Une tasse de café et un croissant en illustration 3D" width="1536" height="1024" loading="lazy" decoding="async" />
+          <p class="draftx-daily-comparison__daily">soit 6,47 € par jour</p>
+        </figure>
+
+        <button class="core-price-cta" id="core-price-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+          Je commence ma transformation →
         </button>
 
         <div class="core-guarantee-reminder" aria-label="Rappel de la garantie manifestation">
@@ -2014,12 +2095,13 @@ const previewReviewInitials = (name) => name
             <strong>Soit tu manifestes, soit tu es remboursé.</strong>
           </div>
         </div>
+        </div>
 
       </section>
 
       <section class="es2-bonus-section">
         <p class="es2-bonus-kicker">Et en rejoignant aujourd'hui</p>
-        <h2 class="es2-bonus-title">Tu reçois aussi ces <span class="es2-bonus-title__accent">7 BONUS EXCLUSIFS</span></h2>
+        <h2 class="es2-bonus-title">Tu reçois aussi ces <span class="es2-bonus-title__accent">5 BONUS EXCLUSIFS</span></h2>
         <p class="es2-bonus-exclusivity">Le seul moyen d’obtenir ces bonus est de rejoindre Esprit Subconscient 2.0.</p>
 
         <div class="es2-bonus-grid">
@@ -2033,7 +2115,7 @@ const previewReviewInitials = (name) => name
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">750€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">750€</span></div>
             </div>
             <figure class="es2-bonus-proof">
               <img src="/media/deal-coaching-team-standards-v2.webp" alt="Standards de sélection de nos coachs certifiés : au moins 10 ans d’expérience en hypnothérapie, Master Coach, Maître Praticien en hypnose ericksonienne et en programmation neurolinguistique" width="1200" height="480" loading="lazy" decoding="async" />
@@ -2057,7 +2139,7 @@ const previewReviewInitials = (name) => name
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">597€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">597€</span></div>
             </div>
             <div class="es2-app-availability" aria-label="Application mobile Morpho bientôt disponible sur l’App Store et Google Play">
               <span class="es2-app-availability__available">Morpho est disponible dès ton inscription.</span>
@@ -2074,22 +2156,23 @@ const previewReviewInitials = (name) => name
             <img class="es2-morpho-phone" src="/media/deal-morpho-phone-transparent.webp" alt="Aperçu réel de l’application Morpho dans un téléphone" width="1536" height="1024" loading="lazy" decoding="async" />
           </article>
 
-          <article class="es2-bonus-card es2-bonus-card--illustrated">
+          <article class="es2-bonus-card es2-bonus-card--trauma-pack">
             <div class="es2-bonus-visual">
               <div class="es2-bonus-index"><span>Bonus</span><strong>03</strong></div>
             </div>
             <div class="es2-bonus-body">
-              <h3 class="es2-bonus-name">33 Success Stories de manifestation</h3>
-              <p class="es2-bonus-desc">Les histoires vraies que tu auras besoin d’entendre lorsque le doute refera surface. Argent, amour, retour d’un ex, santé, réconciliation ou carrière : découvre 33 personnes qui ont manifesté ce qu’elles désiraient, parfois alors que leur situation semblait sans issue. Reviens-y chaque fois que tu doutes pour retrouver la foi, maintenir ton état et te rappeler que si cela a été possible pour elles, ça l’est aussi pour toi.</p>
+              <h3 class="es2-bonus-name">5 méthodes pour te libérer des traumas passés</h3>
+              <p class="es2-bonus-desc">Quand tu as l’impression de faire tout juste mais que ton monde physique continue à te résister, c’est souvent qu’il y a un trauma caché quelque part en toi qui n’a pas encore été libéré. Une tension nerveuse, une mémoire traumatique invisible pour ton conscient, mais bien réelle. Ce bonus sera ton arme secrète : 5 méthodes pour t’aider à lâcher la souffrance du passé et faire tomber ce qui s’avère souvent être la dernière résistance pour manifester ce que tu veux.</p>
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">197€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">297€</span></div>
             </div>
-            <img class="es2-bonus-illustration" src="/media/deal-success-stories-transparent.webp" alt="Illustration des 33 Success Stories de manifestation" width="1254" height="1254" loading="lazy" decoding="async" />
+            <img class="es2-bonus-pack" src="/media/draftx-bonus-3-trauma-clean.webp" alt="Pack Trauma : 5 méthodes pour te libérer des traumas passés" width="640" height="1135" loading="lazy" decoding="async" />
           </article>
 
-          <article class="es2-bonus-card es2-bonus-card--books-proof">
+          {/* Ancien bonus 4 masqué sur DraftX, conservé ici pour pouvoir le rétablir. */}
+          {false && (<article class="es2-bonus-card es2-bonus-card--books-proof">
             <div class="es2-bonus-visual">
               <div class="es2-bonus-index"><span>Bonus</span><strong>04</strong></div>
             </div>
@@ -2099,9 +2182,24 @@ const previewReviewInitials = (name) => name
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">497€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">497€</span></div>
             </div>
             <img class="es2-books-illustration" src="/media/deal-ancient-books-transparent.webp" alt="Trois livres anciens restaurés et adaptés en livres audio" width="900" height="1021" loading="lazy" decoding="async" />
+          </article>)}
+
+          <article class="es2-bonus-card es2-bonus-card--volt-proof">
+            <div class="es2-bonus-visual">
+              <div class="es2-bonus-index"><span>Bonus</span><strong>04</strong></div>
+            </div>
+            <div class="es2-bonus-body">
+              <h3 class="es2-bonus-name">La communauté Volt (à vie)</h3>
+              <p class="es2-bonus-desc">Rejoins des centaines de personnes qui, comme toi, manifestent leurs désirs et construisent la vie qu’elles veulent vraiment. Ici, tu peux partager tes doutes, tes déclics et tes victoires sans te justifier ni craindre d’être jugé. Volt est une communauté profondément bienveillante où chacun s’entraide, s’encourage et tire les autres vers le haut.</p>
+            </div>
+            <div class="es2-bonus-aside">
+              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">997€</span></div>
+            </div>
+            <img class="es2-volt-macbook" src="/media/deal-volt-macbook-transparent.webp" alt="Aperçu réel de la communauté Volt sur ordinateur" width="1200" height="840" loading="lazy" decoding="async" />
           </article>
 
           <article class="es2-bonus-card es2-bonus-card--limited es2-bonus-card--consultation-proof" data-limited-bonus data-bonus-limit="80">
@@ -2114,7 +2212,7 @@ const previewReviewInitials = (name) => name
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">1 297€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">1 297€</span></div>
             </div>
             <img class="es2-consultation-message" src="/media/deal-sonny-consultation-message-transparent-v3.webp" alt="Notification d’un message personnel de Sonny Court reçue il y a trois minutes" width="714" height="720" loading="lazy" decoding="async" />
             <div class="es2-bonus-availability">
@@ -2126,22 +2224,8 @@ const previewReviewInitials = (name) => name
             </div>
           </article>
 
-          <article class="es2-bonus-card es2-bonus-card--volt-proof">
-            <div class="es2-bonus-visual">
-              <div class="es2-bonus-index"><span>Bonus</span><strong>06</strong></div>
-            </div>
-            <div class="es2-bonus-body">
-              <h3 class="es2-bonus-name">La communauté Volt (à vie)</h3>
-              <p class="es2-bonus-desc">Rejoins des centaines de personnes qui, comme toi, manifestent leurs désirs et construisent la vie qu’elles veulent vraiment. Ici, tu peux partager tes doutes, tes déclics et tes victoires sans te justifier ni craindre d’être jugé. Volt est une communauté profondément bienveillante où chacun s’entraide, s’encourage et tire les autres vers le haut.</p>
-            </div>
-            <div class="es2-bonus-aside">
-              <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">997€</span></div>
-            </div>
-            <img class="es2-volt-macbook" src="/media/deal-volt-macbook-transparent.webp" alt="Aperçu réel de la communauté Volt sur ordinateur" width="1200" height="840" loading="lazy" decoding="async" />
-          </article>
-
-          <article class="es2-bonus-card es2-bonus-card--method-x-proof">
+          {/* Ancien bonus 7 masqué sur DraftX, conservé ici pour pouvoir le rétablir. */}
+          {false && (<article class="es2-bonus-card es2-bonus-card--method-x-proof">
             <div class="es2-bonus-visual">
               <div class="es2-bonus-index"><span>Bonus</span><strong>07</strong></div>
             </div>
@@ -2153,10 +2237,10 @@ const previewReviewInitials = (name) => name
             </div>
             <div class="es2-bonus-aside">
               <img class="es2-bonus-gift" src="/media/deal-gift-blue.webp" alt="" width="192" height="192" />
-              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du cadeau</span><span class="es2-bonus-val-amount">1 997€</span></div>
+              <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">1 997€</span></div>
             </div>
             <img class="es2-method-x-visual" src="/media/deal-methode-x.webp" alt="Méthode X, la dernière formation" width="1200" height="658" loading="lazy" decoding="async" />
-          </article>
+          </article>)}
         </div>
       </section>
 
@@ -2182,7 +2266,7 @@ const previewReviewInitials = (name) => name
 
         <div class="deal-summary__rows">
           <div class="deal-summary__row"><span>La formation complète (5 modules)</span><strong>4 785 €</strong></div>
-          <div class="deal-summary__row"><span>Les 7 bonus exclusifs</span><strong>6 332 €</strong></div>
+          <div class="deal-summary__row"><span>Les 5 bonus exclusifs</span><strong>3 938 €</strong></div>
         </div>
 
         <div class="deal-summary__total">
@@ -2190,49 +2274,35 @@ const previewReviewInitials = (name) => name
             <span class="deal-summary__total-label">Valeur totale de tout ce que tu reçois</span>
             <span class="deal-summary__total-note">(La formation complète et l’intégralité des bonus).</span>
           </div>
-          <strong class="deal-summary__anchor">11 117 €</strong>
+          <strong class="deal-summary__anchor">8 723 €</strong>
         </div>
 
-        <div class="deal-summary__bridge">Mais tu ne paies pas 11 117 €</div>
+        <div class="deal-summary__bridge">Mais tu ne paies pas 8 723 €</div>
 
         <div class="deal-summary__today">
           <div>
-            <span class="deal-summary__today-label">En rejoignant aujourd’hui</span>
-            <p>Ou 3 mensualités de 767 €.</p>
+            <span class="deal-summary__today-label">Ta transformation commence aujourd’hui</span>
+            <p>Premier versement dans 7 jours.</p>
           </div>
-          <strong class="deal-summary__price">1 997 €</strong>
+          <strong class="deal-summary__price">0 €<small>aujourd’hui</small><small class="deal-summary__installments">Puis 197 €/mois sur une année.</small><small class="deal-summary__daily">soit 6,47 € par jour</small></strong>
         </div>
 
-        <div class="deal-summary__checkout-cue">Inscris-toi maintenant <span aria-hidden="true">↓</span></div>
+        <div class="deal-summary__checkout-cue">Je commence ma transformation <span aria-hidden="true">↓</span></div>
 
         <div class="deal-summary__checkout" id="deal-registration" aria-label="Formulaire d’inscription Esprit Subconscient 2.0">
-          <div class="payment-plan-selector" role="group" aria-label="Choisis ton mode de versement">
-            <button class="payment-plan-option is-selected" type="button" data-payment-plan="once" aria-pressed="true">
-              <span class="payment-plan-option__top">
-                <span>Versement unique</span>
-                <small class="payment-plan-option__badge">Meilleur tarif</small>
-              </span>
-              <strong>1 997 €</strong>
-            </button>
-            <button class="payment-plan-option" type="button" data-payment-plan="three" aria-pressed="false">
-              <span>Versement en 3 fois</span>
-              <strong>3 × 767 €</strong>
-            </button>
-          </div>
-
           <div
             class="deal-spiffy-checkout"
             id="deal-spiffy-checkout"
             data-checkout-embed-mode="draft"
             aria-label="Paiement sécurisé Esprit Subconscient 2.0"
           >
-            <div class="checkout-payment-brands payment-brands" aria-label="Moyens de paiement acceptés">
+            <DraftXCheckout>
+            <div slot="payment-brands" class="checkout-payment-brands payment-brands" aria-label="Moyens de paiement acceptés">
               <span class="payment-brand payment-brand--mastercard" role="img" aria-label="Mastercard"></span>
               <span class="payment-brand payment-brand--visa" role="img" aria-label="Visa">VISA</span>
               <span class="payment-brand payment-brand--apple" role="img" aria-label="Apple Pay"><b></b>Pay</span>
-              <span class="payment-brand payment-brand--paypal" role="img" aria-label="PayPal">Pay<em>Pal</em></span>
             </div>
-            <DraftXCheckout />
+            </DraftXCheckout>
           </div>
 
           <div class="preview-reviews preview-reviews--checkout">
@@ -2248,26 +2318,48 @@ const previewReviewInitials = (name) => name
         </div>
       </section>
 
-      <div class="preview-guarantee">
+      <div class="preview-guarantee" id="draftx-guarantee">
         <div>
-          <span class="preview-guarantee__kicker">Garantie manifestation</span>
+          <img class="preview-guarantee__banner" src="/media/draftx-guarantee-6-months.png" alt="Garantie 6 mois" width="2172" height="724" />
           <strong>
             <span>SOIT TU MANIFESTES.</span>
             <span>SOIT JE TE REMBOURSE.</span>
           </strong>
-          <p>Si, après avoir terminé la formation, tu n’as pas manifesté ce que tu veux, tu conserves la formation et les bonus offerts, et je te rembourse intégralement.</p>
+          <p>Si, après avoir suivi au moins la moitié de la formation, tu n’as pas manifesté ce que tu veux, tu conserves la formation, et je te rembourse.</p>
         </div>
         <img class="preview-guarantee__seal" src="/media/deal-guarantee-remboursement.webp" alt="Sceau Garantie remboursement 100 %" width="560" height="560" />
-        <span class="preview-guarantee__validity">Garantie valable pendant 12 mois</span>
-        <p class="preview-guarantee__regret">Le seul qui pourrait regretter cette offre, c’est moi !</p>
-        <p class="preview-guarantee__condition">(Une seule condition : termine la formation dans les 12 mois).</p>
-        <p class="preview-guarantee__refund">Pour être remboursé, tu nous envoies ta demande par email et on procède au remboursement sans question dans les 48 h.</p>
-        <blockquote class="preview-guarantee__trust">On te fait confiance et on ne te pose aucune question au sujet de ta manifestation.</blockquote>
+        <p class="preview-guarantee__regret">Le seul qui prend un risque avec cette offre, c’est moi !</p>
+        <div class="preview-guarantee__annex" aria-label="La garantie en trois points">
+          <ol class="preview-guarantee__steps">
+            <li class="preview-guarantee__step">
+              <span class="preview-guarantee__number" aria-hidden="true">1</span>
+              <div>
+                <h3>Une seule condition</h3>
+                <p>Avoir réellement suivi au moins la moitié des leçons de la formation, selon les modalités précisées dans les <a href="/mc2/draftx/cgv/" target="_blank" rel="noopener noreferrer" aria-label="CGV (nouvel onglet)">CGV</a>.</p>
+              </div>
+            </li>
+            <li class="preview-guarantee__step">
+              <span class="preview-guarantee__number" aria-hidden="true">2</span>
+              <div>
+                <h3>Pour être remboursé</h3>
+                <p>Envoie-nous simplement ta demande par email dans les six mois suivant ton achat.</p>
+                <p>Si tu as bien suivi la moitié de la formation, nous déclenchons ton remboursement sous 48 h.</p>
+              </div>
+            </li>
+            <li class="preview-guarantee__step">
+              <span class="preview-guarantee__number" aria-hidden="true">3</span>
+              <div>
+                <h3>On te fait confiance</h3>
+                <p>Aucune preuve ne te sera demandée concernant ta manifestation.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
       </div>
 
       <section class="video-reviews-section" aria-labelledby="video-reviews-title">
         <span class="video-reviews-kicker">Ne me crois pas sur parole</span>
-        <h2 class="video-reviews-title" id="video-reviews-title">Regarde ce qui est arrivé <span class="video-reviews-title__accent">à ceux qui ont appliqué la méthode</span></h2>
+        <h2 class="video-reviews-title" id="video-reviews-title">Regarde ce qu’ont vécu <span class="video-reviews-title__accent">les membres de la formation.</span></h2>
 
         <div class="video-reviews-player">
           <div class="video-reviews-player__bar">
@@ -2280,7 +2372,7 @@ const previewReviewInitials = (name) => name
                 id="video-reviews-video"
                 preload="metadata"
                 playsinline
-                poster="https://vz-601d6eb4-a9a.b-cdn.net/8cff681c-96d3-4bc0-98b6-8936c809957c/thumbnail.jpg"
+                poster="/media/draftx-community-testimonials-v2.webp"
                 aria-label="Témoignages vidéo des membres d’Esprit Subconscient 2.0"
               ></video>
 
@@ -2381,19 +2473,30 @@ const previewReviewInitials = (name) => name
           </article>
         </div>
 
-        <div class="two-paths-cost">
-          <h3>Le véritable prix de <span>l’indécision</span></h3>
-          <ul>
-            <li>Continuer à perdre du temps en cherchant la prochaine solution rapide.</li>
-            <li>Sacrifier des moments précieux à l’anxiété et au mal-être. Ce qui attire toujours plus d’anxiété et de mal-être.</li>
-            <li>Te réfugier dans les distractions plutôt que de régler le problème de fond.</li>
-            <li>Croire que tu économises de l’argent alors que tu perds ton temps et ton énergie, précisément ce qui te permet d’en gagner.</li>
-          </ul>
-          <p class="two-paths-cost__final"><span class="two-paths-cost__final-light">Continuer seul te demandera de payer le prix de cette indécision tous les jours.</span><br /><br />T’inscrire te demande une simple décision aujourd’hui.</p>
-          <button class="two-paths-cost__cta" id="two-paths-registration-cta" type="button" aria-controls="deal-registration">
-            Je commence ma transformation →
-          </button>
-        </div>
+        <section class="after-signup" id="after-signup" aria-labelledby="after-signup-title">
+          <h3 class="after-signup__title" id="after-signup-title">Et juste après <span>ton inscription ?</span></h3>
+          <ol class="after-signup__steps" role="list">
+            <li class="after-signup__step">
+              <span class="after-signup__number" aria-hidden="true">1</span>
+              <h4>Tu reçois tes accès par email.</h4>
+              <p>Tout ce qu’il te faut pour rejoindre Esprit Subconscient 2.0.</p>
+            </li>
+            <li class="after-signup__step">
+              <span class="after-signup__number" aria-hidden="true">2</span>
+              <h4>Tu découvres ton espace de formation.</h4>
+              <p>Tes premiers contenus et ton accès à la communauté sont accessibles immédiatement.</p>
+            </li>
+            <li class="after-signup__step">
+              <span class="after-signup__number" aria-hidden="true">3</span>
+              <h4>Tu commences ta première leçon.</h4>
+              <p>Tu commences dès aujourd’hui, puis tu avances pas à pas en y consacrant environ 15 minutes par jour.</p>
+            </li>
+          </ol>
+        </section>
+
+        <button class="core-price-cta" id="two-paths-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+          Je commence ma transformation →
+        </button>
       </section>
 
       <dialog class="preview-reviews-dialog" id="preview-reviews-dialog" aria-labelledby="preview-reviews-dialog-title">
@@ -2438,19 +2541,19 @@ const previewReviewInitials = (name) => name
       </dialog>
 
     </main>
-    <button class="deal-sticky-cta is-visible" id="deal-sticky-cta" type="button" aria-controls="deal-registration">
-      Je m’inscris ⚡
+    <button class="deal-sticky-cta is-visible" id="deal-sticky-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+      Je commence ⚡
     </button>
     <script is:inline>
       (() => {
         const stickyCta = document.getElementById('deal-sticky-cta');
-        const twoPathsCta = document.getElementById('two-paths-registration-cta');
         const corePriceCta = document.getElementById('core-price-registration-cta');
+        const twoPathsCta = document.getElementById('two-paths-registration-cta');
         const registration = document.getElementById('deal-registration');
         const offerZone = document.getElementById('offer-zone');
         const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-        const scrollToRegistration = () => {
-          registration?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const openRegistration = () => {
+          registration?.querySelector('[data-checkout-open]')?.click();
         };
         const syncStickyCta = () => {
           if (!stickyCta) return;
@@ -2459,13 +2562,13 @@ const previewReviewInitials = (name) => name
         };
 
         if (stickyCta && registration) {
-          stickyCta.addEventListener('click', scrollToRegistration);
-        }
-        if (twoPathsCta && registration) {
-          twoPathsCta.addEventListener('click', scrollToRegistration);
+          stickyCta.addEventListener('click', openRegistration);
         }
         if (corePriceCta && registration) {
-          corePriceCta.addEventListener('click', scrollToRegistration);
+          corePriceCta.addEventListener('click', openRegistration);
+        }
+        if (twoPathsCta && registration) {
+          twoPathsCta.addEventListener('click', openRegistration);
         }
 
         if (offerZone) {

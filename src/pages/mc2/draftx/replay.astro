@@ -1,0 +1,2403 @@
+---
+import DraftXSandbox from '../../../components/mc2/DraftXSandbox.astro';
+import DealOffer from '../../../components/mc2/DealOfferDraftX.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <DraftXSandbox />
+  <meta name="referrer" content="no-referrer" />
+  <!-- Retire le code personnel de la barre avant Meta/Clarity et le conserve
+       localement pour la validation serveur qui suit. -->
+  <script is:inline>
+    try {
+      const replayUrl = new URL(window.location.href);
+      const replayAccess = (replayUrl.searchParams.get('access') || '').trim();
+      if (replayAccess) {
+        localStorage.setItem('mc2_draftx_replay_recovery_access', replayAccess);
+        replayUrl.searchParams.delete('access');
+        history.replaceState(null, '', replayUrl.pathname + replayUrl.search + replayUrl.hash);
+      }
+    } catch {}
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DraftX — Replay Esprit Subconscient 2.0</title>
+  <meta name="description" content="Accède au replay de la masterclass Esprit Subconscient 2.0." />
+  <meta property="og:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://sonnycourt.com/media/pages/masterclass-gratuite-banner.webp" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+  <style>
+    html { opacity: 0; background-color: #06060f; }
+    html.ready { opacity: 1; transition: opacity .15s ease; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      color: #fff;
+      background-color: #06060f;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(59,130,246,.22) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 100%, rgba(37,99,235,.15) 0%, transparent 50%),
+        linear-gradient(180deg, #0a1628 0%, #0a0a1a 50%, #06060f 100%);
+      padding: 20px 14px 40px;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      border: 1px solid rgba(59,130,246,.28);
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+      box-shadow: 0 18px 54px rgba(0,0,0,.42);
+      padding: clamp(16px, 2.8vw, 26px);
+    }
+    .hidden { display: none !important; }
+    .badge {
+      display: inline-block;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+      color: #bfdbfe;
+      border: 1px solid rgba(59,130,246,.4);
+      background: rgba(59,130,246,.16);
+      border-radius: 999px;
+      padding: 6px 11px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      line-height: 1.2;
+      font-weight: 800;
+    }
+    p { margin: 0; color: rgba(226,232,240,.84); line-height: 1.6; }
+    .stack { margin-top: 14px; display: grid; gap: 10px; }
+    input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(59,130,246,.45);
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      padding: 12px 13px;
+      font-size: 16px;
+    }
+    button, .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 15px;
+      font-size: .94rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn.secondary { background: rgba(255,255,255,.1); border: 1px solid rgba(148,163,184,.32); }
+    .btn-row { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .error { color: #fca5a5; margin-top: 10px; min-height: 1.2em; }
+    .screen { display: none; }
+    .screen.visible { display: block; }
+
+    .expiry-banner {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,.28);
+      background: rgba(15,23,42,.5);
+      color: rgba(226,232,240,.9);
+      font-size: .88rem;
+      text-align: center;
+    }
+    .video-shell {
+      margin-top: 16px;
+      border: 1px solid rgba(59,130,246,.35);
+      border-radius: 14px;
+      background: rgba(2,6,23,.9);
+      overflow: hidden;
+    }
+    .video-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+    }
+    #replay-video { width: 100%; height: 100%; object-fit: cover; }
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(2,6,23,.25), rgba(2,6,23,.55));
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    .video-overlay.hidden { opacity: 0; }
+    .video-overlay button {
+      pointer-events: auto;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-weight: 800;
+    }
+    .replay-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,6,23,.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 20px;
+    }
+    .replay-confirm-overlay.hidden { display: none; }
+    .replay-confirm-panel {
+      max-width: 520px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(59,130,246,.4);
+      background: rgba(15,23,42,.95);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      padding: 32px 28px;
+      text-align: center;
+    }
+    .replay-confirm-icon {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+    .replay-confirm-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 16px;
+      line-height: 1.4;
+    }
+    .replay-confirm-text {
+      font-size: .92rem;
+      color: rgba(226,232,240,.85);
+      line-height: 1.65;
+      margin: 0 0 24px;
+    }
+    .replay-confirm-text strong {
+      color: #fff;
+    }
+    .replay-confirm-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 12px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 14px 28px;
+      cursor: pointer;
+      transition: background .15s ease;
+      width: 100%;
+      max-width: 340px;
+    }
+    .replay-confirm-btn:hover { background: #1d4ed8; }
+    .replay-confirm-btn.replay-confirm-btn--secondary {
+      margin-top: 10px;
+      border: 1px solid rgba(96,165,250,.55);
+      background: rgba(59,130,246,.12);
+      color: #dbeafe;
+    }
+    .replay-confirm-btn.replay-confirm-btn--secondary:hover {
+      background: rgba(59,130,246,.22);
+    }
+    .replay-confirm-sub {
+      margin-top: 12px;
+      font-size: .78rem;
+      color: rgba(226,232,240,.5);
+    }
+    .replay-pill {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(59,130,246,.45);
+      background: rgba(30,64,175,.35);
+      color: #bfdbfe;
+      font-weight: 800;
+      font-size: .75rem;
+      padding: 6px 10px;
+      user-select: none;
+      pointer-events: none;
+    }
+    .fullscreen-floating {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid rgba(148,163,184,.35);
+      background: rgba(2,6,23,.75);
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fullscreen-floating svg { width: 18px; height: 18px; }
+    @media (max-width: 1024px) { .fullscreen-floating { display: none; } }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(148,163,184,.2);
+      background: rgba(15,23,42,.8);
+      opacity: 1;
+      max-height: 90px;
+      overflow: hidden;
+      transition: opacity .25s ease, max-height .25s ease, padding .25s ease, border-color .25s ease;
+    }
+    @media (max-width: 1023px) and (orientation: landscape) {
+      .controls.mobile-autohide-hidden {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-top-color: transparent;
+        pointer-events: none;
+      }
+    }
+    .ctrl-group { display: flex; gap: 8px; align-items: center; }
+    .ctrl-btn {
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,.28);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      min-height: 34px;
+      padding: 0 11px;
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    .ctrl-btn[disabled] { opacity: .55; cursor: not-allowed; }
+    .volume-range { width: 120px; }
+
+    .offer-zone {
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-top: 38px;
+    }
+    .offer-zone.hidden { display: none; }
+    .diagnostic-guide-zone {
+      display: none;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .diagnostic-guide-zone.visible {
+      display: block;
+      animation: ctaFadeIn 0.35s ease forwards;
+    }
+    .diagnostic-guide-btn {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 12px;
+      border: 1px solid rgba(96,165,250,.45);
+      background: rgba(59,130,246,.16);
+      color: #dbeafe;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: .93rem;
+      padding: 13px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(2,6,23,.28);
+    }
+    .diagnostic-guide-btn:hover {
+      background: rgba(59,130,246,.24);
+      border-color: rgba(147,197,253,.65);
+      color: #fff;
+    }
+    .diagnostic-guide-note {
+      margin-top: 8px;
+      font-size: .78rem;
+      color: rgba(226,232,240,.68);
+    }
+    .dev-time-banner {
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(96,165,250,.45);
+      background: rgba(15,23,42,.92);
+      box-shadow: 0 12px 30px rgba(2,6,23,.45);
+      display: none;
+    }
+    .dev-time-banner.is-visible {
+      display: block;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      left: auto;
+      z-index: 460000;
+      width: min(380px, calc(100vw - 24px));
+      max-height: min(520px, 78vh);
+      overflow-x: hidden;
+      overflow-y: auto;
+      margin: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .dev-time-banner.is-collapsed {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      overflow: hidden;
+      border-radius: 999px;
+    }
+    .dev-time-banner.is-collapsed > :not(.dev-time-toggle) { display: none; }
+    .dev-time-toggle {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      z-index: 1;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid rgba(147, 197, 253, 0.5);
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #dbeafe;
+      font: 700 16px/1 sans-serif;
+      cursor: pointer;
+    }
+    .dev-time-banner.is-collapsed .dev-time-toggle {
+      inset: 0;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      background: transparent;
+      color: #60a5fa;
+    }
+    .dev-time-title {
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: rgba(191,219,254,.92);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .dev-time-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .dev-time-btn {
+      border-radius: 8px;
+      border: 1px solid rgba(96,165,250,.35);
+      background: rgba(30,64,175,.25);
+      color: #e2e8f0;
+      padding: 7px 10px;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .dev-time-input {
+      height: 32px;
+      min-width: 100px;
+      max-width: 120px;
+      border-radius: 8px;
+      border: 1px solid rgba(96,165,250,.35);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      padding: 0 8px;
+      font-size: .78rem;
+    }
+    .dev-time-status {
+      margin-top: 8px;
+      font-size: .74rem;
+      line-height: 1.4;
+      color: rgba(191,219,254,.95);
+    }
+    .dev-timeline-group {
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.38);
+    }
+    .dev-timeline-group__label {
+      display: block;
+      margin-bottom: 6px;
+      color: #93c5fd;
+      font-size: 0.66rem;
+      font-weight: 850;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .dev-timeline-group--cta .dev-timeline-group__label { color: #c4b5fd; }
+    .dev-timeline-group--routing .dev-timeline-group__label { color: #fcd34d; }
+    .dev-timeline-group--cta .dev-time-btn { border-color: rgba(139, 92, 246, 0.38); background: rgba(139, 92, 246, 0.14); }
+    .dev-timeline-group--routing .dev-time-btn { border-color: rgba(245, 158, 11, 0.36); background: rgba(245, 158, 11, 0.1); }
+    .dev-scarcity-force {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .dev-scarcity-force .dev-time-btn { padding: 5px 8px; font-size: .72rem; }
+    .offer-zone.visible {
+      display: flex;
+      opacity: 1;
+      transform: none;
+      animation: offerZoneFadeIn 0.4s ease forwards;
+    }
+    @keyframes offerZoneFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes ctaFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .offer-countdown-title {
+      margin-top: 2px;
+      margin-bottom: 16px;
+      color: rgba(255, 255, 255, 0.96);
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      text-align: center;
+      text-shadow: 0 2px 12px rgba(2, 6, 23, 0.35);
+    }
+    .offer-countdown-highlight {
+      color: #60a5fa;
+      font-weight: 900;
+    }
+    .countdown {
+      display: grid;
+      grid-template-columns: repeat(4,minmax(0,1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .card {
+      border-radius: 10px;
+      border: 1px solid rgba(59,130,246,.28);
+      background: rgba(15,23,42,.72);
+      text-align: center;
+      padding: 10px 6px;
+    }
+    .card .v { font-size: 1.2rem; font-weight: 800; line-height: 1; color: #fff; }
+    .card .l { margin-top: 5px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: rgba(191,219,254,.82); }
+    .scarcity-card {
+      width: 100%;
+      max-width: 520px;
+      margin: 20px 0 16px;
+      padding: 14px 14px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(239, 68, 68, 0.55);
+      background: radial-gradient(120% 130% at 0% 0%, rgba(220, 38, 38, 0.24) 0%, rgba(69, 10, 10, 0.30) 45%, rgba(15, 23, 42, 0.72) 100%);
+      box-shadow: 0 14px 30px rgba(127, 29, 29, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+    .scarcity-kicker {
+      margin: 0 0 8px;
+      font-size: 0.70rem;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: #fee2e2;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scarcity-kicker::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+    }
+    .scarcity-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .scarcity-label { margin: 0; color: rgba(255, 255, 255, 0.96); font-size: 0.92rem; font-weight: 700; }
+    .scarcity-value {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(220, 38, 38, 0.28);
+      border: 1px solid rgba(252, 165, 165, 0.72);
+    }
+    .scarcity-number { font-size: 1.42rem; line-height: 1; font-weight: 900; color: #fff; }
+    .scarcity-unit { font-size: 0.80rem; letter-spacing: 0.06em; color: #ffe4e6; font-weight: 700; }
+    .scarcity-denominator {
+      display: none;
+      font-size: 0.95rem;
+      line-height: 1;
+      font-weight: 800;
+      color: rgba(255, 228, 230, 0.92);
+    }
+    .scarcity-denominator.is-visible { display: inline; }
+    @media (max-width: 768px) {
+      .scarcity-value {
+        padding: 4px 10px;
+        gap: 4px;
+      }
+      .scarcity-number { font-size: 1.16rem; }
+      .scarcity-denominator { font-size: 0.78rem; }
+      .scarcity-unit { font-size: 0.68rem; }
+    }
+    .scarcity-meter {
+      margin-top: 10px;
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(252, 165, 165, 0.35);
+    }
+    .scarcity-meter__fill {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.55);
+    }
+    .scarcity-phase1-total {
+      display: none;
+      margin: 10px 0 12px;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(153, 27, 27, 0.28));
+      box-shadow: inset 0 0 0 1px rgba(127, 29, 29, 0.35), 0 8px 22px rgba(127, 29, 29, 0.30);
+    }
+    .scarcity-soldout-stamp {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #b91c1c;
+      color: #fff;
+      font-size: 0.66rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      border: 1px solid rgba(254, 202, 202, 0.55);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+      transform: rotate(-3deg);
+    }
+    .scarcity-soldout-line {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.2;
+      min-width: 0;
+    }
+    .scarcity-soldout-count {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(254, 202, 202, 0.9);
+    }
+    .scarcity-soldout-slash { opacity: 0.75; font-weight: 700; }
+    .scarcity-soldout-text {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #fecaca;
+      margin-top: 3px;
+      letter-spacing: 0.01em;
+    }
+    .scarcity-phase2-note {
+      display: none;
+      margin: 0 0 12px;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(110, 231, 183, 0.45);
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.55), rgba(4, 120, 87, 0.20));
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #d1fae5;
+      box-shadow: 0 6px 16px rgba(6, 95, 70, 0.18);
+    }
+    .scarcity-phase2-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.65);
+      animation: scarcityPulse 1.6s ease-out infinite;
+    }
+    .scarcity-phase2-text strong { color: #fff; font-weight: 800; }
+    .scarcity-phase1-total.is-visible { display: flex; }
+    .scarcity-phase2-note.is-visible { display: inline-flex; }
+    @keyframes scarcityPulse {
+      0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.65); }
+      70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+    .mc-gate-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(10px);
+    }
+    .mc-gate-overlay.is-visible { display: flex; }
+    html.mc-page-lock,
+    html.mc-page-lock body {
+      overflow: hidden;
+      height: 100%;
+    }
+    .mc-gate-overlay__panel {
+      width: min(560px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+      box-shadow: 0 24px 70px rgba(127, 29, 29, 0.35);
+      padding: 22px 18px 18px;
+      text-align: center;
+    }
+    .mc-gate-overlay__title {
+      margin: 0;
+      font-size: clamp(1.12rem, 2.6vw, 1.42rem);
+      font-weight: 900;
+      color: #fff1f2;
+    }
+    .mc-gate-overlay__copy {
+      margin: 10px 0 14px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #fecdd3;
+    }
+    .mc-gate-overlay__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 113, 133, 0.55);
+      background: rgba(225, 29, 72, 0.35);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+    .offer-cta {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 14px 34px rgba(59, 130, 246, 0.38);
+      transition: all 0.25s ease;
+    }
+    .offer-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 40px rgba(59, 130, 246, 0.45);
+    }
+    .offer-cta.is-disabled,
+    .offer-cta.is-disabled:hover {
+      color: rgba(226, 232, 240, 0.72);
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      box-shadow: none;
+      cursor: not-allowed;
+      pointer-events: none;
+      transform: none;
+    }
+    .offer-expired-state {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.38), rgba(69, 10, 10, 0.45));
+      padding: 16px 16px 14px;
+      text-align: center;
+    }
+    .offer-expired-title {
+      margin: 0;
+      color: #fff1f2;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .offer-expired-copy {
+      margin: 8px 0 12px;
+      color: #fecdd3;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .offer-expired-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 113, 133, 0.55);
+      color: #fff;
+      background: rgba(225, 29, 72, 0.32);
+      text-decoration: none;
+      font-size: .85rem;
+      font-weight: 800;
+    }
+
+    .purchase-toast {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .purchase-toast.show { opacity: 1; transform: translateY(0); }
+    .purchase-toast__content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    .purchase-toast__thumb-wrap { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+    .purchase-toast__thumb {
+      width: 58px;
+      height: 58px;
+      border-radius: 9px;
+      object-fit: cover;
+      display: block;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+    }
+    .purchase-toast__thumb-flag {
+      position: absolute;
+      right: -4px;
+      bottom: -4px;
+      font-size: 14px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 6px rgba(2, 6, 23, 0.5));
+    }
+    .purchase-toast__text { margin: 0; font-size: 14px; line-height: 1.35; color: #fff; }
+    .purchase-toast__name { color: #60a5fa !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(96, 165, 250, 0.35); }
+    .purchase-toast__action { color: rgba(255, 255, 255, 0.72); }
+    .purchase-toast__course { display: block; margin-top: 2px; color: #ffffff !important; font-weight: 400 !important; }
+    .purchase-toast__relative-time {
+      margin-left: auto;
+      color: rgba(226, 232, 240, 0.62);
+      font-size: 0.62rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .return-buyer-hero {
+      display: none;
+      max-width: 900px;
+      margin: 8px auto 20px;
+      padding: 10px 12px 0;
+      text-align: center;
+    }
+    .return-buyer-hero.is-visible { display: block; }
+    .return-buyer-hero h1 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(1.55rem, 4.4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+    }
+    .return-buyer-hero__ended,
+    .return-buyer-hero__start { display: block; }
+    .return-buyer-hero__ended { color: #ef4444; }
+    .return-buyer-hero__start { margin-top: 7px; }
+    .return-buyer-hero__arrow {
+      display: block;
+      margin-top: 12px;
+      font-size: 2rem;
+      animation: replayReturnArrow 1.5s ease-in-out infinite;
+    }
+    @keyframes replayReturnArrow {
+      0%, 100% { transform: translateY(0); opacity: 0.62; }
+      50% { transform: translateY(6px); opacity: 1; }
+    }
+    #replay-main-header.is-return-hidden,
+    #replay-player-row.is-return-hidden,
+    #diagnostic-guide-zone.is-return-hidden { display: none !important; }
+    .offer-zone.is-returning-buyer { padding-top: 0; }
+    @media (max-width: 1023px) {
+      .offer-cta { width: 100%; }
+      .purchase-toast { left: 10px; right: 10px; top: 10px; bottom: auto; transform: translateY(-20px); }
+      .purchase-toast__content { max-width: 100%; }
+      .countdown { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      /* Sur mobile : volume géré aux boutons physiques du téléphone, on cache les contrôles software. */
+      #volume-controls-group { display: none !important; }
+    }
+    .video-recovery-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+      background: rgba(2, 6, 23, 0.82);
+    }
+    .video-recovery-overlay.is-visible { display: flex; }
+    .video-recovery-overlay__panel {
+      max-width: 420px;
+      border-radius: 14px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.55), rgba(15, 23, 42, 0.92));
+      box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
+      padding: 18px 16px;
+      color: #fee2e2;
+    }
+    .video-recovery-overlay__title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #fff1f2; }
+    .video-recovery-overlay__text { margin: 0 0 14px; font-size: 0.95rem; line-height: 1.45; }
+    .video-recovery-overlay__btn {
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.92));
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div id="dev-time-banner" class="dev-time-banner">
+      <button id="dev-time-toggle" class="dev-time-toggle" type="button" aria-expanded="true" aria-controls="dev-time-banner" aria-label="Masquer la simulation replay" title="Masquer la simulation replay">−</button>
+      <p class="dev-time-title">Simulation replay (preview uniquement)</p>
+      <div class="dev-timeline-group dev-timeline-group--session">
+        <span class="dev-timeline-group__label">Lecture du replay</span>
+        <div class="dev-time-row">
+          <button class="dev-time-btn" type="button" data-jump-seconds="0">Replay 00:00</button>
+          <button class="dev-time-btn" type="button" data-replay-preset="cta-m10s">CTA −10s</button>
+          <button class="dev-time-btn" type="button" data-replay-preset="cta-active">CTA actif</button>
+          <button class="dev-time-btn" type="button" data-jump-seconds="-1">Fin vidéo −2s</button>
+        </div>
+      </div>
+      <div class="dev-timeline-group dev-timeline-group--cta">
+        <span class="dev-timeline-group__label">Offre et notifications</span>
+        <div class="dev-time-row">
+          <button class="dev-time-btn" type="button" data-offer-offset="175000">Première notification −5s · 37 places</button>
+          <button class="dev-time-btn" type="button" data-offer-offset="43200000">CTA +12h · 23 places · bonus 3</button>
+          <button class="dev-time-btn" type="button" data-offer-offset="86400000">CTA +24h · 20 places · bonus épuisé</button>
+          <button class="dev-time-btn" type="button" data-offer-offset="172800000">CTA +48h · 5 places</button>
+        </div>
+      </div>
+      <div class="dev-timeline-group dev-timeline-group--routing">
+        <span class="dev-timeline-group__label">Saisie libre</span>
+        <div class="dev-time-row">
+          <input id="dev-time-input" class="dev-time-input" type="text" placeholder="hh:mm:ss" />
+          <button id="dev-time-apply" class="dev-time-btn" type="button">Aller</button>
+          <button class="dev-time-btn" type="button" data-offer-state="active">Forcer offre active</button>
+          <button class="dev-time-btn" type="button" data-offer-state="expired">Forcer offre expirée</button>
+        </div>
+      </div>
+      <p id="dev-now-status" class="dev-time-status">Horloge replay: --</p>
+    </div>
+
+    <section id="screen-email" class="screen visible">
+      <div class="badge">Accès replay</div>
+      <h1>Retrouve ton accès au replay</h1>
+      <p>Entre l'email utilisé lors de ton inscription à la masterclass.</p>
+      <div class="stack">
+        <input id="email-input" type="email" placeholder="Ton email" autocomplete="email" />
+        <button id="email-submit" type="button">Vérifier mon accès</button>
+      </div>
+      <p id="email-error" class="error"></p>
+    </section>
+
+    <section id="screen-blocked" class="screen">
+      <div class="badge">Replay indisponible</div>
+      <h1 id="blocked-title">Replay indisponible</h1>
+      <p id="blocked-copy">L'accès au replay n'est pas disponible.</p>
+      <div class="btn-row">
+        <a id="blocked-volt-link" class="btn secondary" href="https://sonnycourt.com/invitation?t=7a1392fd-f575-45f3-b7ac-6f78ad49e10d" target="_blank" rel="noopener" style="display:none;">Accéder à mon compte</a>
+        <a class="btn secondary" href="/mc2/">Retour masterclass</a>
+      </div>
+    </section>
+
+    <section id="screen-replay" class="screen">
+      <div id="replay-main-header">
+        <div class="badge">Replay privé</div>
+        <h1>Masterclass Esprit Subconscient 2.0</h1>
+        <p>Replay disponible jusqu'à dimanche 23h (Paris).</p>
+        <p id="expiry-banner" class="expiry-banner" style="display:none;" aria-hidden="true"></p>
+      </div>
+
+      <section id="return-buyer-hero" class="return-buyer-hero" aria-live="polite">
+        <h1>
+          <span class="return-buyer-hero__ended">LA MASTERCLASS EST TERMINÉE</span>
+          <span class="return-buyer-hero__start">MAIS TA TRANSFORMATION COMMENCE MAINTENANT.</span>
+        </h1>
+        <span class="return-buyer-hero__arrow" aria-hidden="true">↓</span>
+      </section>
+
+      <div id="replay-player-row" class="video-shell">
+        <div class="video-box" id="video-box">
+          <video id="replay-video" preload="metadata" playsinline controlslist="nodownload noremoteplayback nofullscreen" oncontextmenu="return false;"></video>
+          <div id="video-overlay" class="video-overlay">
+            <button id="play-overlay-btn" type="button">Lancer le replay</button>
+          </div>
+          <div id="video-recovery-overlay" class="video-recovery-overlay" aria-hidden="true">
+            <div class="video-recovery-overlay__panel">
+              <p class="video-recovery-overlay__title">Lecture interrompue</p>
+              <p class="video-recovery-overlay__text">Cliquez pour relancer la vidéo.</p>
+              <button id="video-recovery-reload-btn" type="button" class="video-recovery-overlay__btn">Relancer maintenant</button>
+            </div>
+          </div>
+          <span class="replay-pill">Replay</span>
+          <button class="fullscreen-floating" id="fullscreen-btn" type="button" aria-label="Plein écran">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="controls" style="display: none;">
+          <div class="ctrl-group">
+            <button class="ctrl-btn" id="playpause-btn" type="button">Play</button>
+            <button class="ctrl-btn" id="rewind-btn" type="button">-15s</button>
+          </div>
+          <div class="ctrl-group" id="volume-controls-group">
+            <button class="ctrl-btn" id="mute-btn" type="button">Son</button>
+            <input id="volume-range" class="volume-range" type="range" min="0" max="100" value="80" />
+          </div>
+        </div>
+      </div>
+      <div id="diagnostic-guide-zone" class="diagnostic-guide-zone" aria-live="polite">
+        <a class="diagnostic-guide-btn" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener">
+          Télécharge ton guide diagnostique personnel
+        </a>
+        <p class="diagnostic-guide-note">Imprime ce PDF avant de suivre la session si possible.</p>
+      </div>
+
+      <div id="offer-zone" class="offer-zone hidden">
+        <DealOffer checkoutEmbedMode="iframe" />
+        <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
+          <p class="offer-expired-title">L'offre et la masterclass ne sont plus disponibles</p>
+          <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
+          <a class="offer-expired-btn" href="/contact">Contacter le support</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="replay-confirm-overlay" class="replay-confirm-overlay hidden" aria-modal="true" aria-labelledby="replay-confirm-title" aria-describedby="replay-confirm-text" role="dialog">
+    <div class="replay-confirm-panel">
+      <div id="replay-confirm-icon" class="replay-confirm-icon">⚠️</div>
+      <h2 id="replay-confirm-title" class="replay-confirm-title">Information importante avant de lancer le replay</h2>
+      <p id="replay-confirm-text" class="replay-confirm-text">
+        Cette masterclass est une <strong>expérience immersive</strong>. Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>. Exactement comme lors de la diffusion en direct.<br><br>
+        Assure-toi d'avoir <strong>ton guide diagnostique</strong>, de quoi écrire, et <strong>1h20 devant toi sans interruption</strong>.<br><br>
+        Si tu quittes en cours de route, ta progression sera conservée.
+      </p>
+      <a class="replay-confirm-btn" href="/media/pages/workbook-masterclass-es2-mc2.pdf" target="_blank" rel="noopener" style="background:rgba(59,130,246,.15);border:1px solid rgba(96,165,250,.45);color:#dbeafe;margin-bottom:12px;font-size:.88rem;font-weight:700;">
+        📄 Télécharge ton guide diagnostique
+      </a>
+      <button id="replay-confirm-btn" class="replay-confirm-btn" type="button">
+        Je suis prêt(e), lancer le replay
+      </button>
+      <button id="replay-restart-btn" class="replay-confirm-btn replay-confirm-btn--secondary hidden" type="button">
+        Recommencer depuis le début
+      </button>
+      <p class="replay-confirm-sub">Tu ne pourras pas mettre la vidéo sur pause.</p>
+      <button id="replay-confirm-cancel" type="button" style="margin-top:16px;background:none;border:none;color:rgba(226,232,240,.45);font-size:.82rem;cursor:pointer;text-decoration:underline;">Je ne suis pas encore prêt(e)</button>
+    </div>
+  </div>
+
+  <div id="replay-unavailable-overlay" class="mc-gate-overlay" aria-hidden="true">
+    <div class="mc-gate-overlay__panel">
+      <p class="mc-gate-overlay__title">L'offre et la masterclass ne sont plus disponibles</p>
+      <p class="mc-gate-overlay__copy">Si vous avez des questions, contactez le support.</p>
+      <a class="mc-gate-overlay__btn" href="/contact">Contacter le support</a>
+    </div>
+  </div>
+
+  <div id="purchase-toast" class="purchase-toast" aria-hidden="true" hidden>
+    <div class="purchase-toast__content">
+      <div class="purchase-toast__thumb-wrap">
+        <img class="purchase-toast__thumb" src="/media/pages/es2-square-sonny.webp" alt="" aria-hidden="true" />
+        <span id="purchase-toast-flag" class="purchase-toast__thumb-flag">🇫🇷</span>
+      </div>
+      <p class="purchase-toast__text" id="purchase-toast-text"></p>
+      <span id="purchase-toast-relative-time" class="purchase-toast__relative-time"></span>
+    </div>
+  </div>
+
+  <script>
+    // @ts-nocheck
+    import Hls from 'hls.js';
+    import {
+      MC2_DRAFTX_REPLAY_HLS_URL, MC2_DRAFTX_REPLAY_MP4_URL, MC2_DRAFTX_REPLAY_ENTRY,
+    } from '../../../lib/mc2-draftx-media.mjs';
+    const isDraftPreview = Boolean(window.__mc2DraftX);
+    const pageStorage = window.__mc2DraftX?.storage || localStorage;
+    const previewClockStorage = window.__mc2DraftX?.storage || sessionStorage;
+    import { startScarcityEngine } from '../../../lib/mc2-draftx-scarcity-engine';
+    import { createMc2OfferTimeline } from '../../../data/mc2-draftx-offer-timeline';
+    import { startMc2OfferObservability } from '../../../lib/mc2-draftx-offer-observability';
+    import {
+      MC2_REPLAY_CTA_SECONDS,
+      MC2_REPLAY_OFFER_DURATION_MS,
+    } from '../../../lib/mc2-draftx-timing.mjs';
+
+    // MC2 conserve strictement le lecteur et l'UI éprouvés du replay
+    // historique. Seule cette couche d'accès/traçage est adaptée.
+    const TOKEN_KEY = 'mc2_draftx_replay_recovery_access';
+    let recoveryAccessCode = '';
+    let recoveryConfig = null;
+    let replayRegistrationToken = '';
+    const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000;
+    const LIVE_VIDEO_LEAD_MS = 15 * 60 * 1000;
+    let CTA_APPEAR_SECONDS = MC2_REPLAY_CTA_SECONDS;
+    let CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // immédiatement cliquable à son apparition
+    const OFFER_TOTAL_SEATS = 100;
+    const OFFER_INITIAL_REMAINING_SEATS = 37;
+    const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
+    // Le replay retire exactement les 20 premières minutes de countdown du live.
+    // W13B : offre à 1h14m50s dans le replay (1h34m50s dans le live).
+    // Replay MC2 en HLS adaptatif via Bunny Stream. La source est indépendante du live
+    // et de l'ancien funnel /masterclass afin qu'une mise à jour ne puisse pas les mélanger.
+    const VIDEO_SOURCE_URL_PRIMARY = MC2_DRAFTX_REPLAY_HLS_URL;
+    const VIDEO_SOURCE_URL_MP4_FALLBACK = MC2_DRAFTX_REPLAY_MP4_URL;
+    const DEV_CLOCK_KEY = 'es2_mc_draftx_replay_clock';
+
+    function getMcWallClockMs() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('preview') === 'dev') {
+          const raw = previewClockStorage.getItem(DEV_CLOCK_KEY);
+          if (raw) {
+            const c = JSON.parse(raw);
+            if (Number.isFinite(c.simulatedNowMs) && Number.isFinite(c.simulatedAnchorRealMs)) {
+              return c.simulatedNowMs + (Date.now() - c.simulatedAnchorRealMs);
+            }
+          }
+        }
+      } catch (e) {}
+      return Date.now();
+    }
+
+    function parseGmtOffsetMinutes(label) {
+      const m = String(label || '').match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
+      if (!m) return 0;
+      const sign = m[1] === '-' ? -1 : 1;
+      const hh = Number(m[2] || 0);
+      const mm = Number(m[3] || 0);
+      return sign * (hh * 60 + mm);
+    }
+    function getTzOffsetMinutes(ms, timeZone) {
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'shortOffset', hour: '2-digit', minute: '2-digit' });
+      const parts = fmt.formatToParts(new Date(ms));
+      const name = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT+0';
+      return parseGmtOffsetMinutes(name);
+    }
+    function parisLocalToUtcMs(year, month, day, hour, minute, second) {
+      const approxUtc = Date.UTC(year, month - 1, day, hour, minute, second);
+      const offsetMin = getTzOffsetMinutes(approxUtc, 'Europe/Paris');
+      return approxUtc - offsetMin * 60 * 1000;
+    }
+    function getParisYmd(nowMs) {
+      const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
+      const parts = fmt.formatToParts(new Date(nowMs));
+      return {
+        year: Number(parts.find((p) => p.type === 'year')?.value || 0),
+        month: Number(parts.find((p) => p.type === 'month')?.value || 0),
+        day: Number(parts.find((p) => p.type === 'day')?.value || 0),
+      };
+    }
+    function addYmdDays(year, month, day, deltaDays) {
+      const d = new Date(Date.UTC(year, month - 1, day + deltaDays, 12, 0, 0));
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+    }
+    function getParisWeekday(nowMs) {
+      const key = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date(nowMs));
+      const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      return map[key] ?? 0;
+    }
+    function getFriday8ToSunday23Window(nowMs) {
+      const ymd = getParisYmd(nowMs);
+      const weekday = getParisWeekday(nowMs);
+      const daysFromThursday = (weekday - 4 + 7) % 7;
+      const thu = addYmdDays(ymd.year, ymd.month, ymd.day, -daysFromThursday);
+      const fri = addYmdDays(thu.year, thu.month, thu.day, 1);
+      const sun = addYmdDays(thu.year, thu.month, thu.day, 3);
+      const thisStartMs = parisLocalToUtcMs(fri.year, fri.month, fri.day, 8, 0, 0);
+      const thisEndMs = parisLocalToUtcMs(sun.year, sun.month, sun.day, 23, 0, 0);
+      if (nowMs <= thisEndMs) {
+        return { startMs: thisStartMs, endMs: thisEndMs };
+      }
+      const nextFri = addYmdDays(fri.year, fri.month, fri.day, 7);
+      const nextSun = addYmdDays(sun.year, sun.month, sun.day, 7);
+      return {
+        startMs: parisLocalToUtcMs(nextFri.year, nextFri.month, nextFri.day, 8, 0, 0),
+        endMs: parisLocalToUtcMs(nextSun.year, nextSun.month, nextSun.day, 23, 0, 0),
+      };
+    }
+
+    function setTokenEverywhere(token) {
+      pageStorage.setItem(TOKEN_KEY, token);
+    }
+    function clearTokenEverywhere() {
+      pageStorage.removeItem(TOKEN_KEY);
+    }
+    function getStoredToken() {
+      const t = (pageStorage.getItem(TOKEN_KEY) || '').trim();
+      return t;
+    }
+    function show(screenId) {
+      ['screen-email', 'screen-blocked', 'screen-replay'].forEach((id) => {
+        document.getElementById(id).classList.toggle('visible', id === screenId);
+      });
+    }
+    function showBlocked(title, copy) {
+      document.getElementById('blocked-title').textContent = title;
+      document.getElementById('blocked-copy').textContent = copy;
+      const voltLink = document.getElementById('blocked-volt-link');
+      if (voltLink) voltLink.style.display = 'none';
+      show('screen-blocked');
+    }
+    function showBuyerBlocked() {
+      document.getElementById('blocked-title').textContent = 'Le replay est accessible sur Volt.';
+      document.getElementById('blocked-copy').textContent = 'Ton accès élève est déjà actif sur Volt.';
+      const voltLink = document.getElementById('blocked-volt-link');
+      if (voltLink) voltLink.style.display = '';
+      show('screen-blocked');
+    }
+    function updateCountdown(targetMs) {
+      const diff = Math.max(0, targetMs - getMcWallClockMs());
+      const total = Math.floor(diff / 1000);
+      const d = Math.floor(total / 86400);
+      const h = Math.floor((total % 86400) / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      document.getElementById('offer-days').textContent = String(d).padStart(2, '0');
+      document.getElementById('offer-hours').textContent = String(h).padStart(2, '0');
+      document.getElementById('offer-minutes').textContent = String(m).padStart(2, '0');
+      document.getElementById('offer-seconds').textContent = String(s).padStart(2, '0');
+    }
+    function fetchVideoSource() {
+      // Le replay a sa propre URL (playlist HLS Bunny Stream). On n'interroge
+      // PAS /webinaire-video-config qui pilote le LIVE (session.astro).
+      // Access remains shared, but its legacy video config cannot overwrite DraftX.
+      return VIDEO_SOURCE_URL_PRIMARY;
+    }
+    async function sendPresencePing(token, stage, currentSecond) {
+      if (!recoveryAccessCode) return;
+      try {
+        const payload = { access: recoveryAccessCode, event: 'replay_progress' };
+        if (Number.isFinite(Number(currentSecond))) {
+          payload.currentSecond = Math.max(0, Math.floor(Number(currentSecond)));
+        }
+        await fetch('/.netlify/functions/mc2-replay-track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch {}
+    }
+    function trackWebinaireEvent(token, eventName, value, progressMeta) {
+      if (!eventName) return Promise.resolve(null);
+      const mappedEvent = eventName === 'video_checkpoint' ? 'replay_progress' : eventName;
+      if (['replay_started', 'replay_progress', 'cta_reached'].includes(mappedEvent)) {
+        if (!recoveryAccessCode || recoveryAccessCode === 'preview-dev-replay') return Promise.resolve(null);
+        const payload = { access: recoveryAccessCode, event: mappedEvent };
+        if (mappedEvent === 'replay_progress') payload.currentSecond = Math.max(0, Math.floor(Number(value) * 60 || 0));
+        if (value !== undefined && value !== null) payload.value = String(value);
+        if (progressMeta && Number.isFinite(Number(progressMeta.percent))) {
+          payload.percent = Math.max(0, Math.min(100, Math.round(Number(progressMeta.percent))));
+        }
+        if (progressMeta && Number.isFinite(Number(progressMeta.durationSeconds))) {
+          payload.duration_seconds = Math.max(1, Math.floor(Number(progressMeta.durationSeconds)));
+        }
+        return fetch('/.netlify/functions/mc2-replay-track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).then((response) => response.ok ? response.json() : null).catch(() => null);
+      }
+      const registrationToken = String(token || replayRegistrationToken || '').trim();
+      if (!registrationToken || registrationToken === 'preview-dev-replay') return Promise.resolve(null);
+      return fetch('/.netlify/functions/track-mc2-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: registrationToken,
+          event: eventName,
+          value,
+          meta: { route: '/mc2/draftx/replay/', page_path: '/mc2/draftx/replay/', ...(progressMeta || {}) },
+        }),
+      }).then((response) => response.ok ? response.json() : null).catch(() => null);
+    }
+
+    function mountReplay(reg, token) {
+      const video = document.getElementById('replay-video');
+      /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
+      let hlsInstance = null;
+      let attachedSourceUrl = '';
+      function isHlsUrl(url) {
+        return /\.m3u8(\?|#|$)/i.test(String(url || ''));
+      }
+      function detachVideoSource() {
+        if (hlsInstance) {
+          try { hlsInstance.destroy(); } catch { /* ignore */ }
+          hlsInstance = null;
+        }
+      }
+      function attachVideoSource(url) {
+        detachVideoSource();
+        attachedSourceUrl = String(url || '');
+        if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
+          hlsInstance = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 60 });
+          hlsInstance.on(Hls.Events.ERROR, function (_evt, data) {
+            // Erreur fatale HLS : même chemin de récupération que le watchdog.
+            if (data && data.fatal && typeof triggerFreezeRecovery === 'function') {
+              void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000);
+            }
+          });
+          hlsInstance.loadSource(attachedSourceUrl);
+          hlsInstance.attachMedia(video);
+        } else {
+          // MP4 direct, HLS natif (Safari/iOS), ou dernier recours.
+          video.src = attachedSourceUrl;
+        }
+      }
+      function reloadVideoSource() {
+        // Équivalent de video.load() compatible mode hls.js (video.load() casserait
+        // l'attachement MediaSource).
+        if (hlsInstance) {
+          attachVideoSource(attachedSourceUrl);
+        } else {
+          video.load();
+        }
+      }
+      const overlay = document.getElementById('video-overlay');
+      const playOverlayBtn = document.getElementById('play-overlay-btn');
+      const playPauseBtn = document.getElementById('playpause-btn');
+      const rewindBtn = document.getElementById('rewind-btn');
+      const muteBtn = document.getElementById('mute-btn');
+      const volumeRange = document.getElementById('volume-range');
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const controlsBar = document.querySelector('.controls');
+      const videoBox = document.getElementById('video-box');
+      const expiryBanner = document.getElementById('expiry-banner');
+      const offerZone = document.getElementById('offer-zone');
+      const offerCta = document.getElementById('deal-sticky-cta');
+      const offerCountdownGrid = document.getElementById('deal-countdown');
+      const offerScarcityCard = document.querySelector('#offer-zone .deal-scarcity');
+      const offerExpiredState = document.getElementById('offer-expired-state');
+      const offerContentNode = document.getElementById('deal-offer-content');
+      const replayUnavailableOverlay = document.getElementById('replay-unavailable-overlay');
+      const toast = document.getElementById('purchase-toast');
+      const toastFlag = document.getElementById('purchase-toast-flag');
+      const toastText = document.getElementById('purchase-toast-text');
+
+      const sessionStartMs = new Date(reg.sessionStartsAt || reg.session_date || Date.now() + 2 * 60 * 60 * 1000).getTime();
+      // Comme sur le live, une offre qui n'a pas encore été révélée n'a pas
+      // d'échéance. `new Date(null)` vaut 1970 et fermerait donc le checkout
+      // immédiatement pour un replay neuf.
+      let offerExpiryMs = reg.offreExpiresAt ? new Date(reg.offreExpiresAt).getTime() : NaN;
+      const isPreviewDev = isDraftPreview;
+      let maxWatched = Math.max(0, Number(reg.resumeSeconds || 0));
+      let ctaActivated = false;
+      let offerActivationMs = NaN;
+      let allowProgrammaticSeek = false;
+      let hideToastTimer = null;
+      let toastQueueGapTimer = null;
+      const toastQueue = [];
+      let toastQueueBusy = false;
+      let countdownInterval = null;
+      let presenceInterval = null;
+      let scarcityEngine = null;
+      let previewOfferStateOverride = null;
+      let didTrackCtaReached = false;
+      let offerDeadlineSyncInFlight = false;
+      let didTrackReplayStarted = false;
+      let didAutoRedirectToOffer = false;
+      const emittedCheckpointMinutes = new Set();
+      let previewScarcityAnchorStartMs = null;
+      let soldOutExpired = false;
+      let mobileControlsHideTimer = null;
+      const MOBILE_CONTROLS_HIDE_DELAY_MS = 5000;
+
+      const draftxCheckout = document.querySelector('[data-draftx-checkout]');
+      if (draftxCheckout) {
+        draftxCheckout.dataset.prefillFirstName = reg.prenom || '';
+        draftxCheckout.dataset.prefillEmail = reg.email || '';
+        draftxCheckout.dataset.registrationToken = isDraftPreview ? '' : (reg.token || token);
+      }
+      window.dispatchEvent(new CustomEvent('mc2:draftx-registration', {
+        detail: { firstName: reg.prenom || '', email: reg.email || '', registrationToken: isDraftPreview ? '' : (reg.token || token) },
+      }));
+      function setDraftXAvailability(enabled) {
+        const available = Boolean(enabled) && !isOfferExpiredNow();
+        if (draftxCheckout && draftxCheckout.dataset.checkoutAvailable !== String(available)) {
+          draftxCheckout.dataset.checkoutAvailable = String(available);
+          window.dispatchEvent(new CustomEvent('mc2:draftx-availability', { detail: { available } }));
+        }
+      }
+      setDraftXAvailability(false);
+
+      window.dispatchEvent(new CustomEvent('mc2:deal-registration', {
+        detail: {
+          token: String(reg.token || token || '').trim(),
+          country: String(reg.pays || '').trim(),
+        },
+      }));
+
+      function isMobileLandscapeViewport() {
+        return window.matchMedia('(max-width: 1023px) and (orientation: landscape)').matches;
+      }
+      function clearMobileControlsHideTimer() {
+        if (mobileControlsHideTimer) {
+          clearTimeout(mobileControlsHideTimer);
+          mobileControlsHideTimer = null;
+        }
+      }
+      function showMobileControlsNow() {
+        if (!controlsBar) return;
+        controlsBar.classList.remove('mobile-autohide-hidden');
+      }
+      function hideMobileControlsNow() {
+        if (!controlsBar) return;
+        controlsBar.classList.add('mobile-autohide-hidden');
+      }
+      function syncMobileControlsAutoHide() {
+        if (!controlsBar) return;
+        clearMobileControlsHideTimer();
+        if (!isMobileLandscapeViewport()) {
+          showMobileControlsNow();
+          return;
+        }
+        if (video.paused || video.ended) {
+          showMobileControlsNow();
+          return;
+        }
+        showMobileControlsNow();
+        mobileControlsHideTimer = setTimeout(() => {
+          if (!video.paused && !video.ended && isMobileLandscapeViewport()) {
+            hideMobileControlsNow();
+          }
+        }, MOBILE_CONTROLS_HIDE_DELAY_MS);
+      }
+      function onMobileControlsActivity() {
+        if (!isMobileLandscapeViewport()) return;
+        showMobileControlsNow();
+        syncMobileControlsAutoHide();
+      }
+
+      function getPreviewScarcityAnchorStartMs() {
+        if (Number.isFinite(previewScarcityAnchorStartMs)) return previewScarcityAnchorStartMs;
+        previewScarcityAnchorStartMs = Number.isFinite(offerActivationMs)
+          ? offerActivationMs
+          : Date.now();
+        return previewScarcityAnchorStartMs;
+      }
+
+      function setPreviewWallClockFromReplaySeconds(replaySeconds) {
+        if (!isPreviewDev) return;
+        const sec = Number(replaySeconds);
+        if (!Number.isFinite(sec)) return;
+        const scarcityAnchorStartMs = getPreviewScarcityAnchorStartMs();
+        const relativeToCtaMs = Math.floor((sec - CTA_ACTIVATE_SECONDS) * 1000);
+        const simulatedNowMs = scarcityAnchorStartMs + relativeToCtaMs;
+        const payload = {
+          simulatedNowMs,
+          simulatedAnchorRealMs: Date.now(),
+        };
+        try {
+          previewClockStorage.setItem(DEV_CLOCK_KEY, JSON.stringify(payload));
+        } catch {}
+      }
+      function setPreviewWallClockAbsolute(ms) {
+        if (!isPreviewDev || !Number.isFinite(ms)) return;
+        try {
+          previewClockStorage.setItem(DEV_CLOCK_KEY, JSON.stringify({
+            simulatedNowMs: ms,
+            simulatedAnchorRealMs: Date.now(),
+          }));
+        } catch {}
+      }
+      function getPreviewWallClockPresetMs(key) {
+        const anchorStartMs = getPreviewScarcityAnchorStartMs();
+        const thu = getParisYmd(anchorStartMs);
+        const fri = addYmdDays(thu.year, thu.month, thu.day, 1);
+        const sun = addYmdDays(thu.year, thu.month, thu.day, 3);
+        if (key === 'thu-start') return anchorStartMs + 60 * 1000;
+        if (key === 'fri-22') return parisLocalToUtcMs(fri.year, fri.month, fri.day, 22, 0, 0);
+        if (key === 'sun-14') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 14, 0, 0);
+        if (key === 'sun-2250') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 22, 50, 0);
+        if (key === 'after-end') return parisLocalToUtcMs(sun.year, sun.month, sun.day, 23, 5, 0);
+        return null;
+      }
+      function formatParisDateTime(ms) {
+        try {
+          return new Intl.DateTimeFormat('fr-FR', {
+            timeZone: 'Europe/Paris',
+            weekday: 'short',
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }).format(new Date(ms));
+        } catch {
+          return '--';
+        }
+      }
+      function formatDevScarcityLabel(phase, seatsLeft) {
+        const seats = Math.max(0, Math.min(OFFER_INITIAL_REMAINING_SEATS, Number(seatsLeft) || 0));
+        return `${seats} / ${OFFER_TOTAL_SEATS} places${phase === 'sold_out' ? ' (épuisé)' : ''}`;
+      }
+      function updateDevPreviewStatus() {
+        if (!isPreviewDev) return;
+        const nowEl = document.getElementById('dev-now-status');
+        const scarcityEl = document.getElementById('dev-scarcity-status');
+        const auditEl = document.getElementById('dev-scarcity-audit');
+        const nowMs = getMcWallClockMs();
+        if (nowEl) nowEl.textContent = `Horloge replay (Paris): ${formatParisDateTime(nowMs)}`;
+        const timelineDurationMs = Number.isFinite(offerActivationMs) && Number.isFinite(offerExpiryMs)
+          ? Math.max(0, offerExpiryMs - offerActivationMs)
+          : MC2_REPLAY_OFFER_DURATION_MS;
+        const timeline = createMc2OfferTimeline(timelineDurationMs);
+        const elapsedMs = Number.isFinite(offerActivationMs) ? nowMs - offerActivationMs : -1;
+        const soldCount = elapsedMs < 0
+          ? 0
+          : timeline.filter((purchase) => purchase.offsetMs <= elapsedMs).length;
+        const seatsLeft = Math.max(0, OFFER_INITIAL_REMAINING_SEATS - soldCount);
+        const phase = seatsLeft <= 0 ? 'sold_out' : 'active';
+        const scarcityLabel = formatDevScarcityLabel(phase, seatsLeft);
+        if (scarcityEl) {
+          scarcityEl.textContent = `Scarcity: ${phase} · ${scarcityLabel}`;
+        }
+        if (auditEl) {
+          auditEl.textContent = [
+            `CTA replay : ${formatParisDateTime(offerActivationMs)}`,
+            `offreExpiresAt : ${formatParisDateTime(offerExpiryMs)}`,
+            `Phase actuelle : ${phase}`,
+            `soldCount : ${soldCount}`,
+            `seatsLeft : ${scarcityLabel}`,
+          ].join('\n');
+        }
+      }
+
+      function renderScarcityVisual(seatsLeft, phase) {
+        const seats = Math.max(0, Math.min(OFFER_INITIAL_REMAINING_SEATS, Number(seatsLeft) || 0));
+        window.__mc2DealOffer?.setPlaces?.(OFFER_TOTAL_SEATS, seats);
+      }
+      function setSeatsLeft(seatsLeft, _soldCount, phase) {
+        const seats = Math.max(0, Math.min(OFFER_INITIAL_REMAINING_SEATS, Number(seatsLeft) || 0));
+        if (phase === 'sold_out' && seats <= 0) {
+          soldOutExpired = true;
+          syncReplayUnavailableLock();
+          return;
+        }
+        soldOutExpired = false;
+        renderScarcityVisual(seats, phase);
+      }
+      function isOfferExpiredNow() {
+        if (previewOfferStateOverride === 'expired') return true;
+        if (previewOfferStateOverride === 'active') return false;
+        if (soldOutExpired) return true;
+        return getMcWallClockMs() >= offerExpiryMs;
+      }
+      function syncReplayUnavailableLock() {
+        const expired = isOfferExpiredNow();
+        if (!replayUnavailableOverlay) return;
+        replayUnavailableOverlay.classList.toggle('is-visible', expired);
+        replayUnavailableOverlay.setAttribute('aria-hidden', expired ? 'false' : 'true');
+        document.documentElement.classList.toggle('mc-page-lock', expired);
+        if (expired && scarcityEngine) {
+          scarcityEngine.stop();
+          scarcityEngine = null;
+        }
+        if (expired) {
+          setDraftXAvailability(false);
+          const v = document.getElementById('replay-video');
+          if (v) v.pause();
+        }
+      }
+      function setOfferExpiredState(expired) {
+        const isExpired = Boolean(expired);
+        setDraftXAvailability(ctaActivated && !isExpired);
+        if (offerCountdownGrid) offerCountdownGrid.classList.toggle('hidden', isExpired);
+        if (offerScarcityCard) offerScarcityCard.classList.toggle('hidden', isExpired);
+        if (offerCta) {
+          offerCta.classList.toggle('hidden', isExpired);
+          offerCta.disabled = isExpired || !ctaActivated;
+        }
+        if (offerContentNode) offerContentNode.classList.toggle('hidden', isExpired);
+        if (offerExpiredState) offerExpiredState.classList.toggle('hidden', !isExpired);
+      }
+      function setOfferCtaEnabled(enabled) {
+        setDraftXAvailability(enabled);
+        if (!offerCta) return;
+        const isEnabled = Boolean(enabled) && !isOfferExpiredNow();
+        offerCta.disabled = !isEnabled;
+        offerCta.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
+        offerCta.setAttribute('tabindex', isEnabled ? '0' : '-1');
+      }
+      function updateCtaUnlockCountdown() {
+        const total = ctaActivated && Number.isFinite(offerExpiryMs)
+          ? Math.max(0, Math.ceil((offerExpiryMs - getMcWallClockMs()) / 1000))
+          : Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
+        window.__mc2DealOffer?.setCountdownSeconds?.(total);
+      }
+      function showToast(purchase, mode, detail) {
+        toastQueue.push({ purchase, mode, detail });
+        if (!toastQueueBusy) flushToastQueue();
+      }
+      function flushToastQueue() {
+        if (toastQueueBusy) return;
+        const next = toastQueue.shift();
+        if (!next) return;
+        toastQueueBusy = true;
+        const purchase = next.purchase;
+        toastFlag.textContent = purchase.flag;
+        toastText.innerHTML = `<span class="purchase-toast__name">${purchase.name}</span> <span class="purchase-toast__action">vient de rejoindre</span><br /><span class="purchase-toast__course">Esprit Subconscient 2.0</span>`;
+        const relativeTimeEl = document.getElementById('purchase-toast-relative-time');
+        if (relativeTimeEl) relativeTimeEl.textContent = "à l'instant";
+        toast.hidden = false;
+        toast.setAttribute('aria-hidden', 'false');
+        toast.classList.add('show');
+        if (hideToastTimer) clearTimeout(hideToastTimer);
+        if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+        hideToastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+          toastQueueGapTimer = setTimeout(() => {
+            toastQueueBusy = false;
+            flushToastQueue();
+          }, 1000);
+        }, 4000);
+      }
+      function startScarcityEngineIfNeeded() {
+        const enabled = true;
+        if (!enabled || !ctaActivated || !Number.isFinite(offerActivationMs) || !Number.isFinite(offerExpiryMs)) {
+          if (scarcityEngine) scarcityEngine.stop();
+          scarcityEngine = null;
+          toast.classList.remove('show');
+          toast.setAttribute('aria-hidden', 'true');
+          toast.hidden = true;
+          return;
+        }
+        if (scarcityEngine) return;
+        scarcityEngine = startScarcityEngine({
+          now: getMcWallClockMs,
+          isActive: () => ctaActivated && !isOfferExpiredNow(),
+          windowStartMs: offerActivationMs,
+          windowEndMs: offerExpiryMs,
+          timeline: createMc2OfferTimeline(offerExpiryMs - offerActivationMs),
+          onSeatsLeft: (seatsLeft, soldCount, phase) => setSeatsLeft(seatsLeft, soldCount, phase),
+          onNotification: (purchase) => showToast(purchase, 'replay'),
+        });
+      }
+      function syncOfferDeadline() {
+        if (didTrackCtaReached || offerDeadlineSyncInFlight) return;
+        if (isPreviewDev && recoveryAccessCode === 'preview-dev-replay') {
+          didTrackCtaReached = true;
+          return;
+        }
+        offerDeadlineSyncInFlight = true;
+        trackWebinaireEvent(token, 'cta_reached').then((result) => {
+          const serverActivation = new Date(result?.offer_activated_at).getTime();
+          const serverExpiry = new Date(result?.offer_expires_at).getTime();
+          const timelineChanged = (Number.isFinite(serverActivation) && serverActivation !== offerActivationMs)
+            || (Number.isFinite(serverExpiry) && serverExpiry !== offerExpiryMs);
+          if (Number.isFinite(serverActivation)) offerActivationMs = serverActivation;
+          if (Number.isFinite(serverExpiry)) offerExpiryMs = serverExpiry;
+          if (timelineChanged && scarcityEngine) {
+            scarcityEngine.stop();
+            scarcityEngine = null;
+          }
+          startScarcityEngineIfNeeded();
+          didTrackCtaReached = Boolean(result && result.offer_sms_queued !== false);
+          if (!didTrackCtaReached) setTimeout(syncOfferDeadline, 3000);
+        }).finally(() => { offerDeadlineSyncInFlight = false; });
+      }
+      function activateOfferAndScarcity() {
+        if (ctaActivated) {
+          syncOfferDeadline();
+          return;
+        }
+        if (isOfferExpiredNow()) {
+          syncReplayUnavailableLock();
+          return;
+        }
+        ctaActivated = true;
+        if (!Number.isFinite(offerActivationMs)) offerActivationMs = getMcWallClockMs();
+        if (!Number.isFinite(offerExpiryMs)) offerExpiryMs = offerActivationMs + MC2_REPLAY_OFFER_DURATION_MS;
+        setOfferCtaEnabled(true);
+        updateCtaUnlockCountdown();
+        syncOfferDeadline();
+        offerZone.classList.remove('hidden');
+        offerZone.classList.add('visible');
+        startMc2OfferObservability({
+          root: offerZone.querySelector('#deal-offer-content') || offerZone,
+          route: '/mc2/draftx/replay/',
+          track: function (eventName, value, metadata) {
+            return trackWebinaireEvent(token, eventName, value, metadata);
+          },
+        });
+        expiryBanner.classList.add('hidden');
+        setOfferExpiredState(isOfferExpiredNow());
+        startScarcityEngineIfNeeded();
+      }
+      function showLockedOffer() {
+        if (isOfferExpiredNow()) {
+          syncReplayUnavailableLock();
+          return;
+        }
+        ctaActivated = false;
+        if (scarcityEngine) {
+          scarcityEngine.stop();
+          scarcityEngine = null;
+        }
+        toast.classList.remove('show');
+        if (hideToastTimer) clearTimeout(hideToastTimer);
+        if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+        hideToastTimer = null;
+        toastQueueGapTimer = null;
+        toastQueue.length = 0;
+        toastQueueBusy = false;
+        offerZone.classList.remove('hidden');
+        offerZone.classList.add('visible');
+        expiryBanner.classList.add('hidden');
+        setOfferCtaEnabled(false);
+        updateCtaUnlockCountdown();
+        setOfferExpiredState(false);
+      }
+      function hideOfferAndScarcity() {
+        ctaActivated = false;
+        setOfferCtaEnabled(false);
+        offerZone.classList.add('hidden');
+        offerZone.classList.remove('visible');
+        expiryBanner.classList.remove('hidden');
+        if (scarcityEngine) {
+          scarcityEngine.stop();
+          scarcityEngine = null;
+        }
+        toast.classList.remove('show');
+        if (hideToastTimer) clearTimeout(hideToastTimer);
+        if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+        hideToastTimer = null;
+        toastQueueGapTimer = null;
+        toastQueue.length = 0;
+        toastQueueBusy = false;
+      }
+      function updateCtaStateByVideoTime() {
+        if (video.currentTime >= CTA_ACTIVATE_SECONDS) {
+          activateOfferAndScarcity();
+          setOfferExpiredState(isOfferExpiredNow());
+        } else if (video.currentTime >= CTA_APPEAR_SECONDS) {
+          showLockedOffer();
+        } else {
+          hideOfferAndScarcity();
+        }
+      }
+      function ensureOfferVisibleForPreview() {
+        if (!isPreviewDev) return;
+        if ((video.currentTime || 0) >= CTA_ACTIVATE_SECONDS) return;
+        allowProgrammaticSeek = true;
+        video.currentTime = CTA_ACTIVATE_SECONDS + 1;
+        maxWatched = Math.max(maxWatched, video.currentTime);
+      }
+      function jumpToSeconds(targetSec) {
+        const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null;
+        let sec = Number(targetSec);
+        if (!Number.isFinite(sec)) return;
+        if (sec < 0 && duration) sec = Math.max(0, duration - 2);
+        if (duration) sec = Math.max(0, Math.min(duration - 0.2, sec));
+        allowProgrammaticSeek = true;
+        video.currentTime = Math.max(0, sec);
+        maxWatched = Math.max(maxWatched, video.currentTime);
+        // Cohérence avec rewindBtn : recalibrer la baseline pour éviter une fausse récupération freeze.
+        resetFreezeProgressBaseline();
+        setPreviewWallClockFromReplaySeconds(sec);
+        updateCtaStateByVideoTime();
+        updateDiagnosticGuideState();
+        updateDevPreviewStatus();
+        if (video.paused) {
+          overlay.classList.add('hidden');
+          playPauseBtn.textContent = 'Pause';
+          video.play().catch(() => {});
+        }
+      }
+      function updateDiagnosticGuideState() {
+        const zone = document.getElementById('diagnostic-guide-zone');
+        if (!zone) return;
+        const now = sessionStartMs - LIVE_VIDEO_LEAD_MS + Math.max(0, Math.floor((video.currentTime || 0) * 1000));
+        const showAt = sessionStartMs - GUIDE_RELEASE_LEAD_MS;
+        const hideAt = sessionStartMs + 15 * 60 * 1000;
+        zone.classList.toggle('visible', now >= showAt && now <= hideAt);
+      }
+
+      function applyReplayEndedState() {
+        if (didAutoRedirectToOffer) return;
+        didAutoRedirectToOffer = true;
+        video.pause();
+        document.getElementById('return-buyer-hero')?.classList.add('is-visible');
+        document.getElementById('replay-main-header')?.classList.add('is-return-hidden');
+        document.getElementById('replay-player-row')?.classList.add('is-return-hidden');
+        document.getElementById('diagnostic-guide-zone')?.classList.add('is-return-hidden');
+        offerZone.classList.add('is-returning-buyer');
+        activateOfferAndScarcity();
+        document.getElementById('return-buyer-hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      const replayConfirmOverlay = document.getElementById('replay-confirm-overlay');
+      const replayConfirmBtn = document.getElementById('replay-confirm-btn');
+      const replayRestartBtn = document.getElementById('replay-restart-btn');
+      const replayConfirmIcon = document.getElementById('replay-confirm-icon');
+      const replayConfirmTitle = document.getElementById('replay-confirm-title');
+      const replayConfirmText = document.getElementById('replay-confirm-text');
+      let replayNoPause = true;
+      const recoveryResumeSeconds = Math.max(0, Number(reg.resumeSeconds || 0));
+      const MIN_USEFUL_RESUME_SECONDS = 60;
+      const hasUsefulResume = recoveryResumeSeconds >= MIN_USEFUL_RESUME_SECONDS;
+
+      function formatResumeTime(seconds) {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        const minutes = Math.floor(total / 60);
+        return `${minutes}:${String(total % 60).padStart(2, '0')}`;
+      }
+
+      if (hasUsefulResume) {
+        if (replayConfirmIcon) replayConfirmIcon.textContent = '↩️';
+        if (replayConfirmTitle) replayConfirmTitle.textContent = 'Ta progression a été conservée';
+        if (replayConfirmText) {
+          replayConfirmText.innerHTML = 'Tu as déjà commencé cette masterclass. Reprends exactement là où tu t\'es arrêté, ou recommence depuis le début.<br><br>Une fois lancée, <strong>la vidéo ne peut pas être mise sur pause</strong>.';
+        }
+        replayConfirmBtn.textContent = `Reprendre à ${formatResumeTime(recoveryResumeSeconds)}`;
+        replayRestartBtn?.classList.remove('hidden');
+        // Le choix est présenté dès l'ouverture d'un replay déjà commencé.
+        replayConfirmOverlay?.classList.remove('hidden');
+      }
+
+      function launchReplayAfterConfirm(startAtSeconds = recoveryResumeSeconds) {
+        replayConfirmOverlay?.classList.add('hidden');
+        overlay.classList.add('hidden');
+        const requestedStart = Math.max(0, Number(startAtSeconds) || 0);
+
+        function seekAndPlay() {
+          const resumeLimit = Number.isFinite(video.duration) && video.duration > 0
+            ? Math.max(0, video.duration - 1)
+            : requestedStart;
+          allowProgrammaticSeek = true;
+          video.currentTime = Math.min(requestedStart, resumeLimit);
+          setPreviewWallClockFromReplaySeconds(video.currentTime);
+          if (!didTrackReplayStarted) {
+            didTrackReplayStarted = true;
+            trackWebinaireEvent(token, 'replay_started');
+          }
+          video.play().catch(() => {});
+        }
+        if (video.readyState >= 1) seekAndPlay();
+        else video.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+        // Affiche la barre de contrôles uniquement après lancement.
+        // On masque le bouton Play (pause désactivée), on garde -15s + Son/volume.
+        if (controlsBar) controlsBar.style.display = '';
+        playPauseBtn.style.display = 'none';
+      }
+
+      playOverlayBtn.addEventListener('click', () => {
+        if (replayNoPause && replayConfirmOverlay) {
+          replayConfirmOverlay.classList.remove('hidden');
+          return;
+        }
+        if (!didTrackReplayStarted) {
+          didTrackReplayStarted = true;
+          trackWebinaireEvent(token, 'replay_started');
+        }
+        video.play().catch(() => {});
+      });
+      replayConfirmBtn?.addEventListener('click', () => {
+        launchReplayAfterConfirm(recoveryResumeSeconds);
+      });
+      replayRestartBtn?.addEventListener('click', () => {
+        // Repartir de zéro ne remet jamais à zéro watch_max_seconds_replay :
+        // la mémoire serveur reste disponible lors d'une prochaine ouverture.
+        launchReplayAfterConfirm(0);
+      });
+      document.getElementById('replay-confirm-cancel')?.addEventListener('click', () => {
+        replayConfirmOverlay?.classList.add('hidden');
+      });
+      video.addEventListener('pause', () => {
+        if (replayNoPause && !video.ended && didTrackReplayStarted) {
+          video.play().catch(() => {});
+        }
+      });
+      playPauseBtn.addEventListener('click', () => {
+        if (replayNoPause) return;
+        if (video.paused) {
+          if (!didTrackReplayStarted) {
+            didTrackReplayStarted = true;
+            trackWebinaireEvent(token, 'replay_started');
+          }
+          video.play().catch(() => {});
+        }
+        else video.pause();
+      });
+      rewindBtn.addEventListener('click', () => {
+        // -15s autorisé même quand replayNoPause = true (la pause reste désactivée
+        // mais reculer pour revoir un passage est permis).
+        video.currentTime = Math.max(0, (video.currentTime || 0) - 15);
+        resetFreezeProgressBaseline();
+      });
+      muteBtn.addEventListener('click', () => {
+        video.muted = !video.muted;
+        muteBtn.textContent = video.muted ? 'Muet' : 'Son';
+      });
+      volumeRange.addEventListener('input', (e) => {
+        const v = Math.max(0, Math.min(100, Number(e?.target?.value || 100)));
+        video.volume = v / 100;
+        if (video.volume > 0) video.muted = false;
+        muteBtn.textContent = video.muted ? 'Muet' : 'Son';
+      });
+      video.volume = 0.8;
+      video.muted = false;
+      volumeRange.value = '80';
+      muteBtn.textContent = 'Son';
+      fullscreenBtn.addEventListener('click', () => {
+        const box = document.getElementById('video-box');
+        if (!document.fullscreenElement) box.requestFullscreen?.().catch(() => {});
+        else document.exitFullscreen?.().catch(() => {});
+        syncMobileControlsAutoHide();
+      });
+      video.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+      });
+
+      const FREEZE_RECOVERY_ENABLED = true;
+      const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
+      const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
+      const FREEZE_THRESHOLD_MS = 12000; // 12s = tolérant aux mini-buffers mobile
+      const FREEZE_RECOVERY_COOLDOWN_MS = 10000;
+      const FREEZE_RECOVERY_VALIDATE_WINDOW_MS = 10000;
+      const FREEZE_VISIBILITY_GRACE_MS = 3000;
+      const MAX_FREEZE_RECOVERIES = 2;
+      let freezeWatchdogInterval = null;
+      let stalledAccumulatedMs = 0;
+      let lastProgressCurrentTime = 0;
+      let suppressFreezeDetectionUntilMs = 0;
+      let freezeRecoveryCount = 0;
+      let lastRecoveryAtMs = 0;
+      let pendingRecoveryValidation = null;
+      let recoveryValidationDeadlineMs = 0;
+      let isRecoveringInProgress = false;
+      const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
+      const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
+
+      function setFreezeRecoveryOverlayVisible(on) {
+        if (!freezeRecoveryOverlay) return;
+        freezeRecoveryOverlay.classList.toggle('is-visible', Boolean(on));
+        freezeRecoveryOverlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+      }
+
+      function trackFreezeRecoveryPayload(payload) {
+        if (!token) return;
+        try {
+          trackWebinaireEvent(token, 'video_freeze_recovery', JSON.stringify(payload));
+        } catch {}
+      }
+
+      function buildFreezePayload(trigger, currentTimeAtFreeze, freezeDurationSec, attemptN, recovered) {
+        return {
+          trigger,
+          currentTime_at_freeze: Number.isFinite(currentTimeAtFreeze) ? Math.floor(currentTimeAtFreeze * 100) / 100 : 0,
+          freeze_duration_sec: Number.isFinite(freezeDurationSec) ? Math.max(0, Math.round(freezeDurationSec * 10) / 10) : 0,
+          recovery_attempt_number: attemptN,
+          recovered: Boolean(recovered),
+          context: 'replay',
+        };
+      }
+
+      function resetFreezeProgressBaseline() {
+        lastProgressCurrentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+        stalledAccumulatedMs = 0;
+      }
+
+      function isVideoActivelyPlayingForFreeze() {
+        if (!FREEZE_RECOVERY_ENABLED) return false;
+        if (video.ended || video.paused) return false;
+        if (suppressFreezeDetectionUntilMs === Number.POSITIVE_INFINITY) return false;
+        if (Number.isFinite(suppressFreezeDetectionUntilMs) && Date.now() < suppressFreezeDetectionUntilMs) return false;
+        return true;
+      }
+
+      function finishRecoveryValidation(recovered) {
+        if (!pendingRecoveryValidation) {
+          isRecoveringInProgress = false;
+          return;
+        }
+        const meta = pendingRecoveryValidation;
+        trackFreezeRecoveryPayload(buildFreezePayload(
+          meta.trigger, meta.currentTimeAtFreeze, meta.freezeDurationSec, meta.recoveryAttemptNumber, recovered,
+        ));
+        pendingRecoveryValidation = null;
+        recoveryValidationDeadlineMs = 0;
+        if (recovered) {
+          freezeRecoveryCount = 0;
+          setFreezeRecoveryOverlayVisible(false);
+        } else if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+          setFreezeRecoveryOverlayVisible(true);
+        }
+        isRecoveringInProgress = false;
+      }
+
+      async function triggerFreezeRecovery(trigger, freezeDurationSec) {
+        if (!FREEZE_RECOVERY_ENABLED) return;
+        if (!isVideoActivelyPlayingForFreeze()) return;
+        if (video.ended) return;
+        if (pendingRecoveryValidation || isRecoveringInProgress) return;
+        const now = Date.now();
+        if (now - lastRecoveryAtMs < FREEZE_RECOVERY_COOLDOWN_MS) return;
+        if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
+          setFreezeRecoveryOverlayVisible(true);
+          return;
+        }
+        freezeRecoveryCount += 1;
+        isRecoveringInProgress = true;
+        lastRecoveryAtMs = now;
+        stalledAccumulatedMs = 0;
+        suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+        const currentTimeAtFreeze = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+        const recoveryAttemptNumber = freezeRecoveryCount;
+        try {
+          allowProgrammaticSeek = true;
+          reloadVideoSource();
+          if (currentTimeAtFreeze > 0) {
+            try { video.currentTime = currentTimeAtFreeze; } catch {}
+          }
+          await video.play();
+        } catch {
+          trackFreezeRecoveryPayload(buildFreezePayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, false));
+          isRecoveringInProgress = false;
+          if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) setFreezeRecoveryOverlayVisible(true);
+          return;
+        }
+        pendingRecoveryValidation = { trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber };
+        recoveryValidationDeadlineMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
+        resetFreezeProgressBaseline();
+      }
+
+      function runFreezeWatchdogTick() {
+        if (!FREEZE_RECOVERY_ENABLED) return;
+        const now = Date.now();
+        if (pendingRecoveryValidation && recoveryValidationDeadlineMs > 0 && now >= recoveryValidationDeadlineMs) {
+          finishRecoveryValidation(false);
+        }
+        if (!isVideoActivelyPlayingForFreeze()) {
+          resetFreezeProgressBaseline();
+          return;
+        }
+        const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+        if (cur > lastProgressCurrentTime + FREEZE_PROGRESS_EPSILON_SEC) {
+          lastProgressCurrentTime = cur;
+          stalledAccumulatedMs = 0;
+          if (pendingRecoveryValidation) finishRecoveryValidation(true);
+          return;
+        }
+        stalledAccumulatedMs += FREEZE_WATCHDOG_INTERVAL_MS;
+        if (stalledAccumulatedMs >= FREEZE_THRESHOLD_MS) {
+          void triggerFreezeRecovery('watchdog', stalledAccumulatedMs / 1000);
+        }
+      }
+
+      if (FREEZE_RECOVERY_ENABLED) {
+        // FIX (2026-05-07) : suppression triggers immédiats sur 'stalled' / 'waiting'.
+        // Ces events surviennent souvent en lecture normale (mobile surtout), causaient
+        // recovery loops avec écran noir toutes les ~10s. Watchdog seul juge dorénavant.
+        video.addEventListener('error', () => { void triggerFreezeRecovery('error', stalledAccumulatedMs / 1000); });
+        document.addEventListener('visibilitychange', () => {
+          if (!FREEZE_RECOVERY_ENABLED) return;
+          if (document.hidden) {
+            suppressFreezeDetectionUntilMs = Number.POSITIVE_INFINITY;
+            resetFreezeProgressBaseline();
+            return;
+          }
+          suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
+          resetFreezeProgressBaseline();
+        });
+        if (freezeRecoveryReloadBtn) {
+          freezeRecoveryReloadBtn.addEventListener('click', () => { window.location.reload(); });
+        }
+        freezeWatchdogInterval = setInterval(runFreezeWatchdogTick, FREEZE_WATCHDOG_INTERVAL_MS);
+      }
+
+      video.addEventListener('play', () => {
+        overlay.classList.add('hidden');
+        playPauseBtn.textContent = 'Pause';
+        syncMobileControlsAutoHide();
+      });
+      video.addEventListener('pause', () => {
+        if (!video.ended) overlay.classList.remove('hidden');
+        playPauseBtn.textContent = 'Play';
+        syncMobileControlsAutoHide();
+      });
+      video.addEventListener('timeupdate', () => {
+        if (video.currentTime > maxWatched) maxWatched = video.currentTime;
+        updateCtaStateByVideoTime();
+        updateDiagnosticGuideState();
+        const watchedMinutes = Math.floor((video.currentTime || 0) / 60);
+        VIDEO_TRACKING_CHECKPOINTS_MIN.forEach((checkpointMin) => {
+          if (watchedMinutes >= checkpointMin && !emittedCheckpointMinutes.has(checkpointMin)) {
+            emittedCheckpointMinutes.add(checkpointMin);
+            const durationSeconds = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null;
+            trackWebinaireEvent(token, 'video_checkpoint', checkpointMin, {
+              percent: durationSeconds ? (checkpointMin * 60 * 100) / durationSeconds : null,
+              durationSeconds,
+            });
+          }
+        });
+      });
+      video.addEventListener('ended', () => {
+        applyReplayEndedState();
+      });
+      video.addEventListener('seeking', () => {
+        if (allowProgrammaticSeek) return;
+        if (video.currentTime > maxWatched + 0.8) video.currentTime = maxWatched;
+      });
+      video.addEventListener('seeked', () => {
+        if (allowProgrammaticSeek) allowProgrammaticSeek = false;
+      });
+      video.addEventListener('keydown', (e) => {
+        if (['ArrowRight', 'l', 'L', 'j', 'J'].includes(e.key)) e.preventDefault();
+        if (replayNoPause && (e.key === ' ' || e.key === 'k' || e.key === 'K')) e.preventDefault();
+      });
+      video.addEventListener('click', (e) => {
+        if (replayNoPause && didTrackReplayStarted) e.preventDefault();
+      });
+      [videoBox, controlsBar].forEach((target) => {
+        if (!target) return;
+        ['touchstart', 'touchmove', 'pointermove'].forEach((evt) => {
+          target.addEventListener(evt, onMobileControlsActivity, { passive: true });
+        });
+      });
+      window.addEventListener('resize', syncMobileControlsAutoHide);
+      if (isPreviewDev) {
+        const devPanel = document.getElementById('dev-time-banner');
+        const devTimeInput = document.getElementById('dev-time-input');
+        const devTimeApply = document.getElementById('dev-time-apply');
+        document.documentElement.classList.add('mc-preview-dev');
+        if (devPanel) {
+          devPanel.classList.add('is-visible');
+          const toggle = document.getElementById('dev-time-toggle');
+          toggle?.addEventListener('click', () => {
+            const collapsed = devPanel.classList.toggle('is-collapsed');
+            toggle.textContent = collapsed ? '+' : '−';
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggle.setAttribute('aria-label', collapsed ? 'Afficher la simulation replay' : 'Masquer la simulation replay');
+            toggle.title = collapsed ? 'Afficher la simulation replay' : 'Masquer la simulation replay';
+          });
+        }
+        // If no shared preview clock exists yet, seed it from replay start.
+        try {
+          const rawClock = previewClockStorage.getItem(DEV_CLOCK_KEY);
+          if (!rawClock) setPreviewWallClockFromReplaySeconds(0);
+        } catch {}
+        document.querySelectorAll('[data-jump-seconds]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const sec = Number(btn.getAttribute('data-jump-seconds'));
+            jumpToSeconds(sec);
+          });
+        });
+        document.querySelectorAll('[data-replay-preset]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const preset = btn.getAttribute('data-replay-preset');
+            if (preset === 'cta-m10s') jumpToSeconds(Math.max(0, CTA_APPEAR_SECONDS - 10));
+            if (preset === 'cta-active') jumpToSeconds(CTA_ACTIVATE_SECONDS + 1);
+          });
+        });
+        document.querySelectorAll('[data-offer-offset]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const offsetMs = Number(btn.getAttribute('data-offer-offset'));
+            if (!Number.isFinite(offsetMs)) return;
+            jumpToSeconds(CTA_ACTIVATE_SECONDS + 1);
+            previewOfferStateOverride = null;
+            if (!Number.isFinite(offerActivationMs)) offerActivationMs = getMcWallClockMs();
+            offerExpiryMs = offerActivationMs + MC2_REPLAY_OFFER_DURATION_MS;
+            setPreviewWallClockAbsolute(offerActivationMs + offsetMs);
+            if (scarcityEngine) scarcityEngine.stop();
+            scarcityEngine = null;
+            startScarcityEngineIfNeeded();
+            scarcityEngine?.recalc?.();
+            updateCtaUnlockCountdown();
+            setOfferExpiredState(isOfferExpiredNow());
+            syncReplayUnavailableLock();
+            updateDevPreviewStatus();
+          });
+        });
+        document.querySelectorAll('[data-wallclock-preset]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const key = String(btn.getAttribute('data-wallclock-preset') || '').trim();
+            const targetMs = getPreviewWallClockPresetMs(key);
+            if (!Number.isFinite(targetMs)) return;
+            setPreviewWallClockAbsolute(targetMs);
+            ensureOfferVisibleForPreview();
+            updateCtaStateByVideoTime();
+            startScarcityEngineIfNeeded();
+            updateDevPreviewStatus();
+          });
+        });
+        document.querySelectorAll('[data-offer-state]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            previewOfferStateOverride = btn.getAttribute('data-offer-state') || null;
+            updateCtaStateByVideoTime();
+            startScarcityEngineIfNeeded();
+            updateDevPreviewStatus();
+          });
+        });
+        if (devTimeApply && devTimeInput) {
+          devTimeApply.addEventListener('click', () => {
+            const parsed = parseTimecodeToSeconds(devTimeInput.value);
+            if (parsed === null) return;
+            jumpToSeconds(parsed);
+          });
+        }
+        updateDevPreviewStatus();
+      }
+
+      countdownInterval = setInterval(() => {
+        if (ctaActivated) {
+          updateCtaUnlockCountdown();
+        } else if ((video.currentTime || 0) >= CTA_APPEAR_SECONDS) {
+          updateCtaUnlockCountdown();
+        }
+        updateDiagnosticGuideState();
+        syncReplayUnavailableLock();
+        startScarcityEngineIfNeeded();
+        updateDevPreviewStatus();
+        if (ctaActivated && !isOfferExpiredNow()) {
+          setOfferExpiredState(false);
+        } else if (ctaActivated) {
+          setOfferExpiredState(true);
+        }
+      }, 1000);
+      updateCtaUnlockCountdown();
+      updateDiagnosticGuideState();
+      syncReplayUnavailableLock();
+      syncMobileControlsAutoHide();
+      ['deal-sticky-cta', 'core-price-registration-cta', 'two-paths-registration-cta'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('click', () => {
+          if (ctaActivated && !isOfferExpiredNow()) trackWebinaireEvent(token, 'cta_clicked');
+        });
+      });
+
+      presenceInterval = setInterval(() => {
+        sendPresencePing(token, 'replay', video.currentTime);
+      }, 60000);
+      sendPresencePing(token, 'replay', video.currentTime);
+
+      return {
+        initVideo() {
+          attachVideoSource(fetchVideoSource());
+        },
+        destroy() {
+          if (countdownInterval) clearInterval(countdownInterval);
+          if (presenceInterval) clearInterval(presenceInterval);
+          if (scarcityEngine) scarcityEngine.stop();
+          if (hideToastTimer) clearTimeout(hideToastTimer);
+          if (toastQueueGapTimer) clearTimeout(toastQueueGapTimer);
+          detachVideoSource();
+          document.documentElement.classList.remove('mc-page-lock');
+        },
+      };
+    }
+
+    async function validateAccessWithToken(token) {
+      const res = await fetch('/.netlify/functions/mc2-replay-access?access=' + encodeURIComponent(token));
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data?.valid) return null;
+      recoveryAccessCode = token;
+      recoveryConfig = data;
+      replayRegistrationToken = String(data.registrationToken || '').trim();
+      // W13B uses its own offer cue, independent of the historical replay response.
+      return {
+        valid: true,
+        token: replayRegistrationToken,
+        prenom: data.firstName || '',
+        email: data.email || '',
+        pays: data.country || '',
+        sessionStartsAt: new Date().toISOString(),
+        offreExpiresAt: data.offerExpiresAt,
+        accessExpiresAt: data.expiresAt,
+        resumeSeconds: Number(data.resumeSeconds || 0),
+        offerUrl: '/mc2/draftx/?t=' + encodeURIComponent(replayRegistrationToken),
+      };
+    }
+    function isBuyer(payload) {
+      if (payload && payload.purchased === true) return true;
+      const status = String(payload?.statut || payload?.status || '').toLowerCase();
+      return status === 'acheteur' || status === 'paid' || status === 'purchased';
+    }
+    function createPreviewRegistration(registrationToken = '') {
+      recoveryAccessCode = 'preview-dev-replay';
+      replayRegistrationToken = String(registrationToken || 'preview-dev-replay').trim();
+      recoveryConfig = {
+        videoUrl: VIDEO_SOURCE_URL_PRIMARY,
+        offerUrl: '#',
+      };
+      return {
+        valid: true,
+        token: replayRegistrationToken,
+        statut: 'registered',
+        prenom: 'Preview',
+        email: 'preview@example.invalid',
+        pays: 'France',
+        sessionStartsAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        offreExpiresAt: null,
+        resumeSeconds: Math.max(0, Number(new URLSearchParams(window.location.search).get('resume')) || 0),
+        offerUrl: '#',
+      };
+    }
+    function parseTimecodeToSeconds(raw) {
+      const v = String(raw || '').trim();
+      if (!v) return null;
+      const parts = v.split(':').map((x) => Number(x));
+      if (parts.some((x) => !Number.isFinite(x) || x < 0)) return null;
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      if (parts.length === 2) return parts[0] * 60 + parts[1];
+      if (parts.length === 1) return parts[0];
+      return null;
+    }
+
+    function initReplayOfferInteractions() {
+      const reviewsDialog = document.getElementById('preview-reviews-dialog');
+      const openReviews = document.getElementById('preview-open-reviews');
+      const closeReviews = document.getElementById('preview-close-reviews');
+      const reviewFilters = Array.from(document.querySelectorAll('[data-preview-review-filter]'));
+      const reviewItems = Array.from(document.querySelectorAll('[data-preview-review-rating]'));
+      openReviews?.addEventListener('click', () => reviewsDialog?.showModal());
+      closeReviews?.addEventListener('click', () => reviewsDialog?.close());
+      reviewsDialog?.addEventListener('click', (event) => {
+        if (event.target === reviewsDialog) reviewsDialog.close();
+      });
+      reviewFilters.forEach((button) => {
+        button.addEventListener('click', () => {
+          const rating = button.getAttribute('data-preview-review-filter');
+          reviewFilters.forEach((filter) => filter.classList.toggle('is-active', filter === button));
+          reviewItems.forEach((item) => {
+            item.hidden = rating !== 'all' && item.getAttribute('data-preview-review-rating') !== rating;
+          });
+        });
+      });
+
+      const obtainCta = document.getElementById('preview-obtain-cta');
+      const paymentSlot = document.getElementById('preview-spiffy-slot');
+      obtainCta?.addEventListener('click', (event) => {
+        if (!paymentSlot) return;
+        event.preventDefault();
+        const cardFocusY = window.scrollY + paymentSlot.getBoundingClientRect().top + 72;
+        window.scrollTo({
+          top: Math.max(0, cardFocusY - window.innerHeight / 2),
+          behavior: 'smooth',
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isPreviewDev = isDraftPreview;
+      const registrationToken = (params.get('t') || params.get('token') || '').trim();
+      if (!isPreviewDev && registrationToken) {
+        window.location.replace(MC2_DRAFTX_REPLAY_ENTRY + encodeURIComponent(registrationToken));
+        return;
+      }
+      let token = (params.get('access') || '').trim() || getStoredToken();
+      let data = null;
+
+      if (token) {
+        data = await validateAccessWithToken(token);
+        if (!data) {
+          clearTokenEverywhere();
+          token = '';
+        } else {
+          setTokenEverywhere(token);
+        }
+      }
+
+      if (!token && !isPreviewDev) {
+        showBlocked('Lien replay invalide', 'Utilise le lien personnel reçu par email.');
+      } else {
+        if (!token && isPreviewDev) {
+          token = 'preview-dev-replay';
+          recoveryAccessCode = token;
+          recoveryConfig = {
+            videoUrl: VIDEO_SOURCE_URL_PRIMARY,
+            offerUrl: '#',
+          };
+        }
+        if (!data && isPreviewDev) {
+          data = createPreviewRegistration(params.get('t') || params.get('token') || '');
+        }
+        if (!isPreviewDev && isBuyer(data)) {
+          showBuyerBlocked();
+          return;
+        }
+        show('screen-replay');
+        const mounted = mountReplay(data, data.token || token);
+        await mounted.initVideo();
+      }
+
+      const btn = document.getElementById('email-submit');
+      const input = document.getElementById('email-input');
+      const err = document.getElementById('email-error');
+      btn?.addEventListener('click', () => {
+        err.textContent = 'Utilise le lien personnel reçu par email.';
+      });
+    });
+  </script>
+  <script>document.documentElement.classList.add('ready');</script>
+</body>
+</html>

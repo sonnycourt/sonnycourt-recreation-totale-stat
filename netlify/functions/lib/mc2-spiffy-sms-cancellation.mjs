@@ -2,6 +2,8 @@ import { supabaseGet } from './supabase-rest.mjs';
 import { cancelMc2OfferSms } from './mc2-sms.mjs';
 
 const DEFAULT_MC2_SPIFFY_CHECKOUT_IDS = Object.freeze([
+  '40406', // 0 € J0, puis 12 × 197 € à partir de J+7
+  '40422', // 0 € J0, puis 6 × 347 € à partir de J+7
   '40006', // 3 mensualités de 767 €
   '40007', // paiement unique de 1 997 €
   '39495', // anciens checkouts conservés pour les événements retardés

@@ -1,5 +1,6 @@
 ---
 import DraftXSandbox from '../../components/mc2/DraftXSandbox.astro';
+import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
 
 import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 ---
@@ -1801,6 +1802,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             text-align: center;
         }
         .return-buyer-hero.is-visible { display: block; }
+        .return-buyer-hero.is-live-offer { margin-top: 24px; }
+        .return-buyer-hero.is-live-offer h1,
+        .return-buyer-hero.is-live-offer .return-buyer-hero__arrow { display: none; }
+        .return-buyer-hero.is-live-offer .return-buyer-scarcity { margin-top: 0; }
         .return-buyer-hero h1 {
             margin: 0;
             padding: 0;
@@ -1877,6 +1882,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         .screen-main-header.is-return-hidden,
         .session-ended-note.is-return-hidden { display: none !important; }
         .offer-zone.is-returning-buyer { padding-top: 0; }
+        /* Avoid stacking the section's three top spacings below the offer CTA. */
+        .return-buyer-hero.is-visible + .offer-zone { padding-top: 0; }
+        .return-buyer-hero.is-visible + .offer-zone :global(.workbench) { padding-top: 0; }
+        .return-buyer-hero.is-visible + .offer-zone :global(.core-value-section) { margin-top: clamp(80px, 10vw, 120px); }
         @media (max-width: 767px) {
             .return-buyer-hero {
                 margin-top: 0;
@@ -1934,7 +1943,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     </style>
 </head>
 <body>
-    <aside class="draftx-notice" aria-label="Brouillon isolé">DRAFTX · AUCUN PAIEMENT RÉEL<br /><span id="draftx-status">Copie de travail — aucun envoi, aucun tracking réel.</span></aside>
+    <Mc2AccessGate pagePath="/mc2/draftx/" />
+    <aside class="draftx-notice" aria-label="Brouillon connecté" hidden>DRAFTX · CHECKOUTS SPIFFY RÉELS<br /><span id="draftx-status">Ne pas valider de paiement test. Tracking MC2 désactivé.</span></aside>
     <div class="bg-gradient"></div>
 
     <div id="dev-time-banner" class="dev-time-banner">
@@ -2059,17 +2069,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         </div>
     </div>
 
-        <section id="return-buyer-hero" class="return-buyer-hero" aria-live="polite">
-            <h1>
-                <span class="return-buyer-hero__ended">LA MASTERCLASS EST TERMINÉE</span>
-                <span class="return-buyer-hero__start">MAIS TA TRANSFORMATION COMMENCE MAINTENANT.</span>
-            </h1>
-            <span class="return-buyer-hero__arrow" aria-hidden="true">↓</span>
-            <div id="return-buyer-scarcity" class="return-buyer-scarcity"></div>
-            <button id="return-buyer-offer-cta" class="return-buyer-offer-cta" type="button" aria-controls="deal-registration">
-                Je prends ma place
-            </button>
-        </section>
         <p id="session-ended-note" class="session-ended-note">Le webinaire est terminé, mais ta transformation commence maintenant.</p>
         <div id="player-row" class="player-row">
         <div class="video-shell">
@@ -2131,6 +2130,18 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         </div>
         </div>
 
+        <section id="return-buyer-hero" class="return-buyer-hero" aria-live="polite">
+            <h1>
+                <span class="return-buyer-hero__ended">LA MASTERCLASS EST TERMINÉE</span>
+                <span class="return-buyer-hero__start">MAIS TA TRANSFORMATION COMMENCE MAINTENANT.</span>
+            </h1>
+            <span class="return-buyer-hero__arrow" aria-hidden="true">↓</span>
+            <div id="return-buyer-scarcity" class="return-buyer-scarcity"></div>
+            <button id="return-buyer-offer-cta" class="return-buyer-offer-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+                Je commence ma transformation
+            </button>
+        </section>
+
         <div id="offer-zone" class="offer-zone hidden">
             <DealOffer checkoutEmbedMode="iframe" />
             <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
@@ -2191,6 +2202,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     <script>
         // @ts-nocheck
         import Hls from 'hls.js';
+        import { MC2_DRAFTX_LIVE_HLS_URL, MC2_DRAFTX_REPLAY_PATH, MC2_DRAFTX_REPLAY_ENTRY } from '../../lib/mc2-draftx-media.mjs';
         import {
             MC2_LIVE_CTA_SECONDS as CTA_APPEAR_SECONDS,
             MC2_LIVE_VIDEO_DURATION_SECONDS as VIDEO_DURATION_FALLBACK_SECONDS,
@@ -2200,6 +2212,12 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         import { createMc2OfferTimeline } from '../../data/mc2-draftx-offer-timeline';
         import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
         const TOKEN_KEY = 'mc2_registration_token';
+        const isDraftPreview = Boolean(window.__mc2DraftX);
+        const sessionPagePath = window.location.pathname.replace(/\/?$/, '/');
+        const pageStorage = window.__mc2DraftX?.storage || {
+            getItem(key) { try { return localStorage.getItem(key); } catch { return null; } },
+            setItem(key, value) { try { localStorage.setItem(key, value); } catch {} },
+        };
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
         /** Après sessionStartsAt + ce délai = trop tard pour le direct (ex. session 20h Paris → après 20h15 = retardataire / replay) */
         const LATE_DIRECT_AFTER_SESSION_MS = 20 * 60 * 1000;
@@ -2217,7 +2235,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         // MIGRATION 2026-07-06 : Bunny Stream (HLS adaptatif) en primaire — la qualité s'adapte
         // à la connexion (fin des freezes sur connexions faibles). L'ancien MP4 progressif reste
         // le backup instantané via le cockpit (switch_backup).
-        const VIDEO_SOURCE_URL_PRIMARY = 'https://vz-601d6eb4-a9a.b-cdn.net/f0f337ba-a2f9-4b20-a20a-6704320edb6d/playlist.m3u8';
+        const VIDEO_SOURCE_URL_PRIMARY = MC2_DRAFTX_LIVE_HLS_URL;
         let ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         const LIVE_GRACE_HIDE_COUNTDOWN_MS = 3 * 60 * 1000; // 20h03
         const LIVE_JOIN_LABEL = 'Rejoindre la masterclass en cours';
@@ -2237,22 +2255,14 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             return ACTIVE_VIDEO_DURATION_SECONDS || VIDEO_DURATION_FALLBACK_SECONDS;
         }
         async function fetchActiveVideoSourceConfig() {
-            try {
-                const res = await fetch('/.netlify/functions/mc2-video-config');
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data && data.activeUrl) {
-                    ACTIVE_VIDEO_SOURCE_URL = String(data.activeUrl);
-                }
-            } catch {
-                /* ignore */
-            }
+            // DraftX keeps its W13B source; the production cockpit still controls W12.
+            ACTIVE_VIDEO_SOURCE_URL = VIDEO_SOURCE_URL_PRIMARY;
         }
         function setTokenEverywhere(token) {
-            window.__mc2DraftX.storage.setItem(TOKEN_KEY, token);
+            pageStorage.setItem(TOKEN_KEY, token);
         }
         function getStoredToken() {
-            let t = (window.__mc2DraftX.storage.getItem(TOKEN_KEY) || '').trim();
+            let t = (pageStorage.getItem(TOKEN_KEY) || '').trim();
             return t;
         }
         function showLoading(on) {
@@ -2332,10 +2342,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 return { type: 'redirect', url: '/mc2/confirmation?t=' + encodeURIComponent(token) };
             }
             if (now >= liveStart && now < lateCutoff) {
-                return { type: 'redirect', url: '/mc2/session?t=' + encodeURIComponent(token) };
+                return { type: 'redirect', url: sessionPagePath + '?t=' + encodeURIComponent(token) };
             }
             if (now >= lateCutoff && (!Number.isFinite(oe) || now < oe)) {
-                return { type: 'redirect', url: '/.netlify/functions/mc2-replay-enter?t=' + encodeURIComponent(token) };
+                return { type: 'redirect', url: MC2_DRAFTX_REPLAY_ENTRY + encodeURIComponent(token) };
             }
             return { type: 'block', title: "Cette masterclass n'est plus accessible.", text: '' };
         }
@@ -2403,18 +2413,44 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             }
         }
         async function sendPresencePing(token, stage, meta) {
-            window.__mc2DraftX.record('presence', { stage, ...meta });
+            if (isDraftPreview) { window.__mc2DraftX.record('presence', { stage, ...meta }); return; }
+            if (!token) return;
+            try {
+                await fetch('/.netlify/functions/mc2-presence', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, stage,
+                        currentSecond: meta && Number.isFinite(meta.currentSecond) ? Math.floor(meta.currentSecond) : null,
+                        isPlaying: Boolean(meta && meta.isPlaying), mode: getPresenceMode(),
+                    }),
+                });
+            } catch { /* Existing MC2 presence must not interrupt the player. */ }
         }
         function trackWebinaireEvent(token, eventName, value, eventMeta) {
-            window.__mc2DraftX.record(eventName, { value, ...eventMeta });
-            return Promise.resolve({ draft: true });
+            if (isDraftPreview) {
+                window.__mc2DraftX.record(eventName, { value, ...eventMeta });
+                return Promise.resolve({ draft: true });
+            }
+            if (!token || !eventName) return Promise.resolve(null);
+            const payload = { token, event: eventName, meta: { page_path: sessionPagePath } };
+            if (eventMeta && typeof eventMeta === 'object') Object.assign(payload.meta, eventMeta);
+            if (value !== undefined && value !== null) {
+                payload.value = String(value);
+                if (eventName === 'video_checkpoint') {
+                    const durationSeconds = getVideoDurationSeconds();
+                    payload.meta.duration_seconds = Math.max(1, Math.floor(durationSeconds));
+                    payload.meta.percent = Math.min(100, Math.round((Number(value) * 60 * 100) / durationSeconds));
+                }
+            }
+            return fetch('/.netlify/functions/track-mc2-event', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+            }).then(response => response.ok ? response.json() : null).catch(() => null);
         }
         const firedMetaBrowserEventIds = new Set();
         function getOfferViewedEventId(registration) {
             const sessionKey = String(registration?.sessionStartsAt || 'session');
             const storageKey = 'mc2_offer_event_id_' + String(registration?.token || '') + '_' + sessionKey;
             try {
-                const stored = window.__mc2DraftX.storage.getItem(storageKey);
+                const stored = pageStorage.getItem(storageKey);
                 if (stored) return stored;
             } catch {
                 /* Une session sans stockage garde tout de même un ID aléatoire. */
@@ -2424,7 +2460,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 14);
             const eventId = 'mc2-offer-' + nonce;
             try {
-                window.__mc2DraftX.storage.setItem(storageKey, eventId);
+                pageStorage.setItem(storageKey, eventId);
             } catch {
                 /* ignore */
             }
@@ -2437,7 +2473,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 const storageKey = 'mc2_meta_pixel_' + event.eventId;
                 let wasAlreadyFired = firedMetaBrowserEventIds.has(event.eventId);
                 try {
-                    wasAlreadyFired = wasAlreadyFired || window.__mc2DraftX.storage.getItem(storageKey) === '1';
+                    wasAlreadyFired = wasAlreadyFired || pageStorage.getItem(storageKey) === '1';
                 } catch {
                     /* Le Set en mémoire reste disponible si le stockage est bloqué. */
                 }
@@ -2447,7 +2483,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }, { eventID: event.eventId });
                 firedMetaBrowserEventIds.add(event.eventId);
                 try {
-                    window.__mc2DraftX.storage.setItem(storageKey, '1');
+                    pageStorage.setItem(storageKey, '1');
                 } catch {
                     /* ignore */
                 }
@@ -2692,7 +2728,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             zone.classList.add('visible');
             startMc2OfferObservability({
                 root: zone.querySelector('#deal-offer-content') || zone,
-                route: '/mc2/draftx/',
+                route: sessionPagePath,
                 track: function (eventName, value, metadata) {
                     return trackWebinaireEvent(token, eventName, value, metadata);
                 },
@@ -2708,13 +2744,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             const scheduleAnalogy = document.getElementById('preview-schedule-analogy');
             const paymentSwitch = document.getElementById('preview-payment-switch');
             paymentPanel?.setAttribute('data-plan', once ? 'once' : 'monthly');
-            if (schedulePlanLabel) schedulePlanLabel.textContent = once ? 'Paiement unique de 1 997 €' : '12 mensualités de 197 €';
+            if (schedulePlanLabel) schedulePlanLabel.textContent = once ? 'Paiement unique de 1 997 €' : '197 €/mois sur une année';
             if (scheduleAnalogy) {
                 scheduleAnalogy.textContent = once ? '≈ 6 € par jour' : '≈ 6,50 € par jour';
                 scheduleAnalogy.style.display = 'block';
             }
             if (paymentSwitch) paymentSwitch.textContent = once
-                ? 'Revenir aux 12 mensualités de 197 €'
+                ? 'Revenir au rythme de 197 €/mois sur une année'
                 : 'Payer en une fois et économiser 367 €';
         }
 
@@ -2729,7 +2765,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         });
 
         async function mountLiveInlineCheckout(reg) {
-            return; // DraftX uses a local, non-paying checkout simulation only.
+            return; // The three-step DraftX controller owns the two approved Spiffy embeds.
             if (!reg?.token) return;
             const checkoutSection = document.getElementById('preview-checkout');
             const oldCta = document.getElementById('offer-cta');
@@ -3000,15 +3036,21 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             const hasPersistedOffer = reg.sawOffer === true && Number.isFinite(expiryMs);
             const isPreviewPage = new URLSearchParams(window.location.search).get('preview') === 'dev';
             const offerCountdownEl = document.getElementById('deal-countdown');
-            const offerScarcityEl = document.querySelector('.deal-scarcity');
+            const offerScarcityEl = document.querySelector('#deal-offer-content .deal-scarcity');
             const offerCtaNode = document.getElementById('deal-sticky-cta');
             const previewCheckoutNode = document.getElementById('deal-offer-content');
             const offerExpiredStateEl = document.getElementById('offer-expired-state');
             let isOfferExpired = false;
             let isOfferSoldOut = false;
 
+            const draftxCheckout = document.querySelector('[data-draftx-checkout]');
+            if (draftxCheckout) {
+                draftxCheckout.dataset.prefillFirstName = reg.prenom || '';
+                draftxCheckout.dataset.prefillEmail = reg.email || '';
+                draftxCheckout.dataset.registrationToken = isDraftPreview ? '' : reg.token;
+            }
             window.dispatchEvent(new CustomEvent('mc2:draftx-registration', {
-                detail: { firstName: reg.prenom || '', email: reg.email || '' },
+                detail: { firstName: reg.prenom || '', email: reg.email || '', registrationToken: isDraftPreview ? '' : reg.token },
             }));
 
             function syncDealCountdown(targetMs) {
@@ -3017,8 +3059,12 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             }
 
             function setOfferCtaEnabled(enabled) {
-                if (!offerCtaNode) return;
                 const isEnabled = Boolean(enabled) && !isOfferExpired;
+                if (draftxCheckout && draftxCheckout.dataset.checkoutAvailable !== String(isEnabled)) {
+                    draftxCheckout.dataset.checkoutAvailable = String(isEnabled);
+                    window.dispatchEvent(new CustomEvent('mc2:draftx-availability', { detail: { available: isEnabled } }));
+                }
+                if (!offerCtaNode) return;
                 offerCtaNode.setAttribute('aria-disabled', isEnabled ? 'false' : 'true');
                 offerCtaNode.setAttribute('tabindex', isEnabled ? '0' : '-1');
                 offerCtaNode.disabled = !isEnabled;
@@ -3032,7 +3078,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 if (returnBuyerOfferCta) returnBuyerOfferCta.classList.toggle('hidden', isOfferExpired);
                 if (previewCheckoutNode) previewCheckoutNode.classList.toggle('hidden', isOfferExpired);
                 if (offerExpiredStateEl) offerExpiredStateEl.classList.toggle('hidden', !isOfferExpired);
-                if (isOfferExpired) setOfferCtaEnabled(false);
+                if (isOfferExpired) {
+                    setOfferCtaEnabled(false);
+                    setOfferHeroVisible(false);
+                }
             }
 
             function refreshMcPageLock() {
@@ -3193,10 +3242,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             const MAX_BEHIND_LIVE_SECONDS = 60; // max 60 s derrière le live (bouton -15s clampé à ce plancher)
 
             returnBuyerOfferCta?.addEventListener('click', function () {
-                document.getElementById('deal-registration')?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
+                if (isOfferExpired || returnBuyerOfferCta.disabled) return;
+                document.getElementById('deal-registration')?.querySelector('[data-checkout-open]')?.click();
             });
 
             function formatSessionLocalLabel(ms) {
@@ -3317,7 +3364,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             const endedReplayLinkEl = document.getElementById('mc-ended-replay-link');
             const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
             const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
-            const replayEntryUrl = '/mc2/draftx/?preview=dev&state=cta-active'; // Navigation simulated by DraftXSandbox.
+            const replayEntryUrl = isDraftPreview
+                ? MC2_DRAFTX_REPLAY_PATH + '?preview=dev'
+                : MC2_DRAFTX_REPLAY_ENTRY + encodeURIComponent(reg.token);
             if (lateReplayLinkEl) lateReplayLinkEl.href = replayEntryUrl;
             if (endedReplayLinkEl) endedReplayLinkEl.href = replayEntryUrl;
             let forceLateOverlay = window.__mcSessionForceLateOverlay === true;
@@ -3749,11 +3798,19 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                     returnBuyerEndedTitle.style.setProperty('color', launchOfferColor, 'important');
                     returnBuyerEndedTitle.style.setProperty('-webkit-text-fill-color', launchOfferColor, 'important');
                 }
-                returnBuyerHero?.classList.toggle('is-visible', active);
                 screenMainHeader?.classList.toggle('is-return-hidden', active);
                 playerRow?.classList.toggle('is-return-hidden', active);
                 endedNote?.classList.toggle('is-return-hidden', active);
                 document.getElementById('offer-zone')?.classList.toggle('is-returning-buyer', active);
+                setOfferHeroVisible(active);
+            }
+            // Un seul bloc partagé : sous la vidéo au CTA, sous le titre à la fin.
+            // Le compteur reste une copie du compteur de l'offre, sans nouvelle échéance.
+            function setOfferHeroVisible(on, live = false) {
+                const active = Boolean(on) && !isOfferExpired;
+                returnBuyerHero?.classList.toggle('is-visible', active);
+                returnBuyerHero?.classList.toggle('is-live-offer', active && live);
+                if (returnBuyerOfferCta) returnBuyerOfferCta.disabled = !active;
                 if (active) {
                     observeReturningBuyerScarcity();
                     scheduleReturningBuyerScarcitySync();
@@ -3807,7 +3864,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 
             function activateLiveJoinState() {
                 if (isSessionEnded) return;
-                setReturningBuyerUi(false);
+                // Reset the ended layout only when entering the live state.
+                // Doing this on every timer tick emptied the visible offer hero
+                // before rebuilding it, causing repeated scroll-anchor jumps.
+                if (!liveStarted) setReturningBuyerUi(false);
                 liveStarted = true;
                 if (endedNote) endedNote.classList.remove('is-visible');
                 if (preLive) preLive.style.display = 'none';
@@ -3980,6 +4040,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                     }
                     syncDealCountdown(isCtaActive ? expiryMs : ctaActivationMs);
                     setOfferCtaEnabled(isCtaActive);
+                    setOfferHeroVisible(isCtaActive, true);
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
                         const offerViewedEventId = getOfferViewedEventId(reg);
@@ -4001,6 +4062,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                     }
                 } else if (elapsedSec < CTA_APPEAR_SECONDS) {
                     setOfferCtaEnabled(false);
+                    setOfferHeroVisible(false);
                     hideOfferZone();
                 }
             }
@@ -4270,9 +4332,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             configPollInterval = setInterval(async function () {
                 if (isSessionEnded) return;
                 try {
-                    const res = await fetch('/.netlify/functions/mc2-video-config', { cache: 'no-store' });
+                    const res = await fetch('/.netlify/functions/mc2-video-config?variant=draftx', { cache: 'no-store' });
                     const d = await res.json().catch(function () { return null; });
-                    if (!d) return;
+                    // Old production endpoints ignore the variant: never reinsert W12.
+                    if (!d || d.variant !== 'draftx') return;
                     // 0) Force refresh viewers (admin a cliqué sur le bouton dans le cockpit Ops/Debug).
                     // Si le timestamp est plus récent que le moment où la page a été chargée, on recharge.
                     const refreshAt = d?.forceRefreshAt ? Date.parse(String(d.forceRefreshAt)) : NaN;
@@ -4356,6 +4419,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 },
                 sessionStartMs,
                 destroy: function () {
+                    setOfferHeroVisible(false);
                     if (launchInterval) clearInterval(launchInterval);
                     if (offerInterval) clearInterval(offerInterval);
                     if (presenceInterval) clearInterval(presenceInterval);
@@ -4453,7 +4517,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             var banner = document.getElementById('dev-time-banner');
             if (!banner) return;
             var previewParams = new URLSearchParams(window.location.search);
-            var liveCheckoutPreviewToken = ''; // Never accept a real registration in DraftX.
+            var liveCheckoutPreviewToken = ''; // The demo never consumes a real registration.
             document.documentElement.classList.add('mc-preview-dev');
             banner.classList.add('is-visible');
 
@@ -4525,7 +4589,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                     token: liveCheckoutPreviewToken || 'preview-session',
                     statut: 'present',
                     prenom: 'Preview',
-                    email: 'preview@sonnycourt.com',
+                    email: 'preview@example.invalid',
                     pays: 'France',
                     sessionStartsAt: new Date(sessionMs).toISOString(),
                     sessionEndsAt: new Date(sessionMs - LIVE_VIDEO_LEAD_MS + getVideoDurationSeconds() * 1000).toISOString(),
@@ -4724,9 +4788,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 
         async function initializeSessionPage() {
             const params = new URLSearchParams(window.location.search);
-            const preview = true; // This dedicated route is always a sandbox.
+            const preview = isDraftPreview;
 
             if (preview) {
+                document.querySelector('.draftx-notice')?.removeAttribute('hidden');
                 initDevBanner();
                 return;
             }

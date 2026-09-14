@@ -1,51 +1,204 @@
-<div class="draftx-checkout" data-draftx-checkout>
-  <p class="draftx-checkout__notice">BROUILLON — formulaire simulé, aucun paiement possible.</p>
-  <form autocomplete="off" id="draftx-checkout-form">
-    <div class="draftx-checkout__identity">
-      <input aria-label="Prénom de test" placeholder="Prénom" value="Preview" />
-      <input aria-label="Email de test" placeholder="Email" value="preview@example.invalid" />
+---
+import { DRAFTX_PAYMENT_PLANS } from '../../lib/mc2-draftx-checkout.mjs';
+---
+
+<div class="draftx-checkout" data-draftx-checkout data-step="1">
+  <button class="draftx-checkout__pay draftx-checkout__launch" type="button" data-checkout-open aria-haspopup="dialog" aria-controls="draftx-checkout-dialog">
+    Je commence à 0 € aujourd’hui <span aria-hidden="true">→</span>
+  </button>
+  <dialog class="draftx-checkout__dialog" id="draftx-checkout-dialog" aria-label="Inscription à Esprit Subconscient 2.0">
+    <div class="draftx-checkout__dialog-top">
+      <span>Esprit Subconscient 2.0</span>
+      <button class="draftx-checkout__close" type="button" data-checkout-close aria-label="Fermer le formulaire d’inscription">×</button>
     </div>
-    <label class="draftx-checkout__label">Carte bancaire (simulation)</label>
-    <input aria-label="Carte bancaire de test" value="4242 4242 4242 4242" readonly />
-    <div class="draftx-checkout__identity">
-      <input aria-label="Expiration de test" value="12 / 30" readonly />
-      <input aria-label="Code de sécurité de test" value="123" readonly />
-    </div>
-    <label class="draftx-checkout__terms"><input type="checkbox" /> J’accepte les CGV (simulation).</label>
-    <button class="draftx-checkout__pay" type="submit">JE COMMENCE MA TRANSFORMATION</button>
-    <p class="draftx-checkout__result" role="status" id="draftx-payment-status">Simulation : versement unique de 1 997 €.</p>
+  <div class="draftx-checkout__dialog-body">
+  <form autocomplete="off" id="draftx-checkout-form" novalidate>
+    <fieldset class="draftx-checkout__step" data-checkout-step="1" aria-labelledby="draftx-identity-title">
+      <h3 id="draftx-identity-title" tabindex="-1">Inscris-toi maintenant</h3>
+      <p class="draftx-checkout__intro">Entre ton prénom et ton email.</p>
+      <div class="draftx-checkout__identity">
+        <label class="draftx-checkout__field" for="draftx-first-name">Ton prénom
+          <span class="draftx-checkout__input-wrap">
+            <input id="draftx-first-name" name="firstName" placeholder="Prénom" autocomplete="off" required maxlength="100" />
+            <span class="draftx-checkout__field-check" data-identity-check="firstName" aria-hidden="true" hidden>
+              <svg viewBox="0 0 16 16" fill="none"><path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+          </span>
+        </label>
+        <label class="draftx-checkout__field" for="draftx-email">Ton email
+          <span class="draftx-checkout__input-wrap">
+            <input id="draftx-email" name="email" type="email" placeholder="Email" autocomplete="off" inputmode="email" autocapitalize="none" spellcheck="false" required maxlength="254" />
+            <span class="draftx-checkout__field-check" data-identity-check="email" aria-hidden="true" hidden>
+              <svg viewBox="0 0 16 16" fill="none"><path d="m3.5 8 3 3 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </span>
+          </span>
+        </label>
+      </div>
+      <button class="draftx-checkout__pay" type="submit">Je me lance <span aria-hidden="true">→</span></button>
+    </fieldset>
+    <fieldset class="draftx-checkout__step" data-checkout-step="2" aria-labelledby="draftx-plan-title" hidden disabled inert aria-hidden="true">
+      <h3 id="draftx-plan-title" tabindex="-1">Choisis ton rythme de versement</h3>
+      <p class="draftx-checkout__start">Tu commences à <strong>0 €</strong> aujourd’hui.</p>
+      <p class="draftx-checkout__intro">Ton premier versement arrive 7 jours plus tard.</p>
+      <div class="draftx-checkout__plans" role="group" aria-label="Choisis ton mode de versement">
+        {Object.entries(DRAFTX_PAYMENT_PLANS).map(([id, plan]) => (
+          <button class:list={['draftx-checkout__plan', { 'is-selected': id === 'twelve' }]} type="button" data-payment-plan={id} aria-pressed={id === 'twelve' ? 'true' : 'false'}>
+            {id === 'twelve' && <small class="draftx-checkout__badge">🔥 Le plus populaire</small>}
+            <span class="draftx-checkout__plan-today">
+              <strong>0 €</strong>
+              <span>aujourd’hui</span>
+            </span>
+            <b>{id === 'twelve' ? `Puis ${plan.amount} €/mois sur une année.` : `Puis ${plan.amount} €/mois sur ${plan.count} mois`}</b>
+          </button>
+        ))}
+      </div>
+      <p class="draftx-checkout__plan-commitment">Abonnement sans renouvellement automatique, avec engagement.</p>
+      <button class="draftx-checkout__pay" type="submit">Je valide mon choix <span aria-hidden="true">→</span></button>
+      <button class="draftx-checkout__back" type="button" data-checkout-back>← Mes informations</button>
+    </fieldset>
+    <fieldset class="draftx-checkout__step" data-checkout-step="3" aria-labelledby="draftx-card-title" hidden disabled inert aria-hidden="true">
+      <h3 id="draftx-card-title" tabindex="-1">Tout est prêt pour commencer</h3>
+      <div class="draftx-checkout__today">
+        <div><span>À payer aujourd’hui</span><strong>0 €</strong></div>
+        <p data-payment-schedule></p>
+      </div>
+      <div class="draftx-checkout__card-heading">
+        <span>Ajoute ta carte et commence ta transformation</span>
+        <slot name="payment-brands" />
+      </div>
+      <!-- Card details, mandatory CGV and the final button belong to Spiffy.
+           Our origin never reads or forwards a card number, expiry or CVC. -->
+      <div class="draftx-checkout__provider" data-spiffy-slot></div>
+      <aside class="draftx-checkout__guarantee" aria-label="Rappel de la garantie manifestation">
+        <img src="/media/deal-guarantee-remboursement.webp" alt="" width="44" height="44" />
+        <p>
+          <span>Garantie manifestation · 6 mois</span>
+          <strong>Soit tu manifestes, soit tu es remboursé.</strong>
+        </p>
+      </aside>
+      <p class="draftx-checkout__commitment" data-payment-commitment></p>
+      <button class="draftx-checkout__back" type="button" data-checkout-back>← Modifier mon rythme</button>
+      <p class="draftx-checkout__result" role="status" id="draftx-payment-status"></p>
+    </fieldset>
   </form>
+  </div>
+  </dialog>
+  <noscript>Active JavaScript pour ouvrir ton inscription sécurisée.</noscript>
 </div>
+
 <style>
-  .draftx-checkout { padding: 12px 0 4px; color: #17304b; font-family: Inter, sans-serif; }
-  .draftx-checkout__notice { margin: 0 0 14px; text-align: center; font-size: 11px; color: #6b4a08; }
-  .draftx-checkout__identity { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .draftx-checkout input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; padding: 14px 12px; border: 1px solid #cbd8e6; border-radius: 8px; background: #fff; color: #57718d; font: inherit; font-size: 13px; }
-  .draftx-checkout__label { display: block; margin: 12px 0 7px; font-size: 12px; }
-  .draftx-checkout__label + input { margin-bottom: 12px; }
-  .draftx-checkout__terms { display: flex; gap: 8px; align-items: center; margin: 15px 0; font-size: 12px; }
-  .draftx-checkout__terms input { accent-color: #347bea; }
-  .draftx-checkout__pay { width: 100%; padding: 15px 10px; border: 0; border-radius: 7px; background: #347bea; color: white; font-size: 13px; font-weight: 800; cursor: pointer; }
-  .draftx-checkout__result { margin: 12px 0 0; text-align: center; font-size: 12px; }
-  @media(max-width: 480px) { .draftx-checkout__identity { grid-template-columns: 1fr; } }
+  .draftx-checkout { padding: 0 0 4px; color: #17304b; font-family: Inter, sans-serif; text-align: left; overflow-anchor: none; }
+  /* Native modal dialogs have both vertical insets set to zero. `auto` would
+     stretch between them; fit-content preserves the active step's height. */
+  .draftx-checkout__dialog { box-sizing: border-box; width: min(760px, calc(100% - 32px)); height: fit-content; min-height: 0; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: hidden; border: 1px solid #d6e4f5; border-radius: 24px; background: #f7f9fc; color: #17304b; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4); }
+  .draftx-checkout__dialog:not([open]) { display: none; }
+  .draftx-checkout__dialog[open] { display: flex; flex-direction: column; }
+  .draftx-checkout__dialog::backdrop { background: rgba(2, 8, 23, 0.74); backdrop-filter: blur(5px); }
+  .draftx-checkout__dialog-top { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px 12px; }
+  .draftx-checkout__dialog-top > span { color: #165ed1; font-size: 0.875rem; font-weight: 750; }
+  .draftx-checkout__close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid #d6e4f5; border-radius: 50%; background: #fff; color: #52657d; font: inherit; font-size: 1.75rem; line-height: 1; cursor: pointer; }
+  .draftx-checkout__close:hover { background: #e8f3ff; color: #123f78; }
+  .draftx-checkout__dialog-body { display: flex; flex: 0 1 auto; min-height: 0; padding: 0 24px 24px; overflow: hidden; }
+  /* The popup fits the active panel and stays centered. Its viewport cap
+     keeps long steps scrollable inside without moving the underlying page. */
+  .draftx-checkout form { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: center; width: 100%; min-height: 0; }
+  .draftx-checkout__step { grid-area: 1 / 1; min-width: 0; min-height: 0; max-height: 100%; width: 100%; box-sizing: border-box; padding: 8px; margin: 0; border: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; }
+  .draftx-checkout__step[hidden] { display: none !important; }
+  :global(html:has(.draftx-checkout__dialog[open])) { overflow: hidden; scrollbar-gutter: stable; }
+  :global(body:has(.draftx-checkout__dialog[open])) { overflow: hidden; }
+  .draftx-checkout__step h3 { margin: 0 0 10px; color: #17304b; font-size: clamp(1.25rem, 2.5vw, 1.55rem); font-weight: 800; letter-spacing: -0.025em; line-height: 1.25; }
+  .draftx-checkout__step h3:focus { outline: none; }
+  .draftx-checkout__intro { margin: 0 0 24px; color: #52657d; font-size: 1rem; line-height: 1.55; }
+  .draftx-checkout__start { margin: 22px 0 12px; padding: clamp(18px, 3vw, 26px); color: #123f78; background: linear-gradient(135deg, #e7f3ff, #dbeaff); border: 1px solid #a8cbfb; border-radius: 12px; font-size: clamp(1.25rem, 2.6vw, 1.7rem); font-weight: 850; line-height: 1.5; text-align: center; text-wrap: balance; }
+  .draftx-checkout__start strong { color: #165ed1; font-size: 1.5em; font-weight: 900; white-space: nowrap; }
+  .draftx-checkout__identity, .draftx-checkout__card-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .draftx-checkout__field { display: grid; gap: 8px; min-width: 0; font-size: 0.875rem; font-weight: 600; }
+  .draftx-checkout input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 50px; padding: 14px 12px; border: 1px solid #cbd8e6; border-radius: 9px; background: #fff; color: #17304b; font: inherit; font-size: 1rem; }
+  .draftx-checkout__input-wrap { position: relative; display: block; min-width: 0; }
+  .draftx-checkout .draftx-checkout__input-wrap input { padding-right: 48px; }
+  .draftx-checkout__field-check { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #16a34a; color: #fff; pointer-events: none; }
+  .draftx-checkout__field-check[hidden] { display: none !important; }
+  .draftx-checkout__field-check svg { display: block; width: 15px; height: 15px; }
+  .draftx-checkout input::placeholder { color: #798ba0; }
+  .draftx-checkout input:focus-visible, .draftx-checkout button:focus-visible { outline: 3px solid #91bffa; outline-offset: 3px; }
+  .draftx-checkout__plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 42px 0 18px; }
+  .draftx-checkout__plan { position: relative; display: grid; align-content: start; justify-items: center; gap: 8px; min-width: 0; padding: 24px 14px; color: #52657d; background: white; border: 1px solid #cbd8e6; border-radius: 12px; cursor: pointer; font: inherit; }
+  .draftx-checkout__plan:hover { border-color: #347bea; }
+  .draftx-checkout__plan.is-selected { color: #123f78; border-color: #347bea; background: linear-gradient(135deg, #edf6ff, #e1efff); box-shadow: inset 0 0 0 1px #347bea; }
+  .draftx-checkout__plan strong { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+  .draftx-checkout__plan b { margin-top: 6px; font-size: 0.9375rem; line-height: 1.45; text-wrap: balance; }
+  .draftx-checkout__plan span { font-size: 0.875rem; line-height: 1.4; }
+  .draftx-checkout__plan-today { display: contents; }
+  .draftx-checkout__plan-commitment { margin: 0 0 16px; color: #52657d; font-size: 14px; font-weight: 400; line-height: 1.45; text-align: center; text-wrap: balance; }
+  .draftx-checkout__badge { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); padding: 7px 12px; border: 1px solid #ffab4b; border-radius: 99px; color: #592600; background: linear-gradient(135deg, #ffdd83, #ffac4b); font-size: 0.75rem; font-weight: 850; white-space: nowrap; }
+  .draftx-checkout__guarantee { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 18px 0 0; padding: 12px 14px; border: 1px solid #e8d8b0; border-radius: 12px; background: #fffbf2; }
+  .draftx-checkout__guarantee img { flex: 0 0 44px; width: 44px; height: 44px; object-fit: contain; }
+  .draftx-checkout__guarantee p { display: grid; gap: 4px; min-width: 0; margin: 0; }
+  .draftx-checkout__guarantee span { color: #7d5d1a; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.035em; line-height: 1.4; text-transform: uppercase; }
+  .draftx-checkout__guarantee strong { color: #17304b; font-size: 0.875rem; font-weight: 750; line-height: 1.4; }
+  .draftx-checkout__today { margin: 12px 0 16px; padding: 12px 18px; border: 1px solid #b7d5fc; border-radius: 12px; background: #e8f3ff; }
+  .draftx-checkout__today > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #123f78; font-weight: 750; font-size: 1rem; }
+  .draftx-checkout__today strong { color: #123f78; font-size: 2rem; line-height: 1; white-space: nowrap; }
+  .draftx-checkout__today p { margin: 6px 0 0; min-height: 0; color: #355879; font-size: 0.875rem; line-height: 1.4; }
+  .draftx-checkout__card-heading { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 1rem; font-weight: 700; }
+  .draftx-checkout__provider { min-width: 0; width: 100%; }
+  :global(.draftx-spiffy-frame) { display: block; width: 100%; max-width: 100%; border: 0; background: #f7f9fc; }
+  :global(.draftx-spiffy-loading) { margin: 0 0 12px; color: #52657d; font-size: 0.875rem; }
+  .draftx-checkout__card-details { margin-top: 14px; margin-bottom: 0; }
+  .draftx-checkout__terms { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0; font-size: 0.875rem; line-height: 1.5; cursor: pointer; }
+  .draftx-checkout__terms input { flex: 0 0 18px; height: 18px; margin-top: 2px; accent-color: #347bea; }
+  .draftx-checkout__terms a { color: #165ed1; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .draftx-checkout__terms a:focus-visible { outline: 3px solid #91bffa; outline-offset: 3px; }
+  .draftx-checkout__pay { box-sizing: border-box; width: 100%; min-height: 76px; padding: 22px 20px; border: 0; border-radius: 14px; background: #347bea; color: white; font: inherit; font-size: clamp(1.125rem, 2.4vw, 1.35rem); font-weight: 850; cursor: pointer; line-height: 1.4; text-wrap: balance; }
+  .draftx-checkout__launch { min-height: 88px; padding: 26px 24px; font-size: clamp(1.25rem, 2.6vw, 1.5rem); box-shadow: 0 12px 28px rgba(37, 99, 235, 0.24); }
+  .draftx-checkout__pay:hover { background: #266ade; }
+  .draftx-checkout__back { display: block; min-height: 44px; margin: 10px auto 0; padding: 8px 12px; border: 0; background: transparent; color: #425f80; font: inherit; font-size: 0.875rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .draftx-checkout__commitment, .draftx-checkout__result { margin: 14px 0 0; color: #52657d; text-align: center; font-size: 0.875rem; line-height: 1.55; }
+  .draftx-checkout__commitment { font-weight: 700; }
+  .draftx-checkout__result { box-sizing: border-box; padding: 12px; }
+  .draftx-checkout__result:empty { display: none; }
+  .draftx-checkout__result:not(:empty) { color: #14532d; background: #e8f7ed; border-radius: 8px; }
+  @media (max-width: 600px) {
+    .draftx-checkout__dialog { width: calc(100vw - 24px); max-width: calc(100vw - 24px); height: fit-content; max-height: calc(100dvh - 24px); border-radius: 18px; }
+    .draftx-checkout__dialog-top { gap: 10px; padding: 10px 14px 4px; }
+    .draftx-checkout__dialog-top > span { font-size: 15px; }
+    .draftx-checkout__dialog-body { padding: 0 12px 10px; }
+    .draftx-checkout__step { padding: 4px; scrollbar-gutter: auto; }
+    .draftx-checkout__step h3 { margin-bottom: 8px; font-size: 22px; line-height: 1.2; }
+    .draftx-checkout__intro { margin-bottom: 12px; font-size: 15px; line-height: 1.4; }
+    .draftx-checkout__start { margin: 12px 0 8px; padding: 10px 12px; font-size: 16px; line-height: 1.4; }
+    .draftx-checkout__start strong { font-size: 24px; }
+    .draftx-checkout__identity, .draftx-checkout__plans { grid-template-columns: 1fr; }
+    .draftx-checkout__identity { gap: 12px; margin-bottom: 16px; }
+    .draftx-checkout__field { gap: 6px; font-size: 14px; }
+    .draftx-checkout input:not([type="checkbox"]) { min-height: 48px; padding-top: 11px; padding-bottom: 11px; font-size: 16px; }
+    .draftx-checkout__plans { gap: 10px; margin: 12px 0; }
+    .draftx-checkout__plan-commitment { margin-bottom: 12px; }
+    .draftx-checkout__plan { grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 6px 12px; padding: 12px 14px; text-align: left; }
+    .draftx-checkout__plan-today { display: grid; justify-items: center; gap: 3px; }
+    .draftx-checkout__plan strong { font-size: 28px; }
+    .draftx-checkout__plan span { font-size: 11px; }
+    .draftx-checkout__plan b { justify-self: start; margin: 0; font-size: 15px; line-height: 1.35; text-wrap: initial; }
+    .draftx-checkout__badge { position: static; grid-column: 1 / -1; justify-self: start; transform: none; padding: 3px 9px; font-size: 11px; line-height: 1.3; }
+    .draftx-checkout__step .draftx-checkout__pay { min-height: 54px; padding: 14px 12px; border-radius: 12px; font-size: 17px; line-height: 1.3; }
+    .draftx-checkout__guarantee { gap: 8px; margin-top: 10px; padding: 9px 10px; }
+    .draftx-checkout__guarantee img { flex-basis: 34px; width: 34px; height: 34px; }
+    .draftx-checkout__guarantee p { gap: 2px; }
+    .draftx-checkout__guarantee span { font-size: 10px; line-height: 1.3; }
+    .draftx-checkout__guarantee strong { font-size: 12px; line-height: 1.35; }
+    .draftx-checkout__step[data-checkout-step="3"] h3 { font-size: 20px; }
+    .draftx-checkout__today { margin: 8px 0; padding: 8px 12px; }
+    .draftx-checkout__today > div { gap: 8px; font-size: 15px; }
+    .draftx-checkout__today strong { font-size: 28px; }
+    .draftx-checkout__today p { min-height: 0; margin-top: 4px; font-size: 14px; line-height: 1.4; }
+    .draftx-checkout__card-heading { gap: 6px; margin-bottom: 8px; font-size: 15px; line-height: 1.3; }
+    .draftx-checkout__commitment, .draftx-checkout__result { margin-top: 8px; font-size: 12px; line-height: 1.4; }
+    .draftx-checkout__back { margin-top: 4px; font-size: 13px; }
+    .draftx-checkout__card-details { gap: 10px; }
+  }
 </style>
+
 <script>
-  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-payment-plan]'));
-  const status = document.getElementById('draftx-payment-status');
-  let activePlan = 'once';
-  buttons.forEach(button => button.addEventListener('click', () => {
-    activePlan = button.dataset.paymentPlan || 'once';
-    buttons.forEach(option => {
-      const selected = option === button;
-      option.classList.toggle('is-selected', selected);
-      option.setAttribute('aria-pressed', String(selected));
-    });
-    if (status) status.textContent = activePlan === 'once'
-      ? 'Simulation : versement unique de 1 997 €.'
-      : 'Simulation : 3 mensualités de 767 €.';
-  }));
-  document.getElementById('draftx-checkout-form')?.addEventListener('submit', event => {
-    event.preventDefault();
-    if (status) status.textContent = 'Test réussi : aucun paiement, aucune inscription ni aucun message envoyé.';
-  });
+  import { initDraftXCheckout } from '../../lib/mc2-draftx-checkout.mjs';
+  document.querySelectorAll('[data-draftx-checkout]').forEach(root => initDraftXCheckout(root));
 </script>
