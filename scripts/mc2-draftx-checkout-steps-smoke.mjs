@@ -419,7 +419,7 @@ assert.doesNotMatch(offer, /scrollToRegistration/);
 assert.match(component, /draftx-checkout__start">Tu commences à <strong>0 €<\/strong> aujourd’hui\./);
 assert.match(component, /data-spiffy-slot/);
 assert.doesNotMatch(component, /4242|draftx-card-number|draftx-expiry|draftx-cvc/);
-assert.match(read('spiffy/mc2-draftx-embedded.html'), /J’accepte les <a href="https:\/\/sonnycourt.com\/mc2\/draftx\/cgv\/"/);
+assert.match(read('spiffy/mc2-draftx-embedded.html'), /J’accepte les <a href="https:\/\/sonnycourt.com\/cgv\/"/);
 assert.doesNotMatch(controller, /\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 assert.match(sandbox, /frame-src 'self' https:\/\/sonnycourt.spiffy.co/);
 assert.match(sandbox, /form-action 'none'/);

@@ -352,8 +352,8 @@ export default async (req) => {
             purchase_first_name: findFirstKey(body, ['name_first', 'first_name']) || mc2Row.prenom || '',
             plan: mc2Plan, payment_mode: plan.paymentMode,
             amount_cents: 0, contractual_total_cents: plan.contractualTotalCents,
-            terms_version: 'mc2-cgv-2026-09-v7',
-            terms_url: 'https://sonnycourt.com/mc2/draftx/cgv/',
+            terms_version: 'cgv-2026-09-v8',
+            terms_url: 'https://sonnycourt.com/cgv/',
           },
         });
         if (!purchaseEvent.ok && purchaseEvent.status !== 409) {

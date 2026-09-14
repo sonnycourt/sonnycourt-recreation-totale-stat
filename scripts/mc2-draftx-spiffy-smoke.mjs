@@ -67,7 +67,7 @@ for (const plan of Object.values(DRAFTX_PAYMENT_PLANS)) {
 }
 
 const bridge = readFileSync(new URL('../spiffy/mc2-draftx-embedded.html', import.meta.url), 'utf8');
-assert.match(bridge, /<p data-mc2-terms>J’accepte les <a href="https:\/\/sonnycourt.com\/mc2\/draftx\/cgv\/"[^>]*>CGV<\/a> et le récapitulatif ci-dessus\.<\/p>/, 'Link the new-offer CGV and keep the approved recap wording');
+assert.match(bridge, /<p data-mc2-terms>J’accepte les <a href="https:\/\/sonnycourt.com\/cgv\/"[^>]*>CGV<\/a> et le récapitulatif ci-dessus\.<\/p>/, 'Link the canonical CGV and keep the approved recap wording');
 assert.doesNotMatch(bridge, /\.submit\(|fetch\(|XMLHttpRequest|Stripe\(/);
 assert.match(bridge, /window\.parent === window/);
 assert.match(bridge, /name_first/);
