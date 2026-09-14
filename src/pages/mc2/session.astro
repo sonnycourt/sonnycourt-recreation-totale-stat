@@ -4183,35 +4183,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 video.muted = video.volume === 0;
                 syncIcons();
             });
-            const offerCtaElements = [
-                document.getElementById('deal-sticky-cta'),
-                document.getElementById('core-price-registration-cta'),
-                document.getElementById('two-paths-registration-cta'),
-            ].filter(Boolean);
-            offerCtaElements.forEach(function (offerCtaEl) {
-                offerCtaEl.addEventListener('click', function (event) {
-                    if (offerCtaEl.getAttribute('aria-disabled') === 'true') {
-                        event.preventDefault();
-                        return;
-                    }
-                    trackWebinaireEvent(reg.token, 'cta_clicked');
-                    trackWebinaireEvent(reg.token, 'checkout_clicked', null, {
-                        button_id: offerCtaEl.id || 'deal-cta',
-                        plan: 'once',
-                        payment_mode: '1',
-                    });
-                });
-            });
-            document.querySelectorAll('[data-payment-plan]').forEach(function (planButton) {
-                planButton.addEventListener('click', function () {
-                    const plan = planButton.dataset.paymentPlan === 'three' ? 'three' : 'once';
-                    trackWebinaireEvent(reg.token, 'checkout_viewed', null, {
-                        button_id: planButton.id || 'payment-plan-' + plan,
-                        plan,
-                        payment_mode: plan === 'three' ? '3' : '1',
-                    });
-                });
-            });
+            // The shared three-step controller tracks actual popup openings and plans.
             if (fullscreenBtn) {
                 fullscreenBtn.addEventListener('click', function () {
                     if (!document.fullscreenElement && videoContainer.requestFullscreen) {

@@ -5,7 +5,7 @@ export const DRAFTX_PAYMENT_PLANS = Object.freeze({
   twelve: Object.freeze({ count: 12, amount: 197, totalLabel: '2 364', checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/38556364' }),
 });
 
-export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy } = {}) {
+export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, track = () => {} } = {}) {
   if (root.dataset.checkoutReady === 'true') return;
   const form = root.querySelector('form');
   const dialog = root.querySelector('#draftx-checkout-dialog');
@@ -29,6 +29,9 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy } = 
   let paymentKey = '';
   let identityEdited = false;
   let registrationToken = '';
+  const emit = (event, extra = {}) => {
+    try { track(event, { step, plan: activePlan, payment_mode: `spiffy_j7_${DRAFTX_PAYMENT_PLANS[activePlan].count}x${DRAFTX_PAYMENT_PLANS[activePlan].amount}`, ...extra }); } catch { /* Analytics never blocks checkout. */ }
+  };
   let available = Boolean(view?.__mc2DraftX) || root.dataset.checkoutAvailable === 'true';
   // Keep keyboard/reading order aligned with the visual order: the popular
   // plan comes first on mobile; desktop keeps its original six/twelve layout.
@@ -106,6 +109,7 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy } = 
     stepAnimation?.cancel();
     step = next;
     root.dataset.step = String(step);
+    if (dialog.open) emit('checkout_step_viewed');
     panels.forEach(panel => {
       const inactive = Number(panel.dataset.checkoutStep) !== step;
       panel.hidden = inactive;
@@ -133,11 +137,16 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy } = 
     prefill({ firstName: root.dataset.prefillFirstName, email: root.dataset.prefillEmail, registrationToken: root.dataset.registrationToken });
     returnFocus = root.ownerDocument?.activeElement || openButton;
     dialog.showModal();
+    emit('cta_clicked');
+    emit('checkout_clicked');
+    emit('checkout_viewed');
+    emit('checkout_step_viewed');
     panels[step - 1].querySelector('h3')?.focus({ preventScroll: true });
   });
   closeButton.addEventListener('click', () => dialog.close());
   // Native dialog supplies focus trapping, Escape and an inert background.
   dialog.addEventListener('close', () => {
+    emit('checkout_closed');
     stepAnimation?.cancel();
     backdropPressed = false;
     returnFocus?.focus({ preventScroll: true });
@@ -164,6 +173,7 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy } = 
     }
     activePlan = plan;
     updatePlan();
+    emit('checkout_plan_selected');
   }));
   root.querySelectorAll('[data-checkout-back]').forEach(button => button.addEventListener('click', () => {
     if (!dialog.open || !available) return;

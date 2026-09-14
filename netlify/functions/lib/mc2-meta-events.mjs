@@ -103,7 +103,7 @@ export function mc2FunnelMetaEvents({ eventName, value, meta = {}, registration 
       }));
   }
 
-  if (eventName === 'cta_clicked' && !registration.clicked_cta) {
+  if (['cta_clicked', 'checkout_clicked'].includes(eventName) && !registration.clicked_cta) {
     return [{
       eventName: 'CTA_Clicked',
       eventId: mc2MetaEventId('cta', token),

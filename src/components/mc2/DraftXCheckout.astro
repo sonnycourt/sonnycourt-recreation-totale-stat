@@ -250,5 +250,11 @@ import { DRAFTX_PAYMENT_PLANS } from '../../lib/mc2-draftx-checkout.mjs';
 
 <script>
   import { initDraftXCheckout } from '../../lib/mc2-draftx-checkout.mjs';
-  document.querySelectorAll('[data-draftx-checkout]').forEach(root => initDraftXCheckout(root));
+  import { startMc2JourneyTracking } from '../../lib/mc2-journey-tracking.mjs';
+  document.querySelectorAll('[data-draftx-checkout]').forEach(root => {
+    if (root.dataset.checkoutReady === 'true') return;
+    let track = () => {};
+    try { track = startMc2JourneyTracking(root); } catch { /* Checkout remains usable without analytics. */ }
+    initDraftXCheckout(root, { track });
+  });
 </script>

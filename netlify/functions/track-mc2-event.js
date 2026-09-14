@@ -7,6 +7,8 @@ import {
 } from './lib/mc2-meta-events.mjs';
 
 const ALLOWED_EVENTS = new Set([
+  'checkout_step_viewed', 'checkout_plan_selected', 'checkout_closed', 'checkout_payment_ready',
+  'video_active_presence', 'offer_available_present', 'offer_actually_seen',
   'confirmation_viewed',
   'workbook_opened',
   'calendar_downloaded',
@@ -68,6 +70,7 @@ function sanitizeMeta(value) {
   const output = {};
   for (const [key, limit] of Object.entries({
     page_path: 240,
+    event_id: 100,
     route: 240,
     button_id: 100,
     section: 64,
@@ -93,8 +96,12 @@ function sanitizeMeta(value) {
     if (text) output[key] = text;
   }
   if (input.percent != null) output.percent = positiveInt(input.percent, 100);
+  if (input.step != null) output.step = positiveInt(input.step, 3);
+  if (input.minute != null) output.minute = positiveInt(input.minute, 1440);
+  if (input.current_second != null) output.current_second = positiveInt(input.current_second, 86400);
+  if (typeof input.is_playing === 'boolean') output.is_playing = input.is_playing;
   if (input.duration_seconds != null) output.duration_seconds = positiveInt(input.duration_seconds, 86400);
-  if (input.active_seconds != null) output.active_seconds = positiveInt(input.active_seconds, 86400);
+  if (input.active_seconds != null && Number.isFinite(Number(input.active_seconds))) output.active_seconds = Math.max(0, Math.min(86400, Number(input.active_seconds)));
   if (input.viewport_width != null) output.viewport_width = positiveInt(input.viewport_width, 10000);
   if (input.viewport_height != null) output.viewport_height = positiveInt(input.viewport_height, 10000);
   if (typeof input.checkout_enabled === 'boolean') output.checkout_enabled = input.checkout_enabled;
@@ -107,6 +114,7 @@ function sanitizeMeta(value) {
 }
 
 function dedupeKey(eventName, value, meta) {
+  if (meta.event_id) return `journey_${meta.event_id}`;
   if (eventName === 'video_checkpoint') return `video_checkpoint_${positiveInt(value, 999)}`;
   if (eventName === 'sales_scroll') return `sales_scroll_${positiveInt(meta.percent, 100)}`;
   if (eventName === 'sales_section_viewed' && meta.section) return `sales_section_${meta.section}`;
@@ -138,6 +146,7 @@ function dedupeKey(eventName, value, meta) {
 function buildPatch(eventName, value, meta, row) {
   const nowIso = new Date().toISOString();
   const patch = { last_event_at: nowIso };
+  if (['video_active_presence', 'offer_available_present', 'offer_actually_seen'].includes(eventName)) return patch;
   if (eventName === 'confirmation_viewed') patch.confirmation_view_count = positiveInt(row.confirmation_view_count) + 1;
   if (eventName === 'workbook_opened') patch.workbook_opened = true;
   if (eventName === 'calendar_downloaded') patch.calendar_downloaded = true;
@@ -220,6 +229,11 @@ export default async (req) => {
 
     const row = registration.data[0];
     const meta = sanitizeMeta(body?.meta);
+    if (meta.event_id) {
+      const prior = await supabaseGet(`mc2_funnel_events?token=eq.${encodeURIComponent(token)}&dedupe_key=eq.${encodeURIComponent(`journey_${meta.event_id}`)}&select=id&limit=1`);
+      if (!prior.ok) return jsonResponse(503, { error: 'Vérification événement indisponible' });
+      if (prior.data?.length) return jsonResponse(200, { ok: true, duplicate: true });
+    }
     const metaEvents = mc2FunnelMetaEvents({
       eventName,
       value: body?.value,
@@ -256,6 +270,7 @@ export default async (req) => {
     const inserted = await supabasePost('mc2_funnel_events', event, { prefer: 'return=minimal' });
     if (!inserted.ok && inserted.status !== 409) {
       console.error('track-mc2-event insert:', inserted.status, inserted.error);
+      return jsonResponse(503, { error: 'Événement non enregistré' });
     }
     if (metaEvents.length > 0) {
       try {

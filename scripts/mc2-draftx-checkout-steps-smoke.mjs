@@ -102,9 +102,24 @@ function fixture({ reducedMotion = false, animate = true, mobile = false, previe
     form.dispatchEvent(event);
     assert.ok(event.defaultPrevented, 'No native form submission');
   };
-  initDraftXCheckout(root, { mountPayment });
-  return { root, form, panels, plans, planList, mobileQuery, backs, name, email, mounts, status, submit, view, dialog, openButton, closeButton };
+  const events = [];
+  initDraftXCheckout(root, { mountPayment, track: (event, meta) => events.push({ event, meta }) });
+  return { root, form, panels, plans, planList, mobileQuery, backs, name, email, mounts, status, submit, view, dialog, openButton, closeButton, events };
 }
+
+const journey = fixture();
+assert.equal(journey.events.length, 0, 'No step impression before opening');
+journey.openButton.click(); journey.openButton.click();
+assert.equal(journey.events.filter(e => e.event === 'checkout_clicked').length, 1);
+journey.submit();
+assert.equal(journey.events.filter(e => e.event === 'checkout_step_viewed').length, 1, 'Invalid identity never reaches step 2');
+journey.name.value = 'Test'; journey.email.value = 'test@example.invalid';
+journey.submit(); journey.plans[0].click(); journey.submit();
+assert.deepEqual(journey.events.filter(e => e.event === 'checkout_step_viewed').map(e => e.meta.step), [1, 2, 3]);
+assert.equal(journey.events.at(-1).meta.payment_mode, 'spiffy_j7_6x347');
+assert.ok(!JSON.stringify(journey.events).includes('test@example.invalid'), 'No identity in analytics');
+journey.closeButton.click();
+assert.equal(journey.events.at(-1).event, 'checkout_closed');
 
 const mobileCheckout = fixture({ mobile: true });
 assert.deepEqual(mobileCheckout.planList.children.map(button => button.dataset.paymentPlan), ['twelve', 'six'], 'Mobile DOM and keyboard order put the popular plan first');
