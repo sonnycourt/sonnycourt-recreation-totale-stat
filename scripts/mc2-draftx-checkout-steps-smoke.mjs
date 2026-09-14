@@ -352,7 +352,9 @@ assert.match(component, /\.draftx-checkout__step\[hidden\]\s*\{[^}]*display: non
 assert.match(component, /<dialog[^>]*id="draftx-checkout-dialog"[^>]*aria-label=/);
 assert.match(component, /data-checkout-open[^>]*aria-haspopup="dialog"/);
 const dialogStyles = [...component.matchAll(/\.draftx-checkout__dialog\s*\{([^}]*)\}/g)];
-assert.equal(dialogStyles.length, 2, 'Desktop and mobile keep explicit popup sizing');
+assert.equal(dialogStyles.length, 3, 'Desktop, mobile portrait and phone landscape keep explicit popup sizing');
+assert.match(component, /@media \(orientation: landscape\) and \(max-height: 500px\) and \(min-width: 600px\) and \(max-width: 1000px\) \{/, 'Landscape overrides support mobile previews without coarse input');
+assert.match(dialogStyles[2][1], /overflow-y: auto;/, 'The whole landscape dialog scrolls, including its header');
 for (const [, styles] of dialogStyles) {
   assert.match(styles, /(?:^|;)\s*height: fit-content;/, 'Native modal must size to content, not stretch between its vertical insets');
   assert.doesNotMatch(styles, /(?:^|;)\s*height: auto;/, 'Auto height stretches a native modal to the viewport');
