@@ -1086,6 +1086,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     const pageStorage = window.__mc2DraftX?.storage || localStorage;
     const previewClockStorage = window.__mc2DraftX?.storage || sessionStorage;
     import { startScarcityEngine } from '../../lib/mc2-draftx-scarcity-engine';
+    import { createMc2VideoFrameMonitor } from '../../lib/mc2-video-frame-monitor.mjs';
     import { createMc2OfferTimeline } from '../../data/mc2-draftx-offer-timeline';
     import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
     import {
@@ -1936,6 +1937,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       let pendingRecoveryValidation = null;
       let recoveryValidationDeadlineMs = 0;
       let isRecoveringInProgress = false;
+      let frameRecoveryRetryPending = false;
+      let frameRecoveryResumeHandler = null;
       const freezeRecoveryOverlay = document.getElementById('video-recovery-overlay');
       const freezeRecoveryReloadBtn = document.getElementById('video-recovery-reload-btn');
 
@@ -1982,6 +1985,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           return;
         }
         const meta = pendingRecoveryValidation;
+        if (frameRecoveryResumeHandler) {
+          video.removeEventListener('loadedmetadata', frameRecoveryResumeHandler);
+          frameRecoveryResumeHandler = null;
+        }
         trackFreezeRecoveryPayload(buildFreezePayload(
           meta.trigger, meta.currentTimeAtFreeze, meta.freezeDurationSec, meta.recoveryAttemptNumber, recovered,
         ));
@@ -1989,9 +1996,12 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         recoveryValidationDeadlineMs = 0;
         if (recovered) {
           freezeRecoveryCount = 0;
+          frameRecoveryRetryPending = false;
           setFreezeRecoveryOverlayVisible(false);
         } else if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) {
           setFreezeRecoveryOverlayVisible(true);
+        } else if (meta.trigger === 'frame_stall') {
+          frameRecoveryRetryPending = meta;
         }
         isRecoveringInProgress = false;
       }
@@ -2014,20 +2024,42 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         suppressFreezeDetectionUntilMs = Date.now() + FREEZE_VISIBILITY_GRACE_MS;
         const currentTimeAtFreeze = Number.isFinite(video.currentTime) ? video.currentTime : 0;
         const recoveryAttemptNumber = freezeRecoveryCount;
+        const frameCountBefore = frameMonitor.frameCount();
         try {
           allowProgrammaticSeek = true;
-          reloadVideoSource();
-          if (currentTimeAtFreeze > 0) {
-            try { video.currentTime = currentTimeAtFreeze; } catch {}
+          if (trigger === 'frame_stall') {
+            frameMonitor.reset();
+            if (recoveryAttemptNumber === 1) {
+              // Flush a stuck picture without changing the replay position.
+              video.currentTime = currentTimeAtFreeze;
+              video.play().catch(() => {});
+            } else {
+              // A reload can discard an early seek: restore only after metadata.
+              frameRecoveryResumeHandler = () => {
+                video.removeEventListener('loadedmetadata', frameRecoveryResumeHandler);
+                frameRecoveryResumeHandler = null;
+                allowProgrammaticSeek = true;
+                video.currentTime = currentTimeAtFreeze;
+                video.play().catch(() => {});
+              };
+              video.addEventListener('loadedmetadata', frameRecoveryResumeHandler);
+              reloadVideoSource();
+            }
+          } else {
+            reloadVideoSource();
+            if (currentTimeAtFreeze > 0) {
+              try { video.currentTime = currentTimeAtFreeze; } catch {}
+            }
+            await video.play();
           }
-          await video.play();
         } catch {
           trackFreezeRecoveryPayload(buildFreezePayload(trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, false));
           isRecoveringInProgress = false;
           if (freezeRecoveryCount >= MAX_FREEZE_RECOVERIES) setFreezeRecoveryOverlayVisible(true);
+          else if (trigger === 'frame_stall') frameRecoveryRetryPending = { frameCountBefore };
           return;
         }
-        pendingRecoveryValidation = { trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber };
+        pendingRecoveryValidation = { trigger, currentTimeAtFreeze, freezeDurationSec, recoveryAttemptNumber, frameCountBefore };
         recoveryValidationDeadlineMs = Date.now() + FREEZE_RECOVERY_VALIDATE_WINDOW_MS;
         resetFreezeProgressBaseline();
       }
@@ -2035,6 +2067,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       function runFreezeWatchdogTick() {
         if (!FREEZE_RECOVERY_ENABLED) return;
         const now = Date.now();
+        if (pendingRecoveryValidation?.trigger === 'frame_stall'
+          && frameMonitor.frameCount() >= pendingRecoveryValidation.frameCountBefore + 2
+          && video.currentTime > lastProgressCurrentTime + FREEZE_PROGRESS_EPSILON_SEC) {
+          finishRecoveryValidation(true);
+        }
         if (pendingRecoveryValidation && recoveryValidationDeadlineMs > 0 && now >= recoveryValidationDeadlineMs) {
           finishRecoveryValidation(false);
         }
@@ -2042,11 +2079,26 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           resetFreezeProgressBaseline();
           return;
         }
+        if (frameRecoveryRetryPending) {
+          if (frameMonitor.frameCount() >= frameRecoveryRetryPending.frameCountBefore + 2) {
+            frameRecoveryRetryPending = false;
+            freezeRecoveryCount = 0;
+            setFreezeRecoveryOverlayVisible(false);
+            return;
+          }
+          if (!frameMonitor.isVisible() || video.seeking) return;
+          if (now - lastRecoveryAtMs >= FREEZE_RECOVERY_COOLDOWN_MS) {
+            frameRecoveryRetryPending = false;
+            void triggerFreezeRecovery('frame_stall', 5);
+          }
+          return;
+        }
         const cur = Number.isFinite(video.currentTime) ? video.currentTime : 0;
         if (cur > lastProgressCurrentTime + FREEZE_PROGRESS_EPSILON_SEC) {
           lastProgressCurrentTime = cur;
           stalledAccumulatedMs = 0;
-          if (pendingRecoveryValidation) finishRecoveryValidation(true);
+          if (pendingRecoveryValidation && (pendingRecoveryValidation.trigger !== 'frame_stall'
+            || frameMonitor.frameCount() >= pendingRecoveryValidation.frameCountBefore + 2)) finishRecoveryValidation(true);
           return;
         }
         stalledAccumulatedMs += FREEZE_WATCHDOG_INTERVAL_MS;
@@ -2054,6 +2106,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           void triggerFreezeRecovery('watchdog', stalledAccumulatedMs / 1000);
         }
       }
+
+      const frameMonitor = createMc2VideoFrameMonitor(video, {
+        isEligible: () => isVideoActivelyPlayingForFreeze() && !pendingRecoveryValidation
+          && !isRecoveringInProgress && !frameRecoveryRetryPending
+          && Date.now() - lastRecoveryAtMs >= FREEZE_RECOVERY_COOLDOWN_MS,
+        onFrozen: ({ stalledMs }) => triggerFreezeRecovery('frame_stall', stalledMs / 1000),
+      });
 
       if (FREEZE_RECOVERY_ENABLED) {
         // FIX (2026-05-07) : suppression triggers immédiats sur 'stalled' / 'waiting'.
@@ -2241,6 +2300,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
           attachVideoSource(fetchVideoSource());
         },
         destroy() {
+          frameMonitor.destroy();
+          if (freezeWatchdogInterval) clearInterval(freezeWatchdogInterval);
+          if (frameRecoveryResumeHandler) video.removeEventListener('loadedmetadata', frameRecoveryResumeHandler);
           if (countdownInterval) clearInterval(countdownInterval);
           if (presenceInterval) clearInterval(presenceInterval);
           if (scarcityEngine) scarcityEngine.stop();
