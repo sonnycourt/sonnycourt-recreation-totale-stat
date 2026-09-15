@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { hasMc2LiveParticipation, createMc2LiveParticipation } from '../src/lib/mc2-live-participation.mjs';
 
 // Run the actual page bootstrap with fake MC2 responses. No service or customer writes.
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
@@ -43,11 +44,13 @@ const now = Date.parse('2026-09-14T12:00:00Z');
 const token = 'mc2-unit-only-1234567890';
 const iso = delta => new Date(now + delta).toISOString();
 const defaultData = { valid: true, sessionStartsAt: iso(-10 * 60000), prenom: 'Léa', email: 'lea@example.invalid', statut: 'inscrit' };
-async function initialize({ data = {}, resolvedToken = token, ok = true, preview = false, fetchError = false } = {}) {
+async function initialize({ data = {}, resolvedToken = token, ok = true, preview = false, fetchError = false, storage = new Map() } = {}) {
   const calls = [];
   const context = {
     URLSearchParams, Date: class extends Date { static now() { return now; } },
     isDraftPreview: preview, OFFER_DURATION_MS: 72 * 3600000, LIVE_VIDEO_LEAD_MS: 5000, LATE_DIRECT_AFTER_SESSION_MS: 20 * 60000,
+    VIDEO_DURATION_FALLBACK_SECONDS: 7920, getNowMs: () => now, hasMc2LiveParticipation,
+    pageStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
     window: { location: { search: '?state=cta-active' }, __MC2_ACCESS__: { resolve: async () => { calls.push(['resolve']); return resolvedToken; } } },
     document: { querySelector: () => ({ removeAttribute() {} }) },
     initDevBanner: () => calls.push(['preview']),
@@ -61,7 +64,8 @@ async function initialize({ data = {}, resolvedToken = token, ok = true, preview
     maybeMarkPresent: async reg => calls.push(['presence', reg.token]),
     mountVideoAndOffer: reg => calls.push(['mount', reg]),
   };
-  await runInNewContext(`${functionSource('normalizeReg')}\n${functionSource('isBuyer')}\n${functionSource('initializeSessionPage')}\ninitializeSessionPage()`, context);
+  const localParticipation = page.includes('function hasLocalLiveParticipation(') ? functionSource('hasLocalLiveParticipation') : '';
+  await runInNewContext(`${localParticipation}\n${functionSource('normalizeReg')}\n${functionSource('isBuyer')}\n${functionSource('initializeSessionPage')}\ninitializeSessionPage()`, context);
   return { calls, late: context.window.__mcSessionForceLateOverlay };
 }
 const has = (result, name) => result.calls.some(call => call[0] === name);
@@ -90,6 +94,25 @@ assert.equal(live.calls.find(call => call[0] === 'mount')[1].email, 'lea@example
 assert.equal((await initialize({ data: { sessionStartsAt: iso(-3600000) } })).late, true);
 assert.equal((await initialize({ data: { sessionStartsAt: iso(-3600000), attended_live: true } })).late, false);
 assert.equal((await initialize({ data: { sessionStartsAt: iso(-3600000), saw_offer: true, offreExpiresAt: iso(86400000) } })).late, false);
+if (page.includes('function hasLocalLiveParticipation(')) {
+  const storage = new Map();
+  const controller = createMc2LiveParticipation({
+    storage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
+    token, sessionStartMs: now - 3600000, now: () => now - 3500000,
+    send: async () => ({ ok: true }),
+  });
+  controller.confirmPlayback();
+  const refreshed = await initialize({ data: { sessionStartsAt: iso(-3600000) }, storage });
+  assert.equal(refreshed.late, false, 'Local real-play marker protects a refresh before server acknowledgement');
+  const reg = refreshed.calls.find(call => call[0] === 'mount')[1];
+  assert.equal(reg.attendedLive, true);
+  assert.equal(reg.serverAttendedLive, false, 'Server repair remains necessary');
+  assert.equal((await initialize({ data: { sessionStartsAt: iso(-3700000) }, storage })).late, true, 'A marker from another scheduled session is ignored');
+  for (const data of [{ purchased: true }, { statut: 'expired' }, { valid: false }]) {
+    assert.equal(has(await initialize({ data, storage }), 'mount'), false, 'Local marker cannot override server access controls');
+  }
+  controller.destroy();
+}
 assert.match(page, /<Mc2AccessGate pagePath=/);
 assert.match(page, /checkoutAvailable = String\(isEnabled\)/);
 assert.match(page, /registrationToken: isDraftPreview \? '' : reg.token/);

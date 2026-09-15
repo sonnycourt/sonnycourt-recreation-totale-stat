@@ -2213,6 +2213,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         import { startScarcityEngine } from '../../lib/mc2-draftx-scarcity-engine';
         import { createMc2OfferTimeline } from '../../data/mc2-draftx-offer-timeline';
         import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
+        import { hasMc2LiveParticipation, createMc2LiveParticipation } from '../../lib/mc2-live-participation.mjs';
         const TOKEN_KEY = 'mc2_registration_token';
         const isDraftPreview = Boolean(window.__mc2DraftX);
         const sessionPagePath = window.location.pathname.replace(/\/?$/, '/');
@@ -2330,6 +2331,15 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 attendedLive: data?.attended_live === true,
             };
         }
+        function hasLocalLiveParticipation(reg) {
+            const sessionStartMs = Date.parse(reg.sessionStartsAt);
+            const liveStartMs = sessionStartMs - LIVE_VIDEO_LEAD_MS;
+            return hasMc2LiveParticipation({
+                storage: pageStorage, token: reg.token, sessionStartMs, liveStartMs,
+                broadcastEndMs: liveStartMs + VIDEO_DURATION_FALLBACK_SECONDS * 1000,
+                nowMs: getNowMs(),
+            });
+        }
         function decideRouteFromPayload(payload, token) {
             const now = Date.now();
             const sd = new Date(payload.sessionStartsAt || payload.session_date).getTime();
@@ -2427,10 +2437,10 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 });
             } catch { /* Existing MC2 presence must not interrupt the player. */ }
         }
-        function trackWebinaireEvent(token, eventName, value, eventMeta) {
+        function trackWebinaireEvent(token, eventName, value, eventMeta, requestOptions = {}) {
             if (isDraftPreview) {
                 window.__mc2DraftX.record(eventName, { value, ...eventMeta });
-                return Promise.resolve({ draft: true });
+                return Promise.resolve({ ok: true, draft: true });
             }
             if (!token || !eventName) return Promise.resolve(null);
             const payload = { token, event: eventName, meta: { page_path: sessionPagePath } };
@@ -2445,6 +2455,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             }
             return fetch('/.netlify/functions/track-mc2-event', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+                ...(eventName === 'session_joined' ? { keepalive: true, signal: requestOptions.signal } : {}),
             }).then(response => response.ok ? response.json() : null).catch(() => null);
         }
         const firedMetaBrowserEventIds = new Set();
@@ -3376,20 +3387,22 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             mountCtaAudit();
             updateCtaAudit();
 
-            let didTrackSessionJoined = false;
+            const liveParticipation = createMc2LiveParticipation({
+                storage: pageStorage, token: reg.token, sessionStartMs,
+                participated: hasLocalLiveParticipation(reg),
+                acknowledged: reg.serverAttendedLive === true,
+                now: getNowMs,
+                send: signal => trackWebinaireEvent(reg.token, 'session_joined', null, null, { signal }),
+            });
             function trackSessionJoinedIfEligible() {
-                if (didTrackSessionJoined) return;
-                // Guard: do not mark attended_live before the live access window opens.
-                if (Date.now() < sessionStartMs - LIVE_VIDEO_LEAD_MS) return;
-                // Guard retardataires : si on est passé le cutoff (= overlay 'Voir le replay'
-                // affiché), on ne marque PAS attended_live, même si la vidéo a brièvement
-                // chargé en arrière-plan. Évite le double-comptage live + replay.
-                if (Date.now() >= sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS) return;
-                // Send when the player is actually available to play.
-                const playerReady = video.readyState >= 1 || !video.paused;
-                if (!playerReady) return;
-                didTrackSessionJoined = true;
-                trackWebinaireEvent(reg.token, 'session_joined');
+                if (!hasJoinedSession || video.paused || video.ended || isSessionEnded) return;
+                if (forceLateOverlay || forceEndedOverlay || hasPersistedOffer || isOfferExpired) return;
+                const now = getNowMs();
+                if (now < liveStartMs || now >= getBroadcastEndMs()) return;
+                // The late-arrival gate was decided on entry. A viewer already admitted
+                // to this live must still be recorded if playback/retries occur later.
+                liveParticipation.confirmPlayback();
+                reg.attendedLive = true;
             }
 
             function setScarcitySeats(_engineSeatsLeft, _phase, soldCount) {
@@ -4130,8 +4143,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 playOverlay.classList.add('hidden');
                 syncIcons();
                 syncMobileControlsAutoHide();
-                trackSessionJoinedIfEligible();
             });
+            video.addEventListener('playing', trackSessionJoinedIfEligible);
             video.addEventListener('pause', function () {
                 if (isRecoveringInProgress) return;
                 // No pause experience once user has joined.
@@ -4253,7 +4266,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 } else {
                     ACTIVE_VIDEO_DURATION_SECONDS = VIDEO_DURATION_FALLBACK_SECONDS;
                 }
-                trackSessionJoinedIfEligible();
                 if (pendingSourceSwitch) {
                     // Source changed by ops: either re-sync to live (recommended) or restore user's position.
                     const targetRaw = pendingSourceSwitchRestoreTimeSec;
@@ -4301,6 +4313,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             // Ping initial (sans attendre 60s) pour que la présence soit visible immédiatement dans le cockpit
             sendStagedPresencePing();
             presenceInterval = setInterval(sendStagedPresencePing, 60000);
+            // Repair an unacknowledged join from before a refresh, without waiting
+            // for another click and without turning page views into attendance.
+            void liveParticipation.retry();
 
             const pageLoadedAtMs = Date.now();
             configPollInterval = setInterval(async function () {
@@ -4349,6 +4364,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
             }, 7000);
             const beforeUnloadHandler = function () {
+                liveParticipation.destroy();
                 if (launchInterval) clearInterval(launchInterval);
                 if (offerInterval) clearInterval(offerInterval);
                 if (presenceInterval) clearInterval(presenceInterval);
@@ -4393,6 +4409,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 },
                 sessionStartMs,
                 destroy: function () {
+                    liveParticipation.destroy();
+                    video.removeEventListener('playing', trackSessionJoinedIfEligible);
                     setOfferHeroVisible(false);
                     if (launchInterval) clearInterval(launchInterval);
                     if (offerInterval) clearInterval(offerInterval);
@@ -4804,7 +4822,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 
                 const now = Date.now();
                 const sessionMs = new Date(reg.sessionStartsAt).getTime();
-                const attendedLive = data?.attended_live === true;
+                reg.serverAttendedLive = data?.attended_live === true;
+                const attendedLive = reg.serverAttendedLive || hasLocalLiveParticipation(reg);
+                reg.attendedLive = attendedLive;
                 const persistedOfferExpiryMs = reg.offreExpiresAt
                     ? new Date(reg.offreExpiresAt).getTime()
                     : NaN;
