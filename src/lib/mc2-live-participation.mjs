@@ -1,5 +1,5 @@
 // A browser fallback for this registration AND this scheduled session only.
-// It is written after actual playback, never on a page view or metadata load.
+// It records the explicit join click, not watch time, a page view or metadata load.
 const storageKey = token => 'mc2_live_participation_v1_' + token;
 
 export function hasMc2LiveParticipation({ storage, token, sessionStartMs, liveStartMs, broadcastEndMs, nowMs }) {
@@ -61,7 +61,7 @@ export function createMc2LiveParticipation({
   }
 
   return {
-    confirmPlayback() {
+    confirmJoin() {
       if (stopped || !token || !Number.isFinite(sessionStartMs)) return;
       if (!participated) {
         participated = true;
@@ -75,11 +75,13 @@ export function createMc2LiveParticipation({
       void retry();
     },
     retry,
-    destroy() {
+    destroy({ abortPending = true } = {}) {
       stopped = true;
       clearTimer(retryTimer);
       clearTimer(requestTimer);
-      controller?.abort();
+      // On navigation, let the small keepalive request finish if possible.
+      // The local marker also protects a refresh before that acknowledgement.
+      if (abortPending) controller?.abort();
     },
   };
 }

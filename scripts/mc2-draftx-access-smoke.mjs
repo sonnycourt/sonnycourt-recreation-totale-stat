@@ -101,9 +101,9 @@ if (page.includes('function hasLocalLiveParticipation(')) {
     token, sessionStartMs: now - 3600000, now: () => now - 3500000,
     send: async () => ({ ok: true }),
   });
-  controller.confirmPlayback();
+  controller.confirmJoin();
   const refreshed = await initialize({ data: { sessionStartsAt: iso(-3600000) }, storage });
-  assert.equal(refreshed.late, false, 'Local real-play marker protects a refresh before server acknowledgement');
+  assert.equal(refreshed.late, false, 'Local join-click marker protects a refresh before server acknowledgement');
   const reg = refreshed.calls.find(call => call[0] === 'mount')[1];
   assert.equal(reg.attendedLive, true);
   assert.equal(reg.serverAttendedLive, false, 'Server repair remains necessary');

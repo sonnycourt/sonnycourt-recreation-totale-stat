@@ -39,10 +39,10 @@ const fresh = fixture({ send: async () => { calls++; return { ok: true }; } });
 await fresh.controller.retry();
 assert.equal(calls, 0, 'Opening a page does not declare attendance');
 assert.equal(fresh.saved(), false);
-fresh.controller.confirmPlayback();
+fresh.controller.confirmJoin();
 assert.equal(fresh.saved(), true, 'The local marker exists before any network acknowledgement');
 await settle();
-fresh.controller.confirmPlayback();
+fresh.controller.confirmJoin();
 await fresh.controller.retry();
 assert.equal(calls, 1, 'Acknowledged attendance is not sent repeatedly');
 assert.equal(fresh.timers.size, 0);
@@ -57,7 +57,7 @@ for (const invalid of ['broken', '{}', JSON.stringify({ sessionStartMs, joinedAt
 
 let attempts = 0;
 const retry = fixture({ send: async () => { attempts++; return attempts < 3 ? null : { ok: true }; } });
-retry.controller.confirmPlayback();
+retry.controller.confirmJoin();
 await settle();
 await retry.advance(2000);
 assert.equal(attempts, 2);
@@ -70,9 +70,9 @@ assert.equal(retry.timers.size, 0);
 let requestSignal;
 let hungCalls = 0;
 const hung = fixture({ send: signal => { requestSignal = signal; hungCalls++; return new Promise(() => {}); } });
-hung.controller.confirmPlayback();
+hung.controller.confirmJoin();
 await settle();
-for (let i = 0; i < 5; i++) { hung.controller.confirmPlayback(); void hung.controller.retry(); }
+for (let i = 0; i < 5; i++) { hung.controller.confirmJoin(); void hung.controller.retry(); }
 await settle();
 assert.equal(hungCalls, 1, 'No concurrent presence requests');
 await hung.advance(10000);
@@ -87,7 +87,7 @@ assert.equal(hungCalls, 2, 'Unmount/unload stops further retries');
 
 let repaired = 0;
 const pending = fixture({ send: () => new Promise(() => {}) });
-pending.controller.confirmPlayback();
+pending.controller.confirmJoin();
 await settle();
 pending.controller.destroy();
 await settle();
@@ -106,7 +106,7 @@ const unavailable = fixture({
   send: async () => { withoutStorageCalls++; return { ok: true }; },
 });
 assert.equal(unavailable.saved(), false);
-unavailable.controller.confirmPlayback();
+unavailable.controller.confirmJoin();
 await settle();
 assert.equal(withoutStorageCalls, 1, 'Storage failure does not block server attendance');
 
@@ -115,27 +115,72 @@ const acknowledged = fixture({ participated: true, acknowledged: true, send: asy
 await acknowledged.controller.retry();
 assert.equal(alreadyRecordedCalls, 0, 'A server-confirmed return needs no repair');
 
-// Exercise the real page's playback guard, not a rewritten copy of its logic.
+// Navigation lets the keepalive request finish, but never schedules another retry.
+let finishRequest;
+let navigationSignal;
+const navigating = fixture({ send: signal => {
+  navigationSignal = signal;
+  return new Promise(resolve => { finishRequest = resolve; });
+} });
+navigating.controller.confirmJoin();
+await settle();
+navigating.controller.destroy({ abortPending: false });
+assert.equal(navigationSignal.aborted, false);
+finishRequest(null);
+await settle();
+assert.equal(navigating.timers.size, 0);
+
+// Exercise the real page's click guard and handler, not a rewritten copy.
 const page = readFileSync(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 const guard = page.match(/            function trackSessionJoinedIfEligible\(\) \{[\s\S]*?\n            \}/)[0];
-function play(overrides = {}) {
+function join(overrides = {}) {
   let confirmed = 0;
   const context = {
-    hasJoinedSession: true, video: { paused: false, ended: false }, isSessionEnded: false,
+    hasJoinedSession: false, video: { paused: true, readyState: 0 }, isSessionEnded: false,
     forceLateOverlay: false, forceEndedOverlay: false, hasPersistedOffer: false, isOfferExpired: false,
     getNowMs: () => sessionStartMs + 62 * 60000, liveStartMs, getBroadcastEndMs: () => broadcastEndMs,
-    liveParticipation: { confirmPlayback() { confirmed++; } }, reg: {}, ...overrides,
+    expiryMs: sessionStartMs + 72 * 3600000,
+    liveParticipation: { confirmJoin() { confirmed++; } }, reg: {}, ...overrides,
   };
   runInNewContext(guard + '\ntrackSessionJoinedIfEligible();', context);
   return confirmed;
 }
-assert.equal(play(), 1, 'An admitted viewer is recorded even if playback starts after the cutoff');
+assert.equal(join(), 1, 'An admitted viewer can join after the cutoff even if the player is not ready');
+assert.equal(join({ video: { paused: false, readyState: 4 } }), 1);
 for (const overrides of [
-  { hasJoinedSession: false }, { video: { paused: true, ended: false } },
-  { video: { paused: false, ended: true } }, { isSessionEnded: true },
+  { isSessionEnded: true },
   { forceLateOverlay: true }, { forceEndedOverlay: true }, { hasPersistedOffer: true },
   { isOfferExpired: true }, { getNowMs: () => liveStartMs - 1 }, { getNowMs: () => broadcastEndMs },
-]) assert.equal(play(overrides), 0);
-assert.match(page, /addEventListener\('playing', trackSessionJoinedIfEligible\)/);
+  { expiryMs: sessionStartMs },
+]) assert.equal(join(overrides), 0);
+assert.doesNotMatch(page, /addEventListener\('(?:play|playing)', trackSessionJoinedIfEligible\)/);
 assert.doesNotMatch(page.match(/addEventListener\('loadedmetadata',[\s\S]*?refreshPreLiveCountdown\(\);/)[0], /trackSessionJoinedIfEligible\(\)/);
-console.log('PASS — presence acknowledged/retried, hung request, refresh, session isolation, real-play guards, timer cleanup; zero external writes.');
+const clickSource = page.match(/            playBtn.addEventListener\('click', function \(\) \{[\s\S]*?\n            \}\);/)[0];
+async function clickJoin({ readyState = 0, late = false, beforeStart = false } = {}) {
+  const sequence = [];
+  let handler;
+  const context = {
+    hasJoinedSession: false, pendingForceLiveSeek: false, isSessionEnded: false,
+    forceLateOverlay: late, forceEndedOverlay: false, hasPersistedOffer: false, isOfferExpired: false,
+    getNowMs: () => beforeStart ? liveStartMs - 1 : sessionStartMs + 62 * 60000,
+    liveStartMs, getBroadcastEndMs: () => broadcastEndMs, expiryMs: broadcastEndMs + 3600000,
+    liveParticipation: { confirmJoin() { sequence.push('entry'); } }, reg: {},
+    playBtn: { addEventListener(event, fn) { assert.equal(event, 'click'); handler = fn; } },
+    video: { paused: true, readyState, play() { sequence.push('play'); return Promise.reject(new Error('simulated player failure')); } },
+    setJoinedControlsVisible() {}, applySimulatedLiveOffset(options) { assert.equal(options.force, true); sequence.push('seek-live'); },
+    waiting: null, playOverlay: { classList: { add() {} } }, updateLiveJumpUi() {}, syncMobileControlsAutoHide() {},
+  };
+  runInNewContext(guard + '\n' + clickSource, context);
+  handler();
+  await settle();
+  return { sequence, context };
+}
+const notReady = await clickJoin();
+assert.deepEqual(notReady.sequence, ['entry', 'play'], 'Entry is recorded synchronously before playback, even when play rejects');
+assert.equal(notReady.context.hasJoinedSession, true);
+assert.equal(notReady.context.pendingForceLiveSeek, true, 'Existing deferred live positioning is preserved');
+assert.equal(notReady.context.reg.attendedLive, true);
+assert.deepEqual((await clickJoin({ readyState: 4 })).sequence, ['entry', 'seek-live', 'play']);
+assert.deepEqual((await clickJoin({ late: true })).sequence, []);
+assert.deepEqual((await clickJoin({ beforeStart: true })).sequence, []);
+console.log('PASS — explicit join click, failed playback, acknowledgements/retries, hung requests, refresh, session/access isolation, live seek and timer cleanup; zero external writes.');

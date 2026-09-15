@@ -3395,14 +3395,16 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 send: signal => trackWebinaireEvent(reg.token, 'session_joined', null, null, { signal }),
             });
             function trackSessionJoinedIfEligible() {
-                if (!hasJoinedSession || video.paused || video.ended || isSessionEnded) return;
-                if (forceLateOverlay || forceEndedOverlay || hasPersistedOffer || isOfferExpired) return;
+                if (isSessionEnded || forceLateOverlay || forceEndedOverlay || hasPersistedOffer || isOfferExpired) return false;
                 const now = getNowMs();
-                if (now < liveStartMs || now >= getBroadcastEndMs()) return;
-                // The late-arrival gate was decided on entry. A viewer already admitted
-                // to this live must still be recorded if playback/retries occur later.
-                liveParticipation.confirmPlayback();
+                if (now < liveStartMs || now >= getBroadcastEndMs()) return false;
+                if (Number.isFinite(expiryMs) && now >= expiryMs) return false;
+                // Entry is the explicit join click, independent of player/network readiness.
+                // The late-arrival gate was already decided when this page was opened.
+                // Actual playback and CTA presence remain tracked separately.
+                liveParticipation.confirmJoin();
                 reg.attendedLive = true;
+                return true;
             }
 
             function setScarcitySeats(_engineSeatsLeft, _phase, soldCount) {
@@ -4144,7 +4146,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 syncIcons();
                 syncMobileControlsAutoHide();
             });
-            video.addEventListener('playing', trackSessionJoinedIfEligible);
             video.addEventListener('pause', function () {
                 if (isRecoveringInProgress) return;
                 // No pause experience once user has joined.
@@ -4168,7 +4169,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
             }
             playBtn.addEventListener('click', function () {
-                if (isSessionEnded) return;
+                if (!trackSessionJoinedIfEligible()) return;
                 hasJoinedSession = true;
                 setJoinedControlsVisible(true);
                 // FIX : recalculer la position live AU MOMENT DU CLIC (force), pour ne pas
@@ -4314,7 +4315,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             sendStagedPresencePing();
             presenceInterval = setInterval(sendStagedPresencePing, 60000);
             // Repair an unacknowledged join from before a refresh, without waiting
-            // for another click and without turning page views into attendance.
+            // for another click and without turning new page views into attendance.
             void liveParticipation.retry();
 
             const pageLoadedAtMs = Date.now();
@@ -4364,7 +4365,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
             }, 7000);
             const beforeUnloadHandler = function () {
-                liveParticipation.destroy();
+                liveParticipation.destroy({ abortPending: false });
                 if (launchInterval) clearInterval(launchInterval);
                 if (offerInterval) clearInterval(offerInterval);
                 if (presenceInterval) clearInterval(presenceInterval);
@@ -4410,7 +4411,6 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 sessionStartMs,
                 destroy: function () {
                     liveParticipation.destroy();
-                    video.removeEventListener('playing', trackSessionJoinedIfEligible);
                     setOfferHeroVisible(false);
                     if (launchInterval) clearInterval(launchInterval);
                     if (offerInterval) clearInterval(offerInterval);
@@ -4431,8 +4431,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         }
 
         async function maybeMarkPresent(reg) {
-            // La présence MC2 est validée par `session_joined` au premier vrai démarrage
-            // du lecteur, jamais par une simple ouverture de page.
+            // L'entrée MC2 est validée par `session_joined` au clic pour rejoindre,
+            // jamais par une simple ouverture de page. La lecture est suivie séparément.
             return reg;
         }
 
