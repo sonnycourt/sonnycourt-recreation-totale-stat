@@ -970,7 +970,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       <div id="replay-main-header">
         <div class="badge">Replay privé</div>
         <h1>Masterclass Esprit Subconscient 2.0</h1>
-        <p>Replay disponible jusqu'à dimanche 23h (Paris).</p>
+        <p id="replay-access-deadline" hidden></p>
         <p id="expiry-banner" class="expiry-banner" style="display:none;" aria-hidden="true"></p>
       </div>
 
@@ -1092,6 +1092,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     import {
       MC2_REPLAY_CTA_SECONDS,
       MC2_REPLAY_OFFER_DURATION_MS,
+      mc2ReplayExpiresAt,
     } from '../../lib/mc2-timing.mjs';
 
     // MC2 conserve strictement le lecteur et l'UI éprouvés du replay
@@ -1283,7 +1284,23 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       }).then((response) => response.ok ? response.json() : null).catch(() => null);
     }
 
+    function syncReplayAccessDeadline(expiresAt) {
+      const label = document.getElementById('replay-access-deadline');
+      if (!label) return;
+      const expires = new Date(expiresAt || '');
+      const valid = Number.isFinite(expires.getTime());
+      // Use the access deadline returned by the server, never the offer timer.
+      label.textContent = valid
+        ? `Replay disponible jusqu’au ${new Intl.DateTimeFormat('fr-FR', {
+          timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long',
+          hour: '2-digit', minute: '2-digit',
+        }).format(expires)} (heure de Paris).`
+        : '';
+      label.hidden = !valid;
+    }
+
     function mountReplay(reg, token) {
+      syncReplayAccessDeadline(reg.accessExpiresAt);
       const video = document.getElementById('replay-video');
       /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
       let hlsInstance = null;
@@ -2342,6 +2359,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       return status === 'acheteur' || status === 'paid' || status === 'purchased';
     }
     function createPreviewRegistration(registrationToken = '') {
+      const sessionStartsAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
       recoveryAccessCode = 'preview-dev-replay';
       replayRegistrationToken = String(registrationToken || 'preview-dev-replay').trim();
       recoveryConfig = {
@@ -2355,7 +2373,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         prenom: 'Preview',
         email: 'preview@example.invalid',
         pays: 'France',
-        sessionStartsAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        sessionStartsAt,
+        accessExpiresAt: mc2ReplayExpiresAt(sessionStartsAt)?.toISOString(),
         offreExpiresAt: null,
         resumeSeconds: Math.max(0, Number(new URLSearchParams(window.location.search).get('resume')) || 0),
         offerUrl: '#',
