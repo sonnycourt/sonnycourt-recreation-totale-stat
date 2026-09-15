@@ -3975,10 +3975,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
                 syncMcUnavailableUi(false);
 
-                // Une offre déjà révélée sur le live ou le replay appartient au
-                // token, pas à la page qui l'a déclenchée. On reprend donc
-                // directement son checkout et son échéance persistée.
-                if (hasPersistedOffer) {
+                // Une offre déjà vue ne signifie pas que le direct est terminé.
+                // Au retour, garder le lecteur jusqu'à la fin réelle ; ensuite
+                // restaurer l'offre et son échéance. Un spectateur déjà en lecture
+                // termine son fichier via la branche de fin ci-dessous.
+                if (hasPersistedOffer && now >= broadcastEndMs && !hasJoinedSession) {
                     syncMcLateUi(false);
                     syncMcEndedGateUi(false);
                     applyInlineEndedUi({

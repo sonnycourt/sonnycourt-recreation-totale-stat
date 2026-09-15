@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { MC2_DRAFTX_REPLAY_ENTRY } from '../src/lib/mc2-media.mjs';
 
 const root = process.cwd();
 const sessionSource = fs.readFileSync(path.join(root, 'src/pages/mc2/session.astro'), 'utf8');
@@ -11,7 +12,8 @@ assert.match(sessionSource, /keepOfferVisible: true/);
 assert.match(sessionSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
 assert.match(sessionSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
 assert.match(sessionSource, /const seats = Math\.max\(0, OFFER_INITIAL_REMAINING_SEATS - placesConsumed\)/);
-assert.match(sessionSource, /mc2-replay-enter\?t=/);
+assert.equal(MC2_DRAFTX_REPLAY_ENTRY, '/.netlify/functions/mc2-replay-enter?t=');
+assert.match(sessionSource, /MC2_DRAFTX_REPLAY_ENTRY \+ encodeURIComponent\(reg\.token\)/);
 assert.doesNotMatch(sessionSource, /window\.location\.replace\('\/mc2\/replay\?t=/);
 assert.match(replaySource, /\.offer-zone\.visible\s*\{[\s\S]*?transform:\s*none;/);
 assert.match(replaySource, /animation:\s*offerZoneFadeIn\s+0\.4s\s+ease\s+forwards;/);
