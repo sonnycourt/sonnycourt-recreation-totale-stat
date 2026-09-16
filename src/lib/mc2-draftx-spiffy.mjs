@@ -74,9 +74,50 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   let ready = false;
   let measuredHeight = 0;
   let revealTimer;
+  let fallbackTimer;
   let revealEarliest = 0;
   let revealDeadline = 0;
   let destroyed = false;
+  const standaloneUrl = new URL(url);
+  for (const key of ['elements', 'mc2_draftx', 'mc2_parent_origin']) standaloneUrl.searchParams.delete(key);
+  const addDirectCheckout = () => {
+    const link = doc.createElement('a');
+    link.href = standaloneUrl.toString();
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Ouvrir le paiement sécurisé';
+    status.append(link);
+  };
+  const reveal = (evidence) => {
+    if (loaded || destroyed) return;
+    loaded = true;
+    view.clearTimeout(timeout);
+    view.clearTimeout(revealTimer);
+    view.clearTimeout(fallbackTimer);
+    // A provider message is an enhancement, never a prerequisite for access.
+    // Without a size message, allow the native iframe to scroll normally.
+    frame.style.height = `${measuredHeight || 650}px`;
+    frame.style.opacity = '1';
+    frame.style.pointerEvents = 'auto';
+    frame.setAttribute('aria-hidden', 'false');
+    frame.setAttribute('tabindex', '0');
+    if (evidence === 'provider_ready_and_height') status.remove();
+    else {
+      status.className = 'draftx-spiffy-recovery';
+      status.textContent = 'Si le formulaire ne s’affiche pas : ';
+      addDirectCheckout();
+    }
+    slot.setAttribute('aria-busy', 'false');
+    // Visibility is not proof of provider readiness, nor proof of purchase.
+    observe('payment_frame_visible', { frame_evidence: evidence });
+  };
+  frame.onload = () => {
+    if (loaded || destroyed) return;
+    view.clearTimeout(fallbackTimer);
+    // Keep the short anti-flash treatment, but never hide a loaded checkout
+    // indefinitely if its custom ready/height bridge is absent or too late.
+    fallbackTimer = view.setTimeout(() => reveal('iframe_load_fallback'), 3000);
+  };
   const scheduleReveal = () => {
     if (!ready || !measuredHeight || loaded || destroyed) return;
     view.clearTimeout(revealTimer);
@@ -85,17 +126,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     const now = Date.now();
     const delay = Math.min(Math.max(250, revealEarliest - now), Math.max(0, revealDeadline - now));
     revealTimer = view.setTimeout(() => {
-      if (destroyed) return;
-      loaded = true;
-      view.clearTimeout(timeout);
-      frame.style.height = `${measuredHeight}px`;
-      frame.style.opacity = '1';
-      frame.style.pointerEvents = 'auto';
-      frame.setAttribute('aria-hidden', 'false');
-      frame.setAttribute('tabindex', '0');
-      status.remove();
-      slot.setAttribute('aria-busy', 'false');
-      observe('payment_frame_visible', { frame_evidence: 'provider_ready_and_height' });
+      reveal('provider_ready_and_height');
     }, delay);
   };
   slot.setAttribute('aria-busy', 'true');
@@ -130,7 +161,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   };
   view.addEventListener('message', onMessage);
   const showTimeout = () => {
-    if (loaded) return;
+    if (loaded || destroyed) return;
     observe('payment_frame_timeout');
     status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
     const retry = doc.createElement('button');
@@ -139,6 +170,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     retry.addEventListener('click', () => {
       observe('payment_frame_retry');
       view.clearTimeout(revealTimer);
+      view.clearTimeout(fallbackTimer);
       ready = false;
       measuredHeight = 0;
       status.textContent = 'Connexion au paiement sécurisé…';
@@ -147,6 +179,8 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
       frame.src = url.toString();
     });
     status.append(retry);
+    status.append(doc.createTextNode(' · '));
+    addDirectCheckout();
     slot.setAttribute('aria-busy', 'false');
   };
   let timeout = view.setTimeout(showTimeout, 20000);
@@ -156,6 +190,8 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     destroy() {
       destroyed = true;
       view.clearTimeout(revealTimer);
+      view.clearTimeout(fallbackTimer);
+      frame.onload = null;
       view.clearTimeout(timeout);
       view.removeEventListener('message', onMessage);
       slot.replaceChildren();

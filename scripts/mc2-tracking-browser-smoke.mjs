@@ -4,6 +4,7 @@ import path from 'node:path';
 import puppeteer from 'puppeteer';
 import { randomUUID } from 'node:crypto';
 const browserName = process.env.MC2_TEST_BROWSER || 'chrome';
+const silentSpiffy = process.env.MC2_TEST_SPIFFY_SILENT === '1';
 const browser = await puppeteer.launch({ headless: true, ...(browserName === 'firefox' ? { browser: 'firefox', executablePath: '/Applications/Firefox.app/Contents/MacOS/firefox' } : {}) });
 const rootDir = path.resolve(new URL('..', import.meta.url).pathname);
 const token = randomUUID();
@@ -42,7 +43,7 @@ try {
       const url = new URL(request.url());
       calls.push({ host: url.hostname, path: url.pathname, method: request.method() });
       if (url.hostname === 'sonnycourt.spiffy.co') {
-        await request.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!doctype html><meta charset="UTF-8"><p>Faux formulaire — aucun paiement possible</p><script>setTimeout(()=>{parent.postMessage({type:"mc2:draftx-spiffy-height",height:310},"*");parent.postMessage({type:"mc2:draftx-spiffy-ready",identityReady:true},"*")},200)</script>' }); return;
+        await request.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!doctype html><meta charset="UTF-8"><p>Faux formulaire — aucun paiement possible</p>' + (silentSpiffy ? '' : '<script>setTimeout(()=>{parent.postMessage({type:"mc2:draftx-spiffy-height",height:310},"*");parent.postMessage({type:"mc2:draftx-spiffy-ready",identityReady:true},"*")},200)</script>') }); return;
       }
       if (url.hostname !== 'mc2-tracking.test') { await request.abort(); return; }
       if (url.pathname.startsWith('/.netlify/functions/')) {
@@ -104,8 +105,13 @@ try {
       await page.click(`[data-payment-plan="${plan}"]`);
       await page.click('[data-checkout-step="2"] button[type="submit"]');
       await page.waitForFunction(() => document.querySelector('[data-spiffy-slot]')?.getAttribute('aria-busy') === 'false');
+      // The existing opacity transition finishes after the busy flag clears.
+      await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-spiffy-slot] iframe')).opacity === '1', { timeout: 2000 });
       assert.equal(await page.$eval('[data-draftx-checkout]', el => el.dataset.step), '3');
       assert.ok((await page.$eval('[data-spiffy-slot] iframe', el => el.src)).includes(plan === 'twelve' ? '38556364' : '38556365'));
+      assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => getComputedStyle(el).opacity), '1');
+      assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => el.getAttribute('aria-hidden')), 'false');
+      if (silentSpiffy) assert.ok(await page.$('.draftx-spiffy-recovery a'));
       await page.click('[data-checkout-step="3"] [data-checkout-back]');
     }
     await page.click('[data-checkout-close]');
@@ -122,7 +128,7 @@ try {
     for (const step of [1, 2, 3]) assert.ok(events.some(e => e.event_name === 'checkout_step_viewed' && e.metadata.step === step));
     assert.equal(await page.evaluate(() => window.__mc2JourneyV2.status().observerErrors), 0);
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ browser: browserName, route, events: events.length, uniqueEvents: new Set(events.map(e => e.event_id)).size, checkoutSteps: '1→2→3', bothPlans: true, reloadAck: true, pageErrors: errors.length, allRequestsIntercepted: true }));
+    console.log(JSON.stringify({ browser: browserName, silentSpiffy, route, events: events.length, uniqueEvents: new Set(events.map(e => e.event_id)).size, checkoutSteps: '1→2→3', bothPlans: true, reloadAck: true, pageErrors: errors.length, allRequestsIntercepted: true }));
     await context.close();
   }
 } finally { await browser.close(); }
