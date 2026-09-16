@@ -1255,7 +1255,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       const mappedEvent = eventName === 'video_checkpoint' ? 'replay_progress' : eventName;
       if (['replay_started', 'replay_progress', 'cta_reached'].includes(mappedEvent)) {
         if (!recoveryAccessCode || recoveryAccessCode === 'preview-dev-replay') return Promise.resolve(null);
-        const payload = { access: recoveryAccessCode, event: mappedEvent };
+        const payload = { access: recoveryAccessCode, event: mappedEvent, tracking_schema: window.__mc2JourneyV2?.schema };
         if (mappedEvent === 'replay_progress') payload.currentSecond = Math.max(0, Math.floor(Number(value) * 60 || 0));
         if (value !== undefined && value !== null) payload.value = String(value);
         if (progressMeta && Number.isFinite(Number(progressMeta.percent))) {

@@ -68,6 +68,10 @@ export function mc2FunnelMetaEvents({ eventName, value, meta = {}, registration 
   const token = registrationToken(registration);
   if (!token) return [];
 
+  // V2 has durable, observed events. Keep legacy business state but do not
+  // send its wall-clock CTA or position-based "watched" milestones to Meta.
+  if (Number(meta.tracking_schema) === 2 && ['cta_reached', 'video_checkpoint'].includes(eventName)) return [];
+
   // L'audience de retargeting doit inclure toute personne réellement exposée
   // à l'offre, quelle que soit sa source d'acquisition. Tous les autres
   // événements Meta restent réservés au trafic Meta.

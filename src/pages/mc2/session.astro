@@ -2444,7 +2444,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 return Promise.resolve({ ok: true, draft: true });
             }
             if (!token || !eventName) return Promise.resolve(null);
-            const payload = { token, event: eventName, meta: { page_path: sessionPagePath } };
+            const payload = { token, event: eventName, meta: { page_path: sessionPagePath, tracking_schema: window.__mc2JourneyV2?.schema } };
             if (eventMeta && typeof eventMeta === 'object') Object.assign(payload.meta, eventMeta);
             if (value !== undefined && value !== null) {
                 payload.value = String(value);
@@ -4113,7 +4113,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                     if (isCtaActive && !didTrackCtaReached) {
                         didTrackCtaReached = true;
                         const offerViewedEventId = getOfferViewedEventId(reg);
-                        if (reg.metaTrackingEligible) {
+                        if (reg.metaTrackingEligible && window.__mc2JourneyV2?.schema !== 2) {
                             fireMetaBrowserEvents([{
                                 eventName: 'OfferViewed',
                                 eventId: offerViewedEventId,
@@ -4122,6 +4122,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                         }
                         trackWebinaireEvent(reg.token, 'cta_reached', undefined, {
                             offer_event_id: offerViewedEventId,
+                            tracking_schema: window.__mc2JourneyV2?.schema,
                         }).then(function (result) {
                             fireMetaBrowserEvents(result?.metaEvents);
                             const serverExpiry = new Date(result?.offer_expires_at).getTime();

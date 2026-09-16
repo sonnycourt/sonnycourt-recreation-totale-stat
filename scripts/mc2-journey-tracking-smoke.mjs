@@ -15,7 +15,7 @@ for (const patch of [{ visible: false }, { paused: true }, { seeking: true }, { 
 let tick, now = 0, hidden = false, available = false, open = false;
 const records = [];
 const video = { paused: false, seeking: false, readyState: 4, currentTime: 0 };
-const offer = { getBoundingClientRect: () => ({ top: 100, bottom: 1000, left: 0, right: 500, width: 500, height: 900 }) };
+const offer = { querySelector: () => null, getBoundingClientRect: () => ({ top: 100, bottom: 1000, left: 0, right: 500, width: 500, height: 900 }) };
 const doc = { get visibilityState() { return hidden ? 'hidden' : 'visible'; }, addEventListener() {},
   querySelector: selector => selector.includes('masterclass-video') ? video : selector.includes('deal-offer-content') ? offer : open ? {} : null };
 const view = { document: doc, crypto: { randomUUID: () => String(Math.random()) }, performance: { now: () => now },
@@ -26,13 +26,13 @@ doc.defaultView = view;
 const root = { ownerDocument: doc, dataset: { get checkoutAvailable() { return String(available); } }, querySelector: () => null };
 const emit = startMc2JourneyTracking(root);
 assert.equal(visibleArea(offer, view), true);
-for (let i = 0; i < 12; i++) { now += 1000; video.currentTime++; tick(); }
-assert.ok(records.some(r => r.event === 'video_active_presence' && r.meta.minute === 0));
+for (let i = 0; i < 16; i++) { now += 1000; video.currentTime++; tick(); }
+assert.ok(records.some(r => r.event === 'v2:playback_interval' && r.meta.position_start === 0));
 hidden = true; available = true;
 for (let i = 0; i < 12; i++) { now += 1000; video.currentTime++; tick(); }
-assert.ok(!records.some(r => r.event === 'offer_available_present'));
+assert.ok(!records.some(r => r.event === 'v2:offer_available'));
 hidden = false; now += 1000; video.currentTime++; tick();
-assert.equal(records.filter(r => r.event === 'offer_available_present').length, 1);
+assert.equal(records.filter(r => r.event === 'v2:offer_available').length, 1);
 emit('checkout_step_viewed', { step: 2 });
 assert.equal(records.at(-1).meta.step, 2);
 

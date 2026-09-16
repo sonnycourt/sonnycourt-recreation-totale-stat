@@ -235,12 +235,15 @@ assert.match(router, /value: Number\(session\.amount_total \|\| expectedInitial\
 assert.match(optinTracker, /'\/meta\/masterclass\/'/);
 assert.match(organicOptin, /fetch\('\/\.netlify\/functions\/track-mc2-optin'/);
 assert.match(sessionPage, /const offerViewedEventId = getOfferViewedEventId\(reg\)/);
-assert.match(sessionPage, /if \(reg\.metaTrackingEligible\) \{\s*fireMetaBrowserEvents\(\[\{/);
+assert.match(sessionPage, /if \(reg\.metaTrackingEligible && window\.__mc2JourneyV2\?\.schema !== 2\) \{\s*fireMetaBrowserEvents\(\[\{/);
+for (const eventName of ['cta_reached', 'video_checkpoint']) {
+  assert.deepEqual(mc2FunnelMetaEvents({ eventName, value: 99, meta: { tracking_schema: 2 }, registration: metaRegistration }), [], 'Legacy clocks must not contaminate v2 Meta observations');
+}
 assert.match(sessionPage, /trackWebinaireEvent\(reg\.token, 'cta_reached', undefined, \{\s*offer_event_id: offerViewedEventId/);
 assert.match(sessionPage, /fireMetaBrowserEvents\(result\?\.metaEvents\)/);
 assert.match(sessionPage, /fbq\('trackCustom', event\.eventName,[\s\S]*eventID: event\.eventId/);
 assert.match(sessionPage, /'mc2_offer_event_id_' \+ String\(registration\?\.token/);
-assert.match(sessionPage, /localStorage\.getItem\(storageKey\) === '1'/);
+assert.match(sessionPage, /pageStorage\.getItem\(storageKey\) === '1'/);
 assert.match(replayPage, /trackWebinaireEvent\(token, 'cta_reached'\)/);
 assert.match(replayTracker, /mc2FunnelMetaEvents\(\{[\s\S]*eventName: funnelEventName/);
 assert.match(replayTracker, /sendMc2MetaEvents\(\{[\s\S]*pagePath: '\/mc2\/replay\/'/);

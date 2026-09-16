@@ -10,6 +10,8 @@ const SECTION_TARGETS = [
 const SCROLL_MILESTONES = [25, 50, 75, 90, 100];
 
 export function startMc2OfferObservability({ root, route, track }) {
+  // New pages use the versioned observer. Already-open legacy pages keep their code.
+  if (window.__mc2JourneyV2?.schema === 2) return () => {};
   if (!(root instanceof Element) || typeof track !== 'function') return () => {};
   if (observedOffers.has(root)) return observedOffers.get(root);
   const visit = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
@@ -22,6 +24,7 @@ export function startMc2OfferObservability({ root, route, track }) {
       .catch(() => {}).finally(() => pending.delete(key));
   };
   const measure = () => {
+    if (window.__mc2JourneyV2?.schema === 2) return;
     // No impressions underneath the modal, in another tab or a hidden offer.
     if (document.querySelector('#draftx-checkout-dialog[open]') || !visibleArea(root, window)) return;
     emit('visit', 'invitation_visited', null);

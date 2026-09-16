@@ -1,0 +1,81 @@
+---
+---
+<!doctype html>
+<html lang="fr">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex,nofollow" /><title>MC2 — Mesures vérifiables</title></head>
+<body>
+  <main>
+    <a href="/es-cockpit/dashboard/">← Cockpit</a>
+    <h1>MC2 · Mesures v2</h1>
+    <p>Live et replay. Les événements des anciennes versions ne sont pas mélangés aux nouvelles observations.</p>
+    <form id="filters">
+      <label>Inscription finalisée depuis<input type="datetime-local" id="from" required /></label>
+      <label>Jusqu’à<input type="datetime-local" id="to" required /></label>
+      <label>Source<select id="source"><option value="">Toutes</option value="meta_ad">Parcours Meta</option><option value="non_attribue">Non attribuée</option></select></label>
+      <label>Session<select id="slot"><option value="">Toutes</option><option value="jit">JIT</option><option value="scheduled">Créneau</option></select></label>
+      <button type="submit">Actualiser</button><button type="button" id="export" disabled>Exporter JSON</button>
+    </form>
+    <p class="note">Dates dans le fuseau de ton navigateur. Fenêtre maximale : 7 jours. Les actions sont comptées dans la même fenêtre que les inscriptions.</p>
+    <p id="status" role="status">Chargement…</p>
+    <div id="report" hidden>
+      <section id="cards" aria-label="Indicateurs"></section>
+      <p id="quality" class="warning"></p>
+      <p id="background-cta"></p>
+      <h2>Livraison des nouveaux événements à Meta</h2>
+      <p id="meta-delivery"></p>
+      <p class="note">Ces accusés de réception concernent les observations v2, pas l’attribution publicitaire ni les achats. Une réception Meta ne garantit pas qu’une conversion sera attribuée à une annonce.</p>
+      <h2>Par pays, source et type de session</h2>
+      <p>Groupe de référence : France, Belgique, Suisse, Canada. « Autre » reste non classé ; ce n’est pas une mesure du revenu individuel.</p>
+      <div class="scroll"><table><thead><tr><th>Pays</th><th>Groupe</th><th>Source</th><th>Session</th><th>Inscrits</th><th>Suivis v2</th><th>Lecture</th><th>Au CTA</th><th>Lecture après CTA</th><th>Offre visible</th><th>Scroll commencé</th><th>Checkout</th><th>Étape 1</th><th>Étape 2</th><th>Étape 3</th><th>Iframe visible</th><th>Engagements</th></tr></thead><tbody id="groups"></tbody></table></div>
+      <h2>Rétention par minute</h2>
+      <p>Personnes uniques avec au moins une seconde observée au premier plan. La minute de contenu retire les 20 minutes d’introduction du live ; les minutes négatives correspondent à cette introduction. Une absence de signal n’établit pas un abandon.</p>
+      <div class="scroll retention"><table><thead><tr><th>Mode</th><th>Minute vidéo</th><th>Minute contenu</th><th>Groupe</th><th>Personnes observées</th></tr></thead><tbody id="retention"></tbody></table></div>
+      <h2>Vérification par inscription</h2>
+      <p>Identifiants internes uniquement. L’engagement à 0 € ne signifie pas première mensualité encaissée ; les encaissements restent à vérifier auprès du prestataire.</p>
+      <div class="scroll"><table><thead><tr><th>ID</th><th>Pays</th><th>Couverture</th><th>Lecture observée au premier plan</th><th>Étapes vues</th><th>Profondeur max.</th><th>Engagement confirmé</th></tr></thead><tbody id="people"></tbody></table></div>
+    </div>
+  </main>
+  <script>
+    const $ = (id: string) => document.getElementById(id)!;
+    const input = (id: string) => $(id) as HTMLInputElement;
+    let lastReport: any = null;
+    const localDate = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const start = new Date(); start.setDate(start.getDate() - 1); start.setHours(0, 0, 0, 0);
+    input('from').value = localDate(start); input('to').value = localDate(new Date());
+    function rows(target: string, data: unknown[][]) {
+      const fragment = document.createDocumentFragment();
+      for (const values of data) { const tr = document.createElement('tr'); for (const value of values) { const td = document.createElement('td'); td.textContent = String(value ?? 'Inconnu'); tr.append(td); } fragment.append(tr); }
+      $(target).replaceChildren(fragment);
+    }
+    async function load(event?: Event) {
+      event?.preventDefault(); $('status').textContent = 'Lecture des événements…'; $('report').hidden = true;
+      (input('export') as unknown as HTMLButtonElement).disabled = true;
+      try {
+        const query = new URLSearchParams({ from: new Date(input('from').value).toISOString(), to: new Date(input('to').value).toISOString(), source: input('source').value, slot: input('slot').value });
+        const response = await fetch('/.netlify/functions/admin-mc2-tracking-v2?' + query, { credentials: 'same-origin' });
+        if (response.status === 401) { $('status').textContent = 'Connecte-toi au cockpit pour consulter les données.'; return; }
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Données indisponibles');
+        lastReport = data; $('cards').replaceChildren();
+        for (const [label, key] of [['Inscrits', 'registrations'], ['Observés v2', 'tracked'], ['Lecture au CTA', 'ctaPresent'], ['Offre visible', 'offerVisible'], ['Étape 3 vue', 'step3'], ['Engagements à 0 € / commandes', 'commitments']]) {
+          const card = document.createElement('article'), title = document.createElement('span'), number = document.createElement('strong');
+          title.textContent = label; number.textContent = String(data.totals[key]); card.append(title, number); $('cards').append(card);
+        }
+        $('quality').textContent = `${data.quality.warning} ${data.quality.unobservedRegistrations} inscription(s) sans parcours v2 observé. ${data.totals.trackingGaps} anomalie(s) de couverture à examiner.`;
+        $('background-cta').textContent = `${data.totals.ctaBackground} personne(s) avec lecture signalée en arrière-plan au passage du CTA : signal distinct, non assimilé à une offre vue. Une personne peut avoir plusieurs visites.`;
+        const delivery = data.metaDelivery;
+        $('meta-delivery').textContent = `${delivery.sent} reçus par Meta · ${delivery.pending} en attente · ${delivery.processing} en cours · ${delivery.retry} à réessayer · ${delivery.failed} en échec définitif · ${delivery.skipped} exclus.`;
+        rows('groups', data.groups.map((r: any) => [r.country, r.countryGroup, r.source, r.slot, r.registrations, r.tracked, r.playback, r.ctaPresent, r.offerPlayback, r.offerVisible, r.offerScrolled, r.checkoutOpened, r.step1, r.step2, r.step3, r.paymentFrameVisible, r.commitments]));
+        rows('retention', data.retention.map((r: any) => [r.route.includes('replay') ? 'Replay' : 'Live', r.mediaMinute, r.contentMinute, r.countryGroup, r.people]));
+        rows('people', data.people.map((r: any) => [r.id, r.country, r.measurement === 'v2_observed_not_exhaustive' ? 'Observée, non exhaustive' : 'Inconnue / ancienne version', `${Math.floor(r.observedForegroundSeconds / 60)} min ${r.observedForegroundSeconds % 60} s`, r.steps.join(' → ') || 'Non observées', r.maxDepth === null ? 'Non observée' : `${r.maxDepth} %`, r.commitmentAt ? new Date(r.commitmentAt).toLocaleString('fr-FR') : 'Non observé']));
+        $('status').textContent = `Actualisé le ${new Date(data.generatedAt).toLocaleString('fr-FR')} · ${data.quality.eventsRead} événements lus${data.partial ? ' · RÉSULTATS PARTIELS' : ''}`;
+        $('report').hidden = false; (input('export') as unknown as HTMLButtonElement).disabled = false;
+      } catch (error) { $('status').textContent = error instanceof Error ? error.message : 'Lecture impossible. Aucun zéro de remplacement.'; }
+    }
+    $('filters').addEventListener('submit', load);
+    $('export').addEventListener('click', () => { if (!lastReport) return; const url = URL.createObjectURL(new Blob([JSON.stringify(lastReport, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'mc2-tracking-v2.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
+    void load();
+  </script>
+  <style>
+    :global(body){margin:0;background:#101827;color:#e7edf6;font:15px/1.6 system-ui,sans-serif}main{max-width:1450px;margin:auto;padding:30px}a{color:#9cc6ff}h1{font-size:30px;margin-bottom:8px}h2{font-size:21px;margin-top:36px}p{color:#b8c6da}form{display:flex;flex-wrap:wrap;align-items:end;gap:14px;margin:25px 0}label{display:grid;gap:5px;font-size:13px}input,select,button{font:inherit;padding:9px;border:1px solid #405472;border-radius:7px;background:#1b293f;color:inherit}button{cursor:pointer}button:disabled{opacity:.5}#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}article{display:grid;background:#1b293f;border:1px solid #334864;border-radius:10px;padding:16px}article strong{font-size:32px}.warning{padding:14px;background:#382e16;color:#f7d98c;border-radius:8px}.note{font-size:13px}.scroll{overflow:auto;border:1px solid #334864;border-radius:8px}.retention{max-height:420px}table{border-collapse:collapse;width:100%;white-space:nowrap;font-size:13px}th,td{padding:10px 13px;border-bottom:1px solid #29394f;text-align:left}th{position:sticky;top:0;background:#1b293f}#status{min-height:24px}@media(max-width:600px){main{padding:18px}form>label{width:100%}}
+  </style>
+</body></html>

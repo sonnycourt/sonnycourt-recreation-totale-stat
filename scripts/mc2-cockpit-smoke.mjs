@@ -59,11 +59,13 @@ assert.match(dashboard, /mc2-watching-session/);
 assert.match(dashboard, /mc2-scheduled-sessions/);
 assert.match(dashboard, /mc2-funnel-checkout-seen/);
 for (const page of [sessionPage, replayPage]) {
-  assert.match(page, /trackCheckoutActuallySeen/);
-  assert.match(page, /'checkout_actually_seen'/);
-  assert.match(page, /document\.visibilityState !== 'visible'/);
-  assert.match(page, /window\.setTimeout\(confirm, 1000\)/);
+  assert.match(page, /DealOfferDraftX\.astro/, 'Canonical pages share the new checkout');
 }
+const checkout = fs.readFileSync(new URL('../src/components/mc2/DraftXCheckout.astro', import.meta.url), 'utf8');
+assert.match(checkout, /startMc2JourneyTracking\(root\)/);
+assert.match(checkout, /initDraftXCheckout\(root, \{ track \}\)/);
+assert.match(dashboard, /mesures vérifiables v2/);
+// The historical backend remains available for already-open old pages, but is labelled legacy.
 assert.match(cockpitApi, /event_name=eq\.checkout_actually_seen/);
 
 console.log('mc2 cockpit smoke: ok');

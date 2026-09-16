@@ -62,6 +62,7 @@ export default async (req) => {
     const funnelEventName = event === 'replay_progress' ? 'video_checkpoint' : event;
     const eventMeta = {
       route: '/mc2/replay/',
+      ...(Number(body.tracking_schema) === 2 ? { tracking_schema: 2 } : {}),
       ...(percent > 0 ? { percent: Math.min(100, percent) } : {}),
       ...(durationSeconds > 0 ? { duration_seconds: durationSeconds } : {}),
     };

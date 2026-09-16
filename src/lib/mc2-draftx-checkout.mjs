@@ -87,7 +87,7 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
     paymentInstance = mountPayment(paymentSlot, DRAFTX_PAYMENT_PLANS[activePlan], {
       firstName: firstName.value, email: email.value,
       ...(registrationToken ? { registrationToken } : {}),
-    });
+    }, { track: (name, meta) => emit(name, meta) });
   };
 
   const updatePlan = () => {
@@ -188,10 +188,12 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
       email.value = email.value.trim();
       updateIdentityChecks();
       if (!firstName.reportValidity() || !email.reportValidity()) return;
+      emit('checkout_step_completed');
       showStep(2);
     } else if (step === 2) {
       if (!firstName.reportValidity() || !email.reportValidity()) { showStep(1); return; }
       updatePlan();
+      emit('checkout_step_completed');
       showStep(3);
       mountConfirmedPlan();
     }

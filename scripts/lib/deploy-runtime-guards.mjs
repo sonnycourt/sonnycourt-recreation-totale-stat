@@ -18,6 +18,8 @@ export const MC2_STARTUP_PROBES = Object.freeze([
   { name: 'check-mc2-eligibility', method: 'GET', status: 405, body: { error: 'Method not allowed' } },
   { name: 'track-mc2-optin', method: 'GET', status: 405, body: { error: 'Method not allowed' } },
   { name: 'track-mc2-event', method: 'GET', status: 405, body: { error: 'Method not allowed' } },
+  { name: 'track-mc2-journey', method: 'GET', status: 405, body: { error: 'method' } },
+  { name: 'admin-mc2-tracking-v2', method: 'GET', status: 401, body: { error: 'unauthorized' } },
   { name: 'mc2-replay-track', method: 'GET', status: 405, body: { error: 'Méthode non autorisée' } },
   { name: 'mc2-replay-enter', method: 'GET', status: 404, body: 'Lien invalide.' },
 ]);

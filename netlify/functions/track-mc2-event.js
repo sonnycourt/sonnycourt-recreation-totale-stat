@@ -38,7 +38,6 @@ const ALLOWED_EVENTS = new Set([
   'checkout_abandoned',
   'payment_submitted',
   'payment_error',
-  'purchase_completed',
   'replay_started',
   'video_freeze_recovery',
 ]);
@@ -96,6 +95,7 @@ function sanitizeMeta(value) {
     if (text) output[key] = text;
   }
   if (input.percent != null) output.percent = positiveInt(input.percent, 100);
+  if (Number(input.tracking_schema) === 2) output.tracking_schema = 2;
   if (input.step != null) output.step = positiveInt(input.step, 3);
   if (input.minute != null) output.minute = positiveInt(input.minute, 1440);
   if (input.current_second != null) output.current_second = positiveInt(input.current_second, 86400);
@@ -198,11 +198,7 @@ function buildPatch(eventName, value, meta, row) {
     patch.last_intent_at = nowIso;
   }
   if (eventName === 'payment_error') patch.payment_status = row.payment_status === 'paid' ? 'paid' : 'error';
-  if (eventName === 'purchase_completed') {
-    patch.payment_status = 'paid';
-    patch.statut = 'purchased';
-    patch.purchased_at = row.purchased_at || nowIso;
-  }
+  // Financial state is written only by payment-provider handlers, never client analytics.
   if (meta.plan) patch.checkout_last_plan = meta.plan;
   if (meta.payment_mode) patch.checkout_last_payment_mode = meta.payment_mode;
   if (meta.button_id) patch.checkout_last_button = meta.button_id;

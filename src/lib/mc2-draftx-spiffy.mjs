@@ -47,7 +47,8 @@ export function trustedSpiffyMessage(event, frame) {
   return { height: Math.max(180, Math.min(Math.ceil(height), 1800)) };
 }
 
-export function mountDraftXSpiffy(slot, plan, identity) {
+export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {}) {
+  const observe = (name, meta = {}) => { try { track(name, meta); } catch { /* Never block the provider. */ } };
   const doc = slot.ownerDocument;
   const view = doc.defaultView;
   const frame = doc.createElement('iframe');
@@ -94,6 +95,7 @@ export function mountDraftXSpiffy(slot, plan, identity) {
       frame.setAttribute('tabindex', '0');
       status.remove();
       slot.setAttribute('aria-busy', 'false');
+      observe('payment_frame_visible', { frame_evidence: 'provider_ready_and_height' });
     }, delay);
   };
   slot.setAttribute('aria-busy', 'true');
@@ -106,6 +108,7 @@ export function mountDraftXSpiffy(slot, plan, identity) {
       const token = cleanDraftXRegistrationToken(identity.registrationToken);
       if (token) destination.searchParams.set('t', token);
       // Navigation is not proof of purchase: the existing status endpoint verifies it.
+      observe('payment_redirect_observed');
       view.location.assign(destination.toString());
       return;
     }
@@ -128,11 +131,13 @@ export function mountDraftXSpiffy(slot, plan, identity) {
   view.addEventListener('message', onMessage);
   const showTimeout = () => {
     if (loaded) return;
+    observe('payment_frame_timeout');
     status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
     const retry = doc.createElement('button');
     retry.type = 'button';
     retry.textContent = 'Réessayer';
     retry.addEventListener('click', () => {
+      observe('payment_frame_retry');
       view.clearTimeout(revealTimer);
       ready = false;
       measuredHeight = 0;
@@ -146,6 +151,7 @@ export function mountDraftXSpiffy(slot, plan, identity) {
   };
   let timeout = view.setTimeout(showTimeout, 20000);
   slot.replaceChildren(status, frame);
+  observe('payment_frame_loading');
   return {
     destroy() {
       destroyed = true;
