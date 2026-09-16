@@ -78,6 +78,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   let revealEarliest = 0;
   let revealDeadline = 0;
   let destroyed = false;
+  let manualRetries = 0;
   const standaloneUrl = new URL(url);
   for (const key of ['elements', 'mc2_draftx', 'mc2_parent_origin']) standaloneUrl.searchParams.delete(key);
   const addDirectCheckout = () => {
@@ -87,6 +88,40 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     link.rel = 'noopener noreferrer';
     link.textContent = 'Ouvrir le paiement sécurisé';
     status.append(link);
+  };
+  const addRecoveryActions = () => {
+    const retry = doc.createElement('button');
+    retry.type = 'button';
+    retry.textContent = 'Réessayer';
+    retry.addEventListener('click', () => {
+      // Only an explicit user action reloads a failed/unconfirmed checkout.
+      // Ignore a stale button if the provider has since confirmed readiness.
+      if (destroyed || (loaded && ready && measuredHeight)) return;
+      manualRetries += 1;
+      observe('payment_frame_retry');
+      view.clearTimeout(timeout);
+      view.clearTimeout(revealTimer);
+      view.clearTimeout(fallbackTimer);
+      loaded = false;
+      ready = false;
+      measuredHeight = 0;
+      frame.style.height = '320px';
+      frame.style.opacity = '0';
+      frame.style.pointerEvents = 'none';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.setAttribute('tabindex', '-1');
+      status.className = 'draftx-spiffy-loading';
+      status.textContent = 'Connexion au paiement sécurisé…';
+      slot.setAttribute('aria-busy', 'true');
+      timeout = view.setTimeout(showTimeout, 20000);
+      frame.src = url.toString();
+    });
+    status.append(retry);
+    // The external checkout is a last resort, after a manual retry fails.
+    if (manualRetries > 0) {
+      status.append(doc.createTextNode(' · '));
+      addDirectCheckout();
+    }
   };
   const reveal = (evidence) => {
     if (loaded || destroyed) return;
@@ -105,7 +140,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     else {
       status.className = 'draftx-spiffy-recovery';
       status.textContent = 'Si le formulaire ne s’affiche pas : ';
-      addDirectCheckout();
+      addRecoveryActions();
     }
     slot.setAttribute('aria-busy', 'false');
     // Visibility is not proof of provider readiness, nor proof of purchase.
@@ -158,29 +193,15 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
       slot.dataset.identityTransmitted = String(message.identityReady);
       scheduleReveal();
     }
+    // A late handshake restores the normal UI without reloading any inputs.
+    if (loaded && ready && measuredHeight) status.remove();
   };
   view.addEventListener('message', onMessage);
   const showTimeout = () => {
     if (loaded || destroyed) return;
     observe('payment_frame_timeout');
     status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
-    const retry = doc.createElement('button');
-    retry.type = 'button';
-    retry.textContent = 'Réessayer';
-    retry.addEventListener('click', () => {
-      observe('payment_frame_retry');
-      view.clearTimeout(revealTimer);
-      view.clearTimeout(fallbackTimer);
-      ready = false;
-      measuredHeight = 0;
-      status.textContent = 'Connexion au paiement sécurisé…';
-      slot.setAttribute('aria-busy', 'true');
-      timeout = view.setTimeout(showTimeout, 20000);
-      frame.src = url.toString();
-    });
-    status.append(retry);
-    status.append(doc.createTextNode(' · '));
-    addDirectCheckout();
+    addRecoveryActions();
     slot.setAttribute('aria-busy', 'false');
   };
   let timeout = view.setTimeout(showTimeout, 20000);

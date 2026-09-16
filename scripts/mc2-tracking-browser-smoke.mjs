@@ -111,7 +111,12 @@ try {
       assert.ok((await page.$eval('[data-spiffy-slot] iframe', el => el.src)).includes(plan === 'twelve' ? '38556364' : '38556365'));
       assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => getComputedStyle(el).opacity), '1');
       assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => el.getAttribute('aria-hidden')), 'false');
-      if (silentSpiffy) assert.ok(await page.$('.draftx-spiffy-recovery a'));
+      if (silentSpiffy) {
+        assert.equal(await page.$('.draftx-spiffy-recovery a'), null, 'First failure offers retry only');
+        await page.click('.draftx-spiffy-recovery button');
+        await page.waitForSelector('.draftx-spiffy-recovery a', { visible: true });
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-spiffy-slot] iframe')).opacity === '1');
+      }
       await page.click('[data-checkout-step="3"] [data-checkout-back]');
     }
     await page.click('[data-checkout-close]');
