@@ -132,6 +132,8 @@ ok(!uiSource.includes('href="tel:')&&!uiSource.includes('data-contact='),'no cal
 ok(pageSource.includes('<dialog id="contact-dialog"')&&pageSource.includes('type="datetime-local" required'),'native modal with required editable time');
 ok(uiSource.includes('state.contactOpenedAt')&&uiSource.includes('patch.community_access=patch.training_access'),'exact default time and unified access');
 ok(css.includes('--accent:#245ed5')&&!css.includes('--teal'),'blue theme applied');
+ok(pageSource.includes('id="actor-photo"')&&pageSource.includes('media/coachs/romain.webp')&&pageSource.includes('densities={[1,2]}'),'existing Romain portrait optimized as a small avatar');
+ok(uiSource.includes("$('actor-photo').hidden=Number(data.actor.id)!==22"),'Romain portrait only shown for his account, not owner or other coach');
 ok(uiSource.includes('registrationAge(row,timerNow())')&&!/OBJECTIF 48|contactTimer\(/.test(uiSource),'UI uses elapsed enrollment time, not contact deadline');
 ok(!css.includes('data-timer-state=overdue')&&!css.includes('data-timer-state=late'),'no age-based warning colors');
 ok(validateCommand(valid),'valid payload');
