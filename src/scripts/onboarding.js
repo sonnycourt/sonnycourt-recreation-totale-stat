@@ -84,7 +84,7 @@ async function loadList(append=false) {
     if(fresh&&fresh.version>=state.current.version)state.current.purchased_at=fresh.purchased_at;
     $('actor-name').textContent=data.actor.name;
     $('actor-photo').hidden=Number(data.actor.id)!==22;
-    for(const key of ['new','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
+    for(const key of ['all','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
     $('sync-label').textContent=`À jour à ${new Date(data.refreshedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · actualisation 60 s`;
     message(data.syncWarning?'Les dossiers existants restent accessibles, mais les nouvelles arrivées n’ont pas pu être actualisées. Réessaie dans un instant.':'');
     renderList();

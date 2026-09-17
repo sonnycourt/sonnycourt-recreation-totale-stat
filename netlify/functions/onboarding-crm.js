@@ -82,9 +82,9 @@ export function createHandler(db = database) {
         // Un échec de synchronisation ne masque pas les dossiers déjà importés.
         let syncWarning = false;
         try { await db('rpc/onboarding_sync_cases', {}); } catch { syncWarning = true; }
-        const result = group === 'all'
-          ? await db('rpc/onboarding_list_cases', { p_actor: actor.id, p_filter: filter, p_search: search, p_offset: offset })
-          : await listCountryGroup(db,scope,{group,filter,search,offset});
+        // Même règle de classement pour tous les pays, avant pagination.
+        // Aucun changement de schéma ni suppression des dossiers terminés.
+        const result = await listCountryGroup(db,scope,{group,filter,search,offset});
         const timed=await withContactTimings(db,result.cases,scope);
         return reply(200, { ...result, cases: timed.map(presentCase), actor, syncWarning, refreshedAt: new Date().toISOString() });
       }
