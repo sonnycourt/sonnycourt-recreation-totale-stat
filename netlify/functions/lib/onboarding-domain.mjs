@@ -1,6 +1,7 @@
 // Domaine pur : utilisé côté serveur et testé sans réseau ni base de production.
 export const FILTERS = ['all', 'new', 'due', 'booked', 'done', 'paused'];
-export const KINDS = ['updated', 'call_no_answer', 'sms_sent', 'whatsapp_sent', 'contacted', 'completed', 'note'];
+export const CONTACT_LABELS = { call_no_answer:'Appel sans réponse', call_answered:'Appel avec réponse', sms_sent:'SMS envoyé', whatsapp_sent:'Note vocale WhatsApp envoyée', contacted:'Réponse reçue par message', unreachable:'Numéro injoignable', completed:'Onboarding réalisé', note:'Note de suivi' };
+export const KINDS = ['updated', ...Object.keys(CONTACT_LABELS)];
 export const STATUSES = ['new', 'contacting', 'awaiting', 'contacted', 'booked', 'done', 'paused'];
 export const ACTIONS = ['call', 'sms', 'whatsapp', 'followup', 'onboarding', 'none'];
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
@@ -10,10 +11,11 @@ export function validateCommand(body) {
   if (!body || !isUuid(body.case_id) || !isUuid(body.command_id) || !Number.isSafeInteger(body.version) || body.version < 1
     || !KINDS.includes(body.kind) || typeof body.note !== 'string' || body.note.length > 4000
     || !body.patch || typeof body.patch !== 'object' || Array.isArray(body.patch)) return false;
+  if (body.occurred_at !== undefined && !validContactTime(body.occurred_at)) return false;
   for (const [key, value] of Object.entries(body.patch)) {
     if (['goal', 'motivations', 'obstacles', 'routine', 'notes'].includes(key)) {
       if (typeof value !== 'string' || value.length > (key === 'notes' ? 12000 : 4000)) return false;
-    } else if (['training_access', 'community_access', 'feedback_explained'].includes(key)) {
+    } else if (['training_access', 'community_access', 'feedback_explained', 'coaching_booked'].includes(key)) {
       if (typeof value !== 'boolean') return false;
     } else if (['followup_at', 'onboarding_at', 'coaching_at'].includes(key)) {
       if (value !== null && (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*Z$/.test(value) || !Number.isFinite(Date.parse(value)))) return false;
@@ -24,6 +26,31 @@ export function validateCommand(body) {
     } else return false;
   }
   return true;
+}
+
+export function validContactTime(value, now = Date.now()) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T.*Z$/.test(value)
+    && Number.isFinite(Date.parse(value)) && Date.parse(value) >= Date.parse('2000-01-01T00:00:00Z')
+    && Date.parse(value) <= now + 300000;
+}
+export function validateDeletion(body) {
+  return body?.action === 'delete_event' && isUuid(body.case_id) && isUuid(body.event_id)
+    && Number.isSafeInteger(body.version) && body.version > 0;
+}
+
+// Même progression dans la démo et les commandes réelles. Aucune communication.
+export function contactStep(kind, at) {
+  const steps = {
+    call_no_answer: ['contacting', 'sms', at],
+    sms_sent: ['awaiting', 'whatsapp', new Date(Date.parse(at) + 86400000).toISOString()],
+    whatsapp_sent: ['awaiting', 'followup', null],
+    contacted: ['contacted', 'onboarding', null],
+    call_answered: ['contacted', 'onboarding', null],
+    unreachable: ['contacting', 'followup', null],
+    completed: ['done', 'none', null],
+  };
+  const step = steps[kind];
+  return step ? {status:step[0], next_action:step[1], followup_at:step[2]} : {};
 }
 
 // Jour civil Paris, pas +N×24h en UTC : reste juste lors du changement d'heure.

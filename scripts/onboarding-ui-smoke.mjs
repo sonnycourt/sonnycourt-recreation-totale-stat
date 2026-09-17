@@ -8,15 +8,25 @@ try {
   await page.setViewport({width:1440,height:1060,deviceScaleFactor:1});
   await page.goto(`${base}/onboarding/?demo=1`,{waitUntil:'networkidle0'});
   await page.waitForSelector('#case-form');
+  const logContact=async(kind,note='')=>{
+    await page.click('#log-contact');
+    await page.waitForSelector('#contact-dialog[open]');
+    await page.select('#contact-kind',kind);
+    if(note)await page.type('#contact-note',note);
+    await page.click('#contact-form button[type=submit]');
+    await page.waitForFunction(()=>!document.querySelector('#contact-dialog').open);
+  };
+  assert.equal(await page.$$eval('a[href^="tel:"]',e=>e.length),0);
+  assert.equal(await page.$$eval('.checks input',e=>e.length),3);
   assert.equal(await page.$$eval('.person',e=>e.length),4);
   assert.equal(await page.$eval('#count-due',e=>e.textContent),'2');
   await page.screenshot({path:'/private/tmp/onboarding-desktop.png',fullPage:true});
   await page.type('[name=goal]','Mon objectif concret');
-  await page.click('[data-contact=call_no_answer]');
+  await logContact('call_no_answer');
   await page.waitForFunction(()=>document.querySelector('[name=status]').value==='contacting');
   assert.equal(await page.$eval('[name=goal]',e=>e.value),'Mon objectif concret');
   assert.equal(await page.$eval('[name=next_action]',e=>e.value),'sms');
-  await page.click('[data-contact=sms_sent]');
+  await logContact('sms_sent');
   await page.waitForFunction(()=>document.querySelector('[name=status]').value==='awaiting');
   assert.equal(await page.$eval('[name=next_action]',e=>e.value),'whatsapp');
   assert.equal(await page.$$eval('#history li',e=>e.length),2);
@@ -35,11 +45,15 @@ try {
   await page.click('#case-form button[type=submit]');
   await page.waitForFunction(()=>document.querySelector('#save-state').textContent==='Fiche enregistrée');
   // HTML in notes is displayed as text, not executed.
-  await page.type('#event-note','<img src=x onerror="window.__xss=true">');
-  await page.click('#add-note');
+  await logContact('note','<img src=x onerror="window.__xss=true">');
   await page.waitForFunction(()=>document.querySelector('#history').textContent.includes('<img'));
   assert.equal(await page.evaluate(()=>Boolean(window.__xss)),false);
   assert.equal(await page.$$eval('#history img',e=>e.length),0);
+  const historyBefore=await page.$$eval('#history li',e=>e.length);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.click('[data-delete-event]');
+  await page.waitForFunction(n=>document.querySelectorAll('#history li').length===n-1,{},historyBefore);
+  assert.equal(await page.$eval('[name=notes]',e=>e.value),'Brouillon à conserver');
   for(const width of [390,640,820,1440]){
     await page.setViewport({width,height:900,deviceScaleFactor:1});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`no horizontal overflow at ${width}`);

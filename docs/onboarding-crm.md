@@ -25,9 +25,15 @@ Source : `mc2_registrations`, achat confirmé (`purchased_at`, `statut = purchas
 
 ## Suivi
 
-Appel sans réponse → SMS à envoyer maintenant. SMS **réellement envoyé manuellement**, marqué par le coach → rappel WhatsApp à +24 heures. Vocal enregistré → suite à décider, sans relance répétitive automatique. Un contact établi efface le rappel de non-réponse. Dossier en pause : ne pas relancer.
+Un bouton « Noter une prise de contact » ouvre une fenêtre avec scénario, date/heure locale préremplie et note facultative. La date est modifiable rétrospectivement ; le serveur rejette les dates futures (tolérance de 5 minutes pour le décalage d'horloge). Aucun bouton ou lien ne déclenche d'appel.
 
-Notes privées : objectif, motivations, freins, routine, notes libres, accès formation/communauté. Historique daté des 100 dernières actions affiché ; tout l'historique est conservé en base. Liste paginée par 50, recherche nom/email/téléphone/pays/ville, compteurs calculés sur tous les dossiers autorisés.
+Appel sans réponse → SMS à envoyer maintenant. SMS **réellement envoyé manuellement**, marqué par le coach → rappel WhatsApp à +24 heures **de l'envoi déclaré**, pas de la saisie. Vocal enregistré → suite à décider, sans relance répétitive automatique. Un contact établi efface le rappel de non-réponse. Une saisie antérieure à une action plus récente ne remplace pas sa progression. Dossier en pause : ne pas relancer.
+
+Scénarios : appel sans réponse, appel avec réponse, SMS envoyé, vocal WhatsApp envoyé, réponse reçue par message, numéro injoignable, onboarding réalisé, note libre.
+
+Une entrée peut être supprimée par son auteur ou le propriétaire, après confirmation. La suppression est un archivage privé réversible (`deleted_at`, `deleted_by`) : la fiche, ses notes, rendez-vous et son état ne sont pas effacés ni annulés. Les reprises réseau ne recréent pas une entrée supprimée. L'heure réelle du contact et l'heure d'enregistrement sont conservées séparément.
+
+Notes privées : objectif, motivations, freins, routine, notes libres. Trois cases : accès formation et communauté (un seul contrôle qui synchronise les deux anciens champs), feedback J+14 expliqué, premier coaching agendé. Choisir une date de coaching coche le dernier repère sans envoyer d'invitation. Historique daté des 100 dernières actions non supprimées affiché ; tout l'historique est conservé en base. Liste paginée par 50, recherche nom/email/téléphone/pays/ville, compteurs calculés sur tous les dossiers autorisés.
 
 J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d'heure testé). Les saisies d'heures de rendez-vous sont dans le fuseau de l'appareil, indiqué à l'écran. Le serveur refuse un coaching antérieur à J+33. Une date d'onboarding renseignée propose le statut « planifié » et un rappel interne à ce moment.
 
@@ -39,8 +45,9 @@ Le calendrier J+7 par défaut est **théorique**, pas une confirmation de prél�
 
 1. Exécuter `sql/onboarding_crm.sql` dans Supabase. Transaction réexécutable : crée les objets dédiés, autorise les deux comptes et rattrape les engagements zéro éligibles.
 2. Après confirmation que Leila doit être incluse, exécuter `sql/onboarding_crm_history.sql` : exception ancien modèle 3×767 €, trois coachings, pas de démarrage à 0 €. Ajoute aussi les repères historiques déjà vérifiés. Aucun message client.
-3. Vérifier les compteurs avec les requêtes ci-dessous et tester la connexion de Romain sur la preview.
-4. Relire le parcours et valider avant mise en production, exclusivement par `npm run deploy:production`, depuis un `main` propre et synchronisé.
+3. Exécuter `sql/onboarding_crm_contact_history.sql` : ajoute la saisie rétrospective, l'historique supprimable et le coaching agendé. Réexécutable sans écraser les notes existantes ; l'ancienne commande de sauvegarde reste compatible.
+4. Vérifier les compteurs avec les requêtes ci-dessous et tester la connexion de Romain sur la preview.
+5. Relire le parcours et valider avant mise en production, exclusivement par `npm run deploy:production`, depuis un `main` propre et synchronisé.
 
 ```sql
 select source, plan, count(*) from public.onboarding_cases group by source, plan;

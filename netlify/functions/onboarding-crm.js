@@ -1,6 +1,6 @@
 import { getCloserCookieSecret, getCloserCookieValue, verifyCloserToken } from './lib/closer-access-crypto.mjs';
 import { getSupabaseConfig } from './lib/supabase-rest.mjs';
-import { FILTERS, isUuid, validateCommand, presentCase } from './lib/onboarding-domain.mjs';
+import { FILTERS, isUuid, validateCommand, validateDeletion, presentCase } from './lib/onboarding-domain.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify(data), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -20,7 +20,7 @@ async function database(path, body) {
   if (!response.ok) {
     const error = new Error('database');
     // Seuls ces codes métier contrôlés sortent de cette couche.
-    error.reason = ['onboarding_version_conflict','onboarding_forbidden','onboarding_coaching_too_early','onboarding_command_conflict'].includes(data?.message) ? data.message : 'unavailable';
+    error.reason = ['onboarding_version_conflict','onboarding_forbidden','onboarding_coaching_too_early','onboarding_command_conflict','onboarding_invalid_time'].includes(data?.message) ? data.message : 'unavailable';
     throw error;
   }
   return data;
@@ -52,8 +52,8 @@ export function createHandler(db = database) {
           if (!isUuid(id)) return reply(400, { error: 'Dossier invalide.' });
           const row = (await db(`onboarding_cases?id=eq.${id}${scope}&select=*`))?.[0];
           if (!row) return reply(404, { error: 'Dossier introuvable.' });
-          const events = await db(`onboarding_events?case_id=eq.${id}&select=id,actor_id,kind,note,occurred_at&order=occurred_at.desc,id.desc&limit=100`);
-          return reply(200, { case: presentCase(row), events, actor });
+          const events = await db(`onboarding_events?case_id=eq.${id}&deleted_at=is.null&select=id,actor_id,kind,note,occurred_at&order=occurred_at.desc,id.desc&limit=100`);
+          return reply(200, { case: presentCase(row), events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor });
         }
         const filter = url.searchParams.get('filter') || 'all';
         const search = url.searchParams.get('search') || '';
@@ -70,16 +70,22 @@ export function createHandler(db = database) {
       const text = await req.text();
       if (text.length > 40000) return reply(413, { error: 'Notes trop longues.' });
       let body; try { body = JSON.parse(text); } catch { return reply(400, { error: 'Requête invalide.' }); }
+      if (body?.action === 'delete_event') {
+        if (!validateDeletion(body)) return reply(400, { error:'Entrée invalide.' });
+        const row = await db('rpc/onboarding_delete_event', {p_actor:actor.id,p_case:body.case_id,p_version:body.version,p_event:body.event_id});
+        return reply(200, {case:presentCase(row)});
+      }
       if (!validateCommand(body)) return reply(400, { error: 'Vérifie les champs du formulaire.' });
-      const row = await db('rpc/onboarding_save_case', {
+      const row = await db('rpc/onboarding_save_case_v2', {
         p_actor: actor.id, p_case: body.case_id, p_version: body.version, p_command: body.command_id,
-        p_patch: body.patch, p_kind: body.kind, p_note: body.note,
+        p_patch: body.patch, p_kind: body.kind, p_note: body.note, p_occurred_at:body.occurred_at || new Date().toISOString(),
       });
       return reply(200, { case: presentCase(row) });
     } catch (error) {
       if (error.reason === 'onboarding_version_conflict') return reply(409, { error: 'Ce dossier a été modifié dans un autre onglet. Ton brouillon est conservé : copie-le avant de recharger le dossier.' });
       if (error.reason === 'onboarding_forbidden') return reply(403, { error: 'Accès refusé.' });
       if (error.reason === 'onboarding_coaching_too_early') return reply(400, { error: 'Le premier coaching doit être planifié à partir de J+33.' });
+      if (error.reason === 'onboarding_invalid_time') return reply(400, { error: 'Choisis la date et l’heure réelles du contact, pas une date future.' });
       if (error.reason === 'onboarding_command_conflict') return reply(409, { error: 'Commande déjà utilisée. Recharge le dossier.' });
       return reply(503, { error: 'CRM momentanément indisponible ou tables non installées. Rien n’a été envoyé au client. Réessaie dans un instant.' });
     }
