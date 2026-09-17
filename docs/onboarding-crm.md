@@ -39,7 +39,7 @@ J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d
 
 ## Filtre géographique
 
-Le filtre « Pouvoir d’achat du pays » propose tous les pays, fort, plus faible et non renseigné. Il reprend la segmentation interne de `admin-masterclass-optin.js` : FR, BE, CH, CA, LU, MC, DE dans le groupe fort, autres pays connus dans le second groupe ; valeurs absentes ou non reconnues à part. Le pays corrigé (`country_override`) prime sur le pays source. Il ne s'agit pas d'une estimation de solvabilité personnelle ni d'un classement économique universel.
+Le filtre « Pouvoir d’achat du pays » propose tous les pays, fort, plus faible et non renseigné. Il reprend la segmentation interne de `admin-masterclass-optin.js` : FR, BE, CH, CA, LU, MC, DE dans le groupe fort, autres pays connus dans le second groupe ; valeurs absentes ou non reconnues à part. Les codes et les noms de pays en français ou anglais sont reconnus (casse/accents ignorés). Le pays corrigé (`country_override`) prime sur le pays source. Il ne s'agit pas d'une estimation de solvabilité personnelle ni d'un classement économique universel.
 
 Le groupe se combine au statut et à la recherche. Le total et la pagination portent sur l'intersection ; les compteurs rapides portent sur l'ensemble du groupe, indépendamment du statut/recherche. Le mode « Tous » conserve la requête habituelle. Les autres groupes lisent les métadonnées minimales de tous les dossiers autorisés avant pagination, puis seulement les 50 fiches retenues, avec le même filtre d'attribution à chaque lecture. Au-delà de 10 000 métadonnées, la lecture échoue explicitement au lieu de donner des totaux partiels. Aucun SQL à installer, aucune mutation des dossiers.
 

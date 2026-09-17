@@ -18,6 +18,9 @@ ok([null,'','OTHER','ZZ','XX','EU','not a country','AA'].every(country=>caseCoun
 ok(caseCountryGroup({country:' fr '})==='high','normalize ISO case and spaces');
 ok(caseCountryGroup({country:'MA',country_override:'CA'})==='high','corrected country wins');
 ok(caseCountryGroup({country:'FR',country_override:'OTHER'})==='unknown','unknown override is not silently assigned high');
+ok(['France','Belgique','Switzerland','Canada','Luxembourg','Monaco','Germany'].every(country=>caseCountryGroup({country})==='high'),'French and English country labels classified like ISO');
+ok(caseCountryGroup({country:'Autre',country_override:'Burkina Faso'})==='other'&&caseCountryGroup({country:'OTHER',country_override:'République dominicaine'})==='other','historical full-name overrides are known countries');
+ok(caseCountryGroup({country:'  Republique DOMINICAINE '})==='other'&&caseCountryGroup({country:'RDC'})==='other','accent, case, whitespace and common abbreviation normalized');
 const fixture=[row(1),row(2,{country:'CA',status:'done'}),row(3,{country:'MA',status:'awaiting',followup_at:'2026-09-17T10:00:00Z'}),row(4,{country:'GA',status:'booked'}),row(5,{country:null,status:'paused'}),row(6,{country:'CD',display_name:'Élève RDC'})];
 const high=countryGroupPage(fixture,{group:'high',now});
 ok(high.total===2&&high.counts.all===2&&high.counts.new===1&&high.counts.done===1,'group filters list and quick counts');
