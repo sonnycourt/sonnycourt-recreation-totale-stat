@@ -37,6 +37,12 @@ Notes privées : objectif, motivations, freins, routine, notes libres. Trois cas
 
 J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d'heure testé). Les saisies d'heures de rendez-vous sont dans le fuseau de l'appareil, indiqué à l'écran. Le serveur refuse un coaching antérieur à J+33. Une date d'onboarding renseignée propose le statut « planifié » et un rappel interne à ce moment.
 
+## Connexion persistante
+
+Adresse officielle : `https://sonnycourt.com/onboarding/`. Le login existant émet le cookie signé `closer_access` avec `Max-Age=2592000` (30 jours), HttpOnly, Secure en HTTPS, SameSite=Lax et Path=/. La session est relue automatiquement au chargement et survit aux rafraîchissements ; aucune copie du mot de passe n'est stockée dans le navigateur par le CRM. Les aperçus Netlify ont des domaines distincts et ne partagent pas ce cookie.
+
+La déconnexion expire le cookie de ce navigateur. Un compte désactivé est refusé même avant l'expiration ; après 30 jours, une nouvelle connexion est nécessaire. La suppression des cookies, la navigation privée et les autres appareils ne conservent pas nécessairement la session. Vérifications : `node scripts/onboarding-session-smoke.mjs`.
+
 ## Filtre géographique
 
 Le filtre « Pouvoir d’achat du pays » propose tous les pays, fort, plus faible et non renseigné. Il reprend la segmentation interne de `admin-masterclass-optin.js` : FR, BE, CH, CA, LU, MC, DE dans le groupe fort, autres pays connus dans le second groupe ; valeurs absentes ou non reconnues à part. Les codes et les noms de pays en français ou anglais sont reconnus (casse/accents ignorés). Le pays corrigé (`country_override`) prime sur le pays source. Il ne s'agit pas d'une estimation de solvabilité personnelle ni d'un classement économique universel.
