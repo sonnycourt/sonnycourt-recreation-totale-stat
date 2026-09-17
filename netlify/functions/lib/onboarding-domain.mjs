@@ -54,6 +54,12 @@ export function contactStep(kind, at) {
 }
 
 // Jour civil Paris, pas +N×24h en UTC : reste juste lors du changement d'heure.
+export function formatRegistrationTime(iso) {
+  if (!iso || !Number.isFinite(new Date(iso).getTime())) return 'À renseigner';
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone:'Europe/Paris', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit',
+  }).format(new Date(iso));
+}
 export function parisDay(iso) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(iso));
   return ['year', 'month', 'day'].map((type) => parts.find((p) => p.type === type).value).join('-');

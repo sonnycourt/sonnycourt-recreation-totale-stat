@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { validateCommand, validateDeletion, validContactTime, contactStep, plusDays, presentCase } from '../netlify/functions/lib/onboarding-domain.mjs';
+import { validateCommand, validateDeletion, validContactTime, contactStep, plusDays, presentCase, formatRegistrationTime } from '../netlify/functions/lib/onboarding-domain.mjs';
 import { createHandler } from '../netlify/functions/onboarding-crm.js';
 import { signCloserToken, getCloserCookieSecret } from '../netlify/functions/lib/closer-access-crypto.mjs';
 
@@ -94,6 +94,10 @@ ok(original===JSON.stringify((await db.query('select * from public.mc2_registrat
 ok(accounts===JSON.stringify((await db.query('select * from public.closer_access_codes order by id')).rows),'no auth accounts altered by CRM');
 ok(plusDays('2026-09-15T22:09:00Z',7)==='2026-09-23','Paris day across midnight');
 ok(plusDays('2026-10-24T22:30:00Z',7)==='2026-11-01','DST calendar arithmetic');
+ok(formatRegistrationTime('2026-09-17T13:04:00Z').includes('15:04'),'registration hour Paris summer');
+ok(formatRegistrationTime('2026-12-17T13:04:00Z').includes('14:04'),'registration hour Paris winter');
+ok(formatRegistrationTime('2026-09-17T23:15:00Z').includes('18 sept.')&&formatRegistrationTime('2026-09-17T23:15:00Z').includes('01:15'),'registration Paris midnight rollover');
+ok(formatRegistrationTime(null)==='À renseigner'&&formatRegistrationTime('invalid')==='À renseigner','no invented missing timestamp');
 ok(presentCase({...c,payment_date_override:'2026-10-14'}).first_payment_date==='2026-10-14','provider override wins');
 
 const valid={case_id:c.id,version:1,command_id:randomUUID(),kind:'updated',note:'',patch:{goal:'Hello'}};
