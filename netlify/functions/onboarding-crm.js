@@ -1,6 +1,8 @@
 import { getCloserCookieSecret, getCloserCookieValue, verifyCloserToken } from './lib/closer-access-crypto.mjs';
 import { getSupabaseConfig } from './lib/supabase-rest.mjs';
 import { FILTERS, isUuid, validateCommand, validateDeletion, presentCase, SUCCESSFUL_CONTACT_KINDS } from './lib/onboarding-domain.mjs';
+import { COUNTRY_GROUPS } from './lib/onboarding-country-groups.mjs';
+import { listCountryGroup } from './lib/onboarding-country-list.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify({...data,serverNow:new Date().toISOString()}), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -73,13 +75,16 @@ export function createHandler(db = database) {
           return reply(200, { case: presentCase(timed), events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor });
         }
         const filter = url.searchParams.get('filter') || 'all';
+        const group = url.searchParams.get('country_group') || 'all';
         const search = url.searchParams.get('search') || '';
         const offset = Number(url.searchParams.get('offset') || 0);
-        if (!FILTERS.includes(filter) || search.length > 120 || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return reply(400, { error: 'Filtre invalide.' });
+        if (!FILTERS.includes(filter) || !COUNTRY_GROUPS.includes(group) || search.length > 120 || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return reply(400, { error: 'Filtre invalide.' });
         // Un échec de synchronisation ne masque pas les dossiers déjà importés.
         let syncWarning = false;
         try { await db('rpc/onboarding_sync_cases', {}); } catch { syncWarning = true; }
-        const result = await db('rpc/onboarding_list_cases', { p_actor: actor.id, p_filter: filter, p_search: search, p_offset: offset });
+        const result = group === 'all'
+          ? await db('rpc/onboarding_list_cases', { p_actor: actor.id, p_filter: filter, p_search: search, p_offset: offset })
+          : await listCountryGroup(db,scope,{group,filter,search,offset});
         const timed=await withContactTimings(db,result.cases,scope);
         return reply(200, { ...result, cases: timed.map(presentCase), actor, syncWarning, refreshedAt: new Date().toISOString() });
       }

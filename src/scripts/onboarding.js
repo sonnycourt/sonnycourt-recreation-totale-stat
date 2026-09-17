@@ -1,4 +1,5 @@
 import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, registrationAge, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
+import { countryGroupPage } from '../../netlify/functions/lib/onboarding-country-groups.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -48,10 +49,8 @@ const demoEvents = new Map();
 for(const i of [2,3])demoEvents.set(demoCases[i].id,[{id:crypto.randomUUID(),kind:i===2?'call_answered':'completed',note:'Échange fictif de démonstration.',occurred_at:new Date(Date.parse(demoCases[i].purchased_at)+(i===2?20:51)*3600000).toISOString(),can_delete:true}]);
 const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[])});
 function demoList() {
-  const filter=$('filter').value, search=$('search').value.toLocaleLowerCase();
-  const due=(c)=>!['done','paused'].includes(c.status)&&(c.status==='new'||(c.followup_at && Date.parse(c.followup_at)<=Date.now()));
-  const rows=demoCases.filter((c)=>(filter==='all'||(filter==='due'?due(c):c.status===filter))&&`${c.name} ${c.email} ${c.country} ${country(c.country)} ${c.city}`.toLowerCase().includes(search));
-  return { cases:rows.map(demoTimed),total:rows.length, counts:{all:demoCases.length,new:demoCases.filter(c=>c.status==='new').length,due:demoCases.filter(due).length,booked:demoCases.filter(c=>c.status==='booked').length,done:demoCases.filter(c=>c.status==='done').length},actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString() };
+  const page=countryGroupPage(demoCases,{group:$('country-group').value,filter:$('filter').value,search:$('search').value});
+  return {...page,cases:page.cases.map(demoTimed),actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString()};
 }
 
 function renderClocks() {
@@ -76,7 +75,7 @@ async function loadList(append=false) {
   const seq=++state.listSeq;state.loading=true;
   try {
     const offset=append?state.cases.length:0;
-    const q=new URLSearchParams({ filter:$('filter').value,search:$('search').value.trim(),offset:String(offset) });
+    const q=new URLSearchParams({ filter:$('filter').value,country_group:$('country-group').value,search:$('search').value.trim(),offset:String(offset) });
     const data=demo?demoList():await api(`?${q}`);
     if(seq!==state.listSeq)return;
     state.cases=append?[...state.cases,...data.cases]:data.cases;state.total=data.total;
@@ -245,6 +244,7 @@ $('case-list').addEventListener('click',(e)=>{const b=e.target.closest('[data-ca
 $('refresh').addEventListener('click',()=>loadList().catch(e=>message(e.message)));
 $('load-more').addEventListener('click',()=>{if(!state.loading)loadList(true).catch(e=>message(e.message));});
 $('filter').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
+$('country-group').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
 document.querySelectorAll('[data-filter]').forEach((b)=>b.addEventListener('click',()=>{$('filter').value=b.dataset.filter;loadList().catch(e=>message(e.message));}));
 let searchTimer;$('search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadList().catch(e=>message(e.message)),250);});
 async function openCrm() {

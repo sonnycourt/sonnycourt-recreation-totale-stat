@@ -37,6 +37,12 @@ Notes privées : objectif, motivations, freins, routine, notes libres. Trois cas
 
 J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d'heure testé). Les saisies d'heures de rendez-vous sont dans le fuseau de l'appareil, indiqué à l'écran. Le serveur refuse un coaching antérieur à J+33. Une date d'onboarding renseignée propose le statut « planifié » et un rappel interne à ce moment.
 
+## Filtre géographique
+
+Le filtre « Pouvoir d’achat du pays » propose tous les pays, fort, plus faible et non renseigné. Il reprend la segmentation interne de `admin-masterclass-optin.js` : FR, BE, CH, CA, LU, MC, DE dans le groupe fort, autres pays connus dans le second groupe ; valeurs absentes ou non reconnues à part. Le pays corrigé (`country_override`) prime sur le pays source. Il ne s'agit pas d'une estimation de solvabilité personnelle ni d'un classement économique universel.
+
+Le groupe se combine au statut et à la recherche. Le total et la pagination portent sur l'intersection ; les compteurs rapides portent sur l'ensemble du groupe, indépendamment du statut/recherche. Le mode « Tous » conserve la requête habituelle. Les autres groupes lisent les métadonnées minimales de tous les dossiers autorisés avant pagination, puis seulement les 50 fiches retenues, avec le même filtre d'attribution à chaque lecture. Au-delà de 10 000 métadonnées, la lecture échoue explicitement au lieu de donner des totaux partiels. Aucun SQL à installer, aucune mutation des dossiers.
+
 ## Temps écoulé depuis l’inscription
 
 Un indicateur neutre « Inscrit depuis… » sur chaque élève, dans la liste et la fiche, affiche le temps réellement écoulé depuis l'inscription à la formation (`purchased_at`) en jours, heures et minutes, sans secondes, échéance ni couleur d'alerte.
