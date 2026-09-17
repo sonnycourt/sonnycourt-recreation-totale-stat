@@ -226,6 +226,11 @@ export default async (req) => {
     if (action === 'set-credentials') {
       const id = Number(body.id);
       if (!Number.isInteger(id)) return json(400, { error: 'id invalide' });
+      // Le mot de passe lisible de Romain est géré uniquement dans Supabase.
+      // Ne pas créer un hash secondaire ni désynchroniser son email par cette ancienne UI.
+      if (id === 22 && (body.password || (body.email && String(body.email).trim().toLowerCase() !== '2romainorfila@gmail.com'))) {
+        return json(400, { error: 'Les identifiants de Romain sont gérés dans Supabase : closer_readable_credentials.' });
+      }
       const patch = {};
       if (typeof body.email === 'string' && body.email.trim()) {
         const e = body.email.trim().toLowerCase();

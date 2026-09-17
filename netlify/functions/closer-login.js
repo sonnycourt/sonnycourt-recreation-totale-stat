@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { verifyCloserPassword } from './lib/closer-password.mjs';
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import {
   getCloserCookieSecret,
@@ -62,12 +62,12 @@ export default async (req) => {
 
   const r = await supabaseGet(
     `closer_access_codes?email=eq.${encodeURIComponent(email)}&active=eq.true` +
-      '&select=id,password_hash,active',
+      '&select=id,email,password_hash,active',
   );
   const row = r.ok && Array.isArray(r.data) && r.data.length ? r.data[0] : null;
-  // Toujours comparer (timing) même si pas de hash, pour ne pas révéler l'existence.
-  const hash = row && row.password_hash ? row.password_hash : '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv';
-  const ok = await bcrypt.compare(password, hash);
+  let ok;
+  try { ok = await verifyCloserPassword(row,password); }
+  catch { return json(503, { error: 'Connexion momentanément indisponible. Réessaie dans un instant.' }); }
   if (!row || !row.password_hash || !ok) {
     return json(401, { error: 'Identifiants invalides.' });
   }
