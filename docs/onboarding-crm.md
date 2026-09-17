@@ -6,6 +6,7 @@ URL cible : `/onboarding/`. Démonstration : `/onboarding/?demo=1` (données fic
 
 - Nouveau portail privé, API et trois tables dédiées : `onboarding_staff`, `onboarding_cases`, `onboarding_events`.
 - Connexion avec les identifiants closer existants. L'autorisation onboarding est distincte : Romain (coach, attribution par défaut) et Sonny (propriétaire). Aucun droit ajouté aux autres closers.
+- Exception de mot de passe lisible demandée ensuite pour Romain : voir `romain-readable-password.md`. Le compte et ses autorisations ne changent pas.
 - Aucune modification de `/coach/`, de la plateforme coaching, du CRM closer, des pages MC2, du tracking ou des webhooks de paiement.
 - Aucun envoi automatique de SMS, d'email ou de WhatsApp. Copier un exemple / noter un envoi est différent d'envoyer un message.
 - Les rendez-vous sont des repères internes, pas des événements Google Calendar ni des réservations de la plateforme coaching.
