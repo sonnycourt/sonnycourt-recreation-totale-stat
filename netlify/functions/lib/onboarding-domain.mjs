@@ -4,6 +4,8 @@ export const CONTACT_LABELS = { call_no_answer:'Appel sans réponse', call_answe
 export const KINDS = ['updated', ...Object.keys(CONTACT_LABELS)];
 export const STATUSES = ['new', 'contacting', 'awaiting', 'contacted', 'booked', 'done', 'paused'];
 export const ACTIONS = ['call', 'sms', 'whatsapp', 'followup', 'onboarding', 'none'];
+export const SUCCESSFUL_CONTACT_KINDS = ['call_answered', 'contacted', 'completed'];
+export const CONTACT_TARGET_MS = 48 * 60 * 60 * 1000;
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 export const isUuid = (v) => typeof v === 'string' && UUID.test(v);
 
@@ -51,6 +53,40 @@ export function contactStep(kind, at) {
   };
   const step = steps[kind];
   return step ? {status:step[0], next_action:step[1], followup_at:step[2]} : {};
+}
+
+export function firstSuccessfulContact(events) {
+  return events.filter(e=>!e.deleted_at && SUCCESSFUL_CONTACT_KINDS.includes(e.kind) && Number.isFinite(Date.parse(e.occurred_at)))
+    .reduce((first,e)=>!first||Date.parse(e.occurred_at)<Date.parse(first)?e.occurred_at:first,null);
+}
+
+// Le statut de fiche, un SMS envoyé ou un appel sans réponse ne prouvent pas un échange.
+// Seules les dates déclarées de contacts réussis non supprimés arrêtent le compteur.
+export function contactTimer(row, now=Date.now()) {
+  const started=Date.parse(row.purchased_at);
+  if(row.contact_timing_known!==true || !Number.isFinite(started) || started>now)
+    return {state:'unknown',title:'Délai indisponible',value:'—',compact:'Délai 48 h à vérifier',detail:'Actualise la fiche pour vérifier le premier contact.'};
+  const contacted=row.first_successful_contact_at;
+  const end=contacted?Date.parse(contacted):now;
+  if(!Number.isFinite(end) || end<started || end>now+300000)
+    return {state:'unknown',title:'Date de contact à vérifier',value:'—',compact:'Date de contact à vérifier',detail:'Vérifie la date saisie dans l’historique.'};
+  const elapsed=end-started, remaining=CONTACT_TARGET_MS-elapsed;
+  const duration=(ms,clock=false,ceil=false)=>{
+    const seconds=(ceil?Math.ceil:Math.floor)(Math.max(0,ms)/1000);
+    const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60);
+    return clock?[hours,minutes,seconds%60].map(v=>String(v).padStart(2,'0')).join(':'):`${hours} h ${String(minutes).padStart(2,'0')} min`;
+  };
+  if(contacted){
+    const within=elapsed<=CONTACT_TARGET_MS;
+    return {state:within?'within':'late',title:within?'Contact établi dans les 48 h':'Contact établi après 48 h',
+      value:duration(elapsed),compact:`${within?'✓':'◷'} Joint en ${duration(elapsed)}${within?'':' · > 48 h'}`,
+      detail:`Premier échange le ${formatRegistrationTime(contacted)} · Paris.`};
+  }
+  const overdue=remaining<=0;
+  return {state:overdue?'overdue':'waiting',title:overdue?'48 h dépassées, contact à établir':'Temps restant pour le premier échange',
+    value:`${overdue?'+ ':''}${duration(Math.abs(remaining),true,!overdue)}`,
+    compact:overdue?`◷ + ${duration(-remaining)} · sans échange`:`◷ ${remaining<60000?'Moins d’une minute':duration(remaining)} restantes`,
+    detail:'Objectif : 48 h après l’inscription. Aucun échange réussi enregistré.'};
 }
 
 // Jour civil Paris, pas +N×24h en UTC : reste juste lors du changement d'heure.

@@ -1,4 +1,4 @@
-import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime } from '../../netlify/functions/lib/onboarding-domain.mjs';
+import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, contactTimer, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -8,6 +8,7 @@ const actionLabels = { call:'Appeler', sms:'Envoyer le SMS', whatsapp:'WhatsApp 
 const kindLabels = { ...CONTACT_LABELS, updated:'Fiche mise à jour', contacted:'Contact établi / réponse reçue' };
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const state = { cases:[], total:0, selected:null, current:null, dirty:false, saving:false, pending:null, listSeq:0, detailSeq:0, loading:false, detailLoading:false, events:[], modalDirty:false };
+const timerNow=()=>state.serverClock?state.serverClock.ms+performance.now()-state.serverClock.tick:Date.now();
 const fmtDate = (v) => v ? new Intl.DateTimeFormat('fr-FR', { timeZone:'Europe/Paris', day:'numeric', month:'short', year:'numeric' }).format(new Date(v.length === 10 ? `${v}T12:00:00Z` : v)) : 'À renseigner';
 const fmtTime = (v) => v ? new Intl.DateTimeFormat('fr-FR', { dateStyle:'short', timeStyle:'short', timeZone:zone }).format(new Date(v)) : '';
 const datetime = (v) => { if (!v) return ''; const d=new Date(v); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); };
@@ -27,6 +28,7 @@ async function api(path='',body) {
     ...(body?{body:JSON.stringify(body)}:{}), signal:AbortSignal.timeout(40000),
   });
   const data=await res.json();
+  if(Number.isFinite(Date.parse(data.serverNow)))state.serverClock={ms:Date.parse(data.serverNow),tick:performance.now()};
   if(!res.ok){const error=new Error(data.error || 'Connexion impossible. Réessaie.');error.status=res.status;throw error;}
   return data;
 }
@@ -43,17 +45,32 @@ const demoCases = ['Camille Martin','Alex Bernard','Sarah Laurent','Noa Petit'].
   training_access:i>0,community_access:i>0,feedback_explained:i===3,coaching_booked:false,version:1,
 }));
 const demoEvents = new Map();
+for(const i of [2,3])demoEvents.set(demoCases[i].id,[{id:crypto.randomUUID(),kind:i===2?'call_answered':'completed',note:'Échange fictif de démonstration.',occurred_at:new Date(Date.parse(demoCases[i].purchased_at)+(i===2?20:51)*3600000).toISOString(),can_delete:true}]);
+const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[])});
 function demoList() {
   const filter=$('filter').value, search=$('search').value.toLocaleLowerCase();
   const due=(c)=>!['done','paused'].includes(c.status)&&(c.status==='new'||(c.followup_at && Date.parse(c.followup_at)<=Date.now()));
   const rows=demoCases.filter((c)=>(filter==='all'||(filter==='due'?due(c):c.status===filter))&&`${c.name} ${c.email} ${c.country} ${country(c.country)} ${c.city}`.toLowerCase().includes(search));
-  return { cases:rows,total:rows.length, counts:{all:demoCases.length,new:demoCases.filter(c=>c.status==='new').length,due:demoCases.filter(due).length,booked:demoCases.filter(c=>c.status==='booked').length,done:demoCases.filter(c=>c.status==='done').length},actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString() };
+  return { cases:rows.map(demoTimed),total:rows.length, counts:{all:demoCases.length,new:demoCases.filter(c=>c.status==='new').length,due:demoCases.filter(due).length,booked:demoCases.filter(c=>c.status==='booked').length,done:demoCases.filter(c=>c.status==='done').length},actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString() };
+}
+
+function renderClocks() {
+  for(const node of document.querySelectorAll('[data-contact-clock]')){
+    const row=state.current?.id===node.dataset.contactClock?state.current:state.cases.find(c=>c.id===node.dataset.contactClock);
+    if(!row)continue;
+    const timer=contactTimer(row,timerNow());node.dataset.timerState=timer.state;
+    const content=node.dataset.clockDetail==='true'
+      ?`<div><span class="clock-caption">PREMIER ÉCHANGE · OBJECTIF 48 H</span><p>${esc(timer.title)}</p><small>${esc(timer.detail)}</small></div><strong>${esc(timer.value)}</strong>`
+      :esc(timer.compact);
+    if(node.innerHTML!==content)node.innerHTML=content;
+  }
 }
 
 function renderList() {
   $('total').textContent=`${state.total}`;
-  $('case-list').innerHTML=state.cases.length?state.cases.map((c)=>`<div role="listitem"><button class="person ${c.id===state.selected?'selected':''}" data-case="${esc(c.id)}" aria-pressed="${c.id===state.selected}"><span class="person-top"><span class="avatar">${esc(initials(c.name))}</span><span><strong>${esc(c.name)}</strong><span class="place">${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span></span></span><span class="person-bottom"><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span><small>${esc(fmtDate(c.purchased_at))}</small></span><span class="person-next">${esc(actionLabels[c.next_action])}${c.followup_at?' · '+esc(fmtTime(c.followup_at)):''}</span></button></div>`).join(''):'<p class="empty small">Aucun dossier dans cette sélection.</p>';
+  $('case-list').innerHTML=state.cases.length?state.cases.map((c)=>`<div role="listitem"><button class="person ${c.id===state.selected?'selected':''}" data-case="${esc(c.id)}" aria-pressed="${c.id===state.selected}"><span class="person-top"><span class="avatar">${esc(initials(c.name))}</span><span><strong>${esc(c.name)}</strong><span class="place">${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span></span></span><span class="person-bottom"><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span><small>${esc(fmtDate(c.purchased_at))}</small></span><span class="person-next">${esc(actionLabels[c.next_action])}${c.followup_at?' · '+esc(fmtTime(c.followup_at)):''}</span><span class="contact-clock-compact" data-contact-clock="${esc(c.id)}" aria-live="off"></span></button></div>`).join(''):'<p class="empty small">Aucun dossier dans cette sélection.</p>';
   $('load-more').hidden=state.cases.length>=state.total;
+  renderClocks();
 }
 async function loadList(append=false) {
   const seq=++state.listSeq;state.loading=true;
@@ -63,6 +80,9 @@ async function loadList(append=false) {
     const data=demo?demoList():await api(`?${q}`);
     if(seq!==state.listSeq)return;
     state.cases=append?[...state.cases,...data.cases]:data.cases;state.total=data.total;
+    // Rafraîchir seulement le compteur de la fiche ouverte, jamais ses notes/brouillons.
+    const fresh=state.cases.find(c=>c.id===state.current?.id);
+    if(fresh&&fresh.version>=state.current.version){state.current.contact_timing_known=fresh.contact_timing_known;state.current.first_successful_contact_at=fresh.first_successful_contact_at;}
     $('actor-name').textContent=data.actor.name;
     for(const key of ['new','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
     $('sync-label').textContent=`À jour à ${new Date(data.refreshedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · actualisation 60 s`;
@@ -84,11 +104,12 @@ function renderDetail() {
   $('detail').innerHTML=`
     <div class="detail-header"><button class="quiet mobile-back" id="back-list">← Revenir à la liste</button><p class="eyebrow">DOSSIER D’ACCUEIL</p><div class="detail-title"><h2>${esc(c.name)}</h2><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span></div><div class="contact-line"><span>${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a>${phone?`<span class="phone-number">${esc(c.phone)}</span>`:'<span>Téléphone non renseigné</span>'}</div>${c.special_instructions?`<p class="notice">${esc(c.special_instructions)}</p>`:''}</div>
     <section class="detail-section"><div class="section-heading"><h3>Les repères du parcours</h3><small>Dates et heures · Paris</small></div><div class="dates"><div class="date-item">Inscription à la formation<strong>${esc(formatRegistrationTime(c.purchased_at))}</strong></div><div class="date-item">${c.source==='legacy'?'Prochain versement prévu':'Premier versement prévu'}<strong>${esc(fmtDate(c.first_payment_date))}</strong><small>${esc(c.payment_date_source)}</small></div><div class="date-item">Premier coaching à partir du<strong>${esc(fmtDate(c.coaching_from))}</strong><small>J+33 · feedback personnel de Sonny à J+14, le ${esc(fmtDate(c.feedback_date))}.</small></div></div><p class="plan">${esc(c.plan_label)}. Les dates de paiement sont indicatives du calendrier, pas une confirmation d’encaissement.</p></section>
-    <section class="detail-section contact-process"><div class="section-heading"><h3>Le prochain contact</h3><small>Aucun envoi automatique</small></div><div class="process-line"><strong>01 Appel</strong><span>→</span><strong>02 SMS si sans réponse</strong><span>→</span><strong>03 WhatsApp vocal à +24 h</strong></div><p class="suggestion">${waiting?'À partir du '+esc(fmtTime(c.followup_at))+' : ':''}${esc(actionLabels[c.next_action])}${c.status==='paused'?' · Ne pas relancer tant que le dossier est en pause.':'.'}</p><div class="actions"><button class="primary contact-log-button" id="log-contact" type="button">Noter une prise de contact <span aria-hidden="true">＋</span></button></div><details class="draft-message"><summary>Exemple de SMS · à adapter et envoyer toi-même</summary><p id="sms-draft">${esc(sms)}</p><button class="secondary" id="copy-sms" type="button">Copier le SMS</button></details></section>
+    <section class="detail-section contact-process"><div class="section-heading"><h3>Le prochain contact</h3><small>Aucun envoi automatique</small></div><div class="contact-clock" data-contact-clock="${esc(c.id)}" data-clock-detail="true" role="timer" aria-live="off"></div><div class="process-line"><strong>01 Appel</strong><span>→</span><strong>02 SMS si sans réponse</strong><span>→</span><strong>03 WhatsApp vocal à +24 h</strong></div><p class="suggestion">${waiting?'À partir du '+esc(fmtTime(c.followup_at))+' : ':''}${esc(actionLabels[c.next_action])}${c.status==='paused'?' · Ne pas relancer tant que le dossier est en pause.':'.'}</p><div class="actions"><button class="primary contact-log-button" id="log-contact" type="button">Noter une prise de contact <span aria-hidden="true">＋</span></button></div><details class="draft-message"><summary>Exemple de SMS · à adapter et envoyer toi-même</summary><p id="sms-draft">${esc(sms)}</p><button class="secondary" id="copy-sms" type="button">Copier le SMS</button></details></section>
     <form id="case-form"><section class="detail-section"><div class="section-heading"><h3>Comprendre la personne</h3><small>Notes privées · équipe onboarding</small></div><div class="form-grid">${field('goal','Ce qu’elle veut changer / manifester',true)}${field('motivations','Ses motivations')}${field('obstacles','Ses freins')}${field('routine','Sa routine réaliste',true)}${field('notes','Notes utiles pour le suivi',true)}</div><div class="checks">${[['training_access','Accès formation et communauté confirmé'],['feedback_explained','Feedback J+14 expliqué'],['coaching_booked','Premier coaching agendé']].map(([key,label])=>`<label><input type="checkbox" name="${key}" ${(key==='training_access'?(c.training_access||c.community_access):c[key])?'checked':''} />${label}</label>`).join('')}</div><p class="small" style="margin-top:14px">Note uniquement ce qui est utile à l’accompagnement, sans détail médical ou intime inutile.</p></section>
     <section class="detail-section"><div class="section-heading"><h3>Organiser la suite</h3><small>Heures · ${esc(zone)}</small></div><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label><label>Onboarding convenu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label><label>Premier coaching convenu le<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · date Paris.</small></label><label>Rappel de contact<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><p class="small" style="margin-top:14px">Ces dates servent au suivi interne. Elles ne créent pas d’invitation, de lien visio ou de réservation dans un agenda.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer la fiche</button></div></form>
     <p id="detail-message" role="status" hidden></p><section class="detail-section"><div class="section-heading"><h3>Historique des contacts</h3></div><p class="small">Les 100 dernières actions · ${esc(zone)}</p><ul id="history" class="history"></ul><div class="actions" style="margin-top:18px"><button class="quiet" id="copy-draft" type="button">Copier mon brouillon</button><button class="quiet" id="reload-case" type="button">Recharger la fiche</button></div></section>`;
   renderHistory();
+  renderClocks();
   $('case-form').addEventListener('input',setDirty);
   $('case-form').addEventListener('change',setDirty);
   $('case-form').elements.onboarding_at.addEventListener('change',(event)=>{
@@ -112,7 +133,7 @@ async function selectCase(id) {
   if(!canLeave())return;
   const seq=++state.detailSeq;state.detailLoading=true;$('detail').inert=true;
   try {
-    const data=demo?{case:{...demoCases.find(c=>c.id===id)},events:demoEvents.get(id)||[]}:await api(`?id=${encodeURIComponent(id)}`);
+    const data=demo?{case:demoTimed(demoCases.find(c=>c.id===id)),events:demoEvents.get(id)||[]}:await api(`?id=${encodeURIComponent(id)}`);
     if(seq!==state.detailSeq)return;
     state.selected=id;state.current=data.case;state.events=data.events;state.dirty=false;state.pending=null;
     renderList();renderDetail();
@@ -179,6 +200,7 @@ async function save(kind, contact={}) {
       if(!events.some(e=>e.kind!=='note'&&Date.parse(e.occurred_at)>Date.parse(occurred_at)))Object.assign(c,contactStep(kind,occurred_at));
       c.version++;data={case:{...c}};
       demoEvents.set(c.id,[{id:command_id,kind,note,occurred_at,can_delete:true},...events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at)));
+      data.case=demoTimed(c);
     } else data=await api('',{case_id:state.selected,version:state.current.version,command_id,patch,kind,note,occurred_at});
     state.current=data.case;state.dirty=false;state.modalDirty=false;state.pending=null;succeeded=true;
     try{state.events=demo?(demoEvents.get(state.selected)||[]):(await api(`?id=${state.selected}`)).events;}
@@ -207,7 +229,7 @@ async function deleteEvent(id) {
   try{
     if(demo){
       demoEvents.set(state.selected,(demoEvents.get(state.selected)||[]).filter(e=>e.id!==id));
-      const c=demoCases.find(c=>c.id===state.selected);c.version++;state.current={...c};
+      const c=demoCases.find(c=>c.id===state.selected);c.version++;state.current=demoTimed(c);
     }else{
       const data=await api('',{action:'delete_event',case_id:state.selected,version:state.current.version,event_id:id});
       state.current=data.case;
@@ -247,3 +269,12 @@ setInterval(()=>{
   // La fiche ouverte et ses brouillons ne sont jamais remplacés par un rafraîchissement.
   if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving)loadList().catch(e=>message(e.message));
 },60000);
+// Compteur visuel uniquement : aucune requête réseau chaque seconde.
+setInterval(()=>{if(!$('crm-screen').hidden&&!document.hidden)renderClocks();},1000);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    renderClocks();
+    // Resynchroniser l'heure après une mise en veille, sans remplacer le brouillon.
+    if(!$('crm-screen').hidden&&!state.loading&&!state.saving)loadList().catch(e=>message(e.message));
+  }
+});
