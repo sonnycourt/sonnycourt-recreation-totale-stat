@@ -77,6 +77,8 @@ from public.onboarding_staff s join public.closer_access_codes a on a.id=s.close
 
 ## Sécurité et fiabilité
 
+- La liste par défaut « Dossiers en cours » exclut les accueils réalisés. Ils sont conservés avec toutes leurs notes dans « Accueils réalisés », même en recherche et avec un filtre pays. Le compteur « Dossiers en cours » exclut également les terminés. « À contacter » regroupe les nouveaux et les relances arrivées à échéance. Ce classement est partagé entre la démonstration et l’API, avant pagination, sans migration ni effacement.
+
 - Cookie signé HttpOnly existant, compte actif avec mot de passe requis ; un code de recrutement ne suffit pas.
 - Chaque requête contrôle l'autorisation dédiée. Filtrage par coach pour la lecture et contrôle de l'attribution dans la transaction d'écriture. Le rôle propriétaire supervise tous les dossiers.
 - RLS activée, aucun accès aux tables / RPC via `anon` ou `authenticated`. Service-role côté serveur exclusivement.

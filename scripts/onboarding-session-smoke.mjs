@@ -38,7 +38,7 @@ try{
     if(path.startsWith('closer_access_codes'))return active?[account]:[];
     if(path.startsWith('onboarding_staff'))return [{role:'coach'}];
     if(path==='rpc/onboarding_sync_cases')return 0;
-    if(path==='rpc/onboarding_list_cases')return {cases:[],total:0,counts:{all:0}};
+    if(path.startsWith('onboarding_cases?'))return [];
     throw new Error('Unexpected request');
   });
   const crmReq=(savedCookie=cookie)=>new Request('https://sonnycourt.com/.netlify/functions/onboarding-crm',{headers:{'x-onboarding-client':'1',...(savedCookie?{cookie:savedCookie}:{})}});

@@ -193,6 +193,7 @@ const mock=async(path,body)=>{
   if(path.startsWith('closer_access_codes'))return [{id:22,email:'coach@example.test',password_hash:'hash',label:'Romain'}];
   if(path.startsWith('onboarding_staff'))return [{role:'coach'}];
   if(path.includes('select=id,onboarding_events('))return [{id:c.id,onboarding_events:[]}];
+  if(path.includes('&offset='))return new URL(path,'https://db.test/').searchParams.get('offset')==='0'?[c]:[];
   if(path.startsWith('onboarding_cases'))return path.includes('assigned_closer_id=eq.22')?[c]:[];
   if(path.startsWith('onboarding_events'))return [{id:event.id,actor_id:22,kind:'note',note:'Visible',occurred_at:earlier},{id:randomUUID(),actor_id:20,kind:'note',note:'Owner',occurred_at:later}];
   if(path==='rpc/onboarding_sync_cases')return 0;

@@ -27,13 +27,17 @@ export function isCaseDue(row, now=Date.now()) {
 // les compteurs existants ils restent indépendants de la recherche et du statut.
 export function countryGroupPage(rows,{group='all',filter='all',search='',offset=0,now=Date.now()}={}) {
   const scoped=rows.filter(row=>group==='all'||caseCountryGroup(row)===group);
-  const counts={all:scoped.length,new:0,due:0,booked:0,done:0,paused:0};
+  const counts={all:0,new:0,due:0,booked:0,done:0,paused:0};
   for(const row of scoped){
+    if(row.status!=='done')counts.all++;
     if(Object.hasOwn(counts,row.status)&&row.status!=='all'&&row.status!=='due')counts[row.status]++;
     if(isCaseDue(row,now))counts.due++;
   }
   const needle=search.trim().toLowerCase();
   const selected=scoped.filter(row=>{
+    // Les accueils réalisés restent consultables uniquement dans leur filtre,
+    // y compris lors d'une recherche ou avec un filtre pays actif.
+    if(row.status==='done' && filter!=='done')return false;
     if(filter!=='all' && !(filter==='due'?isCaseDue(row,now):row.status===filter))return false;
     if(!needle)return true;
     const code=normalizedCaseCountry(row);
