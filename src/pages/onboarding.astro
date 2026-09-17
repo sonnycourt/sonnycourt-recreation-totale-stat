@@ -1,0 +1,74 @@
+---
+import { Image } from 'astro:assets';
+import romainPortrait from '../../public/media/coachs/romain.webp';
+import '../styles/onboarding.css';
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Onboarding · Esprit Subconscient 2.0</title>
+    <link rel="icon" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="demo-banner" hidden>MODE DÉMONSTRATION · Données fictives · Rien n’est enregistré ni envoyé.</div>
+    <main id="login-screen" class="login-screen">
+      <section class="login-card">
+        <div class="brand-mark">SC<span>ESPRIT SUBCONSCIENT 2.0</span></div>
+        <p class="eyebrow">L’espace des premiers pas</p>
+        <h1>Un bon départ<br />change la suite.</h1>
+        <p>Retrouve tes nouveaux inscrits, prépare leur accueil et accompagne leurs premiers jours.</p>
+        <form id="login-form">
+          <label>Email professionnel<input name="email" type="email" autocomplete="username" required /></label>
+          <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary" type="submit">Ouvrir mon espace <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="small">L’accès onboarding est réservé aux comptes autorisés.</p>
+        <p id="login-message" role="status"></p>
+      </section>
+      <aside class="login-note"><span>01 / L’ACCUEIL</span><h2>Une personne.<br />Une intention.<br />Un vrai suivi.</h2><p>Des échanges humains, avec les bons repères au bon moment.</p></aside>
+    </main>
+
+    <div id="crm-screen" hidden>
+      <header class="topbar">
+        <a class="brand-mark" href="/onboarding/" aria-label="Accueil onboarding">SC<span>ESPRIT SUBCONSCIENT 2.0</span></a>
+        <div class="account"><div class="account-identity"><Image id="actor-photo" src={romainPortrait} alt="Photo de Romain" width={36} height={36} densities={[1,2]} format="webp" quality={85} hidden /><span id="actor-name"></span></div><button id="logout" class="quiet" type="button">Déconnexion</button></div>
+      </header>
+      <main class="workspace">
+        <section class="intro"><div><p class="eyebrow">ESPACE COACH / ONBOARDING</p><h1>Bien commencer, ensemble.</h1><p>Chaque nouvel inscrit mérite un accueil personnel.</p></div><div class="sync"><button id="refresh" class="secondary" type="button">↻ Actualiser</button><span id="sync-label">Actualisation automatique · 60 s</span></div></section>
+        <p id="global-message" role="status" hidden></p>
+        <nav class="metrics" aria-label="Filtres rapides">
+          <button data-filter="new"><span>Nouveaux inscrits</span><strong id="count-new">—</strong><small>Le premier contact compte.</small></button>
+          <button data-filter="due"><span>À contacter maintenant</span><strong id="count-due">—</strong><small>Nouveaux et relances arrivées à échéance.</small></button>
+          <button data-filter="booked"><span>Onboardings planifiés</span><strong id="count-booked">—</strong><small>Un moment dédié pour démarrer.</small></button>
+          <button data-filter="done"><span>Accueils réalisés</span><strong id="count-done">—</strong><small>Les premiers pas sont posés.</small></button>
+        </nav>
+        <div class="crm-grid">
+          <section class="directory" aria-label="Liste des inscrits">
+            <header><h2>Tes inscrits <span id="total"></span></h2><label class="sr-only" for="search">Rechercher un inscrit</label><input id="search" type="search" placeholder="Nom, email, pays…" maxlength="120" autocomplete="off" /><label class="sr-only" for="filter">État du suivi</label><select id="filter"><option value="all">Tous les dossiers</option><option value="new">Nouveaux inscrits</option><option value="due">À contacter maintenant</option><option value="booked">Onboardings planifiés</option><option value="done">Accueils réalisés</option><option value="paused">En pause</option></select><label for="country-group">Pouvoir d’achat du pays</label><select id="country-group" aria-describedby="country-group-help"><option value="all">Tous les pays</option><option value="high">Fort pouvoir d’achat</option><option value="other">Pouvoir d’achat plus faible</option><option value="unknown">Pays non renseigné</option></select><details id="country-group-help" class="country-group-help"><summary>Classement utilisé</summary><p>Fort : France, Belgique, Suisse, Canada, Luxembourg, Monaco et Allemagne. Plus faible : les autres pays renseignés, selon le classement interne. Ce repère ne préjuge pas de la situation financière de chaque élève.</p></details></header>
+            <div id="case-list" role="list"></div>
+            <button id="load-more" class="quiet" type="button" hidden>Afficher la suite</button>
+          </section>
+          <section id="detail" class="detail" aria-label="Fiche de l’inscrit"><div class="empty"><span>↗</span><h2>Une personne, pas une ligne.</h2><p>Sélectionne un inscrit pour préparer son accueil.</p></div></section>
+        </div>
+        <details class="memory"><summary>Aide-mémoire · un accueil de 15 à 20 minutes</summary><ol><li>Te présenter comme son coach attitré.</li><li>Proposer l’onboarding immédiatement par téléphone ou planifier une visioconférence.</li><li>Vérifier l’accès à la formation et à la communauté.</li><li>Comprendre son objectif, ses motivations et ses freins.</li><li>Expliquer le parcours : 3 jours de challenge, puis 30 jours d’audios à raison de 15 à 20 minutes par jour. Définir une routine réaliste.</li><li>Présenter le formulaire de feedback personnel de Sonny à J+14 et planifier le premier coaching à partir de J+33.</li><li>Noter l’essentiel pour un suivi personnel. Adapter les exemples à ce qui te semble naturel.</li></ol><p>Appel → sans réponse, SMS immédiatement → sans réponse au SMS après 24 h, WhatsApp vocal. Ne pas multiplier les relances si la personne demande à ne plus être contactée : passer le dossier en pause.</p></details>
+      </main>
+    </div>
+    <dialog id="contact-dialog" class="contact-dialog" aria-labelledby="contact-dialog-title">
+      <form id="contact-form">
+        <div class="section-heading"><h2 id="contact-dialog-title">Noter une prise de contact</h2><button type="button" class="quiet dialog-close" id="close-contact" aria-label="Fermer">×</button></div>
+        <p class="dialog-intro">Note un échange déjà effectué. Rien ne sera envoyé au client.</p>
+        <label>Type de contact<select name="kind" id="contact-kind" required><option value="">Choisir un scénario…</option></select></label>
+        <label>Date et heure du contact<input id="contact-time" name="occurred_at" type="datetime-local" required /><small id="contact-timezone"></small></label>
+        <label>Note <span class="optional">facultative</span><textarea name="note" id="contact-note" maxlength="4000" rows="3" placeholder="La réponse reçue, ce qui a été convenu…"></textarea></label>
+        <p id="contact-error" class="dialog-error" role="alert" hidden></p>
+        <div class="dialog-actions"><button class="secondary" id="cancel-contact" type="button">Annuler</button><button class="primary" type="submit">Enregistrer le contact</button></div>
+      </form>
+    </dialog>
+    <div id="toast" role="status" hidden></div>
+    <script src="../scripts/onboarding.js"></script>
+  </body>
+</html>
