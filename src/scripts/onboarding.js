@@ -1,4 +1,4 @@
-import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, contactTimer, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
+import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, registrationAge, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -58,9 +58,9 @@ function renderClocks() {
   for(const node of document.querySelectorAll('[data-contact-clock]')){
     const row=state.current?.id===node.dataset.contactClock?state.current:state.cases.find(c=>c.id===node.dataset.contactClock);
     if(!row)continue;
-    const timer=contactTimer(row,timerNow());node.dataset.timerState=timer.state;
+    const timer=registrationAge(row,timerNow());node.dataset.timerState=timer.state;
     const content=node.dataset.clockDetail==='true'
-      ?`<div><span class="clock-caption">PREMIER ÉCHANGE · OBJECTIF 48 H</span><p>${esc(timer.title)}</p><small>${esc(timer.detail)}</small></div><strong>${esc(timer.value)}</strong>`
+      ?`<div><p>${esc(timer.title)}</p><small>${esc(timer.detail)}</small></div><strong>${esc(timer.value)}</strong>`
       :esc(timer.compact);
     if(node.innerHTML!==content)node.innerHTML=content;
   }
@@ -82,7 +82,7 @@ async function loadList(append=false) {
     state.cases=append?[...state.cases,...data.cases]:data.cases;state.total=data.total;
     // Rafraîchir seulement le compteur de la fiche ouverte, jamais ses notes/brouillons.
     const fresh=state.cases.find(c=>c.id===state.current?.id);
-    if(fresh&&fresh.version>=state.current.version){state.current.contact_timing_known=fresh.contact_timing_known;state.current.first_successful_contact_at=fresh.first_successful_contact_at;}
+    if(fresh&&fresh.version>=state.current.version)state.current.purchased_at=fresh.purchased_at;
     $('actor-name').textContent=data.actor.name;
     for(const key of ['new','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
     $('sync-label').textContent=`À jour à ${new Date(data.refreshedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · actualisation 60 s`;

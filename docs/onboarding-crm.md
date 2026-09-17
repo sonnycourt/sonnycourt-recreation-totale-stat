@@ -37,13 +37,13 @@ Notes privées : objectif, motivations, freins, routine, notes libres. Trois cas
 
 J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d'heure testé). Les saisies d'heures de rendez-vous sont dans le fuseau de l'appareil, indiqué à l'écran. Le serveur refuse un coaching antérieur à J+33. Une date d'onboarding renseignée propose le statut « planifié » et un rappel interne à ce moment.
 
-## Premier contact sous 48 heures
+## Temps écoulé depuis l’inscription
 
-Un indicateur sur chaque élève, dans la liste et la fiche, part de l'heure d'inscription à la formation (`purchased_at`) : 48 heures écoulées exactes, et non deux jours civils. Il compte à rebours, puis affiche le dépassement tant qu'aucun échange réussi n'est enregistré.
+Un indicateur neutre « Inscrit depuis… » sur chaque élève, dans la liste et la fiche, affiche le temps réellement écoulé depuis l'inscription à la formation (`purchased_at`) en jours, heures et minutes, sans secondes, échéance ni couleur d'alerte.
 
-Il s'arrête au plus ancien événement non supprimé `call_answered`, `contacted` ou `completed`, en utilisant sa date réelle déclarée (`occurred_at`). Un appel sans réponse, un SMS/vocal simplement envoyé, un rendez-vous planifié ou un statut changé à la main ne suffisent pas. Le résultat reste « dans les 48 h » ou « après 48 h », même plusieurs jours après. Une saisie rétrospective ou la suppression d'une entrée recalcule le résultat.
+Il continue après un contact réussi ou un onboarding réalisé et ne dépend pas de l'historique des contacts. Les saisies et suppressions d'entrées n'affectent pas cette durée. Une date manquante, invalide ou future affiche un état indisponible, jamais une durée inventée ou négative.
 
-La première date est lue dans tout l'historique avec une requête relationnelle limitée à un événement par fiche, indépendamment des 100 dernières actions affichées. Aucune nouvelle colonne, aucun nouveau webhook. Les heures impossibles ou une lecture indisponible donnent un avertissement, jamais une affirmation de réussite. Le compteur suit l'heure serveur et ne déclenche aucune requête chaque seconde ; les notes ouvertes ne sont pas remplacées par les actualisations.
+Le compteur suit l'heure serveur et ne déclenche aucune requête chaque seconde ; les notes ouvertes ne sont pas remplacées par les actualisations. Les métadonnées de premier contact restent compatibles côté API, mais ne pilotent plus cet affichage. Aucune nouvelle colonne, aucun nouveau webhook.
 
 ## Paiements : limite explicite
 
