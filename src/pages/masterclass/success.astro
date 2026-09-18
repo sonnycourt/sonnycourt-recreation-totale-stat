@@ -28,8 +28,8 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
     <GAConsentMode />
     <style>
         html { opacity: 0; }
@@ -49,11 +49,32 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         body {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: var(--text);
-            background:
-                radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.22), transparent 50%),
-                radial-gradient(ellipse at 80% 100%, rgba(34, 197, 94, 0.12), transparent 52%),
-                linear-gradient(180deg, #0a0a1a 0%, #131833 45%, #0a0a1a 100%);
+            background: #070b18;
             min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(37, 99, 235, .34), transparent 38%),
+                radial-gradient(circle at 92% 34%, rgba(251, 146, 60, .1), transparent 30%),
+                linear-gradient(180deg, #0b1634 0%, #080b18 55%, #050710 100%);
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: .16;
+            background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, black, transparent 70%);
         }
 
         .wrap {
@@ -91,12 +112,17 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         }
 
         .steps-heading {
-            font-size: 1.05rem;
-            font-weight: 700;
+            font-size: clamp(1.8rem, 4.8vw, 2.55rem);
+            font-weight: 800;
             color: #fff;
-            margin-top: clamp(8px, 2vw, 14px);
+            text-align: center;
+            background: none;
+            -webkit-text-fill-color: currentColor;
+            margin-top: clamp(48px, 7vw, 64px);
             margin-bottom: 16px;
         }
+
+        .steps-heading span { color: #60a5fa; }
 
         .steps {
             list-style: none;
@@ -107,36 +133,45 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 
         .step-item {
             display: flex;
+            flex-direction: column;
             gap: 12px;
-            align-items: flex-start;
-            background: rgba(15, 23, 42, 0.46);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 14px;
-            padding: 14px;
+            align-items: stretch;
         }
 
         .step-num {
-            flex-shrink: 0;
-            width: 34px;
-            height: 34px;
-            border-radius: 999px;
-            background: rgba(59, 130, 246, 0.12);
-            border: 1px solid rgba(59, 130, 246, 0.28);
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
             color: #60a5fa;
-            margin-top: 1px;
+            margin: 0 0 18px;
         }
-
-        .step-num svg {
-            width: 16px;
-            height: 16px;
+        .step-num small {
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .14em;
+        }
+        .step-num strong {
+            font-size: 2.25rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -.04em;
+        }
+        .step-num::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            margin-left: 6px;
+            background: linear-gradient(90deg, rgba(96,165,250,.5), rgba(96,165,250,.06));
         }
 
         .step-content {
             flex: 1;
             min-width: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.46);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 14px;
+            padding: 14px;
         }
 
         .step-title {
@@ -351,6 +386,116 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             margin-top: 10px;
         }
 
+        .onboarding-steps {
+            gap: 26px;
+        }
+
+        .step-item--coach {
+            align-items: stretch;
+        }
+
+        .coach-profile {
+            display: grid;
+            grid-template-columns: 164px minmax(0, 1fr);
+            gap: 20px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .coach-photo {
+            display: block;
+            width: 164px;
+            height: 164px;
+            border: 2px solid rgba(96, 165, 250, 0.46);
+            border-radius: 20px;
+            object-fit: cover;
+            object-position: center 25%;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+        }
+
+        .coach-name {
+            margin-bottom: 4px;
+            color: #fff;
+            font-size: 1.65rem;
+            font-weight: 800;
+        }
+
+        .coach-phone {
+            color: #bfdbfe;
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-decoration: none;
+        }
+
+        .coach-certification {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 12px;
+            color: #60a5fa;
+            font-family: Caveat, 'Bradley Hand', cursive;
+            font-size: 1.65rem;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+
+        .coach-certification svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+        .whatsapp-qr {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(148, 163, 184, .16);
+        }
+
+        .whatsapp-qr img {
+            width: 180px;
+            height: 180px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .whatsapp-qr p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+        .whatsapp-qr strong { display: block; color: #f8fafc; margin-bottom: 5px; }
+        .coach-contact-confirmation { display: flex; align-items: center; justify-content: flex-start; text-align: left; gap: 13px; margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(147,197,253,.18); cursor: pointer; }
+        .coach-contact-confirmation input { appearance: none; -webkit-appearance: none; display: grid; place-content: center; width: 26px; height: 26px; margin: 0; flex-shrink: 0; border: 1.5px solid #7da2d1; border-radius: 8px; background: rgba(59,130,246,.08); cursor: pointer; }
+        .coach-contact-confirmation input::after { content: ''; width: 6px; height: 11px; border: solid white; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); visibility: hidden; }
+        .coach-contact-confirmation input:checked { background: #2563eb; border-color: #60a5fa; }
+        .coach-contact-confirmation input:checked::after { visibility: visible; }
+        .coach-contact-confirmation input:focus-visible { outline: 3px solid #93c5fd; outline-offset: 4px; }
+        .coach-contact-confirmation strong { display: block; color: #f1f5ff; font-size: .98rem; font-weight: 600; line-height: 1.4; }
+        .coach-contact-confirmation small { display: block; margin-top: 3px; color: #a9c7ef; font-size: .8rem; line-height: 1.4; }
+        #community-access { font-family: inherit; cursor: pointer; }
+        #community-access:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+        @media (max-width: 700px), (hover: none) and (pointer: coarse) {
+            .whatsapp-qr { display: none; }
+        }
+
+        @media (max-width: 540px) {
+            .coach-profile { grid-template-columns: 1fr; gap: 14px; text-align: center; }
+            .coach-photo { width: 176px; height: 176px; margin-inline: auto; }
+            .coach-certification { justify-content: center; }
+        }
+
+        .coach-note {
+            margin-top: 4px;
+            color: rgba(226, 232, 240, 0.66);
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        .coach-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 13px;
+        }
+
         .btn-inline {
             display: inline-flex;
             align-items: center;
@@ -365,6 +510,46 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
             color: #fff;
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             box-shadow: 0 8px 22px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-whatsapp {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            min-height: 48px;
+            background: linear-gradient(125deg, #16b86a 0%, #078545 65%, #087b46 100%);
+            border: 1px solid rgba(134, 239, 172, .35);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 8px 24px rgba(22, 184, 106, .25);
+            transition: box-shadow .2s ease;
+        }
+
+        .btn-whatsapp::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .17) 50%, transparent 70%);
+            transform: translateX(-150%);
+            animation: whatsapp-reflection 6s ease-in-out infinite;
+        }
+
+        .btn-whatsapp:hover {
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 10px 28px rgba(22, 184, 106, .38);
+        }
+
+        .btn-whatsapp:focus-visible {
+            outline: 3px solid #86efac;
+            outline-offset: 4px;
+        }
+
+        @keyframes whatsapp-reflection {
+            0%, 68% { transform: translateX(-150%); }
+            90%, 100% { transform: translateX(150%); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .btn-whatsapp::before { animation: none; }
+            .btn-whatsapp { transition: none; }
         }
 
         .commitment {
@@ -467,7 +652,7 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
         <section class="card">
             <h1>Bienvenue dans<br />Esprit Subconscient 2.0</h1>
             <p class="lead">
-                Tu viens de prendre une décision importante. Cette décision est la preuve que tu crois en ton avenir et que tu as déjà en toi tout ce qu'il faut pour y arriver.<br />Sinon, tu ne te serais pas inscrit.
+                Félicitations ! Ta transformation commence maintenant. 🎉
             </p>
 
             <div class="video-player" id="video-player">
@@ -506,59 +691,68 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
                     </div>
                 </div>
             </div>
-            <p class="video-caption">Un mot personnel avant que tu commences ↑</p>
 
-            <p class="steps-heading">Pour bien commencer ta transformation</p>
-            <ul class="steps">
-                <li class="step-item">
-                    <span class="step-num" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M7 11V8a5 5 0 0 1 10 0v3"></path></svg>
-                    </span>
+            <h1 class="steps-heading"><span>3 CHOSES</span> À FAIRE MAINTENANT</h1>
+            <ul class="steps onboarding-steps">
+                <li class="step-item step-item--coach">
                     <div class="step-content">
-                        <p class="step-title">Crée ton espace personnel sur Volt</p>
-                        <p class="step-text">Inscription en moins d'une minute. Tu accèdes immédiatement à ta formation et à la communauté Volt. Ton nouvel environnement de transformation.</p>
+                        <span class="step-num"><small>ÉTAPE</small><strong>01</strong></span>
+                        <p class="step-title">Écris à ton coach sur WhatsApp</p>
+                        <p class="step-text">Clique sur « Écrire sur WhatsApp » et envoie le message prérempli. Romain te guide ensuite.</p>
+                        <div class="coach-profile">
+                            <img class="coach-photo" src="/media/romain-coach-blue.webp" alt="Romain, coach certifié" width="400" height="400" />
+                            <div>
+                                <p class="coach-name">Romain</p>
+                                <p class="coach-certification">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3 2 3.5.5.5 3.5 2 3-2 3-.5 3.5L15 18l-3 2-3-2-3.5-.5L5 14l-2-3 2-3 .5-3.5L9 4z"/><path d="m8 11 2.5 2.5L16 8"/></svg>
+                                    Coach certifié
+                                </p>
+                                <a class="coach-phone" href="tel:+33756980133">+33 07 56 98 01 33</a>
+                            </div>
+                        </div>
+                        <div class="coach-actions">
+                            <a class="btn-inline btn-whatsapp" href="https://wa.me/33756980133?text=Bonjour%20Romain%2C%20je%20viens%20de%20m%27inscrire%20%C3%A0%20Esprit%20Subconscient%202.0%20%F0%9F%98%8A" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
+                        </div>
+                        <div class="whatsapp-qr">
+                            <img src="/media/romain-whatsapp-qr.svg" alt="QR code pour ouvrir WhatsApp et écrire à Romain" width="220" height="220" />
+                            <p><strong>Tu es sur ordinateur ?</strong>Scanne avec l’appareil photo de ton téléphone, puis envoie le message prérempli dans WhatsApp.</p>
+                        </div>
+                        <label class="coach-contact-confirmation"><input type="checkbox" id="coach-contact-confirmed" aria-describedby="coach-contact-hint" /><span><strong>J’ai contacté mon coach</strong><small id="coach-contact-hint">À faire avant de rejoindre la communauté</small></span></label>
                     </div>
                 </li>
                 <li class="step-item">
-                    <span class="step-num" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M15 10l4.553 -2.276a1 1 0 0 1 1.447 .894v6.764a1 1 0 0 1 -1.447 .894l-4.553 -2.276v-4" /><path d="M3 8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -8" /></svg>
-                    </span>
                     <div class="step-content">
-                        <p class="step-title">Regarde la vidéo de bienvenue sur Volt</p>
-                        <p class="step-text">Une fois connecté, je t'explique comment naviguer dans la communauté Volt et comment tirer le meilleur de ta formation.</p>
+                        <span class="step-num"><small>ÉTAPE</small><strong>02</strong></span>
+                        <p class="step-title">Rejoins la communauté</p>
+                        <p class="step-text">Retrouve la plateforme de formation et les autres membres. Pose tes questions et avance entouré(e).</p>
+                        <div class="step-action"><button type="button" id="community-access" class="btn-inline" disabled data-url="https://volt.sonnycourt.com/join?invitation_token=f0982889650ff1a4ee60eb91ae41979219baf0d6-ee97e544-0084-48d5-9ad0-1aafc01e55ac">Rejoindre la communauté</button></div>
                     </div>
                 </li>
                 <li class="step-item">
-                    <span class="step-num" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M8 2v4M16 2v4M3 10h18"></path></svg>
-                    </span>
                     <div class="step-content">
-                        <p class="step-title">Connecte-toi chaque jour pendant 30 jours</p>
-                        <p class="step-text">Une nouvelle leçon se débloque automatiquement tous les jours. Prends 15 minutes par jour. C'est cette régularité qui crée la vraie transformation.</p>
-                    </div>
-                </li>
-                <li class="step-item">
-                    <span class="step-num" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>
-                    </span>
-                    <div class="step-content">
-                        <p class="step-title">Vérifie ta boîte email</p>
-                        <p class="step-text">Tu vas recevoir ta facture dans les prochaines minutes. Ajoute mon adresse à tes contacts pour ne rien manquer des prochains messages.</p>
+                        <span class="step-num"><small>ÉTAPE</small><strong>03</strong></span>
+                        <p class="step-title">Prépare-toi mentalement et émotionnellement</p>
+                        <p class="step-text">Ta vie est sur le point de changer. Accorde-toi cet espace et laisse-toi vraiment entrer dans cette nouvelle étape.</p>
                     </div>
                 </li>
             </ul>
-
-            <section class="pioneers">
-                <h3>Tu viens de rejoindre un mouvement !</h3>
-                <p>Mes accompagnements ont déjà transformé la vie de plus de 10 000 personnes.<br />Esprit Subconscient 2.0 est l'aboutissement de 10 ans de travail. Le système le plus complet et le plus puissant que j'aie jamais créé.</p>
-            </section>
-
-            <div class="cta-row">
-                <a class="btn btn-primary" href="https://volt.sonnycourt.com/join?invitation_token=f0982889650ff1a4ee60eb91ae41979219baf0d6-ee97e544-0084-48d5-9ad0-1aafc01e55ac">Créer mon compte</a>
-            </div>
-            <p class="support-note">Pour toute question, mon équipe est joignable à support@sonnycourt.com.</p>
+            <p class="support-note">Pour toute question, l’équipe est joignable à support@sonnycourt.com.</p>
         </section>
     </main>
+    <script is:inline>
+        (() => {
+            const confirmation = document.getElementById('coach-contact-confirmed');
+            const access = document.getElementById('community-access');
+            if (!confirmation || !access) return;
+            const sync = () => { access.disabled = !confirmation.checked; };
+            confirmation.addEventListener('change', sync);
+            window.addEventListener('pageshow', sync);
+            access.addEventListener('click', () => {
+                if (confirmation.checked && access.dataset.url) window.location.assign(access.dataset.url);
+            });
+            sync();
+        })();
+    </script>
     <script>
         (function () {
             if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
