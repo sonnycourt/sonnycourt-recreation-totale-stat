@@ -1,0 +1,81 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {paymentCycles,spiffyFacts,paymentSummary} from '../netlify/functions/lib/onboarding-payments-domain.mjs';
+import {loadOnboardingPayments,spiffyRead} from '../netlify/functions/lib/onboarding-payments.mjs';
+import {renderPayments} from '../src/scripts/onboarding-payments.js';
+import {createHandler} from '../netlify/functions/onboarding-crm.js';
+import {signCloserToken,getCloserCookieSecret} from '../netlify/functions/lib/closer-access-crypto.mjs';
+let checks=0;const ok=(condition,label)=>{assert.ok(condition,label);checks++;};
+const now=Date.parse('2026-09-18T12:00:00Z'),upcoming='2026-09-22T12:00:00Z';
+const payment=(id,extra={})=>({id,order_id:10,currency:'EUR',amount:19700,amount_paid:19700,amount_refunded:0,status:'succeeded',created_at:'2026-09-17T12:00:00Z',...extra});
+const order=(payments=[],extra={})=>({id:10,currency:'EUR',items:[{id:1}],subscriptions:[{id:1,order_id:10,status:'active',next_payment_at:upcoming}],payments,...extra});
+const c={id:'a',registration_id:1,email:'demo@example.test',display_name:'Camille',plan:'twelve',source:'mc2',status:'done',purchased_at:'2026-09-15T12:00:00Z'};
+const facts=(payments=[],extra={})=>spiffyFacts(order(payments,extra),c,now);
+const zero=payment(1,{amount:0,amount_paid:0});
+ok(facts([zero]).paid_count===0&&facts([zero]).first_status==='upcoming','zero purchase is never first installment');
+ok(facts([payment(2)]).first_status==='paid','197 euros confirmed');
+const legacy=spiffyFacts(order([payment(2,{amount:76700,amount_paid:76700})],{subscriptions:[],paymentplans:[{id:3,order_id:10,status:'active',next_payment_at:upcoming}]}),{plan:'legacy_three'},now);
+ok(legacy.first_status==='paid'&&legacy.amount_minor===76700,'legacy paymentplan supported separately');
+const financed=spiffyFacts(order([payment(2,{amount:76700,amount_paid:76700})],{items:[{id:1},{id:2}],subscriptions:[],paymentplans:[{order_id:10,item_ids:[1,2],status:'active',next_payment_at:upcoming}]}),{plan:'legacy_three'},now);ok(financed.first_status==='paid','legacy financing fee allowed only inside same verified plan');
+const manual=spiffyFacts(order([payment(2,{amount:76700,amount_paid:76700,is_manual:true})],{items:[{id:1},{id:2}],subscriptions:[],paymentplans:[{order_id:10,item_ids:[1,2],payment_ids:[2],status:'active',next_payment_at:upcoming}]}),{plan:'legacy_three'},now);ok(manual.first_status==='paid','manual initial payment counted only when explicitly referenced by paymentplan');
+assert.throws(()=>facts([],{subscriptions:[{order_id:10,payment_ids:[5]}]}));checks++;
+assert.throws(()=>facts([],{subscriptions:[{order_id:10,price:{amount:5000}}]}));checks++;
+const failed=payment(2,{status:'failed',amount_paid:0,has_pending_retry:true});
+ok(facts([failed]).first_status==='failed','real failure identified');
+const retry=payment(3,{initial_payment_id:2,created_at:'2026-09-18T10:00:00Z'});
+ok(facts([failed,retry]).paid_count===1&&facts([failed,retry]).first_status==='paid','retry resolves failure once');
+ok(paymentCycles([{...failed,attempts:[retry]},retry],19700).length===1,'nested attempt and flat attempt deduplicated');
+const laterFailure=payment(4,{status:'failed',amount_paid:0,created_at:'2026-10-18T10:00:00Z'});
+ok(facts([payment(2),laterFailure]).first_status==='paid'&&facts([payment(2),laterFailure]).next_status==='failed','later failure does not change first paid installment');
+for(const status of ['refunded','disputed','dispute_refunded']){const f=facts([payment(2,{status,amount_paid:0,amount_refunded:19700})]);ok(f.paid_count===0&&['refunded','disputed'].includes(f.first_status),`${status} excluded from cash receipts`);}
+ok(facts([payment(2,{amount_refunded:1000})]).paid_count===0,'partial refund not classified fully paid');
+const expired=order().subscriptions.map(s=>({...s,next_payment_at:'2026-09-18T10:00:00Z'}));
+ok(facts([],{subscriptions:expired}).first_status==='pending'&&facts([],{subscriptions:expired}).next_status==='pending','overdue date alone never means failed');
+ok(facts([],{subscriptions:[{order_id:10,status:'canceled',next_payment_at:upcoming}]}).next_date===null,'canceled future date not upcoming');
+for(const extra of [{subscriptions:[]},{subscriptions:[{},{}]},{subscriptions:[{order_id:999}]},{items:[{},{}]},{currency:'USD'}]){assert.throws(()=>facts([],extra));checks++;}
+for(const p of [payment(1,{amount:100}),payment(1,{is_manual:true}),payment(1,{created_at:null})]){assert.throws(()=>facts([p]));checks++;}
+const rows=[{...facts([payment(2)]),plan:'twelve',available:true},{...facts([failed]),plan:'twelve',available:true},{...facts(),plan:'twelve',available:true},{plan:'twelve',available:false},{...facts([payment(2)]),plan:'twelve',available:true,stale:true},{...facts([payment(2)]),plan:'legacy_three',available:true}];
+const s=paymentSummary(rows,now);ok(s.first_paid===1&&s.first_failed===1&&s.cohort===5&&s.unverified===2&&s.upcoming_count===2,'197 cohort only and missing/stale excluded');
+const dbCalls=[];const db=async path=>{dbCalls.push(path);if(path.startsWith('onboarding_cases'))return path.includes('offset=0')?[c]:[];if(path.startsWith('mc2_registrations'))return [{id:1,token:'fictional'}];if(path.startsWith('mc2_funnel_events'))return [{token:'fictional',metadata:{order_id:10}}];throw new Error('unexpected database query');};
+let calls=0;const read=async(path,params)=>{calls++;if(path==='orders/10')return order();if(path==='payments'){ok(params['filter[order_id]']==='10','payments scoped to verified order');return {data:[zero],pagination:{total:1}};}throw new Error('unexpected provider call');};
+const map=new Map(),store={get:async k=>map.get(k),set:async(k,v)=>map.set(k,v)};
+const first=await loadOnboardingPayments(db,'&assigned_closer_id=eq.22',{read,store,now});
+ok(first.rows.length===1&&first.rows[0].available,'completed onboarding included in payment view');
+ok(dbCalls.filter(p=>p.startsWith('onboarding_cases')).every(p=>p.includes('assigned_closer_id=eq.22')&&!p.includes('status=')),'coach scope enforced without status filter');
+ok(first.rows[0].first_status==='upcoming'&&first.rows[0].paid_count===0,'live loading zero not paid');
+ok(!JSON.stringify(first).includes(c.email)&&!JSON.stringify(first).includes('fictional'),'no email token or raw provider data in response');
+const n=calls;await loadOnboardingPayments(db,'',{read,store,now:now+1000});ok(calls===n,'fresh cache prevents duplicate provider calls');
+const offline=async()=>{throw new Error('provider secret must never reach client');};
+const stale=await loadOnboardingPayments(db,'',{read:offline,store,now:now+31*60000});
+ok(stale.rows[0].stale&&stale.summary.unverified===1,'provider outage marks stale explicitly');
+const none={get:async()=>null,set:async()=>{}};
+const unknown=await loadOnboardingPayments(db,'',{read:offline,store:none,now});ok(!unknown.rows[0].available&&unknown.rows[0].first_status==='unknown','no cache yields unknown not zero receipts');
+const incomplete=await loadOnboardingPayments(db,'',{store:none,now,read:async(path)=>path==='orders/10'?order():{data:[],pagination:{total:1}}});ok(!incomplete.rows[0].available,'incomplete payment list not treated as no payments');
+const ambiguous=await loadOnboardingPayments(async path=>path.startsWith('mc2_funnel_events')?[{token:'fictional',metadata:{order_id:10}},{token:'fictional',metadata:{order_id:11}}]:db(path),'',{read,store:none,now});ok(!ambiguous.rows[0].available,'ambiguous order not guessed');
+const multi=await loadOnboardingPayments(db,'',{store:none,now,read:async(path,params)=>path==='orders/10'?order():params.page===1?{data:[zero],pagination:{total:2}}:{data:[payment(2)],pagination:{total:2}}});ok(multi.rows[0].paid_count===1,'complete pagination');
+const wrapped=await loadOnboardingPayments(db,'',{store:none,now,read:async(path)=>path==='orders/10'?{data:order()}:{data:[zero],pagination:{total:1}}});ok(wrapped.rows[0].available,'Spiffy single-resource data envelope supported');
+const actualMeta=await loadOnboardingPayments(db,'',{store:none,now,read:async(path)=>path==='orders/10'?{data:order()}:{data:[],meta:{pagination:{total_count:0,page:1,total_pages:0,has_more:false}}}});ok(actualMeta.rows[0].available&&actualMeta.rows[0].paid_count===0,'real Spiffy pagination envelope including empty result');
+const legacyDb=async path=>path.startsWith('onboarding_cases')?(path.includes('offset=0')?[{...c,registration_id:null,source:'legacy',plan:'legacy_three'}]:[]):[];
+const envelope=data=>({data,meta:{pagination:{total_count:data.length}}});
+const legacyRead=async(path,params)=>{
+ if(path==='customers'){ok(params['filter[email]']===c.email,'legacy exact email query');return envelope([{id:20,email:c.email}]);}
+ if(path==='orders'){ok(params['filter[customer_id]']==='20'&&!params['filter[email]'],'orders filter only on customer id');return envelope([{id:10,customer_id:20,created_at:c.purchased_at}]);}
+ if(path==='orders/10')return {data:order([],{subscriptions:[],paymentplans:[{order_id:10,status:'active',next_payment_at:upcoming}]})};
+ if(path==='payments')return envelope([payment(2,{amount:76700,amount_paid:76700})]);
+ throw new Error('unexpected');
+};
+const legacyResult=await loadOnboardingPayments(legacyDb,'',{read:legacyRead,store:none,now});ok(legacyResult.rows[0].first_status==='paid'&&legacyResult.summary.cohort===0,'legacy read verified and outside 197 KPI');
+const oldFetch=globalThis.fetch,oldKey=process.env.SPIFFY_ONBOARDING_API_KEY;
+process.env.SPIFFY_ONBOARDING_API_KEY='fixture-key-not-real';
+try{globalThis.fetch=async(url,options)=>{ok(url.origin==='https://api.spiffy.co'&&options.method==='GET','only read-only Spiffy endpoint');ok(options.headers.Authorization==='Bearer fixture-key-not-real','key remains server-side');return new Response('{}');};await spiffyRead('orders/10');await assert.rejects(()=>spiffyRead('subscriptions/1/cancel'));checks++;}finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SPIFFY_ONBOARDING_API_KEY;else process.env.SPIFFY_ONBOARDING_API_KEY=oldKey;}
+process.env.SUPABASE_SERVICE_ROLE_KEY='fictional-test-cookie-secret';
+const token=signCloserToken(getCloserCookieSecret(),60000,22);
+let allowed=0;const handler=createHandler(async path=>path.startsWith('closer_access_codes')?[{id:22,email:'coach@example.test',password_hash:'fixture'}]:[{role:'coach'}],async(db,scope)=>{allowed++;ok(scope==='&assigned_closer_id=eq.22','payment route receives authenticated coach scope');return first;});
+const req=cookie=>new Request('https://example.test/.netlify/functions/onboarding-crm?view=payments',{headers:{'x-onboarding-client':'1',...(cookie?{cookie:`closer_access=${cookie}`}:{})}});
+ok((await handler(req())).status===401&&allowed===0,'anonymous never loads financial data');
+ok((await handler(req(token))).status===200&&allowed===1,'authorized payment request succeeds');
+const html=renderPayments({...first,rows:[{...first.rows[0],name:'<script>bad</script>'}]});ok(html.includes('&lt;script&gt;')&&!html.includes('<script>'),'customer text escaped');
+ok(renderPayments(stale).includes('Anciennes données')&&renderPayments(unknown).includes('Non vérifié'),'uncertainty visible in UI');
+const source=await fs.readFile(new URL('../src/scripts/onboarding.js',import.meta.url),'utf8');ok(source.includes('!payments.isActive()'),'no 60-second provider polling');
+const backend=await fs.readFile(new URL('../netlify/functions/lib/onboarding-payments.mjs',import.meta.url),'utf8');ok(!/stripe|method:'POST'/.test(backend),'no Stripe and no financial mutation');
+console.log(`Versements onboarding : ${checks} vérifications réussies, données fictives, aucun prélèvement ni communication.`);

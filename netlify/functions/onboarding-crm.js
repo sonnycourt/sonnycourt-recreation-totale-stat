@@ -3,6 +3,7 @@ import { getSupabaseConfig } from './lib/supabase-rest.mjs';
 import { FILTERS, isUuid, validateCommand, validateDeletion, presentCase, SUCCESSFUL_CONTACT_KINDS } from './lib/onboarding-domain.mjs';
 import { COUNTRY_GROUPS } from './lib/onboarding-country-groups.mjs';
 import { listCountryGroup } from './lib/onboarding-country-list.mjs';
+import { loadOnboardingPayments } from './lib/onboarding-payments.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify({...data,serverNow:new Date().toISOString()}), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -44,7 +45,7 @@ async function database(path, body) {
   return data;
 }
 
-export function createHandler(db = database) {
+export function createHandler(db = database, payments = loadOnboardingPayments) {
   return async (req) => {
     if (!['GET','POST'].includes(req.method)) return reply(405, { error: 'Méthode non autorisée.' });
     // Le navigateur envoie cet en-tête pour GET aussi : pas de déclenchement via image/iframe tiers.
@@ -65,6 +66,7 @@ export function createHandler(db = database) {
 
       if (req.method === 'GET') {
         const url = new URL(req.url);
+        if(url.searchParams.get('view')==='payments')return reply(200,{...await payments(db,scope),actor});
         const id = url.searchParams.get('id');
         if (id) {
           if (!isUuid(id)) return reply(400, { error: 'Dossier invalide.' });
