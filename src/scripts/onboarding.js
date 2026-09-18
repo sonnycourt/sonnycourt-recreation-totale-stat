@@ -1,5 +1,6 @@
 import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, registrationAge, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
 import { countryGroupPage } from '../../netlify/functions/lib/onboarding-country-groups.mjs';
+import { setupPayments } from './onboarding-payments.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -242,7 +243,8 @@ async function deleteEvent(id) {
 }
 
 $('case-list').addEventListener('click',(e)=>{const b=e.target.closest('[data-case]');if(b)selectCase(b.dataset.case);});
-$('refresh').addEventListener('click',()=>loadList().catch(e=>message(e.message)));
+const payments=setupPayments({api,demo,demoCases,onView:active=>{$('sync-label').textContent=active?'Spiffy · cache de 30 minutes':'Actualisation automatique · 60 s';}});
+$('refresh').addEventListener('click',()=>payments.isActive()?payments.refresh():loadList().catch(e=>message(e.message)));
 $('load-more').addEventListener('click',()=>{if(!state.loading)loadList(true).catch(e=>message(e.message));});
 $('filter').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
 $('country-group').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
@@ -268,7 +270,7 @@ if(demo){$('demo-banner').hidden=false;openCrm().then(()=>selectCase(demoCases[0
 else openCrm().catch(e=>{if(e.status!==401)$('login-message').textContent=e.message;});
 setInterval(()=>{
   // La fiche ouverte et ses brouillons ne sont jamais remplacés par un rafraîchissement.
-  if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving)loadList().catch(e=>message(e.message));
+  if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving && !payments.isActive())loadList().catch(e=>message(e.message));
 },60000);
 // Compteur visuel uniquement : aucune requête réseau chaque seconde.
 setInterval(()=>{if(!$('crm-screen').hidden&&!document.hidden)renderClocks();},1000);
@@ -276,6 +278,6 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
     renderClocks();
     // Resynchroniser l'heure après une mise en veille, sans remplacer le brouillon.
-    if(!$('crm-screen').hidden&&!state.loading&&!state.saving)loadList().catch(e=>message(e.message));
+    if(!$('crm-screen').hidden&&!state.loading&&!state.saving&&!payments.isActive())loadList().catch(e=>message(e.message));
   }
 });

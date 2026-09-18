@@ -57,9 +57,19 @@ Il continue après un contact réussi ou un onboarding réalisé et ne dépend p
 
 Le compteur suit l'heure serveur et ne déclenche aucune requête chaque seconde ; les notes ouvertes ne sont pas remplacées par les actualisations. Les métadonnées de premier contact restent compatibles côté API, mais ne pilotent plus cet affichage. Aucune nouvelle colonne, aucun nouveau webhook.
 
-## Paiements : limite explicite
+## Onglet Versements — Spiffy en lecture seule
 
-Le calendrier J+7 par défaut est **théorique**, pas une confirmation de prélèvement ou de fonds disponibles. Les échéances historiques vérifiées dans Spiffy peuvent le remplacer. Ce CRM ne déclenche aucun paiement et ne certifie pas les encaissements : les marqueurs `paid` de l'inscription à 0 € ne sont pas affichés comme une mensualité réglée. L'échéance historique de Leila est un repère vérifié le 17/09, pas une synchronisation permanente de ses prochaines échéances.
+L’onglet affiche tous les élèves autorisés, y compris les accueils réalisés. Trois compteurs limités au plan 197 € : premier versement encaissé, premier versement actuellement échoué, prochaines échéances sous 7 jours. Les plans 6×347 € et ancien 3×767 € restent visibles dans les lignes individuelles. Le démarrage à 0 € ne compte jamais ; les relances d’une même échéance sont regroupées par `initial_payment_id`. Un remboursement, même partiel, ou un litige n’est pas présenté comme une mensualité entièrement encaissée. Une échéance passée sans résultat vérifiable reste « À confirmer », jamais un échec supposé.
+
+API Spiffy v2 uniquement, GET sur orders/payments/customers. Secret serveur Netlify `SPIFFY_ONBOARDING_API_KEY` (contexte production, Functions). Ni Stripe, ni modification d’abonnement, ni prélèvement, ni communication client. Les achats MC2 sont reliés à la commande Spiffy par l’événement serveur `purchase_completed` et le token de l’inscription. L’exception historique est recherchée via le client à email exact, puis ses commandes uniquement, et filtrée localement par date d’achat ±24 h ; toute ambiguïté reste non vérifiée. Les enveloppes réelles `data` et `meta.pagination.total_count` sont prises en charge.
+
+Snapshots minimaux privés Netlify Blobs `onboarding-payment-snapshots`, cache 30 minutes : statuts/dates/comptages uniquement, jamais la clé ni les données bancaires. Lecture à l’ouverture de l’onglet ou à « Actualiser », pas de polling financier automatique. En cas de panne, les anciennes données sont identifiées et exclues des KPI ; les dossiers sans snapshot sont « Non vérifiés ». Les listes sont paginées complètement ou explicitement refusées ; au-delà de 500 dossiers, la vue demande une adaptation. Le temps de lecture fournisseur est borné pour ne pas bloquer les fiches CRM. Aucune modification SQL nécessaire.
+
+Tests : `node scripts/onboarding-payments-smoke.mjs` (fictifs, hors réseau). Les erreurs financières restent isolées de la consultation et de la sauvegarde des notes. Changer d’onglet masque simplement la fiche sans effacer ses brouillons.
+
+### Repères de calendrier dans la fiche
+
+Le calendrier J+7 par défaut de la fiche est **théorique**, pas une confirmation de prélèvement ou de fonds disponibles. Les échéances historiques vérifiées dans Spiffy peuvent le remplacer. Pour l’état financier actualisé, utiliser l’onglet Versements. Les marqueurs `paid` de l’inscription à 0 € ne sont jamais utilisés pour confirmer une mensualité.
 
 ## Installation — Sonny uniquement
 
