@@ -25,6 +25,16 @@ Source : `mc2_registrations`, achat confirmé (`purchased_at`, `statut = purchas
 
 ## Suivi
 
+### Interface allégée et WhatsApp entrant
+
+`whatsapp_received` signifie que le coach a confirmé avoir reçu le message. Aucun clic, QR code, ouverture de WhatsApp ou envoi supposé n’est traqué. L’indication est calculée depuis tout l’historique non supprimé, indépendamment des 100 dernières entrées affichées ; les anciennes réponses génériques ne sont pas requalifiées en WhatsApp. Sans événement, afficher « Réception WhatsApp non confirmée » ; en cas de panne de lecture, « État WhatsApp indisponible ».
+
+Migration additive `sql/onboarding_whatsapp_received.sql`, à exécuter uniquement par Sonny avant publication. Elle ajoute le type d’événement et adapte de façon ciblée la fonction existante, sans réécrire les données. Confirmation → contact établi et anciennes relances retirées, sauf si le dossier est déjà planifié, terminé ou en pause ; les événements rétrospectifs respectent la protection chronologique existante. Supprimer l’événement retire l’indication WhatsApp, sans annuler les autres informations du dossier.
+
+Objectif et notes restent visibles. Motivations, freins et routine sont conservés dans un volet facultatif. « Prochaine étape » propose de conserver le suivi actuel, planifier l’onboarding, relancer plus tard, terminer l’accueil ou mettre en pause. Les dates ne sont demandées que pour le choix concerné ; les statuts et prochaines actions se déduisent de ce choix. Les réglages manuels restent dans un volet replié. La date du premier coaching suffit à le marquer agendé ; les anciens dossiers déjà agendés sans date gardent cette information. Aucun agenda ni envoi externe.
+
+Tests : `node scripts/onboarding-workflow-smoke.mjs` et `node scripts/onboarding-crm-smoke.mjs`.
+
 Un bouton « Noter une prise de contact » ouvre une fenêtre avec scénario, date/heure locale préremplie et note facultative. La date est modifiable rétrospectivement ; le serveur rejette les dates futures (tolérance de 5 minutes pour le décalage d'horloge). Aucun bouton ou lien ne déclenche d'appel.
 
 Appel sans réponse → SMS à envoyer maintenant. SMS **réellement envoyé manuellement**, marqué par le coach → rappel WhatsApp à +24 heures **de l'envoi déclaré**, pas de la saisie. Vocal enregistré → suite à décider, sans relance répétitive automatique. Un contact établi efface le rappel de non-réponse. Une saisie antérieure à une action plus récente ne remplace pas sa progression. Dossier en pause : ne pas relancer.

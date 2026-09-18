@@ -1,6 +1,7 @@
 import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegistrationTime, registrationAge, firstSuccessfulContact } from '../../netlify/functions/lib/onboarding-domain.mjs';
 import { countryGroupPage } from '../../netlify/functions/lib/onboarding-country-groups.mjs';
 import { setupPayments } from './onboarding-payments.js';
+import { workflowPatch } from '../../netlify/functions/lib/onboarding-workflow.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -17,6 +18,7 @@ const datetime = (v) => { if (!v) return ''; const d=new Date(v); return new Dat
 const initials = (name) => name.trim().split(/\s+/).slice(0,2).map((w)=>w[0]).join('').toUpperCase();
 const countryNames = new Intl.DisplayNames(['fr'], { type:'region' });
 function country(value) { if (!value || ['OTHER','Autre'].includes(value)) return 'Pays non précisé'; try { return /^[A-Z]{2}$/.test(value) ? countryNames.of(value) : value; } catch { return value; } }
+function whatsappLabel(c){return c.whatsapp_received_at?'Message WhatsApp reçu':c.whatsapp_known?'Réception WhatsApp non confirmée':'État WhatsApp indisponible';}
 function toast(text) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toast.timer); toast.timer=setTimeout(()=>{$('toast').hidden=true;},4500); }
 function message(text='') { $('global-message').textContent=text; $('global-message').hidden=!text; }
 function canLeave() { return !state.saving && (!state.dirty || confirm('Des modifications ne sont pas enregistrées. Quitter cette fiche sans les sauvegarder ?')); }
@@ -48,7 +50,7 @@ const demoCases = ['Camille Martin','Alex Bernard','Sarah Laurent','Noa Petit'].
 }));
 const demoEvents = new Map();
 for(const i of [2,3])demoEvents.set(demoCases[i].id,[{id:crypto.randomUUID(),kind:i===2?'call_answered':'completed',note:'Échange fictif de démonstration.',occurred_at:new Date(Date.parse(demoCases[i].purchased_at)+(i===2?20:51)*3600000).toISOString(),can_delete:true}]);
-const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[])});
+const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[]),whatsapp_known:true,whatsapp_received_at:(demoEvents.get(c.id)||[]).find(e=>e.kind==='whatsapp_received')?.occurred_at||null});
 function demoList() {
   const page=countryGroupPage(demoCases,{group:$('country-group').value,filter:$('filter').value,search:$('search').value});
   return {...page,cases:page.cases.map(demoTimed),actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString()};
@@ -68,7 +70,7 @@ function renderClocks() {
 
 function renderList() {
   $('total').textContent=`${state.total}`;
-  $('case-list').innerHTML=state.cases.length?state.cases.map((c)=>`<div role="listitem"><button class="person ${c.id===state.selected?'selected':''}" data-case="${esc(c.id)}" aria-pressed="${c.id===state.selected}"><span class="person-top"><span class="avatar">${esc(initials(c.name))}</span><span><strong>${esc(c.name)}</strong><span class="place">${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span></span></span><span class="person-bottom"><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span><small>${esc(fmtDate(c.purchased_at))}</small></span><span class="person-next">${esc(actionLabels[c.next_action])}${c.followup_at?' · '+esc(fmtTime(c.followup_at)):''}</span><span class="contact-clock-compact" data-contact-clock="${esc(c.id)}" aria-live="off"></span></button></div>`).join(''):'<p class="empty small">Aucun dossier dans cette sélection.</p>';
+  $('case-list').innerHTML=state.cases.length?state.cases.map((c)=>`<div role="listitem"><button class="person ${c.id===state.selected?'selected':''}" data-case="${esc(c.id)}" aria-pressed="${c.id===state.selected}"><span class="person-top"><span class="avatar">${esc(initials(c.name))}</span><span><strong>${esc(c.name)}</strong><span class="place">${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span></span></span><span class="person-bottom"><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span><small>${esc(fmtDate(c.purchased_at))}</small></span><span class="person-whatsapp ${c.whatsapp_received_at?'received':''}">${esc(whatsappLabel(c))}</span><span class="person-next">${esc(actionLabels[c.next_action])}${c.followup_at?' · '+esc(fmtTime(c.followup_at)):''}</span><span class="contact-clock-compact" data-contact-clock="${esc(c.id)}" aria-live="off"></span></button></div>`).join(''):'<p class="empty small">Aucun dossier dans cette sélection.</p>';
   $('load-more').hidden=state.cases.length>=state.total;
   renderClocks();
 }
@@ -105,25 +107,26 @@ function renderDetail() {
   $('detail').innerHTML=`
     <div class="detail-header"><button class="quiet mobile-back" id="back-list">← Revenir à la liste</button><p class="eyebrow">DOSSIER D’ACCUEIL</p><div class="detail-title"><h2>${esc(c.name)}</h2><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span></div><div class="contact-line"><span>${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a>${phone?`<span class="phone-number">${esc(c.phone)}</span>`:'<span>Téléphone non renseigné</span>'}</div>${c.special_instructions?`<p class="notice">${esc(c.special_instructions)}</p>`:''}</div>
     <section class="detail-section"><div class="section-heading"><h3>Les repères du parcours</h3><small>Dates et heures · Paris</small></div><div class="dates"><div class="date-item">Inscription à la formation<strong>${esc(formatRegistrationTime(c.purchased_at))}</strong></div><div class="date-item">${c.source==='legacy'?'Prochain versement prévu':'Premier versement prévu'}<strong>${esc(fmtDate(c.first_payment_date))}</strong><small>${esc(c.payment_date_source)}</small></div><div class="date-item">Premier coaching à partir du<strong>${esc(fmtDate(c.coaching_from))}</strong><small>J+33 · feedback personnel de Sonny à J+14, le ${esc(fmtDate(c.feedback_date))}.</small></div></div><p class="plan">${esc(c.plan_label)}. Les dates de paiement sont indicatives du calendrier, pas une confirmation d’encaissement.</p></section>
-    <section class="detail-section contact-process"><div class="section-heading"><h3>Le prochain contact</h3><small>Aucun envoi automatique</small></div><div class="contact-clock" data-contact-clock="${esc(c.id)}" data-clock-detail="true" role="timer" aria-live="off"></div><div class="process-line"><strong>01 Appel</strong><span>→</span><strong>02 SMS si sans réponse</strong><span>→</span><strong>03 WhatsApp vocal à +24 h</strong></div><p class="suggestion">${waiting?'À partir du '+esc(fmtTime(c.followup_at))+' : ':''}${esc(actionLabels[c.next_action])}${c.status==='paused'?' · Ne pas relancer tant que le dossier est en pause.':'.'}</p><div class="actions"><button class="primary contact-log-button" id="log-contact" type="button">Noter une prise de contact <span aria-hidden="true">＋</span></button></div><details class="draft-message"><summary>Exemple de SMS · à adapter et envoyer toi-même</summary><p id="sms-draft">${esc(sms)}</p><button class="secondary" id="copy-sms" type="button">Copier le SMS</button></details></section>
-    <form id="case-form"><section class="detail-section"><div class="section-heading"><h3>Comprendre la personne</h3><small>Notes privées · équipe onboarding</small></div><div class="form-grid">${field('goal','Ce qu’elle veut changer / manifester',true)}${field('motivations','Ses motivations')}${field('obstacles','Ses freins')}${field('routine','Sa routine réaliste',true)}${field('notes','Notes utiles pour le suivi',true)}</div><div class="checks">${[['training_access','Accès formation et communauté confirmé'],['feedback_explained','Feedback J+14 expliqué'],['coaching_booked','Premier coaching agendé']].map(([key,label])=>`<label><input type="checkbox" name="${key}" ${(key==='training_access'?(c.training_access||c.community_access):c[key])?'checked':''} />${label}</label>`).join('')}</div><p class="small" style="margin-top:14px">Note uniquement ce qui est utile à l’accompagnement, sans détail médical ou intime inutile.</p></section>
-    <section class="detail-section"><div class="section-heading"><h3>Organiser la suite</h3><small>Heures · ${esc(zone)}</small></div><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label><label>Onboarding convenu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label><label>Premier coaching convenu le<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · date Paris.</small></label><label>Rappel de contact<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><p class="small" style="margin-top:14px">Ces dates servent au suivi interne. Elles ne créent pas d’invitation, de lien visio ou de réservation dans un agenda.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer la fiche</button></div></form>
+    <section class="detail-section contact-process"><div class="section-heading"><h3>Le contact avec ton élève</h3></div><div class="contact-clock" data-contact-clock="${esc(c.id)}" data-clock-detail="true" role="timer" aria-live="off"></div><p class="whatsapp-indicator ${c.whatsapp_received_at?'received':''}">${esc(whatsappLabel(c))}${c.whatsapp_received_at?' · '+esc(fmtTime(c.whatsapp_received_at)):''}</p><p class="suggestion">${waiting?'À partir du '+esc(fmtTime(c.followup_at))+' : ':''}${esc(actionLabels[c.next_action])}${c.status==='paused'?' · Ne pas relancer tant que le dossier est en pause.':'.'}</p><div class="actions"><button class="primary contact-log-button" id="log-contact" type="button">Noter un échange <span aria-hidden="true">＋</span></button></div><details class="draft-message"><summary>Exemple de SMS si aucun contact n’a été établi</summary><p id="sms-draft">${esc(sms)}</p><button class="secondary" id="copy-sms" type="button">Copier le SMS</button></details></section>
+    <form id="case-form"><section class="detail-section"><div class="section-heading"><h3>L’essentiel de l’échange</h3><small>Notes privées</small></div><div class="form-grid">${field('goal','Son objectif',true)}${field('notes','Notes de l’échange',true)}</div><details class="additional-notes"><summary>Motivations, freins et routine${[c.motivations,c.obstacles,c.routine].some(Boolean)?' · notes conservées':' · facultatif'}</summary><div class="form-grid">${field('motivations','Ses motivations')}${field('obstacles','Ses freins')}${field('routine','Sa routine réaliste',true)}</div></details><div class="checks">${[['training_access','Accès formation et communauté confirmé'],['feedback_explained','Feedback J+14 expliqué']].map(([key,label])=>`<label><input type="checkbox" name="${key}" ${(key==='training_access'?(c.training_access||c.community_access):c[key])?'checked':''} />${label}</label>`).join('')}</div></section>
+    <section class="detail-section"><div class="section-heading"><h3>Prochaine étape</h3><small>Heures · ${esc(zone)}</small></div><p class="workflow-current">${esc(statusLabels[c.status])}${c.status==='booked'&&c.onboarding_at?' · '+esc(fmtTime(c.onboarding_at)):''}</p><label>Que prévois-tu ?<select id="workflow-step"><option value="keep">Conserver le suivi actuel</option value="booked">Planifier l’onboarding</option><option value="followup">Relancer plus tard</option><option value="done">Marquer l’accueil réalisé</option><option value="paused">Mettre le dossier en pause</option></select></label><div class="workflow-date" id="onboarding-date-field" hidden><label>Onboarding prévu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label></div><div class="workflow-date" id="followup-date-field" hidden><label>Relancer le<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><label class="coaching-date">Premier coaching<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · la date suffit à le marquer comme agendé.${c.coaching_booked&&!c.coaching_at?' Déjà marqué comme agendé, sans date renseignée.':''}</small></label><details class="workflow-advanced" id="workflow-advanced"><summary>Modifier le suivi manuellement</summary><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label></div></details><p class="small" style="margin-top:14px">Repères internes : aucun message ni invitation ne sera envoyé.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer</button></div></form>
     <p id="detail-message" role="status" hidden></p><section class="detail-section"><div class="section-heading"><h3>Historique des contacts</h3></div><p class="small">Les 100 dernières actions · ${esc(zone)}</p><ul id="history" class="history"></ul><div class="actions" style="margin-top:18px"><button class="quiet" id="copy-draft" type="button">Copier mon brouillon</button><button class="quiet" id="reload-case" type="button">Recharger la fiche</button></div></section>`;
   renderHistory();
   renderClocks();
   $('case-form').addEventListener('input',setDirty);
   $('case-form').addEventListener('change',setDirty);
-  $('case-form').elements.onboarding_at.addEventListener('change',(event)=>{
-    if(event.target.value){
-      $('case-form').elements.status.value='booked';
-      $('case-form').elements.next_action.value='onboarding';
-      $('case-form').elements.followup_at.value=event.target.value;
-    }
-  });
-  $('case-form').addEventListener('submit',(e)=>{e.preventDefault();save('updated');});
+  const syncWorkflow=()=>{
+    const choice=$('workflow-step').value,advanced=$('workflow-advanced').open;
+    $('onboarding-date-field').hidden=choice!=='booked'&&!advanced;
+    $('followup-date-field').hidden=choice!=='followup'&&!advanced;
+    $('case-form').elements.onboarding_at.required=choice==='booked';
+    $('case-form').elements.followup_at.required=choice==='followup';
+  };
+  $('workflow-step').addEventListener('change',()=>{$('workflow-advanced').open=false;syncWorkflow();});
+  $('workflow-advanced').addEventListener('toggle',()=>{if($('workflow-advanced').open)$('workflow-step').value='keep';syncWorkflow();});
+  $('case-form').addEventListener('submit',(e)=>{e.preventDefault();save($('workflow-step').value==='done'?'completed':'updated');});
   $('log-contact').addEventListener('click',openContact);
   $('history').addEventListener('click',(e)=>{const b=e.target.closest('[data-delete-event]');if(b)deleteEvent(b.dataset.deleteEvent);});
-  $('case-form').elements.coaching_at.addEventListener('change',(e)=>{if(e.target.value)$('case-form').elements.coaching_booked.checked=true;});
   $('reload-case').addEventListener('click',()=>selectCase(c.id));
   $('copy-draft').addEventListener('click',()=>copy(JSON.stringify({...getPatch()},null,2)));
   $('copy-sms').addEventListener('click',()=>copy(sms));
@@ -144,9 +147,13 @@ async function selectCase(id) {
 function getPatch() {
   const form=$('case-form');const data=new FormData(form),patch={};
   for(const key of ['goal','motivations','obstacles','routine','notes','status','next_action'])patch[key]=data.get(key);
-  for(const key of ['training_access','feedback_explained','coaching_booked'])patch[key]=form.elements[key].checked;
+  for(const key of ['training_access','feedback_explained'])patch[key]=form.elements[key].checked;
   patch.community_access=patch.training_access;
-  for(const key of ['followup_at','onboarding_at','coaching_at'])patch[key]=data.get(key)?new Date(data.get(key)).toISOString():null;
+  patch.coaching_at=data.get('coaching_at')?new Date(data.get('coaching_at')).toISOString():null;
+  patch.coaching_booked=patch.coaching_at?true:state.current.coaching_at?false:!!state.current.coaching_booked;
+  const dates={};for(const key of ['followup_at','onboarding_at'])dates[key]=data.get(key)?new Date(data.get(key)).toISOString():null;
+  if($('workflow-advanced').open)Object.assign(patch,dates);
+  Object.assign(patch,workflowPatch($('workflow-step').value,dates));
   return patch;
 }
 function openContact() {
@@ -198,7 +205,7 @@ async function save(kind, contact={}) {
     if(demo){
       const c=demoCases.find(c=>c.id===state.selected);Object.assign(c,patch);
       const events=demoEvents.get(c.id)||[];
-      if(!events.some(e=>e.kind!=='note'&&Date.parse(e.occurred_at)>Date.parse(occurred_at)))Object.assign(c,contactStep(kind,occurred_at));
+      if(!events.some(e=>e.kind!=='note'&&Date.parse(e.occurred_at)>Date.parse(occurred_at)))Object.assign(c,contactStep(kind,occurred_at,c.status));
       c.version++;data={case:{...c}};
       demoEvents.set(c.id,[{id:command_id,kind,note,occurred_at,can_delete:true},...events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at)));
       data.case=demoTimed(c);

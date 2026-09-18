@@ -1,10 +1,10 @@
 // Domaine pur : utilisé côté serveur et testé sans réseau ni base de production.
 export const FILTERS = ['all', 'new', 'due', 'booked', 'done', 'paused'];
-export const CONTACT_LABELS = { call_no_answer:'Appel sans réponse', call_answered:'Appel avec réponse', sms_sent:'SMS envoyé', whatsapp_sent:'Note vocale WhatsApp envoyée', contacted:'Réponse reçue par message', unreachable:'Numéro injoignable', completed:'Onboarding réalisé', note:'Note de suivi' };
+export const CONTACT_LABELS = { whatsapp_received:'Message WhatsApp reçu', call_no_answer:'Appel sans réponse', call_answered:'Appel avec réponse', sms_sent:'SMS envoyé', whatsapp_sent:'Note vocale WhatsApp envoyée', contacted:'Autre réponse reçue par message', unreachable:'Numéro injoignable', completed:'Onboarding réalisé', note:'Note de suivi' };
 export const KINDS = ['updated', ...Object.keys(CONTACT_LABELS)];
 export const STATUSES = ['new', 'contacting', 'awaiting', 'contacted', 'booked', 'done', 'paused'];
 export const ACTIONS = ['call', 'sms', 'whatsapp', 'followup', 'onboarding', 'none'];
-export const SUCCESSFUL_CONTACT_KINDS = ['call_answered', 'contacted', 'completed'];
+export const SUCCESSFUL_CONTACT_KINDS = ['call_answered', 'contacted', 'completed', 'whatsapp_received'];
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 export const isUuid = (v) => typeof v === 'string' && UUID.test(v);
 
@@ -40,7 +40,8 @@ export function validateDeletion(body) {
 }
 
 // Même progression dans la démo et les commandes réelles. Aucune communication.
-export function contactStep(kind, at) {
+export function contactStep(kind, at, status) {
+  if(kind==='whatsapp_received')return ['booked','done','paused'].includes(status)?{}:{status:'contacted',next_action:'onboarding',followup_at:null};
   const steps = {
     call_no_answer: ['contacting', 'sms', at],
     sms_sent: ['awaiting', 'whatsapp', new Date(Date.parse(at) + 86400000).toISOString()],

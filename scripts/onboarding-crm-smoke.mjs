@@ -120,7 +120,7 @@ ok(firstSuccessfulContact([...Array.from({length:150},()=>({kind:'note',occurred
 const scopedPaths=[];
 const timedFixture=await withContactTimings(async path=>{scopedPaths.push(path);return [{id:c.id,onboarding_events:[{occurred_at:new Date(clockHour(20)).toISOString()}]}];},[c],'&assigned_closer_id=eq.22');
 ok(timedFixture[0].contact_timing_known&&timedFixture[0].first_successful_contact_at===new Date(clockHour(20)).toISOString(),'timing enrichment uses earliest successful date');
-ok(scopedPaths.length===1&&scopedPaths[0].includes('assigned_closer_id=eq.22')&&scopedPaths[0].includes('onboarding_events.order=occurred_at.asc')&&scopedPaths[0].includes('onboarding_events.limit=1')&&scopedPaths[0].includes('deleted_at=is.null'),'one scoped earliest-contact query independent of visible history');
+ok(scopedPaths.length===2&&scopedPaths.every(p=>p.includes('assigned_closer_id=eq.22')&&p.includes('deleted_at=is.null'))&&scopedPaths[0].includes('onboarding_events.limit=1')&&scopedPaths[1].includes('received.kind=eq.whatsapp_received'),'bounded scoped queries independent of visible history');
 ok(!(await withContactTimings(async()=>{throw new Error('offline');},[c],''))[0].contact_timing_known,'timing outage handled as unknown');
 ok(!(await withContactTimings(async()=>[],[c],''))[0].contact_timing_known,'missing case is not treated as zero contacts');
 
@@ -223,5 +223,20 @@ const timingOutage=createHandler(async(path,body)=>{if(path.includes('onboarding
 const timedWrite=await timingOutage(request({method:'POST',headers:{'content-type':'application/json'},body:valid}));
 ok(timedWrite.status===200&&!(await timedWrite.json()).case.contact_timing_known,'timer outage never fails a successful save');
 ok((await createHandler(async(path)=>path.startsWith('closer_access_codes')?[{email:'x',password_hash:null}]:[])(request())).status===401,'recruitment code is not a login');
+const beforeWhatsapp=JSON.stringify((await db.query('select * from public.onboarding_cases order by id')).rows);
+const whatsappMigration=await fs.readFile(new URL('../sql/onboarding_whatsapp_received.sql',import.meta.url),'utf8');
+await db.exec(whatsappMigration);await db.exec(whatsappMigration);
+ok(beforeWhatsapp===JSON.stringify((await db.query('select * from public.onboarding_cases order by id')).rows),'WhatsApp migration twice preserves all existing cases');
+for(const status of ['awaiting','booked','done','paused']){
+  await db.query("update public.onboarding_cases set status=$2,next_action='sms',followup_at=now() where id=$1",[timeline.id,status]);
+  const before=(await db.query('select * from public.onboarding_cases where id=$1',[timeline.id])).rows[0];
+  const cmd=randomUUID();
+  const after=await saveAt(before.version,'whatsapp_received',new Date().toISOString(),{},cmd);
+  ok(after.status===(status==='awaiting'?'contacted':status),'WhatsApp received preserves advanced state '+status);
+  if(status==='awaiting')ok(after.next_action==='onboarding'&&!after.followup_at,'received message clears obsolete outreach');
+  ok(after.notes===before.notes&&after.coaching_at===before.coaching_at,'WhatsApp preserves notes and coaching');
+  const again=await saveAt(before.version,'whatsapp_received',new Date().toISOString(),{},cmd);
+  ok(again.version===after.version,'WhatsApp network retry idempotent');
+}
 await db.close();
 console.log(`Onboarding CRM : ${checks} vérifications réussies (base locale éphémère, aucune communication).`);

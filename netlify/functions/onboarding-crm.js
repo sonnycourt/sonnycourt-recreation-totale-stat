@@ -19,7 +19,12 @@ export async function withContactTimings(db, rows, scope) {
     if(!ids.every(isUuid))throw new Error('invalid case');
     const entries=await db(`onboarding_cases?id=in.(${ids.join(',')})${scope}&select=id,onboarding_events(occurred_at)&onboarding_events.kind=in.(${SUCCESSFUL_CONTACT_KINDS.join(',')})&onboarding_events.deleted_at=is.null&onboarding_events.order=occurred_at.asc&onboarding_events.limit=1`);
     const byId=new Map(entries.filter(e=>Array.isArray(e.onboarding_events)).map(e=>[e.id,e.onboarding_events]));
-    return rows.map(r=>({...r,contact_timing_known:byId.has(r.id),first_successful_contact_at:byId.get(r.id)?.[0]?.occurred_at||null}));
+    let whatsapp=null;
+    try{
+      const received=await db(`onboarding_cases?id=in.(${ids.join(',')})${scope}&select=id,received:onboarding_events(occurred_at)&received.kind=eq.whatsapp_received&received.deleted_at=is.null&received.order=occurred_at.asc&received.limit=1`);
+      whatsapp=new Map(received.filter(r=>Array.isArray(r.received)).map(r=>[r.id,r.received[0]?.occurred_at||null]));
+    }catch{/* Un état indisponible n'empêche jamais de consulter/enregistrer une fiche. */}
+    return rows.map(r=>({...r,contact_timing_known:byId.has(r.id),first_successful_contact_at:byId.get(r.id)?.[0]?.occurred_at||null,whatsapp_known:!!whatsapp?.has(r.id),whatsapp_received_at:whatsapp?.get(r.id)||null}));
   } catch {
     // Une panne du compteur ne bloque jamais les fiches ni une sauvegarde réussie.
     return rows.map(r=>({...r,contact_timing_known:false,first_successful_contact_at:null}));
