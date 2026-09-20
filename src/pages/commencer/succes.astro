@@ -198,10 +198,9 @@ const currentYear = new Date().getFullYear();
           complete.hidden = false;
           title.textContent = 'Tout est prêt.';
           copy.textContent = 'Redirection vers la suite…';
-          // Fragment stays in the browser (not in HTTP requests/referrers).
-          const successUrl = 'https://sonnycourt.com/masterclass/success/#mc2_whatsapp=' + encodeURIComponent(token);
-          complete.querySelector('a').href = successUrl;
-          window.location.assign(successUrl);
+          // Keep attribution off the URL, including third-party page-view telemetry.
+          try { sessionStorage.setItem('mc2_success_token', token); } catch {}
+          window.location.assign('https://sonnycourt.com/masterclass/success/');
         } catch (error) {
           errorNode.textContent = error.message || 'Réessaie dans un instant.';
           button.disabled = false;

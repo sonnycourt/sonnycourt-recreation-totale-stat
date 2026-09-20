@@ -9,7 +9,7 @@ Le chargement/affichage du QR ne produit aucun événement. Les répétitions so
 
 **Ces signaux ne prouvent jamais l'envoi ou la réception du message.** La confirmation manuelle de Romain reste indépendante. Une ouverture de lien QR n'est pas une preuve absolue de scan : les previews connues sont exclues, mais un lien partagé ou un lecteur non identifiable reste possible. L'absence d'événement n'est pas une preuve d'absence d'action (ancien QR, tracking bloqué, identité absente, panne).
 
-La confirmation `/commencer/succes/` transmet le token via le fragment de la redirection, jamais à WhatsApp. Le QR contient une référence chiffrée et authentifiée, valable 30 jours ; elle ne permet que d'enregistrer l'ouverture QR. Rotation de la clé serveur : anciens liens continuent d'ouvrir WhatsApp, sans attribution. Aucun service tiers ne génère les QR.
+La confirmation `/commencer/succes/` conserve le token en sessionStorage avant la redirection, jamais dans l'URL ni à WhatsApp. Si le stockage est indisponible, l'accès reste inchangé mais l'attribution peut manquer. Le QR contient une référence chiffrée et authentifiée, valable 30 jours ; elle ne permet que d'enregistrer l'ouverture QR. Rotation de la clé serveur : anciens liens continuent d'ouvrir WhatsApp, sans attribution. Aucun service tiers ne génère les QR.
 
 Le bouton conserve son lien WhatsApp direct. Le QR statique reste visible jusqu'au chargement du QR personnalisé. Le redirecteur QR continue vers WhatsApp même si l'écriture échoue ; attente Supabase bornée à 1,2 seconde. Les pages preview/demo ne font pas d'appels. Les tests ne contactent aucun service réel.
 

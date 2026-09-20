@@ -69,8 +69,8 @@ async function frontend({ blocked = false, preview = false, noIdentity = false }
   const image = { src: '/original.svg' };
   const context = {
     URLSearchParams,
-    location: { search: preview ? '?preview=dev' : '', hash: noIdentity ? '' : `#mc2_whatsapp=${token}` },
-    sessionStorage: { setItem() {}, getItem() { return ''; } },
+    location: { search: preview ? '?preview=dev' : '' },
+    sessionStorage: { setItem() {}, getItem() { return noIdentity ? '' : token; } },
     localStorage: { getItem() { return ''; } },
     document: { getElementById(id) { return id === 'coach-whatsapp' ? { addEventListener(name, fn) { listeners[name] = fn; } } : image; } },
     Image: class { set src(value) { this.onload(); } },

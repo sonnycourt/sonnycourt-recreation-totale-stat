@@ -5,7 +5,7 @@ export function initSuccessWhatsApp() {
   if (!button || !qr) return;
   const params = new URLSearchParams(location.search);
   if (params.has('preview') || params.has('demo')) return;
-  let token = new URLSearchParams(location.hash.slice(1)).get('mc2_whatsapp') || params.get('t') || params.get('mc2_token') || '';
+  let token = params.get('t') || params.get('mc2_token') || '';
   try {
     if (token) sessionStorage.setItem('mc2_success_token', token);
     else token = sessionStorage.getItem('mc2_success_token') || localStorage.getItem('mc2_registration_token') || '';
