@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {projectPayments,paymentEvent} from '../netlify/functions/lib/mc2-payment-tracking-domain.mjs';
+import {collectPayments,deliverPayments} from '../netlify/functions/lib/mc2-payment-tracking-worker.mjs';
+let checks=0;const check=(x,label)=>{assert.ok(x,label);checks++;};
+const now=Date.parse('2026-09-23T12:00:00Z'),date='2026-09-22T12:00:00Z';
+const source={order_id:'10',token:'fake',plan:'twelve',purchased_at:'2026-09-15T12:00:00Z'};
+const p=(id,extra={})=>({id,order_id:10,amount:19700,amount_paid:19700,amount_refunded:0,currency:'eur',status:'succeeded',created_at:date,updated_at:'2026-09-22T12:00:05Z',...extra});
+const order=ps=>({id:10,checkout_id:40406,created_at:source.purchased_at,currency:'EUR',items:[{id:1}],subscriptions:[{order_id:10,status:'active',price:{amount:19700}}],payments:ps});
+const project=ps=>projectPayments(order(ps),source,now);
+let result=project([]);check(result.events.length===1&&result.events[0].amount_minor===0,'commitment is distinct and zero');
+result=project([p(1)]);check(result.events.length===2&&result.ledger[0].paid_minor===19700,'confirmed installment');
+const failed=p(1,{status:'failed',amount_paid:0}),retry=p(2,{initial_payment_id:1});
+result=project([failed,retry]);check(result.ledger.length===1&&result.events.filter(e=>e.event_name==='MC2_PaymentCollected').length===1,'retry one installment');
+check(project([failed]).events.length===1,'failure is not cash');
+result=project([p(1,{amount_refunded:1000,refunded_at:'2026-09-23T11:00:00Z'})]);
+check(result.ledger[0].status==='refunded'&&result.events.some(e=>e.event_name==='MC2_PaymentRefunded'&&e.amount_minor===1000),'partial refund exact');
+check(project([p(1,{status:'disputed'})]).ledger[0].status==='disputed','dispute local without inventing date');
+check(project([p(1,{updated_at:'2026-09-23T11:00:00Z'})]).events.length===1,'uncertain capture date never sent');
+for(const ps of [[p(1,{currency:'USD'})],[p(1,{order_id:11})],[retry],[p(1),retry],[p(1,{created_at:null})],[p(1,{amount_paid:500})],[p(1,{amount_refunded:30000})],[p(1,{is_manual:true})]]){
+ assert.throws(()=>project(ps));checks++;
+}
+check(paymentEvent('10','MC2_PaymentCollected','1',date,19700).event_id===paymentEvent('10','MC2_PaymentCollected','1',date,19700).event_id,'stable event ids');
+let called=0;const never=async()=>{called++;throw new Error('unexpected');};
+check((await collectPayments({deployContext:'deploy-preview',db:never})).skipped==='non_production'&&called===0,'preview cannot collect');
+check((await deliverPayments({deployContext:'deploy-preview',db:never})).skipped==='non_production'&&called===0,'preview cannot send');
+const disabled=async()=>[{collect_enabled:false,send_enabled:false}];
+check((await collectPayments({deployContext:'production',db:disabled,read:never})).skipped==='disabled','collection switch');
+check((await deliverPayments({deployContext:'production',db:disabled,send:never})).skipped==='disabled','delivery switch');
+const evt={...paymentEvent('10','MC2_PaymentCollected','1',date,19700),status:'pending',attempts:0};
+let sent=0,patches=[];
+const db=async(path,options={})=>{
+ if(options.method==='PATCH'){const body=JSON.parse(options.body);patches.push(body);return [body];}
+ if(path.startsWith('mc2_payment_tracking_control'))return [{send_enabled:true,send_from:'2026-09-20T00:00:00Z'}];
+ if(path.startsWith('mc2_payment_tracking_outbox'))return [evt];
+ if(path.startsWith('mc2_payment_tracking_orders'))return [source];
+ if(path.startsWith('mc2_registrations'))return [{token:'fake',traffic_source:'meta_ad',email:'test@example.test'}];
+ if(path.startsWith('mc2_tracking_test_registrations'))return [];
+ throw new Error(path);
+};
+const send=async payload=>{sent++;check(payload.value===197&&payload.eventName==='MC2_PaymentCollected','exact collected amount not contract total');return {ok:true,response:{events_received:1}};};
+check((await deliverPayments({db,send,now,deployContext:'production'})).sent===1&&sent===1,'acknowledged delivery');
+check(patches.some(p=>p.status==='sent'),'ack logged');
+patches=[];await deliverPayments({db,send:async()=>({ok:true,response:{}}),now,deployContext:'production'});check(patches.some(p=>p.status==='retry'),'missing ack retry');
+patches=[];await deliverPayments({db,send:never,now:now+8*86400000,deployContext:'production'});check(patches.some(p=>p.status==='skipped'),'old event never redated');
+const testDb=async(path,opts)=>path.startsWith('mc2_tracking_test_registrations')?[{token:'fake'}]:db(path,opts);
+patches=[];await deliverPayments({db:testDb,send:never,now,deployContext:'production'});check(patches.some(p=>p.status==='skipped'),'test events not transmitted');
+const lostLease=async(path,opts)=>opts?.method==='PATCH'?[]:db(path,opts);
+check((await deliverPayments({db:lostLease,send:never,now,deployContext:'production'})).sent===0,'losing claim cannot send');
+const src=await readFile(new URL('../netlify/functions/lib/mc2-payment-tracking-worker.mjs',import.meta.url),'utf8');
+check(!src.includes('supabasePatch')&&!src.includes('stripe'),'isolated from existing state/payment mutations');
+let writes=[];
+const collectDb=async(path,options={})=>{
+ if(options.method){check(path.startsWith('mc2_payment_tracking_'),'writes restricted to new tables');writes.push({path,body:JSON.parse(options.body)});return [JSON.parse(options.body)];}
+ if(path.startsWith('mc2_payment_tracking_control'))return [{collect_enabled:true}];
+ if(path.includes('select=purchased_at'))return [];
+ if(path.startsWith('mc2_funnel_events'))return [{token:'fake',occurred_at:source.purchased_at,metadata:{order_id:'10',checkout_id:'40406',plan:'twelve',amount_cents:0}}];
+ if(path.startsWith('mc2_payment_tracking_orders'))return [source];
+ if(path.startsWith('mc2_tracking_test_registrations'))return [];
+ throw new Error(path);
+};
+const read=async(path,params)=>path==='orders/10'?{data:order([p(1)])}:{data:[p(1)],meta:{pagination:{total_count:1}}};
+check((await collectPayments({db:collectDb,read,now,deployContext:'production'})).checked===1,'collection complete');
+check(writes.find(w=>w.path==='mc2_payment_tracking_outbox').body.length===2,'commitment plus payment queued');
+check(writes.find(w=>w.path==='mc2_payment_tracking_ledger').body[0].paid_minor===19700,'ledger actual cash');
+writes=[];
+const broken=async(path)=>path==='orders/10'?{data:order([])}:{data:[],meta:{pagination:{total_count:1}}};
+check((await collectPayments({db:collectDb,read:broken,now,deployContext:'production'})).errors===1,'incomplete provider pages rejected');
+check(!writes.some(w=>w.path.endsWith('outbox')||w.path.endsWith('ledger')),'incomplete data no events');
+const twelve=Array.from({length:12},(_,i)=>p(i+1,{created_at:new Date(now-(12-i)*86400000).toISOString(),updated_at:new Date(now-(12-i)*86400000+5000).toISOString()}));
+check(project(twelve).events.filter(e=>e.event_name==='MC2_PaymentCollected').length===12,'twelve distinct installments');
+console.log(`${checks} checks passed; mocked providers only, no real Meta event or payment.`);
