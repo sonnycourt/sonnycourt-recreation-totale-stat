@@ -3565,7 +3565,11 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
 
                 const result = await response.json();
 
-                if (result.reason === 'country_not_available' || result.reason === 'invalid_phone') {
+                if (result.reason === 'country_not_available') {
+                    window.location.replace('/challenge-transformation-offre/');
+                    return;
+                }
+                if (result.reason === 'invalid_phone') {
                     formStatus.textContent = result.error;
                     submitBtn.disabled = false;
                     submitBtn.textContent = STEP3_SUBMIT_LABEL;
@@ -3847,11 +3851,18 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                     const response = await fetch('/.netlify/functions/check-mc2-phone-country', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ telephone: state.phone }),
+                        body: JSON.stringify({ telephone: state.phone, email: state.email, prenom: state.name,
+                            optin_funnel_id: optinFunnelId,
+                            ...(metaOptin ? metaOptin.getPayload() : {}),
+                        }),
                         signal: AbortSignal.timeout(10000),
                     });
                     if (!response.ok) throw new Error('phone_country_unavailable');
                     const result = await response.json();
+                    if (result.reason === 'country_not_available') {
+                        window.location.replace('/challenge-transformation-offre/');
+                        return;
+                    }
                     if (result.eligible !== true) {
                         message.textContent = result.message || 'Vérification impossible. Réessaie dans un instant.';
                         return;

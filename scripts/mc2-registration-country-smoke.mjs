@@ -50,7 +50,8 @@ for (const telephone of [getExampleNumber('GA', examples).number, '', '+18097620
   writes = [];
   const res = await register(request({ ...body, telephone }));
   assert.ok([400,403].includes(res.status));
-  assert.equal(writes.length, 0, 'Rejected phones must create no lead, token, email, SMS or CAPI');
+  assert.equal(writes.length, telephone ? 1 : 0);
+  assert.ok(writes.every(x => x.url.includes('/mc2_challenge_contacts?')), 'Only separate Supabase contact storage; no webinar, messaging or CAPI');
 }
 writes = [];
 assert.equal((await register(request(body))).status, 200);
@@ -68,20 +69,24 @@ assert.ok(source.includes('check-mc2-phone-country'));
 const clickHandler = source.match(/document\.getElementById\('step2-next'\)\.addEventListener\('click', async function \(\) \{([\s\S]*?)\n            \}\);/)[1];
 for (const scenario of ['allowed', 'blocked', 'offline']) {
   let advanced = 0;
+  let redirect = '';
   const button = { disabled: false, textContent: 'Continuer' };
   const message = { textContent: '' };
   const context = {
     document: { getElementById: id => id === 'step2-next' ? button : message },
     state: { phone: body.telephone }, validateContactStep: () => true,
+    optinFunnelId: 'example', metaOptin: null,
+    window: { location: { replace: value => { redirect = value; } } },
     trackOptinEvent: () => {}, goToCommitStep: () => advanced++, AbortSignal,
     fetch: async () => {
       if (scenario === 'offline') throw new Error('offline');
-      return Response.json({ eligible: scenario === 'allowed', message: 'Malheureusement, la masterclass n’est plus disponible.' });
+      return Response.json({ eligible: scenario === 'allowed', reason: scenario === 'blocked' ? 'country_not_available' : 'allowed' });
     },
   };
   await vm.runInNewContext(`(async () => {${clickHandler}})()`, context);
   assert.equal(advanced, scenario === 'allowed' ? 1 : 0);
   assert.equal(button.disabled, false);
-  assert.equal(Boolean(message.textContent), scenario !== 'allowed');
+  assert.equal(Boolean(message.textContent), scenario === 'offline');
+  assert.equal(redirect, scenario === 'blocked' ? '/challenge-transformation-offre/' : '');
 }
-console.log('Country gate: 11 allowed countries, excluded countries, invalid/shared prefixes, no rejected writes, eligible registration and existing access OK');
+console.log('Country gate: allowlist, shared prefixes, separate contact storage, redirect, no messaging, eligible registration and existing access OK');
