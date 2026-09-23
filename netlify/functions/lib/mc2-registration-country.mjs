@@ -5,7 +5,7 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
 export const MC2_REGISTRATION_COUNTRIES = Object.freeze([
   'FR', 'CH', 'BE', 'CA', 'LU', 'RE', 'GP', 'MQ', 'GF', 'PF', 'NC',
 ]);
-export const MC2_COUNTRY_UNAVAILABLE = 'Malheureusement, la masterclass n’est plus disponible dans le pays associé à ton numéro de téléphone.';
+export const MC2_COUNTRY_UNAVAILABLE = 'Malheureusement, la masterclass n’est plus disponible.';
 
 export function checkMc2RegistrationPhone(value) {
   const raw = typeof value === 'string' ? value.trim() : '';

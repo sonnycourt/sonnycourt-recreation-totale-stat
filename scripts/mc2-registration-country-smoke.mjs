@@ -21,6 +21,7 @@ for (const phone of ['', null, '0612345678', '+1', '+80012345678', '+33612345678
 }
 assert.equal(check('+18193290000').country, 'CA');
 assert.equal(check('+18097620000').country, 'DO');
+assert.equal(check('+18097620000').message, 'Malheureusement, la masterclass n’est plus disponible.');
 // Explicitly approved: shared GP/MF/BL mobile numbering remains accepted.
 assert.equal(check('+590690001234').eligible, true);
 
