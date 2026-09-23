@@ -126,10 +126,9 @@ for (const source of ['meta_ad', null]) {
       state.phone = '+33612345678'; state.country = 'France';
       getSelectedMc2Slot = () => ({ id: '${slot}', kind: '${slot === 'jit' ? 'jit' : 'fixed'}', startsAt: new Date('2026-09-08T18:00:00Z') });
     `, context);
-    await vm.runInContext('saveStep1Lead()', context);
     await vm.runInContext('submitRegistration()', context);
     const registrations = requests.filter((req) => req.url.endsWith('register-mc2'));
-    assert.equal(registrations.length, 2);
+    assert.equal(registrations.length, 1, 'No partial capture before phone-country verification');
     for (const { body } of registrations) {
       assert.equal(body.creneau, slot);
       assert.equal(body.session_starts_at, '2026-09-08T18:00:00.000Z');
@@ -142,8 +141,8 @@ for (const source of ['meta_ad', null]) {
         assert.equal(body.optin_funnel_id, opts.funnelId);
       }
     }
-    assert.equal(registrations[0].body.telephone, undefined, 'partial capture is not a completed registration');
-    assert.equal(registrations[1].body.sms_consent, true);
+    assert.equal(registrations[0].body.telephone, '+33612345678');
+    assert.equal(registrations[0].body.sms_consent, true);
     assert.equal(test.window.location.href, '/mc2/confirmation?t=test-token');
     const completed = requests.find((req) => req.body.event_name === 'registration_completed');
     assert.equal(completed.body.path, source ? '/meta/mc2/' : '/mc2/');
@@ -160,4 +159,4 @@ if (process.argv.includes('--built')) {
     .replace(/data-mc2-tracking-path="\/meta\/mc2\/"/g, 'data-mc2-tracking-path="/mc2/"');
   assert.equal(normalize(await readPage('meta/mc2')), normalize(await readPage('mc2')));
 }
-console.log('MC2 Meta optin: shared page, 3 slots, attribution, partial/full registration, dedup, preview, organic isolation: OK');
+console.log('MC2 Meta optin: shared page, 3 slots, attribution, full registration, dedup, preview, organic isolation: OK');

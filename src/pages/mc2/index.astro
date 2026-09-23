@@ -2482,6 +2482,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                     </svg>
                     <span>Ton numéro reste confidentiel.</span>
                 </p>
+                <p id="step2-message" class="form-error" role="alert"></p>
                 <button id="step2-next" class="submit-btn" type="button">Continuer</button>
             </div>
 
@@ -3564,6 +3565,13 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
 
                 const result = await response.json();
 
+                if (result.reason === 'country_not_available' || result.reason === 'invalid_phone') {
+                    formStatus.textContent = result.error;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = STEP3_SUBMIT_LABEL;
+                    return;
+                }
+
                 if (response.status === 409 && result.token) {
                     setTokenEverywhere(result.token);
                     closePopup();
@@ -3592,35 +3600,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 submitBtn.disabled = false;
                 submitBtn.textContent = STEP3_SUBMIT_LABEL;
             }
-        }
-
-        async function saveStep1Lead() {
-            const selectedSlot = getSelectedMc2Slot();
-            const response = await fetch('/.netlify/functions/register-mc2', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: state.email,
-                    prenom: state.name,
-                    creneau: selectedSlot ? selectedSlot.id : 'jit',
-                    session_starts_at: selectedSlot ? selectedSlot.startsAt.toISOString() : null,
-                    slot_kind: selectedSlot ? selectedSlot.kind : 'jit',
-                    visitor_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                    optin_funnel_id: optinFunnelId,
-                    optin_variant: OPTIN_VARIANT,
-                    ...(metaOptin ? metaOptin.getPayload() : {}),
-                }),
-            });
-            const result = await response.json();
-            if (response.status === 403 && result.reason === 'excluded') {
-                return { ok: false, excluded: true };
-            }
-            if (!response.ok || !result?.success || !result?.token) {
-                return { ok: false };
-            }
-            setTokenEverywhere(result.token);
-            metaOptin?.fireEvents(result.metaEvents);
-            return { ok: true, token: result.token };
         }
 
         function formatProofCount(n) {
@@ -3848,14 +3827,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                     }
                     trackOptinEvent('step_1_completed');
                     goToContactStep();
-                    // UX: on passe immédiatement à l'étape 2 et on fait la capture en arrière-plan.
-                    saveStep1Lead()
-                        .then(function (capture) {
-                            if (capture && capture.ok && capture.token) {
-                                state._preCapturedToken = capture.token;
-                            }
-                        })
-                        .catch(function () {});
+                    // Registration is created only after the phone-country gate.
                 } catch (e) {
                     msg.textContent = 'Vérification impossible. Réessaie dans un instant.';
                 } finally {
@@ -3863,10 +3835,35 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 }
             });
 
-            document.getElementById('step2-next').addEventListener('click', function () {
+            document.getElementById('step2-next').addEventListener('click', async function () {
+                const message = document.getElementById('step2-message');
+                message.textContent = '';
                 if (!validateContactStep()) return;
-                trackOptinEvent('step_2_completed');
-                goToCommitStep();
+                const button = document.getElementById('step2-next');
+                if (button.disabled) return;
+                button.disabled = true;
+                button.textContent = 'Vérification…';
+                try {
+                    const response = await fetch('/.netlify/functions/check-mc2-phone-country', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ telephone: state.phone }),
+                        signal: AbortSignal.timeout(10000),
+                    });
+                    if (!response.ok) throw new Error('phone_country_unavailable');
+                    const result = await response.json();
+                    if (result.eligible !== true) {
+                        message.textContent = result.message || 'Vérification impossible. Réessaie dans un instant.';
+                        return;
+                    }
+                    trackOptinEvent('step_2_completed');
+                    goToCommitStep();
+                } catch (error) {
+                    message.textContent = 'Vérification impossible. Réessaie dans un instant.';
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Continuer';
+                }
             });
 
             document.getElementById('step3-submit').addEventListener('click', function () {

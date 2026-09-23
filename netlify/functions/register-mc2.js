@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { checkMc2RegistrationPhone } from './lib/mc2-registration-country.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
 import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
@@ -195,6 +196,17 @@ export default async (req) => {
     if (existingRow && isCompletedMc2Registration(existingRow)) {
       return jsonResponse(409, registrationResponse(existingRow, true));
     }
+
+    // Do not issue a new access token, capture a partial lead, or queue messages
+    // until phone-country eligibility is established. Existing access is intact.
+    const phoneEligibility = checkMc2RegistrationPhone(telephone);
+    if (!phoneEligibility.eligible) {
+      return jsonResponse(phoneEligibility.reason === 'invalid_phone' ? 400 : 403, {
+        error: phoneEligibility.message,
+        reason: phoneEligibility.reason,
+      });
+    }
+    if (!isComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
 
     if (exclusion && !existingRow && !reactivatedNoShow) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
