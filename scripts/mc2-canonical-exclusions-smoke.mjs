@@ -115,8 +115,8 @@ const reactivatedResponse = await registerMc2(new Request('https://sonnycourt.co
   body: JSON.stringify({
     email: 'reactivated@example.com',
     prenom: 'Réactivé',
-    telephone: '+213555000000',
-    pays: 'Algérie',
+    telephone: '+33612345678',
+    pays: 'France',
     creneau: 'jit',
     session_starts_at: new Date(nextQuarterMs).toISOString(),
     slot_kind: 'jit',
