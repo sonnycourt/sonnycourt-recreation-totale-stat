@@ -21,6 +21,8 @@ for (const phone of ['', null, '0612345678', '+1', '+80012345678', '+33612345678
 }
 assert.equal(check('+18193290000').country, 'CA');
 assert.equal(check('+18097620000').country, 'DO');
+// Explicitly approved: shared GP/MF/BL mobile numbering remains accepted.
+assert.equal(check('+590690001234').eligible, true);
 
 process.env.SUPABASE_URL = 'https://database.example.invalid';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-only';

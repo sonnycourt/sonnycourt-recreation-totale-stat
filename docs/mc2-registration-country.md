@@ -16,5 +16,7 @@ No database schema changes, payment settings, new email/SMS or €27 redirect.
 
 This identifies the numbering territory, not residence/card origin or ownership.
 Shared +590 mobile numbering cannot reliably separate GP from MF/BL.
+Sonny explicitly approved accepting those shared mobile numbers on 2026-09-23;
+they are classified as GP by the phone library. No IP override is applied.
 
 Tests: `npm run test:mc2-registration-country`, `node scripts/mc2-meta-optin-smoke.mjs --built`.
