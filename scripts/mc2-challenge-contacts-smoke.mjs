@@ -30,6 +30,8 @@ fail=true;
 assert.equal((await call(body)).status,503);
 const page = await readFile(new URL('../src/pages/challenge-transformation-offre.astro',import.meta.url),'utf8');
 const original = await readFile(new URL('../src/pages/court-circuit-success.astro',import.meta.url),'utf8');
+const redirects = await readFile(new URL('../public/_redirects',import.meta.url),'utf8');
+assert.ok(!/^\/challenge-transformation-offre\/?\s+https:\/\/legacy\./m.test(redirects),'The new offer must not be proxied to the legacy site');
 assert.ok(page.includes('La masterclass n’est actuellement plus disponible.'));
 assert.ok(page.includes('À la place, découvre le Challenge Transformation : 4 jours pour commencer à avancer.'));
 assert.ok(!page.includes('Tu es maintenant inscrit'));
