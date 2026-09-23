@@ -39,5 +39,6 @@ assert.ok(!page.includes('premier email'));
 assert.ok(page.includes('aria-modal="true"'));
 assert.ok(page.includes("document.dispatchEvent(new Event('challenge-offer-opened'))"));
 const offer = s => s.slice(s.indexOf('<!-- Low Ticket Offer Section -->'),s.indexOf('<style>'));
-assert.equal(offer(page),offer(original),'Offer content and Spiffy links must remain identical');
+const expectedOffer = offer(original).replace('class="new-amount">27', 'class="new-amount">47').replace('JE REJOINS POUR 27€', 'JE REJOINS POUR 47€');
+assert.equal(offer(page),expectedOffer,'Only the approved displayed price changes; offer content and Spiffy links remain identical');
 console.log('Challenge: isolated Supabase-only capture, failure handling, neutral fullscreen notice, unchanged offer and Spiffy links OK');
