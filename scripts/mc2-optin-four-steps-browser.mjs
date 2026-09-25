@@ -61,7 +61,11 @@ try {
     await page.type('#phone', '612345678');
     await page.click('#step2-next');
     await page.waitForSelector('#commit-present', { visible: true });
-    assert.equal(requests.filter(r => r.name === 'register-mc2').length, 0);
+    const captures = requests.filter(r => r.name === 'register-mc2');
+    assert.equal(captures.length, 1);
+    assert.equal(captures[0].data.email, 'test@example.invalid');
+    assert.equal(captures[0].data.prenom, 'Test');
+    assert.equal(captures[0].data.telephone, undefined);
     assert.equal(requests.find(r => r.name === 'check-mc2-phone-country').data.prenom, 'Test');
     for (const event of ['name_completed', 'step_1_completed', 'step_2_completed']) {
       assert.ok(requests.some(r => r.data.event_name === event), event);

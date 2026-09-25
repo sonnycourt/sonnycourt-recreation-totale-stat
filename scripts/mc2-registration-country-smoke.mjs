@@ -54,6 +54,37 @@ for (const telephone of [getExampleNumber('GA', examples).number, '', '+18097620
   assert.ok(writes.every(x => x.url.includes('/mc2_challenge_contacts?')), 'Only separate Supabase contact storage; no webinar, messaging or CAPI');
 }
 writes = [];
+process.env.MAILERLITE_API_KEY = 'test-only';
+process.env.MAILERLITE_GROUP_MC2_REGISTRATIONS = 'test-group';
+const databaseFetch = globalThis.fetch;
+const mailerWrites = [];
+globalThis.fetch = async (url, init = {}) => {
+  if (String(url).startsWith('https://connect.mailerlite.com/api/')) {
+    if (init.method === 'GET') return Response.json({}, { status: 404 });
+    if (init.method === 'POST' && init.body) mailerWrites.push(JSON.parse(init.body));
+    return Response.json({ data: { id: 'mock-subscriber', status: 'active' } });
+  }
+  return databaseFetch(url, init);
+};
+const partial = await register(request({ ...body, telephone: undefined, pays: undefined }));
+assert.equal(partial.status, 200);
+assert.equal((await partial.json()).statut, 'partial');
+const captured = writes.find(x => x.url.endsWith('/mc2_registrations'))?.body;
+assert.equal(captured.email, body.email);
+assert.equal(captured.prenom, body.prenom);
+assert.equal(captured.registration_completed_at, null);
+assert.equal(captured.telephone, null);
+assert.ok(mailerWrites.some(x => x.email === body.email && x.fields.first_name === body.prenom));
+assert.ok(!writes.some(x => /sms|email_queue|exclusions/.test(x.url)), 'No full-registration messages for partial capture');
+existing = captured;
+writes = [];
+assert.equal((await register(request(body))).status, 200);
+assert.ok(writes.some(x => x.url.includes('/mc2_registrations?') && x.body.statut === 'registered'));
+assert.ok(!writes.some(x => x.url.endsWith('/mc2_registrations')), 'Completion updates the existing partial row');
+existing = null;
+globalThis.fetch = databaseFetch;
+delete process.env.MAILERLITE_API_KEY;
+writes = [];
 assert.equal((await register(request(body))).status, 200);
 assert.ok(writes.some(x => x.url.endsWith('/mc2_registrations') && x.body.statut === 'registered'));
 existing = { token: 'existing-token', statut: 'registered', session_starts_at: body.session_starts_at };
@@ -64,7 +95,7 @@ globalThis.fetch = () => { throw new Error('Validation endpoint must never call 
 assert.equal((await (await endpoint(request({ telephone: body.telephone }))).json()).eligible, true);
 assert.equal((await (await endpoint(request({ telephone: getExampleNumber('TG', examples).number }))).json()).eligible, false);
 const source = await readFile(new URL('../src/pages/mc2/index.astro', import.meta.url), 'utf8');
-assert.ok(!source.includes('saveStep1Lead'));
+assert.ok(source.includes('saveStep1Lead'));
 assert.ok(source.includes('check-mc2-phone-country'));
 const clickHandler = source.match(/document\.getElementById\('step2-next'\)\.addEventListener\('click', async function \(\) \{([\s\S]*?)\n            \}\);/)[1];
 for (const scenario of ['allowed', 'blocked', 'offline']) {

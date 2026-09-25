@@ -198,10 +198,10 @@ export default async (req) => {
       return jsonResponse(409, registrationResponse(existingRow, true));
     }
 
-    // Do not issue a new access token, capture a partial lead, or queue messages
-    // until phone-country eligibility is established. Existing access is intact.
+    // Restore email-only partial capture. Phone-country eligibility still gates
+    // every request that supplies contact details and every full registration.
     const phoneEligibility = checkMc2RegistrationPhone(telephone);
-    if (!phoneEligibility.eligible) {
+    if ((telephone || pays) && !phoneEligibility.eligible) {
       if (phoneEligibility.reason === 'country_not_available') {
         if (!await captureMc2ChallengeContact(body, phoneEligibility)) {
           return jsonResponse(503, { error: 'temporarily_unavailable' });
@@ -214,7 +214,7 @@ export default async (req) => {
         reason: phoneEligibility.reason,
       });
     }
-    if (!isComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
+    if ((telephone || pays) && !isComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
 
     if (exclusion && !existingRow && !reactivatedNoShow) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });

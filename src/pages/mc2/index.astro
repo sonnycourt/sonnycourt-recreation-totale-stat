@@ -3529,6 +3529,8 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             formStatus.textContent = '';
 
             try {
+                // Finish the partial write first so it cannot race full registration.
+                if (state._capturePromise) await state._capturePromise;
                 const selectedSlot = getSelectedMc2Slot();
                 const response = await fetch('/.netlify/functions/register-mc2', {
                     method: 'POST',
@@ -3590,6 +3592,31 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 submitBtn.disabled = false;
                 submitBtn.textContent = STEP3_SUBMIT_LABEL;
             }
+        }
+
+        async function saveStep1Lead() {
+            const selectedSlot = getSelectedMc2Slot();
+            const response = await fetch('/.netlify/functions/register-mc2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: state.email,
+                    prenom: state.name,
+                    creneau: selectedSlot ? selectedSlot.id : 'jit',
+                    session_starts_at: selectedSlot ? selectedSlot.startsAt.toISOString() : null,
+                    slot_kind: selectedSlot ? selectedSlot.kind : 'jit',
+                    visitor_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                    optin_funnel_id: optinFunnelId,
+                    optin_variant: OPTIN_VARIANT,
+                    ...(metaOptin ? metaOptin.getPayload() : {}),
+                }),
+                keepalive: true,
+            });
+            const result = await response.json();
+            if (!response.ok || !result?.success || !result?.token) return { ok: false };
+            setTokenEverywhere(result.token);
+            metaOptin?.fireEvents(result.metaEvents);
+            return { ok: true, token: result.token };
         }
 
         function formatProofCount(n) {
@@ -3840,8 +3867,8 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                         return;
                     }
                     trackOptinEvent('step_1_completed');
+                    state._capturePromise = saveStep1Lead().catch(function () { return { ok: false }; });
                     goToContactStep();
-                    // Registration is created only after the phone-country gate.
                 } catch (e) {
                     msg.textContent = 'Vérification impossible. Réessaie dans un instant.';
                 } finally {
