@@ -4,6 +4,7 @@ const ALLOWED_EVENTS = new Set([
   'page_view',
   'cta_clicked',
   'popup_opened',
+  'name_completed',
   'step_1_completed',
   'step_2_completed',
   'commitment_checked',

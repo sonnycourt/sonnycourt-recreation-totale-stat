@@ -2423,33 +2423,18 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 <h2 class="popup-title">Réserve ta place à la Masterclass</h2>
             </div>
 
-            <div id="step1-form">
-                <div class="mc2-schedule mc2-schedule--popup" data-mc2-picker="popup">
-                    <p class="mc2-schedule__heading">Choisis ta session</p>
-                    <div class="mc2-slot-picker" role="radiogroup" aria-label="Choisis ta session">
-                        <button class="mc2-slot-option is-selected" type="button" role="radio" aria-checked="true" data-slot-id="jit">
-                            <span class="mc2-slot-option__eyebrow">La plus proche</span>
-                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
-                            <span class="mc2-slot-option__detail" data-slot-detail>Prochaine diffusion</span>
-                        </button>
-                        <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-1">
-                            <span class="mc2-slot-option__eyebrow">Autre créneau</span>
-                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
-                            <span class="mc2-slot-option__detail" data-slot-detail>Heure locale</span>
-                        </button>
-                        <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-2">
-                            <span class="mc2-slot-option__eyebrow">Autre créneau</span>
-                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
-                            <span class="mc2-slot-option__detail" data-slot-detail>Heure locale</span>
-                        </button>
-                    </div>
-                    <p class="mc2-schedule__timezone">Horaires affichés dans ton heure locale</p>
-                </div>
-                <p class="popup-form-lead">Entre ton prénom et ton email pour recevoir ton accès offert</p>
-                <input id="name" class="form-input" type="text" placeholder="Ton prénom" required />
-                <input id="email" class="form-input" type="email" placeholder="Ton email" required autocomplete="email" />
+            <div id="name-form">
+                <p class="popup-form-lead">Entre ton prénom</p>
+                <input id="name" class="form-input" type="text" placeholder="Ton prénom" aria-label="Ton prénom" autocomplete="given-name" required />
+                <p id="name-message" class="form-error" role="alert"></p>
+                <button id="name-next" class="submit-btn" type="button">Continuer</button>
+            </div>
+
+            <div id="step1-form" style="display:none;">
+                <p class="popup-form-lead">Ajoute ton adresse email pour recevoir ton accès offert</p>
+                <input id="email" class="form-input" type="email" placeholder="Ton email" aria-label="Ton email" required autocomplete="email" />
                 <p id="step1-message" class="form-error" role="alert"></p>
-                <button id="step1-button" class="submit-btn" type="button">Je m'inscris maintenant</button>
+                <button id="step1-button" class="submit-btn" type="button">Continuer</button>
                 <p class="form-note form-note--after-cta">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -3219,6 +3204,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
         }
 
         function showStep(stepNumber) {
+            document.getElementById('name-form').style.display = stepNumber === 0 ? 'block' : 'none';
             document.getElementById('step1-form').style.display = stepNumber === 1 ? 'block' : 'none';
             document.getElementById('step2-form').style.display = stepNumber === 2 ? 'block' : 'none';
             document.getElementById('step3-form').style.display = stepNumber === 3 ? 'block' : 'none';
@@ -3468,11 +3454,11 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             if (!name || !email) {
-                alert('Merci de remplir prénom et email.');
+                msg.textContent = 'Merci de saisir ton adresse email.';
                 return false;
             }
             if (!emailRegex.test(email)) {
-                alert('Merci de saisir un email valide.');
+                msg.textContent = 'Merci de saisir un email valide.';
                 return false;
             }
             state.name = name;
@@ -3785,6 +3771,30 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             });
             document.addEventListener('keydown', function (event) {
                 if (event.key === 'Escape') closePopup();
+            });
+
+            document.getElementById('name-next').addEventListener('click', function () {
+                const name = document.getElementById('name').value.trim();
+                const message = document.getElementById('name-message');
+                message.textContent = '';
+                if (!name) {
+                    message.textContent = 'Merci de saisir ton prénom.';
+                    document.getElementById('name').focus({ preventScroll: true });
+                    return;
+                }
+                state.name = name;
+                trackOptinEvent('name_completed');
+                showStep(1);
+                document.getElementById('email').focus({ preventScroll: true });
+            });
+
+            [['name', 'name-next'], ['email', 'step1-button']].forEach(function ([inputId, buttonId]) {
+                document.getElementById(inputId).addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        document.getElementById(buttonId).click();
+                    }
+                });
             });
 
             document.getElementById('step1-button').addEventListener('click', async function () {
