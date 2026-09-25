@@ -114,7 +114,7 @@ for (const scenario of ['allowed', 'blocked', 'offline']) {
     state: { phone: body.telephone }, validateContactStep: () => true,
     optinFunnelId: 'example', metaOptin: null,
     window: { location: { replace: value => { redirect = value; } } },
-    trackOptinEvent: () => {}, goToCommitStep: () => advanced++, AbortSignal,
+    trackOptinEvent: () => {}, submitRegistration: async () => advanced++, AbortSignal,
     fetch: async () => {
       if (scenario === 'offline') throw new Error('offline');
       return Response.json({ eligible: scenario === 'allowed', reason: scenario === 'blocked' ? 'country_not_available' : 'allowed' });

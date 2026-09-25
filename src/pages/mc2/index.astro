@@ -2474,23 +2474,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 <button id="step2-next" class="submit-btn" type="button">Continuer</button>
             </div>
 
-            <div id="step3-form" style="display:none;">
-                <p class="step-indicator step-indicator--final">Ta présence</p>
-                <label class="commit-row" id="commit-row-label" for="commit-present">
-                    <input
-                        id="commit-present"
-                        type="checkbox"
-                        name="commit_present"
-                        autocomplete="off"
-                        required
-                        aria-required="true"
-                    />
-                    <span class="commit-row__text">Je m'engage à être présent(e) à la session choisie</span>
-                </label>
-                <p id="step3-message" class="form-error" role="alert"></p>
-                <button id="step3-submit" class="submit-btn" type="button">Continuer</button>
-                <p id="form-status" class="success-copy"></p>
-            </div>
             <div id="entry-payment-step" style="display:none;">
                 <p class="step-indicator step-indicator--final">Dernière étape · Ton accès</p>
                 <div class="entry-payment-countdown" aria-live="polite">
@@ -2532,7 +2515,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
         const SKIP_SESSION_DATES = ['2026-05-07', '2026-06-11', '2026-06-25', '2026-07-09', '2026-07-23', '2026-07-30', '2026-08-13'];
         const LEGACY_TOKEN_KEY = 'mc2_registration_token_legacy';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
-        const STEP3_SUBMIT_LABEL = 'Continuer';
+        const REGISTRATION_SUBMIT_LABEL = 'Continuer';
         const PRE_OPTIN_DELAY_MS = 1200;
         const PRE_OPTIN_FADE_MS = 180;
         const PRE_OPTIN_SUCCESS_MS = 650;
@@ -2927,11 +2910,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 if (detailEl) detailEl.textContent = getMc2SlotDetail(slot, now);
             });
 
-            const commitText = document.querySelector('.commit-row__text');
-            const selected = getSelectedMc2Slot();
-            if (commitText && selected) {
-                commitText.textContent = "Je m’engage à être présent(e) " + formatMc2SlotLabel(selected.startsAt, now).toLowerCase();
-            }
         }
 
         function selectMc2Slot(slotId) {
@@ -3241,7 +3219,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             document.getElementById('name-form').style.display = stepNumber === 0 ? 'block' : 'none';
             document.getElementById('step1-form').style.display = stepNumber === 1 ? 'block' : 'none';
             document.getElementById('step2-form').style.display = stepNumber === 2 ? 'block' : 'none';
-            document.getElementById('step3-form').style.display = stepNumber === 3 ? 'block' : 'none';
             document.getElementById('entry-payment-step').style.display = stepNumber === 4 ? 'block' : 'none';
         }
 
@@ -3321,10 +3298,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 const input = document.getElementById('phone');
                 if (input) input.focus({ preventScroll: true });
             }
-        }
-
-        function goToCommitStep() {
-            showStep(3);
         }
 
         function injectMasterclassPhoneDropdownStyles() {
@@ -3437,11 +3410,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             setTimeout(applyMasterclassPhoneStyles, 350);
         }
 
-        function setCommitRowError(on) {
-            const row = document.getElementById('commit-row-label');
-            if (row) row.classList.toggle('commit-row--error', Boolean(on));
-        }
-
         function setExcludedMessage(targetEl) {
             if (!targetEl) return;
             targetEl.innerHTML =
@@ -3538,27 +3506,10 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             return true;
         }
 
-        function validateCommitStep() {
-            const msg = document.getElementById('step3-message');
-            const commit = document.getElementById('commit-present');
-            msg.textContent = '';
-            setCommitRowError(false);
-            if (!commit || !commit.checked) {
-                setCommitRowError(true);
-                const selected = getSelectedMc2Slot();
-                const sessionLabel = selected
-                    ? formatMc2SlotLabel(selected.startsAt, new Date()).toLowerCase()
-                    : 'à la session choisie';
-                msg.textContent = 'Merci de cocher la case pour confirmer ta présence ' + sessionLabel + '.';
-                commit?.focus();
-                return false;
-            }
-            return true;
-        }
-
-        async function submitRegistration() {
-            const formStatus = document.getElementById('form-status');
-            const submitBtn = document.getElementById('step3-submit');
+        async function submitRegistration(
+            submitBtn = document.getElementById('step2-next'),
+            formStatus = document.getElementById('step2-message')
+        ) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inscription...';
             formStatus.textContent = '';
@@ -3595,7 +3546,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 if (result.reason === 'invalid_phone') {
                     formStatus.textContent = result.error;
                     submitBtn.disabled = false;
-                    submitBtn.textContent = STEP3_SUBMIT_LABEL;
+                    submitBtn.textContent = REGISTRATION_SUBMIT_LABEL;
                     return;
                 }
 
@@ -3609,7 +3560,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 if (response.status === 403 && result.reason === 'excluded') {
                     setExcludedMessage(formStatus);
                     submitBtn.disabled = false;
-                    submitBtn.textContent = STEP3_SUBMIT_LABEL;
+                    submitBtn.textContent = REGISTRATION_SUBMIT_LABEL;
                     return;
                 }
 
@@ -3622,7 +3573,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 if (result.entryPaymentRequired) {
                     showEntryPayment(result.token);
                     submitBtn.disabled = false;
-                    submitBtn.textContent = STEP3_SUBMIT_LABEL;
+                    submitBtn.textContent = REGISTRATION_SUBMIT_LABEL;
                     return;
                 }
                 trackOptinEvent('registration_completed');
@@ -3631,7 +3582,7 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             } catch (error) {
                 formStatus.textContent = 'Une erreur est survenue. Merci de réessayer.';
                 submitBtn.disabled = false;
-                submitBtn.textContent = STEP3_SUBMIT_LABEL;
+                submitBtn.textContent = REGISTRATION_SUBMIT_LABEL;
             }
         }
 
@@ -3826,13 +3777,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 });
             });
 
-            document.getElementById('commit-present').addEventListener('change', function () {
-                if (this.checked) {
-                    setCommitRowError(false);
-                    trackOptinEvent('commitment_checked');
-                }
-            });
-
             document.getElementById('popup-close-btn').addEventListener('click', closePopup);
             document.getElementById('custom-popup').addEventListener('click', function (event) {
                 if (event.target === this) closePopup();
@@ -3946,7 +3890,8 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                         return;
                     }
                     trackOptinEvent('step_2_completed');
-                    goToCommitStep();
+                    trackOptinEvent('registration_submitted');
+                    await submitRegistration(button, message);
                 } catch (error) {
                     message.textContent = 'Vérification impossible. Réessaie dans un instant.';
                 } finally {
@@ -3955,11 +3900,6 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
                 }
             });
 
-            document.getElementById('step3-submit').addEventListener('click', function () {
-                if (!validateCommitStep()) return;
-                trackOptinEvent('registration_submitted');
-                submitRegistration();
-            });
         }
 
         async function bootstrapAfterAccessGate() {
