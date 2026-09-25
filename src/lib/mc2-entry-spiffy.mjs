@@ -66,21 +66,30 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       <button type="button" disabled>PAYER 27 € ET RÉSERVER MA PLACE</button>
       <p>Mode aperçu local : paiement désactivé. Le vrai formulaire fonctionne uniquement sur la preview HTTPS.</p>`;
     slot.replaceChildren(preview);
+    slot.classList.remove('is-loading', 'is-recovery');
+    slot.classList.add('is-ready');
     slot.setAttribute('aria-busy', 'false');
     observe('payment_local_preview_visible');
-    return { destroy() { slot.replaceChildren(); } };
+    return {
+      destroy() {
+        slot.replaceChildren();
+        slot.classList.remove('is-loading', 'is-ready', 'is-recovery');
+        slot.style.removeProperty('min-height');
+      },
+    };
   }
   const frame = doc.createElement('iframe');
   const status = doc.createElement('p');
   status.className = 'entry-spiffy-loading';
   status.setAttribute('role', 'status');
-  status.textContent = 'Connexion au paiement sécurisé…';
+  status.innerHTML = '<span class="entry-spiffy-loading__spinner" aria-hidden="true"></span><strong>Chargement du paiement sécurisé…</strong><span>Quelques secondes, ne ferme pas cette fenêtre.</span>';
   frame.title = 'Paiement sécurisé — Masterclass et workbook — 27 € en une fois';
   frame.setAttribute('allow', 'payment');
   frame.setAttribute('referrerpolicy', 'no-referrer');
   frame.className = 'entry-spiffy-frame';
   // Reserve the payment area without exposing Spiffy's unstyled bootstrap.
-  frame.style.height = '320px';
+  const reservedHeight = 520;
+  frame.style.height = `${reservedHeight}px`;
   frame.style.opacity = '0';
   frame.style.pointerEvents = 'none';
   frame.setAttribute('aria-hidden', 'true');
@@ -123,13 +132,16 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       loaded = false;
       ready = false;
       measuredHeight = 0;
-      frame.style.height = '320px';
+      frame.style.height = `${reservedHeight}px`;
       frame.style.opacity = '0';
       frame.style.pointerEvents = 'none';
       frame.setAttribute('aria-hidden', 'true');
       frame.setAttribute('tabindex', '-1');
       status.className = 'entry-spiffy-loading';
-      status.textContent = 'Connexion au paiement sécurisé…';
+      status.innerHTML = '<span class="entry-spiffy-loading__spinner" aria-hidden="true"></span><strong>Chargement du paiement sécurisé…</strong><span>Quelques secondes, ne ferme pas cette fenêtre.</span>';
+      slot.classList.remove('is-ready', 'is-recovery');
+      slot.classList.add('is-loading');
+      slot.style.minHeight = `${reservedHeight}px`;
       slot.setAttribute('aria-busy', 'true');
       timeout = view.setTimeout(showTimeout, 20000);
       frame.src = url.toString();
@@ -149,13 +161,18 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
     view.clearTimeout(fallbackTimer);
     // A provider message is an enhancement, never a prerequisite for access.
     // Without a size message, allow the native iframe to scroll normally.
-    frame.style.height = `${measuredHeight || 650}px`;
+    const visibleHeight = measuredHeight || reservedHeight;
+    frame.style.height = `${visibleHeight}px`;
     frame.style.opacity = '1';
     frame.style.pointerEvents = 'auto';
     frame.setAttribute('aria-hidden', 'false');
     frame.setAttribute('tabindex', '0');
+    slot.classList.remove('is-loading');
+    slot.classList.add('is-ready');
+    slot.style.minHeight = `${visibleHeight}px`;
     if (evidence === 'provider_ready_and_height') status.remove();
     else {
+      slot.classList.add('is-recovery');
       status.className = 'entry-spiffy-recovery';
       status.textContent = 'Si le formulaire ne s’affiche pas : ';
       addRecoveryActions();
@@ -182,6 +199,9 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       reveal('provider_ready_and_height');
     }, delay);
   };
+  slot.classList.remove('is-ready', 'is-recovery');
+  slot.classList.add('is-loading');
+  slot.style.minHeight = `${reservedHeight}px`;
   slot.setAttribute('aria-busy', 'true');
   const onMessage = event => {
     const message = trustedSpiffyMessage(event, frame);
@@ -199,6 +219,8 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       if (!status.isConnected) slot.prepend(status);
       status.className = 'entry-spiffy-loading';
       status.textContent = 'Paiement confirmé. Ouverture de ta masterclass…';
+      slot.classList.remove('is-ready', 'is-recovery');
+      slot.classList.add('is-loading');
       slot.setAttribute('aria-busy', 'true');
       const orderId = destination.searchParams.get('order_id') || destination.searchParams.get('orderId') || '';
       (async () => {
@@ -230,6 +252,8 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
         retry.type = 'button'; retry.textContent = 'OUVRIR MA MASTERCLASS';
         retry.addEventListener('click', () => onMessage(event));
         status.append(doc.createTextNode(' '), retry);
+        slot.classList.remove('is-loading');
+        slot.classList.add('is-ready', 'is-recovery');
         slot.setAttribute('aria-busy', 'false');
       })();
       return;
@@ -237,7 +261,10 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
     if (message.height) {
       const changed = measuredHeight !== message.height;
       measuredHeight = message.height;
-      if (loaded) frame.style.height = `${measuredHeight}px`;
+      if (loaded) {
+        frame.style.height = `${measuredHeight}px`;
+        slot.style.minHeight = `${measuredHeight}px`;
+      }
       else if (changed) scheduleReveal();
     }
     if (message.ready) {
@@ -250,7 +277,11 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       scheduleReveal();
     }
     // A late handshake restores the normal UI without reloading any inputs.
-    if (loaded && ready && measuredHeight) status.remove();
+    if (loaded && ready && measuredHeight) {
+      status.remove();
+      slot.classList.remove('is-loading', 'is-recovery');
+      slot.classList.add('is-ready');
+    }
   };
   view.addEventListener('message', onMessage);
   const showTimeout = () => {
@@ -258,6 +289,8 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
     observe('payment_frame_timeout');
     status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
     addRecoveryActions();
+    slot.classList.remove('is-loading');
+    slot.classList.add('is-recovery');
     slot.setAttribute('aria-busy', 'false');
   };
   let timeout = view.setTimeout(showTimeout, 20000);
@@ -272,6 +305,8 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
       view.clearTimeout(timeout);
       view.removeEventListener('message', onMessage);
       slot.replaceChildren();
+      slot.classList.remove('is-loading', 'is-ready', 'is-recovery');
+      slot.style.removeProperty('min-height');
       delete slot.dataset.identityTransmitted;
     },
   };
