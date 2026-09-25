@@ -146,6 +146,7 @@ export function isMc2Purchased(row = {}) {
 }
 
 export function mc2RecoverySegment(row = {}) {
+  if (row.entry_payment_required === true && !row.entry_payment_paid_at) return null;
   if (isMc2Purchased(row)) return null;
   if (row.saw_offer === true) return 'offer_seen_no_purchase';
   if (row.attended_live === true) return 'left_before_cta';
@@ -367,7 +368,7 @@ export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purc
 
 async function loadRegistration(token) {
   const result = await supabaseGet(
-    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,last_presence_at,statut,payment_status,purchased_at&limit=1`,
+    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,last_presence_at,statut,payment_status,purchased_at,entry_payment_required,entry_payment_paid_at&limit=1`,
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -454,6 +455,7 @@ export async function processMc2ReplayRecoveryJob(job, now = new Date(), env = p
 
   const registration = await loadRegistration(job.token);
   if (!registration) return skipJob(job, 'registration_missing');
+  if (registration.entry_payment_required === true && !registration.entry_payment_paid_at) return skipJob(job, 'entry_payment_required');
   if (isMc2Purchased(registration)) return skipJob(job, 'purchased');
   if (dateOrNull(job.session_starts_at)?.toISOString() !== dateOrNull(registration.session_starts_at)?.toISOString()) {
     return skipJob(job, 'session_rescheduled');
@@ -578,6 +580,7 @@ export async function loadMc2RecoveryAccess(accessCode, now = new Date()) {
   if (now >= expires) return { ok: false, reason: 'expired' };
   const registration = await loadRegistration(job.token);
   if (!registration) return { ok: false, reason: 'invalid' };
+  if (registration.entry_payment_required === true && !registration.entry_payment_paid_at) return { ok: false, reason: 'entry_payment_required' };
   if (isMc2Purchased(registration)) return { ok: false, reason: 'purchased' };
   return { ok: true, job, registration, starts, expires };
 }

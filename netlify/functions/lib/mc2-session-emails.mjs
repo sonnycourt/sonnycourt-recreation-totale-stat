@@ -77,6 +77,7 @@ export function mc2SessionEmailConfig(env = process.env) {
 }
 
 export function mc2SessionEmailJobs(row = {}, now = new Date()) {
+  if (row.entry_payment_required === true && !row.entry_payment_paid_at) return [];
   const start = dateOrNull(row.session_starts_at);
   if (!row.token || !start) return [];
   const token = clean(row.token, 128);
@@ -187,7 +188,7 @@ async function updateSubscriberFields(subscriberId, registration, config) {
 async function loadRegistration(token) {
   const result = await supabaseGet(
     `mc2_registrations?token=eq.${encode(token)}`
-      + '&select=token,email,prenom,slot_kind,visitor_timezone,session_starts_at,offer_expires_at,saw_offer,statut,payment_status,purchased_at&limit=1',
+      + '&select=token,email,prenom,slot_kind,visitor_timezone,session_starts_at,offer_expires_at,saw_offer,statut,payment_status,purchased_at,entry_payment_required,entry_payment_paid_at&limit=1',
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -215,6 +216,7 @@ export async function processMc2SessionEmailJob(job, now = new Date(), env = pro
   const registration = await loadRegistration(job.token);
   const currentSession = dateOrNull(registration?.session_starts_at)?.toISOString();
   if (!registration) return skipJob(job, 'registration_missing');
+  if (registration.entry_payment_required === true && !registration.entry_payment_paid_at) return skipJob(job, 'entry_payment_required');
   if (currentSession !== dateOrNull(job.session_starts_at)?.toISOString()) return skipJob(job, 'session_rescheduled');
   const start = new Date(currentSession);
   if (OFFER_TYPES.has(job.message_type)) {

@@ -90,7 +90,7 @@ assert.match(wrapper, /import Mc2OptinPage from '\.\.\/\.\.\/mc2\/index\.astro'/
 assert.match(wrapper, /trafficSource="meta_ad" trackingPath="\/meta\/mc2\/"/);
 assert.doesNotMatch(wrapper, /Mc2PaidOptinAdapter|MetaMasterclassPage|Mc2ScheduleEnhancer/);
 const script = pageSource.match(/<script>\s*\/\/ @ts-nocheck([\s\S]*?)<\/script>/)[1]
-  .replace(/import \{ createMc2MetaOptin \} from '[^']+';/, '');
+  .replace(/import \{[^}]+\} from '[^']+';/g, '');
 
 for (const source of ['meta_ad', null]) {
   for (const slot of ['jit', 'fixed-1', 'fixed-2']) {

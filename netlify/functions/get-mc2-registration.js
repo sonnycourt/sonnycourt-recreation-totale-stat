@@ -1,4 +1,5 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 
 function jsonResponse(status, payload) {
@@ -24,7 +25,7 @@ export default async (req) => {
     if (!token) return jsonResponse(400, { error: 'Token manquant' });
 
     const result = await supabaseGet(
-      `mc2_registrations?token=eq.${encodeURIComponent(token)}&select=token,prenom,email,telephone,pays,session_slot_id,slot_kind,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,statut,traffic_source,registered_at,registration_completed_at,attended_live,watch_first_second_live,watch_max_seconds_live,saw_offer,clicked_cta&limit=1`,
+      `mc2_registrations?token=eq.${encodeURIComponent(token)}&select=token,prenom,email,telephone,pays,session_slot_id,slot_kind,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,statut,traffic_source,registered_at,registration_completed_at,attended_live,watch_first_second_live,watch_max_seconds_live,saw_offer,clicked_cta,entry_payment_required,entry_payment_paid_at&limit=1`,
     );
     if (!result.ok) return jsonResponse(500, { error: 'Erreur base de données MC2' });
     if (!Array.isArray(result.data) || result.data.length === 0) {
@@ -32,6 +33,10 @@ export default async (req) => {
     }
 
     const row = result.data[0];
+    if (mc2EntryPaymentPending(row)) return jsonResponse(402, {
+      valid: false, entryPaymentRequired: true,
+      redirectTo: `/mc2/?t=${encodeURIComponent(token)}`,
+    });
     return jsonResponse(200, {
       valid: true,
       token: row.token,

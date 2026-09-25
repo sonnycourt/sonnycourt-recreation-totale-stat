@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { checkMc2RegistrationPhone } from './lib/mc2-registration-country.mjs';
 import { captureMc2ChallengeContact, MC2_CHALLENGE_PATH } from './lib/mc2-challenge-contacts.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
@@ -49,6 +50,7 @@ function registrationResponse(row, alreadyRegistered = false, metaEvents = []) {
     alreadyRegistered,
     token: row.token,
     statut: row.statut || 'partial',
+    entryPaymentRequired: mc2EntryPaymentPending(row),
     sessionStartsAt: row.session_starts_at,
     sessionEndsAt: mc2SessionEndsAtIso(row.session_starts_at),
     slotKind: row.slot_kind,
@@ -87,6 +89,7 @@ async function deliverRegistrationMetaEvents(req, row, options) {
 }
 
 async function queueLiveReminder(row) {
+  if (mc2EntryPaymentPending(row)) return;
   if (!row?.token || !row?.telephone || !row?.sms_consent_at || !row?.session_starts_at) return;
   const result = await queueMc2Sms({
     token: row.token,
@@ -98,6 +101,7 @@ async function queueLiveReminder(row) {
 }
 
 async function queueSessionEmails(row) {
+  if (mc2EntryPaymentPending(row)) return;
   try {
     await queueMc2SessionEmails(row);
   } catch (error) {
@@ -133,6 +137,27 @@ async function syncMailerLite(row) {
   }
 }
 
+// Reuse the existing confirmed-registration workflow after server payment proof.
+// All queues and Meta event IDs are idempotent; no new customer copy is introduced.
+export async function completeMc2EntryRegistration(req, row) {
+  if (mc2EntryPaymentPending(row)) throw new Error('entry_payment_unverified');
+  if (/^[0-9a-f-]{36}$/i.test(String(row.optin_funnel_id || ''))) {
+    const tracked = await supabasePost('mc2_optin_events?on_conflict=funnel_id,event_name', {
+      funnel_id: row.optin_funnel_id, event_name: 'registration_completed',
+      variant: row.optin_variant || 'mc2',
+      path: row.traffic_source === 'meta_ad' ? '/meta/mc2/' : '/mc2/',
+      traffic_source: row.traffic_source || null, selected_country: row.pays,
+      session_date: row.session_starts_at,
+    }, { prefer: 'resolution=ignore-duplicates,return=minimal' });
+    if (!tracked.ok) console.error('MC2 paid optin tracking unavailable:', tracked.status);
+  }
+  await persistMc2RegistrationExclusion(row);
+  await syncMailerLite(row);
+  await queueLiveReminder(row);
+  await queueSessionEmails(row);
+  return deliverRegistrationMetaEvents(req, row, { created: false, completedNow: true });
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -143,7 +168,7 @@ export default async (req) => {
     const prenom = String(body?.prenom || '').trim().slice(0, 120);
     const telephone = trim(body?.telephone, 40);
     const pays = trim(body?.pays, 80);
-    const isComplete = Boolean(telephone && pays);
+    const contactComplete = Boolean(telephone && pays);
     const smsConsent = body?.sms_consent === true;
 
     if (!email || !email.includes('@') || !prenom) {
@@ -181,6 +206,10 @@ export default async (req) => {
     }
 
     const existingRow = Array.isArray(existing.data) ? existing.data[0] || null : null;
+    // New registrations require payment; pre-existing rows retain their access.
+    // A browser-supplied flag can never disable this requirement.
+    const entryPaymentRequired = existingRow ? existingRow.entry_payment_required === true : true;
+    const isComplete = contactComplete && !(entryPaymentRequired && !existingRow?.entry_payment_paid_at);
     const exclusions = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,
     );
@@ -214,7 +243,7 @@ export default async (req) => {
         reason: phoneEligibility.reason,
       });
     }
-    if ((telephone || pays) && !isComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
+    if ((telephone || pays) && !contactComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
 
     if (exclusion && !existingRow && !reactivatedNoShow) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
@@ -277,6 +306,7 @@ export default async (req) => {
 
     const row = {
       token: generateToken(),
+      entry_payment_required: entryPaymentRequired,
       email,
       prenom,
       telephone,

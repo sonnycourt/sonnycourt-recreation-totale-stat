@@ -1,0 +1,89 @@
+<!-- Scoped to the 27 EUR one-time masterclass checkout and the Entry embed only. No payment API calls. -->
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  if (params.get('mc2_entry') !== '1' || window.parent === window) return;
+  if (!/^\/checkout\/masterclass-es2-27\/?$/.test(location.pathname)) return;
+  var parentOrigin = params.get('mc2_parent_origin');
+  if (!/^https:\/\/(www\.)?sonnycourt\.com$/.test(parentOrigin || '') && !/^https:\/\/[a-z0-9-]+--sonnycourt-recreation-totale\.netlify\.app$/.test(parentOrigin || '') && !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(parentOrigin || '')) return;
+  document.documentElement.classList.add('mc2-entry-embed');
+  function send(type, data) { window.parent.postMessage(Object.assign({ type: type }, data), parentOrigin); }
+  function localizeValidationMessage(text) {
+    return text.trim() === "Make sure you've filled in all required fields correctly"
+      ? 'Vérifie que tous les champs obligatoires sont correctement remplis.'
+      : text;
+  }
+  var attempts = 0;
+  var initialized = false;
+  function setup() {
+    if (initialized) return;
+    var root = document.querySelector('.checkout');
+    var email = root && root.querySelector('input[type="email"]');
+    var terms = root && root.querySelector('.terms .rendered-content');
+    var identityReady = Boolean(email && email.value.trim() === params.get('email'));
+    if (!email || (!identityReady && attempts < 99)) {
+      if (++attempts < 100) window.setTimeout(setup, 100);
+      return;
+    }
+    initialized = true;
+    if (identityReady) {
+      [email].forEach(function (input) {
+        var section = input.closest('.section.block');
+        if (section) section.setAttribute('data-mc2-prefilled', 'true');
+      });
+    }
+    function decorate() {
+      root.querySelectorAll('.alert-danger[role="alert"] .d-block > span').forEach(function (message) {
+        var translated = localizeValidationMessage(message.textContent);
+        if (translated === message.textContent) return;
+        message.textContent = translated;
+        var close = message.closest('[role="alert"]').querySelector('button.close');
+        if (close) close.setAttribute('aria-label', 'Fermer');
+      });
+      var terms = root.querySelector('.terms .rendered-content');
+      if (terms && !terms.querySelector('[data-mc2-terms]')) {
+        terms.innerHTML = '<p data-mc2-terms>J’accepte les <a href="https://sonnycourt.com/cgv/" target="_blank" rel="noopener noreferrer">CGV</a> et le paiement unique de 27 €.</p>';
+      }
+      var label = root.querySelector('.payment-type__label');
+      if (label && label.textContent !== 'Carte bancaire') label.textContent = 'Carte bancaire';
+    }
+    decorate();
+    new MutationObserver(decorate).observe(root, { childList: true, characterData: true, subtree: true });
+    var height = function () {
+      send('mc2:entry-spiffy-height', { height: Math.ceil(root.getBoundingClientRect().bottom + window.scrollY + 4) });
+    };
+    send('mc2:entry-spiffy-ready', { identityReady: identityReady });
+    height();
+    if (window.ResizeObserver) new ResizeObserver(height).observe(root);
+  }
+  if (window.checkout && typeof window.checkout.ready === 'function') window.checkout.ready(setup);
+  else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true });
+  else setup();
+})();
+</script>
+<style>
+html.mc2-entry-embed, .mc2-entry-embed body { margin:0!important; padding:0!important; background:#f7f9fc!important; }
+.mc2-entry-embed .checkout { color:#17304b!important; background:transparent!important; font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important; }
+.mc2-entry-embed .checkout__container,.mc2-entry-embed .checkout__body,.mc2-entry-embed .checkout__inner,.mc2-entry-embed .checkout__inner>.container { margin:0!important; padding:0!important; width:100%!important; max-width:none!important; background:transparent!important; }
+.mc2-entry-embed .checkout-form { width:100%!important; flex:0 0 100%!important; max-width:100%!important; padding:0!important; }
+.mc2-entry-embed .checkout__inner>.container>.row { margin:0!important; }
+.mc2-entry-embed .content-container,.mc2-entry-embed .order-summary-mobile,.mc2-entry-embed [data-mc2-prefilled],.mc2-entry-embed footer,.mc2-entry-embed .payment-type__and-more { display:none!important; }
+.mc2-entry-embed .section.block { margin:0 0 16px!important; }
+/* Same native MC2 reference as the historical checkout, never a customer field. */
+.mc2-entry-embed [id^="block-"]:has(input[placeholder="MC2 Token"]) { display:none!important; }
+.mc2-entry-embed .section.block>.card { border:0!important; border-radius:0!important; box-shadow:none!important; background:transparent!important; }
+.mc2-entry-embed .section__inner.card-body { padding:0!important; background:transparent!important; }
+.mc2-entry-embed .payment-gateway { border:1px solid #cbd8e6!important; border-radius:9px!important; background:#fff!important; }
+.mc2-entry-embed .payment-type { border-color:#cbd8e6!important; color:#17304b!important; padding:16px!important; background:#fff!important; }
+.mc2-entry-embed .payment-type__label { color:#17304b!important; font-weight:700!important; }
+.mc2-entry-embed .payment-type__icon,.mc2-entry-embed .payment-gateway__secure { display:none!important; }
+.mc2-entry-embed .StripeElement { min-height:50px!important; border:1px solid #cbd8e6!important; border-radius:9px!important; padding:14px 12px!important; background:#fff!important; }
+.mc2-entry-embed .StripeElement iframe { filter:none!important; }
+.mc2-entry-embed .terms { color:#17304b!important; font-size:14px!important; line-height:1.5!important; }
+.mc2-entry-embed .terms p { margin:0!important; }
+.mc2-entry-embed .terms [data-mc2-terms] { padding:5px 0 0 8px!important; }
+.mc2-entry-embed .terms a { color:#165ed1!important; text-decoration:underline!important; }
+.mc2-entry-embed .btn--checkout { width:100%!important; min-height:60px!important; padding:18px 16px!important; border:0!important; border-radius:14px!important; background:#347bea!important; color:#fff!important; font-size:18px!important; font-weight:850!important; line-height:1.4!important; white-space:normal!important; }
+.mc2-entry-embed .btn--checkout:hover { background:#266ade!important; }
+.mc2-entry-embed .invalid-feedback,.mc2-entry-embed [role=alert] { color:#b42318!important; }
+</style>

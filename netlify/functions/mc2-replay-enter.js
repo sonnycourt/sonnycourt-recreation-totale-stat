@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { isMc2Purchased, mc2RecoveryResumeSeconds } from './lib/mc2-replay-recovery.mjs';
 import { mc2ReplayExpiresAt } from '../../src/lib/mc2-timing.mjs';
@@ -38,12 +39,13 @@ export default async (req) => {
 
     const registrationResult = await supabaseGet(
       `mc2_registrations?token=eq.${encodeURIComponent(token)}`
-        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at&limit=1',
+        + '&select=token,email,prenom,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,statut,payment_status,purchased_at,entry_payment_required,entry_payment_paid_at&limit=1',
     );
     const registration = registrationResult.ok && Array.isArray(registrationResult.data)
       ? registrationResult.data[0] || null
       : null;
     if (!registration) return response(404, 'Lien invalide.');
+    if (mc2EntryPaymentPending(registration)) return redirectTo('/mc2/?t=' + encodeURIComponent(token));
     if (isMc2Purchased(registration)) return redirectTo(sessionPath + '?t=' + encodeURIComponent(token));
 
     const now = new Date();

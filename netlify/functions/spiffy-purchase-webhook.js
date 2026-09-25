@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { MC2_ENTRY_CHECKOUT_ID } from '../../src/lib/mc2-entry-payment.mjs';
+import { confirmMc2EntryPayment } from './lib/mc2-entry-payment.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
@@ -244,6 +246,17 @@ export default async (req) => {
       ? String(data.checkout.id)
       : findFirstKey(body, ['checkout_id', 'checkoutId', 'checkout_uuid', 'offer_id']);
     const deferredPlan = ['twelve', 'six'].includes(MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')]);
+    // Masterclass entry is NOT an ES2 purchase. Exit before any ES2 automation.
+    if (String(checkoutId) === MC2_ENTRY_CHECKOUT_ID) {
+      if (eventType !== 'order:success' || !email || !data?.id) return jsonResponse(200, { ok: true, skipped: 'entry_non_success' });
+      const lookup = await supabaseGet(`mc2_registrations?email=eq.${encodeURIComponent(email)}&select=*&limit=1`);
+      if (!lookup.ok) return jsonResponse(503, { error: 'entry_registration_unavailable' });
+      const entryRow = lookup.data?.[0];
+      if (!entryRow) return jsonResponse(200, { ok: true, skipped: 'entry_no_registration' });
+      // A webhook is not the customer's browser: never send Spiffy's IP/UA to Meta.
+      const result = await confirmMc2EntryPayment(null, entryRow, { orderId: String(data.id) });
+      return jsonResponse(result.paid || result.historical ? 200 : 503, { ok: result.paid, entry: true });
+    }
     // J0 is a completed order, not an installment collected at J+7. Never
     // substitute the recurring price or the contractual total for today's 0 €.
     const amount = deferredPlan && eventType === 'order:success' ? 0 : findAmountEur(data);

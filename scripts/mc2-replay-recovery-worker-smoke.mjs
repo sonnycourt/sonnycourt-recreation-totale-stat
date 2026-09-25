@@ -73,6 +73,12 @@ const env = {
   MC2_PUBLIC_BASE_URL: 'https://sonnycourt.com',
   MC2_REPLAY_ACCESS_HOURS: '48',
 };
+registrationOverrides = {entry_payment_required:true,entry_payment_paid_at:null};
+const unpaid = await processMc2ReplayRecoveryJob(job,now,env);
+assert.equal(unpaid.reason,'entry_payment_required');
+assert.equal(calls.some(call=>call.host==='connect.mailerlite.com'),false);
+registrationOverrides = {};
+calls.length=0;
 const delivered = await processMc2ReplayRecoveryJob(job, now, env);
 assert.equal(delivered.status, 'delivered');
 const accessPatch = calls.find((call) => call.host === 'supabase.test' && call.body?.access_expires_at);

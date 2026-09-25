@@ -965,6 +965,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 const token = readToken();
                 if (!token) return null;
                 const response = await fetch('/.netlify/functions/get-mc2-registration?t=' + encodeURIComponent(token));
+                if (response.status === 402) { window.location.replace('/mc2/?t=' + encodeURIComponent(token)); return null; }
                 if (!response.ok) return null;
                 const registration = await response.json();
                 if (!registration.valid || !registration.sessionStartsAt) return null;

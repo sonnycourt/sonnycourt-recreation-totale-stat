@@ -22,6 +22,7 @@
 
         var originalFetch = window.fetch.bind(window);
         var PREVIEW_REGISTRATION_KEY = 'mc2_preview_registration_v1';
+        var entryPaymentPreview = params.get('entry_payment_preview') === '1';
 
         function readPreviewRegistration() {
             try { return JSON.parse(sessionStorage.getItem(PREVIEW_REGISTRATION_KEY) || 'null'); }
@@ -51,6 +52,7 @@
                     preview: true,
                     token: previous && previous.token ? previous.token : token,
                     statut: body.telephone && body.pays ? 'registered' : 'partial',
+                    entryPaymentRequired: entryPaymentPreview,
                     prenom: body.prenom || '',
                     email: body.email || '',
                     sessionStartsAt: body.session_starts_at,
@@ -69,6 +71,13 @@
 
             if (url.indexOf('/.netlify/functions/check-mc2-eligibility') !== -1) {
                 return response({ eligible: true, preview: true });
+            }
+
+            if (entryPaymentPreview && url.indexOf('/.netlify/functions/check-mc2-phone-country') !== -1) {
+                return response({ eligible: true, preview: true });
+            }
+            if (entryPaymentPreview && url.indexOf('/.netlify/functions/mc2-entry-payment-status') !== -1) {
+                return response({ paid: false, preview: true });
             }
 
             if (url.indexOf('/.netlify/functions/track-mc2-optin') !== -1) {

@@ -54,8 +54,8 @@ const { pagePath = '/mc2/' } = Astro.props;
     return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
   }
 
-  function persist(token) {
-    resolvedToken = token;
+  function persist(token, validated = true) {
+    if (validated) resolvedToken = token;
     try { localStorage.setItem(TOKEN_KEY, token); } catch (error) {}
     document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=2592000; SameSite=Lax; Secure`;
     const url = new URL(window.location.href);
@@ -79,7 +79,54 @@ const { pagePath = '/mc2/' } = Astro.props;
 
   async function validate(token) {
     const response = await fetch(`/.netlify/functions/get-mc2-registration?t=${encodeURIComponent(token)}`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (response.status === 402) {
+      // Preserve the pending token: a payment delay is not an invalid identity.
+      persist(token, false);
+      if (!/^\/mc2\/confirmation\/?$/.test(window.location.pathname)) {
+        window.location.replace('/mc2/?t=' + encodeURIComponent(token));
+        return new Promise(() => {});
+      }
+      return verifyEntryAccess(token);
+    }
     return response.ok;
+  }
+
+  function verifyEntryAccess(token) {
+    showGate();
+    form.hidden = true;
+    document.getElementById('mc2-access-title').textContent = 'Nous préparons ton accès';
+    const copy = gate.querySelector('.mc2-access-gate__copy');
+    copy.textContent = 'Vérification de ton paiement sécurisé…';
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.id = 'mc2-entry-verify'; retry.textContent = 'Vérifier à nouveau'; retry.hidden = true;
+    retry.style.cssText = 'padding:14px 20px;border:0;border-radius:10px;background:#347bea;color:white;cursor:pointer;font:inherit;font-weight:700';
+    const back = document.createElement('a');
+    back.href = '/mc2/?t=' + encodeURIComponent(token); back.textContent = 'Revenir à mon inscription';
+    back.style.cssText = 'display:block;margin-top:16px;color:#bfdbfe;font-size:13px';
+    form.after(retry, back);
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order_id') || params.get('orderId') || '';
+    return new Promise(resolve => {
+      let busy = false;
+      async function check() {
+        if (busy) return;
+        busy = true; retry.hidden = true;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          try {
+            const response = await fetch('/.netlify/functions/mc2-entry-payment-status', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({token,orderId}), signal:AbortSignal.timeout(20000),
+            });
+            const result = await response.json();
+            if (response.ok && result.paid) { retry.remove(); back.remove(); resolve(true); return; }
+          } catch (error) {}
+          if (attempt < 3) await new Promise(done => window.setTimeout(done,3500));
+        }
+        copy.textContent = 'La confirmation prend un peu plus de temps. Si tu viens de payer, ne recommence pas ton achat : vérifie à nouveau dans un instant.';
+        retry.hidden = false; busy = false;
+      }
+      retry.addEventListener('click',check); check();
+    });
   }
 
   function showGate() {
