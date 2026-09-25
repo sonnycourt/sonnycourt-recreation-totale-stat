@@ -8,6 +8,8 @@ import { mc2RecoverySegment, mc2RecoveryMessageTypes } from '../netlify/function
 const row = { token:'11111111-2222-4333-8444-555555555555', email:'test@example.invalid', telephone:'+33612345678', pays:'France', registered_at:'2026-09-25T10:00:00Z', entry_payment_required:true };
 const order = { id:100, customer_id:20, currency:'EUR', created_at:'2026-09-25T10:10:00Z', checkout:{id:Number(MC2_ENTRY_CHECKOUT_ID)} };
 const payment = { id:10, order_id:100, currency:'EUR', status:'succeeded', amount:2700, amount_paid:2700, amount_refunded:0, created_at:'2026-09-25T10:11:00Z' };
+const realSpiffyOrder = { id:101, customer_id:20, currency:'eur', created_at:'2026-09-25T10:10:00Z', completed_at:'2026-09-25T10:10:02Z', payment_status:'succeeded', detail:{total:2700,due_today:2700}, items:[{price:{amount:2700,option:{product:{id:11870}}}}] };
+const realSpiffyPayment = { ...payment, id:11, order_id:101, is_manual:true, gateway_id:4, stripe_charge_id:'ch_test', stripe_paymentintent_id:'pi_test', customer_id:20 };
 assert.equal(mc2EntryPaymentPending({}),false);
 assert.equal(mc2EntryPaymentPending(row),true);
 assert.deepEqual(mc2SessionEmailJobs({...row,session_starts_at:'2026-09-26T18:00:00Z'}),[]);
@@ -15,9 +17,12 @@ assert.equal(mc2RecoverySegment(row),null);
 assert.deepEqual(mc2RecoveryMessageTypes(row),[]);
 assert.equal(mc2EntryPaymentPending({...row,entry_payment_paid_at:payment.created_at}),false);
 assert.ok(verifiedEntryPayment(order,[payment],row,20));
+assert.ok(verifiedEntryPayment(realSpiffyOrder,[realSpiffyPayment],row,20),'Spiffy v2 real one-time card shape');
 for(const change of [{status:'pending'},{status:'failed'},{status:'refunded'},{amount_refunded:1},{amount_paid:0},{amount:19700},{currency:'USD'},{order_id:999},{is_manual:true}]) {
   assert.equal(verifiedEntryPayment(order,[{...payment,...change}],row,20),null,JSON.stringify(change));
 }
+assert.equal(verifiedEntryPayment(realSpiffyOrder,[{...realSpiffyPayment,stripe_charge_id:null,stripe_paymentintent_id:null}],row,20),null,'Manual payment without gateway proof denied');
+assert.equal(verifiedEntryPayment({...realSpiffyOrder,items:[{price:{amount:2700,option:{product:{id:999}}}}]},[realSpiffyPayment],row,20),null,'Wrong product denied');
 for(const change of [{customer_id:21},{checkout:{id:40406}},{currency:'USD'},{created_at:'2026-09-20T10:00:00Z'}]) assert.equal(verifiedEntryPayment({...order,...change},[payment],row,20),null);
 assert.equal(verifiedEntryPayment(order,[payment,{...payment,id:11,status:'disputed'}],row,20),null);
 assert.equal(verifiedEntryPayment(order,[payment],{...row,telephone:null},20),null);
@@ -30,7 +35,7 @@ const options={
 };
 assert.equal((await confirmMc2EntryPayment(new Request('https://example.invalid'),row,options)).paid,true);
 assert.equal(updates,1);assert.equal(completions,1);
-assert.equal(calls.find(c=>c[0]==='orders')[1].include,'checkout');
+assert.equal(calls.find(c=>c[0]==='orders')[1].include,'items');
 assert.equal((await confirmMc2EntryPayment(null,{...row,entry_payment_paid_at:payment.created_at},options)).paid,true);
 assert.equal(updates,1,'Already paid does not write twice');
 assert.equal((await confirmMc2EntryPayment(null,{...row,entry_payment_required:false},options)).historical,true);

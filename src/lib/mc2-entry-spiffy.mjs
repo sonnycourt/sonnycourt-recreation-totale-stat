@@ -95,6 +95,7 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
   let revealEarliest = 0;
   let revealDeadline = 0;
   let destroyed = false;
+  let redirecting = false;
   let manualRetries = 0;
   const standaloneUrl = new URL(url);
   for (const key of ['elements', 'mc2_entry', 'mc2_parent_origin']) standaloneUrl.searchParams.delete(key);
@@ -186,13 +187,51 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
     const message = trustedSpiffyMessage(event, frame);
     if (!message) return;
     if (message.redirect) {
+      if (redirecting) return;
+      redirecting = true;
       const destination = new URL(message.redirect);
       destination.searchParams.set('provider', 'spiffy');
       const token = cleanEntryRegistrationToken(identity.registrationToken);
       if (token) destination.searchParams.set('t', token);
-      // Navigation is not proof of purchase: the existing status endpoint verifies it.
       observe('payment_redirect_observed');
-      view.location.assign(destination.pathname + destination.search);
+      frame.style.pointerEvents = 'none';
+      frame.setAttribute('aria-hidden', 'true');
+      if (!status.isConnected) slot.prepend(status);
+      status.className = 'entry-spiffy-loading';
+      status.textContent = 'Paiement confirmé. Ouverture de ta masterclass…';
+      slot.setAttribute('aria-busy', 'true');
+      const orderId = destination.searchParams.get('order_id') || destination.searchParams.get('orderId') || '';
+      (async () => {
+        // Confirm server-side before leaving the checkout: a legitimate buyer
+        // lands on an already-unlocked token confirmation page, never on the
+        // intermediate access gate.
+        for (let attempt = 0; attempt < 20 && !destroyed; attempt++) {
+          try {
+            const response = await view.fetch('/.netlify/functions/mc2-entry-payment-status', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, orderId }), signal: AbortSignal.timeout(20000),
+            });
+            const result = await response.json();
+            if (response.ok && (result.paid || result.historical)) {
+              destination.searchParams.delete('provider');
+              view.location.assign(destination.pathname + destination.search);
+              return;
+            }
+          } catch { /* Provider data can take a few seconds to propagate. */ }
+          await new Promise(resolve => view.setTimeout(resolve, 1500));
+        }
+        // Keep the paid checkout visible as the recovery surface instead of
+        // sending a buyer to an alarming locked confirmation page.
+        redirecting = false;
+        frame.removeAttribute('aria-hidden');
+        status.className = 'entry-spiffy-recovery';
+        status.textContent = 'Paiement reçu. La création de ton accès prend quelques instants. Réessaie dans un instant.';
+        const retry = doc.createElement('button');
+        retry.type = 'button'; retry.textContent = 'OUVRIR MA MASTERCLASS';
+        retry.addEventListener('click', () => onMessage(event));
+        status.append(doc.createTextNode(' '), retry);
+        slot.setAttribute('aria-busy', 'false');
+      })();
       return;
     }
     if (message.height) {
