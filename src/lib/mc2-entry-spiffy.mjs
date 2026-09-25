@@ -51,6 +51,25 @@ export function mountEntrySpiffy(slot, plan, identity, { track = () => {} } = {}
   const observe = (name, meta = {}) => { try { track(name, meta); } catch { /* Never block the provider. */ } };
   const doc = slot.ownerDocument;
   const view = doc.defaultView;
+  const parentUrl = new URL(view.location.href);
+  const localPreview = ['127.0.0.1', 'localhost'].includes(parentUrl.hostname)
+    && parentUrl.searchParams.get('entry_payment_preview') === '1';
+  if (localPreview) {
+    const preview = doc.createElement('div');
+    preview.className = 'entry-spiffy-preview';
+    preview.innerHTML = `
+      <div class="entry-spiffy-preview__label">Carte bancaire</div>
+      <div class="entry-spiffy-preview__card" aria-label="Aperçu du champ carte">
+        <span>Numéro de carte</span><span>MM / AA</span><span>CVC</span>
+      </div>
+      <label class="entry-spiffy-preview__terms"><input type="checkbox" disabled> J’accepte les CGV et le paiement unique de 27 €.</label>
+      <button type="button" disabled>PAYER 27 € ET RÉSERVER MA PLACE</button>
+      <p>Mode aperçu local : paiement désactivé. Le vrai formulaire fonctionne uniquement sur la preview HTTPS.</p>`;
+    slot.replaceChildren(preview);
+    slot.setAttribute('aria-busy', 'false');
+    observe('payment_local_preview_visible');
+    return { destroy() { slot.replaceChildren(); } };
+  }
   const frame = doc.createElement('iframe');
   const status = doc.createElement('p');
   status.className = 'entry-spiffy-loading';

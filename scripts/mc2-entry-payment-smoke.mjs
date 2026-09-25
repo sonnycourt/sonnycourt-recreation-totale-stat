@@ -36,6 +36,7 @@ assert.equal(updates,1,'Already paid does not write twice');
 assert.equal((await confirmMc2EntryPayment(null,{...row,entry_payment_required:false},options)).historical,true);
 const url=buildEntrySpiffyUrl({checkoutUrl:'https://sonnycourt.spiffy.co/checkout/masterclass-es2-27',count:1},{firstName:'Test',email:row.email,registrationToken:row.token},'https://sonnycourt.com/meta/mc2/');
 assert.equal(url.searchParams.get('mc2_entry'),'1');assert.equal(url.searchParams.get('email'),row.email);assert.equal(url.searchParams.has('coupon'),false);
+assert.equal(url.searchParams.get('mc2_parent_origin'),'https://sonnycourt.com');
 assert.throws(()=>buildEntrySpiffyUrl({checkoutUrl:'https://sonnycourt.spiffy.co/checkout/38556364'}, {}, 'https://sonnycourt.com'));
 const frame={contentWindow:{}};
 assert.equal(trustedSpiffyMessage({origin:'https://evil.invalid',source:frame.contentWindow,data:{type:'mc2:entry-spiffy-ready'}},frame),null);
