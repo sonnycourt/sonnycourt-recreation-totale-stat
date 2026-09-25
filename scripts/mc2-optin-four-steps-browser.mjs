@@ -11,9 +11,12 @@ try {
     const requests = [];
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
+    page.on('dialog', async dialog => { console.log('Dialog:', dialog.message()); await dialog.dismiss(); });
     await page.setRequestInterception(true);
+    await page.evaluateOnNewDocument(() => { window.__browserTestFetch = window.fetch.bind(window); });
     page.on('request', req => {
       const url = new URL(req.url());
+      if (url.hostname === 'ipapi.co') return req.respond({ status: 200, contentType: 'application/json', body: '{"country_code":"FR"}' });
       if (url.pathname.startsWith('/.netlify/functions/')) {
         const data = JSON.parse(req.postData() || '{}');
         requests.push({ name: url.pathname.split('/').pop(), data });
@@ -21,17 +24,21 @@ try {
           ? { eligible: true } : { ok: true, count: 12 };
         return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
       }
-      // Exercise the native phone fallback; no requests to third-party services.
+      // Allow only the phone widget's static assets; no external data writes.
+      if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('intl-tel-input@18.5.3/')) return req.continue();
       if (url.origin !== new URL(base).origin) return req.abort();
       return req.continue();
     });
-    await page.goto(base + path + '?preview=dev', { waitUntil: 'networkidle0' });
+    await page.goto(base + path, { waitUntil: 'networkidle0' });
+    // Bypass only the local fetch simulator; requests still hit our mocks above.
+    await page.evaluate(() => { window.fetch = window.__browserTestFetch; });
     await page.click('[data-mc2-picker="hero"] [data-slot-id="fixed-1"]').catch(async () => {
       await page.click('[data-slot-id="fixed-1"]');
     });
     await page.click('.popup-trigger');
     await page.waitForSelector('#name', { visible: true });
     await page.waitForFunction(() => !document.getElementById('pre-optin-overlay').classList.contains('is-visible'));
+    await page.screenshot({ path: '/private/tmp/mc2-optin-name-' + (path.startsWith('/meta/') ? 'meta' : 'organic') + '.png' });
     assert.equal(await page.$eval('#custom-popup', el => el.querySelectorAll('[data-slot-id]').length), 0);
     await page.click('#name-next');
     assert.ok(await page.$eval('#name-message', el => el.textContent));
@@ -45,8 +52,13 @@ try {
     await page.$eval('#email', el => el.value = '');
     await page.type('#email', 'test@example.invalid');
     await page.keyboard.press('Enter');
-    await page.waitForSelector('#phone', { visible: true });
-    await page.type('#phone', '+33612345678');
+    await page.waitForSelector('#phone', { visible: true }).catch(async error => {
+      console.log(await page.$eval('#custom-popup', el => el.innerText), requests, errors);
+      throw error;
+    });
+    await page.waitForFunction(() => !document.getElementById('step2-next').disabled && Boolean(window.intlTelInputUtils));
+    await page.$eval('#phone', el => el.value = '');
+    await page.type('#phone', '612345678');
     await page.click('#step2-next');
     await page.waitForSelector('#commit-present', { visible: true });
     assert.equal(requests.filter(r => r.name === 'register-mc2').length, 0);
@@ -59,7 +71,7 @@ try {
     assert.equal(phoneEvent.data.path, path);
     assert.equal(phoneEvent.data.traffic_source, path.startsWith('/meta/') ? 'meta_ad' : null);
     assert.deepEqual(errors, []);
-    console.log(path, 'four steps, validation, phone fallback, country gate payload, attribution and tracking OK');
+    console.log(path, 'four steps, validation, phone widget, country gate payload, attribution and tracking OK');
     await page.close();
   }
 } finally {
