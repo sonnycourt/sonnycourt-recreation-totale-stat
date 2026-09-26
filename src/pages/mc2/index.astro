@@ -5,13 +5,14 @@ import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 interface Props {
     trafficSource?: 'meta_ad' | null;
     trackingPath?: string;
+    publicClosed?: boolean;
 }
 
-const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
+const { trafficSource = null, trackingPath = '/mc2/', publicClosed = false } = Astro.props;
 ---
 
 <!DOCTYPE html>
-<html lang="fr" data-mc2-source={trafficSource} data-mc2-tracking-path={trackingPath}>
+<html lang="fr" data-mc2-source={trafficSource} data-mc2-tracking-path={trackingPath} data-mc2-public-closed={publicClosed ? 'true' : 'false'}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2281,8 +2282,8 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
     <div id="gate-blocked">
         <div class="gate-blocked-inner">
             <div data-block-variant="closed" style="display:none;">
-                <h1>Cette masterclass est terminée.</h1>
-                <p>La session à laquelle tu étais inscrit(e) a déjà eu lieu. Tu ne peux malheureusement pas te réinscrire.</p>
+                <h1>La masterclass n’est actuellement pas disponible.</h1>
+                <p>Reviens dans les prochains jours pour retrouver ton accès.</p>
             </div>
             <div data-block-variant="acheteur" style="display:none;">
                 <h1>Tu es déjà membre d'Esprit Subconscient 2.0 !</h1>
@@ -3081,6 +3082,8 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             });
         }
 
+        const MC2_PUBLIC_CLOSED = document.documentElement.dataset.mc2PublicClosed === 'true';
+
         /** @returns {Promise<boolean>} true si la page opt-in doit s’initialiser */
         async function runEntryGate() {
             const url = new URL(window.location.href);
@@ -3090,6 +3093,10 @@ const { trafficSource = null, trackingPath = '/mc2/' } = Astro.props;
             if (previewMode === 'dev' || previewMode === 'closer') {
                 showMain();
                 return true;
+            }
+            if (MC2_PUBLIC_CLOSED) {
+                showBlocked('closed');
+                return false;
             }
             const urlToken = (url.searchParams.get('t') || url.searchParams.get('token') || '').trim();
             if (urlToken) setTokenEverywhere(urlToken);
