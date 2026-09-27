@@ -1,10 +1,6 @@
----
-import { DRAFTX_PAYMENT_PLANS } from '../../lib/mc2-draftx-checkout.mjs';
----
-
 <div class="draftx-checkout" data-draftx-checkout data-step="1">
   <button class="draftx-checkout__pay draftx-checkout__launch" type="button" data-checkout-open aria-haspopup="dialog" aria-controls="draftx-checkout-dialog">
-    Je commence à 0 € aujourd’hui <span aria-hidden="true">→</span>
+    Je commence ma transformation <span aria-hidden="true">→</span>
   </button>
   <dialog class="draftx-checkout__dialog" id="draftx-checkout-dialog" aria-label="Inscription à Esprit Subconscient 2.0">
     <div class="draftx-checkout__dialog-top">
@@ -38,34 +34,33 @@ import { DRAFTX_PAYMENT_PLANS } from '../../lib/mc2-draftx-checkout.mjs';
     </fieldset>
     <fieldset class="draftx-checkout__step" data-checkout-step="2" aria-labelledby="draftx-plan-title" hidden disabled inert aria-hidden="true">
       <h3 id="draftx-plan-title" tabindex="-1">Choisis ton rythme de versement</h3>
-      <p class="draftx-checkout__start">Tu commences à <strong>0 €</strong> aujourd’hui.</p>
-      <p class="draftx-checkout__intro">Ton premier versement arrive 7 jours plus tard.</p>
+      <p class="draftx-checkout__start">Ton accompagnement commence <strong>aujourd’hui.</strong></p>
+      <p class="draftx-checkout__intro">Choisis entre 12 mensualités et un paiement unique.</p>
       <div class="draftx-checkout__plans" role="group" aria-label="Choisis ton mode de versement">
-        {Object.entries(DRAFTX_PAYMENT_PLANS).map(([id, plan]) => (
-          <button class:list={['draftx-checkout__plan', { 'is-selected': id === 'twelve' }]} type="button" data-payment-plan={id} aria-pressed={id === 'twelve' ? 'true' : 'false'}>
-            {id === 'twelve' && <small class="draftx-checkout__badge">🔥 Le plus populaire</small>}
+        {['twelve', 'once'].map((id) => (
+          <button class:list={['draftx-checkout__plan', { 'is-selected': id === 'once' }]} type="button" data-payment-plan={id} aria-pressed={id === 'once' ? 'true' : 'false'}>
+            {id === 'once' && <small class="draftx-checkout__badge">Le meilleur tarif</small>}
             <span class="draftx-checkout__plan-today">
-              <strong>0 €</strong>
-              <span>aujourd’hui</span>
+              <strong>{id === 'once' ? '1 297 €' : '197 €'}</strong>
+              <span>{id === 'once' ? 'en une fois' : 'par mois pendant 12 mois'}</span>
             </span>
-            <b>{id === 'twelve' ? `Puis ${plan.amount} €/mois sur une année.` : `Puis ${plan.amount} €/mois sur ${plan.count} mois`}</b>
+            {id === 'once' && <b>Économise 1 067 €</b>}
             {id === 'twelve' && (
               <span class="draftx-checkout__daily-hint">
                 <img src="/media/draftx-cafe-croissant-objects.webp" alt="" width="36" height="24" decoding="async" />
-                <span>6,47 € par jour</span>
+                <span style="font-weight: 800;">6,47 € par jour</span>
               </span>
             )}
           </button>
         ))}
       </div>
-      <p class="draftx-checkout__plan-commitment">Abonnement sans renouvellement automatique, avec engagement.</p>
       <button class="draftx-checkout__pay" type="submit">Je valide mon choix <span aria-hidden="true">→</span></button>
       <button class="draftx-checkout__back" type="button" data-checkout-back>← Mes informations</button>
     </fieldset>
     <fieldset class="draftx-checkout__step" data-checkout-step="3" aria-labelledby="draftx-card-title" hidden disabled inert aria-hidden="true">
       <h3 id="draftx-card-title" tabindex="-1">Tout est prêt pour commencer</h3>
       <div class="draftx-checkout__today">
-        <div><span>À payer aujourd’hui</span><strong>0 €</strong></div>
+        <div><span>À payer aujourd’hui</span><strong data-payment-today>1 297 €</strong></div>
         <p data-payment-schedule></p>
       </div>
       <div class="draftx-checkout__card-heading">

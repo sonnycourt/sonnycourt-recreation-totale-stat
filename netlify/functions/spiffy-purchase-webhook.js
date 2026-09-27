@@ -172,6 +172,18 @@ function amountMatches(actual, expected) {
   return Number.isFinite(Number(actual)) && Math.abs(Number(actual) - expected) < 0.02;
 }
 
+// 40006/40007 were repriced, not recreated. Match the received amount so that
+// delayed historical orders keep their original terms instead of being repriced.
+function mc2PlanPricing(planKey, amount) {
+  if (planKey === 'monthly' && (amountMatches(amount, 197) || amountMatches(amount, 2364))) {
+    return { initialCents: 19_700, contractualTotalCents: 236_400, paymentMode: 'spiffy_12x197' };
+  }
+  if (planKey === 'once' && amountMatches(amount, 1297)) {
+    return { initialCents: 129_700, contractualTotalCents: 129_700, paymentMode: 'spiffy_one_time_1297' };
+  }
+  return MC2_SPIFFY_PLANS[planKey];
+}
+
 function mc2PlanFromPurchase(body, amount, registration, checkoutId) {
   const checkoutPlan = MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')];
   if (checkoutPlan) return checkoutPlan;
@@ -180,10 +192,10 @@ function mc2PlanFromPurchase(body, amount, registration, checkoutId) {
   if (MC2_SPIFFY_CHECKOUT_SLUGS.monthly.some((slug) => haystack.includes(slug))) return 'monthly';
 
   const recentPlan = String(registration?.checkout_last_plan || '').toLowerCase();
-  if (recentPlan === 'once' && amountMatches(amount, 1997)) return 'once';
-  if (recentPlan === 'monthly' && (amountMatches(amount, 767) || amountMatches(amount, 2301))) return 'monthly';
-  if (amountMatches(amount, 1997)) return 'once';
-  if (amountMatches(amount, 767) || amountMatches(amount, 2301)) return 'monthly';
+  if (recentPlan === 'once' && (amountMatches(amount, 1997) || amountMatches(amount, 1297))) return 'once';
+  if (['monthly', 'twelve'].includes(recentPlan) && [767, 2301, 197, 2364].some(value => amountMatches(amount, value))) return 'monthly';
+  if (amountMatches(amount, 1997) || amountMatches(amount, 1297)) return 'once';
+  if ([767, 2301, 197, 2364].some(value => amountMatches(amount, value))) return 'monthly';
   return null;
 }
 
@@ -277,7 +289,7 @@ export default async (req) => {
     const payloadToken = findMc2Token(body);
 
     // Le webhook historique continue de traiter webinaire_registrations plus bas.
-    // Cette branche additionnelle coupe uniquement le SMS H-4 du nouveau funnel
+    // Cette branche additionnelle coupe les SMS commerciaux H-4/H+2 du funnel
     // MC2 quand Spiffy confirme une vente de l'un de ses deux checkouts dédiés.
     if (isSale) {
       const cancellation = await cancelMc2OfferSmsAfterSpiffyPurchase({
@@ -354,15 +366,16 @@ export default async (req) => {
     }
 
     if (isMc2Purchase) {
-      const plan = MC2_SPIFFY_PLANS[mc2Plan];
+      const plan = mc2PlanPricing(mc2Plan, amount);
+      const currentImmediatePlan = ['spiffy_12x197', 'spiffy_one_time_1297'].includes(plan.paymentMode);
       const purchasedAt = mc2Row.purchased_at || nowIso;
-      if (deferredPlan) {
+      if (deferredPlan || (currentImmediatePlan && orderId)) {
         // Reuse the existing server-only event store and its unique dedupe key.
         // Preserve the opt-in identity; the purchase email is immutable here.
         const purchaseEvent = await supabasePost('mc2_funnel_events', {
           token: mc2Row.token,
           event_name: 'purchase_completed',
-          event_value: '0',
+          event_value: String(plan.initialCents / 100),
           page_path: '/spiffy-webhook',
           dedupe_key: `spiffy_order_${orderId}`,
           metadata: {
@@ -370,8 +383,8 @@ export default async (req) => {
             purchase_email: email,
             purchase_first_name: findFirstKey(body, ['name_first', 'first_name']) || mc2Row.prenom || '',
             plan: mc2Plan, payment_mode: plan.paymentMode,
-            amount_cents: 0, contractual_total_cents: plan.contractualTotalCents,
-            terms_version: 'cgv-2026-09-v8',
+            amount_cents: plan.initialCents, contractual_total_cents: plan.contractualTotalCents,
+            terms_version: currentImmediatePlan ? 'cgv-2026-09-v9' : 'cgv-2026-09-v8',
             terms_url: 'https://sonnycourt.com/cgv/',
           },
         });
@@ -399,7 +412,7 @@ export default async (req) => {
       );
       if (!updatedMc2.ok) {
         console.error('spiffy-webhook: mise a jour MC2 impossible', updatedMc2.status, updatedMc2.error);
-        if (deferredPlan) return jsonResponse(503, { ok: false, error: 'purchase_update_unavailable' });
+        if (deferredPlan || currentImmediatePlan) return jsonResponse(503, { ok: false, error: 'purchase_update_unavailable' });
       } else {
         await Promise.allSettled([
           cancelMc2OfferSms(mc2Row.token, 'purchase_completed'),

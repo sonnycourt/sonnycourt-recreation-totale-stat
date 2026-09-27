@@ -1,8 +1,9 @@
 import { MC2_LIVE_CTA_SECONDS, MC2_REPLAY_CTA_SECONDS, MC2_LIVE_VIDEO_DURATION_SECONDS, MC2_REPLAY_VIDEO_DURATION_SECONDS } from './mc2-timing.mjs';
+import { MC2_DRAFTX_LIVE_VIDEO_ID, MC2_DRAFTX_REPLAY_VIDEO_ID } from './mc2-draftx-media.mjs';
 
 export const TRACKING_SCHEMA = 2;
 export const TRACKING_BUILD = 'mc2-tracking-2.0.0';
-export const OFFER_VERSION = 'es2-j7-2026-09';
+export const OFFER_VERSION = 'es2-197x12-1297-2026-09';
 export const TRACKING_EVENTS = new Set([
   'journey_started', 'playback_started', 'playback_interval', 'player_state',
   'cta_playback_present', 'offer_playback_present', 'offer_available', 'offer_visible',
@@ -14,8 +15,8 @@ export const TRACKING_EVENTS = new Set([
 ]);
 export function trackingMedia(route) {
   return route === '/mc2/replay/'
-    ? { mode: 'replay', version: 'w13b-replay', id: 'e538dedd-26e0-4b69-9900-13a7ec8a37f8', cta: MC2_REPLAY_CTA_SECONDS, duration: MC2_REPLAY_VIDEO_DURATION_SECONDS }
-    : { mode: 'live', version: 'w13b-live', id: 'c0135d6e-9cfe-4605-a90b-b2ea2d7d7961', cta: MC2_LIVE_CTA_SECONDS, duration: MC2_LIVE_VIDEO_DURATION_SECONDS };
+    ? { mode: 'replay', version: 'w14-replay', id: MC2_DRAFTX_REPLAY_VIDEO_ID, cta: MC2_REPLAY_CTA_SECONDS, duration: MC2_REPLAY_VIDEO_DURATION_SECONDS }
+    : { mode: 'live', version: 'w14-live', id: MC2_DRAFTX_LIVE_VIDEO_ID, cta: MC2_LIVE_CTA_SECONDS, duration: MC2_LIVE_VIDEO_DURATION_SECONDS };
 }
 export const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export function trackingId(view = globalThis) {

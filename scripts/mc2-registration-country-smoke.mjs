@@ -79,10 +79,14 @@ assert.ok(!writes.some(x => /sms|email_queue|exclusions/.test(x.url)), 'No full-
 existing = captured;
 writes = [];
 assert.equal((await register(request(body))).status, 200);
-assert.ok(writes.some(x => x.url.includes('/mc2_registrations?') && x.body.statut === 'partial'));
-assert.equal(captured.entry_payment_required, true);
-assert.ok(!writes.some(x => /sms_queue|session_email_jobs|exclusions/.test(x.url)), 'Unpaid contacts cannot receive session reminders');
+assert.ok(writes.some(x => x.url.includes('/mc2_registrations?') && x.body.statut === 'registered'));
+assert.equal(captured.entry_payment_required, false, 'New registrations are free again');
 assert.ok(!writes.some(x => x.url.endsWith('/mc2_registrations')), 'Completion updates the existing partial row');
+existing = { ...captured, entry_payment_required: true };
+writes = [];
+assert.equal((await register(request(body))).status, 200);
+assert.ok(writes.some(x => x.url.includes('/mc2_registrations?') && x.body.statut === 'partial'));
+assert.ok(!writes.some(x => /session_email_jobs|exclusions/.test(x.url)), 'Historical unpaid entry keeps its payment gate');
 existing = { ...captured, entry_payment_required: false };
 writes = [];
 assert.equal((await register(request(body))).status,200);
@@ -92,7 +96,7 @@ globalThis.fetch = databaseFetch;
 delete process.env.MAILERLITE_API_KEY;
 writes = [];
 assert.equal((await register(request(body))).status, 200);
-assert.ok(writes.some(x => x.url.endsWith('/mc2_registrations') && x.body.statut === 'partial' && x.body.entry_payment_required));
+assert.ok(writes.some(x => x.url.endsWith('/mc2_registrations') && x.body.statut === 'registered' && !x.body.entry_payment_required));
 existing = { token: 'existing-token', statut: 'registered', session_starts_at: body.session_starts_at };
 writes = [];
 assert.equal((await register(request({ ...body, telephone: getExampleNumber('GA', examples).number }))).status, 409);
@@ -110,11 +114,13 @@ for (const scenario of ['allowed', 'blocked', 'offline']) {
   const button = { disabled: false, textContent: 'Continuer' };
   const message = { textContent: '' };
   const context = {
-    document: { getElementById: id => id === 'step2-next' ? button : message },
+    document: { getElementById: id => id === 'step2-next' ? button : message, querySelector: () => ({ textContent: '' }) },
     state: { phone: body.telephone }, validateContactStep: () => true,
     optinFunnelId: 'example', metaOptin: null,
     window: { location: { replace: value => { redirect = value; } } },
-    trackOptinEvent: () => {}, submitRegistration: async () => advanced++, AbortSignal,
+    trackOptinEvent: () => {}, getSelectedMc2Slot: () => null,
+    showStep: step => { assert.equal(step, 3); advanced++; },
+    submitRegistration: async () => assert.fail('Phone validation must still wait for commitment'), AbortSignal,
     fetch: async () => {
       if (scenario === 'offline') throw new Error('offline');
       return Response.json({ eligible: scenario === 'allowed', reason: scenario === 'blocked' ? 'country_not_available' : 'allowed' });

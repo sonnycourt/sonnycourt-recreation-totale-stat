@@ -1,4 +1,4 @@
-// W13B is now the canonical MC2 experience. Legacy open players keep their source endpoint.
+// W14 is the canonical MC2 experience. Legacy open players keep their source endpoint.
 export {
   MC2_DRAFTX_LIVE_HLS_URL,
   MC2_DRAFTX_REPLAY_HLS_URL,

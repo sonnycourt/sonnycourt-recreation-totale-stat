@@ -40,7 +40,7 @@ export async function readTrackingReport({ from, to, source, slot, now = Date.no
     metaDelivery,
     from: new Date(from).toISOString(), to: new Date(to).toISOString(), generatedAt: new Date(now).toISOString(),
     definitions: { cohort: 'Inscriptions finalisées dans la fenêtre choisie ; actions observées dans cette même fenêtre.',
-      cta: 'Lecture continue au premier plan au passage de 94:50 live / 74:50 replay.',
+      cta: 'Lecture continue au premier plan au passage de 94:46 live / 74:44 replay (W14).',
       country: 'Pays stocké à l’inscription, pas revenu individuel. Autre reste non classé.',
       commitment: 'Confirmation initiale Spiffy ; ne signifie pas première mensualité encaissée.',
       retention: 'Au moins 1 seconde média observée au premier plan dans la minute ; dédoublonnée par personne.',

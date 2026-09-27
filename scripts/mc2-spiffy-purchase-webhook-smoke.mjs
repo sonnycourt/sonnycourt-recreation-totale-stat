@@ -19,6 +19,7 @@ const registrationEmail = 'registration@example.com';
 const paymentEmail = 'payment-different@example.com';
 const mc2Lookups = [];
 let registrationPatch = null;
+let purchaseEvent = null;
 
 const registration = {
   token,
@@ -59,6 +60,10 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (parsed.pathname.endsWith('/mc2_sms_jobs') && method === 'PATCH') {
     return Response.json([]);
+  }
+  if (parsed.pathname.endsWith('/mc2_funnel_events') && method === 'POST') {
+    purchaseEvent = JSON.parse(options.body);
+    return Response.json([{ id: 123 }]);
   }
   if (parsed.pathname.endsWith('/mc2_replay_recovery_jobs') && method === 'GET') {
     return Response.json([]);
@@ -105,6 +110,30 @@ try {
   assert.equal(registrationPatch?.checkout_last_plan, 'monthly');
   assert.equal(registrationPatch?.checkout_last_payment_mode, 'spiffy_3x767');
   assert.equal(registrationPatch?.purchase_bonus_tag, 'avec_consultation_sonny');
+  for (const [checkoutId, total, initial, contract, mode] of [
+    [40006, 19700, 19700, 236400, 'spiffy_12x197'],
+    [40006, 236400, 19700, 236400, 'spiffy_12x197'],
+    [40007, 129700, 129700, 129700, 'spiffy_one_time_1297'],
+    [40007, 199700, 199700, 199700, 'spiffy_one_time_1997'],
+  ]) {
+    purchaseEvent = null;
+    const response = await handler(new Request('https://sonnycourt.com/.netlify/functions/spiffy-purchase-webhook', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'order:success', data: { object: {
+        id: 2492500 + checkoutId, checkout: { id: checkoutId },
+        order_total: total, customer: { email: paymentEmail }, mc2_token: token,
+      } } }),
+    }));
+    assert.equal(response.status, 200);
+    assert.equal(registrationPatch.initial_payment_cents, initial);
+    assert.equal(registrationPatch.contractual_total_cents, contract);
+    assert.equal(registrationPatch.checkout_last_payment_mode, mode);
+    if (mode !== 'spiffy_one_time_1997') {
+      assert.equal(purchaseEvent.metadata.amount_cents, initial);
+      assert.equal(purchaseEvent.metadata.contractual_total_cents, contract);
+      assert.equal(purchaseEvent.token, token);
+    }
+  }
 } finally {
   globalThis.fetch = originalFetch;
   for (const [key, value] of Object.entries(originalEnv)) {

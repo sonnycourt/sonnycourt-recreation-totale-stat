@@ -1,8 +1,8 @@
 import { mountDraftXSpiffy, cleanDraftXRegistrationToken } from './mc2-draftx-spiffy.mjs';
 // Only these two user-approved checkouts may be mounted.
 export const DRAFTX_PAYMENT_PLANS = Object.freeze({
-  six: Object.freeze({ count: 6, amount: 347, totalLabel: '2 082', checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/38556365' }),
-  twelve: Object.freeze({ count: 12, amount: 197, totalLabel: '2 364', checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/38556364' }),
+  once: Object.freeze({ count: 1, amount: 1297, totalLabel: '1 297', checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1' }),
+  twelve: Object.freeze({ count: 12, amount: 197, totalLabel: '2 364', checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1' }),
 });
 
 export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, track = () => {} } = {}) {
@@ -21,7 +21,7 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
   if (!form || !dialog || !openButton || !closeButton || panels.length !== 3 || !firstName || !email || !paymentSlot || !status) return;
   root.dataset.checkoutReady = 'true';
   let step = 1;
-  let activePlan = 'twelve';
+  let activePlan = 'once';
   let stepAnimation;
   let returnFocus;
   let backdropPressed = false;
@@ -30,14 +30,13 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
   let identityEdited = false;
   let registrationToken = '';
   const emit = (event, extra = {}) => {
-    try { track(event, { step, plan: activePlan, payment_mode: `spiffy_j7_${DRAFTX_PAYMENT_PLANS[activePlan].count}x${DRAFTX_PAYMENT_PLANS[activePlan].amount}`, ...extra }); } catch { /* Analytics never blocks checkout. */ }
+    try { track(event, { step, plan: activePlan, payment_mode: `spiffy_${DRAFTX_PAYMENT_PLANS[activePlan].count}x${DRAFTX_PAYMENT_PLANS[activePlan].amount}`, ...extra }); } catch { /* Analytics never blocks checkout. */ }
   };
   let available = Boolean(view?.__mc2DraftX) || root.dataset.checkoutAvailable === 'true';
-  // Keep keyboard/reading order aligned with the visual order: the popular
-  // plan comes first on mobile; desktop keeps its original six/twelve layout.
+  // Keep monthly payments on the left and the single payment on the right.
   const mobilePlanQuery = view?.matchMedia?.('(max-width: 600px)');
   const syncPlanOrder = () => {
-    const firstPlan = plans.find(button => button.dataset.paymentPlan === (mobilePlanQuery?.matches ? 'twelve' : 'six'));
+    const firstPlan = plans.find(button => button.dataset.paymentPlan === 'twelve');
     const list = firstPlan?.parentElement;
     if (list && list.firstElementChild !== firstPlan) list.prepend(firstPlan);
   };
@@ -79,6 +78,10 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
   }
 
   const mountConfirmedPlan = () => {
+    if (!DRAFTX_PAYMENT_PLANS[activePlan].checkoutUrl) {
+      status.textContent = 'Configuration du nouveau paiement en cours — aucun débit possible dans cette version locale.';
+      return;
+    }
     if (!view?.__mc2DraftX && !registrationToken) return;
     const nextKey = JSON.stringify([activePlan, firstName.value, email.value, registrationToken]);
     if (paymentInstance && paymentKey === nextKey) return;
@@ -98,9 +101,10 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
       button.setAttribute('aria-pressed', String(selected));
     });
     root.querySelector('[data-payment-schedule]').textContent = activePlan === 'twelve'
-      ? `Puis ${plan.amount} €/mois sur une année.`
-      : `Puis ${plan.amount} €/mois sur ${plan.count} mois.`;
-    root.querySelector('[data-payment-commitment]').textContent = 'Aucun montant prélevé aujourd’hui.';
+      ? '197 € aujourd’hui, puis 11 mensualités de 197 €.'
+      : 'Paiement unique de 1 297 €. Aucun abonnement.';
+    root.querySelector('[data-payment-today]').textContent = activePlan === 'once' ? '1 297 €' : '197 €';
+    root.querySelector('[data-payment-commitment]').textContent = activePlan === 'once' ? 'Ton accès commence dès le paiement.' : 'Engagement sur 12 mensualités, sans renouvellement automatique.';
     status.textContent = '';
   };
 

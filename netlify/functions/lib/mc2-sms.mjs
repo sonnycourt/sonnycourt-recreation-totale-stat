@@ -10,6 +10,7 @@ import {
 const MAX_ATTEMPTS = 3;
 export const MC2_OFFER_SMS_STALE_MS = 10 * 60 * 1000;
 export const MC2_OFFER_SMS_LEAD_MS = 4 * 60 * 60 * 1000;
+export const MC2_OFFER_FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
 const LIVE_CODE_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 function clean(value, max = 500) {
@@ -51,6 +52,30 @@ export function mc2SmsEnabled() {
 // le nouveau message commercial sans validation explicite de sa copie.
 export function mc2OfferH1SmsEnabled() {
   return clean(process.env.MC2_OFFER_H1_SMS_ENABLED, 10).toLowerCase() === 'true';
+}
+
+// Activation séparée, après validation du texte et exécution de la migration.
+export function mc2OfferFollowupSmsEnabled() {
+  return clean(process.env.MC2_OFFER_FOLLOWUP_SMS_ENABLED, 10).toLowerCase() === 'true';
+}
+
+function isOfferSms(type) {
+  return type === 'offer_deadline' || type === 'offer_followup';
+}
+
+function hasPurchased(row = {}) {
+  return row.statut === 'purchased' || Boolean(row.purchased_at)
+    || ['paid', 'succeeded', 'active', 'complete', 'completed'].includes(row.payment_status);
+}
+
+export async function queueDueMc2OfferFollowupSms(now = new Date()) {
+  if (!mc2OfferFollowupSmsEnabled()) return { ok: true, enabled: false, queued: 0 };
+  const at = iso(now);
+  if (!at) return { ok: false, error: 'invalid_followup_time' };
+  // L'insertion atomique déduplique par inscrit, sans modifier les horaires
+  // existants ni toucher au tracking ou aux compteurs de l'offre.
+  const result = await supabasePost('rpc/queue_mc2_offer_followup_sms', { p_now: at });
+  return { ok: result.ok, enabled: true, queued: Number(result.data) || 0, error: result.error };
 }
 
 export function generateMc2LiveCode() {
@@ -119,7 +144,7 @@ export async function cancelMc2OfferSms(token, reason = 'purchase_completed') {
   if (!safeToken) return { ok: false };
   return supabasePatch(
     'mc2_sms_jobs',
-    `token=eq.${encodeURIComponent(safeToken)}&message_type=eq.offer_deadline&status=in.(pending,retry,processing)`,
+    `token=eq.${encodeURIComponent(safeToken)}&message_type=in.(offer_deadline,offer_followup)&status=in.(pending,retry,processing)`,
     { status: 'skipped', skip_reason: clean(reason, 120) || 'cancelled' },
   );
 }
@@ -148,6 +173,9 @@ export function mc2SmsMessage(type, token, options = {}) {
   }
   if (type === 'offer_deadline') {
     return `DERNIERE CHANCE !\nTon offre Esprit Subconscient 2.0 expire dans 4 heures.\nPrends ta place ici :\n${offerUrl(options.liveCode, token)}`;
+  }
+  if (type === 'offer_followup') {
+    return `Es-tu prêt à commencer ta transformation ?\nSi oui, rejoins Esprit Subconscient 2.0 ici :\n${offerUrl(options.liveCode, token)}`;
   }
   return '';
 }
@@ -259,11 +287,11 @@ async function mc2OfferStillEligible(token, now = new Date()) {
   if (!safeToken) return { eligible: false, reason: 'registration_missing' };
   const result = await supabaseGet(
     `mc2_registrations?token=eq.${encodeURIComponent(safeToken)}`
-      + '&select=statut,payment_status,offer_expires_at&limit=1',
+      + '&select=statut,payment_status,purchased_at,offer_expires_at&limit=1',
   );
   const row = result.ok && Array.isArray(result.data) ? result.data[0] : null;
   if (!row) return { eligible: false, reason: 'registration_missing' };
-  if (row.statut === 'purchased' || row.payment_status === 'paid') {
+  if (hasPurchased(row)) {
     return { eligible: false, reason: 'already_purchased' };
   }
   const expiresAt = new Date(row.offer_expires_at || '').getTime();
@@ -291,6 +319,12 @@ export async function processMc2SmsJob(job, now = new Date()) {
   if (job?.message_type === 'offer_deadline' && !mc2OfferH1SmsEnabled()) {
     return skipJob(job, 'offer_h1_sms_disabled');
   }
+  if (job?.message_type === 'offer_followup' && !mc2OfferFollowupSmsEnabled()) {
+    return skipJob(job, 'offer_followup_sms_disabled');
+  }
+  if (job?.message_type === 'offer_followup' && Date.parse(job.due_at) > now.getTime()) {
+    return { status: 'not_due' };
+  }
   const claimed = await supabasePatch(
     'mc2_sms_jobs',
     `id=eq.${encodeURIComponent(job.id)}&status=in.(pending,retry)`,
@@ -303,7 +337,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
   );
   const claimedJob = claimed.ok && Array.isArray(claimed.data) ? claimed.data[0] : null;
   if (!claimedJob) return { status: 'not_claimed' };
-  if (job.message_type === 'offer_deadline' && claimedJob.provider_status === 'calling') {
+  if (isOfferSms(job.message_type) && claimedJob.provider_status === 'calling') {
     return skipJob(job, 'gateway_attempt_already_started');
   }
 
@@ -343,6 +377,30 @@ export async function processMc2SmsJob(job, now = new Date()) {
     }
   }
 
+  if (job.message_type === 'offer_followup') {
+    if (hasPurchased(registration)) return skipJob(job, 'already_purchased');
+    const expires = Date.parse(registration.offer_expires_at);
+    if (!Number.isFinite(expires) || now.getTime() >= expires) return skipJob(job, 'offer_expired');
+    // Ne jamais assimiler une simple inscription ou un CTA disponible à une
+    // offre vue. Le tracker v2 exige une visibilité réelle pendant 1 seconde.
+    const seen = await supabaseGet(
+      `mc2_tracking_events_v2?token=eq.${encodeURIComponent(job.token)}`
+        + '&event_name=eq.offer_visible&select=received_at&order=received_at.asc&limit=1',
+    );
+    const tests = await supabaseGet(
+      `mc2_tracking_test_registrations?token=eq.${encodeURIComponent(job.token)}&select=token&limit=1`,
+    );
+    if (!seen.ok || !tests.ok) return skipJob(job, 'followup_evidence_unavailable');
+    if (tests.data?.length) return skipJob(job, 'test_registration');
+    const firstSeen = Date.parse(seen.data?.[0]?.received_at);
+    const dueAt = Date.parse(job.due_at);
+    if (!Number.isFinite(firstSeen)) return skipJob(job, 'offer_not_seen');
+    if (!Number.isFinite(dueAt) || Math.abs(dueAt - firstSeen - MC2_OFFER_FOLLOWUP_DELAY_MS) > 1000) {
+      return skipJob(job, 'offer_followup_schedule_invalid');
+    }
+    if (now.getTime() - dueAt > MC2_OFFER_SMS_STALE_MS) return skipJob(job, 'offer_sms_stale');
+  }
+
   let countryDecision = { enforced: false, eligible: true, reasonCode: 'sms_country_filter_disabled' };
   if (mc2SmsCountryFilterEnabled()) {
     const resolvedCountry = await resolveMc2SmsCountry({ registration, phone });
@@ -380,7 +438,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
   // Une vente peut arriver pendant la résolution du pays ou du lien court.
   // Cette seconde lecture est volontairement placée au dernier instant avant
   // l'appel Gateway afin qu'un achat Spiffy/Stripe coupe aussi cette course.
-  if (job.message_type === 'offer_deadline') {
+  if (isOfferSms(job.message_type)) {
     const eligibility = await mc2OfferStillEligible(job.token, now);
     if (!eligibility.eligible) return skipJob(job, eligibility.reason);
     // Le webhook Spiffy peut annuler le job pendant que ce worker prépare le
@@ -398,7 +456,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     // Marque durablement l'intention AVANT l'appel externe. Si Netlify est
     // interrompu après cette écriture, la reprise refusera un second appel
     // Gateway plutôt que de risquer un doublon.
-    const intent = await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
+    const intent = await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}&status=eq.processing`, {
       provider_status: 'calling',
     });
     if (!intent.ok) {
@@ -408,6 +466,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
       });
       return { status: 'retry' };
     }
+    if (!intent.data?.length) return { status: 'skipped', reason: 'job_cancelled' };
   }
   try {
     const provider = await sendGatewaySms({
@@ -426,7 +485,8 @@ export async function processMc2SmsJob(job, now = new Date()) {
     });
     await supabasePost('mc2_funnel_events', {
       token: job.token,
-      event_name: job.message_type === 'session_live' ? 'sms_live_sent' : 'sms_offer_deadline_sent',
+      event_name: job.message_type === 'session_live' ? 'sms_live_sent'
+        : job.message_type === 'offer_followup' ? 'sms_offer_followup_sent' : 'sms_offer_deadline_sent',
       event_value: phone.slice(-4),
       page_path: '/mc2/session/',
       metadata: {
@@ -439,7 +499,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     return { status: 'sent' };
   } catch (error) {
     const attempts = Number(claimedJob.attempts || 1);
-    const exhausted = job.message_type === 'offer_deadline' || attempts >= MAX_ATTEMPTS;
+    const exhausted = isOfferSms(job.message_type) || attempts >= MAX_ATTEMPTS;
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
       status: exhausted ? 'skipped' : 'retry',
       last_error: clean(error?.message || 'sms_failed', 300),

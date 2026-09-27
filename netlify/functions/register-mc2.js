@@ -206,9 +206,9 @@ export default async (req) => {
     }
 
     const existingRow = Array.isArray(existing.data) ? existing.data[0] || null : null;
-    // New registrations require payment; pre-existing rows retain their access.
-    // A browser-supplied flag can never disable this requirement.
-    const entryPaymentRequired = existingRow ? existingRow.entry_payment_required === true : true;
+    // Free entry restored for new registrations. Preserve historical paid-entry
+    // records and their verification flow; never rewrite existing purchases.
+    const entryPaymentRequired = existingRow ? existingRow.entry_payment_required === true : false;
     const isComplete = contactComplete && !(entryPaymentRequired && !existingRow?.entry_payment_paid_at);
     const exclusions = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,

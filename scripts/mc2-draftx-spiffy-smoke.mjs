@@ -4,7 +4,7 @@ import { runInNewContext } from 'node:vm';
 import { buildDraftXSpiffyUrl, cleanDraftXRegistrationToken, mountDraftXSpiffy, trustedSpiffyMessage, SPIFFY_ORIGIN } from '../src/lib/mc2-draftx-spiffy.mjs';
 import { DRAFTX_PAYMENT_PLANS } from '../src/lib/mc2-draftx-checkout.mjs';
 
-for (const [key, id] of [['six', '38556365'], ['twelve', '38556364']]) {
+for (const [key, id] of [['once', 'esprit-subconscient-2-0-34-1'], ['twelve', 'esprit-subconscient-2-0-2-2-1-1']]) {
   const url = buildDraftXSpiffyUrl(DRAFTX_PAYMENT_PLANS[key], {
     firstName: '  Léa & Zoé  ', email: '  lea+mc2@example.invalid  ',
   }, 'http://127.0.0.1:4341/mc2/draftx/?t=private&code=OFFRE50POURCENT');

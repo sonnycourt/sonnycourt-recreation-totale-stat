@@ -69,7 +69,7 @@ function simulate(route, { seek = false, hidden = false, frozen = false, zeroCou
 }
 simulate('/mc2/session/'); simulate('/mc2/replay/'); simulate('/mc2/session/', { seek: true });
 simulate('/mc2/replay/', { hidden: true }); simulate('/mc2/session/', { frozen: true }); simulate('/mc2/replay/', { zeroCounter: true });
-assert.equal(trackingMedia('/mc2/session/').cta - trackingMedia('/mc2/replay/').cta, 1200);
+assert.equal(trackingMedia('/mc2/session/').cta - trackingMedia('/mc2/replay/').cta, 1202, 'W14 has separately approved live/replay CTA timestamps');
 
 // API contract: mocked DB, no production services.
 process.env.SUPABASE_URL = 'https://database.invalid'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'audit-only'; process.env.CONTEXT = 'production';

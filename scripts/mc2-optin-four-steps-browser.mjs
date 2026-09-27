@@ -20,7 +20,9 @@ try {
       if (url.pathname.startsWith('/.netlify/functions/')) {
         const data = JSON.parse(req.postData() || '{}');
         requests.push({ name: url.pathname.split('/').pop(), data });
-        const body = url.pathname.includes('check-mc2-eligibility') || url.pathname.includes('check-mc2-phone-country')
+        const body = url.pathname.includes('register-mc2')
+          ? { success: true, token: 'mc2-preview', entryPaymentRequired: false }
+          : url.pathname.includes('check-mc2-eligibility') || url.pathname.includes('check-mc2-phone-country')
           ? { eligible: true } : { ok: true, count: 12 };
         return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
       }
@@ -29,7 +31,7 @@ try {
       if (url.origin !== new URL(base).origin) return req.abort();
       return req.continue();
     });
-    await page.goto(base + path, { waitUntil: 'networkidle0' });
+    await page.goto(base + path + '?preview=dev', { waitUntil: 'networkidle0' });
     // Bypass only the local fetch simulator; requests still hit our mocks above.
     await page.evaluate(() => { window.fetch = window.__browserTestFetch; });
     await page.click('[data-mc2-picker="hero"] [data-slot-id="fixed-1"]').catch(async () => {
@@ -39,11 +41,14 @@ try {
     await page.waitForSelector('#name', { visible: true });
     await page.waitForFunction(() => !document.getElementById('pre-optin-overlay').classList.contains('is-visible'));
     await page.screenshot({ path: '/private/tmp/mc2-optin-name-' + (path.startsWith('/meta/') ? 'meta' : 'organic') + '.png' });
-    assert.equal(await page.$eval('#custom-popup', el => el.querySelectorAll('[data-slot-id]').length), 0);
-    await page.click('#name-next');
-    assert.ok(await page.$eval('#name-message', el => el.textContent));
+    assert.equal(await page.$eval('#custom-popup', el => el.querySelectorAll('[data-slot-id]').length), 3);
+    assert.equal(await page.$eval('[data-mc2-picker="popup"] .is-selected', el => el.dataset.slotId), 'fixed-1');
+    await page.click('[data-mc2-picker="popup"] [data-slot-id="fixed-2"]');
+    assert.equal(await page.$eval('[data-mc2-picker="hero"] .is-selected', el => el.dataset.slotId), 'fixed-2');
+    await page.waitForSelector('#email', { visible: true });
+    await page.click('#step1-button');
+    assert.ok(await page.$eval('#step1-message', el => el.textContent));
     await page.type('#name', 'Test');
-    await page.keyboard.press('Enter');
     await page.waitForSelector('#email', { visible: true });
     await page.type('#email', 'invalid');
     await page.click('#step1-button');
@@ -65,17 +70,32 @@ try {
     assert.equal(captures.length, 1);
     assert.equal(captures[0].data.email, 'test@example.invalid');
     assert.equal(captures[0].data.prenom, 'Test');
+    assert.equal(captures[0].data.creneau, 'fixed-2');
     assert.equal(captures[0].data.telephone, undefined);
     assert.equal(requests.find(r => r.name === 'check-mc2-phone-country').data.prenom, 'Test');
-    for (const event of ['name_completed', 'step_1_completed', 'step_2_completed']) {
+    for (const event of ['step_1_completed', 'step_2_completed']) {
       assert.ok(requests.some(r => r.data.event_name === event), event);
     }
     const phoneEvent = requests.find(r => r.data.event_name === 'step_2_completed');
     assert.ok(phoneEvent.data.session_date);
     assert.equal(phoneEvent.data.path, path);
     assert.equal(phoneEvent.data.traffic_source, path.startsWith('/meta/') ? 'meta_ad' : null);
+    await page.click('#step3-submit');
+    assert.ok(await page.$eval('#step3-message', el => el.textContent));
+    assert.equal(requests.filter(r => r.name === 'register-mc2').length, 1, 'No full registration without commitment');
+    await page.click('#commit-present');
+    await Promise.all([page.waitForNavigation(), page.click('#step3-submit')]);
+    const full = requests.filter(r => r.name === 'register-mc2');
+    assert.equal(full.length, 2);
+    assert.equal(full[1].data.email, 'test@example.invalid');
+    assert.equal(full[1].data.prenom, 'Test');
+    assert.ok(full[1].data.telephone);
+    assert.equal(full[1].data.creneau, captures[0].data.creneau);
+    assert.equal(full[1].data.optin_funnel_id, captures[0].data.optin_funnel_id);
+    assert.equal(new URL(page.url()).pathname.replace(/\/$/, ''), '/mc2/confirmation');
+    assert.equal(new URL(page.url()).searchParams.get('t'), 'mc2-preview');
     assert.deepEqual(errors, []);
-    console.log(path, 'four steps, validation, phone widget, country gate payload, attribution and tracking OK');
+    console.log(path, 'three steps, partial capture, commitment gate, full registration and token redirect OK');
     await page.close();
   }
 } finally {

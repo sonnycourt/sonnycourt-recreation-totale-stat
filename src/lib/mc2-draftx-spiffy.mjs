@@ -1,5 +1,5 @@
 export const SPIFFY_ORIGIN = 'https://sonnycourt.spiffy.co';
-const ALLOWED_CHECKOUTS = new Set(['/checkout/38556364', '/checkout/38556365']);
+const ALLOWED_CHECKOUTS = new Set(['/checkout/esprit-subconscient-2-0-34-1', '/checkout/esprit-subconscient-2-0-2-2-1-1']);
 export function cleanDraftXRegistrationToken(value) {
   const token = String(value || '').trim();
   return /^[a-zA-Z0-9_-]{16,160}$/.test(token) && !/^(preview|mc2-preview)/i.test(token) ? token : '';
@@ -12,6 +12,7 @@ export function buildDraftXSpiffyUrl(plan, identity, parentHref) {
   url.searchParams.set('name_first', String(identity.firstName || '').trim());
   url.searchParams.set('email', String(identity.email || '').trim());
   url.searchParams.set('mc2_draftx', '1');
+  url.searchParams.set('es2_plan', plan.count === 1 ? 'once' : 'monthly');
   url.searchParams.set('mc2_parent_origin', parent.origin);
   // Explicitly authorised MC2 reference, supplied after the existing access gate.
   // Never infer it from arbitrary URL parameters or propagate coupons/prices.
@@ -36,12 +37,15 @@ export function trustedSpiffyMessage(event, frame) {
     if (typeof destination !== 'string') return null;
     try {
       const redirect = new URL(destination, 'https://sonnycourt.com');
-      if (redirect.origin !== 'https://sonnycourt.com' || redirect.pathname !== '/commencer/succes/' || redirect.username || redirect.password) return null;
+      if (redirect.origin !== 'https://sonnycourt.com' || !['/commencer/succes/', '/es2-derniere-etape', '/es2-derniere-etape/'].includes(redirect.pathname) || redirect.username || redirect.password) return null;
+      // These historical checkouts use the legacy billing-info destination.
+      // MC2 purchases retain their verified, token-aware success flow.
+      redirect.pathname = '/commencer/succes/';
       return { redirect: redirect.toString() };
     } catch { return null; }
   }
   if (message.type === 'mc2:draftx-spiffy-ready') return { ready: true, identityReady: message.identityReady === true };
-  if (message.type !== 'mc2:draftx-spiffy-height' && message.event !== 'form:size') return null;
+  if (message.type !== 'mc2:draftx-spiffy-height' && message.type !== 'es2:spiffy-height' && message.event !== 'form:size') return null;
   const height = Number(message.height ?? message.data?.height);
   if (!Number.isFinite(height) || height < 100 || height > 10000) return null;
   return { height: Math.max(180, Math.min(Math.ceil(height), 1800)) };
@@ -56,7 +60,7 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   status.className = 'draftx-spiffy-loading';
   status.setAttribute('role', 'status');
   status.textContent = 'Connexion au paiement sécurisé…';
-  frame.title = plan.count === 12
+  frame.title = plan.count === 1 ? `Inscription sécurisée — ${plan.amount} € en une fois` : plan.count === 12
     ? `Inscription sécurisée — ${plan.amount} €/mois sur une année`
     : `Inscription sécurisée — ${plan.amount} €/mois sur ${plan.count} mois`;
   frame.setAttribute('allow', 'payment');
@@ -71,10 +75,10 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   const url = buildDraftXSpiffyUrl(plan, identity, view.location.href);
   frame.src = url.toString();
   let loaded = false;
+  let documentLoaded = false;
   let ready = false;
   let measuredHeight = 0;
   let revealTimer;
-  let fallbackTimer;
   let revealEarliest = 0;
   let revealDeadline = 0;
   let destroyed = false;
@@ -101,8 +105,8 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
       observe('payment_frame_retry');
       view.clearTimeout(timeout);
       view.clearTimeout(revealTimer);
-      view.clearTimeout(fallbackTimer);
       loaded = false;
+      documentLoaded = false;
       ready = false;
       measuredHeight = 0;
       frame.style.height = '320px';
@@ -124,14 +128,14 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     }
   };
   const reveal = (evidence) => {
-    if (loaded || destroyed) return;
+    if (loaded || destroyed || !documentLoaded || !ready || !measuredHeight) return;
     loaded = true;
     view.clearTimeout(timeout);
     view.clearTimeout(revealTimer);
-    view.clearTimeout(fallbackTimer);
-    // A provider message is an enhancement, never a prerequisite for access.
-    // Without a size message, allow the native iframe to scroll normally.
-    frame.style.height = `${measuredHeight || 650}px`;
+    // The identity bridge can run at DOMContentLoaded, before the provider's
+    // resources finish loading. Require both signals, never a timer alone.
+    // This is a loading guard, not proof that cross-origin card CSS succeeded.
+    frame.style.height = `${measuredHeight}px`;
     frame.style.opacity = '1';
     frame.style.pointerEvents = 'auto';
     frame.setAttribute('aria-hidden', 'false');
@@ -148,13 +152,13 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
   };
   frame.onload = () => {
     if (loaded || destroyed) return;
-    view.clearTimeout(fallbackTimer);
-    // Keep the short anti-flash treatment, but never hide a loaded checkout
-    // indefinitely if its custom ready/height bridge is absent or too late.
-    fallbackTimer = view.setTimeout(() => reveal('iframe_load_fallback'), 3000);
+    documentLoaded = true;
+    revealEarliest = Date.now() + 700;
+    revealDeadline = Date.now() + 1800;
+    scheduleReveal();
   };
   const scheduleReveal = () => {
-    if (!ready || !measuredHeight || loaded || destroyed) return;
+    if (!documentLoaded || !ready || !measuredHeight || loaded || destroyed) return;
     view.clearTimeout(revealTimer);
     // A short quiet period absorbs startup resizes; the deadline prevents
     // an animated provider element from keeping a ready checkout hidden.
@@ -211,7 +215,6 @@ export function mountDraftXSpiffy(slot, plan, identity, { track = () => {} } = {
     destroy() {
       destroyed = true;
       view.clearTimeout(revealTimer);
-      view.clearTimeout(fallbackTimer);
       frame.onload = null;
       view.clearTimeout(timeout);
       view.removeEventListener('message', onMessage);

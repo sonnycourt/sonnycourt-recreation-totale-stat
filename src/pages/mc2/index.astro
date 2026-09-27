@@ -398,14 +398,14 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid var(--border);
-            border-radius: 999px;
+            gap: 12px;
+            padding: 13px 20px;
+            background: #08090c;
+            border: 1px solid rgba(248, 65, 80, 0.45);
+            border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 600;
-            color: var(--accent);
+            color: #fff;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 20px;
@@ -420,6 +420,12 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
             box-shadow: 0 0 0 rgba(239, 68, 68, 0.6);
             animation: liveDotPulse 1.3s ease-in-out infinite;
             flex-shrink: 0;
+        }
+
+        .badge__copy { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; line-height: 1.5; }
+        .badge__timing { color: #ff6572; font-weight: 800; font-variant-numeric: tabular-nums; }
+        @media (prefers-reduced-motion: reduce) {
+            .badge::before { animation: none; }
         }
 
         @keyframes liveDotPulse {
@@ -642,10 +648,10 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
             isolation: isolate;
             overflow: hidden;
             min-width: 0;
-            min-height: 88px;
-            padding: 16px 48px 16px 16px;
+            min-height: 64px;
+            padding: 10px 36px 10px 12px;
             border: 1px solid rgba(147, 197, 253, 0.3);
-            border-radius: 16px;
+            border-radius: 10px;
             background:
                 radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15), transparent 48%),
                 linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(23, 37, 84, 0.92));
@@ -662,11 +668,11 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         .mc2-slot-option::before {
             content: '';
             position: absolute;
-            top: 16px;
-            right: 16px;
+            top: 12px;
+            right: 10px;
             display: grid;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             place-items: center;
             border: 1.5px solid rgba(191, 219, 254, 0.58);
             border-radius: 999px;
@@ -680,7 +686,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
 
         .mc2-slot-option[data-slot-id="jit"] {
             grid-column: 1 / -1;
-            min-height: 94px;
+            min-height: 64px;
             border-color: rgba(96, 165, 250, 0.44);
             background:
                 radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.24), transparent 46%),
@@ -769,11 +775,12 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
             line-height: 1.3;
         }
 
-        .mc2-slot-option[data-slot-id^="fixed-"] .mc2-slot-option__detail {
+        .mc2-slot-option .mc2-slot-option__detail {
             display: none;
         }
 
         .mc2-schedule__timezone {
+            text-align: center;
             margin: 8px 2px 0;
             color: rgba(255, 255, 255, 0.48);
             font-size: 0.7rem;
@@ -790,7 +797,92 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         }
 
         .mc2-schedule--popup .mc2-slot-option {
-            padding: 14px 44px 14px 14px;
+            padding: 10px 36px 10px 12px;
+        }
+
+        /* Compact radio-style choices, shared by the organic and Meta opt-in. */
+        .mc2-schedule .mc2-slot-picker {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .hero .mc2-schedule .mc2-schedule__heading {
+            text-align: center;
+            font-family: inherit;
+            font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 14px;
+        }
+        .mc2-schedule .mc2-slot-option__clock { color: #ff6572; font-weight: 800; }
+
+        .mc2-schedule .mc2-slot-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 10px 13px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.035);
+            box-shadow: none;
+            transform: none;
+            color: rgba(255, 255, 255, 0.78);
+        }
+
+        .mc2-schedule .mc2-slot-option:hover {
+            border-color: #93c5fd;
+            background: rgba(96, 165, 250, 0.08);
+        }
+
+        .mc2-schedule .mc2-slot-option.is-selected {
+            border-color: #60a5fa;
+            background: rgba(59, 130, 246, 0.14);
+            color: #fff;
+            box-shadow: none;
+        }
+
+        .mc2-schedule .mc2-slot-option::before {
+            content: '';
+            position: static;
+            flex: 0 0 14px;
+            width: 14px;
+            height: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .mc2-schedule .mc2-slot-option.is-selected::before {
+            border-color: #60a5fa;
+            background: radial-gradient(circle, #60a5fa 0 4px, transparent 4.5px);
+            box-shadow: none;
+        }
+
+        .mc2-schedule .mc2-slot-option[data-slot-id="jit"].is-selected {
+            border-color: #ff6572;
+            background: rgba(239, 68, 68, 0.16);
+            color: #fff;
+        }
+
+        .mc2-schedule .mc2-slot-option[data-slot-id="jit"].is-selected::before {
+            border-color: #ff6572;
+            background: radial-gradient(circle, #ff6572 0 4px, transparent 4.5px);
+        }
+
+        .mc2-schedule .mc2-slot-option__eyebrow { display: none; }
+        .mc2-schedule .mc2-slot-option__time {
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.3;
         }
 
         .sessions-visual {
@@ -2125,18 +2217,18 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
             }
 
             .mc2-slot-picker {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .mc2-slot-option {
-                min-height: 82px;
-                padding: 14px 42px 14px 14px;
-                border-radius: 14px;
+                min-height: 64px;
+                padding: 10px 32px 10px 10px;
+                border-radius: 10px;
             }
 
             .mc2-slot-option::before {
-                top: 14px;
-                right: 14px;
+                top: 12px;
+                right: 8px;
             }
 
             .mc2-slot-option__time {
@@ -2309,8 +2401,8 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
     <div id="page-main" class="container">
         <section class="hero">
             <div>
-                <div class="badge">MASTERCLASS DIFFUSION EN DIRECT</div>
-                <h1>Trouve le blocage qui te vole la vie que tu devrais déjà avoir</h1>
+                <div class="badge"><span class="badge__copy"><span>PROCHAINE MASTERCLASS</span><strong class="badge__timing" data-session-banner>RÉSERVE TA PLACE AVANT LE DÉBUT</strong></span></div>
+                <h1>Reprogramme ton subconscient et manifeste ce que tu veux</h1>
                 <p class="subheadline">Tu identifies ton blocage subconscient n°1, tu apprends à le reprogrammer, et tu repars avec le protocole exact pour manifester ce que tu veux.</p>
 
                 <div class="hero-image hero-image--mobile">
@@ -2321,7 +2413,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
 
                 <div class="hero-registration">
                     <div class="mc2-schedule" data-mc2-picker="hero">
-                        <p class="mc2-schedule__heading">Choisis ta session</p>
+                        <h2 class="mc2-schedule__heading">Choisis ta session</h2>
                         <div class="mc2-slot-picker" role="radiogroup" aria-label="Choisis ta session">
                             <button class="mc2-slot-option is-selected" type="button" role="radio" aria-checked="true" data-slot-id="jit">
                                 <span class="mc2-slot-option__eyebrow">La plus proche</span>
@@ -2380,7 +2472,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 </figure>
             </div>
             <div class="parcours-value-section">
-                <div class="hero-value-card" aria-label="Masterclass d’une valeur de 197 euros, aujourd’hui à 27 euros">
+                <div class="hero-value-card" aria-label="Masterclass d’une valeur de 197 euros, aujourd’hui gratuite">
                     <div class="hero-value-card__value">
                         <span class="hero-value-card__label">Valeur de cette masterclass</span>
                         <strong class="hero-value-card__price">197 €</strong>
@@ -2388,9 +2480,9 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                     <div class="hero-value-card__today">
                         <span class="hero-value-card__today-copy">
                             <span>Mais aujourd’hui</span>
-                            <strong>Ton accès à la masterclass</strong>
+                            <strong>Ton accès est offert</strong>
                         </span>
-                        <strong class="hero-value-card__price">27 €</strong>
+                        <strong class="hero-value-card__price">GRATUIT</strong>
                     </div>
                 </div>
             </div>
@@ -2451,15 +2543,22 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 <h2 class="popup-title">Réserve ta place à la Masterclass</h2>
             </div>
 
-            <div id="name-form">
-                <p class="popup-form-lead">Entre ton prénom</p>
+            <div id="step1-form">
+                <div class="mc2-schedule mc2-schedule--popup" data-mc2-picker="popup">
+                    <div class="mc2-slot-picker" role="radiogroup" aria-label="Choisis ta session">
+                        <button class="mc2-slot-option is-selected" type="button" role="radio" aria-checked="true" data-slot-id="jit">
+                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                        </button>
+                        <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-1">
+                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                        </button>
+                        <button class="mc2-slot-option" type="button" role="radio" aria-checked="false" data-slot-id="fixed-2">
+                            <span class="mc2-slot-option__time" data-slot-time>Calcul en cours…</span>
+                        </button>
+                    </div>
+                    <p class="mc2-schedule__timezone">Horaires affichés dans ton heure locale</p>
+                </div>
                 <input id="name" class="form-input" type="text" placeholder="Ton prénom" aria-label="Ton prénom" autocomplete="given-name" required />
-                <p id="name-message" class="form-error" role="alert"></p>
-                <button id="name-next" class="submit-btn" type="button">Continuer</button>
-            </div>
-
-            <div id="step1-form" style="display:none;">
-                <p class="popup-form-lead">Ajoute ton adresse email</p>
                 <input id="email" class="form-input" type="email" placeholder="Ton email" aria-label="Ton email" required autocomplete="email" />
                 <p id="step1-message" class="form-error" role="alert"></p>
                 <button id="step1-button" class="submit-btn" type="button">Continuer</button>
@@ -2497,6 +2596,16 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 </p>
                 <p id="step2-message" class="form-error" role="alert"></p>
                 <button id="step2-next" class="submit-btn" type="button">Continuer</button>
+            </div>
+
+            <div id="step3-form" style="display:none;">
+                <p class="step-indicator step-indicator--final">Dernière étape</p>
+                <label class="commit-row" id="commit-row-label" for="commit-present">
+                    <input id="commit-present" type="checkbox" name="commit_present" autocomplete="off" required aria-required="true" />
+                    <span class="commit-row__text">Je m'engage à être présent(e) à la session choisie</span>
+                </label>
+                <p id="step3-message" class="form-error" role="alert"></p>
+                <button id="step3-submit" class="submit-btn" type="button">Confirmer mon inscription</button>
             </div>
 
             <div id="entry-payment-step" style="display:none;">
@@ -2540,7 +2649,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         const SKIP_SESSION_DATES = ['2026-05-07', '2026-06-11', '2026-06-25', '2026-07-09', '2026-07-23', '2026-07-30', '2026-08-13'];
         const LEGACY_TOKEN_KEY = 'mc2_registration_token_legacy';
         const COOKIE_MAX = 365 * 24 * 60 * 60;
-        const REGISTRATION_SUBMIT_LABEL = 'Continuer';
+        const REGISTRATION_SUBMIT_LABEL = 'Confirmer mon inscription';
         const PRE_OPTIN_DELAY_MS = 1200;
         const PRE_OPTIN_FADE_MS = 180;
         const PRE_OPTIN_SUCCESS_MS = 650;
@@ -2919,6 +3028,11 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
 
         function renderMc2Schedule() {
             const now = new Date();
+            const banner = document.querySelector('[data-session-banner]');
+            const jitSlot = state.slots.find(function (slot) { return slot.kind === 'jit'; });
+            if (banner && jitSlot) {
+                banner.textContent = getMc2SlotDetail(jitSlot, now);
+            }
             document.querySelectorAll('[data-mc2-picker] .mc2-slot-option').forEach(function (button) {
                 const slot = state.slots.find(function (item) { return item.id === button.dataset.slotId; });
                 if (!slot) {
@@ -2931,7 +3045,18 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 button.setAttribute('aria-checked', selected ? 'true' : 'false');
                 const timeEl = button.querySelector('[data-slot-time]');
                 const detailEl = button.querySelector('[data-slot-detail]');
-                if (timeEl) timeEl.textContent = formatMc2SlotLabel(slot.startsAt, now);
+                if (timeEl) {
+                    const label = formatMc2SlotLabel(slot.startsAt, now);
+                    if (slot.kind === 'jit') {
+                        const clockText = formatMc2Time(slot.startsAt);
+                        const clock = document.createElement('span');
+                        clock.className = 'mc2-slot-option__clock';
+                        clock.textContent = clockText;
+                        timeEl.replaceChildren(document.createTextNode(label.slice(0, -clockText.length)), clock);
+                    } else {
+                        timeEl.textContent = label;
+                    }
+                }
                 if (detailEl) detailEl.textContent = getMc2SlotDetail(slot, now);
             });
 
@@ -3247,9 +3372,9 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         }
 
         function showStep(stepNumber) {
-            document.getElementById('name-form').style.display = stepNumber === 0 ? 'block' : 'none';
             document.getElementById('step1-form').style.display = stepNumber === 1 ? 'block' : 'none';
             document.getElementById('step2-form').style.display = stepNumber === 2 ? 'block' : 'none';
+            document.getElementById('step3-form').style.display = stepNumber === 3 ? 'block' : 'none';
             document.getElementById('entry-payment-step').style.display = stepNumber === 4 ? 'block' : 'none';
         }
 
@@ -3488,7 +3613,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             if (!name || !email) {
-                msg.textContent = 'Merci de saisir ton adresse email.';
+                msg.textContent = 'Merci de saisir ton prénom et ton adresse email.';
                 return false;
             }
             if (!emailRegex.test(email)) {
@@ -3538,8 +3663,8 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
         }
 
         async function submitRegistration(
-            submitBtn = document.getElementById('step2-next'),
-            formStatus = document.getElementById('step2-message')
+            submitBtn = document.getElementById('step3-submit'),
+            formStatus = document.getElementById('step3-message')
         ) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Inscription...';
@@ -3816,22 +3941,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 if (event.key === 'Escape') closePopup();
             });
 
-            document.getElementById('name-next').addEventListener('click', function () {
-                const name = document.getElementById('name').value.trim();
-                const message = document.getElementById('name-message');
-                message.textContent = '';
-                if (!name) {
-                    message.textContent = 'Merci de saisir ton prénom.';
-                    document.getElementById('name').focus({ preventScroll: true });
-                    return;
-                }
-                state.name = name;
-                trackOptinEvent('name_completed');
-                showStep(1);
-                document.getElementById('email').focus({ preventScroll: true });
-            });
-
-            [['name', 'name-next'], ['email', 'step1-button']].forEach(function ([inputId, buttonId]) {
+            [['name', 'step1-button'], ['email', 'step1-button']].forEach(function ([inputId, buttonId]) {
                 document.getElementById(inputId).addEventListener('keydown', function (event) {
                     if (event.key === 'Enter') {
                         event.preventDefault();
@@ -3892,6 +4002,27 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                 }
             });
 
+            document.getElementById('commit-present').addEventListener('change', function () {
+                if (this.checked) {
+                    document.getElementById('commit-row-label').classList.remove('commit-row--error');
+                    document.getElementById('step3-message').textContent = '';
+                    trackOptinEvent('commitment_checked');
+                }
+            });
+
+            document.getElementById('step3-submit').addEventListener('click', function () {
+                if (this.disabled) return;
+                const commit = document.getElementById('commit-present');
+                if (!commit.checked) {
+                    document.getElementById('commit-row-label').classList.add('commit-row--error');
+                    document.getElementById('step3-message').textContent = 'Merci de cocher la case pour confirmer ta présence.';
+                    commit.focus();
+                    return;
+                }
+                trackOptinEvent('registration_submitted');
+                submitRegistration();
+            });
+
             document.getElementById('step2-next').addEventListener('click', async function () {
                 const message = document.getElementById('step2-message');
                 message.textContent = '';
@@ -3921,8 +4052,10 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = true } = As
                         return;
                     }
                     trackOptinEvent('step_2_completed');
-                    trackOptinEvent('registration_submitted');
-                    await submitRegistration(button, message);
+                    const selected = getSelectedMc2Slot();
+                    document.querySelector('.commit-row__text').textContent = "Je m'engage à être présent(e) " +
+                        (selected ? formatMc2SlotLabel(selected.startsAt, new Date()).toLowerCase() : 'à la session choisie');
+                    showStep(3);
                 } catch (error) {
                     message.textContent = 'Vérification impossible. Réessaie dans un instant.';
                 } finally {

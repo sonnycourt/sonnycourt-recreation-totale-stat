@@ -1,21 +1,21 @@
 export const MC2_LIVE_VIDEO_LEAD_SECONDS = 15 * 60;
 export const MC2_LIVE_VIDEO_LEAD_MS = MC2_LIVE_VIDEO_LEAD_SECONDS * 1000;
 
-// Durée réelle arrondie au supérieur de la vidéo live Bunny actuellement diffusée.
-export const MC2_LIVE_VIDEO_DURATION_SECONDS = 7_920;
-export const MC2_REPLAY_VIDEO_DURATION_SECONDS = 6_719;
+// W14 : manifestes Bunny vérifiés le 27/09/2026, durées arrondies au supérieur.
+export const MC2_LIVE_VIDEO_DURATION_SECONDS = 7_878;
+export const MC2_REPLAY_VIDEO_DURATION_SECONDS = 6_677;
 export const MC2_LIVE_VIDEO_DURATION_MS = MC2_LIVE_VIDEO_DURATION_SECONDS * 1000;
 
 // session_starts_at correspond à l'heure annoncée, alors que la vidéo démarre
-// quinze minutes plus tôt. La fin canonique W13B est donc à +1 h 57 min.
+// quinze minutes plus tôt. La fin canonique W14 est donc à +1 h 56 min 18 s.
 export const MC2_SESSION_DURATION_SECONDS = MC2_LIVE_VIDEO_DURATION_SECONDS
   - MC2_LIVE_VIDEO_LEAD_SECONDS;
 export const MC2_SESSION_DURATION_MS = MC2_SESSION_DURATION_SECONDS * 1000;
 
-export const MC2_LIVE_CTA_SECONDS = (94 * 60) + 50;
+export const MC2_LIVE_CTA_SECONDS = (94 * 60) + 46;
 export const MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS = 20 * 60;
-export const MC2_REPLAY_CTA_SECONDS = MC2_LIVE_CTA_SECONDS
-  - MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS;
+// Seuil fourni séparément par Sonny : le montage replay diffère de 2 secondes.
+export const MC2_REPLAY_CTA_SECONDS = (74 * 60) + 44;
 
 // Le replay reste accessible 72 heures après l'heure annoncée de la session.
 // L'offre live garde cette même échéance. Pour une offre découverte en replay,

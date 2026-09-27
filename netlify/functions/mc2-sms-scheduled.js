@@ -1,5 +1,5 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
-import { mc2SmsEnabled, processMc2SmsJob } from './lib/mc2-sms.mjs';
+import { mc2SmsEnabled, processMc2SmsJob, queueDueMc2OfferFollowupSms } from './lib/mc2-sms.mjs';
 import { scheduledJson } from './lib/scheduled-response.mjs';
 
 export default async () => {
@@ -8,6 +8,13 @@ export default async () => {
   }
 
   const now = new Date();
+  // Un schéma H+2 absent ou une panne ne doit pas bloquer les SMS existants.
+  try {
+    const followup = await queueDueMc2OfferFollowupSms(now);
+    if (!followup.ok) console.error('MC2 H+2 SMS queue:', followup.error);
+  } catch (error) {
+    console.error('MC2 H+2 SMS queue:', error?.message || error);
+  }
   const staleClaimCutoff = new Date(now.getTime() - 5 * 60_000).toISOString();
   await supabasePatch(
     'mc2_sms_jobs',

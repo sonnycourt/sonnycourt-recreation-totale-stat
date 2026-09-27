@@ -12,9 +12,9 @@ try {
   for (const route of ['/mc2/session/', '/mc2/replay/']) {
     const context = await browser.createBrowserContext(), page = await context.newPage();
     await page.setViewport({ width: route.includes('replay') ? 390 : 1200, height: 844 });
-    const cta = route.includes('replay') ? 4490 : 5690;
+    const cta = route.includes('replay') ? 4484 : 5686;
     // The session's announced hour is 15 min after media start; replay removes 20 min of content.
-    const startedAt = Date.now() - (5690 - 900 - 3) * 1000;
+    const startedAt = Date.now() - (5686 - 900 - 3) * 1000;
     const events = [], calls = [], errors = []; let outage = false;
     const capturedBodies = new Map();
     if (browserName === 'firefox') {
@@ -75,7 +75,7 @@ try {
       Object.defineProperties(HTMLMediaElement.prototype, {
         currentTime: { configurable: true, get() { return position(this); }, set(value) { const v = state(this); v.position = value; v.start = performance.now(); } },
         paused: { configurable: true, get() { return state(this).paused; } }, ended: { configurable: true, get: () => false },
-        readyState: { configurable: true, get: () => 4 }, duration: { configurable: true, get: () => route.includes('replay') ? 6719 : 7920 },
+        readyState: { configurable: true, get: () => 4 }, duration: { configurable: true, get: () => route.includes('replay') ? 6677 : 7878 },
       });
       HTMLMediaElement.prototype.canPlayType = () => 'probably';
       HTMLVideoElement.prototype.getVideoPlaybackQuality = function () { return { totalVideoFrames: Math.floor(position(this) * 25) }; };
@@ -101,14 +101,14 @@ try {
     await page.waitForSelector('#draftx-checkout-dialog[open]');
     await page.click('[data-checkout-step="1"] button[type="submit"]');
     await page.waitForFunction(() => document.querySelector('[data-draftx-checkout]').dataset.step === '2');
-    for (const plan of ['twelve', 'six']) {
+    for (const plan of ['twelve', 'once']) {
       await page.click(`[data-payment-plan="${plan}"]`);
       await page.click('[data-checkout-step="2"] button[type="submit"]');
       await page.waitForFunction(() => document.querySelector('[data-spiffy-slot]')?.getAttribute('aria-busy') === 'false');
       // The existing opacity transition finishes after the busy flag clears.
       await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-spiffy-slot] iframe')).opacity === '1', { timeout: 2000 });
       assert.equal(await page.$eval('[data-draftx-checkout]', el => el.dataset.step), '3');
-      assert.ok((await page.$eval('[data-spiffy-slot] iframe', el => el.src)).includes(plan === 'twelve' ? '38556364' : '38556365'));
+      assert.ok((await page.$eval('[data-spiffy-slot] iframe', el => el.src)).includes(plan === 'twelve' ? 'esprit-subconscient-2-0-2-2-1-1' : 'esprit-subconscient-2-0-34-1'));
       assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => getComputedStyle(el).opacity), '1');
       assert.equal(await page.$eval('[data-spiffy-slot] iframe', el => el.getAttribute('aria-hidden')), 'false');
       if (silentSpiffy) {

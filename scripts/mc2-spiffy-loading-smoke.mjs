@@ -39,6 +39,7 @@ function fixture(plan) {
 try {
   for (const plan of Object.values(DRAFTX_PAYMENT_PLANS)) {
     const f = fixture(plan);
+    f.frame.onload();
     assert.equal(f.frame.style.opacity, '0');
     f.send({ event: 'form:size', data: { height: 1200 } });
     assert.equal(f.frame.style.height, '320px', 'Startup resizes do not move the popup');

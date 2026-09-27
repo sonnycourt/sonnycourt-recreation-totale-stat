@@ -16,8 +16,15 @@ export default async (req) => {
   if (req.method !== 'GET') return jsonResponse(405, { error: 'Method not allowed' });
   const variant = new URL(req.url).searchParams.get('variant');
   // Keep the unversioned endpoint unchanged for W12 players already open.
-  // New canonical pages explicitly request W13B; never force a reload here.
-  if (variant === 'draftx' || variant === 'w13b') {
+  // Preserve W13B for already-open players; never switch their video mid-session.
+  if (variant === 'w13b') {
+    return jsonResponse(200, {
+      ok: true, variant, activeSource: 'primary',
+      activeUrl: 'https://vz-601d6eb4-a9a.b-cdn.net/c0135d6e-9cfe-4605-a90b-b2ea2d7d7961/playlist.m3u8',
+      hasBackup: false, playbackCommand: null, forceRefreshAt: null,
+    });
+  }
+  if (variant === 'draftx' || variant === 'w14') {
     return jsonResponse(200, {
       ok: true, variant, activeSource: 'primary',
       activeUrl: MC2_DRAFTX_LIVE_HLS_URL, hasBackup: false,
