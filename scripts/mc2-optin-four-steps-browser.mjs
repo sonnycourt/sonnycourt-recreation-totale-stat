@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // All API calls are intercepted: no registration, SMS, email or tracking write.
-const base = process.env.OPTIN_TEST_URL || 'http://localhost:4382';
+const publicBuild = process.env.OPTIN_TEST_PUBLIC === '1';
+const base = publicBuild ? 'https://mc2-optin.test' : (process.env.OPTIN_TEST_URL || 'http://localhost:4382');
+const buildRoot = new URL('../dist/', import.meta.url).pathname;
 const browser = await puppeteer.launch({ headless: true });
 try {
-  for (const path of ['/mc2/', '/meta/mc2/']) {
+  const scenarios = ['/mc2/', '/meta/mc2/'].flatMap(path => (publicBuild ? [390, 1365] : [390]).map(width => ({ path, width })));
+  for (const { path: route, width } of scenarios) {
     const page = await browser.newPage();
-    await page.setViewport({ width: 390, height: 844 });
+    await page.setViewport({ width, height: 844 });
     const requests = [];
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -29,9 +34,21 @@ try {
       // Allow only the phone widget's static assets; no external data writes.
       if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('intl-tel-input@18.5.3/')) return req.continue();
       if (url.origin !== new URL(base).origin) return req.abort();
+      if (publicBuild) {
+        let filename = path.resolve(buildRoot, '.' + url.pathname);
+        if (fs.existsSync(filename) && fs.statSync(filename).isDirectory()) filename = path.join(filename, 'index.html');
+        if (!filename.startsWith(buildRoot) || !fs.existsSync(filename) || !fs.statSync(filename).isFile()) return req.respond({ status: 404, body: '' });
+        const type = filename.endsWith('.html') ? 'text/html' : filename.endsWith('.js') ? 'text/javascript' : filename.endsWith('.css') ? 'text/css' : filename.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream';
+        return req.respond({ status: 200, contentType: type, body: fs.readFileSync(filename) });
+      }
       return req.continue();
     });
-    await page.goto(base + path + '?preview=dev', { waitUntil: 'networkidle0' });
+    await page.goto(base + route + (publicBuild ? '' : '?preview=dev'), { waitUntil: 'networkidle0' });
+    if (publicBuild) {
+      assert.equal(await page.evaluate(() => window.__MC2_PREVIEW_ONLY__), false, 'No preview simulator on the public path');
+      assert.equal(await page.$eval('html', el => el.dataset.mc2PublicClosed), 'false');
+      await page.waitForSelector('#page-main.is-visible', { visible: true });
+    }
     // Bypass only the local fetch simulator; requests still hit our mocks above.
     await page.evaluate(() => { window.fetch = window.__browserTestFetch; });
     await page.click('[data-mc2-picker="hero"] [data-slot-id="fixed-1"]').catch(async () => {
@@ -40,7 +57,7 @@ try {
     await page.click('.popup-trigger');
     await page.waitForSelector('#name', { visible: true });
     await page.waitForFunction(() => !document.getElementById('pre-optin-overlay').classList.contains('is-visible'));
-    await page.screenshot({ path: '/private/tmp/mc2-optin-name-' + (path.startsWith('/meta/') ? 'meta' : 'organic') + '.png' });
+    await page.screenshot({ path: '/private/tmp/mc2-optin-name-' + (route.startsWith('/meta/') ? 'meta' : 'organic') + '-' + width + '.png' });
     assert.equal(await page.$eval('#custom-popup', el => el.querySelectorAll('[data-slot-id]').length), 3);
     assert.equal(await page.$eval('[data-mc2-picker="popup"] .is-selected', el => el.dataset.slotId), 'fixed-1');
     await page.click('[data-mc2-picker="popup"] [data-slot-id="fixed-2"]');
@@ -78,8 +95,8 @@ try {
     }
     const phoneEvent = requests.find(r => r.data.event_name === 'step_2_completed');
     assert.ok(phoneEvent.data.session_date);
-    assert.equal(phoneEvent.data.path, path);
-    assert.equal(phoneEvent.data.traffic_source, path.startsWith('/meta/') ? 'meta_ad' : null);
+    assert.equal(phoneEvent.data.path, route);
+    assert.equal(phoneEvent.data.traffic_source, route.startsWith('/meta/') ? 'meta_ad' : null);
     await page.click('#step3-submit');
     assert.ok(await page.$eval('#step3-message', el => el.textContent));
     assert.equal(requests.filter(r => r.name === 'register-mc2').length, 1, 'No full registration without commitment');
@@ -92,10 +109,10 @@ try {
     assert.ok(full[1].data.telephone);
     assert.equal(full[1].data.creneau, captures[0].data.creneau);
     assert.equal(full[1].data.optin_funnel_id, captures[0].data.optin_funnel_id);
-    assert.equal(new URL(page.url()).pathname.replace(/\/$/, ''), '/mc2/confirmation');
+    assert.equal(new URL(page.url()).pathname.replace(/\/$/, ''), '/mc2/confirmation', 'Confirmation navigation: ' + page.url());
     assert.equal(new URL(page.url()).searchParams.get('t'), 'mc2-preview');
     assert.deepEqual(errors, []);
-    console.log(path, 'three steps, partial capture, commitment gate, full registration and token redirect OK');
+    console.log(route, width, publicBuild ? 'PUBLIC (no preview)' : 'preview', 'three steps, partial capture, commitment gate, full registration and token redirect OK');
     await page.close();
   }
 } finally {
