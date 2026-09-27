@@ -104,7 +104,9 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
       ? '197 € aujourd’hui, puis 11 mensualités de 197 €.'
       : 'Paiement unique de 1 297 €. Aucun abonnement.';
     root.querySelector('[data-payment-today]').textContent = activePlan === 'once' ? '1 297 €' : '197 €';
-    root.querySelector('[data-payment-commitment]').textContent = activePlan === 'once' ? 'Ton accès commence dès le paiement.' : 'Engagement sur 12 mensualités, sans renouvellement automatique.';
+    const commitment = root.querySelector('[data-payment-commitment]');
+    commitment.textContent = activePlan === 'once' ? 'Ton accès commence dès le paiement.' : '';
+    commitment.hidden = activePlan === 'twelve';
     status.textContent = '';
   };
 
