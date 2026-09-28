@@ -18,6 +18,15 @@ for (const page of ['session', 'replay']) {
   assert.ok(archive.includes('DealOffer.astro'));
 }
 assert.ok(read('src/pages/mc2/replay.astro').includes('mc2_replay_recovery_access'));
+const livePage = read('src/pages/mc2/session.astro');
+const liveVideo = livePage.match(/<video\b[^>]*id="masterclass-video"[^>]*>/)?.[0] || '';
+assert.match(liveVideo, /\bdisablepictureinpicture(?:\s|>)/, 'Live video requests no detached PiP controls; browser preferences may override it');
+assert.match(livePage, /id="fullscreenBtnDesktop"/, 'Keep the custom fullscreen button');
+assert.ok(livePage.includes('videoContainer.requestFullscreen()'), 'Fullscreen still targets the container with our controls');
+const headers = read('public/_headers');
+for (const route of ['/mc2/session', '/mc2/session/', '/mc2/session/index.html']) {
+  assert.ok(headers.includes(route + '\n  Permissions-Policy: picture-in-picture=()'), 'Deny the PiP API on ' + route);
+}
 assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5686);
 assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4484);
 assert.equal(media.MC2_DRAFTX_REPLAY_PATH, '/mc2/replay/');
