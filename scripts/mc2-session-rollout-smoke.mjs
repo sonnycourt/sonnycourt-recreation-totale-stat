@@ -35,8 +35,8 @@ for (const page of ['session', 'replay']) {
     assert.ok(headers.includes(route + '\n  Permissions-Policy: picture-in-picture=()'), 'Deny the PiP API on ' + route);
   }
 }
-assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5686);
-assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4484);
+assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5732);
+assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4532);
 assert.equal(media.MC2_DRAFTX_REPLAY_PATH, '/mc2/replay/');
 assert.equal(media.MC2_DRAFTX_REPLAY_ENTRY, '/.netlify/functions/mc2-replay-enter?t=');
 const config = await (await videoConfig(new Request('https://example.invalid/.netlify/functions/mc2-video-config?variant=w14'))).json();

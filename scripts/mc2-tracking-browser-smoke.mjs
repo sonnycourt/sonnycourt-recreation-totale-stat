@@ -12,9 +12,9 @@ try {
   for (const route of ['/mc2/session/', '/mc2/replay/']) {
     const context = await browser.createBrowserContext(), page = await context.newPage();
     await page.setViewport({ width: route.includes('replay') ? 390 : 1200, height: 844 });
-    const cta = route.includes('replay') ? 4484 : 5686;
+    const cta = route.includes('replay') ? 4532 : 5732;
     // The session's announced hour is 15 min after media start; replay removes 20 min of content.
-    const startedAt = Date.now() - (5686 - 900 - 3) * 1000;
+    const startedAt = Date.now() - (5732 - 900 - 3) * 1000;
     const events = [], calls = [], errors = []; let outage = false;
     const capturedBodies = new Map();
     if (browserName === 'firefox') {
@@ -75,7 +75,7 @@ try {
       Object.defineProperties(HTMLMediaElement.prototype, {
         currentTime: { configurable: true, get() { return position(this); }, set(value) { const v = state(this); v.position = value; v.start = performance.now(); } },
         paused: { configurable: true, get() { return state(this).paused; } }, ended: { configurable: true, get: () => false },
-        readyState: { configurable: true, get: () => 4 }, duration: { configurable: true, get: () => route.includes('replay') ? 6677 : 7878 },
+        readyState: { configurable: true, get: () => 4 }, duration: { configurable: true, get: () => route.includes('replay') ? 6707 : 7909 },
       });
       HTMLMediaElement.prototype.canPlayType = () => 'probably';
       HTMLVideoElement.prototype.getVideoPlaybackQuality = function () { return { totalVideoFrames: Math.floor(position(this) * 25) }; };

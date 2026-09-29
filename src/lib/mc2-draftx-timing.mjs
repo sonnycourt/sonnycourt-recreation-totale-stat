@@ -1,20 +1,20 @@
 export const MC2_LIVE_VIDEO_LEAD_SECONDS = 15 * 60;
 export const MC2_LIVE_VIDEO_LEAD_MS = MC2_LIVE_VIDEO_LEAD_SECONDS * 1000;
 
-// W14 : 7 877,844354 s live / 6 676,609811 s replay, vérifié le 27/09/2026.
-export const MC2_LIVE_VIDEO_DURATION_SECONDS = 7_878;
-export const MC2_REPLAY_VIDEO_DURATION_SECONDS = 6_677;
+// W14 : 7 908,007842 s live / 6 706,773299 s replay, vérifié le 29/09/2026.
+export const MC2_LIVE_VIDEO_DURATION_SECONDS = 7_909;
+export const MC2_REPLAY_VIDEO_DURATION_SECONDS = 6_707;
 export const MC2_LIVE_VIDEO_DURATION_MS = MC2_LIVE_VIDEO_DURATION_SECONDS * 1000;
 
 // session_starts_at correspond à l'heure annoncée, alors que la vidéo démarre
-// quinze minutes plus tôt. La fin canonique est donc à +1 h 56 min 18 s.
+// quinze minutes plus tôt. La fin canonique est donc à +1 h 56 min 49 s.
 export const MC2_SESSION_DURATION_SECONDS = MC2_LIVE_VIDEO_DURATION_SECONDS
   - MC2_LIVE_VIDEO_LEAD_SECONDS;
 export const MC2_SESSION_DURATION_MS = MC2_SESSION_DURATION_SECONDS * 1000;
 
-export const MC2_LIVE_CTA_SECONDS = (94 * 60) + 46;
+export const MC2_LIVE_CTA_SECONDS = (95 * 60) + 32;
 export const MC2_REPLAY_COUNTDOWN_REMOVED_SECONDS = 20 * 60;
-export const MC2_REPLAY_CTA_SECONDS = (74 * 60) + 44;
+export const MC2_REPLAY_CTA_SECONDS = (75 * 60) + 32;
 
 // Le replay reste accessible 72 heures après l'heure annoncée de la session.
 // L'offre live garde cette même échéance. Pour une offre découverte en replay,

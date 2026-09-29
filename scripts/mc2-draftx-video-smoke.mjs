@@ -7,13 +7,13 @@ import * as media from '../src/lib/mc2-draftx-media.mjs';
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const live = read('src/pages/mc2/draftx.astro');
 const replay = read('src/pages/mc2/draftx/replay.astro');
-assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5686);
-assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4484);
-assert.equal(timing.MC2_LIVE_VIDEO_DURATION_SECONDS, 7878);
-assert.equal(timing.MC2_REPLAY_VIDEO_DURATION_SECONDS, 6677);
-assert.equal(timing.MC2_SESSION_DURATION_SECONDS, 6978);
-assert.match(media.MC2_DRAFTX_LIVE_HLS_URL, /9565de4f-915e-47b5-a1c5-01d1bbab0aba\/playlist\.m3u8$/);
-assert.match(media.MC2_DRAFTX_REPLAY_HLS_URL, /d76c8290-cb8d-4edb-9902-c0d48ab4d78b\/playlist\.m3u8$/);
+assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5732);
+assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4532);
+assert.equal(timing.MC2_LIVE_VIDEO_DURATION_SECONDS, 7909);
+assert.equal(timing.MC2_REPLAY_VIDEO_DURATION_SECONDS, 6707);
+assert.equal(timing.MC2_SESSION_DURATION_SECONDS, 7009);
+assert.match(media.MC2_DRAFTX_LIVE_HLS_URL, /6698c2d5-edc9-4f2a-9eea-e98de9f40a3c\/playlist\.m3u8$/);
+assert.match(media.MC2_DRAFTX_REPLAY_HLS_URL, /b8206f43-4b10-4ddc-a4a6-938a3f1ac78c\/playlist\.m3u8$/);
 assert.match(live, /VIDEO_SOURCE_URL_PRIMARY = MC2_DRAFTX_LIVE_HLS_URL/);
 assert.match(live, /d.variant !== 'draftx'/, 'An old endpoint must not silently restore the previous video');
 assert.match(replay, /VIDEO_SOURCE_URL_PRIMARY = MC2_DRAFTX_REPLAY_HLS_URL/);
@@ -30,7 +30,7 @@ assert.doesNotMatch(read('src/pages/mc2/session-archive.astro'), /mc2-draftx-med
 
 const update = replay.match(/      function updateCtaStateByVideoTime\(\) \{[\s\S]*?\n      \}/)?.[0];
 assert.ok(update);
-for (const [seconds, expected] of [[4483.99, 'hidden'], [4484, 'active'], [4484.01, 'active']]) {
+for (const [seconds, expected] of [[4531.99, 'hidden'], [4532, 'active'], [4532.01, 'active']]) {
   let result;
   runInNewContext(update + '\nupdateCtaStateByVideoTime()', {
     video: { currentTime: seconds },
