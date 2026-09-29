@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import sharp from 'sharp';
+import { DRAFTX_PAYMENT_PLANS } from '../src/lib/mc2-draftx-checkout.mjs';
+
+const source = readFileSync(new URL('../src/components/mc2/DraftXCheckout.astro', import.meta.url), 'utf8');
+assert.match(source, /\['twelve', 'once'\]\.map/);
+assert.match(source, /'is-selected': id === 'once'/);
+assert.match(source, /draftx-checkout__daily-hint--coffee[\s\S]*?draftx-cafe-seul\.webp[\s\S]*?font-weight: 800;">3,55 € par jour/);
+assert.match(source, /<small class="draftx-checkout__savings">\(économise 1 067 €\)<\/small>/);
+assert.match(source, /\.draftx-checkout__savings\s*\{[^}]*font-weight: 400;/);
+assert.doesNotMatch(source, /<b>Économise 1 067 €<\/b>/);
+assert.match(source, /draftx-cafe-croissant-objects\.webp[\s\S]*?font-weight: 800;">6,47 € par jour/);
+assert.equal(DRAFTX_PAYMENT_PLANS.once.amount, 1297);
+assert.equal(DRAFTX_PAYMENT_PLANS.once.count, 1);
+assert.equal(DRAFTX_PAYMENT_PLANS.twelve.amount, 197);
+assert.equal(DRAFTX_PAYMENT_PLANS.twelve.count, 12);
+assert.equal(DRAFTX_PAYMENT_PLANS.once.checkoutUrl, 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-34-1');
+assert.equal(DRAFTX_PAYMENT_PLANS.twelve.checkoutUrl, 'https://sonnycourt.spiffy.co/checkout/esprit-subconscient-2-0-2-2-1-1');
+const asset = new URL('../public/media/draftx-cafe-seul.webp', import.meta.url);
+const metadata = await sharp(readFileSync(asset)).metadata();
+assert.equal(metadata.hasAlpha, true);
+assert.ok(metadata.width > 0 && metadata.width <= 192);
+console.log('PASS — coffee-only daily hint, regular-weight savings, monthly card and payment plans preserved; transparent local asset.');
