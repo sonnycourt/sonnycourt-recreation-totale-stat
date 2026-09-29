@@ -23,9 +23,17 @@ const liveVideo = livePage.match(/<video\b[^>]*id="masterclass-video"[^>]*>/)?.[
 assert.match(liveVideo, /\bdisablepictureinpicture(?:\s|>)/, 'Live video requests no detached PiP controls; browser preferences may override it');
 assert.match(livePage, /id="fullscreenBtnDesktop"/, 'Keep the custom fullscreen button');
 assert.ok(livePage.includes('videoContainer.requestFullscreen()'), 'Fullscreen still targets the container with our controls');
+const replayPage = read('src/pages/mc2/replay.astro');
+const replayVideo = replayPage.match(/<video\b[^>]*id="replay-video"[^>]*>/)?.[0] || '';
+assert.match(replayVideo, /\bdisablepictureinpicture(?:\s|>)/, 'Replay video requests no detached PiP controls; browser preferences may override it');
+assert.match(replayPage, /id="fullscreen-btn"/, 'Keep the replay custom fullscreen button');
+assert.ok(replayPage.includes('box.requestFullscreen?.()'), 'Replay fullscreen still targets the container with our controls');
 const headers = read('public/_headers');
-for (const route of ['/mc2/session', '/mc2/session/', '/mc2/session/index.html']) {
-  assert.ok(headers.includes(route + '\n  Permissions-Policy: picture-in-picture=()'), 'Deny the PiP API on ' + route);
+for (const page of ['session', 'replay']) {
+  for (const suffix of ['', '/', '/index.html']) {
+    const route = '/mc2/' + page + suffix;
+    assert.ok(headers.includes(route + '\n  Permissions-Policy: picture-in-picture=()'), 'Deny the PiP API on ' + route);
+  }
 }
 assert.equal(timing.MC2_LIVE_CTA_SECONDS, 5686);
 assert.equal(timing.MC2_REPLAY_CTA_SECONDS, 4484);
