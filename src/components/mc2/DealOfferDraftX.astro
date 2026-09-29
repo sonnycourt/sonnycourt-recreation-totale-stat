@@ -1,5 +1,7 @@
 ---
 import DraftXCheckout from './DraftXCheckout.astro';
+import MetamorphosisSteps from './MetamorphosisSteps.astro';
+import ProgramBenefits from './ProgramBenefits.astro';
 import reviewsData from '../../data/reviews.json';
 import reviewConversionOrder from '../../data/review-conversion-order.json';
 
@@ -122,10 +124,15 @@ const previewReviewInitials = (name) => name
         margin: 20px calc(var(--deal-summary-padding) * -1) calc(var(--deal-summary-padding) * -1);
         padding: clamp(28px, 4vw, 38px) var(--deal-summary-padding) clamp(30px, 4.5vw, 42px);
         scroll-margin-top: 28px;
-        border-top: 1px solid #dbe4ee;
-        background: #f7f9fc;
-        box-shadow: inset 0 1px rgba(255, 255, 255, 0.9);
+        border-top: 0;
+        background: #08090e;
+        box-shadow: none;
       }
+      .deal-summary__checkout .deal-spiffy-checkout { background: transparent; box-shadow: none; }
+      .deal-summary__checkout :global(.draftx-checkout) { background: transparent; }
+      .deal-summary__checkout :global(.draftx-checkout__launch) { background: linear-gradient(135deg, #ef343f, #c9182b); border: 1px solid #fb7185; box-shadow: 0 12px 30px rgba(220,38,38,.22); color: #fff; }
+      .deal-summary__checkout :global(.draftx-checkout__launch:hover) { background: linear-gradient(135deg, #f44752, #dc2035); }
+      .deal-summary__checkout :global(.draftx-checkout__launch:focus-visible) { outline: 3px solid #fecaca; outline-offset: 4px; }
       .checkout-customer-fields {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1172,6 +1179,13 @@ const previewReviewInitials = (name) => name
         background: linear-gradient(145deg, #141414 0%, #090909 100%);
         box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.04);
       }
+      .draftx-daily-card--integrated {
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
       .draftx-daily-comparison { display: grid; justify-items: center; gap: 18px; max-width: 620px; margin: 0 auto; text-align: center; }
       .draftx-daily-comparison img { display: block; width: 190px; max-width: 100%; height: auto; }
       .draftx-daily-comparison .draftx-daily-comparison__title { margin: 0; color: #fff3e2; font-size: clamp(1.35rem, 2.8vw, 1.75rem); font-weight: 850; line-height: 1.25; letter-spacing: -0.025em; text-align: center; text-wrap: balance; }
@@ -1372,13 +1386,30 @@ const previewReviewInitials = (name) => name
         align-items: center;
         padding: clamp(20px, 2.7vw, 27px) clamp(22px, 3vw, 30px);
         border-top: 1px solid rgba(147, 197, 253, 0.18);
-        background: linear-gradient(110deg, rgba(37, 99, 235, 0.2), rgba(30, 64, 175, 0.08));
+        background: transparent;
       }
       .core-total__today-price { color: #fff; font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 920; letter-spacing: -0.055em; line-height: 1; white-space: nowrap; text-align: center; }
       .core-total__reduction { display: block; width: fit-content; margin: 0 auto 12px; padding: 8px 13px; border: 1px solid #f87171; border-radius: 8px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; box-shadow: 0 4px 14px rgba(185, 28, 28, 0.25); font-size: 0.85rem; font-weight: 850; letter-spacing: 0.01em; line-height: 1.2; }
       .core-total__today-price small { display: block; margin-top: 9px; color: #bfdbfe; font-size: 0.78rem; font-weight: 650; letter-spacing: 0; line-height: 1.3; text-align: center; }
       .core-total__today-price .core-total__future { display: inline-block; align-self: center; width: fit-content; margin-top: 14px; padding: 10px 16px; border: 1px solid #384152; border-radius: 10px; background: #080a0e; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.25); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 800; white-space: nowrap; }
       .core-total__installments { display: block; color: rgba(191, 219, 254, 0.76); font-size: 0.875rem; font-weight: 650; }
+      .core-total__today { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+      .core-daily-plan { padding: 24px 16px; border: 1px solid rgba(147,197,253,.22); border-radius: 16px; background: rgba(5,16,36,.45); text-align: center; }
+      .core-daily-plan--once { border-color: rgba(96,165,250,.65); background: linear-gradient(145deg,rgba(37,99,235,.28),rgba(30,64,175,.1)); }
+      button.core-daily-plan { appearance: none; width: 100%; min-width: 0; font-family: inherit; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+      button.core-daily-plan:hover { border-color: #93c5fd; box-shadow: 0 0 20px rgba(59,130,246,.2); }
+      button.core-daily-plan:focus-visible { outline: 3px solid #bfdbfe; outline-offset: 3px; }
+      .core-daily-plan__amount, .core-daily-plan__terms { display: block; }
+      .core-daily-plan__amount { color: #fff; font-size: clamp(2.5rem,5vw,3.6rem); font-weight: 900; line-height: 1.1; letter-spacing: -.045em; white-space: nowrap; }
+      .core-daily-plan__amount span { display: block; margin-top: 7px; color: #bfdbfe; font-size: 1rem; font-weight: 650; letter-spacing: 0; }
+      .core-daily-plan .core-daily-plan__terms { margin: 20px 0 0; color: #e0edff; font-size: .95rem; font-weight: 650; }
+      .deal-summary__today.deal-summary__daily { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+      .deal-summary__daily .core-daily-plan { background: rgba(30,5,10,.3); border-color: rgba(252,165,165,.3); }
+      .deal-summary__daily .core-daily-plan--once { background: linear-gradient(145deg,rgba(239,68,68,.22),rgba(127,29,29,.12)); border-color: rgba(252,165,165,.65); }
+      .deal-summary__daily .core-daily-plan__amount span, .deal-summary__daily .core-daily-plan__terms { color: #fee2e2; }
+      @media (max-width: 600px) { .deal-summary__today.deal-summary__daily { grid-template-columns: 1fr; } }
+      .core-total .core-daily-plan__total { margin-top: 4px; font-size: .78rem; }
+      .core-total .core-daily-note { grid-column: 1 / -1; margin: 0; color: #9db2d1; font-size: .68rem; text-align: center; line-height: 1.5; }
       .core-price-cta {
         box-sizing: border-box;
         display: flex;
@@ -1829,19 +1860,19 @@ const previewReviewInitials = (name) => name
       }
       .preview-reviews--checkout .video-reviews-all { margin-top: 0; }
       .deal-summary__checkout .video-reviews-all {
-        color: #122039;
-        border-color: #d5e0ec;
-        background: #fff;
-        box-shadow: 0 12px 30px rgba(27, 55, 91, 0.09), inset 0 1px rgba(255, 255, 255, 0.9);
+        color: #fff;
+        border-color: rgba(251,113,133,.25);
+        background: #141017;
+        box-shadow: none;
       }
-      .deal-summary__checkout .video-reviews-all:hover { border-color: #9dc1ec; background: #f9fbfe; }
-      .deal-summary__checkout .video-reviews-all__score { color: #142b49; }
-      .deal-summary__checkout .video-reviews-all__score small { color: #8291a3; }
-      .deal-summary__checkout .video-reviews-all__copy strong { color: #43566e; }
+      .deal-summary__checkout .video-reviews-all:hover { border-color: #fb7185; background: #21141b; }
+      .deal-summary__checkout .video-reviews-all__score { color: #fff; }
+      .deal-summary__checkout .video-reviews-all__score small { color: #baa8b0; }
+      .deal-summary__checkout .video-reviews-all__copy strong { color: #f4dfe5; }
       .deal-summary__checkout .video-reviews-all__arrow {
-        color: #235faa;
-        border-color: #c4d8ee;
-        background: #edf5ff;
+        color: #fda4af;
+        border-color: rgba(251,113,133,.3);
+        background: rgba(190,18,60,.16);
       }
       .preview-reviews-summary {
         position: relative;
@@ -2078,14 +2109,18 @@ const previewReviewInitials = (name) => name
             <span class="core-total__price">4 785 €</span>
           </div>
           <div class="core-total__today">
-            <div>
-              <span class="core-total__today-label">Ta transformation commence aujourd’hui</span>
-            </div>
-            <span class="core-total__today-price"><span class="core-total__reduction">Réduction -73%</span>1 297 €<small>en une fois</small><small class="core-total__future">ou 12 × 197 €</small></span>
+            <button type="button" class="core-daily-plan" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+              <span class="core-total__reduction">Réduction -51%</span>
+              <span class="core-daily-plan__amount">6,47 €<span>par jour</span></span>
+              <span class="core-daily-plan__terms">En 12 mensualités de 197 €</span>
+            </button>
+            <button type="button" class="core-daily-plan core-daily-plan--once" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+              <span class="core-total__reduction">Réduction -73%</span>
+              <span class="core-daily-plan__amount">3,55 €<span>par jour</span></span>
+              <span class="core-daily-plan__terms">En un versement unique de 1 297 €</span>
+            </button>
           </div>
-        </div>
-
-        <div class="draftx-daily-card">
+        <div class="draftx-daily-card draftx-daily-card--integrated">
         <figure class="draftx-daily-comparison">
           <figcaption><h3 class="draftx-daily-comparison__title">
             <span class="draftx-daily-comparison__continuation">Ta transformation commence aujourd’hui…</span>
@@ -2107,6 +2142,8 @@ const previewReviewInitials = (name) => name
             <strong>Soit tu manifestes, soit tu es remboursé.</strong>
           </div>
         </div>
+        </div>
+
         </div>
 
       </section>
@@ -2291,14 +2328,16 @@ const previewReviewInitials = (name) => name
 
         <div class="deal-summary__bridge">Mais tu ne paies pas 8 723 €</div>
 
-        <div class="deal-summary__today">
-          <div>
-            <span class="deal-summary__today-label">Ta transformation commence aujourd’hui</span>
-          </div>
-          <strong class="deal-summary__price">1 297 €<small>en une fois</small><small class="deal-summary__installments">ou 12 × 197 €</small></strong>
+        <div class="deal-summary__today deal-summary__daily">
+          <button type="button" class="core-daily-plan" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+            <span class="core-daily-plan__amount">6,47 €<span>par jour</span></span>
+            <span class="core-daily-plan__terms">En 12 mensualités de 197 €</span>
+          </button>
+          <button type="button" class="core-daily-plan core-daily-plan--once" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+            <span class="core-daily-plan__amount">3,55 €<span>par jour</span></span>
+            <span class="core-daily-plan__terms">En un versement unique de 1 297 €</span>
+          </button>
         </div>
-
-        <div class="deal-summary__checkout-cue">Je commence ma transformation <span aria-hidden="true">↓</span></div>
 
         <div class="deal-summary__checkout" id="deal-registration" aria-label="Formulaire d’inscription Esprit Subconscient 2.0">
           <div
@@ -2510,6 +2549,14 @@ const previewReviewInitials = (name) => name
         </button>
       </section>
 
+      <MetamorphosisSteps />
+      <ProgramBenefits />
+      <div style="display:flex;justify-content:center;padding:0 0 64px">
+        <button class="core-price-cta" type="button" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+          Je commence ma transformation →
+        </button>
+      </div>
+
       <dialog class="preview-reviews-dialog" id="preview-reviews-dialog" aria-labelledby="preview-reviews-dialog-title">
         <div class="preview-reviews-dialog__top">
           <div><span class="preview-reviews-dialog__eyebrow">Témoignages authentiques</span><h2 id="preview-reviews-dialog-title">Avis des participants</h2></div>
@@ -2577,6 +2624,11 @@ const previewReviewInitials = (name) => name
         }
         if (corePriceCta && registration) {
           corePriceCta.addEventListener('click', openRegistration);
+        }
+        if (registration) {
+          document.querySelectorAll('[data-core-plan-cta]').forEach((card) => {
+            card.addEventListener('click', openRegistration);
+          });
         }
         if (twoPathsCta && registration) {
           twoPathsCta.addEventListener('click', openRegistration);
