@@ -250,6 +250,18 @@ async function assertNoHistoryRollback(production, candidateCommit) {
 
 function build(baseDeployId) {
   assertLocalDeployDependencies(root);
+  // A successful HTTP response is insufficient: unresolved LFS pointers are
+  // text files that the CDN would serve as broken images or videos.
+  const unresolvedMedia = git(['lfs', 'ls-files', '--name-only']).split('\n')
+    .filter((path) => path.startsWith('public/') && (
+      !existsSync(join(root, path)) || (
+        statSync(join(root, path)).size < 1024 &&
+        readFileSync(join(root, path), 'utf8').startsWith('version https://git-lfs.github.com/spec/v1')
+      )
+    ));
+  if (unresolvedMedia.length) {
+    fail(`Médias Git LFS non récupérés. Lance git lfs pull avant publication :\n- ${unresolvedMedia.join('\n- ')}`);
+  }
   run('npm', ['run', 'build']);
   assertCriticalBuild();
   const manifestDir = join(root, 'dist/.well-known');
