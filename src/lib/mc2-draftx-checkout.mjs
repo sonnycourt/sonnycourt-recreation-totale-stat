@@ -101,9 +101,10 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
       button.setAttribute('aria-pressed', String(selected));
     });
     root.querySelector('[data-payment-schedule]').textContent = activePlan === 'twelve'
-      ? '197 € aujourd’hui, puis 11 mensualités de 197 €.'
-      : 'Paiement unique de 1 297 €. Aucun abonnement.';
-    root.querySelector('[data-payment-today]').textContent = activePlan === 'once' ? '1 297 €' : '197 €';
+      ? 'Puis 11 mensualités de 197 €.'
+      : 'Aucun abonnement.';
+    root.querySelector('[data-payment-charge]').textContent = activePlan === 'twelve' ? '197 €' : '1 297 € en une fois';
+    root.querySelector('[data-payment-daily]').textContent = activePlan === 'once' ? '3,55 €' : '6,47 €';
     const commitment = root.querySelector('[data-payment-commitment]');
     commitment.textContent = activePlan === 'once' ? 'Ton accès commence dès le paiement.' : '';
     commitment.hidden = activePlan === 'twelve';
