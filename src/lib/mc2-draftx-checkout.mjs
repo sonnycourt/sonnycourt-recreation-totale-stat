@@ -105,9 +105,6 @@ export function initDraftXCheckout(root, { mountPayment = mountDraftXSpiffy, tra
       : 'Aucun abonnement.';
     root.querySelector('[data-payment-charge]').textContent = activePlan === 'twelve' ? '197 €' : '1 297 € en une fois';
     root.querySelector('[data-payment-daily]').textContent = activePlan === 'once' ? '3,55 €' : '6,47 €';
-    const commitment = root.querySelector('[data-payment-commitment]');
-    commitment.textContent = activePlan === 'once' ? 'Ton accès commence dès le paiement.' : '';
-    commitment.hidden = activePlan === 'twelve';
     status.textContent = '';
   };
 
