@@ -7,21 +7,21 @@ import register from '../netlify/functions/register-mc2.js';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-assert.deepEqual([...MC2_REGISTRATION_COUNTRIES], ['FR','CH','BE','CA','LU','RE','GP','MQ','GF','PF','NC']);
+assert.ok(MC2_REGISTRATION_COUNTRIES.includes('MA'));
 for (const country of MC2_REGISTRATION_COUNTRIES) {
   const phone = getExampleNumber(country, examples);
-  assert.ok(phone, country);
+  if (!phone) continue;
   assert.equal(check(phone.number).eligible, true, `${country}: ${phone.number}`);
 }
 for (const country of ['MA','DO','CD','GA','BF','CG','TG','US','GB','DE','YT']) {
-  assert.equal(check(getExampleNumber(country, examples).number).eligible, false, country);
+  assert.equal(check(getExampleNumber(country, examples).number).eligible, true, country);
 }
 for (const phone of ['', null, '0612345678', '+1', '+80012345678', '+33612345678 ext 12', '+33'.repeat(30)]) {
   assert.equal(check(phone).eligible, false, String(phone));
 }
 assert.equal(check('+18193290000').country, 'CA');
 assert.equal(check('+18097620000').country, 'DO');
-assert.equal(check('+18097620000').message, 'Malheureusement, la masterclass n’est plus disponible.');
+assert.equal(check('+18097620000').message, '');
 // Explicitly approved: shared GP/MF/BL mobile numbering remains accepted.
 assert.equal(check('+590690001234').eligible, true);
 
@@ -49,9 +49,10 @@ const request = (data) => new Request('https://example.invalid/register', { meth
 for (const telephone of [getExampleNumber('GA', examples).number, '', '+18097620000']) {
   writes = [];
   const res = await register(request({ ...body, telephone }));
-  assert.ok([400,403].includes(res.status));
-  assert.equal(writes.length, telephone ? 1 : 0);
-  assert.ok(writes.every(x => x.url.includes('/mc2_challenge_contacts?')), 'Only separate Supabase contact storage; no webinar, messaging or CAPI');
+  assert.equal(res.status, telephone ? 200 : 400);
+  assert.ok(!writes.some(x => x.url.includes('/mc2_challenge_contacts?')), 'No challenge capture');
+  if (telephone) assert.ok(writes.some(x => x.url.endsWith('/mc2_registrations') && x.body.statut === 'registered'));
+  else assert.equal(writes.length, 0);
 }
 writes = [];
 process.env.MAILERLITE_API_KEY = 'test-only';
@@ -103,7 +104,7 @@ assert.equal((await register(request({ ...body, telephone: getExampleNumber('GA'
 assert.equal(writes.length, 0, 'Existing registrations unchanged');
 globalThis.fetch = () => { throw new Error('Validation endpoint must never call a provider'); };
 assert.equal((await (await endpoint(request({ telephone: body.telephone }))).json()).eligible, true);
-assert.equal((await (await endpoint(request({ telephone: getExampleNumber('TG', examples).number }))).json()).eligible, false);
+assert.equal((await (await endpoint(request({ telephone: getExampleNumber('TG', examples).number }))).json()).eligible, true);
 const source = await readFile(new URL('../src/pages/mc2/index.astro', import.meta.url), 'utf8');
 assert.ok(source.includes('saveStep1Lead'));
 assert.ok(source.includes('check-mc2-phone-country'));
@@ -129,7 +130,8 @@ for (const scenario of ['allowed', 'blocked', 'offline']) {
   await vm.runInNewContext(`(async () => {${clickHandler}})()`, context);
   assert.equal(advanced, scenario === 'allowed' ? 1 : 0);
   assert.equal(button.disabled, false);
-  assert.equal(Boolean(message.textContent), scenario === 'offline');
-  assert.equal(redirect, scenario === 'blocked' ? '/challenge-transformation-offre/' : '');
+  assert.equal(Boolean(message.textContent), scenario !== 'allowed');
+  assert.equal(redirect, '');
 }
-console.log('Country gate: allowlist, shared prefixes, separate contact storage, redirect, no messaging, eligible registration and existing access OK');
+assert.ok(!source.includes('/challenge-transformation-offre/'));
+console.log('Free access: all supported countries, valid phone required, no challenge redirect, existing access unchanged');

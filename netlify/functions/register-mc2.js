@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { checkMc2RegistrationPhone } from './lib/mc2-registration-country.mjs';
-import { captureMc2ChallengeContact, MC2_CHALLENGE_PATH } from './lib/mc2-challenge-contacts.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
 import { validateMc2SessionSelection } from './lib/mc2-session.mjs';
 import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
@@ -231,13 +230,6 @@ export default async (req) => {
     // every request that supplies contact details and every full registration.
     const phoneEligibility = checkMc2RegistrationPhone(telephone);
     if ((telephone || pays) && !phoneEligibility.eligible) {
-      if (phoneEligibility.reason === 'country_not_available') {
-        if (!await captureMc2ChallengeContact(body, phoneEligibility)) {
-          return jsonResponse(503, { error: 'temporarily_unavailable' });
-        }
-        return jsonResponse(403, { error: phoneEligibility.message,
-          reason: phoneEligibility.reason, redirectTo: MC2_CHALLENGE_PATH });
-      }
       return jsonResponse(phoneEligibility.reason === 'invalid_phone' ? 400 : 403, {
         error: phoneEligibility.message,
         reason: phoneEligibility.reason,
