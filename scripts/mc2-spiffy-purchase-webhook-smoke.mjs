@@ -122,6 +122,7 @@ try {
       body: JSON.stringify({ event: 'order:success', data: { object: {
         id: 2492500 + checkoutId, checkout: { id: checkoutId },
         order_total: total, customer: { email: paymentEmail }, mc2_token: token,
+        ...(total === 129700 ? { metadata: { terms_version: 'cgv-2026-09-v10' } } : {}),
       } } }),
     }));
     assert.equal(response.status, 200);
@@ -132,6 +133,9 @@ try {
       assert.equal(purchaseEvent.metadata.amount_cents, initial);
       assert.equal(purchaseEvent.metadata.contractual_total_cents, contract);
       assert.equal(purchaseEvent.token, token);
+      assert.equal(purchaseEvent.metadata.terms_version, total === 129700 ? 'cgv-2026-09-v10' : null);
+      assert.equal(purchaseEvent.metadata.terms_version_source,
+        total === 129700 ? 'provider_metadata' : 'provider_acceptance_to_verify');
     }
   }
 } finally {

@@ -368,6 +368,11 @@ export default async (req) => {
     if (isMc2Purchase) {
       const plan = mc2PlanPricing(mc2Plan, amount);
       const currentImmediatePlan = ['spiffy_12x197', 'spiffy_one_time_1297'].includes(plan.paymentMode);
+      // Never infer accepted terms from webhook delivery time: old orders may
+      // be replayed after a publication. Existing deduped events stay untouched.
+      const reportedTermsVersion = String(data?.metadata?.terms_version || data?.terms_version || '');
+      const acceptedTermsVersion = ['cgv-2026-09-v9', 'cgv-2026-09-v10'].includes(reportedTermsVersion)
+        ? reportedTermsVersion : null;
       const purchasedAt = mc2Row.purchased_at || nowIso;
       if (deferredPlan || (currentImmediatePlan && orderId)) {
         // Reuse the existing server-only event store and its unique dedupe key.
@@ -384,7 +389,9 @@ export default async (req) => {
             purchase_first_name: findFirstKey(body, ['name_first', 'first_name']) || mc2Row.prenom || '',
             plan: mc2Plan, payment_mode: plan.paymentMode,
             amount_cents: plan.initialCents, contractual_total_cents: plan.contractualTotalCents,
-            terms_version: currentImmediatePlan ? 'cgv-2026-09-v9' : 'cgv-2026-09-v8',
+            terms_version: currentImmediatePlan ? acceptedTermsVersion : 'cgv-2026-09-v8',
+            terms_version_source: currentImmediatePlan
+              ? (acceptedTermsVersion ? 'provider_metadata' : 'provider_acceptance_to_verify') : 'historical_plan',
             terms_url: 'https://sonnycourt.com/cgv/',
           },
         });
