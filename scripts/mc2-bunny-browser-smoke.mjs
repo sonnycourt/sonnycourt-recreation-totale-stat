@@ -93,9 +93,11 @@ try {
     assert.equal(ui.scoped, true);
     assert.equal(ui.visibleControls, 0);
     if (mobile) {
+      if (mode === 'session') assert.equal(await page.$eval('.rotate-hint', e => getComputedStyle(e).display), 'flex', 'Portrait phone keeps the rotation instruction');
       // Chromium mobile emulation checks touch/layout/autoplay policy, not iOS
       // WebKit. A physical Safari check is still required before activation.
       await page.setViewport({ width: 844, height: 390, isMobile: true, hasTouch: true, isLandscape: true });
+      if (mode === 'session') assert.equal(await page.$eval('.rotate-hint', e => getComputedStyle(e).display), 'none', 'Landscape phone hides the rotation instruction');
       await new Promise(r => setTimeout(r, 6000));
       console.log('MOBILE_STARTED', JSON.stringify({mode, time: await page.$eval(`#${videoId}`, v => v.currentTime)}));
       await page.screenshot({path: join(screenshots, `${mode}-mobile-touch.png`)});
@@ -136,7 +138,7 @@ try {
       }, videoId);
       assert.equal(layout.overflow, false, `${mode} ${label}: no horizontal overflow`);
       assert.ok(layout.videoWidth > 100 && layout.videoHeight > 100, `${mode} ${label}: visible video surface`);
-      if (mode === 'session') assert.equal(layout.rotateVisible, label === 'portrait' || label === 'tablet', `${label}: existing rotation instruction retained`);
+      if (mode === 'session') assert.equal(layout.rotateVisible, false, `${label}: resizing a desktop never triggers the phone instruction`);
       await page.screenshot({ path: join(screenshots, `${mode}-${label}.png`) });
       viewportResults.push({ label, ...layout });
     }

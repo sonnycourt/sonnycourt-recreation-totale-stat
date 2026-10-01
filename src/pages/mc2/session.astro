@@ -13,6 +13,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     <DraftXSandbox production bunnyPlayer />
     <Mc2Tracking />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script is:inline>
+        // A narrow tablet window is not a phone. Keep portrait playback clear on
+        // iPad (including desktop-mode Safari) and Android tablets.
+        const mc2PhoneDevice = navigator.userAgentData?.mobile === true
+            || /iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent);
+        document.documentElement.classList.toggle('mc-phone-device', mc2PhoneDevice);
+    </script>
     <title>Session - Masterclass Esprit Subconscient 2.0</title>
     <meta name="description" content="Regarde la masterclass Esprit Subconscient 2.0.">
     <meta property="og:image" content="https://sonnycourt.com/media/pages/mc2-masterclass-20260929.webp?v=2" />
@@ -594,9 +601,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             font-size: 13px;
             box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
         }
-        /* Sur mobile/iPad: recommandation en portrait uniquement */
-        @media (orientation: portrait) and (max-width: 1023px) {
-            .rotate-hint {
+        /* Téléphones uniquement : jamais sur tablette ou ordinateur étroit. */
+        @media (orientation: portrait) {
+            :global(html.mc-phone-device) .rotate-hint {
                 display: flex;
             }
         }
