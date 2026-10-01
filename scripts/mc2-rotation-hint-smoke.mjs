@@ -29,7 +29,7 @@ try {
       if (request.method() !== 'GET' || url.origin !== new URL(base).origin || url.pathname.startsWith('/.netlify/')) return request.abort();
       return request.continue();
     });
-    await page.goto(`${base}/mc2/session/?preview=dev&player=bunny&state=session-p2`, {waitUntil:'domcontentloaded'});
+    await page.goto(`${base}/mc2/session/?preview=dev&state=session-p2`, {waitUntil:'domcontentloaded'});
     await page.waitForSelector('#rotate-hint');
     const visible = await page.$eval('#rotate-hint', e => getComputedStyle(e).display !== 'none');
     assert.equal(visible, test.expected, test.name);

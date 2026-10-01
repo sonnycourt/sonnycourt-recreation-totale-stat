@@ -6,9 +6,9 @@ const PLAYER_JS = 'https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js
 export const MC2_BUNNY_UI_VERSION = 1;
 export const MC2_BUNNY_LIBRARY = '698588';
 
-// Staged locally first; production stays unchanged until the parity checks pass.
+// Validated official player by default; keep an explicit diagnostic fallback.
 export function useMc2BunnyPlayer(search = globalThis.location?.search || '') {
-  return new URLSearchParams(search).get('player') === 'bunny';
+  return new URLSearchParams(search).get('player') !== 'legacy';
 }
 
 export function bunnyVideoId(source) {

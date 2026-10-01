@@ -46,7 +46,7 @@ try {
       }
       return request.continue();
     });
-    await page.goto(`${base}/mc2/${mode}/?preview=dev&player=bunny`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.goto(`${base}/mc2/${mode}/?preview=dev`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForFunction(() => !!window.__mcBunnyDiagnostics, { timeout: 20000 });
     // The simulation panel can cover customer buttons in narrow viewports.
     await page.$eval('#dev-time-banner', e => { e.style.display = 'none'; });
