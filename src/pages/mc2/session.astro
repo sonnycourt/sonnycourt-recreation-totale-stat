@@ -10,7 +10,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <DraftXSandbox production />
+    <DraftXSandbox production bunnyPlayer />
     <Mc2Tracking />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Session - Masterclass Esprit Subconscient 2.0</title>
@@ -2214,6 +2214,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
         import { hasMc2LiveParticipation, createMc2LiveParticipation } from '../../lib/mc2-live-participation.mjs';
         import { createMc2VideoFrameMonitor } from '../../lib/mc2-video-frame-monitor.mjs';
+        import { mountMc2BunnyVideo, useMc2BunnyPlayer } from '../../lib/mc2-bunny-player.mjs';
+        const USE_BUNNY_PLAYER = useMc2BunnyPlayer();
         const TOKEN_KEY = 'mc2_registration_token';
         const isDraftPreview = Boolean(window.__mc2DraftX);
         const sessionPagePath = window.location.pathname.replace(/\/?$/, '/');
@@ -2230,7 +2232,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         const OFFER_INITIAL_REMAINING_SEATS = 37;
         const SESSION_SCARCITY_DELAY_MS = 0;
         const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 75, 90, 100];
-        const FREEZE_RECOVERY_ENABLED = true;
+        const FREEZE_RECOVERY_ENABLED = !USE_BUNNY_PLAYER;
         // Le manifeste Bunny est trié par débit par hls.js : index 1 = 360p sur notre ladder
         // 240/360/480/720/1080. La qualité repasse ensuite automatiquement en ABR.
         const HLS_INITIAL_LEVEL = 1;
@@ -3146,7 +3148,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             };
             let offerInterval = setInterval(tick, 1000);
 
-            const video = document.getElementById('masterclass-video');
+            const videoElement = document.getElementById('masterclass-video');
+            const video = USE_BUNNY_PLAYER
+                ? mountMc2BunnyVideo(videoElement, { fallbackDuration: VIDEO_DURATION_FALLBACK_SECONDS })
+                : videoElement;
+            if (isPreviewPage && USE_BUNNY_PLAYER) window.__mcBunnyDiagnostics = video.diagnostics;
             video.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
             });
@@ -3166,12 +3172,17 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 return /\.m3u8(\?|#|$)/i.test(String(url || ''));
             }
             function detachVideoSource() {
+                if (USE_BUNNY_PLAYER) { video.destroy(); return; }
                 if (hlsInstance) {
                     try { hlsInstance.destroy(); } catch { /* ignore */ }
                     hlsInstance = null;
                 }
             }
             function attachVideoSource(url) {
+                if (USE_BUNNY_PLAYER) {
+                    void video.loadSource(url, { startAt: Math.max(0, (getNowMs() - liveStartMs) / 1000) });
+                    return;
+                }
                 detachVideoSource();
                 attachedSourceUrl = String(url || '');
                 hlsDiagnostics.sourceAttachments += 1;
@@ -3217,6 +3228,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
             }
             function reloadVideoSource() {
+                if (USE_BUNNY_PLAYER) { void video.retry().catch(() => {}); return; }
                 // Équivalent de video.load() qui fonctionne aussi en mode hls.js
                 // (video.load() casserait l'attachement MediaSource).
                 if (hlsInstance) {
@@ -3662,6 +3674,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             };
 
             const manualFreezeRecoveryReloadHandler = function () {
+                if (USE_BUNNY_PLAYER) {
+                    setFreezeRecoveryOverlayVisible(false);
+                    void video.retry().catch(() => setFreezeRecoveryOverlayVisible(true));
+                    return;
+                }
                 window.location.reload();
             };
 
@@ -4187,6 +4204,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 }
             });
             video.addEventListener('seeking', function () {
+                if (USE_BUNNY_PLAYER) return;
                 if (liveSeekInProgress) return;
                 if (video.currentTime > maxWatched + 1) video.currentTime = maxWatched;
             });
@@ -4200,6 +4218,11 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 syncMobileControlsAutoHide();
             });
             video.addEventListener('pause', function () {
+                if (USE_BUNNY_PLAYER) {
+                    syncIcons();
+                    syncMobileControlsAutoHide();
+                    return;
+                }
                 if (isRecoveringInProgress) return;
                 // No pause experience once user has joined.
                 if (liveStarted && !isSessionEnded && !video.ended) {
@@ -4210,6 +4233,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 syncMobileControlsAutoHide();
             });
             video.addEventListener('volumechange', syncIcons);
+            if (USE_BUNNY_PLAYER) {
+                video.addEventListener('bunnyerror', () => setFreezeRecoveryOverlayVisible(true));
+                video.addEventListener('bunnyinterrupted', () => setFreezeRecoveryOverlayVisible(true));
+                video.addEventListener('playing', () => setFreezeRecoveryOverlayVisible(false));
+                video.addEventListener('ended', () => setFreezeRecoveryOverlayVisible(false));
+                freezeRecoveryReloadBtn?.addEventListener('click', manualFreezeRecoveryReloadHandler);
+            }
             if (FREEZE_RECOVERY_ENABLED) {
                 // Les events 'waiting' et 'stalled' restent informatifs : aucune reconstruction
                 // du lecteur n'est déclenchée par une bufferisation ordinaire.

@@ -8,7 +8,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <DraftXSandbox production />
+  <DraftXSandbox production bunnyPlayer />
   <meta name="referrer" content="no-referrer" />
   <!-- Retire le code personnel de la barre avant Meta/Clarity et le conserve
        localement pour la validation serveur qui suit. -->
@@ -1086,10 +1086,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     const pageStorage = window.__mc2DraftX?.storage || localStorage;
     const previewClockStorage = window.__mc2DraftX?.storage || sessionStorage;
     import { createMc2VideoFrameMonitor } from '../../lib/mc2-video-frame-monitor.mjs';
+    import { mountMc2BunnyVideo, useMc2BunnyPlayer } from '../../lib/mc2-bunny-player.mjs';
+    const USE_BUNNY_PLAYER = useMc2BunnyPlayer();
     import { prefetchMc2OfferScarcity, startMc2OfferScarcityDisplay } from '../../lib/mc2-offer-scarcity-display.mjs';
     import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
     import {
       MC2_REPLAY_CTA_SECONDS,
+      MC2_REPLAY_VIDEO_DURATION_SECONDS,
       MC2_REPLAY_OFFER_DURATION_MS,
       mc2ReplayExpiresAt,
     } from '../../lib/mc2-timing.mjs';
@@ -1300,7 +1303,13 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 
     function mountReplay(reg, token) {
       syncReplayAccessDeadline(reg.accessExpiresAt);
-      const video = document.getElementById('replay-video');
+      const videoElement = document.getElementById('replay-video');
+      const video = USE_BUNNY_PLAYER
+        ? mountMc2BunnyVideo(videoElement, { fallbackDuration: MC2_REPLAY_VIDEO_DURATION_SECONDS })
+        : videoElement;
+      if (USE_BUNNY_PLAYER && new URLSearchParams(location.search).get('preview') === 'dev') {
+        window.__mcBunnyDiagnostics = video.diagnostics;
+      }
       /* ── Source HLS/MP4 : même <video>, même UI, seul le transport change ── */
       let hlsInstance = null;
       let attachedSourceUrl = '';
@@ -1308,12 +1317,14 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         return /\.m3u8(\?|#|$)/i.test(String(url || ''));
       }
       function detachVideoSource() {
+        if (USE_BUNNY_PLAYER) { video.destroy(); return; }
         if (hlsInstance) {
           try { hlsInstance.destroy(); } catch { /* ignore */ }
           hlsInstance = null;
         }
       }
       function attachVideoSource(url) {
+        if (USE_BUNNY_PLAYER) { void video.loadSource(url); return; }
         detachVideoSource();
         attachedSourceUrl = String(url || '');
         if (isHlsUrl(attachedSourceUrl) && !video.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
@@ -1332,6 +1343,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         }
       }
       function reloadVideoSource() {
+        if (USE_BUNNY_PLAYER) { void video.retry().catch(() => {}); return; }
         // Équivalent de video.load() compatible mode hls.js (video.load() casserait
         // l'attachement MediaSource).
         if (hlsInstance) {
@@ -1900,7 +1912,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         replayConfirmOverlay?.classList.add('hidden');
       });
       video.addEventListener('pause', () => {
-        if (replayNoPause && !video.ended && didTrackReplayStarted) {
+        if (!USE_BUNNY_PLAYER && replayNoPause && !video.ended && didTrackReplayStarted) {
           video.play().catch(() => {});
         }
       });
@@ -1945,7 +1957,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         e.preventDefault();
       });
 
-      const FREEZE_RECOVERY_ENABLED = true;
+      const FREEZE_RECOVERY_ENABLED = !USE_BUNNY_PLAYER;
       const FREEZE_PROGRESS_EPSILON_SEC = 0.1;
       const FREEZE_WATCHDOG_INTERVAL_MS = 2000;
       const FREEZE_THRESHOLD_MS = 12000; // 12s = tolérant aux mini-buffers mobile
@@ -2139,6 +2151,16 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         onFrozen: ({ stalledMs }) => triggerFreezeRecovery('frame_stall', stalledMs / 1000),
       });
 
+      if (USE_BUNNY_PLAYER) {
+        video.addEventListener('bunnyerror', () => setFreezeRecoveryOverlayVisible(true));
+        video.addEventListener('bunnyinterrupted', () => setFreezeRecoveryOverlayVisible(true));
+        video.addEventListener('playing', () => setFreezeRecoveryOverlayVisible(false));
+        video.addEventListener('ended', () => setFreezeRecoveryOverlayVisible(false));
+        freezeRecoveryReloadBtn?.addEventListener('click', () => {
+          setFreezeRecoveryOverlayVisible(false);
+          void video.retry().catch(() => setFreezeRecoveryOverlayVisible(true));
+        });
+      }
       if (FREEZE_RECOVERY_ENABLED) {
         // FIX (2026-05-07) : suppression triggers immédiats sur 'stalled' / 'waiting'.
         // Ces events surviennent souvent en lecture normale (mobile surtout), causaient
@@ -2166,7 +2188,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         syncMobileControlsAutoHide();
       });
       video.addEventListener('pause', () => {
-        if (!video.ended) overlay.classList.remove('hidden');
+        if (!USE_BUNNY_PLAYER && !video.ended) overlay.classList.remove('hidden');
         playPauseBtn.textContent = 'Play';
         syncMobileControlsAutoHide();
       });
@@ -2190,6 +2212,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         applyReplayEndedState();
       });
       video.addEventListener('seeking', () => {
+        if (USE_BUNNY_PLAYER) return;
         if (allowProgrammaticSeek) return;
         if (video.currentTime > maxWatched + 0.8) video.currentTime = maxWatched;
       });

@@ -49,6 +49,7 @@ async function initialize({ data = {}, resolvedToken = token, ok = true, preview
   const context = {
     URLSearchParams, Date: class extends Date { static now() { return now; } },
     isDraftPreview: preview, OFFER_DURATION_MS: 72 * 3600000, LIVE_VIDEO_LEAD_MS: 5000, LATE_DIRECT_AFTER_SESSION_MS: 20 * 60000,
+    CTA_APPEAR_SECONDS: 5732, prefetchMc2OfferScarcity: async () => null, setTimeout,
     VIDEO_DURATION_FALLBACK_SECONDS: 7920, getNowMs: () => now, hasMc2LiveParticipation,
     pageStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
     window: { location: { search: '?state=cta-active' }, __MC2_ACCESS__: { resolve: async () => { calls.push(['resolve']); return resolvedToken; } } },

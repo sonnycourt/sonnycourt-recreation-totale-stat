@@ -1,0 +1,29 @@
+<!-- MC2 official-player UI v1. Append to the existing Bunny custom head; do not replace other settings. -->
+<script>
+(function () {
+  if (new URLSearchParams(location.search).get('mc2ui') !== '1') return;
+  if (!location.pathname.startsWith('/embed/698588/')) return;
+  document.documentElement.classList.add('mc2-managed-player');
+  var style = document.createElement('style');
+  style.textContent = '.mc2-managed-player media-control-bar,.mc2-managed-player bunny-media-control-bar,.mc2-managed-player media-play-button,.mc2-managed-player bunny-settings-menu,.mc2-managed-player bunny-time-display{display:none!important}.mc2-managed-player media-controller::after{display:none!important}.mc2-managed-player media-controller{background:#000!important}';
+  document.head.appendChild(style);
+  // Disable input affordances, not playback/decoder/buffering behavior. All MC2
+  // buttons remain in the parent page and use the supported Player.js API.
+  document.addEventListener('keydown', function (event) {
+    if (/^[0-9]$/.test(event.key) || [' ', 'k', 'K', 'j', 'J', 'l', 'L', 'ArrowLeft', 'ArrowRight', '<', '>'].indexOf(event.key) !== -1) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener('contextmenu', function (event) { event.preventDefault(); }, true);
+  function ready() {
+    var controller = document.querySelector('media-controller');
+    if (controller) controller.setAttribute('gesturesdisabled', '');
+    parent.postMessage({ type: 'mc2-bunny-ui-ready', version: 1 }, '*');
+  }
+  window.addEventListener('message', function (event) {
+    if (event.source === parent && event.data && event.data.type === 'mc2-bunny-ui-probe') ready();
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready, { once: true });
+  else ready();
+}());
+</script>

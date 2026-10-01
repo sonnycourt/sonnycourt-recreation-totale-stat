@@ -7,7 +7,7 @@ const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8'
 for (const page of ['session', 'replay']) {
   const source = read(`src/pages/mc2/${page}.astro`);
   assert.ok(source.includes('DealOfferDraftX.astro'), page + ': new offer');
-  assert.ok(source.includes('<DraftXSandbox production />'));
+  assert.ok(source.includes('<DraftXSandbox production bunnyPlayer />'), page + ': production sandbox with scoped official-player permissions');
   assert.ok(source.includes('<Mc2Tracking />'));
   assert.ok(source.includes('mc2-media.mjs'));
   assert.ok(source.includes('mc2-timing.mjs'));

@@ -1,13 +1,18 @@
 ---
-const { production = false } = Astro.props;
+const { production = false, bunnyPlayer = false } = Astro.props;
 // Preserve the sandbox CSP; only allow the analytics already used by MC2 in production.
 const previewPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https://*.b-cdn.net; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://*.b-cdn.net; worker-src 'self' blob:; frame-src 'self' https://sonnycourt.spiffy.co; object-src 'none'; form-action 'none'; base-uri 'self'";
 const productionPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.clarity.ms https://scripts.clarity.ms https://www.googletagmanager.com https://stats.sonnycourt.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https://*.b-cdn.net; connect-src 'self' https://www.facebook.com https://*.clarity.ms https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.sonnycourt.com http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://*.b-cdn.net; worker-src 'self' blob:; frame-src 'self' https://sonnycourt.spiffy.co; object-src 'none'; form-action 'none'; base-uri 'self'";
+// Only the two player pages need the pinned official bridge and this library's
+// iframe. Keep the remaining sandbox restrictions, especially form-action.
+const policy = (production ? productionPolicy : previewPolicy)
+  .replace("script-src 'self'", "script-src 'self'" + (bunnyPlayer ? ' https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js' : ''))
+  .replace("frame-src 'self'", "frame-src 'self'" + (bunnyPlayer ? ' https://player.mediadelivery.net/embed/698588/' : ''));
 ---
 <!-- DraftX preview isolation is opt-in. A personal link always uses MC2 access. -->
 <meta name="robots" content="noindex, nofollow, noarchive" />
 <meta name="referrer" content="no-referrer" />
-<meta http-equiv="Content-Security-Policy" content={production ? productionPolicy : previewPolicy} />
+<meta http-equiv="Content-Security-Policy" content={policy} />
 <script is:inline>
   (() => {
     const url = new URL(location.href);
