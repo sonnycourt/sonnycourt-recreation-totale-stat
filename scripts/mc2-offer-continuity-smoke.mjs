@@ -10,7 +10,8 @@ const replaySource = fs.readFileSync(path.join(root, 'src/pages/mc2/replay.astro
 assert.match(sessionSource, /reg\.sawOffer === true && Number\.isFinite\(expiryMs\)/);
 assert.match(sessionSource, /keepOfferVisible: true/);
 assert.match(sessionSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
-assert.match(sessionSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
+assert.match(sessionSource, /startMc2OfferScarcityDisplay\(/);
+assert.doesNotMatch(sessionSource, /createMc2OfferTimeline\(/);
 assert.match(sessionSource, /const seats = Math\.max\(0, OFFER_INITIAL_REMAINING_SEATS - placesConsumed\)/);
 assert.equal(MC2_DRAFTX_REPLAY_ENTRY, '/.netlify/functions/mc2-replay-enter?t=');
 assert.match(sessionSource, /MC2_DRAFTX_REPLAY_ENTRY \+ encodeURIComponent\(reg\.token\)/);

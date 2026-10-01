@@ -11,11 +11,10 @@ const source = read('src/pages/mc2/draftx.astro');
 const offer = read('src/components/mc2/DealOfferDraftX.astro');
 const sandbox = read('src/components/mc2/DraftXSandbox.astro');
 const untouched = [
-  'src/pages/mc2/session.astro', 'src/pages/mc2/replay.astro',
   'src/components/mc2/DealOffer.astro', 'src/lib/mc2-timing.mjs',
   'src/lib/scarcity-engine.ts', 'src/lib/mc2-offer-observability.js',
-  'src/data/mc2-offer-timeline.ts', 'src/data/scarcity-timeline.ts',
-  'astro.config.mjs', 'netlify.toml', 'package.json',
+  'src/data/scarcity-timeline.ts',
+  'astro.config.mjs', 'netlify.toml',
 ];
 for (const file of untouched) {
   const baseline = execFileSync('git', ['show', `17f353a:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 });

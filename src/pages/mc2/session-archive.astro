@@ -2217,8 +2217,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
             MC2_LIVE_VIDEO_DURATION_SECONDS as VIDEO_DURATION_FALLBACK_SECONDS,
             MC2_LIVE_VIDEO_LEAD_MS as LIVE_VIDEO_LEAD_MS,
         } from '../../lib/mc2-legacy-timing.mjs';
-        import { startScarcityEngine } from '../../lib/scarcity-engine';
-        import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
+        import { prefetchMc2OfferScarcity, startMc2OfferScarcityDisplay } from '../../lib/mc2-offer-scarcity-display.mjs';
         import { startMc2OfferObservability } from '../../lib/mc2-offer-observability';
         const TOKEN_KEY = 'mc2_registration_token';
         const GUIDE_RELEASE_LEAD_MS = 60 * 60 * 1000; // bouton guide visible 60 min avant session_date
@@ -2702,32 +2701,29 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
 
             function startEngine() {
                 if (engine) engine.stop();
-                const debug = new URLSearchParams(window.location.search).get('scarcity_debug') === '1';
-                engine = startScarcityEngine({
+                engine = startMc2OfferScarcityDisplay({
                     now: function () {
                         return getNowMs() - SESSION_SCARCITY_DELAY_MS;
                     },
                     isActive: shouldRun,
                     windowStartMs: options?.windowStartMs,
                     windowEndMs: options?.windowEndMs,
-                    timeline: options?.timeline,
                     onSeatsLeft: function (seatsLeft, soldCount, phase) {
                         setSeatsLeft(seatsLeft, phase, soldCount);
                     },
                     onNotification: function (purchase) {
                         showPurchase(purchase);
                     },
-                    debug,
                 });
             }
 
             startEngine();
             return {
+                getRemainingSeconds: function () {
+                    return engine?.getRemainingSeconds?.() ?? null;
+                },
                 recalc: function () {
-                    if (engine && typeof engine.debugSnapshot === 'function') {
-                        const snap = engine.debugSnapshot();
-                        setSeatsLeft(snap.seatsLeft, snap.phase, snap.soldCount);
-                    }
+                    if (engine && typeof engine.recalc === 'function') engine.recalc();
                 },
                 destroy: function () {
                     if (engine) engine.stop();
@@ -3065,8 +3061,12 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
                 detail: { firstName: reg.prenom || '', email: reg.email || '' },
             }));
 
+            let scarcityDisplay = null;
             function syncDealCountdown(targetMs) {
-                const remainingSeconds = Math.max(0, Math.ceil((targetMs - getNowMs()) / 1000));
+                const serverSeconds = scarcityDisplay?.getRemainingSeconds?.();
+                const remainingSeconds = Number.isFinite(serverSeconds)
+                    ? serverSeconds
+                    : Math.max(0, Math.ceil((targetMs - getNowMs()) / 1000));
                 window.__mc2DealOffer?.setCountdownSeconds?.(remainingSeconds);
             }
 
@@ -4254,6 +4254,14 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
                 }
             });
 
+            const purchaseToasts = initPurchaseToasts(liveStartMs, {
+                windowStartMs: scarcityWindowStartMs,
+                windowEndMs: scarcityWindowEndMs,
+                setSeatsLeft: setScarcitySeats,
+                isEnded: function () { return isOfferExpired; },
+            });
+            scarcityDisplay = purchaseToasts;
+
             updateCtaStateByTime();
             updateDiagnosticGuideState();
             tick();
@@ -4375,13 +4383,6 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
             window.addEventListener('beforeunload', beforeUnloadHandler);
 
             const hearts = initHeartColumn(liveStartMs, sessionStartMs + LATE_DIRECT_AFTER_SESSION_MS);
-            const purchaseToasts = initPurchaseToasts(liveStartMs, {
-                windowStartMs: scarcityWindowStartMs,
-                windowEndMs: scarcityWindowEndMs,
-                timeline: createMc2OfferTimeline(scarcityWindowEndMs - scarcityWindowStartMs),
-                setSeatsLeft: setScarcitySeats,
-                isEnded: function () { return isOfferExpired; },
-            });
 
             return {
                 forceInlineEndedState: function () {
@@ -4831,11 +4832,26 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
                 }
 
                 const liveStartMs = sessionMs - LIVE_VIDEO_LEAD_MS;
+                const scarcityWindowStartMs = liveStartMs + CTA_APPEAR_SECONDS * 1000;
+                const scarcityWindowEndMs = Number.isFinite(persistedOfferExpiryMs)
+                    ? persistedOfferExpiryMs
+                    : sessionMs + OFFER_DURATION_MS;
+                const scarcityReady = prefetchMc2OfferScarcity({
+                    windowStartMs: scarcityWindowStartMs,
+                    windowEndMs: scarcityWindowEndMs,
+                    nowMs: now,
+                });
                 window.__mcSessionForceLateOverlay = now >= sessionMs + LATE_DIRECT_AFTER_SESSION_MS
                     && !attendedLive
                     && !hasPersistedOffer;
                 showScreen('screen-main');
                 if (now >= liveStartMs) await maybeMarkPresent(reg);
+                if (now >= scarcityWindowStartMs) {
+                    await Promise.race([
+                        scarcityReady,
+                        new Promise((resolve) => setTimeout(resolve, 1500)),
+                    ]);
+                }
                 mountVideoAndOffer(reg);
             } catch (e) {
                 showBlocked('Erreur', 'Impossible de charger la session pour le moment.');

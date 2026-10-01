@@ -3,6 +3,7 @@ import {
   mc2EffectiveReplayResumeSeconds,
   mc2ReplayRecoveryConfig,
 } from './lib/mc2-replay-recovery.mjs';
+import { mc2OfferActivatedAt } from './lib/mc2-offer-deadline.mjs';
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -23,6 +24,13 @@ export default async (req) => {
     if (!result.ok) return json(result.reason === 'expired' || result.reason === 'purchased' ? 410 : 404, { valid: false, reason: result.reason });
     const config = mc2ReplayRecoveryConfig();
     if (!config.replayUrl) return json(503, { valid: false, reason: 'video_not_configured' });
+    const offerExpiresAt = result.registration.offer_expires_at || null;
+    const offerActivatedAt = offerExpiresAt
+      ? mc2OfferActivatedAt({
+        registration: result.registration,
+        expiresAt: offerExpiresAt,
+      })?.toISOString() || null
+      : null;
     return json(200, {
       valid: true,
       registrationToken: result.registration.token,
@@ -30,7 +38,8 @@ export default async (req) => {
       email: result.registration.email || '',
       country: result.registration.pays || '',
       expiresAt: result.expires.toISOString(),
-      offerExpiresAt: result.registration.offer_expires_at || null,
+      offerExpiresAt,
+      offerActivatedAt,
       // Recalculé à chaque ouverture : les anciens liens et les rappels déjà
       // envoyés reprennent eux aussi le point replay le plus avancé connu.
       resumeSeconds: mc2EffectiveReplayResumeSeconds(result.registration, result.job),

@@ -1113,8 +1113,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
   <script>
     // @ts-nocheck
     import Hls from 'hls.js';
-    import { startScarcityEngine } from '../../lib/scarcity-engine';
-    import { createMc2OfferTimeline } from '../../data/mc2-offer-timeline';
+    import { prefetchMc2OfferScarcity, startMc2OfferScarcityDisplay } from '../../lib/mc2-offer-scarcity-display.mjs';
     import { startMc2OfferObservability } from '../../lib/mc2-offer-observability';
     import {
       MC2_REPLAY_CTA_SECONDS,
@@ -1670,7 +1669,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
       const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
       let maxWatched = Math.max(0, Number(reg.resumeSeconds || 0));
       let ctaActivated = false;
-      let offerActivationMs = NaN;
+      let offerActivationMs = reg.offerActivatedAt ? new Date(reg.offerActivatedAt).getTime() : NaN;
       let allowProgrammaticSeek = false;
       let hideToastTimer = null;
       let toastQueueGapTimer = null;
@@ -1808,15 +1807,11 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         const auditEl = document.getElementById('dev-scarcity-audit');
         const nowMs = getMcWallClockMs();
         if (nowEl) nowEl.textContent = `Horloge replay (Paris): ${formatParisDateTime(nowMs)}`;
-        const timelineDurationMs = Number.isFinite(offerActivationMs) && Number.isFinite(offerExpiryMs)
-          ? Math.max(0, offerExpiryMs - offerActivationMs)
-          : MC2_REPLAY_OFFER_DURATION_MS;
-        const timeline = createMc2OfferTimeline(timelineDurationMs);
-        const elapsedMs = Number.isFinite(offerActivationMs) ? nowMs - offerActivationMs : -1;
-        const soldCount = elapsedMs < 0
-          ? 0
-          : timeline.filter((purchase) => purchase.offsetMs <= elapsedMs).length;
-        const seatsLeft = Math.max(0, OFFER_INITIAL_REMAINING_SEATS - soldCount);
+        const snap = scarcityEngine?.debugSnapshot?.() || null;
+        const soldCount = snap ? Number(snap.soldCount) || 0 : 0;
+        const seatsLeft = snap
+          ? Math.max(0, OFFER_INITIAL_REMAINING_SEATS - Math.min(OFFER_INITIAL_REMAINING_SEATS, soldCount))
+          : OFFER_INITIAL_REMAINING_SEATS;
         const phase = seatsLeft <= 0 ? 'sold_out' : 'active';
         const scarcityLabel = formatDevScarcityLabel(phase, seatsLeft);
         if (scarcityEl) {
@@ -1887,9 +1882,12 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         offerCta.setAttribute('tabindex', isEnabled ? '0' : '-1');
       }
       function updateCtaUnlockCountdown() {
-        const total = ctaActivated && Number.isFinite(offerExpiryMs)
-          ? Math.max(0, Math.ceil((offerExpiryMs - getMcWallClockMs()) / 1000))
-          : Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
+        const serverSeconds = ctaActivated ? scarcityEngine?.getRemainingSeconds?.() : null;
+        const total = Number.isFinite(serverSeconds)
+          ? serverSeconds
+          : ctaActivated && Number.isFinite(offerExpiryMs)
+            ? Math.max(0, Math.ceil((offerExpiryMs - getMcWallClockMs()) / 1000))
+            : Math.max(0, Math.ceil(CTA_ACTIVATE_SECONDS - (video.currentTime || 0)));
         window.__mc2DealOffer?.setCountdownSeconds?.(total);
       }
       function showToast(purchase, mode, detail) {
@@ -1930,12 +1928,11 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
           return;
         }
         if (scarcityEngine) return;
-        scarcityEngine = startScarcityEngine({
+        scarcityEngine = startMc2OfferScarcityDisplay({
           now: getMcWallClockMs,
           isActive: () => ctaActivated && !isOfferExpiredNow(),
           windowStartMs: offerActivationMs,
           windowEndMs: offerExpiryMs,
-          timeline: createMc2OfferTimeline(offerExpiryMs - offerActivationMs),
           onSeatsLeft: (seatsLeft, soldCount, phase) => setSeatsLeft(seatsLeft, soldCount, phase),
           onNotification: (purchase) => showToast(purchase, 'replay'),
         });
@@ -1975,21 +1972,32 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         ctaActivated = true;
         if (!Number.isFinite(offerActivationMs)) offerActivationMs = getMcWallClockMs();
         if (!Number.isFinite(offerExpiryMs)) offerExpiryMs = offerActivationMs + MC2_REPLAY_OFFER_DURATION_MS;
+        const offerAlreadyOpen = getMcWallClockMs() - offerActivationMs > 1000;
         setOfferCtaEnabled(true);
         updateCtaUnlockCountdown();
         syncOfferDeadline();
-        offerZone.classList.remove('hidden');
-        offerZone.classList.add('visible');
-        startMc2OfferObservability({
-          root: offerZone.querySelector('#deal-offer-content') || offerZone,
-          route: '/mc2/replay/',
-          track: function (eventName, value, metadata) {
-            return trackWebinaireEvent(token, eventName, value, metadata);
-          },
-        });
-        expiryBanner.classList.add('hidden');
-        setOfferExpiredState(isOfferExpiredNow());
         startScarcityEngineIfNeeded();
+        const revealOfferZone = () => {
+          offerZone.classList.remove('hidden');
+          offerZone.classList.add('visible');
+          startMc2OfferObservability({
+            root: offerZone.querySelector('#deal-offer-content') || offerZone,
+            route: '/mc2/replay/',
+            track: function (eventName, value, metadata) {
+              return trackWebinaireEvent(token, eventName, value, metadata);
+            },
+          });
+          expiryBanner.classList.add('hidden');
+          setOfferExpiredState(isOfferExpiredNow());
+        };
+        if (offerAlreadyOpen && scarcityEngine && !scarcityEngine.hasSnapshot()) {
+          Promise.race([
+            scarcityEngine.ready,
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+          ]).then(revealOfferZone);
+        } else {
+          revealOfferZone();
+        }
       }
       function showLockedOffer() {
         if (isOfferExpiredNow()) {
@@ -2566,6 +2574,18 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         CTA_ACTIVATE_SECONDS = Math.floor(configuredCtaSeconds);
         CTA_APPEAR_SECONDS = CTA_ACTIVATE_SECONDS;
       }
+      const offerWindowStartMs = Date.parse(data.offerActivatedAt || '');
+      const offerWindowEndMs = Date.parse(data.offerExpiresAt || '');
+      if (typeof prefetchMc2OfferScarcity === 'function'
+        && Number.isFinite(offerWindowStartMs)
+        && Number.isFinite(offerWindowEndMs)
+        && offerWindowEndMs > offerWindowStartMs) {
+        prefetchMc2OfferScarcity({
+          windowStartMs: offerWindowStartMs,
+          windowEndMs: offerWindowEndMs,
+          nowMs: Date.now(),
+        });
+      }
       return {
         valid: true,
         token: replayRegistrationToken,
@@ -2574,6 +2594,7 @@ import DealOffer from '../../components/mc2/DealOffer.astro';
         pays: data.country || '',
         sessionStartsAt: new Date().toISOString(),
         offreExpiresAt: data.offerExpiresAt,
+        offerActivatedAt: data.offerActivatedAt || null,
         accessExpiresAt: data.expiresAt,
         resumeSeconds: Number(data.resumeSeconds || 0),
         offerUrl: data.offerUrl,

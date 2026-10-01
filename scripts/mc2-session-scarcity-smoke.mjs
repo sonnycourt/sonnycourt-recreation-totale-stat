@@ -78,11 +78,12 @@ assert.equal(formatMc2SessionRelativeTime(
 
 const sessionPageSource = await readFile(new URL('../src/pages/mc2/session.astro', import.meta.url), 'utf8');
 const replayPageSource = await readFile(new URL('../src/pages/mc2/replay.astro', import.meta.url), 'utf8');
-const offerTimelineSource = await readFile(new URL('../src/data/mc2-offer-timeline.ts', import.meta.url), 'utf8');
-assert.match(sessionPageSource, /import \{ startScarcityEngine \} from ['"]\.\.\/\.\.\/lib\/scarcity-engine['"]/);
-assert.match(sessionPageSource, /import \{ createMc2OfferTimeline \} from ['"]\.\.\/\.\.\/data\/mc2-offer-timeline['"]/);
+const offerTimelineSource = await readFile(new URL('../netlify/functions/lib/mc2-offer-scarcity.mjs', import.meta.url), 'utf8');
+assert.match(sessionPageSource, /import \{ prefetchMc2OfferScarcity, startMc2OfferScarcityDisplay \} from ['"]\.\.\/\.\.\/lib\/mc2-offer-scarcity-display\.mjs['"]/);
+assert.doesNotMatch(sessionPageSource, /scarcity-engine|mc2-offer-timeline|mc2-draftx-offer-timeline/);
 assert.match(sessionPageSource, /const OFFER_INITIAL_REMAINING_SEATS = 37;/);
-assert.match(sessionPageSource, /timeline: createMc2OfferTimeline\(scarcityWindowEndMs - scarcityWindowStartMs\)/);
+assert.match(sessionPageSource, /startMc2OfferScarcityDisplay\(/);
+assert.doesNotMatch(sessionPageSource, /createMc2OfferTimeline\(/);
 assert.match(offerTimelineSource, /3 \* MINUTE_MS,\s*\n\s*6 \* MINUTE_MS,\s*\n\s*7 \* MINUTE_MS,\s*\n\s*9 \* MINUTE_MS,/);
 assert.match(offerTimelineSource, /17 places sont attribuées entre le CTA et H\+24 : 37 → 20/);
 assert.match(offerTimelineSource, /15 places supplémentaires sont attribuées entre H\+24 et H\+48 : 20 → 5/);
