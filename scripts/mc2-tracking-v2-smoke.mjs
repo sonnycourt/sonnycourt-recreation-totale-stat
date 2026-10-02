@@ -69,7 +69,7 @@ function simulate(route, { seek = false, hidden = false, frozen = false, zeroCou
 }
 simulate('/mc2/session/'); simulate('/mc2/replay/'); simulate('/mc2/session/', { seek: true });
 simulate('/mc2/replay/', { hidden: true }); simulate('/mc2/session/', { frozen: true }); simulate('/mc2/replay/', { zeroCounter: true });
-assert.equal(trackingMedia('/mc2/session/').cta - trackingMedia('/mc2/replay/').cta, 1202, 'W14 has separately approved live/replay CTA timestamps');
+assert.equal(trackingMedia('/mc2/session/').cta - trackingMedia('/mc2/replay/').cta, 1200, 'Approved 1:35:32 live and 1:15:32 replay CTA timestamps differ by exactly 20 minutes');
 
 // API contract: mocked DB, no production services.
 process.env.SUPABASE_URL = 'https://database.invalid'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'audit-only'; process.env.CONTEXT = 'production';
@@ -93,7 +93,8 @@ try {
 assert.equal(validateJourneyEvent(sample('playback_interval', { position_start: 0, position_end: 5000, elapsed_seconds: 1 })), null);
 assert.equal(unionSeconds([[1, 5], [2, 6], [8, 10]]), 7);
 const r = { id: 1, token, pays: 'France', registration_completed_at: new Date().toISOString() };
-const intervalMeta = { foreground: true, position_start: 5685, position_end: 5695, interval_started_at: new Date(Date.now() - 10000).toISOString(), interval_ended_at: new Date().toISOString() };
+const liveCta = trackingMedia('/mc2/session/').cta;
+const intervalMeta = { foreground: true, position_start: liveCta - 5, position_end: liveCta + 5, interval_started_at: new Date(Date.now() - 10000).toISOString(), interval_ended_at: new Date().toISOString() };
 const duplicatedIntervals = [sample('playback_interval', intervalMeta), sample('playback_interval', intervalMeta)];
 const report = summarizeTracking({ registrations: [r], events: [sample(), ...duplicatedIntervals], purchaseEvents: [] });
 assert.equal(report.totals.ctaPresent, 1); assert.equal(report.people[0].observedForegroundSeconds, 10); assert.ok(report.retention.every(row => row.people === 1));

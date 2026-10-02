@@ -1,7 +1,7 @@
-// W14 — pages publiques et manifestes Bunny vérifiés le 29/09/2026.
+// W14 — vidéos remplacées, pages publiques et manifestes Bunny vérifiés le 02/10/2026.
 export const MC2_DRAFTX_LIBRARY_ID = '698588';
-export const MC2_DRAFTX_LIVE_VIDEO_ID = '6698c2d5-edc9-4f2a-9eea-e98de9f40a3c';
-export const MC2_DRAFTX_REPLAY_VIDEO_ID = 'b8206f43-4b10-4ddc-a4a6-938a3f1ac78c';
+export const MC2_DRAFTX_LIVE_VIDEO_ID = '87943222-3a1e-48ec-ab14-8624d76ba5a1';
+export const MC2_DRAFTX_REPLAY_VIDEO_ID = 'd9e4743b-e95e-483d-a0db-180b9520acbd';
 const CDN = 'https://vz-601d6eb4-a9a.b-cdn.net';
 export const MC2_DRAFTX_LIVE_HLS_URL = `${CDN}/${MC2_DRAFTX_LIVE_VIDEO_ID}/playlist.m3u8`;
 export const MC2_DRAFTX_REPLAY_HLS_URL = `${CDN}/${MC2_DRAFTX_REPLAY_VIDEO_ID}/playlist.m3u8`;

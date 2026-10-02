@@ -37,7 +37,7 @@ assert.equal(mc2ReplayRecoveryConfig({}).liveCountdownSeconds, 1_200);
 assert.equal(mc2ReplayRecoveryConfig({}).replayCtaSeconds, (75 * 60) + 32);
 assert.equal(
   mc2ReplayRecoveryConfig({}).replayUrl,
-  'https://vz-601d6eb4-a9a.b-cdn.net/b8206f43-4b10-4ddc-a4a6-938a3f1ac78c/playlist.m3u8',
+  'https://vz-601d6eb4-a9a.b-cdn.net/d9e4743b-e95e-483d-a0db-180b9520acbd/playlist.m3u8',
 );
 assert.equal(mc2ReplayRecoveryConfig({
   MC2_REPLAY_CTA_SECONDS: '4648',
@@ -47,10 +47,13 @@ assert.equal(mc2ReplayRecoveryConfig({
 }).replayCtaSeconds, (75 * 60) + 32);
 assert.equal(mc2ReplayRecoveryConfig({
   MC2_REPLAY_VIDEO_URL: 'https://vz-601d6eb4-a9a.b-cdn.net/4b25a40b-d993-45b5-a896-e374629db914/playlist.m3u8',
-}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/b8206f43-4b10-4ddc-a4a6-938a3f1ac78c/playlist.m3u8');
+}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/d9e4743b-e95e-483d-a0db-180b9520acbd/playlist.m3u8');
 assert.equal(mc2ReplayRecoveryConfig({
   MC2_REPLAY_VIDEO_URL: 'https://vz-601d6eb4-a9a.b-cdn.net/d8be6839-2fad-472f-89fa-b0e089cc0b56/playlist.m3u8',
-}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/b8206f43-4b10-4ddc-a4a6-938a3f1ac78c/playlist.m3u8');
+}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/d9e4743b-e95e-483d-a0db-180b9520acbd/playlist.m3u8');
+assert.equal(mc2ReplayRecoveryConfig({
+  MC2_REPLAY_VIDEO_URL: 'https://vz-601d6eb4-a9a.b-cdn.net/b8206f43-4b10-4ddc-a4a6-938a3f1ac78c/playlist.m3u8',
+}).replayUrl, 'https://vz-601d6eb4-a9a.b-cdn.net/d9e4743b-e95e-483d-a0db-180b9520acbd/playlist.m3u8');
 assert.equal(mc2RecoverySegment(base), 'no_show');
 assert.equal(mc2RecoveryDueAt(base, 'no_show', env).toISOString(), '2026-08-13T16:00:00.000Z');
 assert.equal(

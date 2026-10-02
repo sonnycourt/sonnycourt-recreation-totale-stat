@@ -28,10 +28,10 @@ try {
     page.on('response', r => { if (r.status() >= 400) logs.push(`${r.status()} ${r.url()}`); });
     page.on('request', async request => {
       const url = request.url();
-      if (cutMedia && /b-cdn\.net\/(6698c2d5-edc9-4f2a-9eea-e98de9f40a3c|b8206f43-4b10-4ddc-a4a6-938a3f1ac78c)\//.test(url)) return request.abort();
+      if (cutMedia && /b-cdn\.net\/(87943222-3a1e-48ec-ab14-8624d76ba5a1|d9e4743b-e95e-483d-a0db-180b9520acbd)\//.test(url)) return request.abort();
       // The offer contains a separate, unchanged short presentation video. Only
       // the two full masterclass sources must be owned exclusively by the iframe.
-      if (/\/(6698c2d5-edc9-4f2a-9eea-e98de9f40a3c|b8206f43-4b10-4ddc-a4a6-938a3f1ac78c)\/.*\.m3u8(?:\?|$)/.test(url) && request.frame() === page.mainFrame()) parentMedia.push(url);
+      if (/\/(87943222-3a1e-48ec-ab14-8624d76ba5a1|d9e4743b-e95e-483d-a0db-180b9520acbd)\/.*\.m3u8(?:\?|$)/.test(url) && request.frame() === page.mainFrame()) parentMedia.push(url);
       if (request.method() !== 'GET' || /\/\.netlify\/functions\/|metrics-bunny|rum-metrics|bunnyinfra|\.metrics\/|clarity|facebook|google-analytics|googletagmanager|tiktok|stripe|paypal|spiffy|mailerlite/i.test(url)) {
         writes.push(url.split('?')[0]);
         return request.abort();

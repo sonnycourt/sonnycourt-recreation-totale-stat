@@ -29,6 +29,7 @@ const ACTIVE_STATUSES = 'pending,retry,processing';
 const MAX_DELIVERY_ATTEMPTS = 5;
 const REPLAY_VIDEO_DEFAULT = MC2_DRAFTX_REPLAY_HLS_URL;
 const LEGACY_REPLAY_VIDEOS = new Set([
+  'https://vz-601d6eb4-a9a.b-cdn.net/b8206f43-4b10-4ddc-a4a6-938a3f1ac78c/playlist.m3u8',
   'https://vz-601d6eb4-a9a.b-cdn.net/d76c8290-cb8d-4edb-9902-c0d48ab4d78b/playlist.m3u8',
   'https://vz-601d6eb4-a9a.b-cdn.net/e538dedd-26e0-4b69-9900-13a7ec8a37f8/playlist.m3u8',
   'https://vz-601d6eb4-a9a.b-cdn.net/b7d49161-940c-4305-8706-d56da93effc2/playlist.m3u8',

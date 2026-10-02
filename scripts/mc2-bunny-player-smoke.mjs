@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { bunnyVideoId, bunnyEmbedUrl, mountMc2BunnyVideo, useMc2BunnyPlayer } from '../src/lib/mc2-bunny-player.mjs';
 
-const id = '6698c2d5-edc9-4f2a-9eea-e98de9f40a3c';
+const id = '87943222-3a1e-48ec-ab14-8624d76ba5a1';
 const source = `https://vz-601d6eb4-a9a.b-cdn.net/${id}/playlist.m3u8`;
 assert.equal(bunnyVideoId(source), id);
 assert.throws(() => bunnyVideoId('https://untrusted.example/video.m3u8'));
