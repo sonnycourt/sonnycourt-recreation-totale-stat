@@ -2327,6 +2327,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             return {
                 token,
                 statut: data.statut || 'inscrit',
+                sessionGeneration: Number(data.sessionGeneration || 0),
                 prenom: data.prenom || '',
                 email: data.email || '',
                 pays: data.pays || '',
@@ -2439,7 +2440,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             try {
                 await fetch('/.netlify/functions/mc2-presence', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, stage,
+                    body: JSON.stringify({ token, stage, session_generation: Number(document.querySelector('[data-draftx-checkout]')?.dataset.sessionGeneration || 0),
                         currentSecond: meta && Number.isFinite(meta.currentSecond) ? Math.floor(meta.currentSecond) : null,
                         isPlaying: Boolean(meta && meta.isPlaying), mode: getPresenceMode(),
                     }),
@@ -2452,7 +2453,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 return Promise.resolve({ ok: true, draft: true });
             }
             if (!token || !eventName) return Promise.resolve(null);
-            const payload = { token, event: eventName, meta: { page_path: sessionPagePath, tracking_schema: window.__mc2JourneyV2?.schema } };
+            const payload = { token, event: eventName, session_generation: Number(document.querySelector('[data-draftx-checkout]')?.dataset.sessionGeneration || 0), meta: { page_path: sessionPagePath, tracking_schema: window.__mc2JourneyV2?.schema } };
             if (eventMeta && typeof eventMeta === 'object') Object.assign(payload.meta, eventMeta);
             if (value !== undefined && value !== null) {
                 payload.value = String(value);
@@ -3067,6 +3068,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
                 draftxCheckout.dataset.prefillFirstName = reg.prenom || '';
                 draftxCheckout.dataset.prefillEmail = reg.email || '';
                 draftxCheckout.dataset.registrationToken = isDraftPreview ? '' : reg.token;
+                draftxCheckout.dataset.sessionGeneration = String(reg.sessionGeneration || 0);
             }
             window.dispatchEvent(new CustomEvent('mc2:draftx-registration', {
                 detail: { firstName: reg.prenom || '', email: reg.email || '', registrationToken: isDraftPreview ? '' : reg.token },

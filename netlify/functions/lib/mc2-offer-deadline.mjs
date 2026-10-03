@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch } from './supabase-rest.mjs';
+import { generationFilter } from './mc2-session-generation.mjs';
 import { MC2_OFFER_SMS_LEAD_MS, mc2OfferH1SmsEnabled, queueMc2Sms } from './mc2-sms.mjs';
 import { queueMc2OfferEmails } from './mc2-session-emails.mjs';
 import {
@@ -72,7 +73,7 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
     const candidate = candidateDate.toISOString();
     const saved = await supabasePatch(
       'mc2_registrations',
-      `token=eq.${encodeURIComponent(safeToken)}&offer_expires_at=is.null`,
+      `token=eq.${encodeURIComponent(safeToken)}&offer_expires_at=is.null${generationFilter(registration)}`,
       { offer_expires_at: candidate, last_event_at: reachedAt.toISOString() },
     );
     if (!saved.ok) return { ok: false, error: 'offer_deadline_not_saved' };
@@ -81,7 +82,7 @@ export async function ensureMc2OfferDeadline({ token, registration, source = 'li
     // Un autre onglet a pu gagner la course entre la lecture et le PATCH.
     if (!expiresAt) {
       const current = await supabaseGet(
-        `mc2_registrations?token=eq.${encodeURIComponent(safeToken)}&select=offer_expires_at&limit=1`,
+        `mc2_registrations?token=eq.${encodeURIComponent(safeToken)}${generationFilter(registration)}&select=offer_expires_at&limit=1`,
       );
       expiresAt = validDate(current.data?.[0]?.offer_expires_at);
     }

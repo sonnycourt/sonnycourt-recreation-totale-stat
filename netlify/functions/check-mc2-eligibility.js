@@ -1,4 +1,5 @@
 import { supabaseGet } from './lib/supabase-rest.mjs';
+import { inspectMc2Reregistration } from './lib/mc2-reregistration-history.mjs';
 import { mc2SessionEndsAtIso } from '../../src/lib/mc2-timing.mjs';
 import {
   isMc2ReactivatedNoShow,
@@ -27,6 +28,18 @@ export default async (req) => {
     const body = await req.json().catch(() => ({}));
     const email = String(body?.email || '').trim().toLowerCase().slice(0, 320);
     if (!email || !email.includes('@')) return jsonResponse(400, { error: 'Email invalide' });
+
+    if (process.env.MC2_REREGISTRATION_ENABLED === 'true') {
+      const { decision, current } = await inspectMc2Reregistration(email);
+      if (['blocked', 'review'].includes(decision.action)) return jsonResponse(200, { eligible: false, reason: 'excluded' });
+      if (decision.action === 'existing_session') {
+        if (!current) return jsonResponse(200, { eligible: false, reason: 'excluded' });
+        return jsonResponse(200, { eligible: false, reason: 'already_registered', token: current.token,
+          statut: current.statut, session_date: current.session_starts_at,
+          session_ends_at: current.session_ends_at, offre_expires_at: current.offer_expires_at });
+      }
+      return jsonResponse(200, { eligible: true });
+    }
 
     const exclusions = await supabaseGet(
       `webinaire_exclusions?email=eq.${encodeURIComponent(email)}&select=email,raison&limit=1`,

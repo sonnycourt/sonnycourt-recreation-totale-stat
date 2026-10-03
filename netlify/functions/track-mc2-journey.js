@@ -1,4 +1,5 @@
 import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
+import { sameMc2Generation } from './lib/mc2-session-generation.mjs';
 import { mc2MetaRequestContext } from './lib/mc2-meta-events.mjs';
 import { TRACKING_EVENTS, UUID_PATTERN, trackingMedia, OFFER_VERSION, sanitizeTrackingMeta } from '../../src/lib/mc2-tracking-contract.mjs';
 
@@ -47,10 +48,13 @@ export default async (req, runtime) => {
     });
     // Lookup only; this endpoint NEVER patches registrations, schedules or payments.
     const tokens = [...new Set(rows.map(e => e.token))];
-    const known = await dbFetch(`mc2_registrations?token=in.(${tokens.map(encodeURIComponent).join(',')})&select=token`);
+    const known = await dbFetch(`mc2_registrations?token=in.(${tokens.map(encodeURIComponent).join(',')})&select=token,session_generation`);
     if (!known.ok) return json(503, { error: 'registration_lookup' });
-    const knownTokens = new Set((await known.json()).map(r => r.token));
-    const validRows = rows.filter(row => { if (knownTokens.has(row.token)) return true; rejected.push(row.event_id); return false; });
+    const knownTokens = new Map((await known.json()).map(r => [r.token, r]));
+    const validRows = rows.filter(row => {
+      if (knownTokens.has(row.token) && sameMc2Generation(knownTokens.get(row.token), row.metadata.session_generation)) return true;
+      rejected.push(row.event_id); return false;
+    });
     if (!validRows.length) return json(200, { accepted, rejected });
     const context = mc2MetaRequestContext(req, '/mc2/session/');
     const saved = await dbFetch('rpc/mc2_tracking_ingest_v2', { method: 'POST',

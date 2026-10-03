@@ -42,6 +42,7 @@ let registration = {
 const job = {
   id: 42,
   token: registration.token,
+  session_starts_at: registration.session_starts_at,
   segment: 'left_before_cta',
   status: 'delivered',
   access_code: accessCode,
@@ -75,6 +76,8 @@ job.resume_seconds = 0;
 const noShowResponse = await replayAccess(new Request(requestUrl));
 assert.equal(noShowResponse.status, 200);
 assert.equal((await noShowResponse.json()).resumeSeconds, 0);
+registration = { ...registration, session_generation: 1, session_starts_at: new Date().toISOString() };
+assert.equal((await replayAccess(new Request(requestUrl))).status, 404, 'Old replay link cannot open the new session');
 
 console.log(JSON.stringify({
   latest_replay_progress_used: 'ok',

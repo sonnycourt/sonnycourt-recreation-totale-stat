@@ -768,6 +768,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 return (params.get('t') || localStorage.getItem(TOKEN_KEY) || '').trim();
             }
 
+            let sessionGeneration = 0;
             function trackMc2Event(eventName, meta) {
                 const token = readToken();
                 if (!token || !eventName) return;
@@ -776,6 +777,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         token,
+                        session_generation: sessionGeneration,
                         event: eventName,
                         meta: Object.assign({ page_path: '/mc2/confirmation/' }, meta || {})
                     }),
@@ -968,6 +970,7 @@ import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
                 if (response.status === 402) { window.location.replace('/mc2/?t=' + encodeURIComponent(token)); return null; }
                 if (!response.ok) return null;
                 const registration = await response.json();
+                sessionGeneration = Number(registration.sessionGeneration || 0);
                 if (!registration.valid || !registration.sessionStartsAt) return null;
                 return {
                     id: registration.creneau || 'jit',

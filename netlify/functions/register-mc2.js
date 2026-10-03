@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { inspectMc2Reregistration } from './lib/mc2-reregistration-history.mjs';
 import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { checkMc2RegistrationPhone } from './lib/mc2-registration-country.mjs';
 import { supabaseGet, supabasePost, supabasePatch } from './lib/supabase-rest.mjs';
@@ -49,6 +50,7 @@ function registrationResponse(row, alreadyRegistered = false, metaEvents = []) {
     alreadyRegistered,
     token: row.token,
     statut: row.statut || 'partial',
+    sessionGeneration: row.session_generation || 0,
     entryPaymentRequired: mc2EntryPaymentPending(row),
     sessionStartsAt: row.session_starts_at,
     sessionEndsAt: mc2SessionEndsAtIso(row.session_starts_at),
@@ -205,6 +207,23 @@ export default async (req) => {
     }
 
     const existingRow = Array.isArray(existing.data) ? existing.data[0] || null : null;
+    const reentry = process.env.MC2_REREGISTRATION_ENABLED === 'true'
+      ? await inspectMc2Reregistration(email) : null;
+    if (reentry && ['blocked', 'review'].includes(reentry.decision.action)) {
+      return jsonResponse(403, { error: 'excluded', reason: 'excluded' });
+    }
+    if (reentry?.decision.action === 'existing_session') {
+      if (!existingRow) return jsonResponse(403, { error: 'excluded', reason: 'excluded' });
+      // Une réponse perdue ou une panne de file après le commit ne doit pas
+      // empêcher de retenter la mise en file. Les clés incluent la session.
+      if (contactComplete && existingRow.session_generation > 0
+          && Date.parse(existingRow.session_starts_at) === selection.sessionStartsAt.getTime()) {
+        await syncMailerLite(existingRow);
+        await queueLiveReminder(existingRow);
+        await queueSessionEmails(existingRow);
+      }
+      return jsonResponse(409, registrationResponse(existingRow, true));
+    }
     // Free entry restored for new registrations. Preserve historical paid-entry
     // records and their verification flow; never rewrite existing purchases.
     const entryPaymentRequired = existingRow ? existingRow.entry_payment_required === true : false;
@@ -222,7 +241,7 @@ export default async (req) => {
     if (exclusion && !reactivatedNoShow && !isWebinarRegistrationExclusion(exclusion.raison)) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
     }
-    if (existingRow && isCompletedMc2Registration(existingRow)) {
+    if (!reentry && existingRow && isCompletedMc2Registration(existingRow)) {
       return jsonResponse(409, registrationResponse(existingRow, true));
     }
 
@@ -237,7 +256,26 @@ export default async (req) => {
     }
     if ((telephone || pays) && !contactComplete) return jsonResponse(400, { error: 'Paramètres manquants' });
 
-    if (exclusion && !existingRow && !reactivatedNoShow) {
+    if (reentry?.decision.action === 'reregister' && existingRow) {
+      // L'étape email seule n'écrase jamais la session précédente.
+      if (!contactComplete) return jsonResponse(200, registrationResponse(existingRow, true));
+      const transition = await supabasePost('rpc/mc2_reregister_session', {
+        p_token: existingRow.token,
+        p_expected_generation: existingRow.session_generation || 0,
+        p_session: sessionFields,
+      });
+      if (!transition.ok || !transition.data?.token) {
+        return jsonResponse(409, { error: 'Réinscription non effectuée. Actualise la page et réessaie.', reason: 'session_changed' });
+      }
+      const next = transition.data;
+      await syncMailerLite(next);
+      await queueLiveReminder(next);
+      await queueSessionEmails(next);
+      // Pas de nouvel événement Meta Lead : il s'agit du même prospect.
+      return jsonResponse(200, registrationResponse(next, true));
+    }
+
+    if (!reentry && exclusion && !existingRow && !reactivatedNoShow) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: exclusion.raison });
     }
 
@@ -245,7 +283,7 @@ export default async (req) => {
       `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,statut&limit=1`,
     );
     if (!legacy.ok) return jsonResponse(500, { error: 'Erreur base de données webinaire' });
-    if (Array.isArray(legacy.data) && legacy.data.length > 0 && !reactivatedNoShow) {
+    if (!reentry && Array.isArray(legacy.data) && legacy.data.length > 0 && !reactivatedNoShow) {
       return jsonResponse(403, { error: 'excluded', reason: 'excluded', raison: 'inscrit_webinaire' });
     }
 
@@ -332,8 +370,8 @@ export default async (req) => {
     await syncMailerLite(row);
     if (isComplete) await queueSessionEmails(row);
     const metaEvents = await deliverRegistrationMetaEvents(req, row, {
-      created: true,
-      completedNow: isComplete,
+      created: !reentry?.legacyCount,
+      completedNow: isComplete && !reentry?.legacyCount,
     });
     return jsonResponse(200, registrationResponse(row, false, metaEvents));
   } catch (error) {

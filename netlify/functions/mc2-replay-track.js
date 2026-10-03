@@ -1,4 +1,5 @@
 import { loadMc2ReplayAccess } from './lib/mc2-replay-recovery.mjs';
+import { generationFilter } from './lib/mc2-session-generation.mjs';
 import { supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
 import {
@@ -45,7 +46,7 @@ export default async (req) => {
       });
       if (!offerDeadline.ok) return json(500, { error: 'Expiration de l’offre non initialisée' });
     }
-    await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(access.registration.token)}`, patch);
+    await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(access.registration.token)}${generationFilter(access.registration)}`, patch);
     if (event === 'replay_started') {
       const exclusion = await excludeWebinarAttendee(access.registration.email, 'participant_mc2');
       if (!exclusion.ok) {
@@ -55,7 +56,7 @@ export default async (req) => {
     if (event === 'replay_progress') {
       await supabasePatch(
         'mc2_registrations',
-        `token=eq.${encodeURIComponent(access.registration.token)}&watch_max_seconds_replay=lt.${currentSecond}`,
+        `token=eq.${encodeURIComponent(access.registration.token)}${generationFilter(access.registration)}&watch_max_seconds_replay=lt.${currentSecond}`,
         { watch_max_seconds_replay: currentSecond, last_presence_at: nowIso, last_event_at: nowIso },
       );
     }

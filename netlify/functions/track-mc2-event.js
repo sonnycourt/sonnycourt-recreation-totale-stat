@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
+import { sameMc2Generation, generationFilter } from './lib/mc2-session-generation.mjs';
 import { ensureMc2OfferDeadline } from './lib/mc2-offer-deadline.mjs';
 import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
 import {
@@ -224,6 +225,13 @@ export default async (req) => {
     }
 
     const row = registration.data[0];
+    // Les anciens checkouts autonomes n'ont pas de génération de lecteur.
+    // Ils ne modifient pas le visionnage : conserver leur télémétrie existante.
+    const sessionEvent = ['session_page_viewed', 'session_joined', 'video_checkpoint',
+      'cta_reached', 'video_active_presence', 'offer_available_present',
+      'offer_actually_seen', 'replay_started', 'video_freeze_recovery'].includes(eventName);
+    if ((sessionEvent || body.session_generation != null)
+        && !sameMc2Generation(row, body.session_generation)) return jsonResponse(409, { error: 'session_changed' });
     const meta = sanitizeMeta(body?.meta);
     if (meta.event_id) {
       const prior = await supabaseGet(`mc2_funnel_events?token=eq.${encodeURIComponent(token)}&dedupe_key=eq.${encodeURIComponent(`journey_${meta.event_id}`)}&select=id&limit=1`);
@@ -245,8 +253,9 @@ export default async (req) => {
       if (!offerDeadline.ok) return jsonResponse(500, { error: 'Expiration de l’offre non initialisée' });
     }
     const patch = buildPatch(eventName, body?.value, meta, row);
-    const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, patch);
+    const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}${generationFilter(row)}`, patch);
     if (!updated.ok) return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
+    if (Array.isArray(updated.data) && !updated.data.length) return jsonResponse(409, { error: 'session_changed' });
 
     if (eventName === 'session_joined') {
       const exclusion = await excludeWebinarAttendee(row.email, 'participant_mc2');
@@ -261,7 +270,9 @@ export default async (req) => {
       event_value: body?.value == null ? null : clean(body.value, 500),
       page_path: meta.page_path || null,
       metadata: meta,
-      dedupe_key: dedupeKey(eventName, body?.value, meta),
+      dedupe_key: dedupeKey(eventName, body?.value, meta) && (row.session_generation
+        ? `generation_${row.session_generation}_${dedupeKey(eventName, body?.value, meta)}`
+        : dedupeKey(eventName, body?.value, meta)),
     };
     const inserted = await supabasePost('mc2_funnel_events', event, { prefer: 'return=minimal' });
     if (!inserted.ok && inserted.status !== 409) {

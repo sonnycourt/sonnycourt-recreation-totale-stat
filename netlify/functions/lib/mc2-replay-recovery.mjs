@@ -371,7 +371,7 @@ export async function cancelMc2ReplayRecoveryJobs({ token, email, reason = 'purc
 
 async function loadRegistration(token) {
   const result = await supabaseGet(
-    `mc2_registrations?token=eq.${encode(token)}&select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,last_presence_at,statut,payment_status,purchased_at,entry_payment_required,entry_payment_paid_at&limit=1`,
+    `mc2_registrations?token=eq.${encode(token)}&select=token,session_generation,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,visitor_timezone,session_starts_at,session_ends_at,offer_expires_at,attended_live,saw_offer,watch_max_seconds_live,watch_max_seconds_replay,last_presence_at,statut,payment_status,purchased_at,entry_payment_required,entry_payment_paid_at&limit=1`,
   );
   return result.ok && Array.isArray(result.data) ? result.data[0] || null : null;
 }
@@ -583,6 +583,9 @@ export async function loadMc2RecoveryAccess(accessCode, now = new Date()) {
   if (now >= expires) return { ok: false, reason: 'expired' };
   const registration = await loadRegistration(job.token);
   if (!registration) return { ok: false, reason: 'invalid' };
+  if (dateOrNull(job.session_starts_at)?.toISOString() !== dateOrNull(registration.session_starts_at)?.toISOString()) {
+    return { ok: false, reason: 'session_rescheduled' };
+  }
   if (registration.entry_payment_required === true && !registration.entry_payment_paid_at) return { ok: false, reason: 'entry_payment_required' };
   if (isMc2Purchased(registration)) return { ok: false, reason: 'purchased' };
   return { ok: true, job, registration, starts, expires };

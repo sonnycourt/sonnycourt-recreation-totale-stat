@@ -35,7 +35,8 @@ export function startMc2JourneyTracking(root) {
   const emit = (event_name, metadata = {}, once = '') => {
     if (!token || (once && observed.has(once))) return;
     const event = { event_id: trackingId(view), token, event_name, visit_id: visit, route,
-      client_occurred_at: new Date().toISOString(), metadata: sanitizeTrackingMeta({ tracker_build: TRACKING_BUILD, ...metadata }) };
+      client_occurred_at: new Date().toISOString(), metadata: sanitizeTrackingMeta({ tracker_build: TRACKING_BUILD, ...metadata,
+        session_generation: Number(root.dataset.sessionGeneration || 0) }) };
     if (once) observed.add(once);
     if (preview) view.__mc2DraftX?.record?.('v2:' + event_name, event.metadata);
     else transport.enqueue(event);

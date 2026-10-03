@@ -30,6 +30,7 @@ export function trackingId(view = globalThis) {
 // Explicit allowlist: never copy identity, arbitrary URLs, card fields or tokens into metadata.
 export function sanitizeTrackingMeta(input = {}) {
   const output = {};
+  if (Number.isSafeInteger(input.session_generation) && input.session_generation >= 0) output.session_generation = input.session_generation;
   for (const key of ['tracker_build', 'button_id', 'section', 'plan', 'payment_mode', 'checkout_attempt_id', 'frame_evidence', 'state', 'reason', 'frame_status']) {
     if (typeof input[key] === 'string') output[key] = input[key].slice(0, 100);
   }

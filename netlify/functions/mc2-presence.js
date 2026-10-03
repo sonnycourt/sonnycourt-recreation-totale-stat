@@ -1,4 +1,5 @@
-import { getSupabaseConfig, supabaseHeaders } from './lib/supabase-rest.mjs';
+import { getSupabaseConfig, supabaseHeaders, supabaseGet } from './lib/supabase-rest.mjs';
+import { sameMc2Generation, generationFilter } from './lib/mc2-session-generation.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -33,6 +34,11 @@ export default async (req) => {
     const nowIso = new Date().toISOString();
     const { url, key } = getSupabaseConfig();
     if (!url || !key) return jsonResponse(500, { error: 'Supabase non configuré' });
+    const lookup = await supabaseGet(`mc2_registrations?token=eq.${encodeURIComponent(token)}&select=token,session_generation&limit=1`);
+    if (!lookup.ok) return jsonResponse(503, { error: 'registration_lookup' });
+    const row = lookup.data?.[0];
+    if (!row || !sameMc2Generation(row, body.session_generation)) return jsonResponse(409, { error: 'session_changed' });
+    const generation = generationFilter(row);
 
     const presence = await fetch(`${url}/rest/v1/mc2_presence?on_conflict=token`, {
       method: 'POST',
@@ -50,7 +56,7 @@ export default async (req) => {
 
     const encodedToken = encodeURIComponent(token);
     const summary = { last_presence_at: nowIso };
-    await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}`, {
+    await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}${generation}`, {
       method: 'PATCH',
       headers: supabaseHeaders({ Prefer: 'return=minimal' }),
       body: JSON.stringify(summary),
@@ -58,13 +64,13 @@ export default async (req) => {
 
     if (currentSecond > 0 && (stage === 'session' || stage === 'replay')) {
       const maxColumn = stage === 'session' ? 'watch_max_seconds_live' : 'watch_max_seconds_replay';
-      await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}&${maxColumn}=lt.${currentSecond}`, {
+      await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}${generation}&${maxColumn}=lt.${currentSecond}`, {
         method: 'PATCH',
         headers: supabaseHeaders({ Prefer: 'return=minimal' }),
         body: JSON.stringify({ [maxColumn]: currentSecond, last_presence_at: nowIso }),
       });
       if (stage === 'session') {
-        await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}&watch_first_second_live=is.null`, {
+        await fetch(`${url}/rest/v1/mc2_registrations?token=eq.${encodedToken}${generation}&watch_first_second_live=is.null`, {
           method: 'PATCH',
           headers: supabaseHeaders({ Prefer: 'return=minimal' }),
           body: JSON.stringify({ watch_first_second_live: currentSecond }),

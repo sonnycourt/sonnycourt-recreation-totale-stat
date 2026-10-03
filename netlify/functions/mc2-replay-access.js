@@ -34,6 +34,7 @@ export default async (req) => {
     return json(200, {
       valid: true,
       registrationToken: result.registration.token,
+      sessionGeneration: result.registration.session_generation || 0,
       firstName: result.registration.prenom || '',
       email: result.registration.email || '',
       country: result.registration.pays || '',
