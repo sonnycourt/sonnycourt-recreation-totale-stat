@@ -1,0 +1,230 @@
+export const SPIFFY_ORIGIN = 'https://sonnycourt.spiffy.co';
+const ALLOWED_CHECKOUTS = new Set(['/checkout/esprit-subconscient-2-0-34-1', '/checkout/esprit-subconscient-2-0-2-2-1-1']);
+export function cleanDraftXRegistrationToken(value) {
+  const token = String(value || '').trim();
+  return /^[a-zA-Z0-9_-]{16,160}$/.test(token) && !/^(preview|mc2-preview)/i.test(token) ? token : '';
+}
+
+export function buildDraftXSpiffyUrl(plan, identity, parentHref) {
+  const url = new URL(plan.checkoutUrl);
+  if (url.origin !== SPIFFY_ORIGIN || !ALLOWED_CHECKOUTS.has(url.pathname)) throw new Error('Checkout non autorisé');
+  const parent = new URL(parentHref);
+  url.searchParams.set('name_first', String(identity.firstName || '').trim());
+  url.searchParams.set('email', String(identity.email || '').trim());
+  url.searchParams.set('mc2_draftx', '1');
+  url.searchParams.set('es2_plan', plan.count === 1 ? 'once' : 'monthly');
+  url.searchParams.set('mc2_parent_origin', parent.origin);
+  // Public correlation reference, separate from the private purchase receipt.
+  // No webinar access token, coupon or price is propagated.
+  const registrationToken = cleanDraftXRegistrationToken(identity.registrationToken);
+  if (registrationToken) {
+    url.searchParams.set('utm_source', 'reconquete');
+    url.searchParams.set('utm_medium', 'special_offer');
+    url.searchParams.set('utm_content', registrationToken);
+  }
+  url.searchParams.set('elements', btoa(JSON.stringify({
+    modality: 'inline', uid: plan.count, from: parent.origin + parent.pathname, handles: {},
+  })));
+  return url;
+}
+
+export function trustedSpiffyMessage(event, frame) {
+  if (event.origin !== SPIFFY_ORIGIN || event.source !== frame.contentWindow) return null;
+  let message = event.data;
+  if (typeof message === 'string') {
+    try { message = JSON.parse(message); } catch { return null; }
+  }
+  if (!message || typeof message !== 'object') return null;
+  // Native SpiffyJS events; only accept our configured post-purchase destination.
+  if (message.event === 'order:success' || message.event === 'redirect') {
+    const destination = message.data?.forward || message.data?.url || message.url;
+    if (typeof destination !== 'string') return null;
+    try {
+      const redirect = new URL(destination, 'https://sonnycourt.com');
+      if (redirect.origin !== 'https://sonnycourt.com' || !['/commencer/succes/', '/es2-derniere-etape', '/es2-derniere-etape/'].includes(redirect.pathname) || redirect.username || redirect.password) return null;
+      // These historical checkouts use the legacy billing-info destination.
+      // MC2 purchases retain their verified, token-aware success flow.
+      redirect.pathname = '/commencer/succes/';
+      return { redirect: redirect.toString() };
+    } catch { return null; }
+  }
+  if (message.type === 'mc2:draftx-spiffy-ready') return { ready: true, identityReady: message.identityReady === true };
+  if (message.type !== 'mc2:draftx-spiffy-height' && message.type !== 'es2:spiffy-height' && message.event !== 'form:size') return null;
+  const height = Number(message.height ?? message.data?.height);
+  if (!Number.isFinite(height) || height < 100 || height > 10000) return null;
+  return { height: Math.max(180, Math.min(Math.ceil(height), 1800)) };
+}
+
+export function mountDraftXSpiffy(slot, plan, identity, { track = () => {}, onRedirect } = {}) {
+  const observe = (name, meta = {}) => { try { track(name, meta); } catch { /* Never block the provider. */ } };
+  const doc = slot.ownerDocument;
+  const view = doc.defaultView;
+  const frame = doc.createElement('iframe');
+  const status = doc.createElement('p');
+  status.className = 'draftx-spiffy-loading';
+  status.setAttribute('role', 'status');
+  status.textContent = 'Connexion au paiement sécurisé…';
+  frame.title = plan.count === 1 ? `Inscription sécurisée — ${plan.amount} € en une fois` : plan.count === 12
+    ? `Inscription sécurisée — ${plan.amount} €/mois sur une année`
+    : `Inscription sécurisée — ${plan.amount} €/mois sur ${plan.count} mois`;
+  frame.setAttribute('allow', 'payment');
+  frame.setAttribute('referrerpolicy', 'no-referrer');
+  frame.className = 'draftx-spiffy-frame';
+  // Reserve the payment area without exposing Spiffy's unstyled bootstrap.
+  frame.style.height = '320px';
+  frame.style.opacity = '0';
+  frame.style.pointerEvents = 'none';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('tabindex', '-1');
+  const url = buildDraftXSpiffyUrl(plan, identity, view.location.href);
+  frame.src = url.toString();
+  let loaded = false;
+  let documentLoaded = false;
+  let ready = false;
+  let measuredHeight = 0;
+  let revealTimer;
+  let revealEarliest = 0;
+  let revealDeadline = 0;
+  let destroyed = false;
+  let manualRetries = 0;
+  const standaloneUrl = new URL(url);
+  for (const key of ['elements', 'mc2_draftx', 'mc2_parent_origin']) standaloneUrl.searchParams.delete(key);
+  const addDirectCheckout = () => {
+    const link = doc.createElement('a');
+    link.href = standaloneUrl.toString();
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Ouvrir le paiement sécurisé';
+    status.append(link);
+  };
+  const addRecoveryActions = () => {
+    const retry = doc.createElement('button');
+    retry.type = 'button';
+    retry.textContent = 'Réessayer';
+    retry.addEventListener('click', () => {
+      // Only an explicit user action reloads a failed/unconfirmed checkout.
+      // Ignore a stale button if the provider has since confirmed readiness.
+      if (destroyed || (loaded && ready && measuredHeight)) return;
+      manualRetries += 1;
+      observe('payment_frame_retry');
+      view.clearTimeout(timeout);
+      view.clearTimeout(revealTimer);
+      loaded = false;
+      documentLoaded = false;
+      ready = false;
+      measuredHeight = 0;
+      frame.style.height = '320px';
+      frame.style.opacity = '0';
+      frame.style.pointerEvents = 'none';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.setAttribute('tabindex', '-1');
+      status.className = 'draftx-spiffy-loading';
+      status.textContent = 'Connexion au paiement sécurisé…';
+      slot.setAttribute('aria-busy', 'true');
+      timeout = view.setTimeout(showTimeout, 20000);
+      frame.src = url.toString();
+    });
+    status.append(retry);
+    // The external checkout is a last resort, after a manual retry fails.
+    if (manualRetries > 0 && !onRedirect) {
+      status.append(doc.createTextNode(' · '));
+      addDirectCheckout();
+    }
+  };
+  const reveal = (evidence) => {
+    if (loaded || destroyed || !documentLoaded || !ready || !measuredHeight) return;
+    loaded = true;
+    view.clearTimeout(timeout);
+    view.clearTimeout(revealTimer);
+    // The identity bridge can run at DOMContentLoaded, before the provider's
+    // resources finish loading. Require both signals, never a timer alone.
+    // This is a loading guard, not proof that cross-origin card CSS succeeded.
+    frame.style.height = `${measuredHeight}px`;
+    frame.style.opacity = '1';
+    frame.style.pointerEvents = 'auto';
+    frame.setAttribute('aria-hidden', 'false');
+    frame.setAttribute('tabindex', '0');
+    if (evidence === 'provider_ready_and_height') status.remove();
+    else {
+      status.className = 'draftx-spiffy-recovery';
+      status.textContent = 'Si le formulaire ne s’affiche pas : ';
+      addRecoveryActions();
+    }
+    slot.setAttribute('aria-busy', 'false');
+    // Visibility is not proof of provider readiness, nor proof of purchase.
+    observe('payment_frame_visible', { frame_evidence: evidence });
+  };
+  frame.onload = () => {
+    if (loaded || destroyed) return;
+    documentLoaded = true;
+    revealEarliest = Date.now() + 700;
+    revealDeadline = Date.now() + 1800;
+    scheduleReveal();
+  };
+  const scheduleReveal = () => {
+    if (!documentLoaded || !ready || !measuredHeight || loaded || destroyed) return;
+    view.clearTimeout(revealTimer);
+    // A short quiet period absorbs startup resizes; the deadline prevents
+    // an animated provider element from keeping a ready checkout hidden.
+    const now = Date.now();
+    const delay = Math.min(Math.max(250, revealEarliest - now), Math.max(0, revealDeadline - now));
+    revealTimer = view.setTimeout(() => {
+      reveal('provider_ready_and_height');
+    }, delay);
+  };
+  slot.setAttribute('aria-busy', 'true');
+  const onMessage = event => {
+    const message = trustedSpiffyMessage(event, frame);
+    if (!message) return;
+    if (message.redirect) {
+      const destination = new URL(message.redirect);
+      if (onRedirect) { onRedirect(destination); return; }
+      destination.searchParams.set('provider', 'spiffy');
+      const token = cleanDraftXRegistrationToken(identity.registrationToken);
+      if (token) destination.searchParams.set('t', token);
+      // Navigation is not proof of purchase: the existing status endpoint verifies it.
+      observe('payment_redirect_observed');
+      view.location.assign(destination.toString());
+      return;
+    }
+    if (message.height) {
+      const changed = measuredHeight !== message.height;
+      measuredHeight = message.height;
+      if (loaded) frame.style.height = `${measuredHeight}px`;
+      else if (changed) scheduleReveal();
+    }
+    if (message.ready) {
+      if (!ready) {
+        ready = true;
+        revealEarliest = Date.now() + 700;
+        revealDeadline = Date.now() + 1800;
+      }
+      slot.dataset.identityTransmitted = String(message.identityReady);
+      scheduleReveal();
+    }
+    // A late handshake restores the normal UI without reloading any inputs.
+    if (loaded && ready && measuredHeight) status.remove();
+  };
+  view.addEventListener('message', onMessage);
+  const showTimeout = () => {
+    if (loaded || destroyed) return;
+    observe('payment_frame_timeout');
+    status.textContent = 'Le paiement sécurisé met plus de temps à charger. ';
+    addRecoveryActions();
+    slot.setAttribute('aria-busy', 'false');
+  };
+  let timeout = view.setTimeout(showTimeout, 20000);
+  slot.replaceChildren(status, frame);
+  observe('payment_frame_loading');
+  return {
+    destroy() {
+      destroyed = true;
+      view.clearTimeout(revealTimer);
+      frame.onload = null;
+      view.clearTimeout(timeout);
+      view.removeEventListener('message', onMessage);
+      slot.replaceChildren();
+      delete slot.dataset.identityTransmitted;
+    },
+  };
+}

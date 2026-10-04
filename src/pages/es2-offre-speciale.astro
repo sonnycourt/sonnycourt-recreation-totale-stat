@@ -51,6 +51,7 @@ const videoUrl = bunnyEmbedUrl(specialOffer);
       import { specialOffer } from '../data/es2-offre-speciale.mjs';
       import { campaignState, clockParts, scheduledRemainingSeats } from '../lib/es2-special-offer.mjs';
       import { initSpecialOfferCheckout } from '../lib/es2-special-checkout.mjs';
+      import { mountSpecialPayment } from '../lib/es2-special-payment.mjs';
       import { initSpecialVideo } from '../lib/es2-special-video.mjs';
       initSpecialVideo(document.querySelector('.special-vsl'), specialOffer.videoId);
 
@@ -67,7 +68,7 @@ const videoUrl = bunnyEmbedUrl(specialOffer);
       const root = document.querySelector('[data-draftx-checkout]');
       if (!(root instanceof HTMLElement)) throw new Error('Formulaire absent.');
       root.dataset.checkoutAvailable = 'false';
-      initSpecialOfferCheckout(root);
+      initSpecialOfferCheckout(root, preview ? {} : { mountPayment: mountSpecialPayment });
       const notice = document.querySelector('[data-special-preview]');
       if (notice instanceof HTMLElement) notice.hidden = !preview;
       const labels = { active: 'Cette offre disparaît dans', upcoming: 'Cette offre ouvre dans', expired: 'Cette ouverture est terminée', full: 'Cette ouverture est complète', draft: 'Ouverture à confirmer', invalid: 'Calendrier indisponible' };
@@ -86,8 +87,8 @@ const videoUrl = bunnyEmbedUrl(specialOffer);
           const next = String(seats ?? config.capacity);
           if (node.textContent !== next) node.textContent = next;
         });
-        // This isolated draft cannot mount a production payment provider.
-        const available = preview && state.available;
+        // Only local preview uses a mock; public availability follows the calendar.
+        const available = state.available;
         root.dataset.checkoutAvailable = String(available);
         document.querySelectorAll('[data-core-plan-cta], [data-checkout-open], #core-price-registration-cta, #two-paths-registration-cta, #deal-sticky-cta').forEach(button => {
           if (button instanceof HTMLButtonElement) { button.disabled = !available; button.setAttribute('aria-disabled', String(!available)); }
@@ -104,7 +105,7 @@ const videoUrl = bunnyEmbedUrl(specialOffer);
           section.querySelector('[data-campaign-dates]').textContent = ['draft', 'invalid'].includes(state.phase) ? 'Calendrier de la prochaine ouverture à confirmer.' : dates;
         });
         const status = document.querySelector('[data-campaign-status]');
-        status.textContent = state.phase === 'active' ? (preview ? 'Aperçu : l’offre est accessible immédiatement, sans attendre la vidéo.' : 'L’offre est présentée ci-dessous. Les inscriptions ne sont pas encore activées.')
+        status.textContent = state.phase === 'active' ? (preview ? 'Aperçu : l’offre est accessible immédiatement, sans attendre la vidéo.' : 'Les inscriptions sont ouvertes.')
           : state.phase === 'upcoming' ? 'Cette ouverture n’a pas encore commencé. Découvre déjà le programme ci-dessous.'
           : ['expired', 'full'].includes(state.phase) ? 'Cette ouverture est terminée. Le programme reste consultable ci-dessous.'
           : 'Ouverture de la campagne à confirmer. Tu peux déjà consulter toute l’offre ci-dessous.';
