@@ -22,6 +22,10 @@ ok(['France','Belgique','Switzerland','Canada','Luxembourg','Monaco','Germany'].
 ok(caseCountryGroup({country:'Autre',country_override:'Burkina Faso'})==='other'&&caseCountryGroup({country:'OTHER',country_override:'République dominicaine'})==='other','historical full-name overrides are known countries');
 ok(caseCountryGroup({country:'  Republique DOMINICAINE '})==='other'&&caseCountryGroup({country:'RDC'})==='other','accent, case, whitespace and common abbreviation normalized');
 const fixture=[row(1),row(2,{country:'CA',status:'done'}),row(3,{country:'MA',status:'awaiting',followup_at:'2026-09-17T10:00:00Z'}),row(4,{country:'GA',status:'booked'}),row(5,{country:null,status:'paused'}),row(6,{country:'CD',display_name:'Élève RDC'})];
+const chronological=[row(201,{purchased_at:'2026-09-14T12:00:00Z',followup_at:'2026-09-15T12:00:00Z'}),row(202,{purchased_at:'2026-09-17T12:00:00Z',status:'contacted'}),row(203,{purchased_at:'2026-09-16T12:00:00Z'})];
+assert.deepEqual(countryGroupPage(chronological,{now}).cases.map(c=>c.id),[row(202).id,row(203).id,row(201).id]);checks++;
+assert.deepEqual(countryGroupPage(chronological,{filter:'due',now}).cases.map(c=>c.id),[row(203).id,row(201).id]);checks++;
+ok(countryGroupPage([...chronological,row(204,{purchased_at:null})],{now}).cases.at(-1).id===row(204).id,'missing purchase date sorts last');
 const high=countryGroupPage(fixture,{group:'high',now});
 ok(high.total===1&&high.counts.all===1&&high.counts.new===1&&high.counts.done===1,'active group excludes completed cases and keeps completed counter');
 const other=countryGroupPage(fixture,{group:'other',filter:'due',now});

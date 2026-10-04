@@ -44,8 +44,8 @@ export function countryGroupPage(rows,{group='all',filter='all',search='',offset
     const label=code?names.of(code)||'':'';
     return [row.display_name,row.preferred_name,row.name,row.email,row.phone,row.country,row.country_override,row.city,label,code==='CD'?'RDC Congo':''].join(' ').toLowerCase().includes(needle);
   });
-  selected.sort((a,b)=>Number(isCaseDue(b,now))-Number(isCaseDue(a,now))
-    || (Date.parse(a.followup_at||a.purchased_at)||0)-(Date.parse(b.followup_at||b.purchased_at)||0)
+  // La date d’achat détermine l’ordre, indépendamment du statut et des relances.
+  selected.sort((a,b)=>(Date.parse(b.purchased_at)||0)-(Date.parse(a.purchased_at)||0)
     || String(a.id).localeCompare(String(b.id)));
   return {cases:selected.slice(offset,offset+50),total:selected.length,counts};
 }
