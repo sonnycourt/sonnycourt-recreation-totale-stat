@@ -1,5 +1,5 @@
 ---
-// The approved landing page is intentionally static. The interview will be connected separately.
+// Student access is authenticated server-side with a dedicated personal interview token.
 ---
 <!doctype html>
 <html lang="fr">
@@ -7,6 +7,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07162f" />
+    <meta name="referrer" content="no-referrer" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="description" content="Un questionnaire avec une IA pour aider Sonny Court à comprendre ta situation et te répondre personnellement dans ton accompagnement Esprit Subconscient 2.0." />
     <title>Ton point personnel avec Sonny | Esprit Subconscient 2.0</title>
@@ -31,14 +32,20 @@
         <div class="es-delay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5h4"/></svg><span>Ce travail personnel demande du temps : sa réponse pourra te parvenir après plusieurs jours.</span></div>
       </div>
       <div class="es-action">
-        <button type="button" class="es-start">Commencer le questionnaire <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+        <button type="button" class="es-start" id="es-start">Commencer le questionnaire <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
         <p class="es-time">Prévois environ 15 minutes, dans un moment calme.</p>
+        <p class="es-time">En commençant, tu acceptes que tes réponses soient enregistrées pour Sonny et traitées par notre prestataire IA, Anthropic. Ton lien personnel permet de reprendre le même entretien.</p>
+        <p id="es-access-status" class="es-time" role="status"></p>
         <p class="es-choice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5a2 2 0 0 1 4 0v7-9a2 2 0 0 1 4 0v9-6a2 2 0 0 1 4 0v9c0 4-3 7-7 7h-1c-2 0-4-1-5-3l-4-6a2 2 0 0 1 3-2l2 2Z"/></svg><span>Tu es libre de ne pas répondre à une question. Partage uniquement ce que tu souhaites.</span></p>
       </div>
     </main>
+    <section id="es-conversation" class="es-conversation" aria-label="Conversation avec l’assistante de Sonny" hidden></section>
     <footer class="es-footer"><span>Esprit Subconscient 2.0</span><span>Un accompagnement personnel avec Sonny Court.</span></footer>
   </section>
 </div>
+    <script>
+      import "../lib/es2-interview-client.mjs";
+    </script>
   </body>
 </html>
 <style is:global>
@@ -57,4 +64,26 @@ button{cursor:pointer}
 @media(max-width:620px){#es2-accueil .es-header{padding:23px 25px}#es2-accueil .es-space{display:none}#es2-accueil .es-content{padding:35px 25px 29px}#es2-accueil h1{font-size:31px;letter-spacing:-.9px}#es2-accueil h1 br{display:none}#es2-accueil h1 span:before{content:' '}#es2-accueil .es-intro{font-size:14px}#es2-accueil .es-explain{grid-template-columns:23px minmax(0,1fr);gap:10px}#es2-accueil .es-human{padding:20px}#es2-accueil .es-footer{padding:17px 25px}}
 @media(max-width:380px){#es2-accueil .es-logo{font-size:10px;letter-spacing:.1em}#es2-accueil .es-header{padding:22px 20px}#es2-accueil .es-content{padding:31px 20px}#es2-accueil h1{font-size:28px}#es2-accueil .es-start{width:100%;font-size:13px;gap:12px;padding:14px}#es2-accueil .es-eyebrow{font-size:9px;letter-spacing:.1em}#es2-accueil .es-human-title{align-items:flex-start;gap:9px}#es2-accueil .es-human{padding:18px}#es2-accueil .es-human h2{font-size:14px}#es2-accueil .es-footer{padding:16px 20px}}
 
+</style>
+
+<style is:global>
+#es2-accueil [hidden]{display:none!important}
+#es2-accueil .es-conversation{max-width:794px;padding:28px 38px;margin:auto}
+#es2-accueil .es-chat-head{display:flex;gap:16px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--es-line);padding-bottom:20px;margin-bottom:25px}
+#es2-accueil .es-chat-head strong{display:block;font-size:15px}#es2-accueil .es-chat-head small{color:var(--es-muted);font-size:12px}
+#es2-accueil .es-chat-button{font:inherit;font-size:12px;background:#102a4e;color:#c8dcff;padding:10px 14px;border:1px solid var(--es-line);border-radius:8px}
+#es2-accueil .es-chat-button:disabled,#es2-accueil .es-start:disabled{opacity:.45;cursor:not-allowed}
+#es2-accueil .es-message{margin:24px 0;max-width:94%;overflow-wrap:anywhere}
+#es2-accueil .es-message-label{font-size:11px;color:#8dbbff;margin-bottom:6px}
+#es2-accueil .es-message-text{white-space:pre-wrap;font-size:14px;line-height:1.85}
+#es2-accueil .es-message-user{margin-left:auto;max-width:85%;padding:14px 18px;background:#15355d;border-radius:12px 12px 3px 12px}
+#es2-accueil .es-composer{padding:15px;background:#08182e;border:1px solid var(--es-line);border-radius:12px;margin-top:25px}
+#es2-accueil .es-composer textarea{font:inherit;font-size:16px;line-height:1.7;display:block;width:100%;resize:vertical;min-height:90px;background:transparent;border:0;color:#fff;padding:0}
+#es2-accueil .es-composer textarea:focus-visible{outline:2px solid var(--es-light);outline-offset:5px}
+#es2-accueil .es-composer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}
+#es2-accueil .es-composer-actions .es-start{padding:9px 17px;min-height:40px}
+#es2-accueil .es-chat-status{font-size:12px;color:#b8d4fa;margin:16px 0;white-space:pre-wrap}
+#es2-accueil .es-chat-error{color:#ffd3d3}
+@media(max-width:620px){#es2-accueil .es-conversation{padding:24px}#es2-accueil .es-chat-head{align-items:flex-start;flex-wrap:wrap}}
+@media(max-width:380px){#es2-accueil .es-conversation{padding:20px}#es2-accueil .es-composer-actions{flex-wrap:wrap}}
 </style>

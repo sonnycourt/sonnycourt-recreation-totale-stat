@@ -1,0 +1,5 @@
+import {InterviewError} from './es2-interview-domain.mjs';
+export function json(status,value){return new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});}
+export function guardOrigin(req){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new InterviewError('origin_denied',403);}
+export async function readBody(req){if(!req.headers.get('content-type')?.includes('application/json'))throw new InterviewError('invalid_json',415);const text=await req.text();if(text.length>8000)throw new InterviewError('body_too_large',413);try{const value=JSON.parse(text);if(!value||typeof value!=='object'||Array.isArray(value))throw new Error();return value;}catch{throw new InterviewError('invalid_json');}}
+export function failure(error){if(!(error instanceof InterviewError))console.error('[es2-interview] unexpected server error');return json(error instanceof InterviewError?error.status:503,{error:error instanceof InterviewError?error.code:'unavailable'});}
