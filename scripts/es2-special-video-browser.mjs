@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import puppeteer from 'puppeteer';
+const browser = await puppeteer.launch({ headless: true });
+try {
+  const page = await browser.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.setViewport({ width: 1280, height: 950 });
+  await page.goto('http://127.0.0.1:4390/es2-offre-speciale/?preview=dev', { waitUntil: 'networkidle2' });
+  await page.$eval('.special-vsl', n => n.scrollIntoView({ block: 'center' }));
+  await page.click('[data-vsl-play]');
+  await page.waitForFunction(() => document.querySelector('.special-vsl__engine').currentTime > 1, { timeout: 30000 });
+  await page.click('[data-vsl-toggle]');
+  await page.waitForFunction(() => document.querySelector('.special-vsl__engine').paused);
+  await page.click('[data-vsl-mute]');
+  await page.screenshot({ path: '/private/tmp/es2-player-debug.png' });
+  await page.waitForFunction(() => document.querySelector('.special-vsl__engine').muted);
+  await page.$eval('[data-vsl-seek]', s => { s.value = '15'; s.dispatchEvent(new Event('input')); });
+  await page.waitForFunction(() => Math.abs(document.querySelector('.special-vsl__engine').currentTime - 15) < 2);
+  await page.click('[data-vsl-toggle]');
+  await page.waitForFunction(() => document.querySelector('.special-vsl__engine').currentTime > 16);
+  await page.click('[data-vsl-toggle]');
+  await page.$eval('.special-vsl', n => n.scrollIntoView({ block: 'center' }));
+  await (await page.$('.special-vsl')).screenshot({ path: '/private/tmp/es2-player-desktop.png' });
+  await page.setViewport({ width: 390, height: 844 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await (await page.$('.special-vsl')).screenshot({ path: '/private/tmp/es2-player-mobile.png' });
+  await page.click('[data-vsl-native]');
+  assert.ok(await page.$eval('.special-vsl iframe', f => !f.src.includes('mc2ui')));
+  assert.deepEqual(errors, []);
+  console.log('PASS: Bunny playback, pause, resume, seek, mute, mobile width and native fallback.');
+} finally { await browser.close(); }

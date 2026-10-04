@@ -1,0 +1,38 @@
+---
+import { specialOffer } from '../../data/es2-offre-speciale.mjs';
+import { scheduledRemainingSeats } from '../../lib/es2-special-offer.mjs';
+const { id } = Astro.props;
+const remaining = scheduledRemainingSeats(specialOffer);
+---
+<section class="special-window" id={id} data-special-window aria-label="Calendrier de l’offre spéciale">
+  <h2>Offre spéciale</h2>
+  <div class="special-window__timer">
+    <span class="special-window__label" data-campaign-label>Ouverture à confirmer</span>
+    <div class="special-window__clock" data-special-clock role="timer" aria-label="Calendrier non activé">
+      {['Jours', 'Heures', 'Minutes', 'Secondes'].map(unit => (
+        <div class="special-window__unit"><strong data-special-unit>—</strong><small>{unit}</small></div>
+      ))}
+    </div>
+  </div>
+  <div class="special-window__places">
+    <strong><span data-special-seat-count>{remaining ?? specialOffer.capacity}</span>{remaining !== null && <small> / {specialOffer.capacity}</small>}</strong>
+    <p>{remaining === null ? 'places prévues pour cette ouverture' : 'places disponibles'}</p>
+  </div>
+  <p class="special-window__dates" data-campaign-dates>Calendrier de la prochaine ouverture à confirmer.</p>
+</section>
+<style>
+  .special-window { display:grid; grid-template-columns:minmax(0,1fr) auto; width:100%; max-width:820px; margin:42px auto 0; overflow:hidden; color:#fff; border:1px solid rgba(248,113,113,.42); border-radius:18px; background:radial-gradient(circle at 0% 50%,rgba(248,113,113,.12),transparent 42%),linear-gradient(135deg,rgba(67,12,20,.96),rgba(26,8,14,.99)); box-shadow:0 16px 42px rgba(69,10,10,.22),inset 0 1px rgba(254,202,202,.08); }
+  h2 { grid-column:1/-1; margin:0; padding:26px 24px 0; color:#fb7185; font-size:clamp(1.7rem,4vw,2.5rem); font-weight:900; letter-spacing:-.045em; line-height:1.1; text-align:center; text-transform:uppercase; }
+  .special-window__timer { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:20px; padding:24px; }
+  .special-window__label { max-width:110px; color:#e2afb7; font-size:.7rem; font-weight:800; letter-spacing:.04em; line-height:1.5; text-transform:uppercase; }
+  .special-window__clock { display:flex; justify-content:center; gap:8px; }
+  .special-window__unit { display:grid; justify-items:center; gap:7px; }
+  .special-window__unit strong { position:relative; display:grid; min-width:54px; min-height:58px; padding:10px 8px; place-items:center; border:1px solid rgba(254,202,202,.18); border-radius:8px; background:linear-gradient(to bottom,rgba(255,255,255,.11) 0 49%,rgba(0,0,0,.12) 49% 51%,rgba(255,255,255,.045) 51%); font-size:clamp(1.4rem,3vw,2rem); font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+  .special-window__unit small { color:#d8b0b7; font-size:.55rem; font-weight:750; text-transform:uppercase; }
+  .special-window__places { display:grid; align-content:center; justify-items:center; gap:6px; padding:22px; border-left:1px solid rgba(254,202,202,.14); text-align:center; }
+  .special-window__places strong { color:#fb7185; font-size:3rem; font-weight:900; line-height:1; letter-spacing:-.045em; }
+  .special-window__places strong small { font-size:.45em; color:#d8b0b7; }
+  .special-window__places p { max-width:160px; margin:0; font-size:.75rem; line-height:1.5; color:#e2b7be; }
+  .special-window__dates { grid-column:1/-1; margin:0; padding:0 20px 20px; color:#e2b7be; font-size:.75rem; line-height:1.6; text-align:center; }
+  @media(max-width:680px) { .special-window { grid-template-columns:1fr; } .special-window__timer { grid-template-columns:1fr; justify-items:center; gap:14px; padding:22px 14px; } .special-window__label { max-width:none; text-align:center; } .special-window__places { display:flex; justify-content:center; gap:14px; padding:18px; margin:0 20px 18px; border-left:0; border-top:1px solid rgba(254,202,202,.14); } .special-window__places strong { font-size:2.5rem; } .special-window__places p { max-width:180px; text-align:left; } }
+</style>

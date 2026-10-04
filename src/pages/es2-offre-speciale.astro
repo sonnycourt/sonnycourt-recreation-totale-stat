@@ -1,0 +1,166 @@
+---
+import DealOffer from '../components/mc2/DealOfferSpeciale.astro';
+import SpecialOfferWindow from '../components/es2-speciale/SpecialOfferWindow.astro';
+import { specialOffer } from '../data/es2-offre-speciale.mjs';
+import { bunnyEmbedUrl } from '../lib/es2-special-offer.mjs';
+const videoUrl = bunnyEmbedUrl(specialOffer);
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Offre spéciale — Esprit Subconscient 2.0</title>
+    <meta name="description" content="Découvre l’accompagnement Esprit Subconscient 2.0 et le détail de l’offre spéciale." />
+    <link rel="canonical" href="https://sonnycourt.com/es2-offre-speciale/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" />
+  </head>
+  <body>
+    <aside class="special-preview" data-special-preview hidden>Aperçu local · aucun paiement ni envoi client</aside>
+    <header class="special-hero">
+      <h1>{specialOffer.capacity} places viennent de rouvrir pour rejoindre <span>Esprit Subconscient&nbsp;2.0.</span></h1>
+      <h2 class="special-hero__intro">Tu as hésité après la masterclass ? Voici ta deuxième chance, avec coaching individuel et consultation privée avec moi. Jusqu'à mardi minuit.</h2>
+      <div class="special-vsl">
+        <iframe src={videoUrl} title="Présentation d’Esprit Subconscient 2.0" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="no-referrer" loading="eager"></iframe>
+        <button class="special-vsl__poster" data-vsl-play type="button" aria-label="Lire la présentation d’Esprit Subconscient 2.0" hidden>
+          <img src="/media/es2-offre-speciale-vsl-thumbnail.png" alt="Sonny Court présente Esprit Subconscient 2.0" width="1600" height="900" fetchpriority="high" />
+          <span class="special-vsl__play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" fill="currentColor" /></svg></span>
+        </button>
+        <div class="special-vsl__controls" data-vsl-controls hidden>
+          <button type="button" data-vsl-toggle data-paused="true" aria-label="Lire la vidéo"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="vsl-play-icon" d="m8 5 11 7-11 7Z" fill="currentColor"/><path class="vsl-pause-icon" d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="3"/></svg></button>
+          <input data-vsl-seek type="range" min="0" max="1" value="0" step="0.1" aria-label="Progression de la vidéo" />
+          <span data-vsl-time>0:00 / 0:00</span>
+          <button type="button" data-vsl-mute aria-label="Couper le son" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4Z M17 8q5 4 0 8"/></svg></button>
+          <button type="button" data-vsl-fullscreen aria-label="Plein écran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5"/></svg></button>
+        </div>
+        <span class="special-vsl__status" data-vsl-status role="status"></span>
+        <button class="special-vsl__native" data-vsl-native type="button" hidden>Lecteur standard</button>
+      </div>
+      <p class="special-state" data-campaign-status role="status">Ouverture de la campagne à confirmer. Tu peux déjà consulter toute l’offre ci-dessous.</p>
+      <SpecialOfferWindow id="special-hero-window" />
+      <button class="special-hero__cta" data-core-plan-cta type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog" disabled>Je commence ma transformation →</button>
+    </header>
+    <DealOffer />
+    <footer class="special-footer"><a href="/cgv/">Conditions générales de vente</a><span>·</span><a href="/contact/">Nous contacter</a></footer>
+    <script>
+      import { specialOffer } from '../data/es2-offre-speciale.mjs';
+      import { campaignState, clockParts, scheduledRemainingSeats } from '../lib/es2-special-offer.mjs';
+      import { initSpecialOfferCheckout } from '../lib/es2-special-checkout.mjs';
+      import { initSpecialVideo } from '../lib/es2-special-video.mjs';
+      initSpecialVideo(document.querySelector('.special-vsl'), specialOffer.videoId);
+
+      const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+      const params = new URLSearchParams(location.search);
+      const preview = local && params.get('preview') === 'dev';
+      // Fixed calendar, never a per-visitor countdown. A local-only clock is used
+      // for review; URL parameters cannot activate a published campaign remotely.
+      const mode = preview ? params.get('phase') || 'active' : '';
+      const config = preview ? { ...specialOffer, published: true, ...(mode === 'full' ? { remainingSeats: 0 } : {}) } : specialOffer;
+      const anchor = mode === 'upcoming' ? Date.parse(config.startsAt) - 86400000
+        : mode === 'expired' ? Date.parse(config.endsAt) + 1000 : Date.parse(config.startsAt);
+      const elapsedStart = performance.now();
+      const root = document.querySelector('[data-draftx-checkout]');
+      if (!(root instanceof HTMLElement)) throw new Error('Formulaire absent.');
+      root.dataset.checkoutAvailable = 'false';
+      initSpecialOfferCheckout(root);
+      const notice = document.querySelector('[data-special-preview]');
+      if (notice instanceof HTMLElement) notice.hidden = !preview;
+      const labels = { active: 'Cette offre disparaît dans', upcoming: 'Cette offre ouvre dans', expired: 'Cette ouverture est terminée', full: 'Cette ouverture est complète', draft: 'Ouverture à confirmer', invalid: 'Calendrier indisponible' };
+      const dateFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: config.timeZone });
+      const datesValid = Number.isFinite(Date.parse(config.startsAt)) && Number.isFinite(Date.parse(config.endsAt));
+      // Midnight marks the end of the preceding calendar day.
+      const dates = datesValid ? `Offre valable jusqu’à ${dateFormat.format(new Date(Date.parse(config.endsAt) - 1))} à minuit.` : 'Calendrier indisponible.';
+      let previousAvailable;
+      function render() {
+        const now = preview ? anchor + performance.now() - elapsedStart : Date.now();
+        const state = campaignState(config, now);
+        // Preview phases keep their simulated clock. The live counter follows Paris/Zurich time through endsAt.
+        const seatNow = preview && mode !== 'active' ? now : Date.now();
+        const seats = scheduledRemainingSeats(config, seatNow);
+        document.querySelectorAll('[data-special-seat-count]').forEach(node => {
+          const next = String(seats ?? config.capacity);
+          if (node.textContent !== next) node.textContent = next;
+        });
+        // This isolated draft cannot mount a production payment provider.
+        const available = preview && state.available;
+        root.dataset.checkoutAvailable = String(available);
+        document.querySelectorAll('[data-core-plan-cta], [data-checkout-open], #core-price-registration-cta, #two-paths-registration-cta, #deal-sticky-cta').forEach(button => {
+          if (button instanceof HTMLButtonElement) { button.disabled = !available; button.setAttribute('aria-disabled', String(!available)); }
+        });
+        if (previousAvailable !== available) {
+          window.dispatchEvent(new CustomEvent('mc2:draftx-availability', { detail: { available } }));
+          previousAvailable = available;
+        }
+        const values = clockParts(state.seconds);
+        document.querySelectorAll('[data-special-window]').forEach(section => {
+          section.querySelector('[data-campaign-label]').textContent = labels[state.phase];
+          section.querySelectorAll('[data-special-unit]').forEach((node, i) => { node.textContent = ['draft', 'invalid'].includes(state.phase) ? '—' : values[i]; });
+          section.querySelector('[data-special-clock]').setAttribute('aria-label', `${values[0]} jours, ${values[1]} heures, ${values[2]} minutes et ${values[3]} secondes`);
+          section.querySelector('[data-campaign-dates]').textContent = ['draft', 'invalid'].includes(state.phase) ? 'Calendrier de la prochaine ouverture à confirmer.' : dates;
+        });
+        const status = document.querySelector('[data-campaign-status]');
+        status.textContent = state.phase === 'active' ? (preview ? 'Aperçu : l’offre est accessible immédiatement, sans attendre la vidéo.' : 'L’offre est présentée ci-dessous. Les inscriptions ne sont pas encore activées.')
+          : state.phase === 'upcoming' ? 'Cette ouverture n’a pas encore commencé. Découvre déjà le programme ci-dessous.'
+          : ['expired', 'full'].includes(state.phase) ? 'Cette ouverture est terminée. Le programme reste consultable ci-dessous.'
+          : 'Ouverture de la campagne à confirmer. Tu peux déjà consulter toute l’offre ci-dessous.';
+      }
+      let timer;
+      const resume = () => {
+        window.clearInterval(timer);
+        render();
+        timer = window.setInterval(render, 1000);
+      };
+      resume();
+      document.addEventListener('visibilitychange', render);
+      window.addEventListener('pageshow', resume);
+      window.addEventListener('pagehide', () => window.clearInterval(timer));
+    </script>
+  </body>
+</html>
+<style is:global>
+  html { background:#0a0a1a; color-scheme:dark; }
+  body { margin:0; color:#fff; background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.2),transparent 50rem),#0a0a1a; font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  *, *::before, *::after { box-sizing:border-box; }
+  button, input { font:inherit; }
+  button:disabled { cursor:not-allowed; }
+  .special-preview { padding:10px 16px; text-align:center; color:#fde68a; background:#241d13; border-bottom:1px solid #695024; font-size:12px; }
+  [hidden] { display:none!important; }
+  .special-hero { max-width:1040px; margin:auto; padding:52px 20px 0; text-align:center; }
+  .special-hero__eyebrow { margin:0 0 14px; color:#93c5fd; font-size:12px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+  .special-hero h1 { margin:0; font-size:clamp(30px,5.6vw,54px); font-weight:900; letter-spacing:-.04em; line-height:1.15; }
+  .special-hero h1 span { color:#93c5fd; background:linear-gradient(110deg,#bfdbfe 0%,#93c5fd 45%,#60a5fa 100%); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .special-hero__intro { margin:16px 0 30px; color:#bdcce3; font-size:clamp(15px,2.2vw,19px); font-weight:400; line-height:1.6; }
+  .special-vsl { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border:1px solid #34568a; border-radius:20px; background:#020713; box-shadow:0 20px 70px #17377455; }
+  .special-vsl iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .special-vsl__poster { position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; background:#020713; cursor:pointer; }
+  .special-vsl__poster img { display:block; width:100%; height:100%; object-fit:cover; }
+  .special-vsl__play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; place-items:center; width:clamp(56px,8vw,76px); aspect-ratio:1; border-radius:50%; border:1px solid #ffffff80; background:#0a173680; backdrop-filter:blur(8px); color:white; box-shadow:0 8px 30px #0003; }
+  .special-vsl__play svg { width:32px; height:32px; }
+  .special-vsl__engine { position:absolute!important; inset:0; width:100%; height:100%; }
+  .special-vsl__controls { position:absolute; inset:auto 0 0; display:flex; align-items:center; gap:10px; padding:30px 16px 10px; background:linear-gradient(transparent,#020713e6); color:#fff; }
+  .special-vsl__controls button { display:grid; place-items:center; flex-shrink:0; width:40px; height:40px; border:0; border-radius:8px; background:transparent; color:inherit; cursor:pointer; }
+  .special-vsl__controls button:hover { background:#ffffff20; }
+  .special-vsl__controls svg { width:22px; height:22px; }
+  .special-vsl__controls input { min-width:0; flex:1; height:20px; accent-color:#93c5fd; cursor:pointer; }
+  .special-vsl__controls span { font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  [data-paused="true"] .vsl-pause-icon, [data-paused="false"] .vsl-play-icon { display:none; }
+  [data-vsl-mute][aria-pressed="true"] { opacity:.45; }
+  .special-vsl__status { position:absolute; bottom:76px; left:12px; right:12px; text-align:center; color:white; font-size:13px; pointer-events:none; text-shadow:0 1px 4px #000; }
+  .special-vsl__native { position:absolute; top:10px; right:10px; border:1px solid #ffffff30; border-radius:6px; padding:6px 9px; background:#02071380; color:#dbeafe; font-size:11px; cursor:pointer; }
+  .special-vsl:fullscreen { width:100vw; height:100vh; max-width:none; border:0; border-radius:0; background:#000; }
+  @media(max-width:600px) { .special-vsl__controls { gap:3px; padding:24px 6px 5px; } .special-vsl__controls button { width:36px; } .special-vsl__controls span { font-size:10px; } }
+  .special-vsl__poster:focus-visible { outline:3px solid #93c5fd; outline-offset:-5px; }
+  .special-state { margin:16px auto 0; max-width:780px; font-size:13px; line-height:1.6; color:#aabedb; }
+  .special-hero__cta { display:block; width:min(100%,820px); margin:24px auto 0; padding:24px 16px; border:1px solid #fb7185; border-radius:14px; background:linear-gradient(135deg,#ef343f,#c9182b); color:#fff; font-size:clamp(18px,3vw,26px); font-weight:900; cursor:pointer; }
+  .special-hero__cta:focus-visible { outline:3px solid #bfdbfe; outline-offset:4px; }
+  .special-footer { display:flex; flex-wrap:wrap; gap:16px; justify-content:center; padding:0 20px 120px; color:#91a7c5; font-size:13px; }
+  .special-footer a { color:inherit; }
+  .special-payment-preview { padding:24px; color:#17304b; background:#e7f2ff; border:1px solid #b7d4f7; border-radius:12px; font-size:15px; line-height:1.6; }
+  #draftx-checkout-dialog { color-scheme:light; }
+  @media(max-width:600px) { .special-hero { padding:30px 14px 0; } .special-vsl { border-radius:12px; } .special-hero__intro { margin-bottom:22px; } }
+</style>
