@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {makeGo5Redirect,localDay} from '../netlify/functions/lib/go5-tracking.mjs';
+const events=[];
+const handler=makeGo5Redirect({record:async(k,v)=>events.push({k,v}),now:()=>new Date('2026-10-04T22:30:00Z')});
+const get=ua=>new Request('https://sonnycourt.com/go5?utm_medium=sms',{headers:{'user-agent':ua}});
+const result=await handler(get('Mozilla/5.0 Mobile Safari'));
+assert.equal(result.status,302);assert.equal(result.headers.get('location'),'/es2-offre-speciale/?utm_medium=sms');
+assert.match(result.headers.get('cache-control'),/no-store/);
+assert.match(events[0].k,/^2026-10-05\/unclassified\//);
+await handler(get('WhatsApp'));assert.equal(events[1].v.bucket,'automated');
+await handler(new Request('https://sonnycourt.com/go5',{method:'HEAD'}));assert.equal(events.length,2);
+assert.equal((await handler(new Request('https://sonnycourt.com/go5',{method:'POST'}))).status,405);
+const failing=makeGo5Redirect({record:async()=>{throw Error('offline');}});assert.equal((await failing(get('Mozilla'))).status,302);
+const stalled=makeGo5Redirect({record:()=>new Promise(()=>{}),timeoutMs:5});assert.equal((await stalled(get('Mozilla'))).status,302);
+assert.equal(localDay(new Date('2026-10-04T12:00:00Z')),'2026-10-04');
+assert(!JSON.stringify(events).includes('Mozilla'));
+console.log('PASS: redirects, query preservation, HEAD exclusion, bot classification, Zurich dates, no personal data, storage failure fallback.');
