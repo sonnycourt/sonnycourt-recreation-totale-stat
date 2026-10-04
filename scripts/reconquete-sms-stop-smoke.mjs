@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {makeSmsStopService,normalizeStopPhone} from '../netlify/functions/lib/reconquete-sms-stop.mjs';
+const rows=new Map();const service=makeSmsStopService({get:async k=>rows.get(k),set:async(k,v)=>rows.set(k,v)});
+assert.equal(normalizeStopPhone('0033 6 12 34 56 78'),'+33612345678');
+assert.equal(normalizeStopPhone('0612345678'),'');
+assert.equal((await service.unsubscribe('+33612345678',false)).status,400);
+assert.equal(rows.size,0);
+assert.equal(await service.isBlocked('+33612345678'),false);
+assert.equal((await service.unsubscribe('+33612345678',true)).status,200);
+assert.equal(await service.isBlocked('+33612345678'),true);
+await service.unsubscribe('+33612345678',true);assert.equal(rows.size,1);
+assert.equal(await service.isBlocked('+41789482376'),false);
+assert(!JSON.stringify([...rows]).includes('33612345678'));
+console.log('PASS: confirmation required, international normalization, idempotent suppression, private hashed storage. No real data written.');
