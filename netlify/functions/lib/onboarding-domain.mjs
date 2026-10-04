@@ -88,16 +88,24 @@ export function plusDays(iso, count) {
   date.setUTCDate(date.getUTCDate() + count);
   return date.toISOString().slice(0, 10);
 }
+export const PLAN_LABELS = {
+  twelve: '12 mensualités de 197 € · démarrage à 0 €',
+  six: '6 mensualités de 347 € · démarrage à 0 €',
+  legacy_three: 'Ancien modèle · 3 versements de 767 €',
+  paid_once: 'Paiement en une fois · montant à vérifier dans Spiffy',
+  paid_monthly: 'Paiement échelonné · échéancier à vérifier dans Spiffy',
+  paid_other: 'Achat confirmé · modalité à vérifier dans Spiffy',
+};
 export function presentCase(row) {
+  const deferred = ['twelve','six'].includes(row.plan);
   return {
     ...row,
     name: row.preferred_name || row.display_name,
     country: row.country_override || row.country,
-    first_payment_date: row.payment_date_override || (row.source === 'mc2' ? plusDays(row.purchased_at, 7) : null),
-    payment_date_source: row.payment_date_source || 'Échéance théorique J+7 — ne confirme pas un encaissement',
+    first_payment_date: row.payment_date_override || (row.source === 'mc2' && deferred ? plusDays(row.purchased_at, 7) : null),
+    payment_date_source: row.payment_date_source || (deferred ? 'Échéance théorique J+7 — ne confirme pas un encaissement' : 'Consulter Spiffy pour les montants et dates de paiement'),
     coaching_from: plusDays(row.purchased_at, 33),
     feedback_date: plusDays(row.purchased_at, 14),
-    plan_label: row.plan === 'six' ? '6 mensualités de 347 € · démarrage à 0 €' : row.plan === 'legacy_three'
-      ? 'Ancien modèle · 3 versements de 767 €' : '12 mensualités de 197 € · démarrage à 0 €',
+    plan_label: PLAN_LABELS[row.plan] || 'Modalité de paiement à vérifier',
   };
 }

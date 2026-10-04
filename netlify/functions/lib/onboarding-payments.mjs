@@ -53,6 +53,9 @@ export async function loadOnboardingPayments(db,scope,{read=spiffyRead,store=def
       const i=cursor++,c=cases[i];
       const base={case_id:c.id,name:c.preferred_name||c.display_name,country:c.country_override||c.country,plan:c.plan,
         amount_minor:PLAN_AMOUNTS[c.plan],currency:'EUR',available:false,first_status:'unknown',next_status:'unknown',paid_count:null};
+      // Paid plans have unreliable historical webhook amounts. Never invent a
+      // schedule or reuse the deferred-plan financial logic for these rows.
+      if (!PLAN_AMOUNTS[c.plan]) { results[i]=base; continue; }
       const orderIds=[...new Set(events.filter(e=>e.token===tokens.get(c.registration_id)).map(e=>e.metadata?.order_id).filter(numeric).map(String))];
       const cacheKey=createHash('sha256').update(JSON.stringify([c.id,c.email,c.plan,c.purchased_at,orderIds])).digest('hex');
       const previous=await store.get(cacheKey).catch(()=>null);
