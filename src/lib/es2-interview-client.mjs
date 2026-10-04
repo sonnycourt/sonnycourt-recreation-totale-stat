@@ -68,7 +68,12 @@ function render(){
  for(const [index,message] of session.messages.entries()){const item=element('article','es-message'+(message.role==='user'?' es-message-user':''));item.append(element('div','es-message-label',message.role==='user'?'Toi':'Assistante IA'),messageText(message,index));log.append(item);}chat.append(log);
  const status=element('p','es-chat-status');status.id='es-chat-status';status.setAttribute('role','status');chat.append(status);
  const job=session.job;const busy=job&&['queued','processing'].includes(job.status);
- if(session.status==='completed')status.textContent='Ton entretien est terminé et enregistré pour Sonny. Tu peux fermer cette page.';
+ if(session.status==='completed'){
+  const completed=element('div','es-completed');completed.setAttribute('role','region');completed.setAttribute('aria-label','Fin de ton entretien');
+  if(session.completionReason!=='safety'){const check=element('span','es-completed-check','✓');check.setAttribute('aria-hidden','true');completed.append(check);}
+  completed.append(element('h2','',session.completionReason==='safety'?'L’entretien est arrêté':'Ton point personnel est terminé'),element('p','',session.completionReason==='safety'?'Cet espace n’est pas suivi en direct. N’attends pas le retour de Sonny pour demander une aide urgente.':'Merci d’avoir pris ce temps pour toi. Tes réponses sont enregistrées pour permettre à Sonny de préparer son retour personnel.'));
+  chat.append(completed);status.textContent='Tu peux fermer cette page et revenir relire tes réponses avec ton lien personnel.';
+ }
  else if(busy)status.textContent='L’assistante prend le temps de lire ta réponse… Tu peux revenir avec ton lien personnel si tu fermes la page.';
  if(job&&(job.status==='failed'||job.retryable)){
   if(session.status!=='completed')status.textContent='Ta réponse est enregistrée. L’assistante a rencontré une difficulté.';
@@ -80,7 +85,7 @@ function render(){
   const actions=element('div','es-composer-actions');const skip=element('button','es-chat-button','Je préfère ne pas répondre');skip.id='es-skip';skip.type='button';skip.disabled=area.disabled;skip.onclick=()=>command('message','Je préfère ne pas répondre à cette question.');
   const send=element('button','es-start es-send-icon');send.append(sendIcon());send.setAttribute('aria-label','Envoyer le message');send.title='Envoyer le message';send.id='es-send';send.type='button';send.disabled=area.disabled||!area.value.trim();send.onclick=()=>command('message',area.value.trim());area.oninput=()=>{send.disabled=sending||!area.value.trim();};area.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();if(!send.disabled)send.click();}};
   actions.append(skip,send);composer.append(actions);chat.append(composer);
-  if(session.readyToFinish&&!busy)status.textContent='Tu peux encore préciser ta situation, ou terminer l’entretien pour Sonny.';
+
  }
  if(busy)schedulePoll();
 }
