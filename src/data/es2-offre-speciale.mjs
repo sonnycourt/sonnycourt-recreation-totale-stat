@@ -1,12 +1,10 @@
 // Configuration unique de la reconquête. Aucun effet sur MC2 Session / Replay.
-// Exemple proposé, pas encore une campagne publiée. Heures de Paris/Zurich.
+// Campagne publique. Heures de Paris/Zurich.
 // Dimanche 18 h → fin du mardi à minuit = 54 heures.
-// Le paiement est encore un aperçu local : published ne suffit PAS à l'activer.
-// Valider d'abord un retour après achat pour les anciens inscrits ET les MC2,
-// sans dépendre d'un ancien jeton expiré ni changer le funnel existant.
+// Le paiement et son reçu sont isolés du funnel MC2 / Masterclass.
 export const specialOffer = Object.freeze({
   campaignId: 'es2-reconquete-2026-10-04',
-  published: false,
+  published: true,
   startsAt: '2026-10-04T18:00:00+02:00',
   endsAt: '2026-10-07T00:00:00+02:00',
   timeZone: 'Europe/Zurich',
