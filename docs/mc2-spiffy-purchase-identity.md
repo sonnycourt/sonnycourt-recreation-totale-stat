@@ -52,9 +52,14 @@ de base : `mc2-spiffy-checkout-smoke` exige encore `DealOffer.astro` au lieu de
 d'apparition de l'offre (10:24:00 au lieu de 10:20:32). Aucun contournement ni
 modification de leurs attentes dans ce correctif.
 
+Le 9 octobre, ces deux échecs ont été reproduits sur `main` non modifiée
+(`9f2a550`) dans le worktree de la précédente publication : ils sont antérieurs
+au correctif. Les sept suites ciblées et `deploy-runtime-guards-smoke` passent.
+
 ## Mise en service
 
-Correctif préparé dans le worktree isolé, non publié. Fusionner explicitement
+Publication autorisée par Sonny le 9 octobre, sous réserve des contrôles
+anti-régression. Correctif préparé dans le worktree isolé. Fusionner explicitement
 sur `main`, vérifier sa propreté et sa synchronisation avec `origin/main`, puis
 utiliser exclusivement `npm run deploy:production` après autorisation de Sonny.
 Une validation après publication doit rester en lecture seule ; ne pas créer
