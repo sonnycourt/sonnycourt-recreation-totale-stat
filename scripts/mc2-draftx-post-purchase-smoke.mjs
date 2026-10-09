@@ -45,7 +45,9 @@ globalThis.fetch = async (url, options = {}) => {
       return Response.json([body], { status: 201 });
     }
     const order = parsed.searchParams.get('metadata->>order_id');
-    return Response.json(events.filter(event => !order || order === `eq.${event.metadata.order_id}`).map(event => ({ metadata: event.metadata })));
+    const dedupe = parsed.searchParams.get('dedupe_key');
+    return Response.json(events.filter(event => (!order || order === `eq.${event.metadata.order_id}`)
+      && (!dedupe || dedupe === `eq.${event.dedupe_key}`)).map(event => ({ token: event.token, metadata: event.metadata })));
   }
   if (parsed.pathname.endsWith('/webinaire_registrations')) return Response.json([]);
   if (parsed.pathname.endsWith('/mc2_sms_jobs') || parsed.pathname.endsWith('/mc2_replay_recovery_jobs') || parsed.pathname.endsWith('/mc2_session_email_jobs')) {

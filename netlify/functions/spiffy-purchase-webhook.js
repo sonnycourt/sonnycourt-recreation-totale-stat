@@ -10,6 +10,7 @@ import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
 import { cancelMc2OfferSmsAfterSpiffyPurchase } from './lib/mc2-spiffy-sms-cancellation.mjs';
 import { excludeWebinarBuyer } from './lib/webinaire-exclusions.mjs';
 import { mc2ConsultationBonusTag } from './lib/mc2-consultation-bonus.mjs';
+import { mc2OrderReference, readMc2SpiffyIdentity } from './lib/mc2-spiffy-identity.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -115,7 +116,10 @@ function findAffiliate(obj, depth = 0) {
 /** Montant en euros depuis les champs Spiffy (les champs *_amount sont en centimes). */
 function findAmountEur(data) {
   const centCandidates = [
+    // v2 distinguishes today's charge from the complete installment contract.
+    data?.detail?.due_today,
     data?.order_total,
+    data?.display_total,
     data?.payment_amount,
     data?.payment_amount_paid,
     data?.payment_plan_amount,
@@ -132,15 +136,6 @@ function findAmountEur(data) {
     if (Number.isFinite(n) && n > 0) return n > 10000 ? n / 100 : n;
   }
   return null;
-}
-
-function cleanMc2Token(value) {
-  const token = typeof value === 'string' ? value.trim() : '';
-  return /^[a-zA-Z0-9_-]{16,160}$/.test(token) ? token : '';
-}
-
-function findMc2Token(body) {
-  return cleanMc2Token(findFirstKey(body, ['mc2_token', 'registration_token', 'client_reference_id']));
 }
 
 const MC2_SPIFFY_CHECKOUT_SLUGS = Object.freeze({
@@ -199,9 +194,8 @@ function mc2PlanFromPurchase(body, amount, registration, checkoutId) {
   return null;
 }
 
-function mc2PurchaseBelongsToRegistration(body, registration, plan, checkoutId) {
+function mc2PurchaseBelongsToRegistration(body, registration, plan, checkoutId, payloadToken) {
   if (!registration || !plan) return false;
-  const payloadToken = findMc2Token(body);
   if (payloadToken) return payloadToken === registration.token;
 
   if (MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId || '')]) return true;
@@ -286,22 +280,21 @@ export default async (req) => {
       ? String(data.id)
       : findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
     if (deferredPlan && !isRefund && (!isSale || !orderId)) return jsonResponse(200, { ok: true, skipped: 'not_initial_order_success' });
-    const payloadToken = findMc2Token(body);
-
-    // Le webhook historique continue de traiter webinaire_registrations plus bas.
-    // Cette branche additionnelle coupe les SMS commerciaux H-4/H+2 du funnel
-    // MC2 quand Spiffy confirme une vente de l'un de ses deux checkouts dédiés.
-    if (isSale) {
-      const cancellation = await cancelMc2OfferSmsAfterSpiffyPurchase({
-        payload: body,
-        checkoutId,
-        email,
-        token: payloadToken,
-      });
-      if (!cancellation.ok) {
-        console.error('spiffy-webhook MC2 SMS cancellation:', cancellation.error);
-      }
+    let identity = mc2OrderReference(body);
+    // Current v2 notifications omit custom fields, even though the checkout
+    // correctly persists MC2 Token on the order. Recover only that exact order.
+    if (isSale && eventType === 'order:success' && identity.state === 'absent'
+      && ['40006', '40007'].includes(String(checkoutId || ''))) {
+      identity = await readMc2SpiffyIdentity({ orderId, checkoutId, email });
     }
+    if (isSale && identity.state === 'unavailable') {
+      return jsonResponse(503, { ok: false, error: 'purchase_identity_unavailable' });
+    }
+    if (isSale && ['invalid', 'conflict'].includes(identity.state)) {
+      console.warn('spiffy-webhook: identity rejected order=%s reason=%s', orderId, identity.state);
+      return jsonResponse(200, { ok: true, skipped: `purchase_identity_${identity.state}` });
+    }
+    const payloadToken = identity.token;
 
     let reg = await supabaseGet(
       `webinaire_registrations?email=eq.${encodeURIComponent(email)}&select=token,email,telephone,traffic_source,tt_click_id,meta_fbc,meta_fbp,checkout_last_plan,checkout_last_payment_mode,checkout_last_route&order=created_at.desc&limit=1`,
@@ -324,46 +317,31 @@ export default async (req) => {
       if (!payloadToken && mc2.ok && (!Array.isArray(mc2.data) || !mc2.data[0])) {
         mc2 = await supabaseGet(
           `mc2_registrations?email=eq.${encodeURIComponent(email)}`
-            + `&select=${mc2Select}&order=registered_at.desc&limit=1`,
+            + `&select=${mc2Select}&order=registered_at.desc&limit=2`,
         );
       }
+      if (!mc2.ok) return jsonResponse(503, { ok: false, error: 'purchase_registration_unavailable' });
+      if (Array.isArray(mc2.data) && mc2.data.length > 1) {
+        return jsonResponse(200, { ok: true, skipped: 'purchase_identity_ambiguous' });
+      }
       mc2Row = mc2.ok && Array.isArray(mc2.data) ? mc2.data[0] : null;
+      if (payloadToken && !mc2Row) return jsonResponse(200, { ok: true, skipped: 'purchase_reference_not_found' });
     }
     const mc2Plan = mc2PlanFromPurchase(body, amount, mc2Row, checkoutId);
     const isMc2Purchase = isSale
-      && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan, checkoutId);
+      && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan, checkoutId, payloadToken);
+
+    if (isMc2Purchase && orderId) {
+      const existing = await supabaseGet(`mc2_funnel_events?dedupe_key=eq.${encodeURIComponent(`spiffy_order_${orderId}`)}&select=token&limit=2`);
+      if (!existing.ok) return jsonResponse(503, { ok: false, error: 'purchase_record_unavailable' });
+      if (existing.data?.some(item => item.token !== mc2Row.token)) {
+        return jsonResponse(200, { ok: true, skipped: 'purchase_order_already_linked' });
+      }
+    }
+
     if (!row && !isMc2Purchase) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
     const nowIso = new Date().toISOString();
-
-    // --- Écriture cockpit (TOUS les leads, organique + pub) ---
-    if (row && isRefund) {
-      // Le refund n'annule PAS la vente : purchased reste true.
-      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
-        refunded: true,
-        refunded_at: nowIso,
-        ...(amount != null ? { refund_amount: amount } : {}),
-      });
-    } else if (row && isSale) {
-      // Achat confirmé → sortie du groupe CHECKOUT-ABANDON (coupe la relance).
-      // Affilié Spiffy = source de vérité pour l'attribution des ventes closers.
-      const affiliate = findAffiliate(body);
-      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
-        purchased: true,
-        purchased_at: nowIso,
-        ...(amount != null ? { first_payment_amount: amount } : {}),
-        ...(affiliate ? { purchase_affiliate_id: affiliate.id, purchase_affiliate_name: affiliate.name } : {}),
-      });
-    }
-
-    if (isSale) {
-      const registeredEmail = isMc2Purchase ? mc2Row.email : email;
-      await removeFromCheckoutAbandonGroup(registeredEmail, process.env.MAILERLITE_API_KEY);
-      const exclusion = await excludeWebinarBuyer(registeredEmail, 'acheteur_es');
-      if (!exclusion.ok) {
-        console.error('spiffy-webhook: exclusion acheteur impossible', exclusion.status, exclusion.error);
-      }
-    }
 
     if (isMc2Purchase) {
       const plan = mc2PlanPricing(mc2Plan, amount);
@@ -386,6 +364,7 @@ export default async (req) => {
           metadata: {
             provider: 'spiffy', order_id: orderId, checkout_id: checkoutId,
             purchase_email: email,
+            identity_source: payloadToken ? (identity.source || 'webhook_order_reference') : 'exact_email',
             purchase_first_name: findFirstKey(body, ['name_first', 'first_name']) || mc2Row.prenom || '',
             plan: mc2Plan, payment_mode: plan.paymentMode,
             amount_cents: plan.initialCents, contractual_total_cents: plan.contractualTotalCents,
@@ -397,6 +376,11 @@ export default async (req) => {
         });
         if (!purchaseEvent.ok && purchaseEvent.status !== 409) {
           return jsonResponse(503, { ok: false, error: 'purchase_record_unavailable' });
+        }
+        if (purchaseEvent.status === 409) {
+          const owner = await supabaseGet(`mc2_funnel_events?dedupe_key=eq.${encodeURIComponent(`spiffy_order_${orderId}`)}&select=token&limit=2`);
+          if (!owner.ok || owner.data?.length !== 1) return jsonResponse(503, { ok: false, error: 'purchase_record_unavailable' });
+          if (owner.data[0].token !== mc2Row.token) return jsonResponse(200, { ok: true, skipped: 'purchase_order_already_linked' });
         }
       }
       const purchaseBonusTag = mc2Row.purchase_bonus_tag || mc2ConsultationBonusTag({
@@ -430,6 +414,39 @@ export default async (req) => {
           }),
         ]);
       }
+    }
+
+    // Resolve identity AND claim the order before any downstream side effects.
+    if (isSale && mc2Row) {
+      const cancellation = await cancelMc2OfferSmsAfterSpiffyPurchase({
+        payload: body, checkoutId, email, token: mc2Row.token,
+      });
+      if (!cancellation.ok) console.error('spiffy-webhook MC2 SMS cancellation:', cancellation.error);
+    }
+
+    // --- Écriture cockpit historique ---
+    if (row && isRefund) {
+      // Le refund n'annule PAS la vente : purchased reste true.
+      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
+        refunded: true,
+        refunded_at: nowIso,
+        ...(amount != null ? { refund_amount: amount } : {}),
+      });
+    } else if (row && isSale) {
+      const affiliate = findAffiliate(body);
+      await supabasePatch('webinaire_registrations', `token=eq.${encodeURIComponent(row.token)}`, {
+        purchased: true,
+        purchased_at: nowIso,
+        ...(amount != null ? { first_payment_amount: amount } : {}),
+        ...(affiliate ? { purchase_affiliate_id: affiliate.id, purchase_affiliate_name: affiliate.name } : {}),
+      });
+    }
+
+    if (isSale) {
+      const registeredEmail = isMc2Purchase ? mc2Row.email : email;
+      await removeFromCheckoutAbandonGroup(registeredEmail, process.env.MAILERLITE_API_KEY);
+      const exclusion = await excludeWebinarBuyer(registeredEmail, 'acheteur_es');
+      if (!exclusion.ok) console.error('spiffy-webhook: exclusion acheteur impossible', exclusion.status, exclusion.error);
     }
 
     if (row && (isSale || isRefund)) {

@@ -65,6 +65,7 @@ globalThis.fetch = async (url, options = {}) => {
     purchaseEvent = JSON.parse(options.body);
     return Response.json([{ id: 123 }]);
   }
+  if (parsed.pathname.endsWith('/mc2_funnel_events') && method === 'GET') return Response.json([]);
   if (parsed.pathname.endsWith('/mc2_replay_recovery_jobs') && method === 'GET') {
     return Response.json([]);
   }
