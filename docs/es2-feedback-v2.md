@@ -50,7 +50,7 @@ le récit complet est transmis dans un document texte au même chat.
 - Test navigateur hors preview avec les fonctions réelles et des services simulés :
   connexion email, token, soumission, succès, exactement un enregistrement et une
   notification complète. Fixture reproductible :
-  `node scripts/es2-feedback-local-test-server.mjs` (nécessite `npm run build`).
+  `node scripts/es2-feedback-fixture.mjs` (nécessite `npm run build`).
 - `?preview=dev` : aucun appel d'accès ni de soumission ; message de test explicite.
 - Prévisualisation Netlify et contrôles des routes protégées réussis.
 
