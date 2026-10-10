@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePost } from './lib/supabase-rest.mjs';
+import { FEEDBACK_VERSION, normalizeFeedbackAnswers, feedbackV2Record, feedbackV2Notification, telegramFeedbackParts } from '../../src/lib/es2-feedback.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
 
@@ -57,34 +58,41 @@ async function sendViaTelegram(payload) {
     return false;
   }
 
-  // Format texte (HTML basique pour mise en gras). Telegram accepte 4096 char max.
-  const text = `📩 <b>${escapeHtml(payload.subject)}</b>\n\n${escapeHtml(payload.body)}`;
-
   try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text.slice(0, 4090),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
-    const bodyText = await res.text().catch(() => '');
-    console.log('[ES2 FEEDBACK] Telegram response status:', res.status, 'body:', bodyText.slice(0, 300));
-    return res.ok;
+    const parts = telegramFeedbackParts(payload);
+    // Very long accounts travel as one complete text file instead of dozens of
+    // notifications (or an execution timeout). The same Telegram chat is used.
+    if (parts.length > 6) {
+      const document = new FormData();
+      document.append('chat_id', chatId);
+      document.append('caption', `📩 ${payload.subject}\nRéponses complètes dans le document joint.`);
+      document.append('document', new Blob([payload.subject + '\n\n' + payload.body], { type: 'text/plain;charset=utf-8' }), 'point-personnel-es2.txt');
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, { method: 'POST', body: document });
+      const result = await res.json().catch(() => ({}));
+      console.log('[ES2 FEEDBACK] Telegram document status:', res.status);
+      return res.ok && result.ok === true;
+    }
+    for (let index = 0; index < parts.length; index++) {
+      // Avoid Telegram's per-chat burst limit when a student writes a long answer.
+      if (index > 0) await new Promise(resolve => setTimeout(resolve, 1100));
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: (parts.length > 1 ? `[${index + 1}/${parts.length}]\n` : '') + parts[index],
+          disable_web_page_preview: true,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      console.log('[ES2 FEEDBACK] Telegram response status:', res.status, 'part:', index + 1);
+      if (!res.ok || result.ok !== true) return false;
+    }
+    return true;
   } catch (error) {
     console.warn('[ES2 FEEDBACK] Telegram send error:', error?.message || error);
     return false;
   }
-}
-
-function escapeHtml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 async function sendViaMailerLite(payload, recipient) {
@@ -144,7 +152,7 @@ async function sendViaMailerLite(payload, recipient) {
 async function sendFeedbackEmailFireAndForget(payload) {
   const recipient = String(process.env.ES2_FEEDBACK_TO_EMAIL || 'info@sonnycourt.com').trim();
 
-  // Telegram en priorité (notification push immédiate, 100% fiable, pas de spam/DNS).
+  // Preserve Telegram first, then the existing MailerLite fallback.
   const sent = await sendViaTelegram(payload);
   if (sent) return;
 
@@ -179,6 +187,15 @@ export default async (req) => {
   try {
     const body = await req.json();
     const token = String(body?.token || '').trim();
+    if (!token) return jsonResponse(400, { error: 'Token requis' });
+    if (body?.form_version != null && body.form_version !== FEEDBACK_VERSION) {
+      return jsonResponse(400, { error: 'Version de formulaire non reconnue' });
+    }
+    let answers = null;
+    if (body?.form_version === FEEDBACK_VERSION) {
+      try { answers = normalizeFeedbackAnswers(body.answers); }
+      catch (error) { return jsonResponse(400, { error: error.message }); }
+    }
     const moduleReached = String(body?.module_reached || '').trim();
     const dailyPractice = String(body?.daily_practice || '').trim();
     const whatChanged = String(body?.what_changed || '').trim();
@@ -187,14 +204,15 @@ export default async (req) => {
     const helpNeeded = String(body?.help_needed || '').trim();
     const score = Number(body?.score);
 
-    if (!token) return jsonResponse(400, { error: 'Token requis' });
-    if (!moduleReached) return jsonResponse(400, { error: 'Module requis' });
-    if (!dailyPractice) return jsonResponse(400, { error: 'daily_practice requis' });
-    if (!whatChanged) return jsonResponse(400, { error: 'what_changed requis' });
-    if (!whatBlocks) return jsonResponse(400, { error: 'what_blocks requis' });
-    if (!helpNeeded) return jsonResponse(400, { error: 'help_needed requis' });
-    if (!Number.isInteger(score) || score < 1 || score > 10) {
-      return jsonResponse(400, { error: 'Score invalide' });
+    if (!answers) {
+      if (!moduleReached) return jsonResponse(400, { error: 'Module requis' });
+      if (!dailyPractice) return jsonResponse(400, { error: 'daily_practice requis' });
+      if (!whatChanged) return jsonResponse(400, { error: 'what_changed requis' });
+      if (!whatBlocks) return jsonResponse(400, { error: 'what_blocks requis' });
+      if (!helpNeeded) return jsonResponse(400, { error: 'help_needed requis' });
+      if (!Number.isInteger(score) || score < 1 || score > 10) {
+        return jsonResponse(400, { error: 'Score invalide' });
+      }
     }
 
     const reg = await fetchRegistrationByToken(token);
@@ -208,20 +226,18 @@ export default async (req) => {
       return jsonResponse(403, { error: 'Cette page est réservée aux membres ES 2.0' });
     }
 
+    const responseFields = answers ? feedbackV2Record(answers) : {
+      module_reached: moduleReached,
+      daily_practice: dailyPractice,
+      what_changed: whatChanged,
+      biggest_win: biggestWin || null,
+      what_blocks: whatBlocks,
+      help_needed: helpNeeded,
+      score,
+    };
     const insert = await supabasePost(
       'es2_feedback',
-      {
-        token: row.token,
-        email: row.email || '',
-        prenom: row.prenom || '',
-        module_reached: moduleReached,
-        daily_practice: dailyPractice,
-        what_changed: whatChanged,
-        biggest_win: biggestWin || null,
-        what_blocks: whatBlocks,
-        help_needed: helpNeeded,
-        score,
-      },
+      { token: row.token, email: row.email || '', prenom: row.prenom || '', ...responseFields },
       { prefer: 'return=minimal' },
     );
 
@@ -233,7 +249,7 @@ export default async (req) => {
       });
     }
 
-    const emailPayload = buildEmailPayload({
+    const emailPayload = answers ? feedbackV2Notification(answers, row) : buildEmailPayload({
       prenom: row.prenom || '',
       email: row.email || '',
       moduleReached,

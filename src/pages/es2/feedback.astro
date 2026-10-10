@@ -7,434 +7,147 @@ import GAConsentMode from '../../components/GAConsentMode.astro';
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bilan 30 jours — ES 2.0</title>
-  <meta name="description" content="Formulaire feedback J+30 Esprit Subconscient 2.0." />
+  <title>Ton point personnel — ES 2.0</title>
+  <meta name="description" content="Ton point personnel avec Sonny : ton vécu, tes souhaits et l’aide dont tu as besoin." />
+  <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <GAConsentMode />
-  <style>
-    html { opacity: 0; }
-    html.ready { opacity: 1; transition: opacity .15s ease; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --primary: #3b82f6;
-      --primary-dark: #2563eb;
-      --accent: #dbeafe;
-      --bg-dark: #0a0a1a;
-      --text-muted: rgba(255, 255, 255, 0.72);
-      --border: rgba(59, 130, 246, 0.35);
-      --danger: #fca5a5;
-    }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      background: var(--bg-dark);
-      color: #fff;
-      overflow-x: hidden;
-    }
-    .bg-gradient {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background:
-        radial-gradient(ellipse at 20% 0%, rgba(59,130,246,.3) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(37,99,235,.2) 0%, transparent 50%),
-        linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
-    }
-    .container {
-      width: min(720px, 100%);
-      margin: 0 auto;
-      padding: 28px 16px 48px;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 15px;
-      border-radius: 999px;
-      border: 1px solid rgba(147,197,253,.45);
-      background: rgba(59,130,246,.18);
-      color: #bfdbfe;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      font-size: .76rem;
-      font-weight: 700;
-      margin-bottom: 14px;
-    }
-    h1 {
-      font-size: clamp(1.7rem, 4vw, 2.35rem);
-      line-height: 1.18;
-      margin-bottom: 12px;
-      font-weight: 800;
-      color: #fff; /* fallback navigateurs sans support background-clip: text */
-    }
-    /* Effet dégradé sur le texte — uniquement si le navigateur supporte vraiment.
-       Évite l'affichage en barre grise sur Comet/certains Chromium variants. */
-    @supports ((background-clip: text) or (-webkit-background-clip: text)) {
-      h1 {
-        background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        color: transparent;
-      }
-    }
-    .subtitle {
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 18px;
-      font-size: 1rem;
-    }
-    .panel {
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 16px;
-      padding: 20px 16px;
-      margin-bottom: 14px;
-    }
-    .hidden { display: none !important; }
-    .field { margin-bottom: 14px; }
-    .field:last-child { margin-bottom: 0; }
-    label {
-      display: block;
-      margin-bottom: 7px;
-      font-size: .9rem;
-      color: #dbeafe;
-      font-weight: 600;
-    }
-    input, select, textarea {
-      width: 100%;
-      border-radius: 11px;
-      border: 1px solid rgba(59,130,246,.45);
-      background: rgba(255,255,255,.07);
-      color: #fff;
-      padding: 12px 13px;
-      font-size: 15px;
-      font-family: inherit;
-    }
-    input[readonly] {
-      opacity: .85;
-      cursor: default;
-      background: rgba(255,255,255,.05);
-    }
-    textarea {
-      min-height: 108px;
-      resize: vertical;
-      line-height: 1.45;
-    }
-    .slider-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-    }
-    .score-pill {
-      min-width: 44px;
-      text-align: center;
-      border-radius: 999px;
-      border: 1px solid rgba(147,197,253,.45);
-      background: rgba(59,130,246,.2);
-      color: #dbeafe;
-      font-weight: 800;
-      padding: 8px 10px;
-    }
-    .help {
-      margin-top: 8px;
-      color: rgba(226,232,240,.74);
-      font-size: .84rem;
-    }
-    .error {
-      min-height: 1.2em;
-      color: var(--danger);
-      font-size: .88rem;
-      margin-top: 8px;
-      line-height: 1.4;
-    }
-    .btn {
-      width: 100%;
-      border: none;
-      border-radius: 12px;
-      padding: 14px 16px;
-      color: #fff;
-      font-size: .96rem;
-      font-weight: 800;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      box-shadow: 0 14px 34px rgba(59,130,246,.36);
-    }
-    .btn[disabled] { opacity: .6; cursor: wait; }
+  <style is:global>
+    body { margin: 0; background: #0a0a1a; }
+
+#es2-personal-checkin{--es-bg:#0a0a1a;--es-panel:#14182c;--es-text:#f1f5ff;--es-muted:#b4c0d8;--es-blue:#83b5ff;color:var(--es-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:radial-gradient(ellipse at 10% 0%,#172b50 0,transparent 50%),var(--es-bg);border-radius:18px;overflow:hidden;font-size:15px;line-height:1.55;color-scheme:dark}
+#es2-personal-checkin *{box-sizing:border-box}#es2-personal-checkin [hidden]{display:none!important}
+#es2-personal-checkin .es-preview{background:#182137;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#c1d1ed}
+#es2-personal-checkin button{font:inherit;min-height:44px}#es2-personal-checkin .es-preview button{background:none;border:0;color:#a9ccff;text-decoration:underline;font-size:13px;padding:0}
+#es2-personal-checkin .es-shell{max-width:710px;margin:0 auto;padding:30px 26px 24px}
+#es2-personal-checkin .es-badge{display:inline-block;color:#bfd9ff;background:#1c3155;border:1px solid #345580;border-radius:20px;padding:6px 12px;letter-spacing:.09em;font-size:11px;font-weight:650}
+#es2-personal-checkin h1{font-size:32px;line-height:1.2;margin:20px 0 14px;font-weight:700;letter-spacing:-.035em;color:#f4f7ff}#es2-personal-checkin h1 span{color:#9ec9ff}
+#es2-personal-checkin header p{color:var(--es-muted);max-width:590px;margin:0 0 15px}#es2-personal-checkin .es-meta{font-size:12px;color:#b6c7e5}
+#es2-personal-checkin .es-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:28px 0 20px}
+#es2-personal-checkin .es-steps button{display:flex;align-items:center;flex-direction:column;gap:7px;border:0;background:none;color:#aebed8;padding:0;font-size:11px}
+#es2-personal-checkin .es-steps b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#26314b;color:#b9c7df;font-size:13px}#es2-personal-checkin .es-steps [aria-current="step"]{color:#d7e8ff}#es2-personal-checkin .es-steps [aria-current="step"] b{background:#397cee;color:#fff}
+#es2-personal-checkin .es-panel{background:var(--es-panel);padding:26px;border:1px solid #2c3650;border-radius:16px;margin-top:16px}
+#es2-personal-checkin .es-kicker{font-size:11px;font-weight:700;letter-spacing:.13em;color:var(--es-blue);margin-bottom:8px}
+#es2-personal-checkin h2{font-size:23px;line-height:1.25;letter-spacing:-.02em;margin:0 0 22px;color:#f1f5ff;font-weight:650}
+#es2-personal-checkin .es-intro{margin:-8px 0 24px;color:var(--es-muted);font-size:14px}
+#es2-personal-checkin fieldset{border:0;margin:24px 0 0;padding:0;min-width:0}#es2-personal-checkin legend,#es2-personal-checkin label:not(.es-choice){font-weight:600;font-size:15px;color:#f1f5ff;display:block;line-height:1.45}#es2-personal-checkin label:not(.es-choice){margin-top:24px}
+#es2-personal-checkin .es-hint{color:var(--es-muted);font-size:13px;line-height:1.5;margin:7px 0 12px}#es2-personal-checkin .es-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}#es2-personal-checkin .es-single{grid-template-columns:1fr}
+#es2-personal-checkin .es-choice{display:flex;gap:10px;align-items:center;padding:12px;background:#1a2136;border:1px solid #36415a;border-radius:10px;color:#dbe5f6;min-height:47px;font-size:14px;line-height:1.4}
+#es2-personal-checkin .es-choice:has(input:checked){background:#193760;border-color:#76adff;color:#fff}#es2-personal-checkin input[type="checkbox"],#es2-personal-checkin input[type="radio"]{accent-color:#70abff;width:17px;height:17px;margin:0;flex:0 0 auto}
+#es2-personal-checkin textarea,#es2-personal-checkin input:not([type]){display:block;width:100%;max-width:100%;background:#10182a;border:1px solid #486080;border-radius:10px;color:#edf4ff;font:inherit;font-size:16px;line-height:1.5;padding:12px;margin-top:10px;resize:vertical}#es2-personal-checkin textarea::placeholder,#es2-personal-checkin input::placeholder{color:#8fa4c3}
+#es2-personal-checkin .es-note{font-size:13px;line-height:1.5;color:#b6c9e6;border-left:2px solid #5076af;padding-left:12px;margin:22px 0 0}#es2-personal-checkin .es-optional{font-size:12px;font-weight:400;color:#b0bfda;display:inline-block;margin-left:5px}
+#es2-personal-checkin .es-footer{display:flex;align-items:center;gap:14px;justify-content:space-between;margin:20px 0}#es2-personal-checkin #es-position{font-size:12px;color:#b4c1d7;margin-right:auto}
+#es2-personal-checkin .es-primary{border:1px solid #689dff;color:#fff;background:linear-gradient(135deg,#397ff4,#265ae4);padding:12px 21px;border-radius:11px;font-weight:650;font-size:14px}#es2-personal-checkin .es-secondary{border:1px solid #405371;background:#18243b;color:#deebff;border-radius:10px;padding:10px 15px;font-size:14px}
+#es2-personal-checkin .es-disclaimer{font-size:12px;color:#96a9c6;text-align:center;margin:24px 0 0}#es2-personal-checkin #es-error{color:#ffb6b6;font-size:14px}
+#es2-personal-checkin dl{margin:0 0 24px}#es2-personal-checkin dt{color:#9ec9ff;font-size:12px;font-weight:650;margin-top:20px}#es2-personal-checkin dd{margin:6px 0 0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:480px){#es2-personal-checkin .es-shell{padding:24px 14px}#es2-personal-checkin h1{font-size:27px}#es2-personal-checkin .es-panel{padding:21px 16px}#es2-personal-checkin .es-options{grid-template-columns:1fr}#es2-personal-checkin .es-steps button{font-size:10px}#es2-personal-checkin .es-footer{gap:8px;flex-wrap:wrap}#es2-personal-checkin .es-primary{padding:12px 15px}#es2-personal-checkin .es-preview{padding:10px 14px}#es2-personal-checkin #es-position{font-size:11px}}
+
+    #es2-personal-checkin { border-radius: 0; min-height: 100vh; }
+    #es2-personal-checkin .es-identity { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #es2-personal-checkin .es-identity input, #es2-personal-checkin #gate-email { width: 100%; min-width: 0; color: #c9d8ed; padding: 10px; background: #10182a; border: 1px solid #36415a; border-radius: 10px; font: inherit; font-size: 16px; margin-top: 8px; }
+    #es2-personal-checkin .es-error { color: #ffb6b6; }
+    #es2-personal-checkin button { cursor: pointer; }
+    #es2-personal-checkin button:disabled { opacity: .6; cursor: wait; }
+    #es2-personal-checkin .es-choice { cursor: pointer; }
+    #es2-personal-checkin :focus-visible { outline: 2px solid #a9ccff; outline-offset: 4px; }
+    #es2-personal-checkin [aria-invalid="true"] { border-color: #ffb6b6; }
+    @media(max-width:480px) { #es2-personal-checkin .es-identity { grid-template-columns: 1fr; gap: 0; } }
   </style>
 </head>
 <body>
-  <div class="bg-gradient"></div>
+<main id="es2-personal-checkin">
+  <section id="screen-loading" class="es-shell" role="status">Chargement…</section>
+  <section id="screen-gate" class="es-shell" hidden>
+    <span class="es-badge">ESPRIT SUBCONSCIENT 2.0</span>
+    <h1>Ton point personnel.</h1>
+    <p class="es-intro">Tes réponses m’aideront à comprendre ce que tu vis pour te répondre au plus juste.</p>
+    <form id="gate-form" class="es-panel">
+      <label for="gate-email">Entre l’email avec lequel tu t’es inscrit</label>
+      <input id="gate-email" type="email" autocomplete="email" placeholder="ton@email.com" required />
+      <p id="gate-error" class="es-error" role="alert"></p>
+      <button id="gate-submit" type="submit" class="es-primary">Continuer</button>
+    </form>
+  </section>
+  <section id="screen-form" hidden>
+    <div class="es-preview"><span>TON POINT PERSONNEL</span><button type="button" id="es-overview" class="cursor-interaction">Voir toutes les questions</button></div>
+  <div class="es-shell">
+    <header>
+      <span class="es-badge">ESPRIT SUBCONSCIENT 2.0</span>
+      <h1>Parlons de toi.<br><span>Et de ce dont tu as besoin.</span></h1>
+      <p>Ce n’est pas un examen, ni une note sur la formation. Ce point personnel m’aide à comprendre ce que tu vis pour te répondre au plus juste.</p>
+      <div class="es-meta">5 étapes courtes · Environ 5 à 7 minutes · À ton rythme</div>
+    </header>
+    <div class="es-identity"><label for="prenom">Prénom<input id="prenom" readonly autocomplete="given-name" /></label><label for="email">Email<input id="email" type="email" readonly autocomplete="email" /></label></div>
+    <p id="es-preview-notice" class="es-note" hidden>Mode test : aucune réponse n’est enregistrée et aucune notification n’est envoyée.</p>
+    <nav class="es-steps" aria-label="Les étapes du questionnaire">
+      <button type="button" data-step="0" class="cursor-interaction" aria-current="step"><b>1</b><span>Aujourd’hui</span></button>
+      <button type="button" data-step="1" class="cursor-interaction"><b>2</b><span>Ton vécu</span></button>
+      <button type="button" data-step="2" class="cursor-interaction"><b>3</b><span>Ton évolution</span></button>
+      <button type="button" data-step="3" class="cursor-interaction"><b>4</b><span>Ta pratique</span></button>
+      <button type="button" data-step="4" class="cursor-interaction"><b>5</b><span>Mon aide</span></button>
+    </nav>
+    <form id="es-form" novalidate>
+      <section class="es-panel" data-panel="0">
+        <div class="es-kicker">01 / AUJOURD’HUI</div><h2>Comment ça se passe pour toi ?</h2>
+        <fieldset data-required="feelings"><legend>Ces derniers jours, comment te sens-tu le plus souvent ?</legend><p class="es-hint">Choisis jusqu’à 3 réponses. Plusieurs ressentis peuvent coexister.</p><div class="es-options" data-options="feelings" data-max="3"></div></fieldset>
+        <fieldset data-required="priority"><legend>Qu’aimerais-tu voir changer ou se concrétiser dans ta vie ?</legend><p class="es-hint">Choisis ce qui compte le plus pour toi aujourd’hui : un souhait concret, une situation à faire évoluer ou une façon de te sentir.</p><div class="es-options" data-options="priority"></div></fieldset>
+        <div class="es-follow" id="es-priority-other" hidden><label for="es-priority-detail">Concrètement, qu’aimerais-tu vivre ou obtenir ? <span class="es-optional">Facultatif</span></label><input id="es-priority-detail" name="priorityDetail" placeholder="J’aimerais…"></div>
+      </section>
+      <section class="es-panel" data-panel="1" hidden>
+        <div class="es-kicker">02 / TON VÉCU</div><h2>Raconte-moi où tu en es.</h2><p class="es-intro">Tu m’as partagé ce que tu aimerais changer ou voir se concrétiser. J’aimerais maintenant comprendre ce que tu vis, pour t’aider à avancer vers ce qui compte pour toi.</p>
+        <p class="es-note" id="es-context" hidden></p>
+        <label for="es-scene">Par rapport à ce souhait, quelle est ta situation aujourd’hui ?</label><p class="es-hint">Ce qui se passe dans ta vie, ce qui t’occupe l’esprit ou ce qui t’a donné envie de ce changement.</p><textarea id="es-scene" name="scene" rows="5" placeholder="Aujourd’hui, dans ma vie…"></textarea>
+        <label for="es-reaction">Comment vis-tu cette situation intérieurement ?</label><p class="es-hint">Ce que tu ressens, les pensées qui reviennent, ce qui te pèse ou ce qui te donne de l’élan.</p><textarea id="es-reaction" name="reaction" rows="4" placeholder="Ce que je ressens en ce moment, c’est…"></textarea>
+        <label for="es-wish">Si les choses évoluaient comme tu le souhaites, qu’est-ce que cela changerait pour toi ?</label><p class="es-hint">Dans ton quotidien, ta façon de te sentir ou ce que tu pourrais enfin vivre.</p><textarea id="es-wish" name="wish" rows="4" placeholder="Pour moi, cela voudrait dire…"></textarea>
+      </section>
+      <section class="es-panel" data-panel="2" hidden>
+        <div class="es-kicker">03 / TON ÉVOLUTION</div><h2>Qu’est-ce qui est différent aujourd’hui ?</h2>
+        <fieldset data-required="evolution"><legend>Depuis le début de ton accompagnement, tu dirais que…</legend><div class="es-options es-single" data-options="evolution"></div></fieldset>
+        <div id="es-progress" hidden>
+          <fieldset><legend>Quels petits changements remarques-tu ?</legend><p class="es-hint">Même si ce n’est pas encore régulier. Coche seulement ce que tu as vraiment observé.</p><div class="es-options es-single" data-options="gains"></div></fieldset>
+          <label for="es-example">Quel moment concret te fait dire cela ? <span class="es-optional">Facultatif</span></label><textarea id="es-example" name="progressExample" rows="3" placeholder="Avant, dans cette situation, je… Cette fois, j’ai…"></textarea>
+          <p class="es-note">Repérer un changement ne veut pas dire que tout est réglé. Il peut être petit et avoir de la valeur pour toi.</p>
+        </div>
+        <div id="es-stable" hidden><label for="es-stable-text">Quel changement aimerais-tu pouvoir observer en premier ? <span class="es-optional">Facultatif</span></label><textarea id="es-stable-text" name="desiredChange" rows="2" placeholder="Dans mon quotidien, je le verrais si…"></textarea></div>
+        <div id="es-harder" hidden><label for="es-harder-text">Qu’est-ce qui est plus difficile en ce moment ? <span class="es-optional">Facultatif</span></label><textarea id="es-harder-text" name="harder" rows="2" placeholder="Ce qui me pèse davantage, c’est…"></textarea></div>
+      </section>
+      <section class="es-panel" data-panel="3" hidden>
+        <div class="es-kicker">04 / TA PRATIQUE</div><h2>Qu’as-tu déjà essayé pour avancer ?</h2>
+        <fieldset data-required="practice"><legend>Ces derniers jours/semaines, tu as pratiqué…</legend><div class="es-options" data-options="practice"></div></fieldset>
+        <label for="es-tried">Quelle pratique as-tu essayée, et qu’as-tu remarqué ? <span class="es-optional">Facultatif</span></label><textarea id="es-tried" name="tried" rows="2" placeholder="J’ai essayé… Sur le moment / ensuite, j’ai remarqué…"></textarea>
+        <fieldset data-required="barrier"><legend>Qu’est-ce qui te freine le plus aujourd’hui ?</legend><p class="es-hint">Choisis jusqu’à 2 réponses. Il ne s’agit pas de te juger, mais de trouver le bon point de départ.</p><div class="es-options es-single" data-options="barrier" data-max="2"></div></fieldset>
+      </section>
+      <section class="es-panel" data-panel="4" hidden>
+        <div class="es-kicker">05 / MON AIDE</div><h2>Rendons ma réponse utile pour toi.</h2>
+        <fieldset data-required="help"><legend>De quoi as-tu le plus besoin dans ma réponse ?</legend><div class="es-options es-single" data-options="help"></div></fieldset>
+        <label for="es-question">Si je pouvais t’aider sur une seule question, laquelle choisirais-tu ?</label><p class="es-hint">Tu peux compléter : « Comment faire pour… quand… ? »</p><textarea id="es-question" name="question" rows="3" placeholder="Comment faire pour… quand… ?"></textarea>
+        <label for="es-extra">Y a-t-il quelque chose d’important que je n’ai pas demandé ? <span class="es-optional">Facultatif</span></label><textarea id="es-extra" name="extra" rows="2" placeholder="Un élément de contexte, une précision…"></textarea>
+      </section>
+      <p id="es-error" role="alert" hidden></p>
+      <div class="es-footer"><button type="button" id="es-back" class="es-secondary cursor-interaction" hidden>Retour</button><span id="es-position">Étape 1 sur 5</span><button type="button" id="es-next" class="es-primary cursor-interaction">Continuer →</button></div>
+    </form>
+    <section id="es-summary" class="es-panel" hidden aria-live="polite">
+      <div class="es-kicker">AVANT D’ENVOYER</div><h2>Ton point personnel.</h2><p class="es-intro">Relis tes réponses. Tu peux encore les modifier avant de me les envoyer.</p><dl id="es-summary-list"></dl><div class="es-footer"><button type="button" class="es-secondary cursor-interaction" id="es-edit">Modifier mes réponses</button><button type="button" class="es-primary cursor-interaction" id="form-submit">Envoyer mon point personnel</button></div><p id="form-error" class="es-error" role="alert"></p>
+    </section>
 
-  <main class="container">
-    <div id="screen-loading" class="panel">
-      Chargement…
+  </div>
+
+  </section>
+  <section id="screen-success" class="es-shell" hidden>
+    <div class="es-panel">
+      <span class="es-badge">Merci</span>
+      <h1 id="success-title">Merci.</h1>
+      <p id="success-message">Je reviens vers toi personnellement dans les prochains jours.</p>
     </div>
-
-    <section id="screen-gate" class="hidden">
-      <div class="badge">ES 2.0 • Bilan</div>
-      <h1>Ton bilan à 30 jours</h1>
-      <p class="subtitle">Prends 5 minutes. Sois honnête avec toi-même. Tes réponses me permettront de te donner un retour personnalisé adapté à ta situation. 🦋</p>
-      <div class="panel">
-        <div class="field">
-          <label for="gate-email">Entre l'email avec lequel tu t'es inscrit</label>
-          <input id="gate-email" type="email" placeholder="ton@email.com" autocomplete="email" />
-          <p id="gate-error" class="error"></p>
-        </div>
-        <button id="gate-submit" type="button" class="btn">Continuer</button>
-      </div>
-    </section>
-
-    <section id="screen-form" class="hidden">
-      <div class="badge">ES 2.0 • Bilan</div>
-      <h1>Ton bilan à 30 jours</h1>
-      <p class="subtitle">Prends 5 minutes. Sois honnête avec toi-même. Tes réponses me permettront de te donner un retour personnalisé adapté à ta situation. 🦋</p>
-
-      <form id="feedback-form" class="panel">
-        <div class="field">
-          <label for="prenom">Prénom</label>
-          <input id="prenom" name="prenom" type="text" readonly />
-        </div>
-        <div class="field">
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" readonly />
-        </div>
-        <div class="field">
-          <label for="module-reached">Où en es-tu dans le programme ?</label>
-          <select id="module-reached" name="module_reached" required>
-            <option value="">Choisis une option</option>
-            <option>Module 1</option>
-            <option>Module 2</option>
-            <option>Module 3</option>
-            <option>Module 4</option>
-            <option>Module 5</option>
-            <option>J'ai terminé</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="daily-practice">Est-ce que tu as fait les exercices quotidiens ?</label>
-          <select id="daily-practice" name="daily_practice" required>
-            <option value="">Choisis une option</option>
-            <option>Tous les jours</option>
-            <option>La plupart du temps</option>
-            <option>De temps en temps</option>
-            <option>Presque pas</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="what-changed">Qu'est-ce qui a le plus changé chez toi en 30 jours ?</label>
-          <textarea id="what-changed" name="what_changed" required></textarea>
-        </div>
-        <div class="field">
-          <label for="biggest-win">Quel a été ton plus grand déclic ou ta plus grande victoire pendant ces 30 jours ?</label>
-          <textarea id="biggest-win" name="biggest_win"></textarea>
-        </div>
-        <div class="field">
-          <label for="what-blocks">Qu'est-ce qui te bloque encore ?</label>
-          <textarea id="what-blocks" name="what_blocks" required></textarea>
-        </div>
-        <div class="field">
-          <label for="help-needed">Sur quoi voudrais-tu que je t'aide spécifiquement ?</label>
-          <textarea id="help-needed" name="help_needed" required></textarea>
-        </div>
-        <div class="field">
-          <label for="score">Comment tu te sens par rapport à il y a 30 jours ?</label>
-          <div class="slider-row">
-            <input id="score" name="score" type="range" min="1" max="10" value="5" />
-            <div id="score-pill" class="score-pill">5/10</div>
-          </div>
-          <p class="help">1 = pareil, 10 = transformé</p>
-        </div>
-        <p id="form-error" class="error"></p>
-        <button id="form-submit" type="submit" class="btn">Envoyer mon bilan</button>
-      </form>
-    </section>
-
-    <section id="screen-success" class="hidden">
-      <div class="panel">
-        <div class="badge">Merci 🦋</div>
-        <h1 id="success-title">Merci.</h1>
-        <p class="subtitle">Je reviens vers toi personnellement dans les prochains jours.</p>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const state = { token: '' };
-    const isPreviewDev = new URLSearchParams(window.location.search).get('preview') === 'dev';
-
-    function show(id) {
-      ['screen-loading', 'screen-gate', 'screen-form', 'screen-success'].forEach((x) => {
-        const el = document.getElementById(x);
-        if (!el) return;
-        el.classList.toggle('hidden', x !== id);
-      });
-    }
-
-    async function fetchAccess({ token = '', email = '' } = {}) {
-      const qs = new URLSearchParams();
-      if (token) qs.set('t', token);
-      if (email) qs.set('email', email);
-      const res = await fetch('/.netlify/functions/get-es2-feedback-access?' + qs.toString(), {
-        cache: 'no-store',
-      });
-      const body = await res.json().catch(() => ({}));
-      return { ok: res.ok, status: res.status, body };
-    }
-
-    function fillIdentity(payload) {
-      document.getElementById('prenom').value = payload.prenom || '';
-      document.getElementById('email').value = payload.email || '';
-      state.token = payload.token || '';
-      if (payload.token) {
-        const nextUrl = new URL(window.location.href);
-        nextUrl.searchParams.set('t', payload.token);
-        history.replaceState({}, '', nextUrl.toString());
-      }
-    }
-
-    async function bootstrap() {
-      if (isPreviewDev) {
-        fillIdentity({
-          token: 'preview-dev-feedback',
-          prenom: 'Sonny',
-          email: 'preview@es2.local',
-        });
-        show('screen-form');
-        return;
-      }
-      const params = new URLSearchParams(window.location.search);
-      const token = String(params.get('t') || params.get('token') || '').trim();
-      if (!token) {
-        show('screen-gate');
-        return;
-      }
-      const access = await fetchAccess({ token });
-      if (access.ok && access.body?.allowed) {
-        fillIdentity(access.body);
-        show('screen-form');
-        return;
-      }
-      if (access.status === 403) {
-        const gateError = document.getElementById('gate-error');
-        gateError.textContent = 'Cette page est réservée aux membres ES 2.0';
-        show('screen-gate');
-        return;
-      }
-      show('screen-gate');
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      const gateSubmit = document.getElementById('gate-submit');
-      const gateEmail = document.getElementById('gate-email');
-      const gateError = document.getElementById('gate-error');
-      const scoreEl = document.getElementById('score');
-      const scorePill = document.getElementById('score-pill');
-      const form = document.getElementById('feedback-form');
-      const formError = document.getElementById('form-error');
-      const formSubmit = document.getElementById('form-submit');
-
-      scoreEl.addEventListener('input', () => {
-        scorePill.textContent = `${scoreEl.value}/10`;
-      });
-
-      gateSubmit.addEventListener('click', async () => {
-        gateError.textContent = '';
-        const email = String(gateEmail.value || '').trim().toLowerCase();
-        if (!email || !email.includes('@')) {
-          gateError.textContent = 'Merci de saisir un email valide.';
-          return;
-        }
-        gateSubmit.disabled = true;
-        try {
-          const access = await fetchAccess({ email });
-          if (access.ok && access.body?.allowed) {
-            fillIdentity(access.body);
-            show('screen-form');
-            return;
-          }
-          if (access.status === 403) {
-            gateError.textContent = 'Cette page est réservée aux membres ES 2.0';
-            return;
-          }
-          if (access.status === 404) {
-            gateError.textContent = 'Aucun compte trouvé avec cet email';
-            return;
-          }
-          gateError.textContent = 'Vérification impossible pour le moment.';
-        } catch {
-          gateError.textContent = 'Vérification impossible pour le moment.';
-        } finally {
-          gateSubmit.disabled = false;
-        }
-      });
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        formError.textContent = '';
-
-        const moduleReached = String(document.getElementById('module-reached').value || '').trim();
-        const dailyPractice = String(document.getElementById('daily-practice').value || '').trim();
-        const whatChanged = String(document.getElementById('what-changed').value || '').trim();
-        const biggestWin = String(document.getElementById('biggest-win').value || '').trim();
-        const whatBlocks = String(document.getElementById('what-blocks').value || '').trim();
-        const helpNeeded = String(document.getElementById('help-needed').value || '').trim();
-        const score = Number(scoreEl.value);
-
-        if (!state.token) {
-          formError.textContent = 'Token manquant. Recharge la page.';
-          return;
-        }
-        if (!moduleReached || !dailyPractice || !whatChanged || !whatBlocks || !helpNeeded) {
-          formError.textContent = 'Merci de compléter tous les champs.';
-          return;
-        }
-        if (isPreviewDev) {
-          const prenom = String(document.getElementById('prenom').value || '').trim();
-          document.getElementById('success-title').textContent = `Merci ${prenom || ''}.`;
-          show('screen-success');
-          return;
-        }
-
-        formSubmit.disabled = true;
-        try {
-          const res = await fetch('/.netlify/functions/submit-es2-feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              token: state.token,
-              module_reached: moduleReached,
-              daily_practice: dailyPractice,
-              what_changed: whatChanged,
-              biggest_win: biggestWin,
-              what_blocks: whatBlocks,
-              help_needed: helpNeeded,
-              score,
-            }),
-          });
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            formError.textContent = body?.error || 'Impossible d’envoyer ton bilan.';
-            return;
-          }
-          const prenom = (body?.prenom || document.getElementById('prenom').value || '').trim();
-          document.getElementById('success-title').textContent = `Merci ${prenom || ''}.`;
-          show('screen-success');
-        } catch {
-          formError.textContent = 'Impossible d’envoyer ton bilan.';
-        } finally {
-          formSubmit.disabled = false;
-        }
-      });
-
-      await bootstrap();
-    });
-  </script>
-  <script>document.documentElement.classList.add('ready');</script>
+  </section>
+  <noscript><p class="es-shell">Active JavaScript pour accéder au questionnaire et envoyer tes réponses.</p></noscript>
+</main>
+<script>
+  import { initEs2Feedback } from '../../lib/es2-feedback-client.mjs';
+  initEs2Feedback();
+</script>
 </body>
 </html>
