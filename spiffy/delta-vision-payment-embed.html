@@ -1,0 +1,85 @@
+<!-- Spiffy checkout 41037 only. The site collects identity; all payment fields remain native Spiffy. -->
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  if(window.parent===window || params.get('dv_embed')!=='1' || !/^\/checkout\/delta-vision\/?$/.test(location.pathname))return;
+  var origin=params.get('dv_parent_origin') || '';
+  if(!/^https:\/\/(www\.)?sonnycourt\.com$/.test(origin) && !/^https:\/\/[a-z0-9-]+--sonnycourt-recreation-totale\.netlify\.app$/.test(origin) && !/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))return;
+  document.documentElement.classList.add('dv-payment-embed');
+  var initialized=false, attempts=0;
+  function send(type,data){window.parent.postMessage(Object.assign({type:type},data),origin);}
+  function digits(value){return String(value || '').replace(/\D/g,'');}
+  function setup(){
+    if(initialized)return;
+    var root=document.querySelector('.checkout');
+    var first=document.getElementById('inputText-371787');
+    var email=document.getElementById('contactInfo-371781-email') || (root && root.querySelector('input[type=email]'));
+    var phone=document.getElementById('inputTel-371786') || (root && root.querySelector('input[type=tel]'));
+    var terms=document.getElementById('option-371788-0');
+    // Spiffy may restore a remembered email instead of the URL-prefilled identity.
+    // The current form is authoritative; synchronize ordinary contact fields only.
+    var corrected=false;
+    [[first,params.get('name_first')],[email,params.get('email')]].forEach(function(pair){
+      var field=pair[0],value=pair[1];
+      if(field && value && field.value.trim()!==value){
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(field,value);
+        field.dispatchEvent(new Event('input',{bubbles:true}));
+        field.dispatchEvent(new Event('change',{bubbles:true}));
+        corrected=true;
+      }
+    });
+    if(corrected){if(++attempts<150)setTimeout(setup,150);return;}
+    // Spiffy's international telephone widget does not always apply URL prefill.
+    // Feed its ordinary native input events; never access or emulate card inputs.
+    var expected=digits(params.get('phone_number')), actual=digits(phone && phone.value);
+    var phoneReady=actual.length>=8 && (actual===expected || expected.endsWith(actual.replace(/^0/,'')));
+    if(phone && !phoneReady && /^\+[1-9]\d{7,14}$/.test(params.get('phone_number') || '')){
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(phone,params.get('phone_number'));
+      phone.dispatchEvent(new Event('input',{bubbles:true}));
+      phone.dispatchEvent(new Event('change',{bubbles:true}));
+      if(++attempts<150)setTimeout(setup,150);return;
+    }
+    var ready=first && first.value.trim()===params.get('name_first') && email && email.value.trim().toLowerCase()===(params.get('email') || '').toLowerCase() && phoneReady;
+    var payment=root && root.querySelector('#paymentInfo-371783');
+    if(attempts===30)console.info('Delta Vision payment readiness',JSON.stringify({identityReady:!!ready,phoneReady:phoneReady,termsReady:!!terms,paymentReady:!!payment}));
+    if(!ready || !terms || !payment){if(++attempts<150)setTimeout(setup,150);return;}
+    initialized=true;
+    function decorate(){
+      [document.getElementById('inputText-371787'),document.getElementById('contactInfo-371781-email'),document.getElementById('inputTel-371786')].filter(Boolean).forEach(function(input){var section=input.closest('.section.block');if(section)section.setAttribute('data-dv-prefilled','true');});
+      var label=root.querySelector('.payment-type__label');
+      if(label && label.textContent!=='Carte bancaire')label.textContent='Carte bancaire';
+      var button=document.getElementById('checkoutButton-371784');
+      var text=button && button.querySelector('.btn-text');
+      if(text && text.textContent!=='Accéder à Delta Vision — 47 €')text.textContent='Accéder à Delta Vision — 47 €';
+    }
+    decorate();
+    new MutationObserver(decorate).observe(root,{childList:true,subtree:true});
+    function height(){send('dv:payment-height',{height:Math.ceil(root.getBoundingClientRect().bottom+window.scrollY+8)});}
+    console.info('Delta Vision payment ready');send('dv:payment-ready',{identityReady:true});height();
+    if(window.ResizeObserver)new ResizeObserver(height).observe(root);
+  }
+  if(window.checkout && typeof window.checkout.ready==='function')window.checkout.ready(setup);
+  else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
+<style>
+html.dv-payment-embed,.dv-payment-embed body{margin:0!important;padding:0!important;background:#faf7f0!important}
+.dv-payment-embed .checkout{color:#292a23!important;background:transparent!important;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important}
+.dv-payment-embed .checkout__container,.dv-payment-embed .checkout__body,.dv-payment-embed .checkout__inner,.dv-payment-embed .checkout__inner>.container{margin:0!important;padding:0!important;width:100%!important;max-width:none!important;background:transparent!important}
+.dv-payment-embed .checkout-form{width:100%!important;flex:0 0 100%!important;max-width:100%!important;padding:0!important}
+.dv-payment-embed .checkout__inner>.container>.row{margin:0!important}
+.dv-payment-embed .content-container,.dv-payment-embed .order-summary-mobile,.dv-payment-embed [data-dv-prefilled],.dv-payment-embed footer,.dv-payment-embed .payment-type__and-more{display:none!important}
+.dv-payment-embed .section.block{margin:0 0 14px!important}
+.dv-payment-embed .section.block>.card{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.dv-payment-embed .section__inner.card-body{padding:0!important;background:transparent!important}
+.dv-payment-embed .payment-gateway{border:1px solid #d5cdbe!important;border-radius:9px!important;background:#fffdf8!important}
+.dv-payment-embed .payment-type{border-color:#d5cdbe!important;color:#292a23!important;padding:14px!important;background:#fffdf8!important}
+.dv-payment-embed .payment-type__label{color:#292a23!important;font-weight:600!important}
+.dv-payment-embed .payment-type__icon,.dv-payment-embed .payment-gateway__secure{display:none!important}
+.dv-payment-embed .StripeElement{min-height:48px!important;border:1px solid #d5cdbe!important;border-radius:7px!important;padding:13px 10px!important;background:white!important}
+.dv-payment-embed .terms{color:#676153!important;font-size:12px!important;line-height:1.5!important}
+.dv-payment-embed .terms p{margin:0!important}.dv-payment-embed .terms a{color:#a94230!important;text-decoration:underline!important}
+.dv-payment-embed .btn--checkout{width:100%!important;min-height:56px!important;padding:16px!important;border:0!important;border-radius:9px!important;background:#b94d36!important;color:#fff9ee!important;font-size:16px!important;font-weight:600!important;line-height:1.4!important;white-space:normal!important}
+.dv-payment-embed .btn--checkout:hover{background:#a94230!important}
+.dv-payment-embed .invalid-feedback,.dv-payment-embed [role=alert]{color:#a12e23!important}
+</style>

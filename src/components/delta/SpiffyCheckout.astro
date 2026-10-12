@@ -1,0 +1,111 @@
+---
+import { getCountries, getCountryCallingCode } from 'libphonenumber-js/min';
+const countryNames = new Intl.DisplayNames(['fr'], { type:'region' });
+const preferredCountries = ['FR','CH','BE','CA','LU'];
+const countries = getCountries().map(code => ({code,name:countryNames.of(code) || code,dial:getCountryCallingCode(code),flag:[...code].map(char=>String.fromCodePoint(127397+char.charCodeAt(0))).join('')}));
+countries.sort((a,b)=>{
+  const ai=preferredCountries.indexOf(a.code),bi=preferredCountries.indexOf(b.code);
+  return ai>=0 || bi>=0 ? (ai<0?999:ai)-(bi<0?999:bi) : a.name.localeCompare(b.name,'fr');
+});
+---
+<dialog class="dv-checkout" aria-labelledby="dv-checkout-title" data-dv-checkout>
+  <button class="dv-close" type="button" aria-label="Fermer" data-dv-close>×</button>
+  <div class="dv-checkout-grid">
+    <div class="dv-checkout-main">
+      <p class="dv-wordmark">Delta Vision<span>UNE RESPIRATION. UN AUTRE HORIZON.</span></p>
+      <section data-dv-panel="identity">
+        <h2 id="dv-checkout-title" tabindex="-1">Commençons <em>par toi.</em></h2>
+        <form data-dv-identity>
+          <label for="dv-first-name">Ton prénom</label>
+          <input id="dv-first-name" name="firstName" autocomplete="given-name" placeholder="Prénom" required maxlength="100" />
+          <label for="dv-email">Ton adresse email</label>
+          <input id="dv-email" name="email" type="email" autocomplete="email" placeholder="toi@exemple.com" required maxlength="254" />
+          <div class="dv-honey" aria-hidden="true"><label for="dv-website">Site internet</label><input id="dv-website" name="website" tabindex="-1" autocomplete="off" /></div>
+          <p class="dv-error" data-dv-identity-error role="alert" hidden></p>
+          <button class="dv-next" type="submit">Continuer <span aria-hidden="true">→</span></button>
+          <p class="dv-privacy">Tes informations restent confidentielles. <a href="/confidentialite/" target="_blank" rel="noopener">Confidentialité</a></p>
+        </form>
+      </section>
+      <section data-dv-panel="phone" hidden inert>
+        <button type="button" class="dv-back" data-dv-back="identity">← Retour</button>
+        <h2 tabindex="-1">Restons <em>en contact.</em></h2>
+        <form data-dv-phone>
+          <label for="dv-phone">Ton numéro de téléphone</label>
+          <div class="dv-phone-row">
+            <div class="dv-phone-country">
+              <span class="dv-country-face" aria-hidden="true"><span data-dv-country-flag>🇫🇷</span><span data-dv-country-dial>+33</span><span class="dv-country-arrow">▾</span></span>
+              <select id="dv-phone-country" name="country" aria-label="Pays et indicatif téléphonique" autocomplete="country">
+                {countries.map(country=><option value={country.code} data-dial={country.dial} data-flag={country.flag} selected={country.code==='FR'}>{country.flag} {country.name} (+{country.dial})</option>)}
+              </select>
+            </div>
+            <input id="dv-phone" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" placeholder="Ton numéro" required maxlength="30" />
+          </div>
+          <p class="dv-hint">Tu peux changer le pays si nécessaire.</p>
+          <p class="dv-error" data-dv-phone-error role="alert" hidden></p>
+          <button class="dv-next" type="submit">Continuer <span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+      <section data-dv-panel="payment" hidden inert>
+        <button type="button" class="dv-back" data-dv-back="phone">← Retour</button>
+        <h2 tabindex="-1">Entre dans <em>l’expérience.</em></h2>
+        <div class="dv-order"><div>Delta Vision<span>Leçon théorique + séance guidée de 15 minutes</span></div><strong>47 €<small>Paiement unique</small></strong></div>
+        <div data-dv-payment-slot></div>
+      </section>
+    </div>
+    <aside class="dv-checkout-art" aria-label="L’univers Delta Vision">
+      <div class="dv-art-scene">
+        <img class="dv-art-poster" src="/media/pages/inspira-vsl-jungle-v2.webp" alt="Sonny dans la jungle, pour une séance Delta Vision" width="1600" height="900" loading="lazy" />
+        <img class="dv-art-vine dv-art-left" src="/media/pages/delta-jungle-wrap-v2.webp" alt="" width="933" height="1400" loading="lazy" />
+        <img class="dv-art-vine dv-art-right" src="/media/pages/delta-jungle-wrap-v2.webp" alt="" width="933" height="1400" loading="lazy" />
+        <img class="dv-art-canopy" src="/media/pages/delta-jungle-canopy-v1.webp" alt="" width="1200" height="800" loading="lazy" />
+      </div>
+      <p>Le souffle ouvre une faille.<br/><em>Ta vision prend vie.</em></p>
+    </aside>
+  </div>
+</dialog>
+<script>
+  import { initDeltaCheckout } from '../../lib/delta-vision-checkout.mjs';
+  initDeltaCheckout();
+</script>
+<style is:global>
+  .dv-checkout{--dv-ink:#292a23;--dv-clay:#b94d36;box-sizing:border-box;border:1px solid #e4dacb;border-radius:22px;padding:0;width:min(1100px,calc(100vw - 36px));max-height:calc(100dvh - 36px);color:var(--dv-ink);background:#faf7f0;overflow:auto;box-shadow:0 35px 120px #0e1a1470;font-family:inherit}
+  .dv-checkout::backdrop{background:#142018b0;backdrop-filter:blur(9px)}
+  body:has(.dv-checkout[open]){overflow:hidden}
+  .dv-checkout [hidden]{display:none!important}.dv-checkout *{box-sizing:border-box}
+  .dv-checkout-grid{display:grid;grid-template-columns:1fr 1fr;min-height:590px}
+  .dv-checkout-main{padding:42px 42px 32px;position:relative;z-index:2}
+  .dv-close{position:absolute;z-index:5;right:16px;top:13px;background:#faf7f0d9;border:1px solid #cfc7b6;border-radius:50%;width:36px;height:36px;font:26px/1 sans-serif;color:#393c30;cursor:pointer}
+  .dv-wordmark{font-size:23px;font-weight:650;letter-spacing:-.7px;margin:0 0 42px!important;color:var(--dv-ink)}
+  .dv-wordmark span{display:block;font-size:8px;letter-spacing:1.8px;font-weight:500;margin-top:7px;color:#807b6b}
+  .dv-checkout h2{font-size:38px!important;line-height:1.13!important;letter-spacing:-1.3px!important;margin:0 0 29px!important;color:var(--dv-ink)}
+  .dv-checkout h2 em{display:block;font-family:Georgia,serif;font-weight:400;color:var(--dv-clay)}
+  .dv-checkout label{display:block;font-size:14px;font-weight:550;margin:18px 0 8px}
+  .dv-checkout input{font-family:inherit;font-size:16px;line-height:1.4;width:100%;min-height:54px;padding:14px 16px;border:1px solid #d5cdbe;border-radius:9px;background:#fffdf8;color:var(--dv-ink);outline-offset:3px}
+  .dv-checkout input:focus-visible{outline:2px solid #b94d36}
+  .dv-phone-row{display:flex;align-items:stretch;border:1px solid #d5cdbe;border-radius:9px;background:#fffdf8}
+  .dv-phone-row #dv-phone{min-width:0;border:0;background:transparent;border-radius:0 9px 9px 0}
+  .dv-phone-country{position:relative;flex:0 0 110px;border-right:1px solid #ded6c9;background:#f2ecdf;border-radius:9px 0 0 9px}
+  .dv-country-face{height:100%;min-height:54px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600}
+  [data-dv-country-flag]{font-size:22px;line-height:1}.dv-country-arrow{font-size:11px;color:#81745e}
+  .dv-phone-country select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font:16px inherit}
+  .dv-phone-country:has(select:focus-visible){outline:2px solid #b94d36;outline-offset:3px}
+  .dv-checkout button{font-family:inherit}.dv-checkout button:focus-visible,.dv-checkout a:focus-visible{outline:2px solid #b94d36;outline-offset:4px}
+  .dv-next{width:100%;display:flex;justify-content:space-between;align-items:center;margin:24px 0 0;padding:17px 20px;border:0;border-radius:9px;background:var(--dv-clay);color:#fff9ee;font-size:16px;font-weight:600;cursor:pointer}
+  .dv-next:hover{background:#a94230}.dv-next:disabled{opacity:.6;cursor:wait}
+  .dv-privacy,.dv-hint{font-size:11px!important;line-height:1.6!important;color:#827d71;margin:13px 0 0!important}.dv-privacy a{color:inherit;text-decoration:underline}
+  .dv-back{border:0;background:none;color:#817967;padding:0;margin:-18px 0 20px;font-size:12px;cursor:pointer}
+  .dv-error{font-size:13px!important;line-height:1.5!important;color:#a12e23;margin:12px 0!important}
+  .dv-honey{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(100%)}
+  .dv-order{display:flex;justify-content:space-between;gap:16px;padding:16px 0;margin:-6px 0 22px;border-top:1px solid #ddd2c1;border-bottom:1px solid #ddd2c1;font-size:15px}
+  .dv-order span,.dv-order small{display:block;font-weight:400;font-size:10px;line-height:1.5;color:#807868;margin-top:6px}.dv-order strong{font-size:27px;white-space:nowrap;text-align:right}
+  .dv-payment-frame{width:100%;display:block;border:0;background:transparent}.dv-payment-status{font-size:14px!important;line-height:1.6!important;color:#746c5f}.dv-payment-status button{border:0;background:none;color:var(--dv-clay);text-decoration:underline;cursor:pointer}
+  .dv-checkout-art{min-width:0;background:radial-gradient(ellipse at 40% 36%,#e0dfc4,#eae8d8 55%,#f2ecde);display:flex;flex-direction:column;justify-content:center;padding:80px 48px 55px;overflow:hidden;position:relative;border-left:1px solid #ddd7c7}
+  .dv-art-scene{position:relative;isolation:isolate;margin:25px 0 45px;transform:rotate(-2deg)}
+  .dv-art-poster{position:relative;z-index:2;display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border-radius:13px;box-shadow:0 25px 50px -10px #263a2460}
+  .dv-art-vine{pointer-events:none;position:absolute;z-index:3;top:-12%;width:47%;height:auto;mask-image:linear-gradient(transparent 2%,#000 16%,#000 75%,transparent 98%)}
+  .dv-art-left{left:-16%}.dv-art-right{right:-16%;transform:scaleX(-1)}
+  .dv-art-canopy{position:absolute;z-index:4;width:61%;height:auto;right:-5%;top:-20%;transform:rotate(15deg);pointer-events:none}
+  .dv-checkout-art p{position:relative;z-index:4;text-align:center;font-size:18px!important;line-height:1.7!important;letter-spacing:-.3px;margin:0!important;color:#454b36}
+  .dv-checkout-art em{font:italic 25px/1.3 Georgia,serif;color:#816848}
+  @media(max-width:760px){.dv-checkout{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:16px}.dv-checkout-grid{grid-template-columns:1fr;min-height:0}.dv-checkout-main{padding:30px 25px}.dv-wordmark{margin-bottom:32px!important}.dv-checkout h2{font-size:34px!important}.dv-checkout-art{display:none}.dv-close{right:12px;top:12px}}
+</style>
