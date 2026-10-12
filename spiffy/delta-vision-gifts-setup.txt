@@ -1,0 +1,87 @@
+DELTA VISION — CADEAUX — ÉTAT DE PRÉPARATION (12 octobre 2026)
+
+NON ACTIVÉ. Aucun paiement réel, email ou accès Circle de test déclenché.
+Checkout Spiffy 41041, produit 12018, brouillon.
+Éditeur : https://app.spiffy.co/checkouts/edit/41041/editor
+URL cible : https://sonnycourt.spiffy.co/checkout/delta-vision-cadeaux
+Packs radio natifs : produit de base 47 EUR ; option 1 sans supplément,
+option 3 +34 EUR ; option 5 +38 EUR. Totaux attendus 47 / 81 / 85 EUR.
+
+Préparé localement :
+- SQL isolé dv_gift_* ; quotas, idempotence, RLS, file de jobs.
+- Webhook dédié de paiement, gestion de destinataires par lien signé.
+- Invitation et récupération du lien ; aucun rattachement par email seul.
+- Activation Circle limitée aux identifiants explicitement configurés.
+- Page /delta-vision-cadeaux/ pour distribuer les cadeaux.
+- Reconnaissance dans le popup Delta Vision avant MailerLite / téléphone.
+- Tests locaux réels du SQL (PGlite), tests métier et build Astro passent.
+
+À terminer avant activation :
+1. Sonny exécute sql/delta_vision_gifts.sql et confirme delta_gifts_ready=true.
+2. Ludovic crée le groupe Delta Vision et les espaces théorie/séance.
+   Vérifier les IDs, la restriction d'accès, l'absence d'ES2 dans les accès
+   automatiques par défaut ; valider le retour API Circle réel en lecture seule.
+3. Relecture et approbation des 2 emails ci-dessous + invitation native Circle.
+4. Finaliser le checkout brouillon (français, présentation des prix, CGV,
+   redirection /delta-vision-cadeaux/, collecte minimale, pas de quantité,
+   coupons ni abonnement), et son automation native Purchase dédiée.
+   Vérifier le contrat order_total sur un payload de test authentifié :
+   DELTA_GIFTS_AMOUNT_UNIT=major ou minor. Ne pas traiter le payload de test
+   comme un vrai achat : aucun crédit/email ne doit en découler.
+5. Configurer les secrets et IDs ci-dessous, vérifier les tests d'intégration
+   avec des données fictives locales ; vérifier bureau/mobile et preview.
+6. Brancher les CTA du landing avec sélection du pack, publier via le sas
+   seulement depuis main propre=synchronisé. Publier Spiffy ensuite lorsque
+   l'ensemble est prêt. Effectuer un achat contrôlé seulement avec accord
+   explicite de Sonny (y compris emails de test).
+
+Env serveur uniquement (aucune valeur de secret dans ce document) :
+DELTA_GIFTS_ENABLED=false jusqu'à activation complète
+DELTA_GIFTS_EMAILS_APPROVED=false jusqu'à validation des textes
+DELTA_GIFTS_CIRCLE_APPROVED=false jusqu'à validation du périmètre et invitation
+DELTA_GIFTS_SIGNING_KEY (aléatoire >=48 caractères)
+DELTA_GIFTS_WEBHOOK_TOKEN (aléatoire différent >=48 caractères)
+DELTA_GIFTS_CHECKOUT_ID=41041
+DELTA_GIFTS_AMOUNT_UNIT (major/minor après vérification)
+DELTA_GIFTS_EMAIL_FROM (expéditeur transactionnel vérifié)
+DELTA_GIFTS_CIRCLE_GROUP_ID ; DELTA_GIFTS_CIRCLE_SPACE_IDS (liste IDs virgules)
+DELTA_GIFTS_ACCESS_URL (sur CIRCLE_COMMUNITY_HOST)
+Réutilisation : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+CIRCLE_ADMIN_API_TOKEN, CIRCLE_COMMUNITY_HOST, MAILERSEND_API_KEY.
+
+Nouveaux emails — BROUILLONS À VALIDER, aucun envoi :
+
+A. Après achat / récupération du lien propriétaire
+Objet : Tes cadeaux Delta Vision sont prêts
+Bonjour {prénom},
+Merci pour ton achat. Tu disposes de {nombre} cadeaux Delta Vision à offrir.
+Choisis les personnes à qui tu veux faire découvrir cette expérience.
+Tu peux renseigner leurs emails maintenant ou revenir plus tard.
+[Distribuer mes cadeaux — lien personnel]
+À très vite,
+Sonny
+Ce lien est personnel. Si tu n'es pas à l'origine de cet achat, tu peux ignorer cet email.
+
+B. Invitation bénéficiaire / récupération de son lien d'activation
+Objet : Une expérience Delta Vision t’a été offerte
+Bonjour,
+{Prénom de l'acheteur} t’offre Delta Vision : une leçon pour découvrir la méthode
+et une vidéo guidée de 15 minutes pour vivre l’expérience.
+Découvre la présentation, puis active ton cadeau avec cette adresse email.
+Ton accès est déjà payé : aucune carte bancaire ne te sera demandée.
+[Découvrir mon cadeau — lien personnel]
+À très vite,
+Sonny
+Ce lien est personnel. Si ce cadeau ne te concerne pas, tu peux ignorer cet email.
+
+C. Circle : une invitation native de la communauté est nécessaire pour les
+nouveaux membres. Son contenu exact n'a pas encore été inspecté ni approuvé.
+Elle ne doit pas être envoyée avant validation. Aucun email de test autorisé.
+
+Limites explicites avant mise en production :
+- Les remboursements/révocations ne sont pas automatisés ; prévoir la procédure
+  de révocation et vérifier qu'aucun accès actif ne survit à une révocation voulue.
+- Un email dont l'envoi a un résultat réseau incertain passe en revue manuelle
+  (dv_gift_jobs.state=failed), pour ne pas doubler aveuglément les invitations.
+- La page cadeau publiée reste la maquette ; les nouvelles fonctions et écrans
+  de cette branche ne sont pas encore publiés.

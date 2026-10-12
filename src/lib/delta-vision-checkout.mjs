@@ -1,4 +1,5 @@
 import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
+import { initGiftRecognition } from './delta-gifts-client.mjs';
 
 export const DELTA_SPIFFY_ORIGIN = 'https://sonnycourt.spiffy.co';
 export function normalizeDeltaPhone(value, country) {
@@ -127,6 +128,7 @@ export function initDeltaCheckout(doc = document) {
     const title = panel.querySelector('h2'); if (name !== 'identity') title.id = `dv-title-${name}`;
     dialog.scrollTop = 0; title.focus({preventScroll:true});
   };
+  const recognizeGift=initGiftRecognition(dialog,show,{view:doc.defaultView});
   doc.querySelectorAll('a[href^="https://sonnycourt.spiffy.co/checkout/delta-vision"]').forEach(link => {
     link.setAttribute('aria-haspopup','dialog');
     link.addEventListener('click',event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); opener=link; dialog.showModal();detectCountry(); });
@@ -151,6 +153,11 @@ export function initDeltaCheckout(doc = document) {
     const data = new FormData(identityForm);
     const candidate = {firstName:String(data.get('firstName')).trim(),email:String(data.get('email')).trim().toLowerCase(),website:String(data.get('website') || '')};
     if (!candidate.firstName) {identityForm.elements.firstName.focus();return;}
+    const error=dialog.querySelector('[data-dv-identity-error]'),button=identityForm.querySelector('[type=submit]');
+    busy=true;button.disabled=true;error.hidden=true;
+    try{if(await recognizeGift(candidate))return;}
+    catch{error.textContent='La vérification de ton accès n’a pas abouti. Réessaie dans quelques instants ou utilise le lien personnel de ton cadeau.';error.hidden=false;return;}
+    finally{busy=false;button.disabled=false;}
     if (await save(identityForm,candidate,dialog.querySelector('[data-dv-identity-error]'))) {identity=candidate;show('phone');}
   });
   phoneForm.addEventListener('submit',async event => {
