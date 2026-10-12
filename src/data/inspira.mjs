@@ -3,8 +3,8 @@
 export const inspira = Object.freeze({
   presentationVideoUrl: '',
   presentationPosterUrl: '/media/pages/inspira-vsl-jungle-v2.webp',
-  price: 27,
-  referencePrice: 97,
+  price: 47,
+  referencePrice: 147,
   title: 'Delta Vision — Respire. Visualise. Intègre.',
   description: 'Une expérience guidée qui réunit le souffle et la visualisation. Fais de la place au calme, à la clarté et à un nouvel élan.',
 });
@@ -18,4 +18,3 @@ export function inspiraEmbedUrl(raw = '') {
   }
   return `https://player.mediadelivery.net/embed/${match[1]}/${match[2]}?autoplay=true&preload=true&responsive=true`;
 }
-
