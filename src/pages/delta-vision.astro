@@ -1,0 +1,401 @@
+---
+import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
+import JungleStage from '../components/delta/JungleStage.astro';
+const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
+const intentions = [
+  { number: 'Jour 1', title: 'Tes premiers ressentis.', text: 'Après la séance, prends un instant pour observer : ton corps, ton souffle, ton état intérieur. Qu’est-ce qui est différent, ici et maintenant ?', icon: 'waves' },
+  { number: 'Jour 2', title: 'Retrouver cet espace.', text: 'Reviens à la pratique et retrouve tes repères. Explore ce moment où les pensées peuvent laisser davantage de place aux sensations.', icon: 'waves' },
+  { number: 'Jour 3', title: 'Rendre ta vision vivante.', text: 'Porte ton attention sur ce que ton souhait te fait ressentir. Moins chercher l’image parfaite. Plus laisser venir l’émotion.', icon: 'sun' },
+  { number: 'Jour 4', title: 'Écouter ce qui compte.', text: 'Après la séance, demande-toi ce que tu souhaites vraiment cultiver. Fais une place à une intention plus claire pour ta journée.', icon: 'sun' },
+  { number: 'Jour 5', title: 'Du ressenti à l’action.', text: 'Choisis un petit geste cohérent avec ta vision. Une décision, une conversation, un premier pas : donne une suite concrète à ton expérience.', icon: 'arrow' },
+  { number: 'Jour 6', title: 'Ton rendez-vous avec toi.', text: 'Observe la place que prend ce rituel dans tes journées. Qu’as-tu envie de garder dans ton énergie, ton attention et ta façon d’agir ?', icon: 'waves' },
+  { number: 'Jour 7', title: 'Mesurer ton chemin.', text: 'Repense à ton premier jour. Énergie, clarté, optimisme : qu’as-tu remarqué ? Identifie ce qui t’aide et ce que tu veux continuer à explorer.', icon: 'sun' },
+];
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={inspira.description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#faf8f4" />
+    <meta property="og:title" content={inspira.title} />
+    <meta property="og:description" content={inspira.description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="canonical" href="https://sonnycourt.com/delta-vision/" />
+    <title>{inspira.title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenu">Aller au contenu</a>
+    <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="delta-vision-mark" viewBox="0 0 48 48">
+        <path d="M32 19 24 5 4 40h40l-6-10" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="m25 18 2.4 6.6L34 27l-6.6 2.4L25 36l-2.4-6.6L16 27l6.6-2.4Z" fill="currentColor" />
+      </symbol>
+      <symbol id="inspira-sun" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="5" fill="currentColor" />
+        {Array.from({ length: 12 }, (_, i) => <path d="M20 3v7" transform={`rotate(${i * 30} 20 20)`} stroke="currentColor" stroke-width="2" stroke-linecap="round" />)}
+      </symbol>
+      <symbol id="inspira-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="inspira-waves" viewBox="0 0 40 40"><path d="M3 14c6-12 12 12 18 0S32 2 37 14M3 22c6-12 12 12 18 0s11-12 16 0M3 30c6-12 12 12 18 0s11-12 16 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></symbol>
+      <symbol id="inspira-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7V5Z" fill="currentColor" /></symbol>
+    </svg>
+
+    <header class="site-header wrap">
+      <a class="wordmark" href="#" aria-label="Delta Vision, accueil"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a>
+      <nav aria-label="Navigation principale">
+        <a class="nav-link" href="#methode">La méthode</a>
+        <a class="nav-link" href="#ressentir">L’expérience</a>
+        <a class="nav-cta" href="#presentation"><span>Découvrir<span class="nav-product-name"> Delta Vision</span></span> <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+      </nav>
+    </header>
+
+    <main id="contenu">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-ambient" aria-hidden="true"></div>
+        <p class="eyebrow hero-eyebrow"><span></span> Effets ressentis dès la première session guidée.</p>
+        <h1 id="hero-title">15 minutes pour transformer ton état intérieur <em>et attirer ce que tu veux vraiment.</em></h1>
+        <p class="hero-subtitle">La nouvelle méthode qui combine respiration et visualisation pour changer d'état intérieur et transformer sa vie.</p>
+      </section>
+
+      <section class="presentation wrap" id="presentation" aria-label="Présentation vidéo de Delta Vision">
+        <JungleStage videoAvailable={Boolean(videoUrl)}>
+        <div class="video-poster" data-inspira-video data-video-url={videoUrl || undefined}>
+          <img class="video-thumbnail" src={inspira.presentationPosterUrl} width="1672" height="941" alt="Sonny Court en méditation au cœur d’une jungle baignée de brume et de lumière dorée" fetchpriority="high" />
+            <button class="video-play" type="button" data-video-play aria-label="Lire la présentation de Delta Vision">
+              <span class="video-play-disc"><svg aria-hidden="true"><use href="#inspira-play" /></svg></span>
+            </button>
+        </div>
+        </JungleStage>
+        <div class="price-card" aria-label="Le prix de Delta Vision">
+          <p class="price-eyebrow">OFFRE DÉCOUVERTE</p>
+          <div class="price-amounts">
+            <span class="price-before">Au lieu de <del>{inspira.referencePrice} €</del></span>
+            <strong class="price-current">{inspira.price}<span>€</span></strong>
+          </div>
+          <p class="price-saving">{inspira.referencePrice - inspira.price} € d’économie</p>
+          <a class="button button-coral" href="#presentation">Découvrir Delta Vision <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+        </div>
+      </section>
+
+      <section class="origin-story wrap section-space" id="histoire" aria-labelledby="story-title">
+        <div class="story-copy">
+          <p class="eyebrow">POURQUOI J’AI CRÉÉ DELTA VISION</p>
+          <h2 id="story-title">La méthode Wim Hof <br /><em>ne suffit pas.</em></h2>
+          <p>Ça fait plus de dix ans que je pratique la méthode Wim Hof. Elle m’a aidé à apaiser certains états anxieux, à relâcher la pression, à retrouver du calme. Et pour ça, elle a eu une vraie place dans ma vie.</p>
+          <p>Mais il me manquait quelque chose. Je me sentais mieux... sur le moment. Sauf que je ne voulais plus seulement soulager mon anxiété. <strong>Je voulais que ma vie change !</strong></p>
+          <p>Alors j’ai commencé à intégrer la visualisation à des moments précis d’une respiration inspirée de la méthode Wim Hof.</p>
+          <p><strong>Delta Vision est né le jour où j’ai trouvé quand et comment le faire.</strong></p>
+          <p>À ces instants, j’ai senti mes visualisations s’imprimer directement dans mon subconscient. Je ne ressentais pas juste moins d’anxiété pendant cinq minutes : je me sentais profondément aligné. Et surtout, <strong>j’avais le sentiment d’être guidé par le futur que je venais de vivre dans ces états de conscience altérés.</strong></p>
+          <p>En rouvrant les yeux, j’avais la solution d’un problème qui me pesait depuis des mois.</p>
+          <p>Cette pratique a entièrement remplacé mon rituel Wim Hof. <strong>Je ne reviendrai pas en arrière. Et je pense que toi non plus, une fois que tu l’auras essayée.</strong></p>
+        </div>
+        <aside class="morning-routine" aria-labelledby="routine-title">
+          <svg class="routine-sun" aria-hidden="true"><use href="#inspira-sun" /></svg>
+          <p class="eyebrow">AVANT QUE LA JOURNÉE T’EMPORTE</p>
+          <h3 id="routine-title">Ta nouvelle <br /><em>routine du matin.</em></h3>
+          <div class="routine-duration"><strong>15</strong><span>minutes<br />avant tout le reste</span></div>
+          <ol class="routine-steps">
+            <li><span class="routine-step-number" aria-hidden="true">1</span><span>Tu lances la séance.</span></li>
+            <li><span class="routine-step-number" aria-hidden="true">2</span><span>Tu te laisses guider.</span></li>
+            <li><span class="routine-step-number" aria-hidden="true">3</span><span>Tu vis ton souhait réalisé.</span></li>
+          </ol>
+          <p class="routine-closing">Plus besoin d’y croire : tu l’as vécu. Et depuis là, chaque action devient évidente.</p>
+        </aside>
+      </section>
+
+      <section class="benefits wrap section-space" id="ressentir" aria-labelledby="benefits-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">CE QUE TU REÇOIS AVEC DELTA VISION</p><h2 id="benefits-title">Comprendre la méthode.<br /><em>Puis la vivre.</em></h2></div>
+        </div>
+        <div class="program-grid">
+          <article class="program-card">
+            <img class="program-image" src="/media/pages/souffle-createur-theorie.webp" width="1672" height="941" loading="lazy" alt="Sonny Court explique la méthode devant un tableau de schémas, dans une jungle baignée de lumière dorée" />
+            <div class="program-copy">
+              <p class="eyebrow">01 · LA LEÇON THÉORIQUE</p>
+              <h3>Le pourquoi.<br /><em>Le comment. Le déclic.</em></h3>
+              <p>Ne te contente pas de suivre une séance. Découvre la logique de Delta Vision et ce qui rend cette association du souffle et de la visualisation différente.</p>
+              <ul><li>Le rôle de la respiration, de l’attention et des images mentales dans la pratique.</li><li>Pourquoi la méthode place la visualisation à des moments précis de la respiration.</li><li>Comment préparer ton souhait et pratiquer avec les bons repères et les précautions essentielles.</li></ul>
+              <p class="program-takeaway">Tu comprends ce que tu fais, pourquoi tu le fais et comment entrer dans l’expérience.</p>
+            </div>
+          </article>
+          <article class="program-card">
+            <img class="program-image" src="/media/pages/souffle-createur-seance.webp" width="1672" height="941" loading="lazy" alt="Une personne suit la séance guidée depuis son canapé, avec Sonny Court en méditation dans la jungle sur sa télévision" />
+            <div class="program-copy">
+              <p class="eyebrow">02 · TA SÉANCE GUIDÉE DE 15 MINUTES</p>
+              <h3>Tu lances la séance.<br /><em>Tu te laisses guider.</em></h3>
+              <p>Installe-toi, mets le quotidien sur pause et suis ma voix. Je t’accompagne dans la respiration, puis dans la visualisation de ton souhait aux moments prévus par la méthode.</p>
+              <ul><li>Un guidage pas à pas : tu n’as pas à mémoriser l’enchaînement.</li><li>Un temps pour explorer les sensations et les émotions de ton souhait réalisé.</li><li>Un retour progressif à l’instant présent, pour accueillir ce que tu viens de vivre.</li></ul>
+              <p class="program-takeaway">C’est cette même séance que tu retrouves chaque jour : ton rituel de 15 minutes, à ton rythme.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="method-section" id="methode" aria-labelledby="method-title">
+        <div class="method-triangle-inner wrap">
+          <div class="triangle-heading">
+            <p class="eyebrow">LE CŒUR DE DELTA VISION</p>
+            <h2 id="method-title">La respiration ouvre une faille. <br /><em>Ta vision atteint ton subconscient.</em></h2>
+          </div>
+          <div class="triangle-experience">
+            <div class="triangle-art" aria-hidden="true">
+              <svg viewBox="0 0 600 540" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="triangle-gold" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#936338" /><stop offset=".22" stop-color="#ecd3a5" /><stop offset=".4" stop-color="#fff9e8" /><stop offset=".54" stop-color="#b98c54" /><stop offset=".72" stop-color="#e6c692" /><stop offset=".9" stop-color="#936638" /><stop offset="1" stop-color="#f2dfbb" />
+                  </linearGradient>
+                  <linearGradient id="triangle-light" x1="1" y1="0" x2="0" y2="1">
+                    <stop stop-color="#fffdf4" /><stop offset=".48" stop-color="#e2c391" /><stop offset="1" stop-color="#a77847" />
+                  </linearGradient>
+                  <radialGradient id="triangle-aura"><stop stop-color="#fffdf4" stop-opacity=".95" /><stop offset=".55" stop-color="#f0d5a0" stop-opacity=".22" /><stop offset="1" stop-color="#e6c185" stop-opacity="0" /></radialGradient>
+                  <filter id="triangle-depth" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="15" flood-color="#705037" flood-opacity=".17" /></filter>
+                  <filter id="triangle-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="6" /></filter>
+                  <path id="triangle-contour" d="M286 67 Q300 43 314 67 L549 458 Q563 482 535 482 H65 Q37 482 51 458 Z" />
+                </defs>
+                <ellipse cx="300" cy="299" rx="294" ry="245" fill="url(#triangle-aura)" />
+                <path d="M300 20 580 504H20Z" fill="none" stroke="#b9946433" stroke-width="1" />
+                <g class="triangle-ribbon" filter="url(#triangle-depth)">
+                  {Array.from({ length: 13 }, (_, i) => <use href="#triangle-contour" transform={`translate(300 302) scale(${1 - i * .024}) translate(-300 -302)`} fill="none" stroke={i % 2 === 0 ? 'url(#triangle-gold)' : 'url(#triangle-light)'} stroke-width={i % 2 === 0 ? 7 : 3} stroke-linejoin="round" />)}
+                </g>
+                <g fill="#fff8e4" filter="url(#triangle-glow)"><circle cx="300" cy="58" r="10" /><circle cx="53" cy="474" r="10" /><circle cx="547" cy="474" r="10" /></g>
+                <g fill="#fffdf3" stroke="#c6a36b" stroke-width="1.4"><circle cx="300" cy="58" r="5" /><circle cx="53" cy="474" r="5" /><circle cx="547" cy="474" r="5" /></g>
+              </svg>
+              <div class="triangle-center"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span>Delta<br /><em>Vision</em></span><small>DE L’IMAGE À LA SENSATION</small></div>
+            </div>
+            <article class="triangle-node node-breath">
+              <span class="node-label">OUVRIR L’ESPACE</span>
+              <h3>Respiration <em>intense</em></h3>
+              <p>La respiration t’invite à quitter le flux habituel des pensées et à explorer un état de conscience alterné.</p>
+            </article>
+            <article class="triangle-node node-vision">
+              <span class="node-label">VIVRE TON SOUHAIT</span>
+              <h3>Visualisation <em>vivide</em></h3>
+              <p>Quand le mental s’apaise, explore ta scène avec moins de jugement. Ses détails, ses sensations, son émotion. Comme si tu y étais déjà.</p>
+            </article>
+            <article class="triangle-node node-integration">
+              <span class="node-label">LAISSER SE DÉPOSER</span>
+              <h3>Intégration <em>naturelle</em></h3>
+              <p>Sans forcer ni tout analyser, laisse les images et les émotions résonner en profondeur. L’intention : ne plus seulement penser ton souhait, mais lui faire une place en toi.</p>
+            </article>
+          </div>
+          <p class="triangle-mantra">Moins de contrôle. Plus de ressenti. <em>Une expérience transcendante.</em></p>
+        </div>
+      </section>
+
+      <section class="science wrap section-space" id="science" aria-labelledby="science-title">
+        <header class="science-heading">
+          <h2 id="science-title">La science derrière<br /><em>Delta-Vision</em></h2>
+        </header>
+        <div class="science-flow">
+          <article class="science-step">
+            <span class="science-number" aria-hidden="true">01</span>
+            <div class="science-copy">
+              <h3>Ta respiration change tes ondes cérébrales.</h3>
+              <p>Depuis près d'un siècle, les neurologues utilisent la respiration rapide pendant les examens EEG.</p>
+              <p>Elle fait chuter le CO2 dans le sang et ralentit l'activité du cerveau vers les <strong>ondes thêta et delta</strong>, les plus lentes.</p>
+              <p>Dans une étude, une hyperventilation soutenue a multiplié la puissance des ondes thêta par <strong>plus de 7</strong>, et celle des ondes delta par <strong>près de 13</strong>.</p>
+              <figure class="eeg-evidence" aria-labelledby="eeg-title">
+                <div class="eeg-heading"><span>MESURÉ PAR EEG</span><span>ÉTUDE PUBLIÉE · 1998</span></div>
+                <h4 id="eeg-title">Puissance des ondes cérébrales</h4>
+                <div class="eeg-context">20 volontaires sains · Hyperventilation contrôlée</div>
+                <div class="eeg-charts">
+                  <div class="eeg-chart" aria-label="Thêta : référence 1, hyperventilation contrôlée 7,6. Échelle commune de 0 à 13.">
+                    <div class="eeg-result"><span>Thêta</span><strong>× 7,6</strong></div>
+                    <div class="eeg-bar-label"><span>Référence</span><span>1</span></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar eeg-bar--reference" style="width:7.6923077%"></span></div>
+                    <div class="eeg-bar-label"><span>Hyperventilation contrôlée</span><span>7,6</span></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar" style="width:58.4615385%"></span></div>
+                  </div>
+                  <div class="eeg-chart" aria-label="Delta : référence 1, hyperventilation contrôlée 12,9. Échelle commune de 0 à 13.">
+                    <div class="eeg-result"><span>Delta</span><strong>× 12,9</strong></div>
+                    <div class="eeg-bar-label"><span>Référence</span><span>1</span></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar eeg-bar--reference" style="width:7.6923077%"></span></div>
+                    <div class="eeg-bar-label"><span>Hyperventilation contrôlée</span><span>12,9</span></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar" style="width:99.2307692%"></span></div>
+                  </div>
+                </div>
+                <div class="eeg-scale">Puissance spectrale moyenne relative · Référence = 1 · Même échelle de 0 à 13</div>
+                <figcaption>
+                  <a href="https://pubmed.ncbi.nlm.nih.gov/9881925/" target="_blank" rel="noopener noreferrer">Consulter l’étude <span aria-hidden="true">↗</span></a>
+                  <span>Zwiener et al. · Journal of Clinical Neurophysiology</span>
+                  <span>Graphique recréé à partir des résultats publiés. Résultats de ce protocole expérimental, pas une mesure de l’efficacité de Delta Vision.</span>
+                </figcaption>
+              </figure>
+            </div>
+          </article>
+          <article class="science-step">
+            <span class="science-number" aria-hidden="true">02</span>
+            <div class="science-copy">
+              <h3>Ces états ralentis sont une porte ouverte vers ton subconscient.</h3>
+              <p>En 2021, des chercheurs de l'Institut du Cerveau à Paris ont étudié la phase qui précède l'endormissement, dominée par les ondes thêta.</p>
+              <p>Les participants qui y passaient <strong>au moins 15 secondes</strong> avaient trois fois plus de chances de trouver la solution cachée d'un problème : <strong>83 % contre 30 %.</strong></p>
+              <figure class="eeg-evidence insight-evidence" aria-labelledby="insight-title">
+                <div class="eeg-heading"><span>SOMMEIL &amp; CRÉATIVITÉ</span><span>ÉTUDE PUBLIÉE · 2021</span></div>
+                <h4 id="insight-title">Trouver la règle cachée</h4>
+                <div class="eeg-context">Part des participants ayant découvert le raccourci d’un exercice mathématique après une pause.</div>
+                <div class="insight-comparison">
+                  <div class="insight-row" aria-label="Début d’endormissement, stade N1 : 83 pour cent ont découvert la règle cachée.">
+                    <div class="insight-label"><span>Début d’endormissement<small>Au moins 15 secondes en stade N1</small></span><strong>83<span>%</span></strong></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar" style="width:83%"></span></div>
+                  </div>
+                  <div class="insight-row insight-row--awake" aria-label="Participants restés éveillés : 30 pour cent ont découvert la règle cachée.">
+                    <div class="insight-label"><span>Restés éveillés<small>Pendant la même période de repos</small></span><strong>30<span>%</span></strong></div>
+                    <div class="eeg-track" aria-hidden="true"><span class="eeg-bar eeg-bar--reference" style="width:30%"></span></div>
+                  </div>
+                </div>
+                <div class="insight-scale" aria-hidden="true"><span>0 %</span><span>50 %</span><span>100 %</span></div>
+                <figcaption>
+                  <a href="https://pubmed.ncbi.nlm.nih.gov/34878849/" target="_blank" rel="noopener noreferrer">Consulter l’étude <span aria-hidden="true">↗</span></a>
+                  <span>Lacaux et al. · Science Advances · Institut du Cerveau</span>
+                  <span>Graphique recréé à partir des résultats publiés. Étude sur l’endormissement et la résolution de problèmes, pas sur l’efficacité de Delta Vision. Le bénéfice disparaissait en sommeil plus profond.</span>
+                </figcaption>
+              </figure>
+            </div>
+          </article>
+          <article class="science-step science-step--pause">
+            <span class="science-number" aria-hidden="true">03</span>
+            <div class="science-copy">
+              <h3>Le problème : dans cet état, tu ne contrôles rien.</h3>
+              <p>Tes pensées dérivent toutes seules.<br />Et quelques secondes plus tard, tu dors.</p>
+            </div>
+          </article>
+          <article class="science-step science-step--solution">
+            <span class="science-number" aria-hidden="true">04</span>
+            <div class="science-copy">
+              <h3>La solution : <em>Delta-Vision.</em></h3>
+              <p>La méthode augmente tes ondes thêta et delta et met ton mental critique en veille, <strong>sans que tu perdes conscience.</strong></p>
+              <p>Tu restes guidé, présent, capable de vivre ton souhait comme s'il était déjà réalisé.</p>
+              <p>C'est dans cet état que ta visualisation a le plus de chances de <strong>s'imprimer profondément dans ton subconscient.</strong></p>
+              <p>Et dès l'instant où ton subconscient accepte ces informations comme vraies, il se met à orienter tes perceptions, tes émotions et tes actions comme si c'était déjà la réalité, jusqu'à ce que ta vie s'aligne sur cette nouvelle vérité.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="closing wrap section-space" id="tarif" aria-labelledby="closing-title">
+        <svg class="closing-sun" aria-hidden="true"><use href="#delta-vision-mark" /></svg>
+        <h2 id="closing-title">Prends une grande inspiration<br /><em>et commence maintenant.</em></h2>
+        <div class="price-card" aria-label="Le prix de Delta Vision">
+          <p class="price-eyebrow">OFFRE DÉCOUVERTE</p>
+          <div class="price-amounts">
+            <span class="price-before">Au lieu de <del>{inspira.referencePrice} €</del></span>
+            <strong class="price-current">{inspira.price}<span>€</span></strong>
+          </div>
+          <p class="price-saving">{inspira.referencePrice - inspira.price} € d’économie</p>
+          <a class="button button-coral" href="#presentation">Découvrir Delta Vision <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+        </div>
+      </section>
+
+      <aside class="practice-note wrap" aria-label="Informations sur la pratique">
+        <details><summary><span>Une expérience personnelle, à pratiquer avec attention.</span><span class="detail-toggle" aria-hidden="true">+</span></summary>
+          <div><p>Les sensations varient d’une personne à l’autre. Delta Vision est une démarche de bien-être et de visualisation, pas un traitement médical ni une garantie de résultat.</p><p>Ne force jamais ta respiration ni une rétention. Les exercices respiratoires intenses peuvent provoquer des vertiges ou une perte de connaissance : ne les pratique jamais dans l’eau, au volant ou debout. En cas de grossesse, de problème de santé ou de doute, demande un avis médical avant de pratiquer.</p></div>
+        </details>
+      </aside>
+    </main>
+
+    <footer class="site-footer wrap"><a class="wordmark" href="#" aria-label="Delta Vision, retour en haut"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a><span>UNE CRÉATION SONNY COURT</span><a href="/pages-legales/">Informations légales <span aria-hidden="true">↗</span></a></footer>
+
+    <script>
+      document.querySelectorAll<HTMLElement>('[data-inspira-video]').forEach(player => {
+        player.querySelector<HTMLButtonElement>('[data-video-play]')?.addEventListener('click', () => {
+          if (!player.dataset.videoUrl) return;
+          const frame = document.createElement('iframe');
+          frame.src = player.dataset.videoUrl;
+          frame.title = 'Présentation de la méthode Delta Vision';
+          frame.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
+          frame.allowFullscreen = true;
+          player.replaceChildren(frame);
+          frame.focus();
+        }, { once: true });
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  @font-face{font-family:Delta Vision Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+  :root{--paper:#faf8f4;--ink:#292923;--muted:#77756d;--coral:#b34f39;--line:#e4dfd7;--serif:Georgia,'Times New Roman',serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:32px}body{margin:0;background:var(--paper);color:var(--ink);font-family:'Delta Vision Inter',Arial,sans-serif;-webkit-font-smoothing:antialiased}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--coral);outline-offset:6px}svg{display:block;flex-shrink:0}p,h1,h2,h3{margin:0}em{font-family:var(--serif);font-weight:400}::selection{background:#f0c9b6;color:#292923}.wrap{width:min(1160px,calc(100% - 88px));margin-inline:auto}.svg-library{position:absolute;width:0;height:0;overflow:hidden}.skip-link{position:fixed;top:-80px;left:20px;background:var(--ink);color:white;padding:14px;z-index:20}.skip-link:focus{top:10px}
+  .site-header{display:flex;align-items:center;justify-content:space-between;height:108px;border-bottom:1px solid var(--line)}.wordmark{display:flex;align-items:center;font-size:34px;font-weight:600;letter-spacing:-1.7px}.wordmark svg{width:37px;height:37px;color:var(--coral);margin-right:10px}.wordmark-dot{color:var(--coral)}.site-header nav{display:flex;align-items:center;gap:35px;font-size:12px;font-weight:500}.nav-link{position:relative}.nav-link:after{content:'';position:absolute;bottom:-6px;left:0;right:100%;height:1px;background:var(--coral);transition:right .2s}.nav-link:hover:after{right:0}.nav-cta{display:flex;align-items:center;gap:20px;padding:13px 19px;border:1px solid #d6d1c7;border-radius:100px;transition:background .2s}.nav-cta:hover{background:#efeae1}.nav-cta svg{width:18px;height:18px}
+  .hero{position:relative;text-align:center;padding:61px 0 0;isolation:isolate}.hero-ambient{position:absolute;z-index:-1;width:530px;height:470px;max-width:100%;left:50%;top:5px;transform:translateX(-50%);background:radial-gradient(ellipse,#f4ddcc66,transparent 70%);pointer-events:none}.eyebrow{font-size:10px;font-weight:600;letter-spacing:1.8px;line-height:1.7;color:var(--muted)}.hero-eyebrow{display:flex;align-items:center;justify-content:center;gap:10px}.hero-eyebrow span{width:6px;height:6px;background:var(--coral);border-radius:50%}.hero h1{max-width:1040px;font-size:clamp(36px,5.15vw,70px);line-height:1.1;letter-spacing:-2.7px;font-weight:500;margin:25px auto 23px;text-wrap:balance}.hero h1 em{display:block;color:var(--coral);font-size:1.04em;letter-spacing:-2px}.hero-subtitle{font-size:15px;line-height:1.9;color:#706e66}.button{display:inline-flex;align-items:center;justify-content:center;gap:28px;border-radius:100px;min-height:55px;padding:17px 25px;border:1px solid transparent;font-size:12px;font-weight:600;transition:transform .2s,background .2s,box-shadow .2s}.button svg{width:21px;height:21px}.button-dark{background:var(--ink);color:#fff}.button-dark:hover{background:#424238;transform:translateY(-2px);box-shadow:0 8px 18px #29292317}.hero>.button{margin-top:27px}.hero-signature{display:flex;justify-content:center;align-items:center;gap:12px;font-size:8px;letter-spacing:1.7px;color:#878378;margin-top:24px}.signature-line{width:25px;height:1px;background:#d7d0c4}
+  .presentation{margin-top:40px}.video-poster{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:1672/941;border-radius:clamp(14px,2vw,24px);background:#152321;box-shadow:0 24px 44px -38px #24332380}.video-thumbnail{display:block;width:100%;height:100%;object-fit:cover}.video-play{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:transparent;color:#fff}.video-play-disc{display:grid;place-items:center;width:clamp(48px,7vw,82px);aspect-ratio:1;border:1px solid #fff9;border-radius:50%;background:#14262066;backdrop-filter:blur(5px);box-shadow:0 4px 24px #0003;transition:transform .2s,background .2s}.video-play-disc svg{width:35%;height:35%;margin-left:-3px}button.video-play:hover .video-play-disc{transform:scale(1.06);background:#14262099}button.video-play:focus-visible{outline-offset:-6px}.video-poster iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}.video-caption{display:flex;justify-content:space-between;margin:17px 7px 0;color:#888277;font-size:8px;letter-spacing:1.5px}
+  .section-space{padding-block:95px}.section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:30px}.section-heading h2{font-size:38px;font-weight:500;line-height:1.15;letter-spacing:-1.7px;margin-top:17px}.section-heading h2 em{color:var(--coral);font-size:1.1em}.section-heading>p{font-size:12px;line-height:1.9;color:var(--muted);max-width:290px;margin-bottom:3px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);margin-top:46px}.benefit{padding:0 34px;border-right:1px solid var(--line)}.benefit:first-child{padding-left:0}.benefit:last-child{padding-right:0;border:0}.benefit-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}.benefit-top svg{width:34px;height:34px;color:var(--coral)}.benefit-top span{font-size:10px;color:#9a9388}.benefit h3{font-size:19px;letter-spacing:-.5px;font-weight:500;margin-bottom:13px}.benefit p{font-size:12px;line-height:1.95;color:var(--muted);max-width:290px}
+  .method-section{background:#f0ebe3;border-block:1px solid #e6dfd5}.method-inner{display:grid;grid-template-columns:1fr 1fr;gap:100px;padding-block:82px}.method-intro h2{font-size:53px;letter-spacing:-2.6px;line-height:1.1;font-weight:500;margin:22px 0}.method-intro h2 em{color:var(--coral)}.method-intro>p:not(.eyebrow){font-size:13px;line-height:1.9;color:var(--muted);max-width:350px}.text-link{display:inline-flex;align-items:center;gap:17px;font-size:11px;font-weight:600;margin-top:25px;border-bottom:1px solid #b9b1a4;padding-bottom:9px}.text-link svg{width:19px;height:19px;transition:transform .2s}.text-link:hover svg{transform:translateX(5px)}.method-seal{display:flex;align-items:center;gap:14px;margin-top:43px}.method-seal svg{width:49px;height:49px;color:#ba9e7c}.method-seal span{font-size:7px;letter-spacing:1.6px;line-height:1.8;color:#928573}.steps{align-self:center}.step{display:flex;gap:25px;padding:26px 0 29px;border-bottom:1px solid #d9d1c4}.step:first-child{padding-top:0}.step:last-child{border:0;padding-bottom:0}.step-number{font-family:var(--serif);font-size:23px;color:#b79a7f;line-height:1}.step-label{font-size:8px;color:#857866;letter-spacing:1.5px}.step h3{font-size:31px;letter-spacing:-1.1px;line-height:1.2;font-weight:500;margin:10px 0 10px}.step p{font-size:12px;color:#797266;line-height:1.9;max-width:355px}
+  .closing{text-align:center;position:relative}.closing-sun{width:40px;height:40px;color:var(--coral);margin:0 auto 23px}.closing h2{font-size:clamp(36px,4.5vw,60px);letter-spacing:-2.5px;font-weight:500;line-height:1.08;margin:22px 0}.closing h2 em{font-size:1.1em;color:var(--coral)}.closing>p:not(.eyebrow){font-size:13px;line-height:1.9;color:var(--muted)}.button-coral{background:var(--coral);color:white;margin-top:29px}.button-coral:hover{background:#963f2c;transform:translateY(-2px)}.practice-note{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.practice-note summary{display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:10px;color:#817b6f;padding:21px 0;list-style:none;cursor:pointer}.practice-note summary::-webkit-details-marker{display:none}.detail-toggle{font-size:18px;font-weight:300}.practice-note details[open] .detail-toggle{transform:rotate(45deg)}.practice-note details>div{font-size:11px;color:var(--muted);line-height:1.8;max-width:800px;padding-bottom:22px}.practice-note details p+p{margin-top:9px}.site-footer{padding-block:32px;display:flex;justify-content:space-between;align-items:center;gap:20px}.site-footer .wordmark{font-size:26px}.site-footer .wordmark svg{width:27px;height:27px;margin-right:7px}.site-footer>span{font-size:8px;letter-spacing:1.7px;color:#958c7e}.site-footer>a:last-child{font-size:10px;color:#81786a}.site-footer>a:last-child span{margin-left:7px}
+  @media(min-width:1450px){.hero{padding-top:76px}.presentation{margin-top:46px}}
+  @media(max-width:1050px){.wrap{width:calc(100% - 64px)}.hero h1{font-size:56px}.section-heading h2{font-size:34px}.method-inner{gap:60px}.method-intro h2{font-size:46px}.benefit{padding-inline:25px}}
+  @media(max-width:760px){.wrap{width:calc(100% - 40px)}.site-header{height:82px}.wordmark{font-size:29px}.wordmark svg{width:30px;height:30px}.site-header nav{gap:18px}.nav-link{display:none}.nav-cta{padding:11px 14px;font-size:10px;gap:10px}.hero{padding-top:45px}.hero-eyebrow{font-size:8px;letter-spacing:1.15px}.hero h1{font-size:47px;letter-spacing:-1.7px;margin-top:22px}.hero h1 em{letter-spacing:-1.3px}.hero-subtitle{font-size:13px;max-width:410px;margin-inline:auto;line-height:1.8}.desktop-break{display:none}.hero>.button{margin-top:23px}.presentation{margin-top:35px}.video-caption{font-size:7px;letter-spacing:1px;gap:20px}.video-caption>span:last-child{text-align:right}.section-space{padding-block:65px}.section-heading{display:block}.section-heading h2{font-size:33px}.section-heading>p{margin-top:22px;max-width:420px}.benefit-grid{margin-top:33px}.benefit{padding-inline:18px}.benefit h3{font-size:17px;line-height:1.3}.benefit p{font-size:11px}.benefit-top{margin-bottom:20px}.method-inner{gap:30px;padding-block:55px}.method-intro h2{font-size:39px;letter-spacing:-2px}.method-intro>p:not(.eyebrow){font-size:12px}.step{gap:15px;padding-block:20px}.step h3{font-size:27px}.step p{font-size:11px}.step-label{font-size:7px;letter-spacing:1px}.step-number{font-size:19px}.method-seal{margin-top:32px}.closing .eyebrow{font-size:8px;letter-spacing:1.2px}.closing h2{font-size:44px}.site-footer>span{display:none}}
+  @media(max-width:520px){.hero h1{font-size:clamp(32px,8.8vw,44px);letter-spacing:-1.1px}.hero-subtitle{font-size:12px;max-width:320px}.hero-eyebrow{font-size:7px;letter-spacing:1px;gap:7px}.hero-signature{font-size:6px;letter-spacing:1.2px;gap:9px}.signature-line{width:16px}.video-caption{font-size:6px;line-height:1.6;gap:30px;letter-spacing:.8px}.section-heading h2{font-size:30px;letter-spacing:-1.3px}.section-heading .eyebrow{font-size:8px;letter-spacing:1.2px}.benefit-grid{display:block;margin-top:32px}.benefit{padding:23px 0!important;border:0;border-bottom:1px solid var(--line)}.benefit:first-child{padding-top:0!important}.benefit:last-child{padding-bottom:0!important}.benefit-top{margin-bottom:14px}.benefit-top svg{width:30px;height:30px}.benefit h3{font-size:21px;margin-bottom:10px}.benefit p{font-size:12px;max-width:100%;line-height:1.8}.method-inner{display:block;padding-block:48px}.method-intro h2{font-size:44px}.method-intro>p:not(.eyebrow){max-width:320px}.method-seal{display:none}.steps{margin-top:39px;border-top:1px solid #d9d1c4}.step:first-child{padding-top:27px}.step{gap:23px;padding-block:24px}.step-label{font-size:8px}.step h3{font-size:30px}.step p{font-size:12px;line-height:1.8}.closing h2{font-size:clamp(33px,9vw,44px);letter-spacing:-1.5px}.closing>p:not(.eyebrow){font-size:12px}.closing .eyebrow{font-size:7px;letter-spacing:.9px}.practice-note summary{font-size:9px;line-height:1.6}.site-footer{padding-block:26px}.site-footer .wordmark{font-size:23px}.site-footer .wordmark svg{width:24px;height:24px}.site-footer>a:last-child{font-size:9px}}
+  .benefit p,.step p{font-size:14px;color:#6d675d;line-height:1.85}.section-heading>p,.method-intro>p:not(.eyebrow),.closing>p:not(.eyebrow){font-size:14px}.button{font-size:13px}
+  .presentation>.price-card{text-align:center}
+  .price-card{width:min(440px,100%);margin:34px auto 0;padding:29px 30px 31px;border:1px solid #e5d7c8;border-radius:22px;background:linear-gradient(145deg,#fffdfa,#f6eee3);box-shadow:0 15px 40px -30px #94765666}.price-eyebrow{font-size:9px;font-weight:600;letter-spacing:1.8px;color:var(--coral)}.price-amounts{display:flex;justify-content:center;align-items:center;gap:27px;margin:20px 0 12px}.price-before{text-align:left;color:#82796c;font-size:11px;line-height:1.5}.price-before del{display:block;font-size:24px;letter-spacing:-.7px;text-decoration-thickness:1px;text-decoration-color:var(--coral)}.price-current{display:flex;align-items:flex-start;gap:7px;font-size:78px;font-weight:500;letter-spacing:-5px;line-height:1;color:var(--ink)}.price-current>span{font-size:30px;letter-spacing:-1px;margin-top:10px}.price-saving{display:inline-block;padding:6px 12px;background:#ead6c34d;border:1px solid #e8d8c7;border-radius:100px;color:#87533c;font-size:11px;font-weight:500}.price-card .button{display:flex;max-width:310px;margin:25px auto 0}.price-card .button svg{margin-left:auto}
+  @media(max-width:520px){.price-card{padding:25px 22px 27px;margin-top:28px}.price-current{font-size:70px}.price-amounts{gap:25px}.price-card .button{font-size:12px;padding-inline:22px;gap:16px}}
+  .origin-story{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center;gap:80px;border-bottom:1px solid var(--line)}
+  .story-copy h2{font-size:clamp(32px,3.3vw,46px);font-weight:500;line-height:1.13;letter-spacing:-1.8px;margin:17px 0 28px}.story-copy h2 em,.morning-routine h3 em{color:var(--coral)}
+  .story-copy>p:not(.eyebrow):not(.story-signature){font-size:15px;line-height:1.9;color:#6d675d;margin-top:18px}.story-copy strong{font-weight:600;color:var(--ink)}.story-copy .story-turn{border-left:2px solid #bc8061;padding-left:20px}.story-signature{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--coral);margin-top:24px}
+  .morning-routine{padding:38px;border:1px solid #e5d7c8;border-radius:24px;background:linear-gradient(145deg,#fffdf8,#f1e6d5);box-shadow:0 18px 45px -35px #94765666}.routine-sun{width:42px;height:42px;color:#b78551;margin-bottom:24px}.morning-routine .eyebrow{font-size:8px;letter-spacing:1.4px}.morning-routine h3{font-size:36px;font-weight:500;letter-spacing:-1.4px;line-height:1.15;margin-top:14px}.routine-duration{display:flex;align-items:center;gap:17px;margin:25px 0;border-block:1px solid #dfd2c0;padding:20px 0}.routine-duration strong{font-size:66px;line-height:1;font-weight:500;letter-spacing:-3px;color:var(--coral)}.routine-duration span{font-size:12px;line-height:1.7;color:#786c5e}.morning-routine>p:not(.eyebrow){font-size:14px;line-height:1.85;color:#6d675d;margin-top:16px}.morning-routine .routine-closing{color:var(--ink);font-weight:500}
+  @media(max-width:1050px){.origin-story{gap:36px}.morning-routine{padding:28px}.morning-routine h3{font-size:30px}}
+  @media(max-width:760px){.origin-story{grid-template-columns:1fr;gap:34px}.story-copy>p:not(.eyebrow):not(.story-signature){font-size:14px}.story-copy h2{font-size:34px}.morning-routine{padding:28px}.morning-routine h3{font-size:34px}.routine-duration strong{font-size:60px}}
+  .wordmark-name{font-size:17px;line-height:1.25;letter-spacing:.13em;font-weight:500;text-transform:uppercase}.wordmark-name>span{display:block}.wordmark svg{width:44px;height:44px;margin-right:12px}.site-footer .wordmark-name{font-size:13px}.site-footer .wordmark svg{width:34px;height:34px;margin-right:10px}
+  @media(max-width:760px){.wordmark-name{font-size:14px}.wordmark svg{width:36px;height:36px;margin-right:10px}.nav-product-name{display:none}.site-footer .wordmark-name{font-size:12px}}
+  .method-section{background:radial-gradient(ellipse at 50% 55%,#fffcf5 0,#f5eee2 47%,#ece4d7 100%)}
+  .method-triangle-inner{padding-block:85px 66px}.triangle-heading{text-align:center}.triangle-heading h2{font-size:clamp(34px,3.8vw,52px);font-weight:500;letter-spacing:-2px;line-height:1.13;margin:20px 0}.triangle-heading h2 em{color:var(--coral)}.triangle-heading>p:last-child{font-size:14px;line-height:1.85;color:#797062}
+  .triangle-experience{position:relative;max-width:1100px;margin:48px auto 0;height:640px;isolation:isolate}.triangle-art{position:absolute;width:58%;left:21%;top:102px;pointer-events:none}.triangle-art>svg{width:100%;height:auto;overflow:visible}.triangle-ribbon{animation:triangle-breathe 8s ease-in-out infinite;transform-origin:300px 300px}.triangle-center{position:absolute;left:50%;top:59%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;color:#826038}.triangle-center>svg{width:29px;height:29px;margin:0 auto 14px;color:#b18a53}.triangle-center>span{font-size:25px;letter-spacing:-1px;line-height:1.1}.triangle-center em{font-size:33px}.triangle-center small{display:block;font-size:6px;letter-spacing:1.5px;margin-top:16px;color:#aa916d}
+  .triangle-node{position:absolute;z-index:1;width:24%;max-width:270px}.node-breath{top:0;left:50%;transform:translateX(-50%);width:330px;max-width:100%;text-align:center}.node-vision{left:0;top:350px}.node-integration{right:0;top:350px}.node-label{font-size:8px;letter-spacing:1.7px;color:#9a7751;font-weight:600}.triangle-node h3{font-size:29px;font-weight:500;letter-spacing:-1px;line-height:1.15;margin:12px 0}.triangle-node h3 em{display:block;color:#966242;font-size:1.05em}.triangle-node p{font-size:13px;line-height:1.85;color:#756c60}.triangle-mantra{text-align:center;font-size:13px;color:#817568;line-height:1.9}.triangle-mantra em{display:block;color:#9b7151;font-size:22px;margin-top:7px}
+  @keyframes triangle-breathe{0%,100%{opacity:.85}50%{opacity:1}}
+  @media(max-width:1050px) and (min-width:761px){.triangle-experience{height:565px}.triangle-art{top:128px}.node-vision,.node-integration{top:340px}.triangle-node h3{font-size:24px}.triangle-node p{font-size:12px}.triangle-center>span{font-size:21px}.triangle-center em{font-size:28px}.triangle-center small{font-size:5px;letter-spacing:1px}}
+  @media(max-width:760px){.method-triangle-inner{padding-block:56px 45px}.triangle-heading h2{font-size:clamp(29px,6vw,40px);letter-spacing:-1.2px}.triangle-heading .eyebrow{font-size:8px;letter-spacing:1.3px}.triangle-heading>p:last-child{font-size:13px}.triangle-experience{max-width:470px;height:735px;margin-top:35px}.triangle-art{width:100%;left:0;top:136px}.node-breath{width:300px}.triangle-node h3{font-size:23px}.node-vision,.node-integration{top:auto;bottom:0;width:46%;max-width:none;min-height:220px}.triangle-node p{font-size:12px;line-height:1.8}.node-label{font-size:7px;letter-spacing:1px}.triangle-center>span{font-size:22px}.triangle-center em{font-size:29px}.triangle-center>svg{width:24px;height:24px;margin-bottom:10px}.triangle-center small{font-size:5px;letter-spacing:1px;margin-top:12px}.triangle-mantra{margin-top:28px;font-size:12px}.triangle-mantra em{font-size:20px}}
+  @media(max-width:420px){.triangle-experience{height:675px}.node-vision,.node-integration{min-height:245px}.triangle-node h3{font-size:21px}.triangle-center>span{font-size:19px}.triangle-center em{font-size:25px}.triangle-center small{font-size:4.5px;letter-spacing:.8px}.triangle-center>svg{width:19px;height:19px;margin-bottom:7px}}
+  @media(max-width:350px){.triangle-experience{height:695px}.node-vision,.node-integration{min-height:310px}.triangle-node h3{font-size:19px}.triangle-center small{display:none}}
+  .triangle-art{width:54%;left:23%}
+  @media(max-width:1050px) and (min-width:761px){.triangle-experience{height:620px}}
+  @media(max-width:760px){.triangle-experience{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;row-gap:10px;height:auto}.triangle-art{position:relative;grid-column:1/-1;grid-row:2;width:100%;left:auto;top:auto}.triangle-node{position:static;transform:none;width:auto;min-height:0;max-width:none}.node-breath{grid-column:1/-1;grid-row:1;max-width:300px;justify-self:center}.node-vision{grid-column:1;grid-row:3}.node-integration{grid-column:2;grid-row:3}}
+  @media(min-width:761px){
+    .triangle-experience{display:grid;grid-template-columns:24% 52% 24%;row-gap:24px;height:auto}
+    .triangle-art{position:relative;grid-column:1/-1;grid-row:2;justify-self:center;width:54%;left:auto;top:auto}
+    .triangle-node{position:relative;left:auto;right:auto;top:auto;transform:none;width:auto;max-width:none;align-self:center}
+    .node-breath{grid-column:1/-1;grid-row:1;width:330px;max-width:100%;justify-self:center}
+    .node-vision{grid-column:1;grid-row:2}
+    .node-integration{grid-column:3;grid-row:2}
+    .triangle-mantra{margin-top:24px}
+  }
+  .hero-eyebrow{font-size:13px;letter-spacing:1px;line-height:1.6}
+  .hero h1{max-width:1080px;font-size:clamp(40px,4.6vw,64px);line-height:1.12;letter-spacing:-2.2px;margin:25px auto 24px;text-wrap:balance}
+  .hero h1 em{display:inline;font-size:1em;letter-spacing:inherit}
+  .hero-subtitle{max-width:800px;margin-inline:auto;font-size:19px;line-height:1.6;color:#6d675d;text-wrap:balance}
+  @media(max-width:760px){.hero-eyebrow{font-size:12px;letter-spacing:.5px;gap:8px}.hero h1{font-size:clamp(34px,6.4vw,48px);letter-spacing:-1.3px;margin:22px auto}.hero-subtitle{font-size:16px;line-height:1.6;max-width:560px}}
+  @media(max-width:420px){.hero-eyebrow{font-size:11px;letter-spacing:.2px}.hero h1{font-size:clamp(31px,8.6vw,36px);letter-spacing:-1px}.hero-subtitle{font-size:15px}}
+  .video-surround{position:relative;isolation:isolate}
+  .video-surround::before{content:'';position:absolute;inset:-38px -28px -42px;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 55% 16%,#d4b46b55,transparent 65%),radial-gradient(ellipse at 16% 65%,#8c9b7450,transparent 65%),radial-gradient(ellipse at 86% 74%,#af986b38,transparent 60%);filter:blur(22px);border-radius:48px}
+  .video-surround .video-poster{box-shadow:0 18px 40px -25px #4b51334d,0 3px 12px -5px #856b3d26}
+  .video-surround .video-play-disc{background:#6c503e80;border-color:#f6e4baaa;box-shadow:0 6px 24px #382a2433,inset 0 1px 0 #fff3}
+  .video-surround button.video-play:hover .video-play-disc{background:#6c503ea6}
+  @media(max-width:760px){.video-surround::before{inset:-22px -8px -26px;filter:blur(14px);opacity:.8}}
+  .week-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+  .week-grid .benefit{padding:24px!important;border:1px solid var(--line)!important;border-radius:18px;background:#fffaf4}
+  .week-grid .benefit:last-child{grid-column:span 2;background:linear-gradient(135deg,#f6eee3,#faf8f4)}
+  .week-grid .benefit-top{margin-bottom:22px}.week-grid .benefit-top span{font-size:12px;font-weight:600;color:var(--coral)}
+  .week-note{margin-top:22px;font-size:12px;line-height:1.7;color:var(--muted)}
+  @media(max-width:1050px){.week-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:520px){.week-grid{grid-template-columns:1fr;gap:14px}.week-grid .benefit:last-child{grid-column:auto}.week-grid .benefit p{max-width:none}}
+  .routine-steps{margin:16px 0 0;padding:0;list-style:none;font-size:14px;line-height:1.85;color:#6d675d}.routine-steps li{display:flex;align-items:baseline;gap:14px}.routine-steps li+li{margin-top:12px}.routine-step-number{flex:0 0 20px;color:var(--coral);font-size:22px;font-weight:600;line-height:1.3}
+  .program-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin-top:40px}.program-card{overflow:hidden;border:1px solid #e5d7c8;border-radius:24px;background:#fffdf8}.program-placeholder{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;position:relative;background:radial-gradient(circle at 50% 40%,#fff8e9,transparent 65%),linear-gradient(135deg,#e4d6bd,#f4eadb);color:#a67747}.program-placeholder svg{width:64px;height:64px}.program-placeholder>span{font-size:12px;letter-spacing:4px}.program-placeholder small{position:absolute;bottom:18px;font-size:9px;letter-spacing:1.5px;opacity:.75}.session-placeholder{background:radial-gradient(circle at 50% 40%,#f7f3e2,transparent 65%),linear-gradient(135deg,#c5cebc,#e8e8d8);color:#63735a}.program-copy{padding:32px}.program-copy h3{font-size:30px;line-height:1.2;letter-spacing:-.8px;font-weight:500;margin:15px 0 20px}.program-copy h3 em{color:var(--coral)}.program-copy>p:not(.eyebrow),.program-copy li{font-size:14px;line-height:1.85;color:#6d675d}.program-copy ul{list-style:disc;padding-left:19px;margin:22px 0}.program-copy li+li{margin-top:10px}.program-copy li::marker{color:var(--coral)}.program-copy .program-takeaway{padding-top:20px;border-top:1px solid var(--line);color:var(--ink)!important;font-weight:500}
+  @media(max-width:760px){.program-grid{grid-template-columns:1fr;gap:24px;margin-top:30px}.program-copy{padding:25px}.program-copy h3{font-size:28px}.program-placeholder svg{width:50px;height:50px}}
+  .program-image{display:block;width:100%;aspect-ratio:16/9;height:auto;object-fit:cover}
+  .science{max-width:920px}.science-heading{text-align:center;margin-bottom:56px}.science-heading h2{font-size:clamp(36px,4.5vw,56px);font-weight:500;line-height:1.15;letter-spacing:-1.5px}.science-heading em{color:var(--coral)}
+  .science-flow{display:grid;gap:26px}.science-step{display:grid;grid-template-columns:52px minmax(0,1fr);gap:24px;padding:38px 40px;border:1px solid var(--line);border-radius:24px;background:#fffcf7}.science-number{font-size:18px;font-weight:600;line-height:1;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;color:#9c4f35;background:#f5e8dc}.science-copy{max-width:650px}.science-copy h3{font-size:clamp(25px,2.6vw,31px);line-height:1.25;letter-spacing:-.6px;font-weight:600;margin:5px 0 24px;text-wrap:pretty}.science-copy p{font-size:18px;line-height:1.75;color:#59554d;margin:0}.science-copy p+p{margin-top:18px}.science-copy strong{color:#302f28;font-weight:650}.science-step--pause{background:transparent;border-color:transparent;padding-block:26px}.science-step--solution{background:#f4ebdd;border-color:#d9bfa0}.science-step--solution .science-number{background:#a5553d;color:#fff}.science-step--solution h3 em{color:#a5553d;display:block;font-size:1.2em;margin-top:6px}
+  @media(max-width:760px){.science-heading{margin-bottom:32px}.science-heading h2{letter-spacing:-1px}.science-step{grid-template-columns:1fr;gap:18px;padding:26px 24px}.science-number{width:38px;height:38px;font-size:15px}.science-copy h3{margin:0 0 20px;font-size:25px}.science-copy p{font-size:17px;line-height:1.7}.science-copy p+p{margin-top:16px}.science-flow{gap:18px}.science-step--pause{padding-block:20px}}
+  .eeg-evidence{margin:0 0 28px;padding:28px;background:linear-gradient(145deg,#fffaf1,#f1e6d6);border:1px solid #ddcbb3;border-radius:20px}.eeg-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:10px;font-weight:600;letter-spacing:1.1px;color:#795b40}.eeg-evidence h4{font-size:24px;line-height:1.25;font-weight:550;letter-spacing:-.5px;margin:20px 0 8px}.eeg-context{font-size:13px;color:#6c6050;line-height:1.6}.eeg-charts{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:28px 0 18px}.eeg-result{display:flex;flex-direction:column;gap:6px;margin-bottom:22px}.eeg-result>span{font-size:17px;font-weight:500}.eeg-result strong{font-size:42px!important;line-height:1;letter-spacing:-1.5px;color:#a5553d!important;font-weight:600!important}.eeg-bar-label{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.45;margin:14px 0 6px;color:#574d40}.eeg-bar-label>span:last-child{font-variant-numeric:tabular-nums;flex-shrink:0;font-weight:600}.eeg-track{height:12px;background:#e9ddcb;border-radius:2px;overflow:hidden}.eeg-bar{display:block;height:100%;background:#a5553d;border-radius:0 2px 2px 0}.eeg-bar--reference{background:#b9a083}.eeg-scale{font-size:11px;color:#74634f;line-height:1.6}.eeg-evidence figcaption{display:grid;gap:7px;margin-top:21px;padding-top:19px;border-top:1px solid #d9c8b1;font-size:12px;color:#6b5c4b;line-height:1.6}.eeg-evidence figcaption a{font-size:14px;font-weight:600;color:#934c34;text-decoration:underline;text-underline-offset:4px;width:fit-content}.eeg-evidence figcaption a:hover{color:#653221}
+  @media(max-width:520px){.eeg-evidence{padding:22px 18px;margin-inline:-12px}.eeg-charts{grid-template-columns:1fr;gap:26px}.eeg-chart+.eeg-chart{padding-top:24px;border-top:1px solid #dccbb4}.eeg-result{flex-direction:row;justify-content:space-between;align-items:center;margin-bottom:20px}.eeg-result strong{font-size:38px!important}.eeg-evidence h4{font-size:23px}.eeg-heading{font-size:10px}.eeg-bar-label{font-size:12px}}
+  .science-copy>p+.eeg-evidence{margin-top:26px;margin-bottom:0}
+  .insight-comparison{display:grid;gap:27px;margin:28px 0 12px}.insight-label{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px}.insight-label>span{font-size:16px;font-weight:550;color:#483e32;line-height:1.4}.insight-label small{display:block;font-size:12px;font-weight:400;color:#756655;margin-top:5px}.insight-label strong{display:flex;align-items:baseline;gap:5px;font-size:48px!important;line-height:1;letter-spacing:-2px;color:#a5553d!important;font-weight:600!important;flex-shrink:0}.insight-label strong>span{font-size:23px;letter-spacing:-.5px}.insight-row--awake .insight-label strong{color:#89735b!important}.insight-evidence .eeg-track{height:16px}.insight-scale{display:flex;justify-content:space-between;font-size:10px;color:#84735e;font-variant-numeric:tabular-nums}.insight-evidence{scroll-margin-top:30px}
+  @media(max-width:520px){.insight-label{gap:12px}.insight-label>span{font-size:14px}.insight-label small{font-size:11px}.insight-label strong{font-size:40px!important}.insight-label strong>span{font-size:20px}.insight-comparison{gap:24px}}
+  astro-dev-toolbar{display:none!important}
+  @media(max-width:760px){.benefit p,.step p{font-size:13px}.section-heading>p,.method-intro>p:not(.eyebrow),.closing>p:not(.eyebrow){font-size:13px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+

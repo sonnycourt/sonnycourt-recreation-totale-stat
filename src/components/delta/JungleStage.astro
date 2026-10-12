@@ -1,0 +1,120 @@
+---
+const { videoAvailable = false } = Astro.props;
+---
+<div class="jungle-prototype" data-jungle-prototype data-video-available={String(videoAvailable)}>
+  <div class="jungle-meta"><button type="button" data-jungle-reset hidden>↺ Rejouer l’ouverture</button></div>
+  <div class="jungle-stage" data-jungle-stage>
+    <div class="jungle-aura" aria-hidden="true"></div>
+    <div class="jungle-shadow" aria-hidden="true"></div>
+    {/* Resting composition. During withdrawal a cylindrical texture warp routes
+        strips to real front/back canvases, separated by the opaque player. */}
+    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-back`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" width="933" height="1400" alt="" draggable="false" /></div></div>)}
+    <div class="jungle-crown jungle-back" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" width="1200" height="800" alt="" draggable="false" /></div></div>
+    <div class="jungle-window"><slot /></div>
+    <div class="jungle-atmosphere" aria-hidden="true"><div class="jungle-ray"></div><div class="jungle-haze"></div>
+      {Array.from({length:12},(_,i)=><i style={`--x:${9+(i*23)%83}%;--y:${15+(i*17)%73}%;--delay:${-i*1.7}s;--duration:${11+i%5}s;`} />)}
+    </div>
+    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-front`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" width="933" height="1400" alt="" draggable="false" /></div></div>)}
+    <div class="jungle-crown jungle-front" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" width="1200" height="800" alt="" draggable="false" /></div></div>
+    <div class="jungle-invitation" aria-hidden="true"><span>ENTRE DANS L’EXPÉRIENCE</span><span>Une respiration. Un autre horizon.</span></div>
+  </div>
+  <p class="jungle-status" data-jungle-status role="status" hidden></p>
+</div>
+<script>
+  import { createJungleWrap } from './jungle-wrap';
+  document.querySelectorAll<HTMLElement>('[data-jungle-prototype]').forEach(root => {
+    const stage = root.querySelector<HTMLElement>('[data-jungle-stage]')!;
+    const reset = root.querySelector<HTMLButtonElement>('[data-jungle-reset]')!;
+    const status = root.querySelector<HTMLElement>('[data-jungle-status]')!;
+    const wrap = createJungleWrap(stage);
+    let active = false;
+    stage.addEventListener('click', event => {
+      if (!(event.target instanceof Element) || !event.target.closest('[data-video-play]') || active) return;
+      active = true;
+      status.hidden = false;
+      wrap.start();
+      stage.classList.add('is-open');
+      // No delay before the existing Bunny click handler: retain user activation.
+      if (root.dataset.videoAvailable === 'true') {
+        status.textContent = 'Le décor se retire pour laisser toute la place à la vidéo.';
+      } else {
+        reset.hidden = false;
+        status.textContent = 'Aperçu de l’ouverture · La VSL n’est pas encore raccordée à cette page.';
+        root.querySelector<HTMLButtonElement>('[data-video-play]')?.setAttribute('disabled', '');
+      }
+    }, true);
+    reset.addEventListener('click', () => {
+      wrap.stop();
+      active = false;
+      stage.classList.remove('is-open');
+      reset.hidden = true;
+      const play = root.querySelector<HTMLButtonElement>('[data-video-play]');
+      play?.removeAttribute('disabled');
+      play?.focus({preventScroll:true});
+      status.textContent = '';
+      status.hidden = true;
+    });
+    // Do not animate a scene outside the viewport or in a hidden browser tab.
+    let inView = true;
+    const syncPause = () => stage.classList.toggle('is-paused', !inView || document.hidden);
+    const observer = new IntersectionObserver(entries => { inView = entries[0].isIntersecting; syncPause(); });
+    observer.observe(stage);
+    document.addEventListener('visibilitychange', syncPause);
+  });
+</script>
+<style is:global>
+  body:has(.jungle-prototype){overflow-x:clip}
+  body:has(.jungle-prototype) main{overflow:clip}
+  .jungle-prototype{position:relative;padding-top:12px;isolation:isolate}
+  .jungle-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:9px;letter-spacing:2px;color:#857d68;height:30px;margin:0 4px 48px;position:relative;z-index:10}
+  .jungle-meta button{border:0;background:transparent;color:#6d7253;font-size:11px;letter-spacing:.1px;padding:8px 0}
+  .jungle-meta button[hidden]{display:none}
+  .jungle-stage{--px:0px;--py:0px;position:relative;isolation:isolate;perspective:1200px;width:calc(100% - 56px);max-width:1000px;margin-inline:auto}
+  .jungle-window{position:relative;z-index:2;transform:translateZ(0);transition:transform 1.8s cubic-bezier(.16,1,.3,1);border-radius:18px;box-shadow:0 38px 60px -35px #2836226b}
+  .jungle-window .video-poster{border-radius:18px;box-shadow:none}
+  .jungle-window .video-thumbnail{transition:transform 2.2s cubic-bezier(.16,1,.3,1),filter 1.6s;transform:scale(1.045);filter:saturate(.88) brightness(.91)}
+  .jungle-aura{position:absolute;inset:-15% -14%;z-index:-1;background:radial-gradient(ellipse at 45% 40%,#d8c59955,transparent 70%),radial-gradient(ellipse at 15% 65%,#71815132,transparent 58%),radial-gradient(ellipse at 87% 45%,#aba67240,transparent 65%);filter:blur(30px);pointer-events:none}
+  .jungle-shadow{position:absolute;z-index:1;inset:-6% -3%;border-radius:50%;background:radial-gradient(ellipse,#56643b1c,transparent 72%);filter:blur(25px);pointer-events:none}
+  .jungle-side,.jungle-crown{position:absolute;pointer-events:none;user-select:none}
+  .jungle-back{z-index:1}.jungle-front{z-index:5}
+  .jungle-side{width:40%;top:-3%;left:-9%;transform-origin:center}
+  .jungle-side-right{left:auto;right:-9%;transform:scaleX(-1)}
+  .jungle-pull{transform:translate3d(0,0,0);transition:transform 2.2s cubic-bezier(.45,0,.2,1);will-change:transform}
+  .jungle-side img{width:100%;height:auto;display:block;filter:drop-shadow(4px 7px 5px #1423163b);animation:jungle-vine-breathe 12s ease-in-out infinite alternate}
+  .jungle-side-right img{animation-delay:-4s;animation-duration:14s;filter:brightness(.85) drop-shadow(4px 7px 5px #1423163b)}
+  .jungle-side.jungle-front{clip-path:inset(0 0 0 0);transition:clip-path 1.4s cubic-bezier(.45,0,.2,1);mask-image:linear-gradient(transparent 6%,#000 24%,#000 72%,transparent 94%)}
+  .jungle-crown{width:44%;right:4%;top:-5%;transform:rotate(18deg);transform-origin:50% 50%}
+  .jungle-crown-pull{transform:translate3d(0,0,0);transition:transform 2s cubic-bezier(.45,0,.2,1);will-change:transform}
+  .jungle-crown img{display:block;width:100%;height:auto;filter:drop-shadow(6px 10px 7px #182b1645)}
+  .jungle-crown.jungle-front{clip-path:polygon(0 0,78% 0,100% 44%,100% 100%,0 100%);transition:clip-path 1.5s cubic-bezier(.45,0,.2,1)}
+  .jungle-atmosphere{position:absolute;z-index:3;inset:0;pointer-events:none;overflow:hidden;border-radius:18px;transition:opacity 1s ease}
+  .jungle-ray{position:absolute;inset:-40%;background:conic-gradient(from 164deg at 57% 5%,transparent 0deg,#fff2b91a 6deg,transparent 13deg,#fff4ce16 19deg,transparent 25deg);filter:blur(9px);mix-blend-mode:screen;animation:jungle-light 12s ease-in-out infinite alternate}
+  .jungle-haze{position:absolute;inset:55% -10% -20%;background:radial-gradient(ellipse at 45% 80%,#f0eedb35,transparent 65%);filter:blur(16px);animation:jungle-mist 14s ease-in-out infinite alternate}
+  .jungle-atmosphere i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;background:#fff5c6;border-radius:50%;opacity:0;box-shadow:0 0 6px #ffe9a485;animation:jungle-dust var(--duration) var(--delay) ease-in-out infinite}
+  .jungle-window .video-play{z-index:4;transition:opacity .5s ease}
+  .jungle-window .video-play-disc{width:88px;background:#1a2b2259;backdrop-filter:blur(9px);border:1px solid #fff1cdb0;box-shadow:0 0 0 12px #f7edce0a,0 12px 36px #14251e4a,inset 0 1px 0 #fff4}
+  .jungle-window button.video-play:hover .video-play-disc{background:#273b278c;transform:scale(1.08);box-shadow:0 0 0 20px #f7edce0d,0 12px 36px #14251e4a}
+  .jungle-invitation{position:absolute;z-index:4;bottom:8%;left:25%;right:25%;text-align:center;pointer-events:none;color:#fff4d6;text-shadow:0 2px 12px #0008;transition:opacity .5s,transform .7s}
+  .jungle-invitation span:first-child{display:block;font-size:9px;letter-spacing:3px;font-weight:500}
+  .jungle-invitation span:last-child{display:block;font:italic 22px/1.5 Georgia,serif;margin-top:8px}
+  .jungle-status{text-align:center;font-size:10px!important;line-height:1.5;color:#8b8677;margin:45px auto 0!important;letter-spacing:.4px;min-height:15px}
+  .jungle-stage.is-open .jungle-side,.jungle-stage.is-open .jungle-crown,
+  .jungle-stage.is-wrapping .jungle-side,.jungle-stage.is-wrapping .jungle-crown{visibility:hidden}
+  .jungle-stage.is-open .video-thumbnail{transform:scale(1);filter:none}
+  .jungle-stage.is-open .jungle-atmosphere,.jungle-stage.is-open .jungle-invitation,.jungle-stage.is-open .video-play{opacity:0;pointer-events:none}
+  .jungle-stage.is-open .jungle-invitation{transform:translateY(8px)}
+  .jungle-stage.is-open .jungle-side img,.jungle-stage.is-open .jungle-atmosphere *,.jungle-stage.is-paused *{animation-play-state:paused!important}
+  @keyframes jungle-vine-breathe{from{transform:scaleX(.988)}to{transform:scaleX(1.012)}}
+  @keyframes jungle-sway{from{transform:rotate(-.8deg) translateY(0)}to{transform:rotate(1deg) translateY(5px)}}
+  @keyframes jungle-light{from{opacity:.45;transform:rotate(-2deg)}to{opacity:1;transform:rotate(2deg)}}
+  @keyframes jungle-mist{from{transform:translateX(-3%);opacity:.4}to{transform:translateX(3%);opacity:.9}}
+  @keyframes jungle-dust{0%,100%{opacity:0;transform:translate3d(0,12px,0)}35%,65%{opacity:.5}90%{transform:translate3d(16px,-28px,0);opacity:0}}
+  @media(max-width:760px){
+    .jungle-stage{width:calc(100% - 16px);margin-inline:auto}.jungle-meta{font-size:7px;letter-spacing:1px;margin-bottom:25px;height:32px}.jungle-meta button{font-size:9px;letter-spacing:0}
+    .jungle-side{width:40%;left:-9%;top:-3%}.jungle-side-right{left:auto;right:-9%}.jungle-crown{width:42%;right:4%;top:-5%}
+    .jungle-window .video-play-disc{width:56px;box-shadow:0 0 0 8px #f7edce0a,0 8px 24px #14251e4a}.jungle-invitation{bottom:8%;left:15%;right:15%}.jungle-invitation span:first-child{font-size:6px;letter-spacing:1.7px}.jungle-invitation span:last-child{display:none}
+    .jungle-status{font-size:8px!important;margin-top:28px!important;max-width:270px}.jungle-window,.jungle-window .video-poster,.jungle-atmosphere{border-radius:12px}
+  }
+  @media(prefers-reduced-motion:reduce){.jungle-stage *{animation:none!important;transition:none!important}.jungle-atmosphere i{display:none}}
+</style>
+
