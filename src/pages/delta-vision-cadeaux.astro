@@ -1,0 +1,72 @@
+---
+---
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><meta name="referrer" content="no-referrer"/><title>Tes cadeaux — Delta Vision</title></head>
+<body>
+  <header><a href="/delta-vision-cadeau/">Delta<br/>Vision</a><span>UNE EXPÉRIENCE À PARTAGER</span></header>
+  <main>
+    <div class="intro"><p class="eyebrow">DE TOI À EUX</p><h1>Une attention.<br/><em>Le début d’un voyage.</em></h1><p>À qui veux-tu offrir Delta Vision ?<br/>Choisis tes proches maintenant, ou reviens plus tard.</p></div>
+    <section class="card" aria-labelledby="manager-title">
+      <img src="/media/pages/inspira-vsl-jungle-v2.webp" alt="Sonny dans la jungle pour une séance Delta Vision" width="1600" height="900"/>
+      <div class="card-body">
+        <h2 id="manager-title">Tes cadeaux.</h2>
+        <p data-gift-message role="status" aria-live="polite">Chargement de ton espace personnel…</p>
+        <form data-gift-manager hidden>
+          <div data-gift-slots></div>
+          <p class="hint">Vérifie les adresses avant de confirmer : chaque cadeau sera réservé à cette personne et une invitation lui sera envoyée. Tu peux laisser des cadeaux pour plus tard.</p>
+          <button type="submit">Envoyer mes invitations <span>→</span></button>
+        </form>
+        <form data-gift-recover hidden>
+          <p>Après ton achat, un email personnel te permet de distribuer tes cadeaux. Tu ne le retrouves pas ?</p>
+          <label for="gift-order">Numéro de commande Spiffy</label><input id="gift-order" name="order" inputmode="numeric" pattern="[0-9]+" required maxlength="30"/>
+          <label for="gift-owner-email">L’email utilisé lors de l’achat</label><input id="gift-owner-email" name="email" type="email" autocomplete="email" required maxlength="254"/>
+          <button type="submit">Retrouver mon lien personnel <span>→</span></button>
+        </form>
+        <p data-gift-error role="alert" hidden></p>
+      </div>
+    </section>
+    <p class="footnote">Un cadeau, un accès personnel. Aucun abonnement.</p>
+  </main>
+  <footer><a href="/politique-de-confidentialite/">Confidentialité</a><a href="/delta-vision-cadeau/">Offrir d’autres expériences</a></footer>
+  <script>
+    import {giftRequest} from '../lib/delta-gifts-client.mjs';
+    const token=new URLSearchParams(location.hash.slice(1)).get('owner') || '';
+    const form=document.querySelector<HTMLFormElement>('[data-gift-manager]')!,recover=document.querySelector<HTMLFormElement>('[data-gift-recover]')!;
+    const message=document.querySelector<HTMLElement>('[data-gift-message]')!,error=document.querySelector<HTMLElement>('[data-gift-error]')!,slots=document.querySelector<HTMLElement>('[data-gift-slots]')!;
+    let busy=false;
+    const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Retrouve ton lien personnel avec les informations de ta commande.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
+    const render=(data:any)=>{
+      form.hidden=false;recover.hidden=true;message.textContent=`${data.count} ${data.count===1?'expérience à offrir':'expériences à offrir'}. À toi de choisir à qui.`;slots.replaceChildren();
+      for(const gift of data.gifts){
+        const row=document.createElement('div');row.className='slot';
+        const label=document.createElement('label');label.htmlFor=`recipient-${gift.slot}`;label.textContent=`Cadeau ${gift.slot}`;row.append(label);
+        if(gift.state==='available'){
+          const input=document.createElement('input');input.type='email';input.id=label.htmlFor;input.name=String(gift.slot);input.placeholder='Email de ton proche';input.maxLength=254;input.autocomplete='off';row.append(input);
+        }else{
+          const email=document.createElement('p');email.className='recipient';email.textContent=gift.recipient_email || 'Cadeau indisponible';row.append(email);
+          const state=document.createElement('small');state.textContent=gift.state==='active'?'Accès activé':gift.state==='activating'?'Activation en cours':gift.state==='revoked'?'Indisponible':'Invitation enregistrée';row.append(state);
+        }
+        slots.append(row);
+      }
+      form.querySelector<HTMLButtonElement>('button')!.hidden=!data.gifts.some((g:any)=>g.state==='available');
+    };
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy || !form.reportValidity())return;
+      const recipients=[...new FormData(form)].filter(([,email])=>String(email).trim()).map(([slot,email])=>({slot:Number(slot),email:String(email).trim()}));
+      if(!recipients.length){error.hidden=false;error.textContent='Renseigne au moins une adresse email pour offrir un cadeau.';return;}
+      busy=true;const button=form.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
+      try{render(await giftRequest({action:'assign',token,recipients}));message.textContent='Tes invitations sont enregistrées. Elles vont être envoyées à tes proches.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+    });
+    recover.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy || !recover.reportValidity())return;busy=true;const button=recover.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
+      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si ces informations correspondent à ton achat, ton lien personnel va t’être envoyé par email.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+    });
+    if(token){giftRequest({action:'owner',token}).then(render).catch(e=>{message.textContent='Retrouvons ton espace cadeaux.';recover.hidden=false;showError(e);});}
+    else{message.textContent='Ouvre le lien personnel reçu par email pour choisir tes destinataires.';recover.hidden=false;}
+  </script>
+</body>
+</html>
+<style is:global>
+@font-face{font-family:Delta;src:url('/fonts/inter-latin.woff2') format('woff2');font-weight:100 900;font-display:swap}*{box-sizing:border-box}body{margin:0;background:#faf8f4;color:#292923;font:15px/1.7 Delta,Arial,sans-serif}a{color:inherit}header,footer{max-width:1100px;padding:28px;margin:auto;display:flex;justify-content:space-between;align-items:center}header a{font-size:23px;font-weight:600;line-height:1;text-decoration:none}header span,.eyebrow{font-size:10px;letter-spacing:2px;color:#80796b}main{max-width:700px;padding:38px 24px;margin:auto}.intro{text-align:center;margin-bottom:40px}h1{font-size:clamp(36px,5vw,52px);line-height:1.13;letter-spacing:-1.7px;font-weight:450;margin:20px 0}em{font-family:Georgia,serif;color:#b34f39;font-weight:400}.intro>p:last-child{color:#77756d}.card{background:#fffdf8;border:1px solid #e4dfd7;border-radius:22px;overflow:hidden}.card>img{display:block;width:100%;height:190px;object-fit:cover;object-position:50% 46%}.card-body{padding:32px}h2{font-size:28px;font-weight:500;letter-spacing:-.7px;margin:0 0 12px}.slot{padding:19px 0;border-bottom:1px solid #e4dfd7}label{display:block;font-size:13px;font-weight:600;margin:14px 0 8px}input{width:100%;font:16px Delta,Arial,sans-serif;color:#292923;background:#faf8f4;border:1px solid #d6cebd;border-radius:9px;padding:15px}.recipient{margin:3px 0;overflow-wrap:anywhere}small{color:#6e7957}button{display:flex;justify-content:space-between;gap:14px;background:#b34f39;border:0;color:white;border-radius:10px;padding:17px 21px;width:100%;font:500 14px Delta,Arial,sans-serif;cursor:pointer;margin-top:22px}button:disabled{opacity:.55;cursor:wait}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #b34f39;outline-offset:4px}.hint,.footnote{font-size:12px;color:#817a6f}.hint{margin-top:22px}.footnote{text-align:center;margin-top:25px}[data-gift-message]{color:#706e60}[data-gift-error]{color:#9d3525;font-size:13px}footer{font-size:11px;color:#80796b}[hidden]{display:none!important}@media(max-width:540px){header span{display:none}main{padding:20px 18px}.card-body{padding:25px}.card>img{height:150px}footer{gap:24px}}
+</style>

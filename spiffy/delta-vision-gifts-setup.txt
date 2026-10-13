@@ -1,0 +1,70 @@
+DELTA VISION — CADEAUX — CONFIGURATION ET CONTRÔLES (13 octobre 2026)
+
+Périmètre isolé : checkout 41041, produit 12018, tables dv_gift_*.
+Aucun fichier MC2/ES2 ni workflow Circle global modifié.
+Landing : https://sonnycourt.com/delta-vision-cadeau/
+Gestion des destinataires : https://sonnycourt.com/delta-vision-cadeaux/
+Checkout : https://sonnycourt.spiffy.co/checkout/delta-vision-cadeaux
+Packs natifs : base 47 EUR ; option 3 +34 EUR ; option 5 +38 EUR.
+Totaux : 47 / 81 / 85 EUR pour 1 / 3 / 5 cadeaux. Aucun abonnement/coupon.
+Sélection native via gift_pack=1,3,5 : champ de commande texte gift_pack,
+Radio Buttons 371834, Field Value 1 / 3 / 5. Aucun script de sélection.
+Coordonnées françaises, CGV obligatoires, confirmation vers la gestion cadeau.
+Pas de données personnelles ajoutées à l’URL de confirmation.
+
+AUTOMATISATIONS
+Spiffy Purchase -> delta-gifts-purchase, authentification par secret dédié.
+Accepte uniquement le checkout configuré et les trois tarifs exacts.
+Un même ordre ne peut jamais créditer deux fois les cadeaux.
+Un job envoie le lien personnel de gestion à l’acheteur.
+Chaque destinataire reçoit un lien signé d’activation ; email seul insuffisant.
+La reconnaissance du cadeau précède téléphone/paiement sur Delta Vision.
+Le worker chaque minute envoie les emails et attribue l’accès Circle.
+
+CIRCLE
+Cours secret publié : 2905142, /c/delta-vision, leçons Théorie et Pratique.
+Groupe 492233 FORMATIONS : utilisé UNIQUEMENT pour valider le cours.
+Ne JAMAIS attribuer ce groupe entier, qui contient d’autres formations.
+Nouveaux membres : space_ids=[2905142], space_group_ids=[], member_tag_ids=[].
+Membres existants : ajout au seul espace 2905142, accès existants conservés.
+Invitation native Circle existante approuvée par Sonny le 13 octobre 2026.
+Aucun nouveau workflow global ni modification de template commun.
+
+VARIABLES NETLIFY (secrets jamais consignés ici)
+DELTA_GIFTS_ENABLED : interrupteur principal, true seulement au lancement.
+DELTA_GIFTS_EMAILS_APPROVED=true ; DELTA_GIFTS_CIRCLE_APPROVED=true
+DELTA_GIFTS_SIGNING_KEY et DELTA_GIFTS_WEBHOOK_TOKEN : secrets distincts >=48.
+DELTA_GIFTS_CHECKOUT_ID=41041 ; DELTA_GIFTS_AMOUNT_UNIT=minor
+DELTA_GIFTS_EMAIL_FROM=info@sonnycourt.com
+DELTA_GIFTS_CIRCLE_GROUP_ID=492233 ; DELTA_GIFTS_CIRCLE_SPACE_IDS=2905142
+DELTA_GIFTS_ACCESS_URL=https://volt.sonnycourt.com/c/delta-vision
+Réutilise Supabase service_role, MailerSend et Circle côté serveur.
+
+CONTRÔLES EFFECTUÉS
+SQL installé ; RLS actif sur les 4 tables, aucun accès anon/authenticated.
+Tests PGlite : quotas, rejouabilité, rollback, verrouillage et permissions.
+Tests : liens signés/expiration, identité, tarifs, périmètre Circle restreint.
+Send Test Spiffy reçu sur une sonde de preview authentifiée : aucun ordre créé.
+Payload générique : order_total numérique 6000, checkout_id=1 (donc ignoré).
+Vue native du checkout : total=4700 pour le tarif affiché de 47 EUR.
+Sonde temporaire exclue du code de production.
+Tests Delta Vision opt-in/bridge et MC2 paiement/identité/Circle passants.
+Ancien test mc2-spiffy-checkout : attend DealOffer.astro alors que main utilise
+déjà DealOfferDraftX.astro. Échec préexistant, aucun contournement/modification.
+
+MISE EN SERVICE
+Publier uniquement par npm run deploy:production depuis main propre=origin.
+Publier Spiffy après les endpoints, puis vérifier les trois prix.
+Paiement réel de validation : action de Sonny. Ne pas déclarer un achat
+de bout en bout effectué sans confirmation.
+Emails de test : adresse et accord explicites de Sonny nécessaires.
+
+EXPLOITATION
+Envoi email incertain : failed, sans réenvoi aveugle.
+Activations Circle rejouables, jusqu’à 5 tentatives.
+Incident : lire dv_gift_jobs.state/last_error ; ne pas attribuer ES2 en dépannage.
+Remboursements : révocation non automatisée. Identifier les cadeaux du pack,
+faire approuver les révocations, retirer uniquement les accès Delta Vision
+issus de ce pack, jamais un autre achat du bénéficiaire.
+Marquer la commande revoked ne retire PAS l’accès Circle à lui seul :
+la révocation Circle doit être réalisée et vérifiée séparément.
