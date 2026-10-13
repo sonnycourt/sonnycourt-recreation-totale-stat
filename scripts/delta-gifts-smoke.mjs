@@ -10,6 +10,8 @@ assert(giftReady(env));assert(!giftReady({...env,DELTA_GIFTS_EMAILS_APPROVED:'fa
 const token=signGiftToken('owner',id,{env,now});
 assert.equal(verifyGiftToken(token,'owner',{env,now}),id);assert.equal(verifyGiftToken(token,'gift',{env,now}),null);assert.equal(verifyGiftToken(token+'x','owner',{env,now}),null);assert.equal(verifyGiftToken(token,'owner',{env,now:now+31*86400000}),null);
 for(const [price,count] of [[47,1],[81,3],[85,5]])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'Me@Example.com',currency:'EUR',order_total:price},env).p_pack,count);
+// Native Spiffy Custom Webhooks use numeric minor-unit totals and numeric zero for absent plans.
+for(const [price,count] of [[4700,1],[8100,3],[8500,5]])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'Me@Example.com',currency:'eur',order_total:price,subscription_id:0,payment_plan_id:0,has_order_bump:false},{...env,DELTA_GIFTS_AMOUNT_UNIT:'minor'}).p_pack,count);
 for(const data of [{order_total:0},{order_total:4700},{currency:'USD'},{checkout_id:456},{payment_plan_id:2},{has_order_bump:true}])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'me@example.com',currency:'EUR',order_total:47,...data},env),null);
 const content=giftEmailContent('owner_email',{id,buyer_name:'<script>',pack_count:3},null,{env});assert(!content.html.includes('<script>'));assert(content.html.includes('&lt;script&gt;'));assert(content.text.includes('#owner='));
 let externalCalls=0;assert.deepEqual(await runGiftJobs({env:{},fetcher:async()=>{externalCalls++;}}),{enabled:false,processed:0});assert.equal(externalCalls,0);
@@ -22,6 +24,27 @@ await assert.rejects(fulfillGift({recipient_email:'friend@example.com'},{env,fet
 const gift={id,order_id:id,recipient_email:'friend@example.com',recipient_name:'Friend',state:'assigned'};
 const order={id,buyer_email:'buyer@example.com',buyer_name:'Buyer',pack_count:3,status:'paid'};
 const fetchDb=async url=>Response.json(String(url).includes('dv_gift_orders')?[order]:[gift]);
+// Match the real Circle v2 shape, and never grant a whole group or product tag.
+for(const existing of [true,false]){
+  const writes=[];let added=existing;
+  const mockCircle=async(url,opts)=>{
+    const u=new URL(url);
+    if(u.pathname.endsWith('/spaces/101') || u.pathname.endsWith('/spaces/102'))return Response.json({space_group:{id:42},space_type:'course',is_private:true,is_hidden_from_non_members:true,is_draft:false});
+    if(u.pathname.endsWith('/community_members/search'))return existing?Response.json({id:7,email:gift.recipient_email}):Response.json({}, {status:404});
+    if(opts.method==='POST'){
+      const body=JSON.parse(opts.body);writes.push({path:u.pathname,body});
+      if(u.pathname.endsWith('/community_members'))return Response.json({id:7,email:gift.recipient_email});
+      if(u.pathname.endsWith('/space_members')){added=true;return Response.json({message:'User added to space'});}
+      throw new Error('unexpected_circle_write');
+    }
+    if(u.pathname.endsWith('/space_member'))return added?Response.json({space_id:Number(u.searchParams.get('space_id')),community_member_id:7,status:'active'}):Response.json({}, {status:404});
+    throw new Error('unexpected_circle_read');
+  };
+  assert.equal(await fulfillGift(gift,{env,fetcher:mockCircle}),'7');
+  assert(writes.every(w=>!w.path.includes('space_group_members')));
+  const invite=writes.find(w=>w.path.endsWith('/community_members'));
+  if(invite){assert.deepEqual(invite.body.space_group_ids,[]);assert.deepEqual(invite.body.member_tag_ids,[]);assert.deepEqual(invite.body.space_ids,[101,102]);}
+}
 const giftToken=signGiftToken('gift',id,{env});
 assert.equal((await api(req({action:'recognize',token:giftToken,email:'someoneelse@example.com',firstName:'Other'}),null,{env,fetcher:fetchDb})).status,403);
 // Real local Postgres engine: SQL constraints, transactions, idempotency and role protections.

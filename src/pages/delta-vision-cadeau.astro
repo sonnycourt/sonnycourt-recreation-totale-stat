@@ -65,7 +65,7 @@ const packs = [
               <div class="pack-price"><strong>{pack.unit}<span> €</span></strong><span>par cadeau</span></div>
               <p class="pack-total">{pack.count} {pack.count === 1 ? 'cadeau' : 'cadeaux'} · <strong>{pack.total} € au total</strong></p>
               <div class="pack-details"><span>La méthode complète pour chaque proche</span><span>Une invitation personnelle par email</span><span>Les destinataires à choisir à ton rythme</span></div>
-              <button class:list={['button', pack.count === 5 ? 'primary' : 'outline']} type="button" data-pack={pack.count} data-total={pack.total}>{pack.label}<svg aria-hidden="true"><use href="#arrow" /></svg></button>
+              <a class:list={['button', pack.count === 5 ? 'primary' : 'outline']} href={`https://sonnycourt.spiffy.co/checkout/delta-vision-cadeaux?gift_pack=${pack.count}&locale=fr`} data-pack={pack.count}>{pack.label}<svg aria-hidden="true"><use href="#arrow" /></svg></a>
             </article>
           ))}
         </div>
@@ -94,38 +94,7 @@ const packs = [
       </section>
       <section class="closing wrap"><svg aria-hidden="true"><use href="#gift" /></svg><h2>Tu sais déjà <em>à qui l’offrir.</em></h2><a class="button primary" href="#cadeaux">Choisir mes cadeaux <svg><use href="#arrow" /></svg></a></section>
     </main>
-    <footer class="wrap footer"><a class="brand" href="/delta-vision/"><svg aria-hidden="true"><use href="#mark" /></svg><span>Delta<br />Vision</span></a><span>UNE RESPIRATION. UN AUTRE HORIZON.</span><p>Aperçu · Paiement et invitations non activés.</p></footer>
-
-    <dialog id="gift-preview" aria-labelledby="preview-title" aria-describedby="preview-description">
-      <button type="button" class="dialog-close" aria-label="Fermer l’aperçu">×</button>
-      <svg class="dialog-icon" aria-hidden="true"><use href="#gift" /></svg>
-      <p class="eyebrow">TON ATTENTION PREND FORME</p><h2 id="preview-title">Un cadeau.<br /><em>Tout un possible.</em></h2>
-      <div class="selection"><span id="selected-count"></span><strong id="selected-total"></strong></div>
-      <p id="preview-description">Ceci est un aperçu de la page cadeau. Le paiement Spiffy et l’envoi des invitations ne sont pas encore raccordés. Aucun achat ne sera effectué.</p>
-      <button type="button" class="button primary dialog-return">Revenir aux cadeaux <svg aria-hidden="true"><use href="#arrow" /></svg></button>
-    </dialog>
-    <script>
-      const dialog = document.querySelector<HTMLDialogElement>('#gift-preview');
-      const countLabel = document.querySelector('#selected-count');
-      const totalLabel = document.querySelector('#selected-total');
-      if (dialog && countLabel && totalLabel) {
-        document.querySelectorAll<HTMLButtonElement>('[data-pack]').forEach(button => {
-          button.addEventListener('click', () => {
-            const count = Number(button.dataset.pack);
-            countLabel.textContent = `${count} ${count === 1 ? 'cadeau Delta Vision' : 'cadeaux Delta Vision'}`;
-            totalLabel.textContent = `${button.dataset.total} €`;
-            dialog.showModal();
-            document.body.classList.add('dialog-open');
-          });
-        });
-        dialog.querySelectorAll('button').forEach(button => button.addEventListener('click', () => dialog.close()));
-        dialog.addEventListener('close', () => document.body.classList.remove('dialog-open'));
-        dialog.addEventListener('click', event => { if (event.target === dialog) {
-          const r = dialog.getBoundingClientRect();
-          if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
-        }});
-      }
-    </script>
+    <footer class="wrap footer"><a class="brand" href="/delta-vision/"><svg aria-hidden="true"><use href="#mark" /></svg><span>Delta<br />Vision</span></a><span>UNE RESPIRATION. UN AUTRE HORIZON.</span><p><a href="/cgv/">Conditions de vente</a> · <a href="/politique-de-confidentialite/">Confidentialité</a></p></footer>
   </body>
 </html>
 

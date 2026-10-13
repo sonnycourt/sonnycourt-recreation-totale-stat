@@ -13,21 +13,15 @@ export async function fulfillGift(gift,{env=process.env,fetcher=fetch}={}){
   // Validate the configured spaces before changing ANY membership. Never use an ES2 tag.
   for(const id of spaces){
     const space=await request(`spaces/${id}`);
-    if(Number(space?.space_group_id)!==group)throw new Error('circle_space_group_mismatch');
+    if(Number(space?.space_group?.id ?? space?.space_group_id)!==group || space?.space_type!=='course' || space?.is_private!==true || space?.is_hidden_from_non_members!==true || space?.is_draft!==false)throw new Error('circle_space_group_mismatch');
   }
   const unwrap=payload=>payload?.community_member || payload?.data?.community_member || payload?.data || payload;
   let member=unwrap(await request(`community_members/search?email=${encodeURIComponent(email)}`));
   if(!member){
-    member=unwrap(await request('community_members',{email,name:gift.recipient_name,skip_invitation:false,space_group_ids:[group],space_ids:spaces}));
+    // Never grant the parent FORMATIONS group: it contains other paid courses.
+    member=unwrap(await request('community_members',{email,name:gift.recipient_name,skip_invitation:false,space_group_ids:[],space_ids:spaces,member_tag_ids:[]}));
   }
   if(!member?.id || emailValue(member.email)!==email)throw new Error('circle_identity_mismatch');
-  const groupQuery=`email=${encodeURIComponent(email)}&space_group_id=${group}`;
-  let membership=await request(`space_group_member?${groupQuery}`);
-  if(!membership || membership.status!=='active'){
-    await request('space_group_members',{email,space_group_id:group});
-    membership=await request(`space_group_member?${groupQuery}`);
-  }
-  if(Number(membership?.space_group_id)!==group || membership.status!=='active' || String(membership.community_member_id)!==String(member.id))throw new Error('circle_group_not_confirmed');
   for(const id of spaces){
     const query=`email=${encodeURIComponent(email)}&space_id=${id}`;
     let spaceMember=await request(`space_member?${query}`);
@@ -35,7 +29,7 @@ export async function fulfillGift(gift,{env=process.env,fetcher=fetch}={}){
       await request('space_members',{email,space_id:id});
       spaceMember=await request(`space_member?${query}`);
     }
-    if(Number(spaceMember?.space_id)!==id || String(spaceMember.community_member_id)!==String(member.id))throw new Error('circle_space_not_confirmed');
+    if(Number(spaceMember?.space_id)!==id || spaceMember?.status!=='active' || String(spaceMember.community_member_id)!==String(member.id))throw new Error('circle_space_not_confirmed');
   }
   return String(member.id);
 }

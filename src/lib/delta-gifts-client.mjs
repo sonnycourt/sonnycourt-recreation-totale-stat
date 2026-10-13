@@ -19,10 +19,11 @@ export function initGiftRecognition(dialog,show,{view=window,fetcher=fetch}={}){
     if(result.state==='active' && result.url){
       const url=new URL(result.url);
       if(url.protocol!=='https:')throw new Error('invalid_access');
-      access.href=url.href;access.hidden=false;text.textContent='Ton cadeau est activé. Retrouve la leçon et ta séance dans ton espace Delta Vision.';return;
+      access.href=url.href;access.hidden=false;text.textContent='Ton cadeau est activé. Retrouve la leçon et ta séance dans ton espace Delta Vision. Première visite sur VOLT ? Accepte aussi l’invitation reçue par email pour créer ton compte.';return;
     }
     if(result.state==='check_email'){text.textContent='Un cadeau t’attend. Ouvre ton email d’invitation et utilise son lien personnel pour activer ton accès, sans téléphone ni paiement.';return;}
-    if(result.state==='assistance' || attempt>=24){text.textContent='Ton cadeau est bien enregistré. L’ouverture de ton accès prend un peu plus de temps. Tu peux revenir avec ton lien personnel dans quelques instants.';return;}
+    if(result.state==='assistance'){text.textContent='Ton cadeau est bien enregistré. Écris à info@sonnycourt.com avec l’adresse utilisée pour que nous finalisions ton accès.';return;}
+    if(attempt>=24){text.textContent='Ton cadeau est bien enregistré. L’ouverture de ton accès prend un peu plus de temps. Tu peux revenir avec ton lien personnel dans quelques instants.';return;}
     text.textContent='Ton cadeau est reconnu. Nous préparons ton accès à Delta Vision…';
     poll=view.setTimeout(async()=>{
       if(!dialog.open)return;
