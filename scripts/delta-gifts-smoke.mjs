@@ -6,6 +6,7 @@ import api from '../netlify/functions/delta-gifts.js';
 import {runGiftJobs,fulfillGift} from '../netlify/functions/lib/delta-gifts-worker.mjs';
 import {giftReceivedState} from '../src/lib/delta-gift-received.mjs';
 import {syncGiftRecipient} from '../netlify/functions/lib/delta-gifts-mailerlite.mjs';
+import {recipientPairs,validateRecipientPairs} from '../src/lib/delta-gift-recipients.mjs';
 const env={DELTA_GIFTS_ENABLED:'true',DELTA_GIFTS_EMAILS_APPROVED:'true',DELTA_GIFTS_CIRCLE_APPROVED:'true',SUPABASE_URL:'https://database.test',SUPABASE_SERVICE_ROLE_KEY:'mock',DELTA_GIFTS_SIGNING_KEY:'s'.repeat(64),DELTA_GIFTS_WEBHOOK_TOKEN:'w'.repeat(64),DELTA_GIFTS_CHECKOUT_ID:'123',DELTA_GIFTS_AMOUNT_UNIT:'major',MAILERSEND_API_KEY:'mock',DELTA_GIFTS_EMAIL_FROM:'sender@example.com',CIRCLE_ADMIN_API_TOKEN:'mock',DELTA_GIFTS_CIRCLE_GROUP_ID:'42',DELTA_GIFTS_CIRCLE_SPACE_IDS:'101,102',CIRCLE_COMMUNITY_HOST:'volt.sonnycourt.com',DELTA_GIFTS_ACCESS_URL:'https://volt.sonnycourt.com/c/delta-vision'};
 const id='00000000-0000-4000-8000-000000000001',now=Date.now();
 assert(giftReady(env));assert(!giftReady({...env,DELTA_GIFTS_EMAILS_APPROVED:'false'}));assert(!giftReady({...env,DELTA_GIFTS_ACCESS_URL:'https://evil.test'}));assert(!giftReady({...env,DELTA_GIFTS_AMOUNT_UNIT:''}));
@@ -31,6 +32,26 @@ await syncGiftRecipient(gift,{env:{...env,MAILERLITE_API_KEY:'mock',MAILERLITE_G
  const body=JSON.parse(opts.body);assert.deepEqual(body.groups,['777']);assert(!('status' in body));assert.equal(body.email,gift.recipient_email);return Response.json({data:{id:'123'}});
 }});
 const fetchDb=async url=>Response.json(String(url).includes('dv_gift_orders')?[order]:[gift]);
+// Names survive the API boundary; legacy open pages without a name still work.
+for(const recipient of [{slot:1,email:' FRIEND@EXAMPLE.COM ',firstName:' Léa '},{slot:1,email:'friend@example.com'}]){
+ let assigned=0;
+ const reply=await api(req({action:'assign',token,recipients:[recipient]}),null,{env,fetcher:async(url,opts)=>{
+  if(String(url).endsWith('/rpc/dv_gift_assign')){assigned++;const r=JSON.parse(opts.body).p_recipients[0];assert.equal(r.email,'friend@example.com');if('firstName' in recipient)assert.equal(r.firstName,'Léa');else assert(!('firstName' in r));return Response.json(1);}
+  return fetchDb(url);
+ }});assert.equal(reply.status,200);assert.equal(assigned,1);
+}
+for(const firstName of ['',null,4,'   ','<script>','a\nb','x'.repeat(101)]){
+ let writes=0;
+ const reply=await api(req({action:'assign',token,recipients:[{slot:1,email:'friend@example.com',firstName}]}),null,{env,fetcher:async(url,opts)=>{if(opts?.method==='POST')writes++;return fetchDb(url);}});
+ assert.equal(reply.status,400);assert.equal(writes,0);
+}
+assert.deepEqual(recipientPairs([['recipient-1-firstName',' Léa '],['recipient-1-email',' lea@example.com '],['recipient-2-firstName',''],['recipient-2-email','']]),[{slot:1,firstName:'Léa',email:'lea@example.com'}]);
+for(const [nameValue,emailValue,expected] of [['','','blank'],[' Léa ','lea@example.com','complete'],['Léa','','partial'],['','lea@example.com','partial'],['  ','lea@example.com','partial']]){
+ const field=value=>({value,required:false,error:'',setCustomValidity(s){this.error=s;}});
+ const name=field(nameValue),email=field(emailValue);
+ const form={querySelectorAll:()=>[{querySelector:selector=>selector.includes('name')?name:email}],reportValidity:()=>!name.error&&(!name.required||!!name.value.trim())&&(!email.required||!!email.value.trim())};
+ assert.equal(validateRecipientPairs(form),expected!=='partial');assert.equal(name.required,expected!=='blank');assert.equal(email.required,expected!=='blank');
+}
 // Match the real Circle v2 shape, and never grant a whole group or product tag.
 for(const existing of [true,false]){
   const writes=[];let added=existing;
@@ -110,5 +131,23 @@ assert.equal(Number(await scalar('select count(*) from dv_gifts where order_id=$
 assert.equal(Number(await scalar('select count(*) from dv_gifts where order_id=$1',[threeNew])),3);
 assert.equal(await scalar("select dv_gift_record_order('151','three@example.com','Three',3,5100)"),threeNew);
 for(const [pack,amount] of [[3,1700],[3,2700],[1,5100],[5,5100]])await assert.rejects(pg.query('select dv_gift_record_order($1,$2,$3,$4,$5)',['999','bad@example.com','Bad',pack,amount]));
+// Name migration is atomic, backwards compatible and re-runnable.
+const namesSql=readFileSync(new URL('../sql/delta_vision_gifts_recipient_name.sql',import.meta.url),'utf8');
+await pg.exec(namesSql);await pg.exec(namesSql);
+const assignNames=recipients=>pg.query('select dv_gift_assign($1,$2)',[threeNew,JSON.stringify(recipients)]);
+await assignNames([{slot:1,email:'LEA@example.com',firstName:' Léa '}]);
+assert.equal(await scalar('select recipient_name from dv_gifts where order_id=$1 and slot=1',[threeNew]),'Léa');
+await assignNames([{slot:1,email:'lea@example.com',firstName:'Changed'}]);
+assert.equal(await scalar('select recipient_name from dv_gifts where order_id=$1 and slot=1',[threeNew]),'Léa','Replay must not overwrite a saved identity');
+assert.equal(Number(await scalar("select count(*) from dv_gift_jobs where order_id=$1 and kind='gift_email'",[threeNew])),1);
+for(const firstName of ['',null,9,'  ','<script>','a\nb','x'.repeat(101)])await assert.rejects(assignNames([{slot:2,email:'bad-name@example.com',firstName}]),/invalid_name/);
+await assert.rejects(assignNames([{slot:2,email:'rollback@example.com',firstName:'Rollback'},{slot:3,email:'lea@example.com',firstName:'Duplicate'}]));
+assert.equal(await scalar('select recipient_name from dv_gifts where order_id=$1 and slot=2',[threeNew]),null,'Name must roll back with failed assignment');
+await assignNames([{slot:2,email:'legacy@example.com'}]);
+assert.equal(await scalar('select recipient_name from dv_gifts where order_id=$1 and slot=2',[threeNew]),null);
+const namedGift=await scalar('select id from dv_gifts where order_id=$1 and slot=1',[threeNew]);
+await pg.query('select dv_gift_activate($1,$2,$3)',[namedGift,'lea@example.com','Léa-Marie']);
+assert.equal(await scalar('select recipient_name from dv_gifts where id=$1',[namedGift]),'Léa-Marie','Recipient confirms their own name on activation');
+assert.equal(await scalar("select has_function_privilege('anon','dv_gift_assign(uuid,jsonb)','EXECUTE')"),false);
 await pg.close();
 console.log('PASS Delta gifts: signed links, purpose/expiry, strict pricing, disabled sends, identity isolation, Circle scope, SQL replay/limits/rollback/leases/RLS. No external writes or emails.');

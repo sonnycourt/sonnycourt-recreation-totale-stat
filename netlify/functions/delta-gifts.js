@@ -19,10 +19,10 @@ export default async function handler(req,context,options={}) {
       if(!order || order.status!=='paid')return giftJson(403,{ok:false,code:'order_unavailable'});
       if(input.action==='assign'){
         if(!Array.isArray(input.recipients) || !input.recipients.length || input.recipients.length>order.pack_count
-          || input.recipients.some(r=>!Number.isInteger(r?.slot) || r.slot<1 || r.slot>order.pack_count || !validEmail(emailValue(r.email))))return giftJson(400,{ok:false,code:'invalid_recipients'});
-        await giftRpc('dv_gift_assign',{p_order:id,p_recipients:input.recipients.map(r=>({slot:r.slot,email:emailValue(r.email)}))},db);
+          || input.recipients.some(r=>!Number.isInteger(r?.slot) || r.slot<1 || r.slot>order.pack_count || !validEmail(emailValue(r.email)) || ('firstName' in r && !validName(r.firstName))))return giftJson(400,{ok:false,code:'invalid_recipients'});
+        await giftRpc('dv_gift_assign',{p_order:id,p_recipients:input.recipients.map(r=>({slot:r.slot,email:emailValue(r.email),...('firstName' in r?{firstName:r.firstName.trim()}:{})}))},db);
       }
-      const gifts=await giftDb(`dv_gifts?order_id=eq.${id}&select=slot,recipient_email,state&order=slot.asc`,db);
+      const gifts=await giftDb(`dv_gifts?order_id=eq.${id}&select=slot,recipient_email,recipient_name,state&order=slot.asc`,db);
       return giftJson(200,{ok:true,name:order.buyer_name,count:order.pack_count,gifts});
     }
     if(input.action==='recover'){
