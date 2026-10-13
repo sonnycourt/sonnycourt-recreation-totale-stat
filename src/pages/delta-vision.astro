@@ -1,8 +1,16 @@
 ---
 import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
 import JungleStage from '../components/delta/JungleStage.astro';
+import WalletMarks from '../components/delta/WalletMarks.astro';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
+const sectionLinks = [
+  { href: '#presentation', label: 'Présentation' },
+  { href: '#histoire', label: 'Pourquoi Delta Vision' },
+  { href: '#ressentir', label: 'Ce que tu reçois' },
+  { href: '#methode', label: 'La méthode' },
+  { href: '#science', label: 'La science' },
+];
 const intentions = [
   { number: 'Jour 1', title: 'Tes premiers ressentis.', text: 'Après la séance, prends un instant pour observer : ton corps, ton souffle, ton état intérieur. Qu’est-ce qui est différent, ici et maintenant ?', icon: 'waves' },
   { number: 'Jour 2', title: 'Retrouver cet espace.', text: 'Reviens à la pratique et retrouve tes repères. Explore ce moment où les pensées peuvent laisser davantage de place aux sensations.', icon: 'waves' },
@@ -54,9 +62,16 @@ const intentions = [
     <header class="site-header wrap">
       <a class="wordmark" href="#" aria-label="Delta Vision, accueil"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a>
       <nav aria-label="Navigation principale">
-        <a class="nav-link" href="#methode">La méthode</a>
-        <a class="nav-link" href="#ressentir">L’expérience</a>
-        <a class="nav-cta" href={checkoutUrl}><span>Découvrir<span class="nav-product-name"> Delta Vision</span></span> <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+        <div class="section-nav">
+          {sectionLinks.map(({ href, label }) => <a class="nav-link" href={href}>{label}</a>)}
+        </div>
+        <details class="mobile-nav">
+          <summary>Explorer <span class="mobile-nav-icon" aria-hidden="true"><i></i><i></i></span></summary>
+          <div class="mobile-nav-links">
+            <p class="mobile-nav-heading">Découvrir Delta Vision</p>
+            {sectionLinks.map(({ href, label }, index) => <a href={href}><span class="mobile-nav-number" aria-hidden="true">0{index + 1}</span><span>{label}</span><svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>)}
+          </div>
+        </details>
       </nav>
     </header>
 
@@ -78,9 +93,11 @@ const intentions = [
         </div>
         </JungleStage>
         <div class="price-card" aria-label="27 euros, au lieu de 147 euros">
-          <p class="price-before">Au lieu de <del>{inspira.referencePrice} €</del></p>
+          <p class="price-launch">Offre de lancement</p>
+          <p class="price-before"><span class="price-before-label">Au lieu de</span><span class="price-reference"><del>{inspira.referencePrice}</del><span>€</span></span></p>
           <strong class="price-current">{inspira.price}<span>€</span></strong>
           <a class="button button-coral" href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <WalletMarks />
         </div>
       </section>
 
@@ -289,9 +306,11 @@ const intentions = [
         <svg class="closing-sun" aria-hidden="true"><use href="#delta-vision-mark" /></svg>
         <h2 id="closing-title">Prends une grande inspiration<br /><em>et commence maintenant.</em></h2>
         <div class="price-card" aria-label="27 euros, au lieu de 147 euros">
-          <p class="price-before">Au lieu de <del>{inspira.referencePrice} €</del></p>
+          <p class="price-launch">Offre de lancement</p>
+          <p class="price-before"><span class="price-before-label">Au lieu de</span><span class="price-reference"><del>{inspira.referencePrice}</del><span>€</span></span></p>
           <strong class="price-current">{inspira.price}<span>€</span></strong>
           <a class="button button-coral" href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <WalletMarks />
         </div>
       </section>
 
@@ -317,6 +336,19 @@ const intentions = [
           frame.focus();
         }, { once: true });
       });
+      const mobileNav = document.querySelector<HTMLDetailsElement>('.mobile-nav');
+      mobileNav?.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => { mobileNav.open = false; });
+      });
+      mobileNav?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          mobileNav.open = false;
+          mobileNav.querySelector('summary')?.focus();
+        }
+      });
+      document.addEventListener('click', (event) => {
+        if (mobileNav?.open && event.target instanceof Node && !mobileNav.contains(event.target)) mobileNav.open = false;
+      });
     </script>
   </body>
 </html>
@@ -339,6 +371,30 @@ const intentions = [
   .presentation>.price-card{text-align:center}
   .price-card{width:min(440px,100%);margin:34px auto 0;padding:29px 30px 31px;border:1px solid #e5d7c8;border-radius:22px;background:linear-gradient(145deg,#fffdfa,#f6eee3);box-shadow:0 15px 40px -30px #94765666;text-align:center}.price-before{margin:0;color:#82796c;font-size:13px;line-height:1.4}.price-before del{display:inline;margin-left:5px;font-size:20px;letter-spacing:-.4px;text-decoration-thickness:1px;text-decoration-color:var(--coral)}.price-offer{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 0;color:var(--coral);font-size:18px;font-weight:600;letter-spacing:-.2px;line-height:1.25}.price-offer>span{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}.price-current{display:flex;justify-content:center;align-items:flex-start;gap:7px;margin:6px auto 0;font-size:78px;font-weight:500;letter-spacing:-5px;line-height:.9;color:var(--ink)}.price-current>span{font-size:30px;letter-spacing:-1px;margin-top:10px}.price-saving{display:inline-block;padding:6px 12px;background:#ead6c34d;border:1px solid #e8d8c7;border-radius:100px;color:#87533c;font-size:11px;font-weight:500}.price-card .button{display:flex;max-width:310px;margin:25px auto 0}.price-card .button svg{margin-left:auto}
   @media(max-width:520px){.price-card{padding:25px 22px 27px;margin-top:28px}.price-offer{font-size:16px;margin-top:16px}.price-current{font-size:70px}.price-card .button{font-size:12px;padding-inline:22px;gap:16px}}
+  .section-nav{display:flex;align-items:center;gap:24px}
+  .site-header{position:relative;z-index:40}
+  .mobile-nav{display:none}
+  .mobile-nav summary{display:flex;align-items:center;justify-content:center;gap:13px;min-height:44px;padding:11px 16px;border:1px solid #ded7cb;border-radius:100px;background:#fffaf5;font-size:12px;cursor:pointer;list-style:none}
+  .mobile-nav summary::-webkit-details-marker{display:none}
+  .mobile-nav-icon{display:grid;gap:5px;width:16px}
+  .mobile-nav-icon i{display:block;height:1.5px;width:16px;background:var(--coral);transition:transform .2s}
+  .mobile-nav[open] .mobile-nav-icon i:first-child{transform:translateY(3.25px) rotate(45deg)}
+  .mobile-nav[open] .mobile-nav-icon i:last-child{transform:translateY(-3.25px) rotate(-45deg)}
+  .mobile-nav[open] summary{background:#f4e9de;border-color:#d9c4b3}
+  .mobile-nav-links{position:absolute;right:0;top:calc(100% + 10px);z-index:30;width:min(360px,100%);padding:22px 22px 12px;background:#fffdf9;border:1px solid #e6dbcd;border-radius:20px;box-shadow:0 18px 45px #47351f1c}
+  .mobile-nav-heading{margin:0 0 13px;color:var(--coral);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+  .mobile-nav-links a{display:flex;align-items:center;gap:13px;min-height:55px;padding:14px 0;border-top:1px solid #eee6db;font-size:14px}
+  .mobile-nav-number{font-size:10px;font-weight:400;color:#a99782;font-variant-numeric:tabular-nums}
+  .mobile-nav-links a svg{width:16px;height:16px;margin-left:auto;color:#a99782}
+  .mobile-nav-links a:hover{color:var(--coral)}
+  @media(max-width:1100px){.section-nav{display:none}.mobile-nav{display:block}.site-header nav{gap:18px}}
+  @media(max-width:380px){.site-header nav{gap:10px}.site-header .nav-cta{padding:10px 12px;gap:7px}.site-header .wordmark-name{font-size:24px}.site-header .wordmark svg{width:25px;margin-right:7px}}
+  .price-launch{margin:0 0 20px;color:var(--coral);font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;line-height:1.4}
+  .price-reference{display:flex;align-items:baseline;justify-content:center;gap:4px;color:#9b9286}
+  .price-before del{display:block;width:fit-content;margin:0;font-size:34px;font-weight:400;letter-spacing:-1px;line-height:1.1;color:#9b9286;text-decoration-thickness:1px}
+  .price-reference>span{font-size:22px;letter-spacing:0}
+  .price-before-label{display:block;margin:0 auto 7px}
+  .price-before + .price-current{margin-top:22px}
   .price-card .button{position:relative;justify-content:center;max-width:360px;min-height:60px;padding:18px 40px;gap:0;font-size:16px;line-height:1.4;text-align:center}
   .price-card .button svg{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;margin:0;pointer-events:none}
   @media(max-width:520px){.price-card .button{padding-inline:32px;font-size:15px}.price-card .button svg{right:11px;width:16px;height:16px}}
