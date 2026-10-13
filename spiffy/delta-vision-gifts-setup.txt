@@ -7,10 +7,10 @@ Activation bénéficiaire : https://sonnycourt.com/delta-vision-cadeau-recu/#gif
 Anciennes invitations /delta-vision/#gift= conservées par redirection locale du fragment.
 Gestion des destinataires : https://sonnycourt.com/delta-vision-cadeaux/
 Checkout : https://sonnycourt.spiffy.co/checkout/delta-vision-cadeaux
-NOUVEAUX TARIFS PRÉPARÉS, NON PUBLIÉS (13 octobre 2026)
+TARIFS PUBLIÉS ET VÉRIFIÉS (13 octobre 2026)
 Packs natifs : base 27 EUR (Price Override du checkout) ; option 3 +24 EUR.
 Totaux : 27 EUR pour 1 cadeau ; 51 EUR pour 3 (17 EUR par cadeau).
-Option 5 retirée du brouillon et de la landing locale. Aucun abonnement/coupon.
+Option 5 retirée du checkout publié et de la landing. Aucun abonnement/coupon.
 Produit 12018 : prix par défaut inchangé ; surcharge propre au checkout.
 Sélection native via gift_pack=1,3 : champ de commande texte gift_pack,
 Radio Buttons 371834, Field Value 1 / 3. Aucun script de sélection.
@@ -68,17 +68,21 @@ Ancien test mc2-spiffy-checkout : attend DealOffer.astro alors que main utilise
 déjà DealOfferDraftX.astro. Échec préexistant, aucun contournement/modification.
 
 MISE EN SERVICE
-Ne pas activer ni publier ce changement avant le branchement final demandé.
+Publication finale explicitement autorisée par Sonny le 13 octobre 2026.
 SQL sql/delta_vision_gifts_prices_27_51.sql exécuté par Sonny, confirmé par SELECT.
 Migration transactionnelle et réexécutable, anciens achats conservés.
 Tests PGlite : migration appliquée deux fois, nouveaux packs 27/51, anciens
 achats rejoués sans doublon, mauvaises combinaisons quantité/prix rejetées.
 Contrôle du brouillon Spiffy : base 27 EUR, supplément 24 EUR attaché au
 bouton radio 3 cadeaux, option 5 retirée, sauvegarde persistante après reload.
-À valider AVANT lancement : dans l'iframe Preview de l'éditeur, sélectionner
-3 cadeaux coche le choix mais le récapitulatif reste à 27 EUR. Ne pas considérer
-le total dynamique de 51 EUR comme validé ; vérifier/corriger au branchement final.
-Build local : 324 pages ; smoke cadeaux et git diff --check passants.
+L'iframe Preview de l'éditeur ne recalculait pas le total. Contrôle effectué
+sur le vrai checkout publié : gift_pack=3 sélectionné, total 51 EUR ; choix
+1 cadeau sélectionné, total 27 EUR. Aucun achat effectué.
+Build : 325 pages ; smoke cadeaux et git diff --check passants.
+Production e583e72 publiée via sas et verrouillée : déploiement 6ace2ae9856670060adecd30.
+Pages cadeau/activation HTTP 200 ; service cadeaux enabled=true.
+MailerLite : groupe Cadeaux reçus configuré, aucun contact test ni séquence créée.
+Tests d'activation/Circle/MailerLite simulés ; aucun email ou achat test réel.
 Publier uniquement par npm run deploy:production depuis main propre=origin.
 Publier Spiffy après les endpoints, puis vérifier les deux prix 27/51 EUR.
 Paiement réel de validation : action de Sonny. Ne pas déclarer un achat
