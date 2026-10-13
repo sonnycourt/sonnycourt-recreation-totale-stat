@@ -72,6 +72,8 @@ try{
  assert.equal((await purchase(hook({...payload,order_id:''},'a'.repeat(64)))).status,422);assert.equal(writes.length,count);
  assert.equal((await purchase(hook(payload,'a'.repeat(64)))).status,200);assert.deepEqual(writes.at(-1).groups,['222']);
  assert.equal((await purchase(hook(payload,'a'.repeat(64)))).status,200); // duplicate upsert, no duplicate member
+ assert.equal((await purchase(hook({...payload,checkout_id:41049,name_first:''},'a'.repeat(64)))).status,200);
+ assert.deepEqual(writes.at(-1).groups,['222']); // email-only hosted checkout
  global.fetch=async()=>new Response('{}',{status:500});
  assert.equal((await register(request(identity))).status,503);
  assert.equal((await purchase(hook(payload,'a'.repeat(64)))).status,503);

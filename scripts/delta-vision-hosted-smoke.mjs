@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import register from '../netlify/functions/delta-vision-register.js';
+import {inspira} from '../src/data/inspira.mjs';
+assert.equal(inspira.price,27);
+assert.equal(inspira.checkoutUrl,'https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr');
+const page=readFileSync(new URL('../src/pages/delta-vision.astro',import.meta.url),'utf8');
+assert(!page.includes('SpiffyCheckout'));
+assert.equal((page.match(/href=\{checkoutUrl\}/g)||[]).length,3);
+const origin='https://sonnycourt.spiffy.co';
+const req=(body,method='POST',site=origin)=>new Request('https://sonnycourt.com/.netlify/functions/delta-vision-register',{method,headers:{Origin:site,'Content-Type':'application/json'},...(method==='POST'?{body:JSON.stringify(body)}:{})});
+let response=await register(req(null,'OPTIONS'));
+assert.equal(response.headers.get('Access-Control-Allow-Origin'),origin);
+assert.equal((await register(req({},'OPTIONS','https://evil.test'))).status,403);
+assert.equal((await register(req({email:'qa@example.com',checkoutId:'41037'}))).status,400);
+const originalFetch=global.fetch;
+Object.assign(process.env,{MAILERLITE_API_KEY:'mock',MAILERLITE_GROUP_DELTA_VISION_REGISTRATIONS:'111'});
+const writes=[];
+global.fetch=async(url,options)=>{writes.push(JSON.parse(options.body));return new Response('{"data":{"id":"mock"}}');};
+try{
+ response=await register(req({email:'qa@example.com',checkoutId:'41049'}));
+ assert.equal(response.status,200);assert.equal(response.headers.get('Access-Control-Allow-Origin'),origin);
+ assert.deepEqual(writes[0],{email:'qa@example.com',fields:{},groups:['111']});
+}finally{global.fetch=originalFetch;}
+const source=readFileSync(new URL('../spiffy/delta-vision-hosted-tracking.html',import.meta.url),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+const listeners={},captures=[];
+vm.runInNewContext(source,{location:{hostname:'sonnycourt.spiffy.co',pathname:'/checkout/delta-vision-1'},document:{addEventListener:(type,fn)=>listeners[type]=fn},fetch:async(url,options)=>{captures.push(JSON.parse(options.body));return {ok:true};}});
+await listeners.blur({target:{id:'card-number',value:'do-not-read'}});assert.equal(captures.length,0);
+await listeners.blur({target:{id:'contactInfo-371920-email',value:'qa@example.com'}});
+await listeners.change({target:{id:'contactInfo-371920-email',value:'qa@example.com'}});
+assert.deepEqual(JSON.parse(JSON.stringify(captures)),[{email:'qa@example.com',checkoutId:'41049'}]);
+console.log('Hosted checkout: 27 EUR, three direct links, scoped CORS, email-only opt-in, no card access, deduplication passed. No external writes.');

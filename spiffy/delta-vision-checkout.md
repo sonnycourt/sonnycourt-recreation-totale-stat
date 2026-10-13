@@ -1,5 +1,17 @@
 # Delta Vision — checkout Spiffy
 
+## Parcours direct — 13 octobre 2026
+
+- Nouveau checkout hébergé **41049** : `https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr`, paiement unique **27 EUR**, produit **12015** également à 27 EUR. L’ancien checkout 41037 est aligné à 27 EUR pour les liens historiques.
+- Les trois CTA de `/delta-vision/` ouvrent directement ce checkout dans le même onglet. Le popup maison n’est plus monté sur cette page ; ses fichiers restent disponibles pour les autres usages existants.
+- Présentation : `delta-vision-hosted-minimal.css`. Prénom/téléphone facultatifs et cachés uniquement dans cette version, email et CGV natifs conservés. Apple Pay confirmé visuellement par Sonny sur iPhone ; aucune transaction de test.
+- `delta-vision-hosted-tracking.html` conserve l’inscription MailerLite après saisie d’un email valide et sortie du champ, sans lire les champs carte ni bloquer le paiement. Aucun stockage navigateur. CORS limité à `https://sonnycourt.spiffy.co`, checkout 41049, API limitée à 12 requêtes/minute/IP. Pas de nouvelle communication email/SMS.
+- Le webhook Purchase authentifié accepte désormais 41037 et 41049, et reste pointé sur `sonnycourt.com`. Le groupe Acheteurs est alimenté exclusivement par cet événement serveur, jamais par la redirection du navigateur.
+- Le prix barré reste à 147 EUR ; la séance est annoncée à 12 minutes.
+- Tests : `node scripts/delta-vision-hosted-smoke.mjs` et `node scripts/delta-vision-house-checkout-smoke.mjs` (appels simulés, aucune écriture de contact réelle).
+
+## Historique du parcours en trois étapes (remplacé)
+
 - Checkout 41037, produit 12015, paiement unique 47 EUR.
 - URL : https://sonnycourt.spiffy.co/checkout/delta-vision?locale=fr
 - Le fichier `delta-vision-payment-embed.html` remplace l’ancien parcours dans Settings → Custom Tracking Code de **ce checkout uniquement**. Publié le 12 octobre 2026 après confirmation explicite de Sonny ; site de production non publié.

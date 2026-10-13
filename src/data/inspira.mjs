@@ -1,9 +1,10 @@
-// Page de présentation en préparation. Aucun checkout ni collecte de données.
+// Paiement hébergé chez Spiffy pour conserver les wallets natifs.
 // Remplacer par l'URL Bunny de la VSL Delta Vision quand elle sera prête.
 export const inspira = Object.freeze({
   presentationVideoUrl: '',
   presentationPosterUrl: '/media/pages/inspira-vsl-jungle-v2.webp',
-  price: 47,
+  price: 27,
+  checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr',
   referencePrice: 147,
   title: 'Delta Vision — Respire. Visualise. Intègre.',
   description: 'Une expérience guidée qui réunit le souffle et la visualisation. Fais de la place au calme, à la clarté et à un nouvel élan.',

@@ -1,8 +1,8 @@
-export function deltaIdentity(input) {
+export function deltaIdentity(input, {emailOnly=false}={}) {
   const firstName = String(input?.firstName || '').trim();
   const email = String(input?.email || '').trim().toLowerCase();
   const phone = String(input?.phone || '').trim();
-  if (!firstName || firstName.length > 100 || /[<>\x00-\x1f]/.test(firstName)) return null;
+  if ((!emailOnly && !firstName) || firstName.length > 100 || /[<>\x00-\x1f]/.test(firstName)) return null;
   if (email.length > 254 || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) return null;
   if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) return null;
   return {firstName,email,...(phone ? {phone} : {})};

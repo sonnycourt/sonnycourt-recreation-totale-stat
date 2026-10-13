@@ -1,0 +1,23 @@
+<!-- Delta Vision checkout 41049 only. Email capture; no card access or payment interception. -->
+<script>
+(function(){
+  if(location.hostname!=='sonnycourt.spiffy.co' || !/^\/checkout\/delta-vision-1\/?$/.test(location.pathname))return;
+  var saved='',pending='';
+  async function capture(event){
+    var field=event.target;
+    if(!field || field.id!=='contactInfo-371920-email')return;
+    var email=String(field.value || '').trim().toLowerCase();
+    if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) || email.length>254 || email===saved || email===pending)return;
+    pending=email;
+    try {
+      var response=await fetch('https://sonnycourt.com/.netlify/functions/delta-vision-register',{
+        method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',keepalive:true,
+        body:JSON.stringify({email:email,checkoutId:'41049'})
+      });
+      if(response.ok)saved=email;
+    } catch (_) {} finally {if(pending===email)pending='';}
+  }
+  document.addEventListener('change',capture,true);
+  document.addEventListener('blur',capture,true);
+})();
+</script>
