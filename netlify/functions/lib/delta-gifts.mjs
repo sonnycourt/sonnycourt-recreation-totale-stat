@@ -1,6 +1,8 @@
 import {createHmac,createHash,timingSafeEqual} from 'node:crypto';
 
-export const GIFT_PACKS = Object.freeze({1:4700,3:8100,5:8500});
+export const GIFT_PACKS = Object.freeze({1:2700,3:5100});
+// Keep delayed/replayed purchases at the previous prices fulfillable.
+const GIFT_PURCHASE_AMOUNTS = Object.freeze({2700:1,5100:3,4700:1,8100:3,8500:5});
 export const GIFT_SITE = 'https://sonnycourt.com';
 export const emailValue = value => String(value || '').trim().toLowerCase();
 export const validEmail = value => value.length<=254 && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value);
@@ -56,9 +58,10 @@ export function parseGiftPurchase(body,env=process.env){
   // Set the unit only after inspecting this checkout's authenticated test payload.
   const amount=String(body.order_total ?? '').trim();
   const minor=env.DELTA_GIFTS_AMOUNT_UNIT==='minor';
-  if(!['major','minor'].includes(env.DELTA_GIFTS_AMOUNT_UNIT) || !(minor?/^(4700|8100|8500)$/:/^(47|81|85)(\.0{1,2})?$/).test(amount) || String(body.currency || '').toUpperCase()!=='EUR' || !validEmail(email))return null;
+  if(!['major','minor'].includes(env.DELTA_GIFTS_AMOUNT_UNIT) || !(minor?/^\d+$/:/^\d+(\.0{1,2})?$/).test(amount) || String(body.currency || '').toUpperCase()!=='EUR' || !validEmail(email))return null;
   if(body.subscription_id || body.payment_plan_id || ![undefined,null,'',0,'0',false,'false'].includes(body.has_order_bump))return null;
-  const cents=Math.round(Number(amount)*(minor?1:100)),pack=Number(Object.keys(GIFT_PACKS).find(k=>GIFT_PACKS[k]===cents));
+  const cents=Math.round(Number(amount)*(minor?1:100)),pack=GIFT_PURCHASE_AMOUNTS[cents];
+  if(!Number.isSafeInteger(cents) || !pack)return null;
   return {p_spiffy_order:String(body.order_id),p_email:email,p_name:firstName.slice(0,100),p_pack:pack,p_amount:cents};
 }
 export function giftJson(status,body){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});}
@@ -72,8 +75,8 @@ export function giftEmailContent(kind,order,gift,{env=process.env,now=Date.now()
     url=`${GIFT_SITE}/delta-vision-cadeaux/#owner=${signGiftToken('owner',order.id,{env,now})}`;label='Distribuer mes cadeaux';
   }else if(kind==='gift_email' && gift){
     subject='Une expérience Delta Vision t’a été offerte';
-    lines=['Bonjour,',`${order.buyer_name || 'Un proche'} t’offre Delta Vision : une leçon pour découvrir la méthode et une vidéo guidée de 15 minutes pour vivre l’expérience.`, 'Découvre la présentation, puis active ton cadeau avec cette adresse email. Ton accès est déjà payé : aucune carte bancaire ne te sera demandée.'];
-    url=`${GIFT_SITE}/delta-vision/#gift=${signGiftToken('gift',gift.id,{env,now})}`;label='Découvrir mon cadeau';
+    lines=['Bonjour,',`${order.buyer_name || 'Un proche'} t’offre Delta Vision : une leçon pour découvrir la méthode et une vidéo guidée de 12 minutes pour vivre l’expérience.`, 'Clique ci-dessous, puis renseigne ton prénom et l’adresse email qui a reçu ce message pour activer ton cadeau. Ton accès est déjà payé : aucune carte bancaire ne te sera demandée.'];
+    url=`${GIFT_SITE}/delta-vision-cadeau-recu/#gift=${signGiftToken('gift',gift.id,{env,now})}`;label='Activer mon cadeau';
   }else throw new Error('gift_email_kind');
   const ending=['À très vite,','Sonny',kind==='owner_email'?'Ce lien est personnel. Si tu n’es pas à l’origine de cet achat, tu peux ignorer cet email.':'Ce lien est personnel. Si ce cadeau ne te concerne pas, tu peux ignorer cet email.'];
   return {subject,text:[...lines,'',`${label} : ${url}`,'',...ending].join('\n\n'),html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#292923;line-height:1.7">${lines.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}<p><a href="${escapeHtml(url)}" style="display:inline-block;padding:14px 22px;background:#b34f39;color:white;text-decoration:none;border-radius:8px">${label}</a></p>${ending.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}</div>`};

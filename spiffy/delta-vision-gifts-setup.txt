@@ -3,23 +3,38 @@ DELTA VISION — CADEAUX — CONFIGURATION ET CONTRÔLES (13 octobre 2026)
 Périmètre isolé : checkout 41041, produit 12018, tables dv_gift_*.
 Aucun fichier MC2/ES2 ni workflow Circle global modifié.
 Landing : https://sonnycourt.com/delta-vision-cadeau/
+Activation bénéficiaire : https://sonnycourt.com/delta-vision-cadeau-recu/#gift=LIEN_SIGNE
+Anciennes invitations /delta-vision/#gift= conservées par redirection locale du fragment.
 Gestion des destinataires : https://sonnycourt.com/delta-vision-cadeaux/
 Checkout : https://sonnycourt.spiffy.co/checkout/delta-vision-cadeaux
-Packs natifs : base 47 EUR ; option 3 +34 EUR ; option 5 +38 EUR.
-Totaux : 47 / 81 / 85 EUR pour 1 / 3 / 5 cadeaux. Aucun abonnement/coupon.
-Sélection native via gift_pack=1,3,5 : champ de commande texte gift_pack,
-Radio Buttons 371834, Field Value 1 / 3 / 5. Aucun script de sélection.
+NOUVEAUX TARIFS PRÉPARÉS, NON PUBLIÉS (13 octobre 2026)
+Packs natifs : base 27 EUR (Price Override du checkout) ; option 3 +24 EUR.
+Totaux : 27 EUR pour 1 cadeau ; 51 EUR pour 3 (17 EUR par cadeau).
+Option 5 retirée du brouillon et de la landing locale. Aucun abonnement/coupon.
+Produit 12018 : prix par défaut inchangé ; surcharge propre au checkout.
+Sélection native via gift_pack=1,3 : champ de commande texte gift_pack,
+Radio Buttons 371834, Field Value 1 / 3. Aucun script de sélection.
 Coordonnées françaises, CGV obligatoires, confirmation vers la gestion cadeau.
 Pas de données personnelles ajoutées à l’URL de confirmation.
 
 AUTOMATISATIONS
 Spiffy Purchase -> delta-gifts-purchase, authentification par secret dédié.
-Accepte uniquement le checkout configuré et les trois tarifs exacts.
+Accepte uniquement le checkout configuré et les tarifs exacts 27/51 EUR.
+Les anciens montants 47/81/85 EUR restent reconnus pour les achats historiques
+et les webhooks retardés : les cadeaux déjà achetés restent utilisables.
 Un même ordre ne peut jamais créditer deux fois les cadeaux.
 Un job envoie le lien personnel de gestion à l’acheteur.
 Chaque destinataire reçoit un lien signé d’activation ; email seul insuffisant.
-La reconnaissance du cadeau précède téléphone/paiement sur Delta Vision.
+La page bénéficiaire demande prénom et email, jamais téléphone ni paiement.
+L'email seul ne donne aucun accès : le lien signé doit correspondre au cadeau.
+Le bouton Volt apparaît seulement après confirmation serveur de l'accès actif.
+Un nouveau membre accepte l'invitation native Volt pour créer son compte.
+Email bénéficiaire mis à jour et validé explicitement par Sonny le 13 octobre 2026.
 Le worker chaque minute envoie les emails et attribue l’accès Circle.
+Après activation : classement prénom/email dans « Delta Vision — Cadeaux reçus »
+sur MailerLite, autorisé explicitement par Sonny. Aucune séquence marketing activée.
+Variable MAILERLITE_GROUP_DELTA_VISION_GIFTS ; échec de classement rejouable,
+sans bloquer l'accès Volt déjà ouvert, sans ajout au groupe Acheteurs.
 
 CIRCLE
 Cours secret publié : 2905142, /c/delta-vision, leçons Théorie et Pratique.
@@ -46,15 +61,26 @@ Tests PGlite : quotas, rejouabilité, rollback, verrouillage et permissions.
 Tests : liens signés/expiration, identité, tarifs, périmètre Circle restreint.
 Send Test Spiffy reçu sur une sonde de preview authentifiée : aucun ordre créé.
 Payload générique : order_total numérique 6000, checkout_id=1 (donc ignoré).
-Vue native du checkout : total=4700 pour le tarif affiché de 47 EUR.
+Contrôle historique de l'unité : total=4700 pour le tarif affiché de 47 EUR.
 Sonde temporaire exclue du code de production.
 Tests Delta Vision opt-in/bridge et MC2 paiement/identité/Circle passants.
 Ancien test mc2-spiffy-checkout : attend DealOffer.astro alors que main utilise
 déjà DealOfferDraftX.astro. Échec préexistant, aucun contournement/modification.
 
 MISE EN SERVICE
+Ne pas activer ni publier ce changement avant le branchement final demandé.
+SQL sql/delta_vision_gifts_prices_27_51.sql exécuté par Sonny, confirmé par SELECT.
+Migration transactionnelle et réexécutable, anciens achats conservés.
+Tests PGlite : migration appliquée deux fois, nouveaux packs 27/51, anciens
+achats rejoués sans doublon, mauvaises combinaisons quantité/prix rejetées.
+Contrôle du brouillon Spiffy : base 27 EUR, supplément 24 EUR attaché au
+bouton radio 3 cadeaux, option 5 retirée, sauvegarde persistante après reload.
+À valider AVANT lancement : dans l'iframe Preview de l'éditeur, sélectionner
+3 cadeaux coche le choix mais le récapitulatif reste à 27 EUR. Ne pas considérer
+le total dynamique de 51 EUR comme validé ; vérifier/corriger au branchement final.
+Build local : 324 pages ; smoke cadeaux et git diff --check passants.
 Publier uniquement par npm run deploy:production depuis main propre=origin.
-Publier Spiffy après les endpoints, puis vérifier les trois prix.
+Publier Spiffy après les endpoints, puis vérifier les deux prix 27/51 EUR.
 Paiement réel de validation : action de Sonny. Ne pas déclarer un achat
 de bout en bout effectué sans confirmation.
 Emails de test : adresse et accord explicites de Sonny nécessaires.

@@ -1,4 +1,5 @@
 import {giftReady,giftSpaceIds,giftDb,giftRpc,giftOrder,giftRecord,giftEmailContent,emailValue} from './delta-gifts.mjs';
+import {syncGiftRecipient} from './delta-gifts-mailerlite.mjs';
 
 const circleBase='https://app.circle.so/api/admin/v2';
 export async function fulfillGift(gift,{env=process.env,fetcher=fetch}={}){
@@ -53,6 +54,8 @@ export async function runGiftJobs({env=process.env,fetcher=fetch}={}){
           const changed=await giftDb(`dv_gifts?id=eq.${gift.id}&state=eq.activating`,{...db,method:'PATCH',body:{state:'active',circle_member_id:memberId,activated_at:new Date().toISOString()}});
           if(!changed?.length && (await giftRecord(gift.id,db))?.state!=='active')throw new Error('gift_unavailable');
         }
+        // Access is already active: a classification retry never revokes or delays it.
+        await syncGiftRecipient(gift,{env,fetcher});
       }else{
         const content=giftEmailContent(job.kind,order,gift,{env});
         // A network timeout after send is ambiguous: mark for review, never blindly resend.
