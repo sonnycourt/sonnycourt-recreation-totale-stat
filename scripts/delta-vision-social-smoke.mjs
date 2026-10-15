@@ -10,7 +10,8 @@ assert.equal(metadata.height, 630);
 assert.equal(metadata.format, 'jpeg');
 assert(statSync(image).size < 300000, 'Keep the sharing image lightweight');
 const expected = {
-  'og:title': 'Delta Vision — Respire. Visualise. Manifeste.',
+  'og:title': '12 minutes pour transformer ton état intérieur et attirer ce que tu veux vraiment.',
+  'og:description': "La nouvelle méthode qui combine respiration et visualisation pour changer d'état intérieur et transformer sa vie.",
   'og:type': 'website',
   'og:url': 'https://sonnycourt.com/delta-vision/',
   'og:image': 'https://sonnycourt.com/media/pages/delta-vision-social-v1.jpg',
@@ -18,6 +19,8 @@ const expected = {
   'og:image:width': '1200',
   'og:image:height': '630',
   'twitter:card': 'summary_large_image',
+  'twitter:title': '12 minutes pour transformer ton état intérieur et attirer ce que tu veux vraiment.',
+  'twitter:description': "La nouvelle méthode qui combine respiration et visualisation pour changer d'état intérieur et transformer sa vie.",
   'twitter:image': 'https://sonnycourt.com/media/pages/delta-vision-social-v1.jpg',
 };
 for (const [key, value] of Object.entries(expected)) {
