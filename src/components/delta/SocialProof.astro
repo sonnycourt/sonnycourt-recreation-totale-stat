@@ -1,0 +1,73 @@
+---
+import { deltaSocialProof, socialProofCheckedAt } from '../../data/delta-social-proof.mjs';
+---
+
+<aside id="social-proof" class="social-proof" aria-label="Les communautés de Sonny Court sur les réseaux sociaux" data-social-proof data-checked-at={socialProofCheckedAt}>
+  <p class="social-heading">Sonny Court</p>
+  <div class="social-grid">
+    {deltaSocialProof.map((network) => (
+      <a class="social-network" href={network.url} target="_blank" rel="noopener noreferrer"
+        aria-label={`${network.name} : ${network.display} ${network.unit} abonnés. Ouvrir le profil de Sonny Court dans un nouvel onglet.`}>
+        <span class="social-brand" aria-hidden="true">
+          <span class="social-icon" style={`--social-icon: url('/media/brands/${network.icon}.svg')`}></span>
+          <span>{network.name}</span>
+        </span>
+        <strong class="social-count" aria-hidden="true"><span data-social-count data-value={network.value} data-decimals={network.decimals}>{network.display}</span><span class="social-unit">{network.unit}</span></strong>
+        <span class="social-caption" aria-hidden="true">abonnés</span>
+      </a>
+    ))}
+  </div>
+  <p class="social-tagline">Une communauté grandissante</p>
+</aside>
+
+<style>
+  .social-proof{max-width:840px;margin:49px auto 0;padding:27px 0 29px;border-block:1px solid #dfd4c6;color:#785c47;text-align:center}
+  .social-heading{margin:0 0 27px;font-size:10px;line-height:1.7;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:#847360}
+  .social-tagline{margin:25px 0 0;font-size:10px;line-height:1.7;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:#847360}
+  .social-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .social-network{display:flex;flex-direction:column;align-items:center;padding:3px 12px 5px;color:inherit;text-decoration:none;border-left:1px solid #e4dace;transition:color .2s}
+  .social-network:first-child{border-left:0}
+  .social-network:hover{color:#ad5039}
+  .social-network:focus-visible{outline:2px solid #ad5039;outline-offset:5px;border-radius:4px}
+  .social-brand{display:flex;align-items:center;gap:8px;font-size:11px;line-height:1.5;font-weight:500}
+  .social-icon{display:block;width:20px;height:20px;background:currentColor;mask:var(--social-icon) center/contain no-repeat;-webkit-mask:var(--social-icon) center/contain no-repeat}
+  .social-count{display:flex;align-items:baseline;justify-content:center;gap:5px;margin-top:13px;font-size:32px;line-height:1.1;font-weight:500;letter-spacing:-1.2px;font-variant-numeric:tabular-nums;white-space:nowrap;min-height:36px}
+  .social-unit{font-size:20px;font-weight:400;letter-spacing:0}
+  .social-caption{margin-top:5px;color:#897a6a;font-size:10px;letter-spacing:.3px}
+  @media(max-width:540px){
+    .social-proof{margin-top:35px;padding:24px 0}
+    .social-heading{max-width:270px;margin:0 auto 23px;font-size:9px;letter-spacing:1.2px}
+    .social-grid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:24px}
+    .social-network:nth-child(3){border-left:0}
+    .social-brand{font-size:11px}
+    .social-count{font-size:30px;margin-top:10px}
+  }
+  @media(prefers-reduced-motion:reduce){.social-network{transition:none}}
+</style>
+
+<script>
+  // No SDK, requests, cookies or recurring updates: one short animation on reveal.
+  const panel = document.querySelector<HTMLElement>('[data-social-proof]');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (panel && !reducedMotion.matches && 'IntersectionObserver' in window) {
+    const counters = Array.from(panel.querySelectorAll<HTMLElement>('[data-social-count]')).map((element) => ({
+      element, target: Number(element.dataset.value), final: element.textContent,
+      format: new Intl.NumberFormat('fr-FR', { minimumFractionDigits: Number(element.dataset.decimals), maximumFractionDigits: Number(element.dataset.decimals) }),
+    }));
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      const startedAt = performance.now();
+      const tick = (now: number) => {
+        const progress = reducedMotion.matches ? 1 : Math.min(1, (now - startedAt) / 1250);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        for (const counter of counters) {
+          counter.element.textContent = progress === 1 ? counter.final : counter.format.format(counter.target * eased);
+        }
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, { threshold: 0.25 });
+    observer.observe(panel);
+  }
+</script>
