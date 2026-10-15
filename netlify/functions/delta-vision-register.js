@@ -23,7 +23,7 @@ export default async function handler(req) {
   let input;
   try {const raw=await req.text();if(raw.length>4096)return reply(413,{ok:false});input=JSON.parse(raw);} catch {return reply(400,{ok:false});}
   if (input?.website) return reply(400,{ok:false});
-  if (hosted && input?.checkoutId!=='41049') return reply(400,{ok:false});
+  if (hosted && !['41049','41096'].includes(input?.checkoutId)) return reply(400,{ok:false});
   const identity=deltaIdentity(input,{emailOnly:hosted});
   if (!identity) return reply(400,{ok:false});
   try {await saveDeltaSubscriber(identity);return reply(200,{ok:true});}

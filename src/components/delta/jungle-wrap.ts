@@ -7,6 +7,12 @@ export function createJungleWrap(stage: HTMLElement) {
   let frame = 0;
   let surfaces: HTMLCanvasElement[] = [];
   let epoch = 0;
+  let onFinished: (() => void) | undefined;
+  const finish = () => {
+    const callback = onFinished;
+    onFinished = undefined;
+    callback?.();
+  };
   const stop = () => {
     cancelAnimationFrame(frame);
     frame = 0;
@@ -14,6 +20,7 @@ export function createJungleWrap(stage: HTMLElement) {
     surfaces.forEach(canvas => canvas.remove());
     surfaces = [];
     stage.classList.remove('is-wrapping');
+    finish();
   };
 
   function texture(layer: HTMLElement, stageWidth: number): Piece | null {
@@ -58,12 +65,13 @@ export function createJungleWrap(stage: HTMLElement) {
     return { bitmap, x:left+w/2-width/2, y:layer.offsetTop+h/2-height/2, edge:crown?'top':right?'right':'left', rear };
   }
 
-  const start = () => {
+  const start = (onComplete?: () => void) => {
     stop();
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    onFinished = onComplete;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
     const w = stage.offsetWidth, h = stage.offsetHeight;
     const pieces = [...stage.querySelectorAll<HTMLElement>('.jungle-side,.jungle-crown')].map(layer=>texture(layer,w)).filter((p):p is Piece=>Boolean(p));
-    if (!pieces.length) return;
+    if (!pieces.length) { finish(); return; }
     const pad = Math.ceil(Math.max(140, w*.2));
     const ratio = Math.min(devicePixelRatio || 1, 1.5);
     surfaces = [1,5].map(z => {
@@ -131,7 +139,7 @@ export function createJungleWrap(stage: HTMLElement) {
         }
       }
       if(now-began<2050) frame=requestAnimationFrame(draw);
-      else { frame=0; surfaces.forEach(canvas=>canvas.remove()); surfaces=[]; }
+      else { frame=0; surfaces.forEach(canvas=>canvas.remove()); surfaces=[]; finish(); }
     }
     draw(began);
     frame=requestAnimationFrame(draw);

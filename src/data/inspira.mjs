@@ -1,9 +1,11 @@
 // Paiement hébergé chez Spiffy pour conserver les wallets natifs.
-// Remplacer par l'URL Bunny de la VSL Delta Vision quand elle sera prête.
+// VSL Delta Vision : le lecteur Bunny est chargé au clic sur le thumbnail.
 export const inspira = Object.freeze({
-  presentationVideoUrl: '',
+  presentationVideoUrl: 'https://player.mediadelivery.net/play/779556/4125f91b-8324-4384-a580-f10f9d257681',
   presentationPosterUrl: '/media/pages/inspira-vsl-jungle-v2.webp',
   price: 27,
+  standardPrice: 47,
+  standardCheckoutUrl: 'https://sonnycourt.spiffy.co/checkout/delta-vision-standard?locale=fr',
   checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr',
   referencePrice: 147,
   title: 'Delta Vision — Respire. Visualise. Intègre.',
@@ -17,5 +19,5 @@ export function inspiraEmbedUrl(raw = '') {
   if (url.protocol !== 'https:' || url.hostname !== 'player.mediadelivery.net' || !match) {
     throw new Error('La VSL Delta Vision doit utiliser une URL Bunny Stream HTTPS.');
   }
-  return `https://player.mediadelivery.net/embed/${match[1]}/${match[2]}?autoplay=true&preload=true&responsive=true`;
+  return `https://player.mediadelivery.net/embed/${match[1]}/${match[2]}?autoplay=false&preload=true&responsive=true&rememberPosition=false&rememberSettings=false&t=0`;
 }

@@ -2,6 +2,7 @@
 import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
 import JungleStage from '../components/delta/JungleStage.astro';
 import WalletMarks from '../components/delta/WalletMarks.astro';
+import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
 const sectionLinks = [
@@ -84,7 +85,7 @@ const intentions = [
       </section>
 
       <section class="presentation wrap" id="presentation" aria-label="Présentation vidéo de Delta Vision">
-        <JungleStage videoAvailable={Boolean(videoUrl)}>
+        <JungleStage videoAvailable={Boolean(videoUrl)} instantPlayback>
         <div class="video-poster" data-inspira-video data-video-url={videoUrl || undefined}>
           <img class="video-thumbnail" src={inspira.presentationPosterUrl} width="1672" height="941" alt="Sonny Court en méditation au cœur d’une jungle baignée de brume et de lumière dorée" fetchpriority="high" />
             <button class="video-play" type="button" data-video-play aria-label="Lire la présentation de Delta Vision">
@@ -94,9 +95,13 @@ const intentions = [
         </JungleStage>
         <div class="price-card" aria-label="27 euros, au lieu de 147 euros">
           <p class="price-launch">Offre de lancement</p>
+          <UrgencyPreview />
+          <div class="price-comparison">
           <p class="price-before"><span class="price-before-label">Au lieu de</span><span class="price-reference"><del>{inspira.referencePrice}</del><span>€</span></span></p>
-          <strong class="price-current">{inspira.price}<span>€</span></strong>
-          <a class="button button-coral" href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <strong class="price-current"><span data-dv-price>{inspira.price}</span><span>€</span></strong>
+          </div>
+          <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <p class="purchase-guarantee"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 3v5c0 5-5 8-8 10-3-2-8-5-8-10V6l8-3Z" /><path d="m8 12 2.5 2.5L16 9" /></svg><span>Satisfait ou remboursé pendant 14 jours</span></p>
           <WalletMarks />
         </div>
       </section>
@@ -125,6 +130,10 @@ const intentions = [
           </ol>
           <p class="routine-closing">Plus besoin d’y croire : tu l’as vécu. Et depuis là, chaque action devient évidente.</p>
         </aside>
+        <div class="section-purchase">
+          <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <p><span data-dv-price>{inspira.price}</span> € · Paiement unique</p>
+        </div>
       </section>
 
       <section class="benefits wrap section-space" id="ressentir" aria-labelledby="benefits-title">
@@ -163,6 +172,11 @@ const intentions = [
           </article>
         </div>
       </section>
+
+      <div class="section-purchase program-purchase wrap">
+        <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+        <p><span data-dv-price>{inspira.price}</span> € · Paiement unique</p>
+      </div>
 
       <section class="method-section" id="methode" aria-labelledby="method-title">
         <div class="method-triangle-inner wrap">
@@ -302,14 +316,37 @@ const intentions = [
         </div>
       </section>
 
+      <section class="guarantee-section wrap" id="garantie" aria-labelledby="guarantee-title">
+        <div class="guarantee-letter">
+          <img class="guarantee-foliage guarantee-foliage-left" src="/media/pages/delta-jungle-wrap-v2.webp" alt="" aria-hidden="true" loading="lazy" width="933" height="1400" />
+          <img class="guarantee-foliage guarantee-foliage-right" src="/media/pages/delta-jungle-wrap-v2.webp" alt="" aria-hidden="true" loading="lazy" width="933" height="1400" />
+          <img class="guarantee-canopy" src="/media/pages/delta-jungle-canopy-v1.webp" alt="" aria-hidden="true" loading="lazy" width="1200" height="800" />
+          <div class="guarantee-copy">
+            <p class="guarantee-eyebrow">Ma promesse pour toi</p>
+            <h2 id="guarantee-title"><span class="guarantee-days">14 jours</span><span>Satisfait <em>ou remboursé.</em></span></h2>
+            <p>Je veux que tu puisses vivre cette expérience l’esprit tranquille.</p>
+            <p>Si Delta Vision ne te correspond pas, demande ton remboursement dans les 14 jours suivant ton achat.</p>
+            <p class="guarantee-signature">Sonny</p>
+            <div class="section-purchase guarantee-purchase">
+              <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+              <p><span data-dv-price>{inspira.price}</span> € · Paiement unique</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="closing wrap section-space" id="tarif" aria-labelledby="closing-title">
         <svg class="closing-sun" aria-hidden="true"><use href="#delta-vision-mark" /></svg>
         <h2 id="closing-title">Prends une grande inspiration<br /><em>et commence maintenant.</em></h2>
         <div class="price-card" aria-label="27 euros, au lieu de 147 euros">
           <p class="price-launch">Offre de lancement</p>
+          <UrgencyPreview anchor="urgence-finale" />
+          <div class="price-comparison">
           <p class="price-before"><span class="price-before-label">Au lieu de</span><span class="price-reference"><del>{inspira.referencePrice}</del><span>€</span></span></p>
-          <strong class="price-current">{inspira.price}<span>€</span></strong>
-          <a class="button button-coral" href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <strong class="price-current"><span data-dv-price>{inspira.price}</span><span>€</span></strong>
+          </div>
+          <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
+          <p class="purchase-guarantee"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 3v5c0 5-5 8-8 10-3-2-8-5-8-10V6l8-3Z" /><path d="m8 12 2.5 2.5L16 9" /></svg><span>Satisfait ou remboursé pendant 14 jours</span></p>
           <WalletMarks />
         </div>
       </section>
@@ -321,21 +358,18 @@ const intentions = [
       </aside>
     </main>
 
+    <a class="sticky-purchase" data-dv-buy href={checkoutUrl} aria-label="Je commence Delta Vision — 27 euros">
+      <span>Je commence</span><svg aria-hidden="true"><use href="#inspira-arrow" /></svg>
+    </a>
+
     <footer class="site-footer wrap"><a class="wordmark" href="#" aria-label="Delta Vision, retour en haut"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a><span>UNE CRÉATION SONNY COURT</span><a href="/pages-legales/">Informations légales <span aria-hidden="true">↗</span></a></footer>
 
     <script>
-      document.querySelectorAll<HTMLElement>('[data-inspira-video]').forEach(player => {
-        player.querySelector<HTMLButtonElement>('[data-video-play]')?.addEventListener('click', () => {
-          if (!player.dataset.videoUrl) return;
-          const frame = document.createElement('iframe');
-          frame.src = player.dataset.videoUrl;
-          frame.title = 'Présentation de la méthode Delta Vision';
-          frame.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
-          frame.allowFullscreen = true;
-          player.replaceChildren(frame);
-          frame.focus();
-        }, { once: true });
-      });
+      import { inspira } from '../data/inspira.mjs';
+      import { initDeltaUrgency } from '../lib/delta-vision-urgency.mjs';
+      initDeltaUrgency(document, window, inspira);
+      import { initDeltaVideo } from '../lib/delta-vision-video.mjs';
+      document.querySelectorAll<HTMLElement>('[data-inspira-video]').forEach(root => initDeltaVideo(root));
       const mobileNav = document.querySelector<HTMLDetailsElement>('.mobile-nav');
       mobileNav?.querySelectorAll('a').forEach((link) => {
         link.addEventListener('click', () => { mobileNav.open = false; });
@@ -394,11 +428,52 @@ const intentions = [
   @media(max-width:1100px){.section-nav{display:none}.mobile-nav{display:block}.site-header nav{gap:18px}}
   @media(max-width:380px){.site-header nav{gap:10px}.site-header .nav-cta{padding:10px 12px;gap:7px}.site-header .wordmark-name{font-size:24px}.site-header .wordmark svg{width:25px;margin-right:7px}}
   .price-launch{margin:0 0 20px;color:var(--coral);font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;line-height:1.4}
+  .section-purchase{text-align:center}
+  .sticky-purchase{position:fixed;z-index:50;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;justify-content:center;gap:15px;min-height:54px;padding:15px 23px;border:1px solid #ffffff60;border-radius:100px;background:var(--coral);color:#fff;font-size:14px;font-weight:600;line-height:1.4;box-shadow:0 8px 30px #40241840,0 0 0 4px #faf8f4c9;transition:background .2s,box-shadow .2s}
+  .sticky-purchase svg{width:18px;height:18px}
+  .sticky-purchase:hover{background:#963f2c;box-shadow:0 10px 32px #40241855,0 0 0 4px #faf8f4c9}
+  body:has(.sticky-purchase){padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+  @media(max-width:760px){.sticky-purchase{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));min-height:50px;padding:13px 20px;gap:12px;font-size:13px}}
+  .section-purchase .button{position:relative;display:flex;width:min(360px,100%);min-height:60px;margin:0 auto;padding:18px 38px;gap:0;font-size:16px;line-height:1.4;justify-content:center;text-align:center}
+  .section-purchase .button svg{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none}
+  .section-purchase>p{margin:12px 0 0;font-size:11px;line-height:1.5;color:#70695f}
+  .origin-story>.section-purchase{grid-column:1/-1;margin-top:-36px}
+  .program-purchase{margin-top:-55px;margin-bottom:75px}
+  .guarantee-purchase{margin-top:27px}
+  .guarantee-purchase .button{background:#efd5a0;color:#19291f;box-shadow:0 8px 24px #0002}
+  .guarantee-purchase .button:hover{background:#f7e3ba}
+  .guarantee-purchase>p{color:#d4d9cc}
+  @media(max-width:760px){.origin-story>.section-purchase{margin-top:0}.program-purchase{margin-top:-30px;margin-bottom:55px}.section-purchase .button{font-size:15px;padding-inline:30px}.section-purchase .button svg{right:11px;width:16px;height:16px}}
+  .guarantee-section{padding-top:24px;scroll-margin-top:30px}
+  .guarantee-letter{position:relative;isolation:isolate;overflow:hidden;max-width:1060px;margin-inline:auto;padding:50px 140px 38px;border:1px solid #46513a;border-radius:26px;background:radial-gradient(ellipse at 50% 0,#52604488,transparent 65%),linear-gradient(145deg,#1e3025,#0b1914);box-shadow:0 24px 50px -30px #152a2566;text-align:center}
+  .guarantee-foliage{position:absolute;z-index:-1;top:-18%;height:140%;width:auto;max-width:none;pointer-events:none;filter:brightness(.65) saturate(.8);mask-image:linear-gradient(to right,#000 35%,transparent 96%)}
+  .guarantee-foliage-left{left:-9%}.guarantee-foliage-right{right:-9%;transform:scaleX(-1)}
+  .guarantee-canopy{position:absolute;z-index:-1;right:-8%;top:-23%;width:40%;height:auto;pointer-events:none;filter:brightness(.68);transform:rotate(12deg)}
+  .guarantee-copy{max-width:520px;margin-inline:auto}
+  .guarantee-eyebrow{color:#d7c59d;font-size:10px;font-weight:500;line-height:1.5;letter-spacing:2px;text-transform:uppercase}
+  .guarantee-copy h2{font-size:clamp(25px,3vw,35px);font-weight:400;letter-spacing:-.8px;line-height:1.2;margin:14px 0 23px;color:#fff8e8}
+  .guarantee-copy h2>span{display:block}
+  .guarantee-copy .guarantee-days{font:400 clamp(68px,8vw,100px)/1.1 var(--serif);letter-spacing:-4px;color:#efd5a0;margin-bottom:10px;text-shadow:0 3px 30px #e3bb6d22}
+  .guarantee-copy>p:not(.guarantee-eyebrow):not(.guarantee-signature){font-size:14px;line-height:1.75;color:#e1e4d9;margin-top:11px;text-wrap:pretty}
+  .guarantee-signature{font:italic 28px/1.3 var(--serif);color:#e8cda1;margin-top:22px}
+  @media(max-width:760px){.guarantee-letter{padding:40px 36px 30px}.guarantee-copy{max-width:430px}.guarantee-foliage{height:120%;top:-8%;opacity:.75}.guarantee-foliage-left{left:-12%}.guarantee-foliage-right{right:-12%}.guarantee-canopy{width:47%;top:-9%;right:-15%;opacity:.6}}
+  @media(max-width:420px){.guarantee-letter{padding-inline:25px}.guarantee-copy h2{font-size:25px}.guarantee-copy .guarantee-days{font-size:70px}.guarantee-foliage-left{left:-35%}.guarantee-foliage-right{right:-35%}}
+  .price-card .purchase-guarantee{display:flex;align-items:center;justify-content:center;gap:7px;margin:13px 0 0;color:#70695f;font-size:11px;font-weight:400;line-height:1.5;letter-spacing:0;text-align:center}
+  .purchase-guarantee svg{width:15px;height:17px;flex:none;stroke:#82745f;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
   .price-reference{display:flex;align-items:baseline;justify-content:center;gap:4px;color:#9b9286}
   .price-before del{display:block;width:fit-content;margin:0;font-size:34px;font-weight:400;letter-spacing:-1px;line-height:1.1;color:#9b9286;text-decoration-thickness:1px}
   .price-reference>span{font-size:22px;letter-spacing:0}
   .price-before-label{display:block;margin:0 auto 7px}
-  .price-before + .price-current{margin-top:22px}
+  .price-comparison{display:flex;align-items:center;justify-content:center;gap:27px;margin:5px auto 0}
+  .price-comparison .price-before{flex:none;padding-right:27px;border-right:1px solid #dfd2c2;text-align:left}
+  .price-comparison .price-before-label{margin:0 0 7px;font-size:11px;line-height:1.4;color:#928575}
+  .price-comparison .price-reference{justify-content:flex-start}
+  .price-comparison .price-before del{font-size:29px}
+  .price-comparison .price-reference>span{font-size:19px}
+  .price-comparison .price-current{flex:none;margin:0;font-size:78px;line-height:1;letter-spacing:-4.5px}
+  .price-comparison .price-current>span{font-size:29px;margin-top:10px}
+  .price-comparison .price-current>[data-dv-price]{font:inherit;letter-spacing:inherit;margin:0}
+  @media(max-width:380px){.price-comparison{gap:20px}.price-comparison .price-before{padding-right:20px}.price-comparison .price-current{font-size:68px}}
   .price-card .button{position:relative;justify-content:center;max-width:360px;min-height:60px;padding:18px 40px;gap:0;font-size:16px;line-height:1.4;text-align:center}
   .price-card .button svg{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;margin:0;pointer-events:none}
   @media(max-width:520px){.price-card .button{padding-inline:32px;font-size:15px}.price-card .button svg{right:11px;width:16px;height:16px}}

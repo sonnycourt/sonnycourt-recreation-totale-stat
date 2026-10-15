@@ -7,7 +7,7 @@ assert.equal(inspira.price,27);
 assert.equal(inspira.checkoutUrl,'https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr');
 const page=readFileSync(new URL('../src/pages/delta-vision.astro',import.meta.url),'utf8');
 assert(!page.includes('SpiffyCheckout'));
-assert.equal((page.match(/href=\{checkoutUrl\}/g)||[]).length,3);
+assert.equal((page.match(/data-dv-buy href=\{checkoutUrl\}/g)||[]).length,6);
 const origin='https://sonnycourt.spiffy.co';
 const req=(body,method='POST',site=origin)=>new Request('https://sonnycourt.com/.netlify/functions/delta-vision-register',{method,headers:{Origin:site,'Content-Type':'application/json'},...(method==='POST'?{body:JSON.stringify(body)}:{})});
 let response=await register(req(null,'OPTIONS'));
@@ -22,6 +22,9 @@ try{
  response=await register(req({email:'qa@example.com',checkoutId:'41049'}));
  assert.equal(response.status,200);assert.equal(response.headers.get('Access-Control-Allow-Origin'),origin);
  assert.deepEqual(writes[0],{email:'qa@example.com',fields:{},groups:['111']});
+ response=await register(req({email:'qa@example.com',checkoutId:'41096'}));
+ assert.equal(response.status,200);
+ assert.deepEqual(writes[1],writes[0]);
 }finally{global.fetch=originalFetch;}
 const source=readFileSync(new URL('../spiffy/delta-vision-hosted-tracking.html',import.meta.url),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 const listeners={},captures=[];
@@ -30,4 +33,4 @@ await listeners.blur({target:{id:'card-number',value:'do-not-read'}});assert.equ
 await listeners.blur({target:{id:'contactInfo-371920-email',value:'qa@example.com'}});
 await listeners.change({target:{id:'contactInfo-371920-email',value:'qa@example.com'}});
 assert.deepEqual(JSON.parse(JSON.stringify(captures)),[{email:'qa@example.com',checkoutId:'41049'}]);
-console.log('Hosted checkout: 27 EUR, three direct links, scoped CORS, email-only opt-in, no card access, deduplication passed. No external writes.');
+console.log('Hosted checkout: six direct links, both checkout IDs, scoped CORS, email-only opt-in, no card access, deduplication passed. No external writes.');

@@ -1,9 +1,9 @@
 ---
-const { videoAvailable = false } = Astro.props;
+const { videoAvailable = false, instantPlayback = false } = Astro.props;
 ---
-<div class="jungle-prototype" data-jungle-prototype data-video-available={String(videoAvailable)}>
+<div class="jungle-prototype" data-jungle-prototype data-video-available={String(videoAvailable)} data-instant-playback={String(instantPlayback)}>
   <div class="jungle-meta"><button type="button" data-jungle-reset hidden>↺ Rejouer l’ouverture</button></div>
-  <div class="jungle-stage" data-jungle-stage>
+  <div class:list={['jungle-stage', { 'instant-playback': instantPlayback }]} data-jungle-stage>
     <div class="jungle-aura" aria-hidden="true"></div>
     <div class="jungle-shadow" aria-hidden="true"></div>
     {/* Resting composition. During withdrawal a cylindrical texture warp routes
@@ -26,27 +26,37 @@ const { videoAvailable = false } = Astro.props;
     const stage = root.querySelector<HTMLElement>('[data-jungle-stage]')!;
     const reset = root.querySelector<HTMLButtonElement>('[data-jungle-reset]')!;
     const status = root.querySelector<HTMLElement>('[data-jungle-status]')!;
-    const wrap = createJungleWrap(stage);
+    const instant = root.dataset.instantPlayback === 'true';
+    const wrap = instant ? null : createJungleWrap(stage);
     let active = false;
     stage.addEventListener('click', event => {
       if (!(event.target instanceof Element) || !event.target.closest('[data-video-play]') || active) return;
+      // In instant mode the video controller opens the stage when Bunny starts.
+      if (instant) return;
       active = true;
-      status.hidden = false;
-      wrap.start();
+      stage.dataset.openingComplete = String(instant);
+      wrap?.start(() => {
+        stage.dataset.openingComplete = 'true';
+        stage.dispatchEvent(new Event('jungle-opening-complete'));
+      });
       stage.classList.add('is-open');
       // No delay before the existing Bunny click handler: retain user activation.
       if (root.dataset.videoAvailable === 'true') {
-        status.textContent = 'Le décor se retire pour laisser toute la place à la vidéo.';
+        // Keep the live player's layout stable; this status is for the demo only.
+        status.hidden = true;
+        status.textContent = '';
       } else {
+        status.hidden = false;
         reset.hidden = false;
         status.textContent = 'Aperçu de l’ouverture · La VSL n’est pas encore raccordée à cette page.';
         root.querySelector<HTMLButtonElement>('[data-video-play]')?.setAttribute('disabled', '');
       }
     }, true);
     reset.addEventListener('click', () => {
-      wrap.stop();
+      wrap?.stop();
       active = false;
       stage.classList.remove('is-open');
+      delete stage.dataset.openingComplete;
       reset.hidden = true;
       const play = root.querySelector<HTMLButtonElement>('[data-video-play]');
       play?.removeAttribute('disabled');
@@ -103,6 +113,9 @@ const { videoAvailable = false } = Astro.props;
   .jungle-stage.is-open .video-thumbnail{transform:scale(1);filter:none}
   .jungle-stage.is-open .jungle-atmosphere,.jungle-stage.is-open .jungle-invitation,.jungle-stage.is-open .video-play{opacity:0;pointer-events:none}
   .jungle-stage.is-open .jungle-invitation{transform:translateY(8px)}
+  .jungle-stage.instant-playback.is-open > :not(.jungle-window){display:none!important}
+  .jungle-stage.instant-playback.is-open .jungle-window,.jungle-stage.instant-playback.is-open .video-thumbnail{transition:none!important}
+  .jungle-stage.instant-playback.is-open .video-thumbnail{display:none!important}
   .jungle-stage.is-open .jungle-side img,.jungle-stage.is-open .jungle-atmosphere *,.jungle-stage.is-paused *{animation-play-state:paused!important}
   @keyframes jungle-vine-breathe{from{transform:scaleX(.988)}to{transform:scaleX(1.012)}}
   @keyframes jungle-sway{from{transform:rotate(-.8deg) translateY(0)}to{transform:rotate(1deg) translateY(5px)}}
