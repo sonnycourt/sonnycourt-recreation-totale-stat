@@ -30,6 +30,8 @@ Une commande réelle issue du nouveau lien est nécessaire pour valider le bout-
 
 Les ventes sont recherchées du début de période jusqu’à maintenant pour suivre les conversions tardives des visites sélectionnées. Les ventes non rattachées peuvent appartenir à d’autres filtres. Encaissement initial net = premier paiement réussi moins ses remboursements ; hors frais, taxes, autres échéances. Jamais une valeur contractuelle projetée.
 
+Le filtre API Spiffy `filter[created_at.gte]` doit recevoir `AAAA-MM-JJ` (un horodatage ISO complet déclenche une erreur 500 constatée). Une journée tampon est demandée, puis la borne UTC précise est appliquée côté serveur. Aucun filtrage approximatif des ventes affichées.
+
 ## Exploitation
 
 Rapports de 31 jours maximum dans les 90 derniers jours, 10 000 visites maximum (erreur explicite au-delà, réduire la période). Lecture Spiffy bornée à 500 commandes et environ 18 secondes avant la prochaine requête ; aucune estimation si la réponse est incomplète. Le quotidien Netlify `delta-vision-analytics-retention` supprime uniquement les événements de plus de 90 jours. Cette première version n’ajoute pas de session replay ni de capture de saisie.

@@ -30,9 +30,13 @@ export function verifiedSale(order){
 }
 export async function readDeltaSales(from,read=spiffyRead){
  const orders=[],started=Date.now();let total=null;
+ // Spiffy returns HTTP 500 for an ISO datetime in this filter. Its accepted
+ // format is YYYY-MM-DD. Fetch one buffer day, then apply the exact UTC bound
+ // below so account-timezone interpretation cannot lose boundary purchases.
+ const filterDate=new Date(Date.parse(from)-86400000).toISOString().slice(0,10);
  for(let page=1;page<=5;page++){
   if(Date.now()-started>18000)throw Error('sales_timeout');
-  const response=await read('orders',{'filter[created_at.gte]':from,include:'attribution,payments,checkout',per_page:100,page});
+  const response=await read('orders',{'filter[created_at.gte]':filterDate,include:'attribution,payments,checkout',per_page:100,page});
   const count=response.meta?.pagination?.total_count??response.pagination?.total;
   if(!Array.isArray(response.data)||!Number.isInteger(count)||count<0||(total!==null&&total!==count))throw Error('sales_incomplete');
   total=count;orders.push(...response.data);
