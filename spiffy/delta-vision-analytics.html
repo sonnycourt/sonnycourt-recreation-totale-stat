@@ -1,0 +1,12 @@
+<!-- Append to the existing custom footer of checkouts 41049 and 41096. Never replace existing scripts. -->
+<script>
+(function(){
+ if(location.hostname!=='sonnycourt.spiffy.co')return;
+ var checkout={'/checkout/delta-vision-1':'41049','/checkout/delta-vision-standard':'41096'}[location.pathname.replace(/\/$/,'')];
+ var visit=new URLSearchParams(location.search).get('dv_visit');
+ if(!checkout||!visit||!/^\w{8}-\w{4}-4\w{3}-[89ab]\w{3}-\w{12}$/i.test(visit)||!window.crypto||!crypto.randomUUID)return;
+ var payload={id:crypto.randomUUID(),visit_id:visit,checkout:checkout};
+ function send(){fetch('https://sonnycourt.com/.netlify/functions/delta-vision-checkout-track',{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(function(){});}
+ if(document.readyState==='complete')send();else window.addEventListener('load',send,{once:true});
+})();
+</script>

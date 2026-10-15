@@ -32,6 +32,7 @@ export function initDeltaVideo(root, connectPlayer = connect) {
   const button = root.querySelector('[data-video-play]');
   if (!button || !root.dataset.videoUrl) return;
   const doc = root.ownerDocument, win = doc.defaultView;
+  const track = detail => { try { doc.dispatchEvent(new win.CustomEvent('dv:video', {detail})); } catch { /* Optional analytics. */ } };
   const stage = root.closest('[data-jungle-stage]');
   const poster = root.querySelector('.video-thumbnail');
   const frame = doc.createElement('iframe');
@@ -80,19 +81,27 @@ export function initDeltaVideo(root, connectPlayer = connect) {
   root.append(frame);
   connectPlayer(frame).then(player => {
     api = player;
+    track({action:'ready'});
+    for (const action of ['pause','ended','seeked','error']) {
+      try { api.on(action, () => track({action})); } catch { /* Player compatibility. */ }
+    }
+    try { api.on('timeupdate', data => track({action:'timeupdate',seconds:data?.seconds,duration:data?.duration})); } catch { /* Player compatibility. */ }
     if (!requested) root.dataset.videoState = 'prepared';
     api.on('play', () => {
+      track({action:'play'});
       if (!requested || revealed) return;
       win.requestAnimationFrame(reveal);
     });
     start();
   }).catch(() => {
+    track({action:'error',code:'player_api'});
     failed = true;
     if (requested && loaded) reveal();
   });
   button.addEventListener('click', () => {
     if (requested) return;
     requested = true;
+    track({action:'requested'});
     root.dataset.videoState = 'starting';
     button.setAttribute('aria-label', 'Chargement de la vidéo');
     button.setAttribute('aria-busy', 'true');
