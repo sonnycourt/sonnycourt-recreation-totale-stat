@@ -1,4 +1,16 @@
-import {spiffyRead} from './onboarding-payments.mjs';
+// Dedicated read-only client: keep payment/onboarding helpers untouched.
+async function spiffyRead(path,params){
+ const key=String(process.env.SPIFFY_ONBOARDING_API_KEY||'').trim();
+ if(!key)throw Error('spiffy_not_configured');
+ if(path!=='orders')throw Error('invalid_read');
+ const url=new URL('https://api.spiffy.co/v2/orders');for(const [name,value]of Object.entries(params))url.searchParams.set(name,String(value));
+ for(let attempt=0;attempt<2;attempt++){
+  const response=await fetch(url,{headers:{Authorization:`Bearer ${key}`,Accept:'application/json'},signal:AbortSignal.timeout(8000)});
+  if(response.ok)return response.json();
+  if(attempt===0&&[429,502,503,504].includes(response.status)){await new Promise(resolve=>setTimeout(resolve,500));continue;}
+  const error=Error('spiffy_unavailable');error.status=response.status;throw error;
+ }
+}
 const checkouts=new Set(['41037','41049','41096']);
 function references(value,depth=0){
  if(depth>8)return [];
