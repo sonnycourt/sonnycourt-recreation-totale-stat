@@ -20,7 +20,11 @@ watch.sample(90,120,3000,true,true);assert.equal(watch.snapshot().watched,2);wat
 watch.reset();watch.sample(2,120,6000,true,false);watch.sample(3,120,7000,true,false);assert.equal(watch.snapshot().watched,2);
 const order={id:123,checkout:{id:41049},created_at:new Date(now).toISOString(),payment_status:'succeeded',attribution:{utm_term:'dv1_'+visit},payments:[{order_id:123,status:'succeeded',currency:'EUR',amount_paid:2700,amount_refunded:0,created_at:new Date(now).toISOString()}]};
 assert.equal(verifiedSale(order).visit_id,visit);assert.equal(verifiedSale({...order,checkout:{id:40006}}),null);assert.equal(verifiedSale({...order,payment_status:'pending'}),null);assert.equal(verifiedSale({...order,preserved_params:{ref:'dv1_'+randomUUID()}}).visit_id,null);
-assert.equal((await readDeltaSales(body.visit_started_at,async(path,params)=>{assert.match(params['filter[created_at.gte]'],/^\d{4}-\d{2}-\d{2}$/);return {data:[order],meta:{pagination:{total_count:1}}};})).sales.length,1);
+assert.equal((await readDeltaSales(body.visit_started_at,async(path,params)=>{assert.equal(params['filter[created_at.gte]'],undefined);return {data:[order],meta:{pagination:{total_count:1}}};})).sales.length,1);
+const olderOrder={...order,id:124,created_at:new Date(now-86400000).toISOString()};
+assert.equal((await readDeltaSales(body.visit_started_at,async()=>({data:[order,olderOrder],meta:{pagination:{total_count:200}}}))).sales.length,1);
+await assert.rejects(()=>readDeltaSales(body.visit_started_at,async()=>({data:[olderOrder,order],meta:{pagination:{total_count:200}}})),/sales_incomplete/);
+await assert.rejects(()=>readDeltaSales(body.visit_started_at,async()=>({data:[order,order],meta:{pagination:{total_count:200}}})),/sales_incomplete/);
 await assert.rejects(()=>readDeltaSales(body.visit_started_at,async()=>({data:[order]})));
 let fetches=0;const originalFetch=globalThis.fetch;globalThis.fetch=async()=>{fetches++;return new Response('',{status:201});};process.env.SUPABASE_URL='https://analytics.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test-only';
 const request=(data,origin='https://sonnycourt.com')=>new Request('https://sonnycourt.com/.netlify/functions/delta-vision-track',{method:'POST',headers:{origin,'Content-Type':'application/json'},body:JSON.stringify(data)});

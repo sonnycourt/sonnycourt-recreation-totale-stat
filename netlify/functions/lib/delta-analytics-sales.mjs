@@ -29,19 +29,25 @@ export function verifiedSale(order){
  return {order_id:String(order.id),created_at:order.created_at,initial_minor:Number(payment.amount_paid),refunded_minor:refund,net_minor:Math.max(0,Number(payment.amount_paid)-refund),currency:'EUR',visit_id:refs.length===1?refs[0]:null};
 }
 export async function readDeltaSales(from,read=spiffyRead){
- const orders=[],started=Date.now();let total=null;
- // Spiffy returns HTTP 500 for an ISO datetime in this filter. Its accepted
- // format is YYYY-MM-DD. Fetch one buffer day, then apply the exact UTC bound
- // below so account-timezone interpretation cannot lose boundary purchases.
- const filterDate=new Date(Date.parse(from)-86400000).toISOString().slice(0,10);
+ const orders=[],ids=new Set(),started=Date.now(),cutoff=Date.parse(from);let total=null,previous=Infinity;
+ if(!Number.isFinite(cutoff))throw Error('invalid_sales_date');
+ // The server-side date filter intermittently returns 500 even with date-only
+ // values. Read the newest-first order feed instead, verify its ordering and
+ // stop only once the exact requested date boundary has been crossed.
  for(let page=1;page<=5;page++){
   if(Date.now()-started>18000)throw Error('sales_timeout');
-  const response=await read('orders',{'filter[created_at.gte]':filterDate,include:'attribution,payments,checkout',per_page:100,page});
+  const response=await read('orders',{include:'attribution,payments,checkout',per_page:100,page});
   const count=response.meta?.pagination?.total_count??response.pagination?.total;
   if(!Array.isArray(response.data)||!Number.isInteger(count)||count<0||(total!==null&&total!==count))throw Error('sales_incomplete');
-  total=count;orders.push(...response.data);
-  if(orders.length===total){
-   const candidates=orders.filter(o=>Date.parse(o.created_at)>=Date.parse(from)&&checkouts.has(String(o.checkout?.id??o.checkout_id)));
+  total=count;
+  for(const order of response.data){
+   const timestamp=Date.parse(order.created_at),id=String(order.id??'');
+   if(!Number.isFinite(timestamp)||timestamp>previous||!id||ids.has(id))throw Error('sales_incomplete');
+   previous=timestamp;ids.add(id);orders.push(order);
+  }
+  if(orders.length>total)throw Error('sales_incomplete');
+  if(orders.length===total||previous<cutoff){
+   const candidates=orders.filter(o=>Date.parse(o.created_at)>=cutoff&&checkouts.has(String(o.checkout?.id??o.checkout_id)));
    const sales=candidates.map(verifiedSale).filter(Boolean);
    return {available:true,sales,unverified:candidates.filter(o=>o.payment_status==='succeeded'&&!verifiedSale(o)).length,checked_at:new Date().toISOString()};
   }

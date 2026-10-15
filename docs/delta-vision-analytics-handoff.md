@@ -30,7 +30,7 @@ Une commande réelle issue du nouveau lien est nécessaire pour valider le bout-
 
 Les ventes sont recherchées du début de période jusqu’à maintenant pour suivre les conversions tardives des visites sélectionnées. Les ventes non rattachées peuvent appartenir à d’autres filtres. Encaissement initial net = premier paiement réussi moins ses remboursements ; hors frais, taxes, autres échéances. Jamais une valeur contractuelle projetée.
 
-Le filtre API Spiffy `filter[created_at.gte]` doit recevoir `AAAA-MM-JJ` (un horodatage ISO complet déclenche une erreur 500 constatée). Une journée tampon est demandée, puis la borne UTC précise est appliquée côté serveur. Aucun filtrage approximatif des ventes affichées.
+Le filtre API Spiffy `filter[created_at.gte]` renvoie des erreurs 500 intermittentes avec des dates simples comme complètes. La lecture utilise donc le flux récent sans ce filtre, observé du plus récent au plus ancien. Elle vérifie les dates décroissantes, les identifiants uniques et le total stable à chaque page, puis s'arrête après franchissement de la borne UTC exacte. Un ordre inattendu, une pagination incohérente ou une limite atteinte provoque une indisponibilité explicite, jamais un total partiel présenté comme complet.
 
 ## Exploitation
 
