@@ -16,7 +16,11 @@ export default async function handler(req){
   const report=result.data;
   if(report.visit_count>10000)return json(422,{error:'Plus de 10 000 visites : réduis la période pour afficher des statistiques complètes.'});
   let commerce={available:false,sales:[],reason:'Clique sur « Vérifier les ventes Spiffy ».'};
-  if(q.get('sales')==='1'){try{commerce=await readDeltaSales(new Date(from).toISOString());}catch{commerce={available:false,sales:[],reason:'Lecture Spiffy indisponible ou incomplète. Aucun chiffre de vente inventé.'};}}
+  if(q.get('sales')==='1'){try{commerce=await readDeltaSales(new Date(from).toISOString());}catch(error){
+   const codes=['spiffy_not_configured','spiffy_unavailable','sales_timeout','sales_incomplete','sales_limit'];
+   const code=codes.includes(error?.message)?error.message:error?.name==='TimeoutError'?'spiffy_timeout':'spiffy_read_failed';
+   commerce={available:false,sales:[],code,reason:'Lecture Spiffy indisponible ou incomplète ('+code+'). Aucun chiffre de vente inventé.'};
+  }}
   return json(200,{...report,commerce,from:new Date(from).toISOString(),to:new Date(to).toISOString(),generated_at:new Date().toISOString()});
  }catch{return json(503,{error:'Rapport momentanément indisponible.'});}
 }
