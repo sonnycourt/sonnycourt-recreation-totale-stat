@@ -24,8 +24,10 @@ export function parseCircleEvent(payload, { communityId, spaceIds, now = new Dat
   const space = id(data.space_id);
   if (!community || !member || !space) throw new Error('missing_identity');
   if (community !== id(communityId) || !spaceIds.includes(space)) return { ignored: 'outside_scope' };
-  // These optional fields MUST be confirmed against a real lesson event before
-  // activation for students. Missing lesson identity is quarantined, not guessed.
+  // Real Circle event verified 2026-10-15: data.lesson_id is present,
+  // along with courses_section_id, community_id, member_id and space_id.
+  // No source timestamp or event ID in that event: received_at remains distinct.
+  // Missing lesson identity is quarantined, never guessed from the course.
   const lesson = id(data.course_lesson_id ?? data.lesson_id);
   const providerAt = timestamp(event.occurred_at ?? data.completed_at);
   if (providerAt && Date.parse(providerAt) > now.getTime() + 300000) throw new Error('future_timestamp');

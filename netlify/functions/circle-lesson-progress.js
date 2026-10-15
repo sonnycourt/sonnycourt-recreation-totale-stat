@@ -59,4 +59,36 @@ export function createHandler({ env = process.env, fetchImpl = fetch, now = () =
   };
 }
 
-export const handler = createHandler();
+// Modern Netlify Request/Response runtime: avoids Lambda's 4 KB env limit.
+// The core handler remains separately injectable for deterministic tests.
+export function createWebHandler(dependencies) {
+  const handle = createHandler(dependencies);
+  return async request => {
+    let body = '';
+    if (request.body) {
+      const reader = request.body.getReader();
+      const chunks = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > MAX_BODY_BYTES) {
+            await reader.cancel();
+            return Response.json({ error: 'body_too_large' }, { status: 413 });
+          }
+          chunks.push(Buffer.from(value));
+        }
+        body = Buffer.concat(chunks).toString('utf8');
+      } catch {
+        return Response.json({ error: 'invalid_body' }, { status: 400 });
+      } finally { reader.releaseLock(); }
+    }
+    const result = await handle({ httpMethod: request.method, body,
+      queryStringParameters: Object.fromEntries(new URL(request.url).searchParams) });
+    return new Response(result.body, { status: result.statusCode, headers: result.headers });
+  };
+}
+
+export default createWebHandler();

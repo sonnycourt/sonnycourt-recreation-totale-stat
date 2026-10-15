@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHandler } from '../netlify/functions/circle-lesson-progress.js';
+import { createHandler, createWebHandler } from '../netlify/functions/circle-lesson-progress.js';
 import { parseCircleEvent } from '../netlify/functions/lib/circle-lesson-events.mjs';
 const secret = 'test-only-secret-not-for-production-0000000000';
 const env = { CIRCLE_LESSON_WEBHOOK_SECRET: secret, CIRCLE_LESSON_COMMUNITY_ID: '214213',
@@ -12,6 +12,33 @@ const payload = { body: { type: 'courses_lesson_completed', data: {
 const request = (p = payload, query = { key: secret }) => ({ httpMethod: 'POST', body: JSON.stringify(p), queryStringParameters: query });
 const run = (override = {}, fetchImpl = async () => ({ ok: true })) => createHandler({ env: { ...env, ...override }, fetchImpl });
 const noNetwork = async () => { throw new Error('Unexpected network'); };
+
+test('verified real Circle shape identifies the lesson without inventing source time', () => {
+  const observed = { body: { data: { space_id: 2758877, lesson_id: 4232148,
+    community_id: 214213, courses_section_id: 1110303, community_member_id: 99 },
+    type: 'courses_lesson_completed' } };
+  const { row } = parseCircleEvent(observed, { communityId: 214213, spaceIds: [2758877] });
+  assert.equal(row.lesson_id, 4232148);
+  assert.equal(row.community_member_id, 99);
+  assert.equal(row.provider_occurred_at, null);
+  assert.equal(row.provider_event_id, null);
+  assert.equal(row.resolution_status, 'identified');
+});
+
+test('modern Netlify adapter preserves authentication, probe and size limits', async () => {
+  const handle = createWebHandler({ env, fetchImpl: noNetwork });
+  const response = await handle(new Request(`https://example.invalid/?key=${secret}&probe=1`, {
+    method: 'POST', body: JSON.stringify(payload),
+  }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).probe, true);
+  assert.equal((await handle(new Request('https://example.invalid/', {
+    method: 'POST', body: JSON.stringify(payload),
+  }))).status, 401);
+  assert.equal((await handle(new Request('https://example.invalid/', {
+    method: 'POST', body: 'x'.repeat(65537),
+  }))).status, 413);
+});
 
 test('stores an identified completion, no writes to existing tables', async () => {
   let saved;

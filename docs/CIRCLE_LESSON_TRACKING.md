@@ -2,38 +2,50 @@
 
 ## État (15 octobre 2026)
 
-Récepteur et SQL préparés, tests locaux passants. **Pas activé en production.**
-Ne pas annoncer une collecte effective avant le contrôle bout en bout ci-dessous.
+Récepteur et SQL prêts ; test réel Circle → Netlify → Supabase réussi sur le
+compte administrateur autorisé. **Pas activé pour les élèves en production.**
+Publication sur main et activation générale en attente de validation finale.
 
-Build complet réussi (325 pages), neuf tests locaux réussis. La preview via le
-sas échoue à la création d'une fonction : Netlify renvoie « Your environment
-variables exceed the 4KB limit imposed by AWS Lambda ». Aucune variable existante
-n'a été supprimée, aucun changement de runtime/abonnement n'a été effectué.
-Résoudre ce problème de configuration séparément avant de reprendre le test
-Circle réel ; ne pas contourner le sas de déploiement.
+SQL exécuté par Sonny et confirmé par SELECT : table et vue présentes, RLS
+activée, aucun droit anon/authenticated, service_role INSERT/SELECT sans DELETE.
+Build complet réussi (325 pages), onze tests locaux réussis. Le blocage de 4 Ko
+est résolu en exportant ce nouveau récepteur au format moderne Request/Response
+Netlify ; aucune fonction existante ni variable existante n'a été modifiée.
+Preview vérifiée par le sas, y compris le démarrage MC2 :
+`https://6ad0c504426f2d32d152b599--sonnycourt-recreation-totale.netlify.app`.
+Les quatre nouvelles variables Circle sont configurées ; collecte `false` en
+production et `true` uniquement en contexte deploy-preview pour le test.
 
-L'interface du compte Scale permet de choisir « Leçon terminée » puis « Envoyer
-vers webhook ». Cela contredit la restriction Plus de la documentation publique :
-l'éligibilité finale doit encore être confirmée lors du test/activation, sans achat.
+Le compte Scale accepte réellement le déclencheur « Leçon terminée » et l'action
+« Envoyer vers webhook » : activation et exécution réussies, sans nouvel achat.
 
-Brouillon Circle créé, non activé :
+Workflow Circle créé, utilisé uniquement pour le test administrateur puis
+désactivé (état `inactive` vérifié après le test) :
 `1be305bd-f9dc-422e-ba87-9365c36e4744`.
 Nom : `ES2 — Suivi des leçons — BROUILLON NON ACTIF`.
-Son déclencheur est provisoirement « toutes les leçons communauté » et sa sortie
-n'est pas finalisée. **Restreindre aux modules ES2 avant activation.**
-Un test vers la future route inexistante a échoué normalement (aucune donnée
-Supabase écrite). Le corps affiché par le test Circle est :
+Son déclencheur est limité au groupe ES2 `1130490` (`SpaceGroup`), filtré par
+Nom est Sonny Court ET Rôle Admin. Les cinq espaces autorisés côté serveur
+constituent une seconde restriction. La collecte générale n'est pas active.
+
+Le vrai événement observé le 15 octobre contient :
 
 ```json
-{"body":{"type":"courses_lesson_completed","data":{"community_id":214213,"community_member_id":123,"space_id":1}}}
+{"body":{"type":"courses_lesson_completed","data":{"community_id":214213,"community_member_id":26280536,"space_id":2758877,"courses_section_id":1110303,"lesson_id":4232148}}}
 ```
 
-L'identifiant membre ci-dessus est anonymisé. Cet exemple ne comporte ni leçon,
-ni date, ni identifiant d'événement. Les champs facultatifs du parseur sont des
-formats à confirmer avec un vrai événement, pas une capacité déjà vérifiée.
-Si le vrai événement omet également la leçon, NE PAS activer ce montage pour les
-élèves : il faudra un workflow par leçon avec une association serveur vérifiée,
-ou une autre source native. Aucun rapprochement par dernière leçon supposée.
+Ce membre est exclusivement le compte administrateur Sonny Court. Le test
+synthétique de l'éditeur omettait la leçon, mais le vrai événement l'inclut bien.
+Il ne fournit ni date source ni identifiant d'événement : utiliser l'heure de
+réception Supabase, jamais une heure de clic certifiée.
+
+Preuve bout en bout : tâche Circle `b9878e46-aae7-460c-9465-3218332bf37d`, succès,
+réponse `{stored:true,identified:true}`, statut 200. SELECT Supabase confirmé :
+ligne `id=1`, leçon `4232148`, membre `26280536`, `received_at` égal à
+`2026-10-15 12:27:21.483426+00` (14 h 27 Zurich), état `identified`.
+Cette ligne de test admin est conservée dans l'historique privé et doit être
+exclue de toute analyse d'élèves. La progression a été remise à 0/5 et
+l'inscription temporaire retirée (absence vérifiée par GET). Aucun élève,
+paiement ou message modifié.
 
 ## Installation
 
