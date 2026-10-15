@@ -18,7 +18,7 @@ export default async function handler(req){
   let commerce={available:false,sales:[],reason:'Clique sur « Vérifier les ventes Spiffy ».'};
   if(q.get('sales')==='1'){try{commerce=await readDeltaSales(new Date(from).toISOString());}catch(error){
    const codes=['spiffy_not_configured','spiffy_unavailable','sales_timeout','sales_incomplete','sales_limit'];
-   const code=codes.includes(error?.message)?error.message:error?.name==='TimeoutError'?'spiffy_timeout':'spiffy_read_failed';
+   const code=Number.isInteger(error?.status)?'spiffy_http_'+error.status:codes.includes(error?.message)?error.message:error?.name==='TimeoutError'?'spiffy_timeout':'spiffy_read_failed';
    commerce={available:false,sales:[],code,reason:'Lecture Spiffy indisponible ou incomplète ('+code+'). Aucun chiffre de vente inventé.'};
   }}
   return json(200,{...report,commerce,from:new Date(from).toISOString(),to:new Date(to).toISOString(),generated_at:new Date().toISOString()});
