@@ -3,6 +3,7 @@ import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
 import JungleStage from '../components/delta/JungleStage.astro';
 import WalletMarks from '../components/delta/WalletMarks.astro';
 import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
+import AnalyticsConsent from '../components/delta/AnalyticsConsent.astro';
 import { responsiveDeltaImage, posterSizes, programSizes } from '../lib/delta-vision-images.mjs';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
@@ -365,10 +366,13 @@ const intentions = [
 
     <footer class="site-footer wrap"><a class="wordmark" href="#" aria-label="Delta Vision, retour en haut"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a><span>UNE CRÉATION SONNY COURT</span><a href="/pages-legales/">Informations légales <span aria-hidden="true">↗</span></a></footer>
 
+    <AnalyticsConsent />
     <script>
       import { inspira } from '../data/inspira.mjs';
       import { initDeltaUrgency } from '../lib/delta-vision-urgency.mjs';
       initDeltaUrgency(document, window, inspira);
+      import { initDeltaAnalytics } from '../lib/delta-vision-analytics.mjs';
+      try { initDeltaAnalytics(); } catch { /* Analytics must not block playback or navigation. */ }
       import { initDeltaVideo } from '../lib/delta-vision-video.mjs';
       document.querySelectorAll<HTMLElement>('[data-inspira-video]').forEach(root => initDeltaVideo(root));
       const mobileNav = document.querySelector<HTMLDetailsElement>('.mobile-nav');
