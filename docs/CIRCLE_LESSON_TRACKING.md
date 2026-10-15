@@ -2,9 +2,16 @@
 
 ## État (15 octobre 2026)
 
-Récepteur et SQL prêts ; test réel Circle → Netlify → Supabase réussi sur le
-compte administrateur autorisé. **Pas activé pour les élèves en production.**
-Publication sur main et activation générale en attente de validation finale.
+**Publié et actif pour les cinq modules ES2 le 15 octobre 2026.**
+Fusion autorisée sur main : `ced3688`. Publication via le sas sécurisé,
+déploiement `6ad0ca22231dafeecfaf9eb0`, production vérifiée et verrouillée.
+Test réel de production réussi : tâche Circle
+`367cf9e7-b0b8-4e67-aace-ec807b63c132`, réponse 200, `stored=true`,
+`identified=true`. SELECT Supabase : ligne `id=2`, membre administrateur
+`26280536`, leçon `4232148`, réception `2026-10-15 12:47:26.086023+00`
+(14 h 47 Zurich). Progression administrateur restaurée à 0/5 et inscription
+temporaire retirée après vérification. Les deux lignes de test administrateur
+restent conservées et sont à exclure des analyses d'élèves.
 
 SQL exécuté par Sonny et confirmé par SELECT : table et vue présentes, RLS
 activée, aucun droit anon/authenticated, service_role INSERT/SELECT sans DELETE.
@@ -13,19 +20,20 @@ est résolu en exportant ce nouveau récepteur au format moderne Request/Respons
 Netlify ; aucune fonction existante ni variable existante n'a été modifiée.
 Preview vérifiée par le sas, y compris le démarrage MC2 :
 `https://6ad0c504426f2d32d152b599--sonnycourt-recreation-totale.netlify.app`.
-Les quatre nouvelles variables Circle sont configurées ; collecte `false` en
-production et `true` uniquement en contexte deploy-preview pour le test.
+Les quatre nouvelles variables Circle sont configurées ; collecte `true` en
+production et en contexte deploy-preview. Le workflow utilise uniquement
+`https://sonnycourt.com/.netlify/functions/circle-lesson-progress`, avec la
+capacité secrète dédiée (non reproduite ici), sans paramètre `probe`.
 
 Le compte Scale accepte réellement le déclencheur « Leçon terminée » et l'action
 « Envoyer vers webhook » : activation et exécution réussies, sans nouvel achat.
 
-Workflow Circle créé, utilisé uniquement pour le test administrateur puis
-désactivé (état `inactive` vérifié après le test) :
+Workflow Circle actif (état confirmé par l'API après publication) :
 `1be305bd-f9dc-422e-ba87-9365c36e4744`.
-Nom : `ES2 — Suivi des leçons — BROUILLON NON ACTIF`.
-Son déclencheur est limité au groupe ES2 `1130490` (`SpaceGroup`), filtré par
-Nom est Sonny Court ET Rôle Admin. Les cinq espaces autorisés côté serveur
-constituent une seconde restriction. La collecte générale n'est pas active.
+Nom : `ES2 — Historique des leçons → Supabase`.
+Son déclencheur est limité au groupe ES2 `1130490` (`SpaceGroup`), sans filtre
+d'audience. Les cinq espaces autorisés côté serveur constituent une seconde
+restriction. Une seule action : webhook ; aucun message ou changement d'accès.
 
 Le vrai événement observé le 15 octobre contient :
 
