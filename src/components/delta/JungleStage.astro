@@ -1,5 +1,8 @@
 ---
-const { videoAvailable = false, instantPlayback = false } = Astro.props;
+import { responsiveDeltaImage, foliageSizes, canopySizes } from '../../lib/delta-vision-images.mjs';
+const { videoAvailable = false, instantPlayback = false, responsiveImages = false } = Astro.props;
+const foliageAttrs = responsiveImages ? { ...responsiveDeltaImage('/media/pages/delta-jungle-wrap-v2.webp', foliageSizes), decoding: 'async', fetchpriority: 'low' } : {};
+const canopyAttrs = responsiveImages ? { ...responsiveDeltaImage('/media/pages/delta-jungle-canopy-v1.webp', canopySizes), decoding: 'async', fetchpriority: 'low' } : {};
 ---
 <div class="jungle-prototype" data-jungle-prototype data-video-available={String(videoAvailable)} data-instant-playback={String(instantPlayback)}>
   <div class="jungle-meta"><button type="button" data-jungle-reset hidden>↺ Rejouer l’ouverture</button></div>
@@ -8,14 +11,14 @@ const { videoAvailable = false, instantPlayback = false } = Astro.props;
     <div class="jungle-shadow" aria-hidden="true"></div>
     {/* Resting composition. During withdrawal a cylindrical texture warp routes
         strips to real front/back canvases, separated by the opaque player. */}
-    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-back`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" width="933" height="1400" alt="" draggable="false" /></div></div>)}
-    <div class="jungle-crown jungle-back" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" width="1200" height="800" alt="" draggable="false" /></div></div>
+    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-back`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" {...foliageAttrs} width="933" height="1400" alt="" draggable="false" /></div></div>)}
+    <div class="jungle-crown jungle-back" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" {...canopyAttrs} width="1200" height="800" alt="" draggable="false" /></div></div>
     <div class="jungle-window"><slot /></div>
     <div class="jungle-atmosphere" aria-hidden="true"><div class="jungle-ray"></div><div class="jungle-haze"></div>
       {Array.from({length:12},(_,i)=><i style={`--x:${9+(i*23)%83}%;--y:${15+(i*17)%73}%;--delay:${-i*1.7}s;--duration:${11+i%5}s;`} />)}
     </div>
-    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-front`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" width="933" height="1400" alt="" draggable="false" /></div></div>)}
-    <div class="jungle-crown jungle-front" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" width="1200" height="800" alt="" draggable="false" /></div></div>
+    {['left', 'right'].map(side => <div class={`jungle-side jungle-side-${side} jungle-front`} aria-hidden="true"><div class="jungle-pull"><img src="/media/pages/delta-jungle-wrap-v2.webp" {...foliageAttrs} width="933" height="1400" alt="" draggable="false" /></div></div>)}
+    <div class="jungle-crown jungle-front" aria-hidden="true"><div class="jungle-crown-pull"><img src="/media/pages/delta-jungle-canopy-v1.webp" {...canopyAttrs} width="1200" height="800" alt="" draggable="false" /></div></div>
     <div class="jungle-invitation" aria-hidden="true"><span>ENTRE DANS L’EXPÉRIENCE</span><span>Une respiration. Un autre horizon.</span></div>
   </div>
   <p class="jungle-status" data-jungle-status role="status" hidden></p>
