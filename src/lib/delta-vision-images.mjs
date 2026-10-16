@@ -2,7 +2,7 @@
 export const deltaImageWidths = {
   'inspira-vsl-jungle-v2': [480, 800, 1200, 1672],
   'souffle-createur-theorie': [480, 800, 1200, 1672],
-  'souffle-createur-seance': [480, 800, 1200, 1672],
+  'delta-vision-seance-television': [480, 800, 1200, 1672],
   'delta-jungle-wrap-v2': [240, 480, 720, 933],
   'delta-jungle-canopy-v1': [240, 480, 800, 1200],
 };
