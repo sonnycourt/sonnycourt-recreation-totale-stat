@@ -65,6 +65,20 @@ cette extension : le nouveau fichier suffit sur le CRM actuel.
 - Les deux autres dates, les trois statuts, durées et notes sont dans
   `onboarding_coaching_sessions`. Les versions enregistrées sont conservées dans
   `onboarding_coaching_revisions` (journal privé, pas un nouvel écran).
+- Sécurité renforcée : `onboarding_notes_archive` conserve une copie initiale des
+  notes existantes, puis les valeurs avant/après chaque changement des notes de
+  dossier, de contact et de coaching. Triggers en base : couvre aussi les anciens
+  clients du CRM. Aucun FK ni cascade vers l'archive ; copies conservées en cas de
+  suppression physique de la source. Le rôle applicatif ne peut ni modifier,
+  supprimer, ni tronquer les archives. En cas d'échec de l'archivage, la modification
+  est annulée. La migration est transactionnelle et ne réécrit aucune note existante.
+  L'installation utilise un verrou bref et abandonne après 5 secondes d'attente.
+- Cette protection permet une restauration administrative explicite des versions
+  enregistrées ; elle ne ressuscite pas des versions perdues avant installation.
+  Ce n'est pas une sauvegarde indépendante de Supabase : le plan, la rétention des
+  backups/PITR et un test de restauration fournisseur restent à vérifier. Les
+  brouillons non enregistrés restent uniquement dans la page (pas de copie locale
+  durable de données privées). Ne jamais promettre une garantie absolue de non-perte.
 - `onboarding_save_with_coachings` enveloppe la sauvegarde existante dans une seule
   transaction. Une panne refuse toute la sauvegarde, sans enregistrer une moitié.
   Rejouer une commande retourne l'état courant sans écraser des modifications ultérieures.

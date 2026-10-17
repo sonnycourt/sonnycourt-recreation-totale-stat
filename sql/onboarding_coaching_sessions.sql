@@ -2,6 +2,7 @@
 -- Ajout isolé et réexécutable. Aucun achat, accès, message ou agenda modifié.
 -- La date du premier coaching reste dans onboarding_cases.coaching_at (compatibilité).
 begin;
+set local lock_timeout='5s';
 create table if not exists public.onboarding_coaching_sessions (
   case_id uuid not null references public.onboarding_cases(id) on delete cascade,
   number smallint not null check(number between 1 and 3),
@@ -28,6 +29,72 @@ alter table public.onboarding_coaching_revisions enable row level security;
 revoke all on public.onboarding_coaching_sessions,public.onboarding_coaching_revisions from public,anon,authenticated;
 grant select,insert,update on public.onboarding_coaching_sessions to service_role;
 grant select,insert on public.onboarding_coaching_revisions to service_role;
+
+-- Filet de sécurité commun aux notes historiques ET nouvelles.
+-- Aucun FK/cascade : une suppression accidentelle du dossier ne supprime pas ses copies.
+-- Append-only pour l'application (pas de UPDATE / DELETE / TRUNCATE autorisé).
+create table if not exists public.onboarding_notes_archive (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null,
+  entity text not null check(entity in ('onboarding_cases','onboarding_events','onboarding_coaching_sessions')),
+  source_key text not null,
+  operation text not null check(operation in ('BASELINE','INSERT','UPDATE','DELETE')),
+  before_data jsonb,
+  after_data jsonb,
+  recorded_at timestamptz not null default clock_timestamp()
+);
+create unique index if not exists onboarding_notes_archive_baseline
+  on public.onboarding_notes_archive(entity,source_key) where operation='BASELINE';
+create index if not exists onboarding_notes_archive_case on public.onboarding_notes_archive(case_id,recorded_at desc);
+alter table public.onboarding_notes_archive enable row level security;
+revoke all on public.onboarding_notes_archive from public,anon,authenticated,service_role;
+grant select,insert on public.onboarding_notes_archive to service_role;
+
+create or replace function public.onboarding_notes_snapshot(p_entity text,p_row jsonb)
+returns jsonb language sql immutable security invoker set search_path=pg_catalog,public as $$
+  select case when p_entity='onboarding_cases' then
+    (select jsonb_object_agg(key,value) from jsonb_each(p_row)
+      where key in ('id','goal','motivations','obstacles','routine','notes','coaching_at','version','updated_at'))
+    else p_row end;
+$$;
+create or replace function public.onboarding_archive_notes_change()
+returns trigger language plpgsql security invoker set search_path=pg_catalog,public as $$
+declare previous jsonb; following jsonb; source jsonb; dossier uuid; source_id text;
+begin
+  if TG_OP<>'INSERT' then previous:=public.onboarding_notes_snapshot(TG_TABLE_NAME,to_jsonb(OLD)); end if;
+  if TG_OP<>'DELETE' then following:=public.onboarding_notes_snapshot(TG_TABLE_NAME,to_jsonb(NEW)); end if;
+  -- Ne pas dupliquer les notes pour une simple actualisation sans changement de contenu.
+  if TG_OP='UPDATE' and (previous-'version'-'updated_at') is not distinct from (following-'version'-'updated_at') then return NEW; end if;
+  source:=coalesce(following,previous);
+  dossier:=case when TG_TABLE_NAME='onboarding_cases' then (source->>'id')::uuid else (source->>'case_id')::uuid end;
+  source_id:=case when TG_TABLE_NAME='onboarding_coaching_sessions' then dossier::text||':'||(source->>'number') else source->>'id' end;
+  insert into public.onboarding_notes_archive(case_id,entity,source_key,operation,before_data,after_data)
+  values(dossier,TG_TABLE_NAME,source_id,TG_OP,previous,following);
+  -- Sans archive, l'écriture échoue aussi : jamais d'écrasement non archivé.
+  if TG_OP='DELETE' then return OLD; else return NEW; end if;
+end $$;
+revoke all on function public.onboarding_notes_snapshot(text,jsonb) from public,anon,authenticated;
+revoke all on function public.onboarding_archive_notes_change() from public,anon,authenticated;
+grant execute on function public.onboarding_notes_snapshot(text,jsonb),public.onboarding_archive_notes_change() to service_role;
+
+-- Verrou bref : aucune écriture ne peut se glisser entre la copie initiale et les triggers.
+-- Échec sûr après 5 secondes si la base est occupée ; il suffit de réexécuter le fichier.
+lock table public.onboarding_cases,public.onboarding_events,public.onboarding_coaching_sessions in share row exclusive mode;
+insert into public.onboarding_notes_archive(case_id,entity,source_key,operation,after_data)
+select c.id,'onboarding_cases',c.id::text,'BASELINE',public.onboarding_notes_snapshot('onboarding_cases',to_jsonb(c)) from public.onboarding_cases c
+on conflict(entity,source_key) where operation='BASELINE' do nothing;
+insert into public.onboarding_notes_archive(case_id,entity,source_key,operation,after_data)
+select e.case_id,'onboarding_events',e.id::text,'BASELINE',to_jsonb(e) from public.onboarding_events e
+on conflict(entity,source_key) where operation='BASELINE' do nothing;
+insert into public.onboarding_notes_archive(case_id,entity,source_key,operation,after_data)
+select s.case_id,'onboarding_coaching_sessions',s.case_id::text||':'||s.number::text,'BASELINE',to_jsonb(s) from public.onboarding_coaching_sessions s
+on conflict(entity,source_key) where operation='BASELINE' do nothing;
+create or replace trigger onboarding_cases_notes_archive after insert or update or delete on public.onboarding_cases
+  for each row execute function public.onboarding_archive_notes_change();
+create or replace trigger onboarding_events_notes_archive after insert or update or delete on public.onboarding_events
+  for each row execute function public.onboarding_archive_notes_change();
+create or replace trigger onboarding_sessions_notes_archive after insert or update or delete on public.onboarding_coaching_sessions
+  for each row execute function public.onboarding_archive_notes_change();
 
 -- Le protocole existant garde la responsabilité de l'autorisation, de la version,
 -- de l'idempotence et des règles de l'accueil. Tout est enregistré en une transaction.
@@ -85,5 +152,7 @@ notify pgrst, 'reload schema';
 commit;
 select to_regclass('public.onboarding_coaching_sessions') is not null
   and to_regclass('public.onboarding_coaching_revisions') is not null
+  and to_regclass('public.onboarding_notes_archive') is not null
+  and (select count(*)=3 from pg_trigger where tgname in ('onboarding_cases_notes_archive','onboarding_events_notes_archive','onboarding_sessions_notes_archive') and tgenabled='O')
   and to_regprocedure('public.onboarding_save_with_coachings(bigint,uuid,integer,uuid,jsonb,text,text,timestamp with time zone,jsonb)') is not null
   as coaching_tracking_ready;

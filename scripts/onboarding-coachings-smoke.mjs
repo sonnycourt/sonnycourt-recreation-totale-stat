@@ -73,6 +73,34 @@ await db.exec('grant select on closer_access_codes to service_role; set role ser
 assert.equal((await save({version:5,items:newer})).case.version,6,'vraies permissions du rôle serveur, sans privilège propriétaire');
 await db.exec('reset role');
 
+// Archives de toutes les prises de notes, y compris avant le nouveau suivi.
+const baseline=(await db.query("select after_data from onboarding_notes_archive where entity='onboarding_cases' and operation='BASELINE'")).rows;
+assert.equal(baseline.length,1);assert.equal(baseline[0].after_data.notes,'Onboarding conservé');
+const oldUiArchive=(await db.query("select before_data,after_data from onboarding_notes_archive where entity='onboarding_cases' and after_data->>'goal'='Objectif depuis ancienne interface' and operation='UPDATE'")).rows;
+assert.equal(oldUiArchive.length,1);assert.equal(oldUiArchive[0].before_data.goal,'');
+assert.equal((await db.query("select count(*)::int n from onboarding_notes_archive where after_data->>'notes'='Ne doit pas passer'")).rows[0].n,0,'échec transactionnel : aucune fausse version sauvegardée');
+assert.ok((await db.query("select count(*)::int n from onboarding_notes_archive where entity='onboarding_coaching_sessions' and before_data->>'notes'='Objectif, prise de conscience, prochain pas.'")).rows[0].n>0,'ancienne version coaching récupérable');
+const disposable=randomUUID();
+await db.query("insert into onboarding_events(id,command_id,case_id,actor_id,kind,note) values($1,$2,$3,22,'note','Note de contact à récupérer')",[disposable,randomUUID(),c.id]);
+await db.query("update onboarding_events set note='' where id=$1",[disposable]);
+await db.query('delete from onboarding_events where id=$1',[disposable]);
+assert.equal((await db.query("select before_data->>'note' n from onboarding_notes_archive where source_key=$1 and operation='UPDATE'",[disposable])).rows[0].n,'Note de contact à récupérer');
+assert.equal((await db.query("select count(*)::int n from onboarding_notes_archive where source_key=$1 and operation='DELETE'",[disposable])).rows[0].n,1,'suppression physique ne détruit pas les copies');
+await db.exec('set role service_role');
+await assert.rejects(()=>db.query("delete from onboarding_notes_archive where case_id=$1",[c.id]),/permission denied/);
+await assert.rejects(()=>db.query("update onboarding_notes_archive set before_data=null where case_id=$1",[c.id]),/permission denied/);
+await assert.rejects(()=>db.query('truncate onboarding_notes_archive'),/permission denied/);
+await db.exec('reset role; revoke insert on onboarding_notes_archive from service_role; set role service_role');
+await assert.rejects(()=>save({version:6,changes:{...patch,notes:'Écriture sans archive interdite'}}),/permission denied/);
+await db.exec('reset role; grant insert on onboarding_notes_archive to service_role');
+assert.equal((await db.query('select version from onboarding_cases')).rows[0].version,6,'sans archive, aucune écriture ne passe');
+assert.equal((await db.query('select notes from onboarding_cases')).rows[0].notes,'Onboarding conservé');
+for(const role of ['anon','authenticated']){
+  await db.exec(`set role ${role}`);
+  await assert.rejects(()=>db.query('select * from onboarding_notes_archive'),/permission denied/);
+  await db.exec('reset role');
+}
+
 // API : autorisation avant lecture des séances, refus des payloads invalides et compatibilité.
 process.env.SUPABASE_SERVICE_ROLE_KEY='local-test-only';
 const signed=signCloserToken(getCloserCookieSecret(),60000,22),calls=[];
@@ -102,4 +130,4 @@ assert.equal((await handler(req({...body,coachings:[]}))).status,400);
 const {coachings,...legacy}=body;assert.equal((await handler(req(legacy))).status,200);
 assert.equal(calls.findLast(([path])=>path.startsWith('rpc/'))[0],'rpc/onboarding_save_case_v2');
 await db.close();
-console.log('PASS coachings : migration x3, données préservées, 3 séances, atomicité, retries, conflits, droits, historique, anciennes interfaces et API. Aucun réseau ni donnée réelle.');
+console.log('PASS coachings + sécurité notes : migration x3, baseline intacte, versions anciennes/nouvelles, suppressions récupérables, archive append-only, échec archive = écriture annulée, atomicité, retries, conflits, droits et API. Aucun réseau ni donnée réelle.');
