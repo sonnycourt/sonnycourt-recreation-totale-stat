@@ -26,7 +26,7 @@ assert.equal(offerState(end,end+1,inspira).remaining,0);
 // Small DOM fixture: every amount/link updates together; throttled tabs recheck on click.
 const node = () => ({textContent:'',attrs:{},events:{},setAttribute(k,v){this.attrs[k]=v;},hasAttribute(k){return k in this.attrs;},addEventListener(k,fn){this.events[k]=fn;}});
 const links = Array.from({length:6},node);links[5].attrs['aria-label']='Je commence';
-const prices = Array.from({length:4},node);
+const prices = [node()];
 const panels = Array.from({length:2},()=>({hidden:true,parts:{},querySelector(k){return this.parts[k] ||= node();}}));
 const labels = [node(),node()], cards=[node()], references=[node()];
 const events = {}, store = new Map(), docEvents={};let cookie='';
@@ -51,7 +51,9 @@ try {
 } finally {Date.now=originalNow;}
 const page=readFileSync(new URL('../src/pages/delta-vision.astro',import.meta.url),'utf8');
 assert.equal((page.match(/data-dv-buy href=\{checkoutUrl\}/g)||[]).length,6);
-assert.equal((page.match(/data-dv-price/g)||[]).length,5); // four prices + CSS rule
+assert.equal((page.match(/data-dv-price/g)||[]).length,2); // final price + CSS rule
+assert.doesNotMatch(page,/Paiement unique/);
+assert.equal((page.match(/Satisfait ou remboursé pendant 14 jours/g)||[]).length,5,'Guarantee under all five in-page purchase buttons');
 const presentation=page.split('<section class="presentation')[1].split('<SocialProof')[0];
 assert.doesNotMatch(presentation,/price-comparison|price-before|data-dv-price|euros/,'Top CTA contains no displayed or announced price');
 assert.match(presentation,/data-dv-buy href=\{checkoutUrl\}/);
@@ -60,4 +62,4 @@ assert.match(presentation,/<UrgencyPreview/);
 assert.equal((page.match(/class="price-comparison"/g)||[]).length,1,'Only the bottom card retains the large price');
 assert(!page.includes('href={checkoutUrl}') || !page.match(/(?<!data-dv-buy )href=\{checkoutUrl\}/));
 assert(!readFileSync(new URL('../src/components/delta/UrgencyPreview.astro',import.meta.url),'utf8').includes('import.meta.env.DEV'));
-console.log('Delta urgency: persistence, expiry boundary, cookie fallback, blocked storage, all 6 CTAs, all 4 prices, no price in top card, bfcache and click-time recheck passed. No network calls.');
+console.log('Delta urgency: persistence, expiry boundary, cookie fallback, blocked storage, all 6 CTAs, final price only, guarantees under all in-page buttons, bfcache and click-time recheck passed. No network calls.');
