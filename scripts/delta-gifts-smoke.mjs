@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
-import {signGiftToken,verifyGiftToken,parseGiftPurchase,giftReady,giftEmailContent} from '../netlify/functions/lib/delta-gifts.mjs';
+import {signGiftToken,verifyGiftToken,parseGiftPurchase,giftReady,giftEmailContent,GIFT_PACKS} from '../netlify/functions/lib/delta-gifts.mjs';
 import api from '../netlify/functions/delta-gifts.js';
 import {runGiftJobs,fulfillGift} from '../netlify/functions/lib/delta-gifts-worker.mjs';
 import {giftReceivedState} from '../src/lib/delta-gift-received.mjs';
@@ -9,6 +9,10 @@ import {syncGiftRecipient} from '../netlify/functions/lib/delta-gifts-mailerlite
 import {recipientPairs,validateRecipientPairs} from '../src/lib/delta-gift-recipients.mjs';
 const env={DELTA_GIFTS_ENABLED:'true',DELTA_GIFTS_EMAILS_APPROVED:'true',DELTA_GIFTS_CIRCLE_APPROVED:'true',SUPABASE_URL:'https://database.test',SUPABASE_SERVICE_ROLE_KEY:'mock',DELTA_GIFTS_SIGNING_KEY:'s'.repeat(64),DELTA_GIFTS_WEBHOOK_TOKEN:'w'.repeat(64),DELTA_GIFTS_CHECKOUT_ID:'123',DELTA_GIFTS_AMOUNT_UNIT:'major',MAILERSEND_API_KEY:'mock',DELTA_GIFTS_EMAIL_FROM:'sender@example.com',CIRCLE_ADMIN_API_TOKEN:'mock',DELTA_GIFTS_CIRCLE_GROUP_ID:'42',DELTA_GIFTS_CIRCLE_SPACE_IDS:'101,102',CIRCLE_COMMUNITY_HOST:'volt.sonnycourt.com',DELTA_GIFTS_ACCESS_URL:'https://volt.sonnycourt.com/c/delta-vision'};
 const id='00000000-0000-4000-8000-000000000001',now=Date.now();
+assert.deepEqual(GIFT_PACKS,{1:4700,3:8100});
+const landing=readFileSync('src/pages/delta-vision-cadeau.astro','utf8');
+assert(landing.includes('count: 1, unit: 47, total: 47'));
+assert(landing.includes('count: 3, unit: 27, total: 81'));
 assert(giftReady(env));assert(!giftReady({...env,DELTA_GIFTS_EMAILS_APPROVED:'false'}));assert(!giftReady({...env,DELTA_GIFTS_ACCESS_URL:'https://evil.test'}));assert(!giftReady({...env,DELTA_GIFTS_AMOUNT_UNIT:''}));
 const token=signGiftToken('owner',id,{env,now});
 assert.equal(verifyGiftToken(token,'owner',{env,now}),id);assert.equal(verifyGiftToken(token,'gift',{env,now}),null);assert.equal(verifyGiftToken(token+'x','owner',{env,now}),null);assert.equal(verifyGiftToken(token,'owner',{env,now:now+31*86400000}),null);

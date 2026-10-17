@@ -11,7 +11,7 @@ export default async function handler(req){
   const result=await supabaseGet(`delta_vision_analytics_events?visit_id=eq.${b.visit_id}&event_name=eq.visit&visit_started_at=gte.${encodeURIComponent(new Date(Date.now()-86400000).toISOString())}&select=visit_id,visitor_id,visit_started_at,source,medium,campaign,device,is_returning&limit=1`);
   if(!result.ok)return json(503,{ok:false},cors);
   if(!result.data?.[0])return json(200,{ok:true,ignored:true},cors);
-  const insert=await supabasePost('delta_vision_analytics_events?on_conflict=id',{...result.data[0],id:b.id,event_name:'checkout_loaded',price:b.checkout==='41096'?47:27,metadata:{checkout:b.checkout}},{prefer:'resolution=ignore-duplicates,return=minimal'});
+  const insert=await supabasePost('delta_vision_analytics_events?on_conflict=id',{...result.data[0],id:b.id,event_name:'checkout_loaded',price:b.checkout==='41096'?147:97,metadata:{checkout:b.checkout}},{prefer:'resolution=ignore-duplicates,return=minimal'});
   return json(insert.ok?200:503,{ok:insert.ok},cors);
  }catch{return json(400,{ok:false},cors);}
 }

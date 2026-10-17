@@ -10,7 +10,7 @@ export function cleanBatch(body,now=Date.now()) {
  if(!Number.isFinite(start)||start>now+60000||start<now-86400000)throw Error('date');
  if(!['mobile','desktop'].includes(body.device)||typeof body.is_returning!=='boolean')throw Error('context');
  return body.events.map(event=>{
-  if(!uuid(event.id)||![27,47].includes(event.price))throw Error('event');
+  if(!uuid(event.id)||![27,47,97,147].includes(event.price))throw Error('event');
   const m=event.metadata||{},metadata={};
   const copyNum=(key,max)=>{if(!number(m[key],max))throw Error(key);metadata[key]=m[key];};
   switch(event.event_name){

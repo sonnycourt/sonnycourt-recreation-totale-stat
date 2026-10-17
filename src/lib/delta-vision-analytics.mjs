@@ -14,7 +14,7 @@ export function initDeltaAnalytics(doc=document,win=window){
  const names=['hero','histoire','ressentir','garantie','closing','sticky'];
  const buttons=[...doc.querySelectorAll('[data-dv-buy]')];buttons.forEach((el,i)=>el.dataset.dvAnalyticsCta=names[i]||'sticky');
  const sections=[...doc.querySelectorAll('#presentation,#histoire,#ressentir,#methode,#science,#garantie,#tarif')];
- const price=()=>doc.documentElement.dataset.dvOffer==='standard'?47:27;
+ const price=()=>doc.documentElement.dataset.dvOffer==='standard'?147:97;
  const elapsed=()=>Math.min(86400,(Date.now()-Date.parse(context.visit_started_at))/1000);
  const emit=(event_name,metadata={})=>{if(!enabled)return;queue.push({id:uuid(),event_name,price:price(),metadata});if(queue.length>150)queue.splice(0,queue.length-150);};
  function flush(urgent=false){

@@ -1,5 +1,16 @@
 # Delta Vision — checkout Spiffy
 
+## Tarifs du 17 octobre 2026
+
+- Lancement : **97 EUR**, checkout **41049**, URL inchangée.
+- Après échéance : **147 EUR**, checkout **41096**, URL `/checkout/delta-vision-standard` inchangée.
+- Ancien checkout **41037** aligné à **97 EUR** ; mêmes IDs, automatisations et accès.
+- Compteur, clé cookie/localStorage et échéances existantes conservés (23 h 17 min 34 s au premier passage, sans réinitialisation).
+- Le prix barré 147 EUR disparaît à l'expiration. Les six CTA basculent vers le checkout standard.
+- Tracking : 97/147 pour les nouvelles visites, 27/47 conservés dans l'historique et acceptés pour les anciens onglets. Migration additive `sql/delta_vision_prices_97_147.sql`, exécutée par Sonny.
+- Cadeaux : 47 EUR pour une personne ; 81 EUR pour trois (27 EUR chacun). Le parcours n'est pas muni d'un contrôle d'achat préalable ; visibilité dans le cours ne signifie pas authentification.
+- Limite déjà acceptée : les liens directs de lancement restent utilisables après échéance ; pas de verrou serveur personnel.
+
 ## Parcours direct — 13 octobre 2026
 
 - Nouveau checkout hébergé **41049** : `https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr`, paiement unique **27 EUR**, produit **12015** également à 27 EUR. L’ancien checkout 41037 est aligné à 27 EUR pour les liens historiques.

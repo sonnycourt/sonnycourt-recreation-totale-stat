@@ -12,6 +12,8 @@ const now=Date.now(),visit=randomUUID(),visitor=randomUUID();
 const event=(name,metadata={})=>({id:randomUUID(),event_name:name,price:27,metadata});
 const body={consent:true,visit_id:visit,visitor_id:visitor,visit_started_at:new Date(now-60000).toISOString(),source:'youtube',medium:'organic',campaign:'dv-v1',device:'mobile',is_returning:false,events:[event('visit')]};
 assert.equal(cleanBatch(body)[0].source,'youtube');assert.throws(()=>cleanBatch({...body,consent:false}));assert.throws(()=>cleanBatch({...body,visit_id:'x'}));assert.throws(()=>cleanBatch({...body,events:[event('purchase')]}));
+for(const price of [27,47,97,147])assert.equal(cleanBatch({...body,events:[{...event('visit'),price}]})[0].price,price);
+assert.throws(()=>cleanBatch({...body,events:[{...event('visit'),price:81}]}));
 assert.throws(()=>cleanBatch({...body,events:[event('heartbeat',{active:'oops',scroll:100})]}));
 assert.equal(cleanBatch({...body,email:'private@example.com',source:'private@example.com',events:[event('visit',{email:'private@example.com'})]})[0].source,'');
 assert.deepEqual(cleanBatch({...body,events:[event('visit',{email:'private@example.com'})]})[0].metadata,{});
@@ -36,6 +38,10 @@ assert.equal((await checkout(request({visit_id:visit,id:randomUUID(),checkout:'4
 const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');const sql=readFileSync('sql/delta_vision_analytics.sql','utf8');await db.exec(sql);assert.equal((await db.exec(sql)).at(-1).rows[0].delta_analytics_ready,true);
 body.events.push(event('heartbeat',{active:12,scroll:50}),event('heartbeat',{active:24,scroll:80}),event('cta_seen',{target:'hero',elapsed:20}),event('cta_click',{target:'hero',elapsed:21}),event('video',{action:'play',startup:500}),event('video_progress',{watched:2,duration:120,bins:[[0,2]]}),event('video_progress',{watched:2,duration:120,bins:[[0,2]]}));
 for(const row of cleanBatch(body)){const fields=Object.keys(row);await db.query(`insert into delta_vision_analytics_events (${fields.join(',')}) values (${fields.map((_,i)=>'$'+(i+1)).join(',')}) on conflict(id) do nothing`,fields.map(k=>k==='metadata'?JSON.stringify(row[k]):row[k]));}
+const beforeMigration=JSON.stringify((await db.query('select * from delta_vision_analytics_events order by id')).rows);
+await db.exec(readFileSync('sql/delta_vision_prices_97_147.sql','utf8'));
+await db.exec(readFileSync('sql/delta_vision_prices_97_147.sql','utf8'));
+assert.equal(JSON.stringify((await db.query('select * from delta_vision_analytics_events order by id')).rows),beforeMigration,'Historical events unchanged');
 const report=(await db.query('select delta_vision_analytics_report($1,$2) r',[new Date(now-86400000).toISOString(),new Date(now+1000).toISOString()])).rows[0].r;
 assert.equal(report.visit_count,1);assert.equal(report.visits[0].active,24);assert.equal(report.visits[0].scroll,80);assert.equal(report.ctas[0].clicks,1);assert.equal(report.retention[0].visits,1);assert.equal(report.visits[0].watched,2);
 await db.exec('set role anon');await assert.rejects(()=>db.query('select * from delta_vision_analytics_events'));await db.exec('reset role');await db.close();

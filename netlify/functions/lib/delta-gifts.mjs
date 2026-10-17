@@ -1,6 +1,6 @@
 import {createHmac,createHash,timingSafeEqual} from 'node:crypto';
 
-export const GIFT_PACKS = Object.freeze({1:2700,3:5100});
+export const GIFT_PACKS = Object.freeze({1:4700,3:8100});
 // Keep delayed/replayed purchases at the previous prices fulfillable.
 const GIFT_PURCHASE_AMOUNTS = Object.freeze({2700:1,5100:3,4700:1,8100:3,8500:5});
 export const GIFT_SITE = 'https://sonnycourt.com';

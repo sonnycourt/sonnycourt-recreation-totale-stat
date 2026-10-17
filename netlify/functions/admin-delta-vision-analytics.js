@@ -9,7 +9,7 @@ export default async function handler(req){
  const q=new URL(req.url).searchParams,from=Date.parse(q.get('from')),to=Date.parse(q.get('to')),now=Date.now();
  if(!Number.isFinite(from)||!Number.isFinite(to)||to<=from||to-from>32*86400000||from<now-90*86400000||to>now+86400000)return json(400,{error:'Choisis une période de 31 jours maximum, dans les 90 derniers jours.'});
  const device=q.get('device')||'',price=Number(q.get('price')||0),source=label(q.get('source')||'');
- if(!['','mobile','desktop'].includes(device)||![0,27,47].includes(price))return json(400,{error:'Filtre invalide.'});
+ if(!['','mobile','desktop'].includes(device)||![0,27,47,97,147].includes(price))return json(400,{error:'Filtre invalide.'});
  try{
   const result=await supabasePost('rpc/delta_vision_analytics_report',{p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString(),p_source:source,p_device:device,p_price:price});
   if(!result.ok)return json(503,{error:'Tracking indisponible : vérifie l’exécution du SQL.'});

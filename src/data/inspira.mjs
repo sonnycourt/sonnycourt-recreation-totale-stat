@@ -3,8 +3,8 @@
 export const inspira = Object.freeze({
   presentationVideoUrl: 'https://player.mediadelivery.net/play/779556/4125f91b-8324-4384-a580-f10f9d257681',
   presentationPosterUrl: '/media/pages/inspira-vsl-jungle-v2.webp',
-  price: 27,
-  standardPrice: 47,
+  price: 97,
+  standardPrice: 147,
   standardCheckoutUrl: 'https://sonnycourt.spiffy.co/checkout/delta-vision-standard?locale=fr',
   checkoutUrl: 'https://sonnycourt.spiffy.co/checkout/delta-vision-1?locale=fr',
   referencePrice: 147,

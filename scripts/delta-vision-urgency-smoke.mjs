@@ -18,8 +18,8 @@ assert.equal(rememberedDeadline({now,...memory(String(end),String(end-5000))}),e
 assert.equal(rememberedDeadline({now,...memory('9999999999999999',null)}),now,'Invalid future fails closed');
 const blocked = () => {throw Error('storage denied');};
 assert.equal(rememberedDeadline({now,readLocal:blocked,readCookie:blocked,writeLocal:blocked,writeCookie:blocked}),now);
-assert.equal(offerState(end,end-1,inspira).price,27);
-assert.equal(offerState(end,end,inspira).price,47);
+assert.equal(offerState(end,end-1,inspira).price,97);
+assert.equal(offerState(end,end,inspira).price,147);
 assert.equal(offerState(end,end+1,inspira).checkoutUrl,inspira.standardCheckoutUrl);
 assert.equal(offerState(end,end+1,inspira).remaining,0);
 
@@ -28,21 +28,24 @@ const node = () => ({textContent:'',attrs:{},events:{},setAttribute(k,v){this.at
 const links = Array.from({length:6},node);links[5].attrs['aria-label']='Je commence';
 const prices = Array.from({length:5},node);
 const panels = Array.from({length:2},()=>({hidden:true,parts:{},querySelector(k){return this.parts[k] ||= node();}}));
-const labels = [node(),node()], cards=[node(),node()];
+const labels = [node(),node()], cards=[node(),node()], references=[node(),node()];
 const events = {}, store = new Map(), docEvents={};let cookie='';
-const doc={documentElement:{dataset:{}},hidden:false,get cookie(){return cookie;},set cookie(x){cookie=x.split(';')[0];},querySelectorAll(s){return {'[data-dv-urgency]':panels,'[data-dv-price]':prices,'[data-dv-buy]':links,'.price-card':cards,'.price-launch':labels}[s]||[];},addEventListener(k,fn){docEvents[k]=fn;}};
+const doc={documentElement:{dataset:{}},hidden:false,get cookie(){return cookie;},set cookie(x){cookie=x.split(';')[0];},querySelectorAll(s){return {'[data-dv-urgency]':panels,'[data-dv-price]':prices,'[data-dv-buy]':links,'.price-card':cards,'.price-launch':labels,'.price-before':references}[s]||[];},addEventListener(k,fn){docEvents[k]=fn;}};
 const win={location:{protocol:'https:'},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},addEventListener(k,fn){events[k]=fn;},setInterval:()=>1,clearInterval:()=>{}};
 const originalNow=Date.now;let clock=now;Date.now=()=>clock;
 try {
  const controller=initDeltaUrgency(doc,win,inspira);
  assert.equal(store.get(OFFER_KEY),String(end));
- assert(panels.every(p=>!p.hidden));assert(prices.every(p=>p.textContent==='27'));
+ assert(panels.every(p=>!p.hidden));assert(prices.every(p=>p.textContent==='97'));
+ assert(references.every(p=>!p.hidden));
  assert(links.every(l=>l.href===inspira.checkoutUrl));
  clock=now+3000;events.pageshow();assert.equal(store.get(OFFER_KEY),String(end));
  clock=end;links[0].events.click();
- assert(prices.every(p=>p.textContent==='47'));assert(panels.every(p=>p.hidden));
+ assert(prices.every(p=>p.textContent==='147'));assert(panels.every(p=>p.hidden));
+ assert(references.every(p=>p.hidden),'No crossed-out 147 next to full-price 147');
+ assert(cards.every(p=>p.attrs['aria-label']==='147 euros'));
  assert(links.every(l=>l.href===inspira.standardCheckoutUrl));assert(labels.every(l=>l.textContent==='Delta Vision'));
- assert.equal(links[5].attrs['aria-label'],'Je commence Delta Vision — 47 euros');
+ assert.equal(links[5].attrs['aria-label'],'Je commence Delta Vision — 147 euros');
  clock=end+5000;events.pageshow();assert.equal(doc.documentElement.dataset.dvOffer,'standard');
  controller.destroy();
 } finally {Date.now=originalNow;}

@@ -13,7 +13,7 @@ create table if not exists public.delta_vision_analytics_events (
   campaign text not null check (length(campaign)<=100),
   device text not null check (device in ('mobile','desktop')),
   is_returning boolean not null,
-  price smallint not null check (price in (27,47)),
+  price smallint not null check (price in (27,47,97,147)),
   metadata jsonb not null default '{}' check (jsonb_typeof(metadata)='object' and octet_length(metadata::text)<=20000)
 );
 create index if not exists dv_analytics_visit_date_idx on public.delta_vision_analytics_events(visit_started_at, visit_id);

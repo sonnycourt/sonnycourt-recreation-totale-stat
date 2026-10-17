@@ -73,7 +73,7 @@ export function deltaPaymentMessage(event, frame) {
 export function mountDeltaPayment(slot, identity) {
   const doc = slot.ownerDocument, view = doc.defaultView;
   const frame = doc.createElement('iframe');
-  frame.className = 'dv-payment-frame'; frame.title = 'Paiement sécurisé Delta Vision — 47 €';
+  frame.className = 'dv-payment-frame'; frame.title = 'Paiement sécurisé Delta Vision — 97 €';
   frame.allow = 'payment'; frame.referrerPolicy = 'no-referrer';
   frame.style.cssText = 'height:350px;opacity:0;pointer-events:none';
   frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1;

@@ -6,7 +6,7 @@ const invitation = source.match(/const invitationUrl = '([^']+)'/)[1];
 const url = new URL(invitation);
 assert.equal(url.origin, 'https://volt.sonnycourt.com');
 assert.equal(url.pathname, '/join');
-assert.equal(url.searchParams.get('invitation_token'), '8445b8e19f28836e669caff44365c4e46d5da44f-54ebffc4-c501-4529-8a65-ee0f5f8cd971');
+assert.equal(url.searchParams.get('invitation_token'), '86ceb29a23d9bdd2b063de7fbe21925bb6dfbf2d-7194cdb8-ab94-4753-8304-8baf84e7b5de');
 assert.match(source, /href=\{invitationUrl\}/);
 assert.match(source, /noindex,nofollow,noarchive/);
 assert.match(source, /name="referrer" content="no-referrer"/);
