@@ -26,11 +26,11 @@ assert.equal(offerState(end,end+1,inspira).remaining,0);
 // Small DOM fixture: every amount/link updates together; throttled tabs recheck on click.
 const node = () => ({textContent:'',attrs:{},events:{},setAttribute(k,v){this.attrs[k]=v;},hasAttribute(k){return k in this.attrs;},addEventListener(k,fn){this.events[k]=fn;}});
 const links = Array.from({length:6},node);links[5].attrs['aria-label']='Je commence';
-const prices = Array.from({length:5},node);
+const prices = Array.from({length:4},node);
 const panels = Array.from({length:2},()=>({hidden:true,parts:{},querySelector(k){return this.parts[k] ||= node();}}));
-const labels = [node(),node()], cards=[node(),node()], references=[node(),node()];
+const labels = [node(),node()], cards=[node()], references=[node()];
 const events = {}, store = new Map(), docEvents={};let cookie='';
-const doc={documentElement:{dataset:{}},hidden:false,get cookie(){return cookie;},set cookie(x){cookie=x.split(';')[0];},querySelectorAll(s){return {'[data-dv-urgency]':panels,'[data-dv-price]':prices,'[data-dv-buy]':links,'.price-card':cards,'.price-launch':labels,'.price-before':references}[s]||[];},addEventListener(k,fn){docEvents[k]=fn;}};
+const doc={documentElement:{dataset:{}},hidden:false,get cookie(){return cookie;},set cookie(x){cookie=x.split(';')[0];},querySelectorAll(s){return {'[data-dv-urgency]':panels,'[data-dv-price]':prices,'[data-dv-buy]':links,'.price-card:not(.price-card--intro)':cards,'.price-launch':labels,'.price-before':references}[s]||[];},addEventListener(k,fn){docEvents[k]=fn;}};
 const win={location:{protocol:'https:'},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},addEventListener(k,fn){events[k]=fn;},setInterval:()=>1,clearInterval:()=>{}};
 const originalNow=Date.now;let clock=now;Date.now=()=>clock;
 try {
@@ -51,7 +51,13 @@ try {
 } finally {Date.now=originalNow;}
 const page=readFileSync(new URL('../src/pages/delta-vision.astro',import.meta.url),'utf8');
 assert.equal((page.match(/data-dv-buy href=\{checkoutUrl\}/g)||[]).length,6);
-assert.equal((page.match(/data-dv-price/g)||[]).length,6); // five prices + CSS rule
+assert.equal((page.match(/data-dv-price/g)||[]).length,5); // four prices + CSS rule
+const presentation=page.split('<section class="presentation')[1].split('<SocialProof')[0];
+assert.doesNotMatch(presentation,/price-comparison|price-before|data-dv-price|euros/,'Top CTA contains no displayed or announced price');
+assert.match(presentation,/data-dv-buy href=\{checkoutUrl\}/);
+assert.match(presentation,/Satisfait ou remboursé pendant 14 jours/);
+assert.match(presentation,/<UrgencyPreview/);
+assert.equal((page.match(/class="price-comparison"/g)||[]).length,1,'Only the bottom card retains the large price');
 assert(!page.includes('href={checkoutUrl}') || !page.match(/(?<!data-dv-buy )href=\{checkoutUrl\}/));
 assert(!readFileSync(new URL('../src/components/delta/UrgencyPreview.astro',import.meta.url),'utf8').includes('import.meta.env.DEV'));
-console.log('Delta urgency: persistence, expiry boundary, cookie fallback, blocked storage, all 6 CTAs, all 5 prices, bfcache and click-time recheck passed. No network calls.');
+console.log('Delta urgency: persistence, expiry boundary, cookie fallback, blocked storage, all 6 CTAs, all 4 prices, no price in top card, bfcache and click-time recheck passed. No network calls.');

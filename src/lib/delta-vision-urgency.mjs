@@ -64,7 +64,7 @@ export function initDeltaUrgency(doc, win, config) {
       });
       const hasDiscount = state.price < config.referencePrice;
       doc.querySelectorAll('.price-before').forEach(node => { node.hidden = !hasDiscount; });
-      doc.querySelectorAll('.price-card').forEach(card => card.setAttribute('aria-label', hasDiscount ? `${state.price} euros, au lieu de ${config.referencePrice} euros` : `${state.price} euros`));
+      doc.querySelectorAll('.price-card:not(.price-card--intro)').forEach(card => card.setAttribute('aria-label', hasDiscount ? `${state.price} euros, au lieu de ${config.referencePrice} euros` : `${state.price} euros`));
       doc.querySelectorAll('.price-launch').forEach(node => { node.textContent = state.expired ? 'Delta Vision' : 'Offre de lancement'; });
       previousPrice = state.price;
     }
