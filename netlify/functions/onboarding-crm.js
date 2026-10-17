@@ -4,6 +4,7 @@ import { FILTERS, isUuid, validateCommand, validateDeletion, presentCase, SUCCES
 import { COUNTRY_GROUPS } from './lib/onboarding-country-groups.mjs';
 import { listCountryGroup } from './lib/onboarding-country-list.mjs';
 import { loadOnboardingPayments } from './lib/onboarding-payments.mjs';
+import { validateCoachings } from './lib/onboarding-coachings.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify({...data,serverNow:new Date().toISOString()}), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -44,7 +45,7 @@ async function database(path, body) {
   if (!response.ok) {
     const error = new Error('database');
     // Seuls ces codes métier contrôlés sortent de cette couche.
-    error.reason = ['onboarding_version_conflict','onboarding_forbidden','onboarding_coaching_too_early','onboarding_command_conflict','onboarding_invalid_time'].includes(data?.message) ? data.message : 'unavailable';
+    error.reason = ['onboarding_version_conflict','onboarding_forbidden','onboarding_coaching_too_early','onboarding_command_conflict','onboarding_invalid_time','onboarding_invalid_coaching'].includes(data?.message) ? data.message : 'unavailable';
     throw error;
   }
   return data;
@@ -79,7 +80,10 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
           if (!row) return reply(404, { error: 'Dossier introuvable.' });
           const events = await db(`onboarding_events?case_id=eq.${id}&deleted_at=is.null&select=id,actor_id,kind,note,occurred_at&order=occurred_at.desc,id.desc&limit=100`);
           const [timed]=await withContactTimings(db,[row],scope);
-          return reply(200, { case: presentCase(timed), events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor });
+          let coachings=null;
+          try { coachings=await db(`onboarding_coaching_sessions?case_id=eq.${id}&select=number,status,scheduled_at,duration_minutes,notes&order=number.asc`); }
+          catch { /* Migration non installée / panne : l'accueil existant reste accessible. */ }
+          return reply(200, { case: presentCase(timed), events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor, coachings });
         }
         const filter = url.searchParams.get('filter') || 'all';
         const group = url.searchParams.get('country_group') || 'all';
@@ -98,7 +102,7 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
 
       if (!req.headers.get('content-type')?.startsWith('application/json')) return reply(415, { error: 'Format invalide.' });
       const text = await req.text();
-      if (text.length > 40000) return reply(413, { error: 'Notes trop longues.' });
+      if (text.length > 64000) return reply(413, { error: 'Notes trop longues.' });
       let body; try { body = JSON.parse(text); } catch { return reply(400, { error: 'Requête invalide.' }); }
       if (body?.action === 'delete_event') {
         if (!validateDeletion(body)) return reply(400, { error:'Entrée invalide.' });
@@ -107,17 +111,21 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
         return reply(200, {case:presentCase(timed)});
       }
       if (!validateCommand(body)) return reply(400, { error: 'Vérifie les champs du formulaire.' });
-      const row = await db('rpc/onboarding_save_case_v2', {
+      const withCoachings=Object.hasOwn(body,'coachings');
+      if(withCoachings&&!validateCoachings(body.coachings,body.patch))return reply(400,{error:'Vérifie les coachings : date réelle, durée pour une séance réalisée, notes de 6 000 caractères maximum.'});
+      const saved = await db(withCoachings?'rpc/onboarding_save_with_coachings':'rpc/onboarding_save_case_v2', {
         p_actor: actor.id, p_case: body.case_id, p_version: body.version, p_command: body.command_id,
         p_patch: body.patch, p_kind: body.kind, p_note: body.note, p_occurred_at:body.occurred_at || new Date().toISOString(),
+        ...(withCoachings?{p_sessions:body.coachings}:{}),
       });
-      const [timed]=await withContactTimings(db,[row],scope);
-      return reply(200, { case: presentCase(timed) });
+      const [timed]=await withContactTimings(db,[withCoachings?saved.case:saved],scope);
+      return reply(200, { case: presentCase(timed), ...(withCoachings?{coachings:saved.coachings}:{}) });
     } catch (error) {
       if (error.reason === 'onboarding_version_conflict') return reply(409, { error: 'Ce dossier a été modifié dans un autre onglet. Ton brouillon est conservé : copie-le avant de recharger le dossier.' });
       if (error.reason === 'onboarding_forbidden') return reply(403, { error: 'Accès refusé.' });
       if (error.reason === 'onboarding_coaching_too_early') return reply(400, { error: 'Le premier coaching doit être planifié à partir de J+33.' });
       if (error.reason === 'onboarding_invalid_time') return reply(400, { error: 'Choisis la date et l’heure réelles du contact, pas une date future.' });
+      if (error.reason === 'onboarding_invalid_coaching') return reply(400, { error: 'Vérifie la date, la durée et le statut des coachings. Ton brouillon est conservé.' });
       if (error.reason === 'onboarding_command_conflict') return reply(409, { error: 'Commande déjà utilisée. Recharge le dossier.' });
       return reply(503, { error: 'CRM momentanément indisponible ou tables non installées. Rien n’a été envoyé au client. Réessaie dans un instant.' });
     }

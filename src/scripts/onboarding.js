@@ -2,6 +2,8 @@ import { presentCase, CONTACT_LABELS, contactStep, validContactTime, formatRegis
 import { countryGroupPage } from '../../netlify/functions/lib/onboarding-country-groups.mjs';
 import { setupPayments } from './onboarding-payments.js';
 import { workflowPatch } from '../../netlify/functions/lib/onboarding-workflow.mjs';
+import { mountCoachings, readCoachings } from './onboarding-coachings.js';
+import { validateCoachings } from '../../netlify/functions/lib/onboarding-coachings.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -49,6 +51,14 @@ const demoCases = ['Camille Martin','Alex Bernard','Sarah Laurent','Noa Petit'].
   training_access:i>0,community_access:i>0,feedback_explained:i===3,coaching_booked:false,version:1,
 }));
 const demoEvents = new Map();
+const demoCoachings = new Map();
+// Exemple fictif complet pour visualiser le suivi, sans écrire dans Supabase.
+demoCases[3]=presentCase({...demoCases[3],purchased_at:new Date(Date.now()-70*86400000).toISOString(),
+  coaching_at:new Date(Date.now()-14*86400000).toISOString(),coaching_booked:true});
+demoCoachings.set(demoCases[3].id,[
+  {number:1,status:'completed',duration_minutes:60,notes:'Clarifier son objectif et retrouver de la confiance.\nProchain pas : reprendre la séance guidée chaque matin.'},
+  {number:2,status:'planned',scheduled_at:new Date(Date.now()+10*86400000).toISOString(),duration_minutes:null,notes:''},
+]);
 for(const i of [2,3])demoEvents.set(demoCases[i].id,[{id:crypto.randomUUID(),kind:i===2?'call_answered':'completed',note:'Échange fictif de démonstration.',occurred_at:new Date(Date.parse(demoCases[i].purchased_at)+(i===2?20:51)*3600000).toISOString(),can_delete:true}]);
 const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[]),whatsapp_known:true,whatsapp_received_at:(demoEvents.get(c.id)||[]).find(e=>e.kind==='whatsapp_received')?.occurred_at||null});
 function demoList() {
@@ -111,6 +121,7 @@ function renderDetail() {
     <form id="case-form"><section class="detail-section"><div class="section-heading"><h3>L’essentiel de l’échange</h3><small>Notes privées</small></div><div class="form-grid">${field('goal','Son objectif',true)}${field('notes','Notes de l’échange',true)}</div><details class="additional-notes"><summary>Motivations, freins et routine${[c.motivations,c.obstacles,c.routine].some(Boolean)?' · notes conservées':' · facultatif'}</summary><div class="form-grid">${field('motivations','Ses motivations')}${field('obstacles','Ses freins')}${field('routine','Sa routine réaliste',true)}</div></details><div class="checks">${[['training_access','Accès formation et communauté confirmé'],['feedback_explained','Feedback J+14 expliqué']].map(([key,label])=>`<label><input type="checkbox" name="${key}" ${(key==='training_access'?(c.training_access||c.community_access):c[key])?'checked':''} />${label}</label>`).join('')}</div></section>
     <section class="detail-section"><div class="section-heading"><h3>Prochaine étape</h3><small>Heures · ${esc(zone)}</small></div><p class="workflow-current">${esc(statusLabels[c.status])}${c.status==='booked'&&c.onboarding_at?' · '+esc(fmtTime(c.onboarding_at)):''}</p><label>Que prévois-tu ?<select id="workflow-step"><option value="keep">Conserver le suivi actuel</option value="booked">Planifier l’onboarding</option><option value="followup">Relancer plus tard</option><option value="done">Marquer l’accueil réalisé</option><option value="paused">Mettre le dossier en pause</option></select></label><div class="workflow-date" id="onboarding-date-field" hidden><label>Onboarding prévu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label></div><div class="workflow-date" id="followup-date-field" hidden><label>Relancer le<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><label class="coaching-date">Premier coaching<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · la date suffit à le marquer comme agendé.${c.coaching_booked&&!c.coaching_at?' Déjà marqué comme agendé, sans date renseignée.':''}</small></label><details class="workflow-advanced" id="workflow-advanced"><summary>Modifier le suivi manuellement</summary><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label></div></details><p class="small" style="margin-top:14px">Repères internes : aucun message ni invitation ne sera envoyé.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer</button></div></form>
     <p id="detail-message" role="status" hidden></p><section class="detail-section"><div class="section-heading"><h3>Historique des contacts</h3></div><p class="small">Les 100 dernières actions · ${esc(zone)}</p><ul id="history" class="history"></ul><div class="actions" style="margin-top:18px"><button class="quiet" id="copy-draft" type="button">Copier mon brouillon</button><button class="quiet" id="reload-case" type="button">Recharger la fiche</button></div></section>`;
+  mountCoachings({form:$('case-form'),row:c,saved:state.coachings,ready:state.coachingsReady,zone});
   renderHistory();
   renderClocks();
   $('case-form').addEventListener('input',setDirty);
@@ -128,7 +139,7 @@ function renderDetail() {
   $('log-contact').addEventListener('click',openContact);
   $('history').addEventListener('click',(e)=>{const b=e.target.closest('[data-delete-event]');if(b)deleteEvent(b.dataset.deleteEvent);});
   $('reload-case').addEventListener('click',()=>selectCase(c.id));
-  $('copy-draft').addEventListener('click',()=>copy(JSON.stringify({...getPatch()},null,2)));
+  $('copy-draft').addEventListener('click',()=>copy(JSON.stringify({...getPatch(),...(state.coachingsReady?{coachings:readCoachings($('case-form'))}:{})},null,2)));
   $('copy-sms').addEventListener('click',()=>copy(sms));
   $('back-list').addEventListener('click',()=>document.querySelector('.directory').scrollIntoView({behavior:'smooth'}));
 }
@@ -137,9 +148,10 @@ async function selectCase(id) {
   if(!canLeave())return;
   const seq=++state.detailSeq;state.detailLoading=true;$('detail').inert=true;
   try {
-    const data=demo?{case:demoTimed(demoCases.find(c=>c.id===id)),events:demoEvents.get(id)||[]}:await api(`?id=${encodeURIComponent(id)}`);
+    const data=demo?{case:demoTimed(demoCases.find(c=>c.id===id)),events:demoEvents.get(id)||[],coachings:demoCoachings.get(id)||[]}:await api(`?id=${encodeURIComponent(id)}`);
     if(seq!==state.detailSeq)return;
     state.selected=id;state.current=data.case;state.events=data.events;state.dirty=false;state.pending=null;
+    state.coachingsReady=Array.isArray(data.coachings);state.coachings=data.coachings||[];
     renderList();renderDetail();
     if(matchMedia('(max-width:760px)').matches)$('detail').scrollIntoView({behavior:'smooth',block:'start'});
   } catch(e){message(e.message);}finally{if(seq===state.detailSeq){state.detailLoading=false;$('detail').inert=false;}}
@@ -192,10 +204,12 @@ $('contact-form').addEventListener('submit',e=>{
 async function save(kind, contact={}) {
   if(state.saving||state.detailLoading||!$('case-form').reportValidity())return;
   const note=contact.note||'',patch=getPatch();
+  const coachings=state.coachingsReady?readCoachings($('case-form')):undefined;
+  if(coachings&&!validateCoachings(coachings,patch))return toast('Vérifie les dates et durées des coachings. Tes notes restent affichées.');
   const occurred_at=contact.occurred_at||state.pending?.at||new Date().toISOString();
   if(state.current.status==='paused' && !['updated','note'].includes(kind) && !confirm('Ce dossier est en pause. Reprendre le suivi et enregistrer ce contact ?'))return;
   if(kind==='whatsapp_sent' && state.current.next_action==='whatsapp' && Date.parse(state.current.followup_at)>Date.parse(occurred_at) && !confirm('Les 24 heures ne sont pas encore écoulées. As-tu réellement déjà envoyé ce vocal ?'))return;
-  const signature=JSON.stringify({case_id:state.selected,version:state.current.version,patch,kind,note,occurred_at});
+  const signature=JSON.stringify({case_id:state.selected,version:state.current.version,patch,kind,note,occurred_at,coachings});
   const command_id=state.pending?.signature===signature?state.pending.id:crypto.randomUUID();
   state.pending={signature,id:command_id,at:occurred_at};state.saving=true;$('detail').inert=true;$('contact-form').inert=true;
   $('save-state').textContent='Enregistrement…';$('detail-message').hidden=true;$('contact-error').hidden=true;
@@ -207,10 +221,12 @@ async function save(kind, contact={}) {
       const events=demoEvents.get(c.id)||[];
       if(!events.some(e=>e.kind!=='note'&&Date.parse(e.occurred_at)>Date.parse(occurred_at)))Object.assign(c,contactStep(kind,occurred_at,c.status));
       c.version++;data={case:{...c}};
+      if(coachings)demoCoachings.set(c.id,structuredClone(coachings));
       demoEvents.set(c.id,[{id:command_id,kind,note,occurred_at,can_delete:true},...events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at)));
       data.case=demoTimed(c);
-    } else data=await api('',{case_id:state.selected,version:state.current.version,command_id,patch,kind,note,occurred_at});
+    } else data=await api('',{case_id:state.selected,version:state.current.version,command_id,patch,kind,note,occurred_at,...(coachings?{coachings}:{})});
     state.current=data.case;state.dirty=false;state.modalDirty=false;state.pending=null;succeeded=true;
+    if(coachings)state.coachings=data.coachings||coachings;
     try{state.events=demo?(demoEvents.get(state.selected)||[]):(await api(`?id=${state.selected}`)).events;}
     catch{state.events=[{kind,note,occurred_at},...state.events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at));}
     $('contact-dialog').close();renderDetail();

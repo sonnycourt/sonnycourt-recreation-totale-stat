@@ -47,7 +47,42 @@ Notes privées : objectif, motivations, freins, routine, notes libres. Trois cas
 
 J+14 et J+33 sont calculés depuis la date civile d'achat à Paris (changement d'heure testé). Les saisies d'heures de rendez-vous sont dans le fuseau de l'appareil, indiqué à l'écran. Le serveur refuse un coaching antérieur à J+33. Une date d'onboarding renseignée propose le statut « planifié » et un rappel interne à ce moment.
 
-## Connexion persistante
+## Extension du 17 octobre 2026 — trois coachings privés
+
+Prévisualisation locale uniquement tant que Sonny n'a pas exécuté
+`sql/onboarding_coaching_sessions.sql` et confirmé `coaching_tracking_ready = true`,
+puis validé la publication. Ne pas réexécuter les anciennes migrations pour installer
+cette extension : le nouveau fichier suffit sur le CRM actuel.
+
+- Trois volets dans la fiche, avec statut, date/heure, durée réelle et notes privées
+  (6 000 caractères par séance). Accès direct depuis l'en-tête du dossier.
+- Une seule sauvegarde pour l'accueil et les coachings. Même protection des brouillons,
+  même verrou/version, même identifiant de commande et même périmètre d'autorisation.
+- Premier rendez-vous conservé dans `onboarding_cases.coaching_at` : pas de doublon,
+  pas de migration des anciennes dates, toujours visible depuis l'ancienne interface.
+  Les anciennes séances agendées sans date restent signalées comme planifiées, sans
+  inventer une date. Aucun coaching n'est déclaré réalisé automatiquement.
+- Les deux autres dates, les trois statuts, durées et notes sont dans
+  `onboarding_coaching_sessions`. Les versions enregistrées sont conservées dans
+  `onboarding_coaching_revisions` (journal privé, pas un nouvel écran).
+- `onboarding_save_with_coachings` enveloppe la sauvegarde existante dans une seule
+  transaction. Une panne refuse toute la sauvegarde, sans enregistrer une moitié.
+  Rejouer une commande retourne l'état courant sans écraser des modifications ultérieures.
+- Une séance réalisée exige une date passée et une durée ; une absence exige une date
+  passée. Les saisies ne déterminent ni rémunération, ni remboursement, ni consommation
+  contractuelle automatique. Une durée courte peut être documentée sans être qualifiée
+  automatiquement de rémunérable. Aucun calendrier, email ou accès élève modifié.
+- Si la nouvelle table est indisponible à l'ouverture, seul l'ajout coaching est masqué
+  avec une explication ; l'accueil reste utilisable. Aucun fallback silencieux lors
+  d'une sauvegarde contenant des coachings : une erreur conserve tout le brouillon.
+- Démo : choisir « Accueils réalisés » puis « Noa Petit » pour voir les trois états
+  réalisé / planifié / à planifier, sur un exemple entièrement fictif.
+
+Tests supplémentaires : `node scripts/onboarding-coachings-smoke.mjs` (PGlite et API
+simulée, sans réseau). Avant publication : contrôle authentifié après installation du
+SQL et validation visuelle, sans écrire sur un dossier élève pour tester.
+
+## Connexion persistante (authentification inchangée)
 
 Adresse officielle : `https://sonnycourt.com/onboarding/`. Le login existant émet le cookie signé `closer_access` avec `Max-Age=2592000` (30 jours), HttpOnly, Secure en HTTPS, SameSite=Lax et Path=/. La session est relue automatiquement au chargement et survit aux rafraîchissements ; aucune copie du mot de passe n'est stockée dans le navigateur par le CRM. Les aperçus Netlify ont des domaines distincts et ne partagent pas ce cookie.
 
