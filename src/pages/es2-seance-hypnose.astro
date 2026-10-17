@@ -1,0 +1,123 @@
+---
+// Original 30-minute music supplied by Sonny, preserved without re-encoding.
+const audioSource = '/media/audio/es2-seance-hypnose-30min.mp3';
+const bars = Array.from({ length: 72 }, (_, i) => 12 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * .39)) * 54);
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Séance d’hypnose — Esprit Subconscient 2.0</title>
+    <meta name="description" content="Un moment pour toi. Installe-toi, lance ta séance et laisse-toi guider." />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+    <header class="masthead">
+      <a class="brand" href="/mc2/" aria-label="Esprit Subconscient 2.0 — Masterclass">
+        <span class="brand-symbol" aria-hidden="true">✦</span>
+        <span>ESPRIT SUBCONSCIENT <b>2.0</b></span>
+      </a>
+    </header>
+
+    <main>
+      <section class="session" aria-labelledby="session-title">
+        <div class="player" id="player">
+          <h1 id="session-title">Ta séance d’hypnose</h1>
+
+          <audio id="session-audio" src={audioSource} preload="metadata" controls aria-label="Musique pour séance d’hypnose — 30 minutes"></audio>
+          <div class="custom-controls" hidden>
+            <div class="waveform" aria-hidden="true">{bars.map((height, i) => <i style={`--height:${height}px;--delay:${i * -.13}s`}></i>)}</div>
+            <label class="sr-only" for="seek">Position dans l’audio</label>
+            <input id="seek" class="seek" type="range" min="0" max="100" value="0" step="0.1" disabled />
+            <div class="time-row"><span id="elapsed">0:00</span><span id="duration">—:—</span></div>
+            <div class="playback">
+              <button class="skip" id="back" type="button" aria-label="Reculer de 15 secondes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 9a8 8 0 1 1 0 7M4 4v5h5" /></svg><span>15</span></button>
+              <button class="play" id="play" type="button" aria-label="Lancer l’audio"><svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4.5v15L20 12z" /></svg><svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg></button>
+              <button class="skip" id="forward" type="button" aria-label="Avancer de 15 secondes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 9a8 8 0 1 0 0 7m0-12v5h-5" /></svg><span>15</span></button>
+            </div>
+            <p class="play-status" id="play-status" role="status" aria-live="polite"></p>
+            <div class="settings">
+              <label for="speed">Vitesse <select id="speed"><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option></select></label>
+              <label for="volume"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m11 5-5 4H3v6h3l5 4zm4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></svg><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value="1" /></label>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+
+<style>
+  @font-face{font-family:Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-weight:400 800;font-display:swap}
+  :global(*){box-sizing:border-box} :global(body){margin:0;background:#080d1c;color:#fff;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .ambient{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% -15%,#1d428d66,transparent 60%),radial-gradient(ellipse at 0% 70%,#18357b33,transparent 45%),#080d1c;pointer-events:none}
+  .masthead{max-width:1220px;margin:auto;min-height:100px;padding:28px 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #8bb8ff15}
+  .brand{color:#e8efff;text-decoration:none;font-size:12px;letter-spacing:2px;display:flex;align-items:center;gap:13px}.brand b{color:#79afff;font-weight:500}.brand-symbol{font-size:32px;color:#78acff}.space-label{font-size:10px;letter-spacing:2.4px;color:#8492af}
+  main{max-width:1100px;margin:auto;padding:46px 28px 0}.intro{text-align:center;margin-bottom:38px}.eyebrow{font-size:10px;letter-spacing:2.8px;color:#8fbbfc;margin:0 0 20px;font-weight:600}
+  h1{font-size:clamp(31px,3.8vw,49px);line-height:1.17;letter-spacing:-1.8px;font-weight:650;margin:0}h1 span{background:linear-gradient(110deg,#fff,#a5c9ff 65%,#6a9ff6);background-clip:text;color:transparent}.lead{font-size:14px;line-height:1.8;color:#a5b2cb;margin:20px 0 0}
+  .session{border:1px solid #6b9bed36;border-radius:24px;overflow:hidden;background:linear-gradient(145deg,#172541,#101b32 75%);box-shadow:0 26px 90px #0005,0 0 80px #2563eb0d}
+  .artwork{position:relative;min-height:550px;isolation:isolate;background:#122348}.artwork>img{position:absolute;width:100%;height:100%;object-fit:cover;object-position:48% center;z-index:-2}.artwork:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0813293b,transparent 40%,#07152bdd 100%);z-index:-1}.artwork-tag{position:absolute;top:28px;left:28px;display:flex;gap:9px;align-items:center;font-size:9px;letter-spacing:1.5px;background:#09172b77;padding:10px 12px;border:1px solid #ffffff20;border-radius:30px;backdrop-filter:blur(10px)}.artwork-tag>span{width:5px;height:5px;background:#9dcaff;border-radius:50%;box-shadow:0 0 10px #77b6ff}.artwork-caption{position:absolute;bottom:32px;left:34px}.artwork-caption>span{font-size:9px;letter-spacing:2.4px;color:#bed5fa}.artwork-caption p{font-size:34px;font-weight:550;letter-spacing:-1px;line-height:1.15;margin:15px 0 0}
+  .player{padding:32px 40px 24px;min-width:0}.session-meta{display:flex;justify-content:space-between;align-items:center}.pill{font-size:9px;letter-spacing:1.6px;color:#9fc5ff;font-weight:600}.audio-mark{color:#79b0ff;font-size:23px}h2{font-size:36px;line-height:1.12;letter-spacing:-1.2px;margin:23px 0 14px;font-weight:600}.description{color:#9fafca;font-size:13px;line-height:1.8;margin:0}
+  audio{width:100%;margin-top:28px}.waveform{height:75px;display:flex;gap:3px;align-items:center;justify-content:center;margin-top:18px;overflow:hidden}.waveform i{display:block;flex:1;height:var(--height);max-width:4px;border-radius:3px;background:linear-gradient(#a1caff,#3978d7);opacity:.65;transform:scaleY(.65)}.is-playing .waveform i{animation:wave 1.4s ease-in-out var(--delay) infinite alternate}.seek{display:block;width:100%;margin:4px 0 0;accent-color:#89bbff;height:16px;cursor:pointer}.time-row{display:flex;justify-content:space-between;color:#92a3c2;font-size:10px;font-variant-numeric:tabular-nums;margin-top:3px}.playback{display:flex;align-items:center;justify-content:center;gap:29px;margin-top:14px}button,select,input{font:inherit}button{cursor:pointer}.play{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#5b9afa,#2563eb);border:1px solid #9dc7ff99;color:#fff;box-shadow:0 8px 30px #2563eb45,inset 0 1px #ffffff40;transition:transform .2s,box-shadow .2s}.play:hover{transform:scale(1.04);box-shadow:0 8px 35px #2563eb77}.play svg{width:26px;height:26px}.play .pause-icon{display:none}.is-playing .play-icon{display:none}.is-playing .pause-icon{display:block}.skip{position:relative;width:38px;height:42px;background:none;border:none;color:#a3b6d7;padding:4px}.skip svg{width:30px;height:30px}.skip span{font-size:9px;position:absolute;inset:17px 0 0}.skip:hover{color:#fff}.play-status{text-align:center;font-size:10px;color:#a6b6d1;min-height:16px;margin:15px 0 18px}.settings{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ffffff0d;padding-top:15px;color:#8fa1c1;font-size:10px}.settings label{display:flex;align-items:center;gap:10px}.settings svg{width:17px;height:17px}.settings select{color:#c2d6f5;background:#192942;border:1px solid #ffffff15;border-radius:6px;padding:4px;cursor:pointer}.settings input{width:70px;height:12px;accent-color:#77aaff}.demo-note{font-size:9px;line-height:1.7;color:#7f91b3;margin:16px 0 0}.listening-tips{display:flex;justify-content:center;gap:45px;margin:30px 0 0;color:#b1bdd3;font-size:12px}.listening-tips p{display:flex;align-items:center;gap:10px}.listening-tips span{color:#6999df;font-size:10px}.safety{text-align:center;color:#6c7c9a;font-size:10px;margin:20px 0 0}footer{text-align:center;font-size:9px;letter-spacing:2px;color:#61718f;padding:35px 20px}footer span{padding:0 14px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  :global(:focus-visible){outline:2px solid #a6cdff;outline-offset:5px} [hidden]{display:none!important}
+  @keyframes wave{from{transform:scaleY(.45);opacity:.5}to{transform:scaleY(1);opacity:1}}
+  @media(min-width:1500px){main{padding-top:65px}.intro{margin-bottom:45px}}
+  @media(max-width:740px){.masthead{min-height:80px;padding:20px 22px}.space-label{display:none}.brand{font-size:10px;letter-spacing:1.3px}main{padding:32px 18px 0}.eyebrow{font-size:8px;letter-spacing:1.6px}h1{font-size:32px;letter-spacing:-1.2px}.lead{font-size:12px}.intro{margin-bottom:28px}.session{grid-template-columns:1fr;border-radius:20px}.artwork{min-height:260px}.artwork>img{object-position:center 38%}.artwork-tag{top:18px;left:20px;font-size:8px}.artwork-caption{bottom:22px;left:24px}.artwork-caption p{font-size:28px}.artwork-caption>span{font-size:8px}.player{padding:24px 26px}h2{font-size:32px;margin-top:18px}.listening-tips{gap:12px;justify-content:space-between;font-size:10px}.listening-tips p{flex-direction:column;align-items:flex-start;gap:8px}.safety{margin-top:16px}footer{font-size:8px;letter-spacing:1.2px}}
+  @media(prefers-reduced-motion:reduce){.is-playing .waveform i{animation:none}.play{transition:none}}
+  /* Focused session view for screen sharing. */
+  .masthead{justify-content:center;border:0;min-height:90px}
+  main{width:100%;max-width:760px;min-height:calc(100svh - 90px);padding:36px 24px 100px;display:grid;align-content:center}
+  .player{padding:52px 54px 32px}
+  h1{text-align:center;font-size:clamp(27px,4vw,39px);letter-spacing:-1.2px;background:linear-gradient(110deg,#fff,#a5c9ff);background-clip:text;color:transparent}
+  .waveform{margin-top:42px;height:95px;gap:4px}
+  .playback{margin-top:26px;gap:35px}
+  .play{width:78px;height:78px}
+  .play svg{width:30px;height:30px}
+  .play-status{margin:14px 0;min-height:16px}
+  .settings{padding-top:20px;font-size:11px}
+  @media(max-width:740px){main{padding:24px 18px 70px}.player{padding:38px 24px 26px}.waveform{margin-top:30px;gap:3px}}
+</style>
+
+<script>
+  const audio = document.querySelector<HTMLAudioElement>('#session-audio')!;
+  const player = document.querySelector<HTMLElement>('#player')!;
+  const play = document.querySelector<HTMLButtonElement>('#play')!;
+  const seek = document.querySelector<HTMLInputElement>('#seek')!;
+  const elapsed = document.querySelector<HTMLElement>('#elapsed')!;
+  const duration = document.querySelector<HTMLElement>('#duration')!;
+  const status = document.querySelector<HTMLElement>('#play-status')!;
+  const format = (seconds: number) => `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
+  const sync = () => {
+    const ready = Number.isFinite(audio.duration) && audio.duration > 0;
+    seek.disabled = !ready;
+    if (ready) { seek.max = String(audio.duration); duration.textContent = format(audio.duration); }
+    seek.value = String(audio.currentTime);
+    elapsed.textContent = format(audio.currentTime);
+    seek.setAttribute('aria-valuetext', `${format(audio.currentTime)} sur ${ready ? format(audio.duration) : 'durée inconnue'}`);
+  };
+  document.querySelector<HTMLElement>('.custom-controls')!.hidden = false;
+  audio.controls = false;
+  play.addEventListener('click', async () => {
+    if (!audio.paused) { audio.pause(); return; }
+    status.textContent = 'Chargement de l’audio…';
+    try { await audio.play(); }
+    catch { status.textContent = 'Lecture indisponible. Vérifie ta connexion et réessaie.'; }
+  });
+  audio.addEventListener('playing', () => { player.classList.add('is-playing'); play.setAttribute('aria-label', 'Mettre en pause'); status.textContent = ''; });
+  audio.addEventListener('waiting', () => { status.textContent = 'Chargement de l’audio…'; });
+  audio.addEventListener('pause', () => { player.classList.remove('is-playing'); play.setAttribute('aria-label', 'Reprendre l’audio'); status.textContent = ''; });
+  audio.addEventListener('ended', () => { player.classList.remove('is-playing'); play.setAttribute('aria-label', 'Réécouter'); status.textContent = ''; });
+  audio.addEventListener('error', () => { player.classList.remove('is-playing'); play.setAttribute('aria-label', 'Réessayer la lecture'); status.textContent = 'L’audio est indisponible. Réessaie plus tard.'; });
+  ['loadedmetadata', 'durationchange', 'timeupdate'].forEach(event => audio.addEventListener(event, sync));
+  seek.addEventListener('input', () => { if (Number.isFinite(audio.duration)) { audio.currentTime = Number(seek.value); sync(); } });
+  for (const [id, delta] of [['back', -15], ['forward', 15]] as const) {
+    document.getElementById(id)!.addEventListener('click', () => { if (Number.isFinite(audio.duration)) { audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + delta)); sync(); } });
+  }
+  document.querySelector<HTMLSelectElement>('#speed')!.addEventListener('change', event => { audio.playbackRate = Number((event.target as HTMLSelectElement).value); });
+  document.querySelector<HTMLInputElement>('#volume')!.addEventListener('input', event => { audio.volume = Number((event.target as HTMLInputElement).value); });
+  sync();
+</script>
