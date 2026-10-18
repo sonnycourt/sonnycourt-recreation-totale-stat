@@ -11,7 +11,7 @@ for(const [allowed,orders] of [[true,[{id},{id:id2}]],[true,[]],[false,[{id}]]])
   const queued=[];let reads=0;
   const response=await api(request({action:'recover',email:' BUYER@example.com '}),null,{env,fetcher:async(url,opts)=>{
     const u=new URL(url);
-    if(u.pathname.endsWith('/rpc/dv_gift_throttle')){assert.equal(JSON.parse(opts.body).p_seconds,86460);return Response.json(allowed);}
+    if(u.pathname.endsWith('/rpc/dv_gift_throttle')){assert.equal(JSON.parse(opts.body).p_seconds,86400);return Response.json(allowed);}
     if(u.pathname.endsWith('/dv_gift_orders')){
       reads++;assert.equal(u.searchParams.get('buyer_email'),'eq.buyer@example.com');assert.equal(u.searchParams.get('status'),'eq.paid');assert(!u.searchParams.has('spiffy_order_id'));return Response.json(orders);
     }

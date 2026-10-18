@@ -154,5 +154,26 @@ const namedGift=await scalar('select id from dv_gifts where order_id=$1 and slot
 await pg.query('select dv_gift_activate($1,$2,$3)',[namedGift,'lea@example.com','Léa-Marie']);
 assert.equal(await scalar('select recipient_name from dv_gifts where id=$1',[namedGift]),'Léa-Marie','Recipient confirms their own name on activation');
 assert.equal(await scalar("select has_function_privilege('anon','dv_gift_assign(uuid,jsonb)','EXECUTE')"),false);
+// Exercise both HTTP recovery actions against the actual SQL throttle, not a permissive mock.
+for(const action of ['recover','recover_gift']){
+ let queued=0;
+ for(let attempt=0;attempt<2;attempt++){
+  const response=await api(req({action,email:`${action}@example.com`}),null,{env,fetcher:async(url,opts)=>{
+   const path=new URL(url).pathname;
+   if(path.endsWith('/rpc/dv_gift_throttle')){
+    const body=JSON.parse(opts.body);
+    try{return Response.json(await scalar('select dv_gift_throttle($1,$2)',[body.p_key,body.p_seconds]));}
+    catch(error){return Response.json({code:error.code,message:error.message},{status:400});}
+   }
+   if(path.endsWith('/dv_gift_orders'))return Response.json([{id:threeNew,status:'paid'}]);
+   if(path.endsWith('/dv_gifts'))return Response.json([{id:namedGift,order_id:threeNew}]);
+   if(path.endsWith('/dv_gift_jobs')){queued++;return Response.json([]);}
+   throw new Error('unexpected recovery SQL regression request');
+  }});
+  assert.equal(response.status,200,`${action}: SQL throttle must accept the API interval`);
+  assert.deepEqual(await response.json(),{ok:true,state:'check_email'});
+ }
+ assert.equal(queued,1,`${action}: repeated requests must not enqueue duplicate emails`);
+}
 await pg.close();
 console.log('PASS Delta gifts: signed links, purpose/expiry, strict pricing, disabled sends, identity isolation, Circle scope, SQL replay/limits/rollback/leases/RLS. No external writes or emails.');

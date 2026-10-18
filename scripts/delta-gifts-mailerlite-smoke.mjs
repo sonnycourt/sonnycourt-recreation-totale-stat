@@ -23,7 +23,7 @@ for(const exists of [true,false]){
   const u=new URL(url);
   if(u.pathname.endsWith('/dv_gifts'))return Response.json(exists?[{id,order_id:other}]:[]);
   if(u.pathname.endsWith('/dv_gift_orders'))return Response.json([{id:other,status:'paid'}]);
-  if(u.pathname.endsWith('/rpc/dv_gift_throttle')){assert.equal(JSON.parse(opts.body).p_seconds,86460);return Response.json(true);}
+  if(u.pathname.endsWith('/rpc/dv_gift_throttle')){assert.equal(JSON.parse(opts.body).p_seconds,86400);return Response.json(true);}
   if(u.pathname.endsWith('/dv_gift_jobs')){const body=JSON.parse(opts.body);assert.equal(body.kind,'gift_email');assert(body.job_key.startsWith('verify:'));queued++;return Response.json([]);}
   throw new Error('unexpected recovery request');
  }});
