@@ -26,12 +26,14 @@ export default async function handler(req,context,options={}) {
       return giftJson(200,{ok:true,name:order.buyer_name,count:order.pack_count,gifts});
     }
     if(input.action==='recover'){
-      const email=emailValue(input.email),orderNumber=String(input.order || '');
-      if(!validEmail(email) || !/^\d{1,30}$/.test(orderNumber))return giftJson(400,{ok:false});
+      const email=emailValue(input.email);
+      if(!validEmail(email))return giftJson(400,{ok:false});
       const allowed=await giftRpc('dv_gift_throttle',{p_key:hash(`owner:${email}`),p_seconds:600},db);
       if(allowed){
-        const order=(await giftDb(`dv_gift_orders?spiffy_order_id=eq.${orderNumber}&buyer_email=eq.${encodeURIComponent(email)}&status=eq.paid&select=id&limit=1`,db))?.[0];
-        if(order)await queueGiftEmail('owner_email',order.id,null,`recover:${order.id}:${Math.floor(Date.now()/600000)}`,db);
+        // Recover every purchase belonging to this address, never only the latest.
+        // Links are sent to the verified purchase email, never returned to the browser.
+        const orders=await giftDb(`dv_gift_orders?buyer_email=eq.${encodeURIComponent(email)}&status=eq.paid&select=id&order=created_at.desc`,db);
+        for(const order of orders || [])await queueGiftEmail('owner_email',order.id,null,`recover:${order.id}:${Math.floor(Date.now()/600000)}`,db);
       }
       // Identical answer whether or not this purchase exists. Never expose the manager through order_id.
       return giftJson(200,{ok:true,state:'check_email'});

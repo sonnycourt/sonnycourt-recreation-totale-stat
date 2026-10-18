@@ -59,7 +59,9 @@ export function parseGiftPurchase(body,env=process.env){
   const amount=String(body.order_total ?? '').trim();
   const minor=env.DELTA_GIFTS_AMOUNT_UNIT==='minor';
   if(!['major','minor'].includes(env.DELTA_GIFTS_AMOUNT_UNIT) || !(minor?/^\d+$/:/^\d+(\.0{1,2})?$/).test(amount) || String(body.currency || '').toUpperCase()!=='EUR' || !validEmail(email))return null;
-  if(body.subscription_id || body.payment_plan_id || ![undefined,null,'',0,'0',false,'false'].includes(body.has_order_bump))return null;
+  // Form-encoded webhooks stringify absent numeric IDs ("0" is truthy in JS).
+  const absent=[undefined,null,'',0,'0',false,'false'];
+  if(!absent.includes(body.subscription_id) || !absent.includes(body.payment_plan_id) || !absent.includes(body.has_order_bump))return null;
   const cents=Math.round(Number(amount)*(minor?1:100)),pack=GIFT_PURCHASE_AMOUNTS[cents];
   if(!Number.isSafeInteger(cents) || !pack)return null;
   return {p_spiffy_order:String(body.order_id),p_email:email,p_name:firstName.slice(0,100),p_pack:pack,p_amount:cents};

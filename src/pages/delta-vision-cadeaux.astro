@@ -19,7 +19,6 @@
         </form>
         <form data-gift-recover hidden>
           <p>Après ton achat, un email personnel te permet de distribuer tes cadeaux. Tu ne le retrouves pas ?</p>
-          <label for="gift-order">Numéro de commande Spiffy</label><input id="gift-order" name="order" inputmode="numeric" pattern="[0-9]+" required maxlength="30"/>
           <label for="gift-owner-email">L’email utilisé lors de l’achat</label><input id="gift-owner-email" name="email" type="email" autocomplete="email" required maxlength="254"/>
           <button type="submit">Retrouver mon lien personnel <span>→</span></button>
         </form>
@@ -36,7 +35,7 @@
     const form=document.querySelector<HTMLFormElement>('[data-gift-manager]')!,recover=document.querySelector<HTMLFormElement>('[data-gift-recover]')!;
     const message=document.querySelector<HTMLElement>('[data-gift-message]')!,error=document.querySelector<HTMLElement>('[data-gift-error]')!,slots=document.querySelector<HTMLElement>('[data-gift-slots]')!;
     let busy=false;
-    const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Retrouve ton lien personnel avec les informations de ta commande.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
+    const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Retrouve ton lien personnel avec l’email utilisé lors de ton achat.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
     const render=(data:any)=>{
       form.hidden=false;recover.hidden=true;message.textContent=`${data.count} ${data.count===1?'expérience à offrir':'expériences à offrir'}. À toi de choisir à qui.`;slots.replaceChildren();
       for(const gift of data.gifts){
@@ -72,7 +71,7 @@
     });
     recover.addEventListener('submit',async event=>{
       event.preventDefault();if(busy || !recover.reportValidity())return;busy=true;const button=recover.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
-      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si ces informations correspondent à ton achat, ton lien personnel va t’être envoyé par email.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si un achat est associé à cette adresse, tu recevras ton lien personnel par email dans quelques minutes. Pense aussi à vérifier tes courriers indésirables.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
     });
     if(token){giftRequest({action:'owner',token}).then(render).catch(e=>{message.textContent='Retrouvons ton espace cadeaux.';recover.hidden=false;showError(e);});}
     else{message.textContent='Ouvre le lien personnel reçu par email pour choisir tes destinataires.';recover.hidden=false;}
