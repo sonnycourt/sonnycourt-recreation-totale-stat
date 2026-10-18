@@ -19,9 +19,8 @@
           <button type="submit">Envoyer mes invitations <span>→</span></button>
         </form>
         <form data-gift-recover hidden>
-          <p>Après ton achat, un email personnel te permet de distribuer tes cadeaux. Tu ne le retrouves pas ?</p>
           <label for="gift-owner-email">L’email utilisé lors de l’achat</label><input id="gift-owner-email" name="email" type="email" autocomplete="email" required maxlength="254"/>
-          <button type="submit">Retrouver mon lien personnel <span>→</span></button>
+          <button type="submit">Accéder à mes cadeaux <span>→</span></button>
         </form>
         <p data-gift-error role="alert" hidden></p>
       </div>
@@ -32,13 +31,13 @@
   <script>
     import {giftRequest} from '../lib/delta-gifts-client.mjs';
     import {recipientPairs,validateRecipientPairs} from '../lib/delta-gift-recipients.mjs';
-    const token=new URLSearchParams(location.hash.slice(1)).get('owner') || '';
+    let token=new URLSearchParams(location.hash.slice(1)).get('owner') || '';
     const form=document.querySelector<HTMLFormElement>('[data-gift-manager]')!,recover=document.querySelector<HTMLFormElement>('[data-gift-recover]')!;
     const message=document.querySelector<HTMLElement>('[data-gift-message]')!,error=document.querySelector<HTMLElement>('[data-gift-error]')!,slots=document.querySelector<HTMLElement>('[data-gift-slots]')!;
     let busy=false,selectedOrderId='';
     let purchases:any[]=[];
     const picker=document.querySelector<HTMLElement>('[data-gift-order-picker]')!,purchaseSelect=document.querySelector<HTMLSelectElement>('[data-gift-order-select]')!;
-    const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Retrouve ton lien personnel avec l’email utilisé lors de ton achat.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
+    const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='purchase_not_found'?'Aucun achat de cadeaux trouvé avec cette adresse. Vérifie l’email utilisé lors du paiement. Si tu viens d’acheter, réessaie dans quelques instants.':e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Accède à tes cadeaux avec l’email utilisé lors de ton achat.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
     const render=(data:any)=>{
       if(Array.isArray(data.orders)){
         purchases=data.orders;
@@ -84,10 +83,10 @@
     });
     recover.addEventListener('submit',async event=>{
       event.preventDefault();if(busy || !recover.reportValidity())return;busy=true;const button=recover.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
-      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si un achat est associé à cette adresse, un lien personnel sera envoyé par email. Vérifie aussi tes courriers indésirables. Si tu as déjà demandé un renvoi aujourd’hui, utilise le dernier email reçu : un seul renvoi est possible par période de 24 heures.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+      try{const data=Object.fromEntries(new FormData(recover));const result=await giftRequest({action:'owner_email_access',...data});token=result.token;render(result);}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
     });
     if(token){giftRequest({action:'owner',token}).then(render).catch(e=>{message.textContent='Retrouvons ton espace cadeaux.';recover.hidden=false;showError(e);});}
-    else{message.textContent='Ouvre le lien personnel reçu par email pour choisir tes destinataires.';recover.hidden=false;}
+    else{message.textContent='Renseigne l’email utilisé lors de ton achat pour choisir directement tes destinataires.';recover.hidden=false;}
   </script>
 </body>
 </html>

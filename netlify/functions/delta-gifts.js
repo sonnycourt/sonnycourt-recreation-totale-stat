@@ -1,4 +1,4 @@
-import {giftReady,giftJson,giftDb,giftRpc,giftOrder,giftRecord,verifyGiftToken,verifyGiftBuyerToken,emailValue,validEmail,validName,hash,queueGiftEmail,circleAccessUrl} from './lib/delta-gifts.mjs';
+import {giftReady,giftJson,giftDb,giftRpc,giftOrder,giftRecord,verifyGiftToken,verifyGiftBuyerToken,signGiftBuyerToken,emailValue,validEmail,validName,hash,queueGiftEmail,circleAccessUrl} from './lib/delta-gifts.mjs';
 
 export const config={path:'/.netlify/functions/delta-gifts',rateLimit:{windowLimit:30,windowSize:60,aggregateBy:['ip','domain']}};
 export default async function handler(req,context,options={}) {
@@ -12,13 +12,27 @@ export default async function handler(req,context,options={}) {
   if(!input || input.website)return giftJson(400,{ok:false});
   if(!giftReady(env))return giftJson(503,{ok:false,code:'not_ready'});
   try {
+    const buyerOrders=async email=>{
+      const orders=await giftDb(`dv_gift_orders?buyer_email=eq.${encodeURIComponent(email)}&status=eq.paid&select=id,pack_count,created_at&order=created_at.desc`,db);
+      for(const order of orders || [])order.gifts=await giftDb(`dv_gifts?order_id=eq.${order.id}&select=slot,recipient_email,recipient_name,state&order=slot.asc`,db);
+      return orders || [];
+    };
+    // Sonny explicitly accepted email-only buyer access on 2026-10-18.
+    // This does not prove mailbox ownership. Keep paid-order scope, signed assignment
+    // tokens, origin checks and rate limiting; recipient activation remains unchanged.
+    if(input.action==='owner_email_access'){
+      const email=emailValue(input.email);
+      if(!validEmail(email))return giftJson(400,{ok:false,code:'invalid_email'});
+      const orders=await buyerOrders(email);
+      if(!orders.length)return giftJson(404,{ok:false,code:'purchase_not_found'});
+      return giftJson(200,{ok:true,orders,token:signGiftBuyerToken(email,{env})});
+    }
     if(input.action==='owner' || input.action==='assign'){
       const buyerEmail=verifyGiftBuyerToken(input.token,{env});
       const legacyId=verifyGiftToken(input.token,'owner',{env});
       if(!buyerEmail && !legacyId)return giftJson(401,{ok:false,code:'link_invalid'});
       if(buyerEmail && input.action==='owner'){
-        const orders=await giftDb(`dv_gift_orders?buyer_email=eq.${encodeURIComponent(buyerEmail)}&status=eq.paid&select=id,pack_count,created_at&order=created_at.desc`,db);
-        for(const order of orders || [])order.gifts=await giftDb(`dv_gifts?order_id=eq.${order.id}&select=slot,recipient_email,recipient_name,state&order=slot.asc`,db);
+        const orders=await buyerOrders(buyerEmail);
         return giftJson(200,{ok:true,orders});
       }
       const id=legacyId || input.orderId;
