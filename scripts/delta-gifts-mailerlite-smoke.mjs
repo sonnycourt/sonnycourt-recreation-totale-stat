@@ -17,6 +17,18 @@ const portal=await api(request({action:'owner',token}),null,{env,fetcher:async u
  const u=new URL(url);if(u.pathname.endsWith('/dv_gift_orders')){assert.equal(u.searchParams.get('buyer_email'),'eq.buyer@example.com');assert.equal(u.searchParams.get('status'),'eq.paid');return Response.json([{id,pack_count:3},{id:other,pack_count:1}]);}
  assert(u.searchParams.get('order_id')===`eq.${id}`||u.searchParams.get('order_id')===`eq.${other}`);return Response.json([{slot:1,state:'available'}]);
 }});assert.equal((await portal.json()).orders.length,2);
+for(const exists of [true,false]){
+ let queued=0;
+ const response=await api(request({action:'recover_gift',email:'friend@example.com'}),null,{env,fetcher:async(url,opts)=>{
+  const u=new URL(url);
+  if(u.pathname.endsWith('/dv_gifts'))return Response.json(exists?[{id,order_id:other}]:[]);
+  if(u.pathname.endsWith('/dv_gift_orders'))return Response.json([{id:other,status:'paid'}]);
+  if(u.pathname.endsWith('/rpc/dv_gift_throttle')){assert.equal(JSON.parse(opts.body).p_seconds,86460);return Response.json(true);}
+  if(u.pathname.endsWith('/dv_gift_jobs')){const body=JSON.parse(opts.body);assert.equal(body.kind,'gift_email');assert(body.job_key.startsWith('verify:'));queued++;return Response.json([]);}
+  throw new Error('unexpected recovery request');
+ }});
+ assert.equal(response.status,200);assert.deepEqual(await response.json(),{ok:true,state:'check_email'});assert.equal(queued,exists?1:0);
+}
 const order={id,buyer_email:'buyer@example.com',buyer_name:'Buyer'},job={id:other,kind:'owner_email',job_key:`owner:${id}`,attempts:1};
 assert.equal(giftMailerLiteChannel({...job,job_key:'recover:test'},env).key,'DELTA_GIFTS_ML_OWNER_RECOVERY');
 for(const scenario of ['disabled','paused','unsubscribed','cooldown','ambiguous','success']){

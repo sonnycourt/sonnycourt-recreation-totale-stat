@@ -46,9 +46,10 @@ export default async function handler(req,context,options={}) {
       // Identical answer whether or not this purchase exists. Never expose the manager through order_id.
       return giftJson(200,{ok:true,state:'check_email'});
     }
-    if(input.action==='recognize' || input.action==='status'){
+    if(input.action==='recognize' || input.action==='status' || input.action==='recover_gift'){
       const email=emailValue(input.email);
       if(!validEmail(email) || (input.action==='recognize' && !validName(input.firstName)))return giftJson(400,{ok:false});
+      if(input.action==='recover_gift' && input.token)return giftJson(400,{ok:false});
       const id=verifyGiftToken(input.token,'gift',{env});
       if(input.token && !id)return giftJson(401,{ok:false,code:'link_invalid'});
       if(id){
@@ -64,7 +65,7 @@ export default async function handler(req,context,options={}) {
       if(input.action==='status')return giftJson(401,{ok:false});
       const gift=(await giftDb(`dv_gifts?recipient_email=eq.${encodeURIComponent(email)}&state=in.(assigned,activating,active)&select=id,order_id&limit=1`,db))?.[0];
       const order=gift?await giftOrder(gift.order_id,db):null;
-      if(!gift || order?.status!=='paid')return giftJson(200,{ok:true,state:'not_gifted'});
+      if(!gift || order?.status!=='paid')return giftJson(200,{ok:true,state:input.action==='recover_gift'?'check_email':'not_gifted'});
       const allowed=await giftRpc('dv_gift_throttle',{p_key:hash(`gift:${email}`),p_seconds:86460},db);
       if(allowed)await queueGiftEmail('gift_email',gift.order_id,gift.id,`verify:${gift.id}:${Math.floor(Date.now()/600000)}`,db);
       // Email recognition skips card entry, but only the personal link authorizes access.

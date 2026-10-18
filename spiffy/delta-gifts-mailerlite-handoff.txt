@@ -5,24 +5,23 @@ email bénéficiaire déjà validé le 13/10. Les quatre workflows sont créés,
 contenu est enregistré en français, avec une réentrée après un jour.
 IDs non secrets : delta-gifts-mailerlite-config.json.
 
-Actifs dans MailerLite : achat confirmé et invitation bénéficiaire.
-Inactifs : renvoi acheteur et renvoi bénéficiaire. Le contrôle d'autorisation
-a refusé l'activation du renvoi acheteur, faute d'approbation explicite de cet
-usage. Une question a été envoyée à Sonny : autorise-t-il les deux mêmes emails
-en renvoi sur demande ? Ne pas activer les renvois avant sa réponse.
+Actifs dans MailerLite : les quatre workflows. Sonny a confirmé explicitement
+le renvoi sur demande (« OK OUI AU PLUS SIMPLE ! »). Les deux renvois ont été
+activés après cet accord. La page bénéficiaire sans token propose désormais
+une récupération par email seule, sans révéler si une adresse possède un cadeau.
 
 Le code de migration n'est PAS encore publié. Aucun nouvel email réel n'a été
 envoyé pendant cette migration. Les groupes sont vides. Aucune variable Netlify
 de migration n'a encore été ajoutée ; le flag de bascule n'est pas activé.
 
 Avant publication :
-- obtenir l'accord spécifique pour les renvois, les activer via l'interface ;
 - vérifier via API officielle enabled/complete, groupe exact, réentrée et email ;
-- ajouter les huit variables du JSON au contexte production Netlify puis
-  DELTA_GIFTS_MAILERLITE_EMAILS_ENABLED=true ;
 - tester les trois scripts delta-gifts-*-smoke et npm run build ;
 - fusionner explicitement sur main propre, synchroniser origin/main ;
-- publier uniquement via npm run deploy:production.
+- publier d'abord le nouveau worker désactivé via npm run deploy:production ;
+- après vérification, ajouter les huit variables du JSON au contexte production
+  Netlify puis DELTA_GIFTS_MAILERLITE_EMAILS_ENABLED=true ;
+- republier via le même sas pour prendre en compte la configuration.
 
 Après publication :
 - reprendre uniquement le job owner_email failed de la commande 2551306,

@@ -35,7 +35,18 @@ export function initGiftReceived(doc=document,{view=window,request=giftRequest}=
     if(!identity)return;attempts++;
     try{render(await request({action:'status',token,email:identity.email}));}catch(e){fail(e);}
   };
-  if(!token){form.hidden=true;message.textContent='Pour recevoir ton cadeau, ouvre le lien personnel dans l’email « Une expérience Delta Vision t’a été offerte ». Si tu ne le retrouves pas, vérifie tes courriers indésirables ou écris à info@sonnycourt.com.';return;}
+  if(!token){
+    const name=form.elements.namedItem('firstName');name.required=false;name.hidden=true;
+    form.querySelector('label[for="gift-name"]').hidden=true;
+    button.textContent='Retrouver mon lien';
+    message.textContent='Tu as perdu ton invitation ? Renseigne l’adresse email qui a reçu le cadeau pour retrouver ton lien personnel.';
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy || !form.reportValidity())return;
+      busy=true;button.disabled=true;error.hidden=true;
+      try{await request({action:'recover_gift',email:form.elements.namedItem('email').value.trim().toLowerCase()});message.textContent='Si un cadeau est associé à cette adresse, un lien personnel sera envoyé par email. Vérifie aussi tes courriers indésirables. Un seul renvoi est possible par période de 24 heures.';}catch(e){fail(e);}finally{busy=false;button.disabled=false;}
+    });
+    return;
+  }
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy || !form.reportValidity())return;
     identity={firstName:form.elements.namedItem('firstName').value.trim(),email:form.elements.namedItem('email').value.trim().toLowerCase()};
