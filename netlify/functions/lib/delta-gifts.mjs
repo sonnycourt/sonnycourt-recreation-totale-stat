@@ -15,7 +15,7 @@ export function giftReady(env=process.env){
     && !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY && (env.DELTA_GIFTS_SIGNING_KEY || '').length>=48
     && (env.DELTA_GIFTS_WEBHOOK_TOKEN || '').length>=48 && /^\d+$/.test(env.DELTA_GIFTS_CHECKOUT_ID || '')
     && ['major','minor'].includes(env.DELTA_GIFTS_AMOUNT_UNIT)
-    && !!env.MAILERSEND_API_KEY && !!env.DELTA_GIFTS_EMAIL_FROM && !!env.CIRCLE_ADMIN_API_TOKEN
+    && !!env.MAILERLITE_API_KEY && !!env.CIRCLE_ADMIN_API_TOKEN
     && /^\d+$/.test(env.DELTA_GIFTS_CIRCLE_GROUP_ID || '') && giftSpaceIds(env).length>0 && !!circleAccessUrl(env);
 }
 export function giftSpaceIds(env=process.env){
@@ -37,6 +37,20 @@ export function verifyGiftToken(token,purpose,{env=process.env,now=Date.now()}={
   const [data,sig,extra]=token.split('.');if(!data || !sig || extra)return null;
   const expected=createHmac('sha256',env.DELTA_GIFTS_SIGNING_KEY).update(data).digest('base64url');if(!constantEqual(sig,expected))return null;
   try {const body=JSON.parse(Buffer.from(data,'base64url').toString());return body.v===1 && body.p===purpose && uuid(body.id) && Number.isInteger(body.exp) && body.exp>Math.floor(now/1000) ? body.id : null;}catch{return null;}
+}
+// One private mailbox link covers all paid purchases by the same buyer. MailerLite
+// subscriber fields can therefore never replace a link with another buyer's order.
+export function signGiftBuyerToken(email,{env=process.env,now=Date.now()}={}){
+  email=emailValue(email);
+  if(!validEmail(email) || (env.DELTA_GIFTS_SIGNING_KEY || '').length<48)throw new Error('gift_token_config');
+  const data=Buffer.from(JSON.stringify({v:1,p:'buyer',email,exp:Math.floor(now/1000)+30*86400})).toString('base64url');
+  return `${data}.${createHmac('sha256',env.DELTA_GIFTS_SIGNING_KEY).update(data).digest('base64url')}`;
+}
+export function verifyGiftBuyerToken(token,{env=process.env,now=Date.now()}={}){
+  if(typeof token!=='string' || token.length>1000 || (env.DELTA_GIFTS_SIGNING_KEY || '').length<48)return null;
+  const [data,sig,extra]=token.split('.');if(!data || !sig || extra)return null;
+  if(!constantEqual(sig,createHmac('sha256',env.DELTA_GIFTS_SIGNING_KEY).update(data).digest('base64url')))return null;
+  try{const b=JSON.parse(Buffer.from(data,'base64url').toString());return b.v===1 && b.p==='buyer' && typeof b.email==='string' && emailValue(b.email)===b.email && validEmail(b.email) && Number.isInteger(b.exp) && b.exp>Math.floor(now/1000)?b.email:null;}catch{return null;}
 }
 export async function giftDb(path,{method='GET',body,env=process.env,fetcher=fetch,prefer='return=representation'}={}){
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('gift_database_config');
@@ -73,8 +87,8 @@ export function giftEmailContent(kind,order,gift,{env=process.env,now=Date.now()
   let subject,lines,url,label;
   if(kind==='owner_email'){
     subject='Tes cadeaux Delta Vision sont prêts';
-    lines=[`Bonjour${order.buyer_name ? ` ${order.buyer_name}` : ''},`,`Merci pour ton achat. Tu disposes de ${order.pack_count} ${order.pack_count===1?'cadeau Delta Vision':'cadeaux Delta Vision'} à offrir.`, 'Choisis les personnes à qui tu veux faire découvrir cette expérience. Tu peux renseigner leurs emails maintenant ou revenir plus tard.'];
-    url=`${GIFT_SITE}/delta-vision-cadeaux/#owner=${signGiftToken('owner',order.id,{env,now})}`;label='Distribuer mes cadeaux';
+    lines=['Bonjour,','Merci pour ton achat. Tes cadeaux Delta Vision sont prêts à être offerts.', 'Choisis les personnes à qui tu veux faire découvrir cette expérience. Tu peux renseigner leurs prénoms et emails maintenant ou revenir plus tard.'];
+    url=`${GIFT_SITE}/delta-vision-cadeaux/#owner=${signGiftBuyerToken(order.buyer_email,{env,now})}`;label='Distribuer mes cadeaux';
   }else if(kind==='gift_email' && gift){
     subject='Une expérience Delta Vision t’a été offerte';
     lines=['Bonjour,',`${order.buyer_name || 'Un proche'} t’offre Delta Vision : une leçon pour découvrir la méthode et une vidéo guidée de 12 minutes pour vivre l’expérience.`, 'Clique ci-dessous, puis renseigne ton prénom et l’adresse email qui a reçu ce message pour activer ton cadeau. Ton accès est déjà payé : aucune carte bancaire ne te sera demandée.'];

@@ -8,6 +8,7 @@ import {giftReceivedState} from '../src/lib/delta-gift-received.mjs';
 import {syncGiftRecipient} from '../netlify/functions/lib/delta-gifts-mailerlite.mjs';
 import {recipientPairs,validateRecipientPairs} from '../src/lib/delta-gift-recipients.mjs';
 const env={DELTA_GIFTS_ENABLED:'true',DELTA_GIFTS_EMAILS_APPROVED:'true',DELTA_GIFTS_CIRCLE_APPROVED:'true',SUPABASE_URL:'https://database.test',SUPABASE_SERVICE_ROLE_KEY:'mock',DELTA_GIFTS_SIGNING_KEY:'s'.repeat(64),DELTA_GIFTS_WEBHOOK_TOKEN:'w'.repeat(64),DELTA_GIFTS_CHECKOUT_ID:'123',DELTA_GIFTS_AMOUNT_UNIT:'major',MAILERSEND_API_KEY:'mock',DELTA_GIFTS_EMAIL_FROM:'sender@example.com',CIRCLE_ADMIN_API_TOKEN:'mock',DELTA_GIFTS_CIRCLE_GROUP_ID:'42',DELTA_GIFTS_CIRCLE_SPACE_IDS:'101,102',CIRCLE_COMMUNITY_HOST:'volt.sonnycourt.com',DELTA_GIFTS_ACCESS_URL:'https://volt.sonnycourt.com/c/delta-vision'};
+env.MAILERLITE_API_KEY='mock';
 const id='00000000-0000-4000-8000-000000000001',now=Date.now();
 assert.deepEqual(GIFT_PACKS,{1:4700,3:8100});
 const landing=readFileSync('src/pages/delta-vision-cadeau.astro','utf8');
@@ -21,7 +22,7 @@ for(const [price,count] of [[27,1],[51,3],[47,1],[81,3],[85,5]])assert.equal(par
 for(const [price,count] of [[2700,1],[5100,3],[4700,1],[8100,3],[8500,5]])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'Me@Example.com',currency:'eur',order_total:price,subscription_id:0,payment_plan_id:0,has_order_bump:false},{...env,DELTA_GIFTS_AMOUNT_UNIT:'minor'}).p_pack,count);
 for(const price of [17,50,52,51.01,'2.7e1','27.001'])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'me@example.com',currency:'EUR',order_total:price},env),null);
 for(const data of [{order_total:0},{order_total:4700},{currency:'USD'},{checkout_id:456},{payment_plan_id:2},{has_order_bump:true}])assert.equal(parseGiftPurchase({checkout_id:123,order_id:789,email:'me@example.com',currency:'EUR',order_total:47,...data},env),null);
-const content=giftEmailContent('owner_email',{id,buyer_name:'<script>',pack_count:3},null,{env});assert(!content.html.includes('<script>'));assert(content.html.includes('&lt;script&gt;'));assert(content.text.includes('#owner='));
+const content=giftEmailContent('owner_email',{id,buyer_email:'buyer@example.com',buyer_name:'<script>',pack_count:3},null,{env});assert(!content.html.includes('<script>'));assert(content.text.includes('prénoms et emails'));assert(content.text.includes('#owner='));
 let externalCalls=0;assert.deepEqual(await runGiftJobs({env:{},fetcher:async()=>{externalCalls++;}}),{enabled:false,processed:0});assert.equal(externalCalls,0);
 const req=body=>new Request('https://sonnycourt.com/.netlify/functions/delta-gifts',{method:'POST',headers:{Origin:'https://sonnycourt.com','Content-Type':'application/json'},body:JSON.stringify(body)});
 assert.equal((await api(req({action:'owner',token:'forged'}),null,{env})).status,401);

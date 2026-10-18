@@ -13,6 +13,7 @@
         <h2 id="manager-title">Tes cadeaux.</h2>
         <p data-gift-message role="status" aria-live="polite">Chargement de ton espace personnel…</p>
         <form data-gift-manager hidden>
+          <div data-gift-order-picker hidden><label for="gift-purchase">Ton achat</label><select id="gift-purchase" data-gift-order-select></select></div>
           <div data-gift-slots></div>
           <p class="hint">Vérifie les adresses avant de confirmer : chaque cadeau sera réservé à cette personne et une invitation lui sera envoyée. Tu peux laisser des cadeaux pour plus tard.</p>
           <button type="submit">Envoyer mes invitations <span>→</span></button>
@@ -34,9 +35,20 @@
     const token=new URLSearchParams(location.hash.slice(1)).get('owner') || '';
     const form=document.querySelector<HTMLFormElement>('[data-gift-manager]')!,recover=document.querySelector<HTMLFormElement>('[data-gift-recover]')!;
     const message=document.querySelector<HTMLElement>('[data-gift-message]')!,error=document.querySelector<HTMLElement>('[data-gift-error]')!,slots=document.querySelector<HTMLElement>('[data-gift-slots]')!;
-    let busy=false;
+    let busy=false,selectedOrderId='';
+    let purchases:any[]=[];
+    const picker=document.querySelector<HTMLElement>('[data-gift-order-picker]')!,purchaseSelect=document.querySelector<HTMLSelectElement>('[data-gift-order-select]')!;
     const showError=(e:any)=>{error.hidden=false;error.textContent=e.code==='recipient_already_gifted'?'Une de ces adresses bénéficie déjà d’un cadeau. Aucun nouvel envoi n’a été effectué. Vérifie tes destinataires.':e.code==='link_invalid'?'Ce lien a expiré ou n’est pas valide. Retrouve ton lien personnel avec l’email utilisé lors de ton achat.':'Impossible de terminer pour le moment. Tes cadeaux restent conservés. Réessaie dans quelques instants.';};
     const render=(data:any)=>{
+      if(Array.isArray(data.orders)){
+        purchases=data.orders;
+        if(!purchases.length){form.hidden=true;message.textContent='Aucun cadeau disponible pour le moment. Si tu viens de payer, recharge cette page dans quelques instants.';return;}
+        purchaseSelect.replaceChildren();
+        for(const order of purchases){const option=document.createElement('option');option.value=order.id;option.textContent=`${order.pack_count} cadeau${order.pack_count>1?'x':''} · ${new Date(order.created_at).toLocaleDateString('fr-FR')}`;purchaseSelect.append(option);}
+        selectedOrderId=purchases.some(o=>o.id===selectedOrderId)?selectedOrderId:purchases[0].id;
+        purchaseSelect.value=selectedOrderId;picker.hidden=purchases.length<2;
+        const order=purchases.find(o=>o.id===selectedOrderId);data={count:order.pack_count,gifts:order.gifts};
+      }
       form.hidden=false;recover.hidden=true;message.textContent=`${data.count} ${data.count===1?'expérience à offrir':'expériences à offrir'}. À toi de choisir à qui.`;slots.replaceChildren();
       for(const gift of data.gifts){
         const row=document.createElement('div');row.className='slot';
@@ -60,18 +72,19 @@
       }
       form.querySelector<HTMLButtonElement>('button')!.hidden=!data.gifts.some((g:any)=>g.state==='available');
     };
+    purchaseSelect.addEventListener('change',()=>{selectedOrderId=purchaseSelect.value;const order=purchases.find(o=>o.id===selectedOrderId);if(order){error.hidden=true;render({count:order.pack_count,gifts:order.gifts});}});
     form.noValidate=true;
     form.addEventListener('input',()=>{for(const input of form.querySelectorAll<HTMLInputElement>('input'))input.setCustomValidity('');});
     form.addEventListener('submit',async event=>{
       event.preventDefault();if(busy || !validateRecipientPairs(form))return;
       const recipients=recipientPairs(new FormData(form));
       if(!recipients.length){error.hidden=false;error.textContent='Renseigne le prénom et l’email d’au moins un proche pour offrir un cadeau.';return;}
-      busy=true;const button=form.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
-      try{render(await giftRequest({action:'assign',token,recipients}));message.textContent='Tes invitations sont enregistrées. Elles vont être envoyées à tes proches.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+      busy=true;const button=form.querySelector<HTMLButtonElement>('button')!;button.disabled=true;purchaseSelect.disabled=true;error.hidden=true;
+      try{const data=await giftRequest({action:'assign',token,orderId:selectedOrderId,recipients});const order=purchases.find(o=>o.id===selectedOrderId);if(order)order.gifts=data.gifts;render(data);message.textContent='Tes invitations sont enregistrées. Elles vont être envoyées à tes proches.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;purchaseSelect.disabled=false;}
     });
     recover.addEventListener('submit',async event=>{
       event.preventDefault();if(busy || !recover.reportValidity())return;busy=true;const button=recover.querySelector<HTMLButtonElement>('button')!;button.disabled=true;error.hidden=true;
-      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si un achat est associé à cette adresse, tu recevras ton lien personnel par email dans quelques minutes. Pense aussi à vérifier tes courriers indésirables.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
+      try{const data=Object.fromEntries(new FormData(recover));await giftRequest({action:'recover',...data});message.textContent='Si un achat est associé à cette adresse, un lien personnel sera envoyé par email. Vérifie aussi tes courriers indésirables. Si tu as déjà demandé un renvoi aujourd’hui, utilise le dernier email reçu : un seul renvoi est possible par période de 24 heures.';}catch(e){showError(e);}finally{busy=false;button.disabled=false;}
     });
     if(token){giftRequest({action:'owner',token}).then(render).catch(e=>{message.textContent='Retrouvons ton espace cadeaux.';recover.hidden=false;showError(e);});}
     else{message.textContent='Ouvre le lien personnel reçu par email pour choisir tes destinataires.';recover.hidden=false;}
@@ -79,6 +92,7 @@
 </body>
 </html>
 <style is:global>
+select{width:100%;font:16px Delta,Arial,sans-serif;color:#292923;background:#fff;border:1px solid #d6cebd;border-radius:9px;padding:15px}select:focus-visible{outline:3px solid #b34f39;outline-offset:4px}select:disabled{opacity:.6}
 @font-face{font-family:Delta;src:url('/fonts/inter-latin.woff2') format('woff2');font-weight:100 900;font-display:swap}*{box-sizing:border-box}body{margin:0;background:#faf8f4;color:#292923;font:15px/1.7 Delta,Arial,sans-serif}a{color:inherit}header,footer{max-width:1100px;padding:28px;margin:auto;display:flex;justify-content:space-between;align-items:center}header a{font-size:23px;font-weight:600;line-height:1;text-decoration:none}header span,.eyebrow{font-size:10px;letter-spacing:2px;color:#80796b}main{max-width:700px;padding:38px 24px;margin:auto}.intro{text-align:center;margin-bottom:40px}h1{font-size:clamp(36px,5vw,52px);line-height:1.13;letter-spacing:-1.7px;font-weight:450;margin:20px 0}em{font-family:Georgia,serif;color:#b34f39;font-weight:400}.intro>p:last-child{color:#77756d}.card{background:#fffdf8;border:1px solid #e4dfd7;border-radius:22px;overflow:hidden}.card>img{display:block;width:100%;height:190px;object-fit:cover;object-position:50% 46%}.card-body{padding:32px}h2{font-size:28px;font-weight:500;letter-spacing:-.7px;margin:0 0 12px}.slot{padding:19px 0;border-bottom:1px solid #e4dfd7}label{display:block;font-size:13px;font-weight:600;margin:14px 0 8px}input{width:100%;font:16px Delta,Arial,sans-serif;color:#292923;background:#faf8f4;border:1px solid #d6cebd;border-radius:9px;padding:15px}.recipient{margin:3px 0;overflow-wrap:anywhere}small{color:#6e7957}button{display:flex;justify-content:space-between;gap:14px;background:#b34f39;border:0;color:white;border-radius:10px;padding:17px 21px;width:100%;font:500 14px Delta,Arial,sans-serif;cursor:pointer;margin-top:22px}button:disabled{opacity:.55;cursor:wait}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #b34f39;outline-offset:4px}.hint,.footnote{font-size:12px;color:#817a6f}.hint{margin-top:22px}.footnote{text-align:center;margin-top:25px}[data-gift-message]{color:#706e60}[data-gift-error]{color:#9d3525;font-size:13px}footer{font-size:11px;color:#80796b}[hidden]{display:none!important}@media(max-width:540px){header span{display:none}main{padding:20px 18px}.card-body{padding:25px}.card>img{height:150px}footer{gap:24px}}
 </style>
 <style is:global>

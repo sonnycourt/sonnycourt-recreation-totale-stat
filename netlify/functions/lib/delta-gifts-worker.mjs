@@ -1,5 +1,5 @@
-import {giftReady,giftSpaceIds,giftDb,giftRpc,giftOrder,giftRecord,giftEmailContent,emailValue} from './delta-gifts.mjs';
-import {syncGiftRecipient} from './delta-gifts-mailerlite.mjs';
+import {giftReady,giftSpaceIds,giftDb,giftRpc,giftOrder,giftRecord,emailValue} from './delta-gifts.mjs';
+import {syncGiftRecipient,handoffGiftEmail,giftMailerLiteEnabled} from './delta-gifts-mailerlite.mjs';
 
 const circleBase='https://app.circle.so/api/admin/v2';
 export async function fulfillGift(gift,{env=process.env,fetcher=fetch}={}){
@@ -38,7 +38,7 @@ export async function fulfillGift(gift,{env=process.env,fetcher=fetch}={}){
 export async function runGiftJobs({env=process.env,fetcher=fetch}={}){
   if(!giftReady(env))return {enabled:false,processed:0};
   const db={env,fetcher};
-  const jobs=await giftRpc('dv_gift_claim_jobs',{p_kinds:['owner_email','gift_email','activate'],p_limit:3},db);
+  const jobs=await giftRpc('dv_gift_claim_jobs',{p_kinds:giftMailerLiteEnabled(env)?['owner_email','gift_email','activate']:['activate'],p_limit:3},db);
   let completed=0,failed=0;
   for(const job of jobs || []){
     const lease=`dv_gift_jobs?id=eq.${job.id}&lock_token=eq.${job.lock_token}&state=eq.processing`;
@@ -57,10 +57,11 @@ export async function runGiftJobs({env=process.env,fetcher=fetch}={}){
         // Access is already active: a classification retry never revokes or delays it.
         await syncGiftRecipient(gift,{env,fetcher});
       }else{
-        const content=giftEmailContent(job.kind,order,gift,{env});
-        // A network timeout after send is ambiguous: mark for review, never blindly resend.
-        const response=await fetcher('https://api.mailersend.com/v1/email',{method:'POST',headers:{Authorization:`Bearer ${env.MAILERSEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:{email:env.DELTA_GIFTS_EMAIL_FROM,name:'Sonny Court'},to:[{email:job.kind==='owner_email'?order.buyer_email:gift.recipient_email}],...content}),signal:AbortSignal.timeout(12000)});
-        if(!response.ok)throw new Error(`email_${response.status}`);
+        const result=await handoffGiftEmail(job,order,gift,{env,fetcher});
+        if(result.deferUntil){
+          await giftDb(lease,{...db,method:'PATCH',body:{state:'pending',run_at:result.deferUntil,attempts:Math.max(0,job.attempts-1),last_error:'gift_mailerlite_cooldown',lock_token:null}});
+          continue;
+        }
       }
       await giftDb(lease,{...db,method:'PATCH',body:{state:'done',completed_at:new Date().toISOString(),last_error:null,lock_token:null}});
       completed++;

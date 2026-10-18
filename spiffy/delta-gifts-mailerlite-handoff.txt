@@ -1,0 +1,45 @@
+État au 18 octobre 2026 — migration MailerLite uniquement
+
+Textes validés : email acheteur le 18/10 (« Tes cadeaux Delta Vision sont prêts »),
+email bénéficiaire déjà validé le 13/10. Les quatre workflows sont créés, leur
+contenu est enregistré en français, avec une réentrée après un jour.
+IDs non secrets : delta-gifts-mailerlite-config.json.
+
+Actifs dans MailerLite : achat confirmé et invitation bénéficiaire.
+Inactifs : renvoi acheteur et renvoi bénéficiaire. Le contrôle d'autorisation
+a refusé l'activation du renvoi acheteur, faute d'approbation explicite de cet
+usage. Une question a été envoyée à Sonny : autorise-t-il les deux mêmes emails
+en renvoi sur demande ? Ne pas activer les renvois avant sa réponse.
+
+Le code de migration n'est PAS encore publié. Aucun nouvel email réel n'a été
+envoyé pendant cette migration. Les groupes sont vides. Aucune variable Netlify
+de migration n'a encore été ajoutée ; le flag de bascule n'est pas activé.
+
+Avant publication :
+- obtenir l'accord spécifique pour les renvois, les activer via l'interface ;
+- vérifier via API officielle enabled/complete, groupe exact, réentrée et email ;
+- ajouter les huit variables du JSON au contexte production Netlify puis
+  DELTA_GIFTS_MAILERLITE_EMAILS_ENABLED=true ;
+- tester les trois scripts delta-gifts-*-smoke et npm run build ;
+- fusionner explicitement sur main propre, synchroniser origin/main ;
+- publier uniquement via npm run deploy:production.
+
+Après publication :
+- reprendre uniquement le job owner_email failed de la commande 2551306,
+  achat test autorisé de 3 € pour trois cadeaux. L'accord de régularisation et
+  d'envoi à l'adresse d'achat a déjà été donné ; ne pas créer de nouvel achat.
+- conserver les trois cadeaux existants ; ne pas rejouer le paiement ;
+- vérifier le transfert au groupe puis l'activité d'envoi MailerLite ; ne pas
+  confondre un job done avec une livraison effective en boîte de réception.
+
+Tests locaux réussis : delta-gifts-smoke.mjs, delta-gifts-recovery-smoke.mjs,
+delta-gifts-mailerlite-smoke.mjs et build Astro (331 pages).
+Le portail acheteur protège tous ses achats par un token email signé ; les
+anciens tokens par commande sont préservés. Récupération email seule, un renvoi
+par 24 h. Aucun appel MailerSend dans le nouveau worker.
+
+Attention : l'ancienne production utilise encore l'ancien worker tant que la
+migration n'est pas publiée. Le job test est déjà en échec, pas en attente.
+Un groupe vide « Delta Vision » a été créé involontairement par le champ de
+recherche MailerLite puis retiré immédiatement du déclencheur. Aucun workflow
+cadeau n'y est raccordé ; aucun contact n'y a été ajouté.

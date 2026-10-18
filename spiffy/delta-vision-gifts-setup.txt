@@ -72,7 +72,17 @@ DELTA_GIFTS_CHECKOUT_ID=41041 ; DELTA_GIFTS_AMOUNT_UNIT=minor
 DELTA_GIFTS_EMAIL_FROM=info@sonnycourt.com
 DELTA_GIFTS_CIRCLE_GROUP_ID=492233 ; DELTA_GIFTS_CIRCLE_SPACE_IDS=2905142
 DELTA_GIFTS_ACCESS_URL=https://volt.sonnycourt.com/c/delta-vision
-Réutilise Supabase service_role, MailerSend et Circle côté serveur.
+Réutilise Supabase service_role, MailerLite et Circle côté serveur.
+MailerSend est interdit : aucun repli vers cet ancien prestataire.
+Les emails utilisent quatre automatisations MailerLite distinctes : achat,
+invitation, récupération acheteur et récupération bénéficiaire. Elles doivent
+être actives, complètes et permettre la réentrée. Le worker vérifie le groupe
+et le workflow avant tout transfert ; un contact désinscrit n'est pas réabonné.
+MailerLite limite la réentrée à une fois par workflow et par période de 24 h.
+Les demandes répétées sont limitées et les nouveaux emails concernés différés.
+Un lien acheteur personnel donne accès à tous ses achats payés ; le numéro de
+commande n'est plus demandé. Les anciens liens par commande restent valables.
+L'état done d'un job email signifie transfert à MailerLite, pas livraison en boîte.
 
 CONTRÔLES EFFECTUÉS
 SQL installé ; RLS actif sur les 4 tables, aucun accès anon/authenticated.

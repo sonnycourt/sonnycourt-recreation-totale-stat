@@ -42,6 +42,14 @@ modification, dans chaque nouveau chat et dans chaque nouveau worktree.
 
 ## Communications externes et Supabase
 
+- Règle explicite de Sonny, confirmée le 18 octobre 2026 : les emails applicatifs
+  et marketing passent par **MailerLite uniquement**, via les groupes, champs
+  et automatisations validées. **Ne jamais utiliser MailerSend**, ni l'activer,
+  ni le proposer comme solution de repli. Un ancien code ou une clé MailerSend
+  ne constitue pas une autorisation de l'utiliser. Si une limite MailerLite
+  bloque un parcours, l'expliquer et demander une décision avant de changer
+  de prestataire. Ne pas réabonner un contact désinscrit sans son consentement.
+
 - Toute nouvelle communication client (email, SMS, notification) doit rester en
   brouillon ou désactivée jusqu'à sa relecture finale, message par message, par
   Sonny. Aucun envoi réel ne doit servir de test sans son accord explicite.
