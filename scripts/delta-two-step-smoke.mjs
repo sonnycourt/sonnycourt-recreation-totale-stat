@@ -18,21 +18,34 @@ for(const price of [97,147]){
 }
 const source=readFileSync(new URL('../spiffy/delta-vision-two-step-embed.html',import.meta.url),'utf8');
 const script=source.match(/<script>([\s\S]*?)<\/script>/)[1];
-function fixture({standard=false,total,stale=false,direct=false,badOrigin=false}={}){
- const sent=[],timers=[],classes=new Set();let guarantee=false;
+function fixture({standard=false,total,stale=false,direct=false,badOrigin=false,preload=false}={}){
+ const sent=[],timers=[],classes=new Set(),listeners={},dispatched=[];let guarantee=false;
  class Input{constructor(value){this._value=value;}get value(){return this._value;}set value(v){this._value=v;}dispatchEvent(){}closest(){return {setAttribute(){}};}}
  const base=standard?372355:371921,price=standard?147:97;
  const label={textContent:'Credit Card'},button={childNodes:[{nodeType:3,textContent:'Accéder à Delta Vision'}],parentNode:{appendChild(){guarantee=true;}}};
  const fields={['inputText-'+base]:new Input(stale?'Previous':'Alex'),['contactInfo-'+(base-1)+'-email']:new Input(stale?'old@example.com':'qa@example.com'),['inputTel-'+(base+1)]:new Input(''),['option-'+(base+3)+'-0']:{checked:false},['checkoutButton-'+(base+4)]:button,['paymentInfo-'+(base+2)]:{querySelector:()=>label,querySelectorAll:()=>[]}};
  const root={querySelector:()=>guarantee?{}:null,querySelectorAll:()=>[{textContent:'€'+(total??price)}],getBoundingClientRect:()=>({bottom:350})};
- const parent={postMessage:m=>sent.push(m)},window={parent,scrollY:0};if(direct)window.parent=window;
+ const parent={postMessage:m=>sent.push(m)},window={parent,scrollY:0,addEventListener:(n,fn)=>listeners[n]=fn};if(direct)window.parent=window;
  const context={URLSearchParams,HTMLInputElement:Input,Event:class{},location:{pathname:standard?'/checkout/delta-vision-standard':'/checkout/delta-vision-1',search:`?dv_embed=2&dv_parent_origin=${badOrigin?'https://evil.test':'https://sonnycourt.com'}&name_first=Alex&email=qa%40example.com`},window,document:{documentElement:{classList:{add:v=>classes.add(v),remove:v=>classes.delete(v)}},querySelector:()=>root,getElementById:id=>fields[id],createElement:()=>({setAttribute(){}})},setTimeout:fn=>timers.push(fn),MutationObserver:class{observe(){}}};
- runInNewContext(script,context);for(let i=0;timers.length&&i<170;i++)timers.shift()();
- return {sent,classes,fields,button};
+ context.document.addEventListener=(n,fn)=>listeners[n]=fn;context.document.dispatchEvent=e=>dispatched.push(e);context.CustomEvent=class{constructor(type,opts){this.type=type;this.detail=opts.detail;}};
+ if(preload){context.location.search='?dv_embed=2&dv_preload=1&dv_parent_origin=https://sonnycourt.com';fields['inputText-'+base].value='';fields['contactInfo-'+(base-1)+'-email'].value='';}
+ const flush=()=>{for(let i=0;timers.length&&i<170;i++)timers.shift()();};
+ runInNewContext(script,context);flush();
+ return {sent,classes,fields,button,listeners,dispatched,parent,flush};
 }
 for(const standard of [false,true])for(const stale of [false,true]){const f=fixture({standard,stale});assert(f.sent.some(x=>x.type==='dv:payment-ready'&&x.price===(standard?147:97)));assert(f.classes.has('dv-two-step-ready'));assert(f.button.childNodes[0].textContent.includes(String(standard?147:97)));}
 for(const options of [{total:197},{direct:true},{badOrigin:true}])assert(!fixture(options).sent.some(x=>x.type==='dv:payment-ready'));
-assert(!source.includes('fetch('));assert(!source.includes('.checked='));
+assert(!script.includes('fetch('));assert(!source.includes('.checked='));
+for(const standard of [false,true]){
+ const f=fixture({standard,preload:true}),price=standard?147:97,base=standard?372355:371921;
+ assert(f.sent.some(m=>m.type==='dv:payment-warm'&&m.price===price));assert(!f.sent.some(m=>m.type==='dv:payment-ready'));assert.equal(f.fields['contactInfo-'+(base-1)+'-email'].value,'');assert.equal(f.dispatched.length,0);
+ const event={origin:'https://sonnycourt.com',source:f.parent,data:{type:'dv:payment-identity',version:2,...identity}};
+ f.listeners.message({...event,origin:'https://evil.test'});f.listeners.message({...event,source:{}});f.listeners.message({...event,data:{...event.data,email:'invalid'}});assert.equal(f.fields['contactInfo-'+(base-1)+'-email'].value,'');
+ f.listeners.message(event);f.flush();assert.equal(f.fields['contactInfo-'+(base-1)+'-email'].value,identity.email);assert(f.sent.some(m=>m.type==='dv:payment-ready'));assert.equal(f.dispatched.length,1);
+ f.listeners.message({...event,data:{...event.data,email:'other@example.com'}});assert.equal(f.fields['contactInfo-'+(base-1)+'-email'].value,identity.email);
+}
+const anonymous=new URL(paymentUrl(null,{price:97,checkoutUrl:inspira.checkoutUrl},'https://sonnycourt.com/delta-vision/','12345678-1234-4123-8123-123456789012'));
+assert.equal(anonymous.searchParams.get('dv_preload'),'1');for(const key of ['name_first','email','dv_visit'])assert(!anonymous.searchParams.has(key));
 const component=readFileSync(new URL('../src/components/delta/TwoStepCheckout.astro',import.meta.url),'utf8');
 assert(component.includes('data-dvp-payment-slot'));assert(!component.includes('data-dvp-pay>'));assert(!component.includes('data-dv-price'));assert(!component.includes('data-dv-urgency'));
 console.log('PASS: 97/147 native amount checks, identity synchronisation, direct checkout isolation, trusted messages, return URL, no card access or submission.');

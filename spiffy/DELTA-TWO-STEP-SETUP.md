@@ -31,3 +31,11 @@ Le mode local `?popup=1&test-registration=1` simule seulement l’enregistrement
 Le test réel autorisé par Sonny a confirmé l’enregistrement dans MailerLite, la conservation des groupes préexistants et l’affichage de la carte Spiffy à 97 €. Aucun paiement ni nouvel email n’a été déclenché. Le paiement final et le retour après achat restent à valider par un test acheteur autorisé.
 
 Le 19 octobre, Sonny a validé le design final (prix vertical, « Économise 50 € », titre continu, surfaces Spiffy harmonisées au beige) et autorisé la publication. Les retouches visuelles sont locales au popup : aucun changement supplémentaire aux checkouts hébergés.
+
+## Préchargement anonyme
+
+Dès la première saisie, une iframe `dv_preload=1` charge Spiffy/Stripe sans prénom, email ni identifiant de visite. Le navigateur réutilise cette iframe après réussite de l’enregistrement MailerLite : les coordonnées sont alors transmises par `postMessage`, avec vérification stricte de l’origine et de la fenêtre source. Aucun événement d’arrivée checkout n’est envoyé avant activation réelle de l’étape carte.
+
+Le chargement classique reste le secours si la passerelle ne répond pas. Fermer le popup ou modifier les coordonnées détruit l’iframe ; une expiration de prix impose le checkout correspondant au nouveau tarif. Le mode direct et l’ancien mode intégré restent compatibles.
+
+Tests supplémentaires : `node scripts/delta-payment-preload-smoke.mjs`. Vérifier dans le navigateur les états DOM `data-payment-phase="warm"` avant validation, puis `ready`, avec une URL iframe inchangée et toujours dépourvue d’email. Ce contrôle mesure la réutilisation, pas une garantie de délai universel.
