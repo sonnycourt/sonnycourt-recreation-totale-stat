@@ -1,5 +1,6 @@
 ---
 import DraftXCheckout from './DraftXCheckout.astro';
+import PremiumPurchaseChoices from '../es2-premium/PurchaseChoices.astro';
 import MetamorphosisSteps from './MetamorphosisSteps.astro';
 import ProgramBenefits from './ProgramBenefits.astro';
 import reviewsData from '../../data/reviews.json';
@@ -7,9 +8,10 @@ import reviewConversionOrder from '../../data/review-conversion-order.json';
 
 interface Props {
   checkoutEmbedMode?: 'auto' | 'iframe';
+  premiumUpsellPreview?: boolean;
 }
 
-const { checkoutEmbedMode = 'auto' } = Astro.props;
+const { checkoutEmbedMode = 'auto', premiumUpsellPreview = false } = Astro.props;
 
 const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
 const optimizedReviewPhotos = new Map([
@@ -2049,11 +2051,11 @@ const previewReviewInitials = (name) => name
       <div class="program-benefits-intro" style="padding-top:clamp(80px, 10vw, 120px)">
         <ProgramBenefits />
       </div>
-      <div style="display:flex;justify-content:center;padding:0 0 64px">
+      {premiumUpsellPreview ? <div id="premium-premier-choix" style="max-width:976px;margin:auto;padding:0 28px 40px;scroll-margin-top:28px"><PremiumPurchaseChoices /></div> : <div style="display:flex;justify-content:center;padding:0 0 64px">
         <button class="core-price-cta" type="button" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
           Je commence ma transformation →
         </button>
-      </div>
+      </div>}
       <section class="core-value-section">
         <h2 class="core-value-title">Prêt à rejoindre le seul accompagnement dont tu as besoin <span class="core-value-title__accent">pour transformer ta vie ?</span></h2>
         <p class="core-value-intro">Voici ce que représente l’accompagnement principal que tu reçois pendant six mois <strong>(sans compter les 5 bonus)</strong>.</p>
@@ -2116,7 +2118,7 @@ const previewReviewInitials = (name) => name
             </div>
             <span class="core-total__price">4 785 €</span>
           </div>
-          <div class="core-total__today">
+          {!premiumUpsellPreview && <div class="core-total__today">
             <button type="button" class="core-daily-plan" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
               <span class="core-total__reduction">Réduction -51%</span>
               <span class="core-daily-plan__amount">6,47 €<span>par jour</span></span>
@@ -2127,7 +2129,7 @@ const previewReviewInitials = (name) => name
               <span class="core-daily-plan__amount">3,55 €<span>par jour</span></span>
               <span class="core-daily-plan__terms">En un versement unique de 1 297 €</span>
             </button>
-          </div>
+          </div>}
         <div class="draftx-daily-card draftx-daily-card--integrated">
         <figure class="draftx-daily-comparison">
           <figcaption><h3 class="draftx-daily-comparison__title">
@@ -2139,9 +2141,9 @@ const previewReviewInitials = (name) => name
           <img src="/media/draftx-cafe-seul.webp" alt="Une tasse de café en illustration 3D" width="192" height="192" loading="lazy" decoding="async" />
         </figure>
 
-        <button class="core-price-cta" id="core-price-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+        {premiumUpsellPreview ? <PremiumPurchaseChoices /> : <button class="core-price-cta" id="core-price-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
           Je commence ma transformation →
-        </button>
+        </button>}
 
         <div class="core-guarantee-reminder" aria-label="Rappel de la garantie manifestation">
           <img src="/media/deal-guarantee-remboursement.webp" alt="" width="560" height="560" />
@@ -2336,7 +2338,7 @@ const previewReviewInitials = (name) => name
 
         <div class="deal-summary__bridge">Mais tu ne paies pas 8 723 €</div>
 
-        <div class="deal-summary__today deal-summary__daily">
+        {!premiumUpsellPreview && <div class="deal-summary__today deal-summary__daily">
           <button type="button" class="core-daily-plan" data-core-plan-cta aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
             <span class="core-daily-plan__amount">6,47 €<span>par jour</span></span>
             <span class="core-daily-plan__terms">En 12 mensualités de 197 €</span>
@@ -2345,10 +2347,10 @@ const previewReviewInitials = (name) => name
             <span class="core-daily-plan__amount">3,55 €<span>par jour</span></span>
             <span class="core-daily-plan__terms">En un versement unique de 1 297 €</span>
           </button>
-        </div>
+        </div>}
 
         <div class="deal-summary__checkout" id="deal-registration" aria-label="Formulaire d’inscription Esprit Subconscient 2.0">
-          <div
+          {premiumUpsellPreview ? <PremiumPurchaseChoices /> : <div
             class="deal-spiffy-checkout"
             id="deal-spiffy-checkout"
             data-checkout-embed-mode="draft"
@@ -2361,7 +2363,7 @@ const previewReviewInitials = (name) => name
               <span class="payment-brand payment-brand--apple" role="img" aria-label="Apple Pay"><b></b>Pay</span>
             </div>
             </DraftXCheckout>
-          </div>
+          </div>}
 
           <div class="preview-reviews preview-reviews--checkout">
             <button type="button" class="video-reviews-all" id="preview-open-reviews" aria-haspopup="dialog">
@@ -2552,9 +2554,9 @@ const previewReviewInitials = (name) => name
           </ol>
         </section>
 
-        <button class="core-price-cta" id="two-paths-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+        {premiumUpsellPreview ? <PremiumPurchaseChoices /> : <button class="core-price-cta" id="two-paths-registration-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
           Je commence ma transformation →
-        </button>
+        </button>}
       </section>
 
       <MetamorphosisSteps />
@@ -2601,9 +2603,9 @@ const previewReviewInitials = (name) => name
       </dialog>
 
     </main>
-    <button class="deal-sticky-cta is-visible" id="deal-sticky-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
+    {!premiumUpsellPreview && <button class="deal-sticky-cta is-visible" id="deal-sticky-cta" type="button" aria-controls="draftx-checkout-dialog" aria-haspopup="dialog">
       Je commence ⚡
-    </button>
+    </button>}
     <script is:inline>
       (() => {
         const stickyCta = document.getElementById('deal-sticky-cta');

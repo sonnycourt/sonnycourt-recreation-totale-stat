@@ -20,10 +20,18 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
       // Capture before the shared offer handlers. Nothing can mount a live payment here.
       document.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;
-        if (!target?.closest('[data-core-plan-cta], [data-checkout-open], #deal-sticky-cta, #core-price-registration-cta, #two-paths-registration-cta')) return;
+        const choice = target?.closest('[data-premium-plan]');
+        if (!choice) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        document.getElementById('premium-preview-dialog')?.showModal();
+        const monthly = choice.dataset.premiumPlan === 'twelve';
+        document.getElementById('preview-dialog-title').textContent = monthly ? 'Ton accompagnement en 12 fois.' : 'Tu rejoins l’accompagnement en un clic.';
+        document.getElementById('preview-dialog-description').textContent = monthly ? 'Confirme ton paiement avec la carte utilisée pour Delta Vision.' : 'Dans le parcours final, ce clic déclenchera le paiement unique de 1 297 € avec la carte utilisée pour Delta Vision.';
+        document.getElementById('preview-once-amount').hidden = monthly;
+        document.getElementById('preview-monthly-confirmation').hidden = !monthly;
+        document.getElementById('preview-confirm-monthly').hidden = false;
+        document.getElementById('preview-monthly-result').hidden = true;
+        document.getElementById('premium-preview-dialog').showModal();
       }, true);
     </script>
   </head>
@@ -52,12 +60,10 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
         </div>
         <span class="video-brand" aria-hidden="true">ESPRIT SUBCONSCIENT <b>2.0</b></span>
       </div>
-      <a class="premium-discover" href="#accompagnement">Découvrir l’accompagnement <span aria-hidden="true">↓</span></a>
-      <a class="premium-skip" href="/delta-vision/merci/">Je préfère commencer par Delta Vision</a>
     </section>
     <div id="accompagnement" class="premium-offer">
       <div class="offer-divider"><span>TON PROCHAIN CHAPITRE</span></div>
-      <DealOffer checkoutEmbedMode="iframe" />
+      <DealOffer checkoutEmbedMode="iframe" premiumUpsellPreview={true} />
     </div>
     <footer class="premium-footer">
       <a href="/delta-vision/merci/">Accéder à Delta Vision</a>
@@ -65,19 +71,27 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
       <small>© Sonny Court</small>
     </footer>
     <dialog id="premium-preview-dialog" aria-labelledby="preview-dialog-title">
-      <span class="dialog-eyebrow">APERÇU DE L’OFFRE</span>
+      <span class="dialog-eyebrow">SIMULATION · AUCUN DÉBIT</span>
       <h2 id="preview-dialog-title">Prêt à aller plus loin ?</h2>
-      <p>Les tarifs de MC2 sont conservés pour cette première version.</p>
-      <div class="preview-plans"><div><strong>1 297 €</strong><span>en une fois</span></div><div><strong>12 × 197 €</strong><span>en douze mensualités</span></div></div>
+      <p id="preview-dialog-description"></p>
+      <div id="preview-once-amount" class="preview-once-amount"><strong>1 297 €</strong><span>en un seul paiement · aucun abonnement</span></div>
+      <div id="preview-monthly-confirmation" hidden>
+        <div class="preview-saved-card"><span aria-hidden="true">▣</span><div><strong>Carte utilisée pour Delta Vision</strong><small>Emplacement de la carte enregistrée — aperçu</small></div></div>
+        <div class="preview-schedule"><strong>197 € aujourd’hui</strong><span>Puis 11 mensualités de 197 €.<br />Montant total : 2 364 €.</span></div>
+        <button type="button" id="preview-confirm-monthly">Confirmer — 197 € aujourd’hui</button>
+        <p id="preview-monthly-result" role="status" hidden>Confirmation simulée. Aucun paiement n’a été effectué.</p>
+      </div>
       <p class="preview-safety">Le paiement de cette nouvelle page n’est pas encore branché. Aucun débit ni envoi d’email n’est possible ici.</p>
       <button type="button" id="preview-dialog-close">Continuer la découverte</button>
     </dialog>
     <script>
       const dialog = document.querySelector<HTMLDialogElement>('#premium-preview-dialog');
       document.getElementById('preview-dialog-close')?.addEventListener('click', () => dialog?.close());
+      document.getElementById('preview-confirm-monthly')?.addEventListener('click', event => {
+        (event.currentTarget as HTMLButtonElement).hidden = true;
+        document.getElementById('preview-monthly-result')!.hidden = false;
+      });
       dialog?.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
-      const hero = document.querySelector('.premium-hero');
-      if (hero) new IntersectionObserver(([entry]) => document.body.classList.toggle('past-premium-hero', !entry.isIntersecting)).observe(hero);
 
       // A short, silent celebration, with no dependency and no persistent animation.
       const canvas = document.querySelector<HTMLCanvasElement>('#premium-confetti');
@@ -150,15 +164,11 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
   .video-corner { top: 24px; left: 26px; }
   .video-brand { bottom: 22px; right: 26px; }
   .video-brand b { color: #b0c9f1; }
-  .premium-discover { display: inline-flex; align-items: center; gap: 28px; color: #fff; background: linear-gradient(135deg, #3877f1, #2554bb); padding: 18px 26px; border: 1px solid #79a0ff55; border-radius: 12px; font-size: 14px; font-weight: 600; text-decoration: none; margin: 29px auto 18px; box-shadow: 0 8px 30px #2563eb18; transition: filter .2s; }
-  .premium-discover:hover { filter: brightness(1.12); }
-  .premium-skip { display: block; width: fit-content; margin: auto; color: #8694ab; font-size: 11px; text-underline-offset: 4px; }
   .premium-offer { scroll-margin-top: 24px; }
   .offer-divider { display: flex; align-items: center; gap: 25px; max-width: 900px; padding: 0 28px; margin: auto; color: #7185a4; font-size: 9px; letter-spacing: .2em; }
   .offer-divider::before, .offer-divider::after { content: ''; height: 1px; background: #93b2ed25; flex: 1; }
   /* MC2 scarcity depends on its session; never fabricate it for this independent preview. */
   .premium-page .deal-scarcity, .premium-page [data-limited-bonus] .es2-bonus-availability { display: none !important; }
-  .premium-page:not(.past-premium-hero) #deal-sticky-cta { opacity: 0; visibility: hidden; pointer-events: none; }
   #premium-confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
   .premium-footer { max-width: 900px; margin: 70px auto 0; padding: 30px 24px 95px; border-top: 1px solid #ffffff15; text-align: center; }
   .premium-footer a { color: #a8b7ce; font-size: 12px; text-underline-offset: 4px; }
@@ -169,12 +179,19 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
   .dialog-eyebrow { color: #9dbcf0; font-size: 10px; letter-spacing: .15em; }
   #premium-preview-dialog h2 { font-size: 26px; letter-spacing: -.03em; margin: 18px 0; }
   #premium-preview-dialog p { font-size: 14px; color: #a4b4cf; line-height: 1.7; }
-  .preview-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
-  .preview-plans div { padding: 20px 8px; background: #182946; border: 1px solid #82aaff30; border-radius: 12px; }
-  .preview-plans strong { display: block; font-size: 23px; }
-  .preview-plans span { display: block; font-size: 11px; margin-top: 8px; color: #a8bcda; }
+  .preview-once-amount { margin: 24px 0; padding: 23px; border: 1px solid #82aaff30; border-radius: 12px; background: #182946; }
+  .preview-once-amount strong { display: block; font-size: 36px; }
+  .preview-once-amount span { display: block; font-size: 11px; color: #a8bcda; margin-top: 10px; }
+  .preview-saved-card { display: flex; text-align: left; gap: 14px; align-items: center; border: 1px solid #82aaff40; border-radius: 12px; background: #182946; padding: 18px; margin: 24px 0; }
+  .preview-saved-card > span { font-size: 28px; color: #99bdfa; }
+  .preview-saved-card strong { font-size: 12px; font-weight: 500; }
+  .preview-saved-card small { display: block; color: #9caecb; font-size: 10px; margin-top: 7px; }
+  .preview-schedule strong { display: block; font-size: 25px; }
+  .preview-schedule span { display: block; font-size: 12px; line-height: 1.7; margin: 10px 0 22px; color: #b1c0d8; }
+  #preview-confirm-monthly { padding: 17px; border-radius: 10px; border: 1px solid #7ba4ee55; background: #2e65d8; color: white; width: 100%; font: 600 13px 'Inter', sans-serif; cursor: pointer; }
+  #premium-preview-dialog [hidden] { display: none !important; }
   #premium-preview-dialog .preview-safety { font-size: 12px; }
-  #preview-dialog-close { margin-top: 10px; width: 100%; border: 0; border-radius: 10px; padding: 16px; background: #2e65d8; color: white; font: 600 13px 'Inter', sans-serif; cursor: pointer; }
+  #preview-dialog-close { margin-top: 10px; width: 100%; border: 1px solid #8ea9d633; border-radius: 10px; padding: 14px; background: transparent; color: #b6c6df; font: 500 12px 'Inter', sans-serif; cursor: pointer; }
   @media (max-width: 600px) {
     .premium-header { padding: 23px 20px 0; }
     .signature { font-size: 9px; letter-spacing: .27em; }
@@ -194,8 +211,7 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
     .video-corner { top: 12px; left: 14px; font-size: 6px; }
     .video-brand { bottom: 11px; right: 14px; font-size: 6px; }
     .video-placeholder-label { font-size: 8px; }
-    .premium-discover { font-size: 12px; padding: 16px 22px; margin-top: 24px; }
     #premium-preview-dialog { padding: 28px 20px; }
   }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .premium-discover { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>

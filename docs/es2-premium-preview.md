@@ -3,12 +3,21 @@
 Route : `/es2-offre-premium/`.
 
 Cette première version reprend `DealOfferDraftX.astro`, le composant réellement
-utilisé sur MC2 Session. Aucun composant partagé n’a été modifié. Prix conservés :
+utilisé sur MC2 Session, avec une variante facultative `premiumUpsellPreview`
+(désactivée par défaut ; MC2 garde son comportement existant). Prix conservés :
 1 297 € en une fois ou 12 × 197 €. Les cinq bonus sont présents.
 
 Ajouts : confirmation visuelle Delta Vision, confettis pendant cinq secondes
 (désactivés si réduction des animations), vidéo placeholder, introduction ES2,
 lien permettant de rejoindre Delta Vision sans accepter l’offre.
+
+Les quatre zones d’achat présentent désormais trois choix : paiement unique
+dominant à 3,55 €/jour (1 297 €), paiement échelonné à 6,47 €/jour (12 × 197 €, total
+2 364 €), refus vers Delta Vision. Le sticky et le bouton de défilement sont retirés.
+Le paiement unique simule l’intention de paiement direct ; le 12 fois ouvre une
+maquette de confirmation avec emplacement de carte enregistrée. La compatibilité
+réelle Spiffy One Click Upsell, la carte réutilisable et les éventuelles exigences
+d’authentification devront être vérifiées lors du raccordement, pas présumées.
 
 ## État volontairement limité à la maquette
 
