@@ -5,6 +5,7 @@ import WalletMarks from '../components/delta/WalletMarks.astro';
 import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
 import AnalyticsConsent from '../components/delta/AnalyticsConsent.astro';
 import SocialProof from '../components/delta/SocialProof.astro';
+import TwoStepCheckoutPreview from '../components/delta/TwoStepCheckoutPreview.astro';
 import { responsiveDeltaImage, posterSizes, programSizes } from '../lib/delta-vision-images.mjs';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
@@ -384,6 +385,7 @@ const intentions = [
     <footer class="site-footer wrap"><a class="wordmark" href="#" aria-label="Delta Vision, retour en haut"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a><span>UNE CRÉATION SONNY COURT</span><a href="/pages-legales/">Informations légales <span aria-hidden="true">↗</span></a></footer>
 
     <AnalyticsConsent />
+    {import.meta.env.DEV && <TwoStepCheckoutPreview />}
     <script>
       import { initDeltaPageviews } from '../lib/delta-pageviews.mjs';
       initDeltaPageviews();
@@ -391,7 +393,8 @@ const intentions = [
     <script>
       import { inspira } from '../data/inspira.mjs';
       import { initDeltaUrgency } from '../lib/delta-vision-urgency.mjs';
-      initDeltaUrgency(document, window, inspira);
+      import { initDeltaPreviewOffer } from '../lib/delta-popup-preview.mjs';
+      if (!initDeltaPreviewOffer(document, window, inspira)) initDeltaUrgency(document, window, inspira);
       import { initDeltaAnalytics } from '../lib/delta-vision-analytics.mjs';
       try { initDeltaAnalytics(); } catch { /* Analytics must not block playback or navigation. */ }
       import { initDeltaVideo } from '../lib/delta-vision-video.mjs';

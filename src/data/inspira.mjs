@@ -1,7 +1,7 @@
 // Paiement hébergé chez Spiffy pour conserver les wallets natifs.
 // VSL Delta Vision : le lecteur Bunny est chargé au clic sur le thumbnail.
 export const inspira = Object.freeze({
-  presentationVideoUrl: 'https://player.mediadelivery.net/play/779556/4125f91b-8324-4384-a580-f10f9d257681',
+  presentationVideoUrl: 'https://player.mediadelivery.net/play/779556/34065191-3614-4d7b-b005-27f8e83d43a0',
   presentationPosterUrl: '/media/pages/inspira-vsl-jungle-v2.webp',
   price: 97,
   standardPrice: 147,

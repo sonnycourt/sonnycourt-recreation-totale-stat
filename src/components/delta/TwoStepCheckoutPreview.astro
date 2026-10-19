@@ -1,0 +1,77 @@
+---
+import UrgencyPreview from './UrgencyPreview.astro';
+---
+<dialog class="dvp" data-dvp-dialog aria-labelledby="dvp-title-identity">
+  <button type="button" class="dvp-close" data-dvp-close aria-label="Fermer la fenêtre">×</button>
+  <div class="dvp-grid">
+    <div class="dvp-main">
+      <div class="dvp-brand"><span>SONNY COURT</span><p>Delta Vision</p></div>
+      <ol class="dvp-steps" aria-label="Les étapes de ton inscription">
+        <li data-dvp-step="identity" aria-current="step"><span>01</span> Tes informations</li>
+        <li data-dvp-step="payment"><span>02</span> Ton accès</li>
+      </ol>
+
+      <section data-dvp-panel="identity">
+        <h2 id="dvp-title-identity" tabindex="-1">Commençons<br/><em>par toi.</em></h2>
+        <p class="dvp-intro">Où souhaites-tu recevoir ton accès ?</p>
+        <form data-dvp-identity>
+          <label for="dvp-first-name">Ton prénom</label>
+          <input id="dvp-first-name" name="firstName" autocomplete="given-name" placeholder="Prénom" required maxlength="100" />
+          <label for="dvp-email">Ton adresse email</label>
+          <input id="dvp-email" name="email" type="email" autocomplete="email" placeholder="toi@exemple.com" required maxlength="254" />
+          <button class="dvp-button" type="submit">Continuer <span aria-hidden="true">→</span></button>
+          <p class="dvp-quiet"><svg aria-hidden="true"><use href="#dvp-lock"/></svg> Aucun paiement à cette étape.</p>
+        </form>
+      </section>
+
+      <section data-dvp-panel="payment" hidden inert>
+        <div class="dvp-recipient"><span data-dvp-email></span><button type="button" data-dvp-back>Modifier</button></div>
+        <h2 id="dvp-title-payment" tabindex="-1">Entre dans<br/><em>l’expérience.</em></h2>
+
+        <div class="dvp-offer">
+          <div class="dvp-offer-top"><span class="price-launch">Offre de lancement</span><span class="dvp-saving" data-dvp-discount>−50 €</span></div>
+          <div class="dvp-pricing"><span class="price-before"><span>Au lieu de</span> <s>147 €</s></span><strong><span data-dv-price>97</span><small>€</small></strong><span class="dvp-once">Paiement<br/>unique</span></div>
+          <div class="dvp-timer"><UrgencyPreview anchor="popup-urgence"/></div>
+        </div>
+
+        <div class="dvp-card-heading"><span><svg aria-hidden="true"><use href="#dvp-lock"/></svg> Carte bancaire</span><span class="dvp-card-marks"><b>VISA</b><i aria-label="Mastercard"><i></i><i></i></i></span></div>
+        <div class="dvp-card-preview" role="img" aria-label="Aperçu des champs carte bancaire, non actifs dans cette version locale">
+          <div><span>Numéro de carte</span><svg aria-hidden="true"><use href="#dvp-card"/></svg></div>
+          <div><span>MM / AA</span><span>CVC</span></div>
+        </div>
+        <label class="dvp-terms"><input type="checkbox" data-dvp-terms/><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener">conditions générales de vente</a>.</span></label>
+        <button class="dvp-button dvp-pay" type="button" data-dvp-pay>Accéder à Delta Vision — <span><span data-dv-price>97</span> €</span><span aria-hidden="true">→</span></button>
+        <p class="dvp-guarantee"><svg aria-hidden="true"><use href="#dvp-shield"/></svg> Satisfait ou remboursé pendant 14 jours</p>
+        <p class="dvp-message" data-dvp-message role="status" aria-live="polite"></p>
+      </section>
+      <p class="dvp-preview-note">APERÇU LOCAL · OFFRE SIMULÉE · AUCUN ENVOI NI DÉBIT</p>
+    </div>
+
+    <aside class="dvp-art" aria-label="L’expérience Delta Vision">
+      <p class="dvp-art-label">UNE RESPIRATION. UN AUTRE HORIZON.</p>
+      <img src="/media/pages/delta-vision-checkout-foliage-v1.webp" width="1000" height="560" alt="Sonny en méditation dans la jungle, entouré de feuillage" loading="lazy" />
+      <div class="dvp-art-copy"><p>Respire. Visualise.<br/><em>Manifeste.</em></p><span>La leçon pour comprendre.<br/>La séance guidée de 12 minutes pour vivre l’expérience.</span></div>
+      <div class="dvp-art-foot"><span></span> DELTA VISION <span></span></div>
+    </aside>
+  </div>
+  <svg class="dvp-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="dvp-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="dvp-shield" viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="dvp-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/></symbol>
+  </svg>
+</dialog>
+<script>
+  import { initDeltaPopupPreview } from '../../lib/delta-popup-preview.mjs';
+  initDeltaPopupPreview();
+</script>
+<style is:global>
+ .dvp{--dvp-paper:#faf7f0;--dvp-clay:#b34f39;--dvp-ink:#292923;border:1px solid #dfd6c6;border-radius:22px;padding:0;width:min(1040px,calc(100vw - 48px));max-height:calc(100dvh - 40px);background:var(--dvp-paper);color:var(--dvp-ink);box-shadow:0 35px 120px #101d1870;overflow:auto;font-family:'Delta Vision Inter',Arial,sans-serif}
+ .dvp::backdrop{background:#102019ad;backdrop-filter:blur(9px)}body:has(.dvp[open]){overflow:hidden}.dvp [hidden]{display:none!important}.dvp-symbols{position:absolute;width:0;height:0;overflow:hidden}.dvp-grid{display:grid;grid-template-columns:1fr 1fr;min-height:650px}.dvp-main{padding:34px 43px 22px;position:relative}.dvp-close{position:absolute;z-index:5;right:15px;top:15px;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #d4cbbb;border-radius:50%;background:#faf7f0e6;color:#665e50;font:25px/1 Arial,sans-serif;cursor:pointer}.dvp-brand>span{display:block;font-size:8px;letter-spacing:3.1px;color:#8c806b;margin-bottom:5px}.dvp-brand>p{font:34px/1 Georgia,serif;letter-spacing:-1.3px}.dvp-steps{display:flex;list-style:none;gap:27px;padding:0;margin:27px 0 30px;font-size:10px;color:#aaa08e}.dvp-steps li{display:flex;align-items:center;gap:7px}.dvp-steps li>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #ddd3c4;border-radius:50%;font-size:9px}.dvp-steps [aria-current=step]{color:var(--dvp-clay)}.dvp-steps [aria-current=step]>span{background:var(--dvp-clay);border-color:var(--dvp-clay);color:#fff}.dvp-steps .is-done{color:#716e5d}.dvp-steps .is-done>span{background:#eee9df;border-color:#d4cbbb}
+ .dvp h2{font-size:38px;font-weight:500;line-height:1.08;letter-spacing:-1.4px;margin:0 0 13px;outline:none}.dvp h2 em{color:var(--dvp-clay);font-family:Georgia,serif;font-weight:400;font-size:1.12em}.dvp-intro{font-size:12px;line-height:1.6;color:#827868;margin:15px 0 24px}.dvp form>label{display:block;font-size:12px;font-weight:500;margin:19px 0 9px}.dvp form>input{width:100%;height:54px;border:1px solid #dcd2c3;background:#fff;border-radius:9px;padding:14px 15px;font:15px/1.4 inherit;color:var(--dvp-ink);font-size:15px;font-family:inherit;outline-offset:3px}.dvp input::placeholder{color:#aaa497}.dvp input:focus-visible{outline:2px solid var(--dvp-clay);border-color:transparent}.dvp-button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:54px;margin:25px 0 0;padding:16px 19px;border:0;border-radius:10px;background:var(--dvp-clay);color:#fffaf3;font:600 14px/1.4 'Delta Vision Inter',Arial,sans-serif;cursor:pointer;transition:background .18s,box-shadow .18s}.dvp-button:hover{background:#98412e;box-shadow:0 7px 18px #b34f3920}.dvp-button>span:last-child{font-size:23px;line-height:1;font-weight:400}.dvp-quiet,.dvp-guarantee{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 0;font-size:10px;color:#827663;line-height:1.5}.dvp-quiet svg,.dvp-guarantee svg,.dvp-card-heading svg,.dvp-card-preview svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}.dvp-guarantee svg{width:17px;height:17px}.dvp-preview-note{font-size:7px;letter-spacing:1.15px;color:#a59b88;text-align:center;margin:25px 0 0}.dvp-recipient{display:flex;align-items:center;gap:12px;justify-content:space-between;border-bottom:1px solid #e4dacd;padding-bottom:10px;margin:-12px 0 22px;font-size:10px;color:#8c826e}.dvp-recipient>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dvp-recipient button{background:none;border:0;padding:3px 0;color:#967457;font-size:10px;text-decoration:underline;cursor:pointer}
+ .dvp-offer{border:1px solid #e2d5c1;border-radius:12px;padding:14px 17px;margin:21px 0 20px;background:linear-gradient(120deg,#f3ece1,#f8f3e9)}.dvp-offer-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.dvp-offer .price-launch{font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#876047}.dvp-saving{background:#eadfce;color:#816044;font-size:10px;font-weight:500;border-radius:30px;padding:5px 9px}.dvp-pricing{display:flex;align-items:center;justify-content:center;gap:21px;margin:12px 0 0}.dvp .price-before{display:grid;gap:3px;color:#9e9281;font-size:9px!important;line-height:1.3;margin:0!important}.dvp .price-before s{font-size:23px;font-weight:400;text-decoration-thickness:1px;text-decoration-color:#b57056}.dvp-pricing>strong{font-size:53px;font-weight:500;line-height:1;letter-spacing:-2.5px}.dvp-pricing>strong>small{font-size:29px;font-weight:400;letter-spacing:-1px;margin-left:4px}.dvp-once{font-size:9px;line-height:1.6;color:#9a8b73}.dvp-timer .urgency-preview{margin:16px 0 0}.dvp-timer .urgency-clock{gap:8px}.dvp-timer .urgency-unit{gap:4px}.dvp-timer .urgency-unit strong{width:43px;height:31px;background:#eee4d6;font-size:19px;letter-spacing:0;border-radius:5px;border-color:#e1d2bd}.dvp-timer .urgency-unit small{font-size:6px;letter-spacing:.9px}.dvp-timer .urgency-colon{font-size:16px;padding-top:4px}
+ .dvp .dvp-timer .urgency-unit strong{width:43px;height:31px;font-size:19px;border-radius:5px}.dvp .dvp-timer .urgency-unit small{font-size:6px;letter-spacing:.9px}.dvp .dvp-timer .urgency-unit{gap:4px}.dvp .dvp-timer .urgency-colon{font-size:16px;padding-top:4px}
+ .dvp-card-heading{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:500;margin:0 0 10px}.dvp-card-heading>span:first-child{display:flex;align-items:center;gap:7px}.dvp-card-heading svg{width:13px;height:13px;color:#9a8a71}.dvp-card-marks{display:flex;align-items:center;gap:9px}.dvp-card-marks>b{font:bold italic 12px/1 Arial,sans-serif;color:#45413a}.dvp-card-marks>i{display:flex;padding-right:6px}.dvp-card-marks>i>i{width:14px;height:14px;border-radius:50%;background:#84725c}.dvp-card-marks>i>i+i{background:#c6ad86;margin-left:-6px;mix-blend-mode:multiply}.dvp-card-preview{background:white;border:1px solid #dcd2c3;border-radius:9px;color:#aaa395;font-size:12px;overflow:hidden}.dvp-card-preview>div:first-child{display:flex;align-items:center;justify-content:space-between;padding:15px;border-bottom:1px solid #e7e0d5}.dvp-card-preview>div:last-child{display:grid;grid-template-columns:1fr 1fr}.dvp-card-preview>div:last-child>span{padding:14px 15px}.dvp-card-preview>div:last-child>span+span{border-left:1px solid #e7e0d5}.dvp-card-preview svg{width:20px;height:20px;color:#b0a58f}.dvp-terms{display:flex;align-items:flex-start;gap:8px;margin-top:15px;font-size:9px;line-height:1.6;color:#38372f}.dvp-terms input{width:15px;height:15px;flex:0 0 15px;margin:0;accent-color:var(--dvp-clay);cursor:pointer}.dvp-terms a{color:#9d513b;text-decoration:underline;text-underline-offset:2px}.dvp-pay{margin-top:15px;font-size:12px;justify-content:center;gap:5px}.dvp-pay>span:last-child{margin-left:auto;font-size:20px}.dvp-message{font-size:11px;color:#896a4e;line-height:1.6;margin:10px 0 0}.dvp-message:empty{display:none}.dvp[data-step=payment] .dvp-steps{margin-bottom:25px}.dvp[data-step=payment] .dvp-preview-note{margin-top:17px}.dvp[data-step=payment] h2{font-size:33px}
+ .dvp-art{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative;isolation:isolate;min-width:0;background:radial-gradient(ellipse at 50% 45%,#f4edce 0,#e8e7d5 48%,#ede9dc 80%);border-left:1px solid #dfd9c8;padding:55px 0 35px}.dvp-art:before{content:'';position:absolute;z-index:-1;inset:0;background:url('/media/pages/delta-jungle-canopy-v1.webp') right -100px top -100px/330px auto no-repeat;opacity:.12;filter:blur(2px)}.dvp-art-label{font-size:8px;letter-spacing:2.1px;color:#8a866a;text-align:center;padding:0 35px}.dvp-art>img{width:115%;max-width:none;height:auto;display:block;margin:42px -7.5% 24px;filter:drop-shadow(0 18px 16px #344b2422)}.dvp-art-copy{text-align:center;padding:0 35px}.dvp-art-copy>p{font-size:27px;line-height:1.25;letter-spacing:-.9px;font-weight:400;color:#424832}.dvp-art-copy>p>em{font:italic 43px/1.4 Georgia,serif;letter-spacing:-1.5px;color:#886f4d}.dvp-art-copy>span{display:block;margin-top:14px;font-size:10px;line-height:1.9;color:#89816b}.dvp-art-foot{display:flex;align-items:center;gap:11px;font-size:7px;letter-spacing:2.5px;color:#a19980;margin-top:40px}.dvp-art-foot>span{width:28px;height:1px;background:#cbc4ad}
+ @media(min-width:761px){.dvp[open]{animation:dvp-enter .24s ease-out}.dvp-main section{animation:dvp-panel .2s ease-out}}@keyframes dvp-enter{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}@keyframes dvp-panel{from{opacity:.3;transform:translateY(5px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.dvp[open],.dvp-main section{animation:none!important}.dvp-button{transition:none}}
+ @media(max-width:760px){.dvp{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:17px}.dvp-grid{grid-template-columns:1fr;min-height:0}.dvp-art{display:none}.dvp-main{padding:27px 25px 20px}.dvp-brand>p{font-size:31px}.dvp-brand>span{font-size:7px}.dvp-steps{margin:24px 0 25px;gap:24px}.dvp h2{font-size:35px}.dvp[data-step=payment] h2{font-size:30px}.dvp-intro{margin-bottom:22px}.dvp-close{width:32px;height:32px;right:12px;top:12px}.dvp-preview-note{margin-top:22px}.dvp-offer{margin-top:17px;padding:12px 15px}.dvp-pricing{gap:17px}.dvp-pricing>strong{font-size:48px}.dvp-guarantee{font-size:9px}.dvp[data-step=payment] .dvp-steps{margin:20px 0 23px}.dvp[data-step=payment] .dvp-main{padding-bottom:16px}}
+</style>
