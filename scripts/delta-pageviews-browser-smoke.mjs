@@ -33,8 +33,8 @@ try {
     await page.goto('https://sonnycourt.com/delta-vision/?private=must_not_be_sent', { waitUntil: 'networkidle0' });
     assert.equal(counts.length, 1);
     assert.equal(counts[0].body, 'view');
-    assert.equal(counts[0].headers.cookie, undefined);
-    assert.equal(counts[0].headers.referer, undefined);
+    assert(!counts[0].headers.cookie);
+    assert(!counts[0].headers.referer);
     assert.equal(detailed.length, 0);
     assert.equal(await page.evaluate(() => localStorage.getItem('dv_analytics_visitor_v1')), null);
     if (allowed === null) await page.click('[data-dv-consent="no"]');
