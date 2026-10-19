@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const page = readFileSync(new URL('../src/pages/es2-offre-premium.astro', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../dist/es2-offre-premium/index.html', import.meta.url), 'utf8');
+assert.match(page, /import DealOffer from '\.\.\/components\/mc2\/DealOfferDraftX\.astro'/);
+assert.match(html, /Ton inscription à Delta Vision est validée\./);
+assert.match(html, /Emplacement réservé à ta vidéo/);
+assert.match(html, /noindex,nofollow,noarchive/);
+assert.match(html, /frame-src 'none'; form-action 'none'/);
+assert.match(page, /event\.stopImmediatePropagation\(\)/);
+assert.match(page, /prefers-reduced-motion: reduce/);
+assert.match(page, /elapsed > 5/);
+assert.match(page, /href="\/delta-vision\/merci\/"/);
+assert.match(html, /1 297/);
+assert.match(html, /12 mensualités de 197/);
+assert.match(html, /Consultation privée avec Sonny Court/);
+assert.equal((html.match(/class="es2-bonus-card /g) || []).length, 5);
+assert.doesNotMatch(page, /__mc2DraftX\s*=/);
+assert.doesNotMatch(page, /fetch\(|sendBeacon\(|localStorage\./);
+console.log('ES2 premium preview: shared offer, 5 bonuses, prices, noindex, safe CTA, reduced motion and Delta return verified.');
