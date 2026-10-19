@@ -1,4 +1,4 @@
-import { supabaseGet } from './lib/supabase-rest.mjs';
+import { resolveEs2FeedbackRegistration, isEs2FeedbackBuyer } from './lib/es2-feedback-access.mjs';
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), {
@@ -8,38 +8,9 @@ function jsonResponse(status, payload) {
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
     },
   });
-}
-
-function toBool(v) {
-  return v === true || v === 'true' || v === 1 || v === '1';
-}
-
-function isEs2Buyer(row) {
-  return toBool(row?.es_purchased) || toBool(row?.purchased);
-}
-
-async function fetchRegistrationByFilter(filter) {
-  const withEsPurchased = await supabaseGet(
-    `webinaire_registrations?${filter}&select=token,email,prenom,es_purchased,purchased&limit=1`,
-  );
-  if (withEsPurchased.ok && Array.isArray(withEsPurchased.data)) {
-    return withEsPurchased;
-  }
-
-  // Compatibility fallback if es_purchased column is absent.
-  const fallback = await supabaseGet(
-    `webinaire_registrations?${filter}&select=token,email,prenom,purchased&limit=1`,
-  );
-  if (fallback.ok && Array.isArray(fallback.data)) {
-    const row = fallback.data[0];
-    return {
-      ...fallback,
-      data: row ? [{ ...row, es_purchased: row.purchased }] : [],
-    };
-  }
-  return withEsPurchased.ok ? fallback : withEsPurchased;
 }
 
 export default async (req) => {
@@ -57,17 +28,8 @@ export default async (req) => {
       return jsonResponse(400, { error: 'Token ou email requis' });
     }
 
-    let filter = '';
-    if (token) {
-      filter = `token=eq.${encodeURIComponent(token)}`;
-    } else {
-      if (!email || !email.includes('@')) {
-        return jsonResponse(400, { error: 'Email invalide' });
-      }
-      filter = `email=eq.${encodeURIComponent(email)}`;
-    }
-
-    const reg = await fetchRegistrationByFilter(filter);
+    if (!token && (!email || !email.includes('@'))) return jsonResponse(400, { error: 'Email invalide' });
+    const reg = await resolveEs2FeedbackRegistration({ token, email });
     if (!reg.ok) {
       console.error('get-es2-feedback-access query failed:', reg.status, reg.error);
       return jsonResponse(500, {
@@ -79,7 +41,7 @@ export default async (req) => {
     const row = Array.isArray(reg.data) ? reg.data[0] : null;
     if (!row) return jsonResponse(404, { found: false, error: 'not_found' });
 
-    if (!isEs2Buyer(row)) {
+    if (!isEs2FeedbackBuyer(row)) {
       return jsonResponse(403, {
         found: true,
         allowed: false,
