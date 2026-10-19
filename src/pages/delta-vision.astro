@@ -5,7 +5,7 @@ import WalletMarks from '../components/delta/WalletMarks.astro';
 import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
 import AnalyticsConsent from '../components/delta/AnalyticsConsent.astro';
 import SocialProof from '../components/delta/SocialProof.astro';
-import TwoStepCheckoutPreview from '../components/delta/TwoStepCheckoutPreview.astro';
+import TwoStepCheckout from '../components/delta/TwoStepCheckout.astro';
 import { responsiveDeltaImage, posterSizes, programSizes } from '../lib/delta-vision-images.mjs';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
@@ -385,7 +385,7 @@ const intentions = [
     <footer class="site-footer wrap"><a class="wordmark" href="#" aria-label="Delta Vision, retour en haut"><svg aria-hidden="true"><use href="#delta-vision-mark" /></svg><span class="wordmark-name">Delta <span>Vision</span></span></a><span>UNE CRÉATION SONNY COURT</span><a href="/pages-legales/">Informations légales <span aria-hidden="true">↗</span></a></footer>
 
     <AnalyticsConsent />
-    {import.meta.env.DEV && <TwoStepCheckoutPreview />}
+    <TwoStepCheckout />
     <script>
       import { initDeltaPageviews } from '../lib/delta-pageviews.mjs';
       initDeltaPageviews();
@@ -393,8 +393,23 @@ const intentions = [
     <script>
       import { inspira } from '../data/inspira.mjs';
       import { initDeltaUrgency } from '../lib/delta-vision-urgency.mjs';
+      import { initTwoStepCheckout } from '../lib/delta-two-step-checkout.mjs';
       import { initDeltaPreviewOffer } from '../lib/delta-popup-preview.mjs';
-      if (!initDeltaPreviewOffer(document, window, inspira)) initDeltaUrgency(document, window, inspira);
+      const localQa = import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('test-registration') === '1';
+      const urgency = (localQa && initDeltaPreviewOffer(document, window, inspira)) || initDeltaUrgency(document, window, inspira);
+      let checkoutWindow = window;
+      // Local QA only: inspect real payment fields without creating a test subscriber.
+      if (localQa) {
+        checkoutWindow = new Proxy(window, {get(target, key) {
+          if (key === 'fetch') return async (url, options) => {
+            if (url === '/.netlify/functions/delta-vision-register' && JSON.parse(options.body).email.endsWith('@example.com')) return new Response('{"ok":true}');
+            return window.fetch(url, options);
+          };
+          const value = Reflect.get(target, key, target); return typeof value === 'function' ? value.bind(target) : value;
+        }});
+        document.querySelector('.dvp-preview-note').textContent = 'TEST LOCAL · INSCRIPTION SIMULÉE · NE PAS EFFECTUER DE PAIEMENT';
+      }
+      initTwoStepCheckout(document, checkoutWindow, urgency);
       import { initDeltaAnalytics } from '../lib/delta-vision-analytics.mjs';
       try { initDeltaAnalytics(); } catch { /* Analytics must not block playback or navigation. */ }
       import { initDeltaVideo } from '../lib/delta-vision-video.mjs';

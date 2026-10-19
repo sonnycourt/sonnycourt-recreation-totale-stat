@@ -1,0 +1,64 @@
+<!-- Delta Vision two-step bridge v2. Additive; only active inside the authorised popup. -->
+<script>
+(function(){
+  var q=new URLSearchParams(location.search), origin=q.get('dv_parent_origin');
+  var prices={'/checkout/delta-vision-1':97,'/checkout/delta-vision-standard':147};
+  var price=prices[location.pathname.replace(/\/$/,'')];
+  if(window.parent===window || q.get('dv_embed')!=='2' || !price)return;
+  if(!/^https:\/\/(www\.)?sonnycourt\.com$/.test(origin||'') && !/^https:\/\/[a-z0-9-]+--sonnycourt-recreation-totale\.netlify\.app$/.test(origin||'') && !/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin||''))return;
+  var ids=price===97?{first:'inputText-371921',email:'contactInfo-371920-email',phone:'inputTel-371922',payment:'paymentInfo-371923',terms:'option-371924-0',button:'checkoutButton-371925'}:{first:'inputText-372355',email:'contactInfo-372354-email',phone:'inputTel-372356',payment:'paymentInfo-372357',terms:'option-372358-0',button:'checkoutButton-372359'};
+  var expectedName=q.get('name_first')||'',expectedEmail=(q.get('email')||'').toLowerCase(),count=0,announced=false,lastHeight=0,scheduled=false;
+  if(!expectedName.trim()||!/^\S+@\S+\.\S+$/.test(expectedEmail))return;
+  document.documentElement.classList.add('dv-two-step');
+  function send(type,data){window.parent.postMessage(Object.assign({type:type,version:2},data||{}),origin);}
+  function check(){
+    scheduled=false;
+    var root=document.querySelector('.checkout'),first=document.getElementById(ids.first),email=document.getElementById(ids.email),button=document.getElementById(ids.button),terms=document.getElementById(ids.terms),payment=document.getElementById(ids.payment);
+    if(!root||!first||!email||!button||!terms||!payment){if(++count<160)setTimeout(check,150);return;}
+    var changed=false;
+    [[first,expectedName],[email,expectedEmail]].forEach(function(pair){
+      if(pair[0].value.trim()!==pair[1]){Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(pair[0],pair[1]);pair[0].dispatchEvent(new Event('input',{bubbles:true}));pair[0].dispatchEvent(new Event('change',{bubbles:true}));changed=true;}
+    });
+    if(changed){setTimeout(check,150);return;}
+    // Verify the real provider total (including its configured discount), never set a price.
+    var totals=Array.from(root.querySelectorAll('.order-summary__due-today .notranslate')).map(function(el){return el.textContent.replace(/\s/g,'');});
+    var valid=totals.length>0 && totals.every(function(text){return new RegExp('^(?:€'+price+'(?:[.,]00)?|'+price+'(?:[.,]00)?€)$').test(text);});
+    if(!valid){document.documentElement.classList.remove('dv-two-step-ready');if(announced)send('dv:payment-error',{code:'price_mismatch'});if(++count<160)setTimeout(check,150);return;}
+    [first,email,document.getElementById(ids.phone)].filter(Boolean).forEach(function(field){var block=field.closest('.section.block');if(block)block.setAttribute('data-dv-prefilled','true');});
+    var label=payment.querySelector('.payment-type__label');if(label&&label.textContent!=='Carte bancaire')label.textContent='Carte bancaire';
+    payment.querySelectorAll('.payment-type').forEach(function(type){if(/paypal/i.test(type.textContent))type.setAttribute('data-dv-alternative','');});
+    var labelText='Accéder à Delta Vision — '+price+' €';
+    Array.from(button.childNodes).forEach(function(node){if(node.nodeType===3&&/Accéder à Delta Vision/.test(node.textContent)&&node.textContent.trim()!==labelText)node.textContent=' '+labelText+' ';});
+    if(!root.querySelector('[data-dv-guarantee]')){var guarantee=document.createElement('p');guarantee.setAttribute('data-dv-guarantee','');guarantee.textContent='Satisfait ou remboursé pendant 14 jours';button.parentNode.appendChild(guarantee);}
+    document.documentElement.classList.add('dv-two-step-ready');
+    if(!announced){announced=true;send('dv:payment-ready',{identityReady:true,price:price});if(window.ResizeObserver)new ResizeObserver(measure).observe(root);}
+    measure();
+  }
+  function measure(){var form=document.querySelector('.checkout-form');if(!form)return;var height=Math.ceil(form.getBoundingClientRect().bottom+window.scrollY+12);if(height!==lastHeight){lastHeight=height;send('dv:payment-height',{height:height});}}
+  function schedule(){if(!scheduled){scheduled=true;setTimeout(check,80);}}
+  new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  if(window.checkout&&typeof window.checkout.ready==='function')window.checkout.ready(check);else check();
+})();
+</script>
+<style>
+html.dv-two-step,html.dv-two-step body{margin:0!important;padding:0!important;min-height:0!important;background:#faf7f0!important}
+.dv-two-step .checkout{visibility:hidden;min-height:0!important;margin:0!important;padding:0!important;background:#faf7f0!important}
+.dv-two-step.dv-two-step-ready .checkout{visibility:visible}
+.dv-two-step .checkout .checkout__inner,.dv-two-step .checkout .checkout__container,.dv-two-step .checkout .checkout__body,.dv-two-step .checkout .container{padding:0!important;margin:0!important;width:100%!important;max-width:none!important}
+.dv-two-step .checkout .checkout-form{width:100%!important;max-width:none!important;flex:0 0 100%!important;padding:0!important}
+.dv-two-step .checkout .content-container,.dv-two-step .checkout .order-summary-mobile,.dv-two-step .checkout [data-dv-prefilled],.dv-two-step footer,.dv-two-step .payment-type__and-more{display:none!important}
+.dv-two-step .checkout .section.block{margin:0 0 12px!important}
+.dv-two-step .checkout .section.block>.card,.dv-two-step .checkout .section__inner{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important}
+.dv-two-step .checkout .payment-gateway{background:white!important;border:1px solid #dcd2c3!important;border-radius:9px!important;box-shadow:none!important}
+.dv-two-step .checkout .payment-type{background:white!important;padding:12px!important;color:#292923!important}
+.dv-two-step .checkout .payment-type__label{font-size:13px!important;font-weight:500!important}
+.dv-two-step .checkout [data-dv-alternative]{display:none!important}
+.dv-two-step .checkout .payment-gateway__secure{display:none!important}
+.dv-two-step .checkout .StripeElement{background:white!important;border:1px solid #dcd2c3!important;border-radius:6px!important;min-height:44px!important}
+.dv-two-step .checkout .terms,.dv-two-step .checkout .custom-control-label,.dv-two-step .checkout .custom-control-label p{font-size:11px!important;line-height:20px!important;color:#292923!important}
+.dv-two-step .checkout .custom-control-label::before,.dv-two-step .checkout .custom-control-label::after{top:1px!important}
+.dv-two-step .checkout .terms a{color:#9d513b!important}
+.dv-two-step .checkout .btn--checkout{min-height:54px!important;margin:0!important;padding:16px 12px!important;border-radius:10px!important;background:#b34f39!important;font-size:13px!important;font-weight:600!important;color:white!important;position:static!important}
+.dv-two-step .checkout .payment-type__icon{filter:grayscale(1);opacity:.7}
+.dv-two-step .checkout [data-dv-guarantee]{text-align:center;font-size:10px;line-height:1.6;color:#827663;margin:12px 0 0}
+</style>

@@ -1,5 +1,4 @@
 ---
-import UrgencyPreview from './UrgencyPreview.astro';
 ---
 <dialog class="dvp" data-dvp-dialog aria-labelledby="dvp-title-identity">
   <button type="button" class="dvp-close" data-dvp-close aria-label="Fermer la fenêtre">×</button>
@@ -19,8 +18,10 @@ import UrgencyPreview from './UrgencyPreview.astro';
           <input id="dvp-first-name" name="firstName" autocomplete="given-name" placeholder="Prénom" required maxlength="100" />
           <label for="dvp-email">Ton adresse email</label>
           <input id="dvp-email" name="email" type="email" autocomplete="email" placeholder="toi@exemple.com" required maxlength="254" />
+          <div hidden aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off" /></div>
           <button class="dvp-button" type="submit">Continuer <span aria-hidden="true">→</span></button>
           <p class="dvp-quiet"><svg aria-hidden="true"><use href="#dvp-lock"/></svg> Aucun paiement à cette étape.</p>
+          <p class="dvp-message" data-dvp-identity-error role="alert" hidden></p>
         </form>
       </section>
 
@@ -29,22 +30,14 @@ import UrgencyPreview from './UrgencyPreview.astro';
         <h2 id="dvp-title-payment" tabindex="-1">Entre dans<br/><em>l’expérience.</em></h2>
 
         <div class="dvp-offer">
-          <div class="dvp-offer-top"><span class="price-launch">Offre de lancement</span><span class="dvp-saving" data-dvp-discount>−50 €</span></div>
-          <div class="dvp-pricing"><span class="price-before"><span>Au lieu de</span> <s>147 €</s></span><strong><span data-dv-price>97</span><small>€</small></strong><span class="dvp-once">Paiement<br/>unique</span></div>
-          <div class="dvp-timer"><UrgencyPreview anchor="popup-urgence"/></div>
+          <div class="dvp-offer-top"><span data-dvp-launch>Offre de lancement</span><span class="dvp-saving" data-dvp-discount>−50 €</span></div>
+          <div class="dvp-pricing"><span class="dvp-before" data-dvp-before><span>Au lieu de</span> <s>147 €</s></span><strong><span data-dvp-price>97</span><small>€</small></strong><span class="dvp-once">Paiement<br/>unique</span></div>
+          <div class="dvp-timer" data-dvp-clock role="timer" aria-label="Temps restant pour l’offre de lancement"><div class="urgency-clock"><span class="urgency-unit"><strong data-hours>00</strong><small>HEURES</small></span><span class="urgency-colon">:</span><span class="urgency-unit"><strong data-minutes>00</strong><small>MINUTES</small></span><span class="urgency-colon">:</span><span class="urgency-unit"><strong data-seconds>00</strong><small>SECONDES</small></span></div></div>
         </div>
 
-        <div class="dvp-card-heading"><span><svg aria-hidden="true"><use href="#dvp-lock"/></svg> Carte bancaire</span><span class="dvp-card-marks"><b>VISA</b><i aria-label="Mastercard"><i></i><i></i></i></span></div>
-        <div class="dvp-card-preview" role="img" aria-label="Aperçu des champs carte bancaire, non actifs dans cette version locale">
-          <div><span>Numéro de carte</span><svg aria-hidden="true"><use href="#dvp-card"/></svg></div>
-          <div><span>MM / AA</span><span>CVC</span></div>
-        </div>
-        <label class="dvp-terms"><input type="checkbox" data-dvp-terms/><span>J’accepte les <a href="/cgv/" target="_blank" rel="noopener">conditions générales de vente</a>.</span></label>
-        <button class="dvp-button dvp-pay" type="button" data-dvp-pay>Accéder à Delta Vision — <span><span data-dv-price>97</span> €</span><span aria-hidden="true">→</span></button>
-        <p class="dvp-guarantee"><svg aria-hidden="true"><use href="#dvp-shield"/></svg> Satisfait ou remboursé pendant 14 jours</p>
-        <p class="dvp-message" data-dvp-message role="status" aria-live="polite"></p>
+        <div data-dvp-payment-slot></div>
       </section>
-      <p class="dvp-preview-note">APERÇU LOCAL · OFFRE SIMULÉE · AUCUN ENVOI NI DÉBIT</p>
+      <p class="dvp-preview-note">PAIEMENT SÉCURISÉ PAR SPIFFY · AUCUNE CARTE STOCKÉE SUR CE SITE</p>
     </div>
 
     <aside class="dvp-art" aria-label="L’expérience Delta Vision">
@@ -60,11 +53,8 @@ import UrgencyPreview from './UrgencyPreview.astro';
     <symbol id="dvp-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/></symbol>
   </svg>
 </dialog>
-<script>
-  import { initDeltaPopupPreview } from '../../lib/delta-popup-preview.mjs';
-  initDeltaPopupPreview();
-</script>
 <style is:global>
+ .dvp [data-dvp-launch]{font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#876047}.dvp .dvp-before{display:grid;gap:3px;color:#9e9281;font-size:9px;line-height:1.3}.dvp .dvp-before s{font-size:23px;text-decoration-thickness:1px;text-decoration-color:#b57056}.dvp-timer{margin-top:16px}.dvp-timer .urgency-clock{display:flex;justify-content:center;gap:8px;color:#80634c}.dvp-timer .urgency-unit{display:grid;justify-items:center;gap:4px}.dvp-timer .urgency-unit strong{display:grid;place-items:center;border:1px solid #e1d2bd}.dvp button:disabled{opacity:.6;cursor:wait}.dvp-message button,.dvp-message a{color:#9d513b;text-decoration:underline}
  .dvp{--dvp-paper:#faf7f0;--dvp-clay:#b34f39;--dvp-ink:#292923;border:1px solid #dfd6c6;border-radius:22px;padding:0;width:min(1040px,calc(100vw - 48px));max-height:calc(100dvh - 40px);background:var(--dvp-paper);color:var(--dvp-ink);box-shadow:0 35px 120px #101d1870;overflow:auto;font-family:'Delta Vision Inter',Arial,sans-serif}
  .dvp::backdrop{background:#102019ad;backdrop-filter:blur(9px)}body:has(.dvp[open]){overflow:hidden}.dvp [hidden]{display:none!important}.dvp-symbols{position:absolute;width:0;height:0;overflow:hidden}.dvp-grid{display:grid;grid-template-columns:1fr 1fr;min-height:650px}.dvp-main{padding:34px 43px 22px;position:relative}.dvp-close{position:absolute;z-index:5;right:15px;top:15px;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #d4cbbb;border-radius:50%;background:#faf7f0e6;color:#665e50;font:25px/1 Arial,sans-serif;cursor:pointer}.dvp-brand>span{display:block;font-size:8px;letter-spacing:3.1px;color:#8c806b;margin-bottom:5px}.dvp-brand>p{font:34px/1 Georgia,serif;letter-spacing:-1.3px}.dvp-steps{display:flex;list-style:none;gap:27px;padding:0;margin:27px 0 30px;font-size:10px;color:#aaa08e}.dvp-steps li{display:flex;align-items:center;gap:7px}.dvp-steps li>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #ddd3c4;border-radius:50%;font-size:9px}.dvp-steps [aria-current=step]{color:var(--dvp-clay)}.dvp-steps [aria-current=step]>span{background:var(--dvp-clay);border-color:var(--dvp-clay);color:#fff}.dvp-steps .is-done{color:#716e5d}.dvp-steps .is-done>span{background:#eee9df;border-color:#d4cbbb}
  .dvp h2{font-size:38px;font-weight:500;line-height:1.08;letter-spacing:-1.4px;margin:0 0 13px;outline:none}.dvp h2 em{color:var(--dvp-clay);font-family:Georgia,serif;font-weight:400;font-size:1.12em}.dvp-intro{font-size:12px;line-height:1.6;color:#827868;margin:15px 0 24px}.dvp form>label{display:block;font-size:12px;font-weight:500;margin:19px 0 9px}.dvp form>input{width:100%;height:54px;border:1px solid #dcd2c3;background:#fff;border-radius:9px;padding:14px 15px;font:15px/1.4 inherit;color:var(--dvp-ink);font-size:15px;font-family:inherit;outline-offset:3px}.dvp input::placeholder{color:#aaa497}.dvp input:focus-visible{outline:2px solid var(--dvp-clay);border-color:transparent}.dvp-button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:54px;margin:25px 0 0;padding:16px 19px;border:0;border-radius:10px;background:var(--dvp-clay);color:#fffaf3;font:600 14px/1.4 'Delta Vision Inter',Arial,sans-serif;cursor:pointer;transition:background .18s,box-shadow .18s}.dvp-button:hover{background:#98412e;box-shadow:0 7px 18px #b34f3920}.dvp-button>span:last-child{font-size:23px;line-height:1;font-weight:400}.dvp-quiet,.dvp-guarantee{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 0;font-size:10px;color:#827663;line-height:1.5}.dvp-quiet svg,.dvp-guarantee svg,.dvp-card-heading svg,.dvp-card-preview svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}.dvp-guarantee svg{width:17px;height:17px}.dvp-preview-note{font-size:7px;letter-spacing:1.15px;color:#a59b88;text-align:center;margin:25px 0 0}.dvp-recipient{display:flex;align-items:center;gap:12px;justify-content:space-between;border-bottom:1px solid #e4dacd;padding-bottom:10px;margin:-12px 0 22px;font-size:10px;color:#8c826e}.dvp-recipient>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dvp-recipient button{background:none;border:0;padding:3px 0;color:#967457;font-size:10px;text-decoration:underline;cursor:pointer}
