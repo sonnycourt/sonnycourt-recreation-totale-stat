@@ -7,7 +7,8 @@ import path from 'node:path';
 const browser = await puppeteer.launch({ headless: true });
 try {
   for (const allowed of [false, null]) {
-    const page = await browser.newPage(), counts = [], detailed = [];
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage(), counts = [], detailed = [];
     await page.setRequestInterception(true);
     page.on('request', async req => {
       const url = new URL(req.url());
@@ -43,7 +44,7 @@ try {
     await page.reload({ waitUntil: 'networkidle0' });
     assert.equal(counts.length, 2, 'a real reload is a second pageview');
     assert.equal(detailed.length, 0);
-    await page.close();
+    await context.close();
   }
   console.log('PASS compiled browser: refusal/unanswered counted, no cookies/referrer/visitor ID, no detailed events, reload semantics');
 } finally { await browser.close(); }
