@@ -28,4 +28,6 @@ Le montant est figé à l’ouverture de l’étape carte pour ne pas interrompr
 
 Le mode local `?popup=1&test-registration=1` simule seulement l’enregistrement des adresses `@example.com`, pour les tests visuels. Il est limité au développement et aux hôtes loopback ; il est éliminé du build de production. Ne pas y effectuer de paiement.
 
-Le popup du site n’est pas publié en production à ce stade. La prévisualisation utilise les fonctions réelles et le groupe recréé. Un test de contact réel attend une adresse autorisée par Sonny ; le paiement final et le retour après achat restent à valider par un test acheteur autorisé.
+Le test réel autorisé par Sonny a confirmé l’enregistrement dans MailerLite, la conservation des groupes préexistants et l’affichage de la carte Spiffy à 97 €. Aucun paiement ni nouvel email n’a été déclenché. Le paiement final et le retour après achat restent à valider par un test acheteur autorisé.
+
+Le 19 octobre, Sonny a validé le design final (prix vertical, « Économise 50 € », titre continu, surfaces Spiffy harmonisées au beige) et autorisé la publication. Les retouches visuelles sont locales au popup : aucun changement supplémentaire aux checkouts hébergés.
