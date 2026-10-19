@@ -6,7 +6,7 @@ function bar(selector,label,count,total){const row=n('div','');row.className='ba
 function render(r){
  const v=r.visits,all=v.length,starts=v.filter(x=>x.video_started).length,offer=v.filter(x=>x.offer_seen).length,clicks=v.filter(x=>x.clicked).length,loaded=v.filter(x=>x.checkout_loaded).length;
  const ids=new Set(v.map(x=>x.visit_id)),sales=r.commerce.sales||[],matched=sales.filter(s=>ids.has(s.visit_id)),buyers=new Set(matched.map(s=>s.visit_id)).size;
- $('#coverage').textContent=`${all} visites mesurées, ${new Set(v.map(x=>x.visitor_id)).size} navigateurs distincts. Le trafic sans consentement ou bloqué n’est pas mesuré : couverture totale inconnue. Actualisé à ${new Date(r.generated_at).toLocaleTimeString('fr-CH')}. Dates selon le fuseau de cet ordinateur.`;
+ $('#coverage').textContent=`Suivi détaillé consenti : ${all} visites, ${new Set(v.map(x=>x.visitor_id)).size} navigateurs distincts. Les arrivées sans cookies figurent dans le compteur séparé ci-dessous ; les deux totaux ne s’additionnent pas. Actualisé à ${new Date(r.generated_at).toLocaleTimeString('fr-CH')}. Dates selon le fuseau de cet ordinateur.`;
  $('#kpis').replaceChildren();
  for(const [value,label]of [[f(all),'Visites mesurées'],[f(median(v.map(x=>x.active)))+' s','Temps actif médian'],[pct(clicks,all),'Visites → clic achat'],[r.commerce.available?f(matched.reduce((sum,s)=>sum+s.net_minor,0)/100)+' €':'—','Encaissé initial net rattaché']]){const card=n('div','');card.className='kpi';card.append(n('strong',value),n('span',label));$('#kpis').append(card);}
  $('#funnel').replaceChildren();for(const [title,count]of [['Vidéo démarrée',starts],['Offre vue',offer],['Clic achat',clicks],['Checkout chargé',loaded],['Visites acheteuses',r.commerce.available?buyers:null]]){const el=n('div','');el.className='stage';el.append(n('span',title),n('strong',count===null?'—':f(count)),n('small',count===null?'Ventes non vérifiées':`${pct(count,all)} des ${all} visites`));$('#funnel').append(el);}
@@ -24,12 +24,21 @@ function render(r){
  table('#performance',['Mesure','Médiane','P75','Échantillons'],perf);
 }
 let busy=false;
+async function loadPageviews(q){
+ $('#anonymous-count').textContent='Lecture du compteur sans cookies…';$('#anonymous-hours').replaceChildren();
+ try{
+  const res=await fetch('/.netlify/functions/admin-delta-vision-pageviews?'+new URLSearchParams({from:q.get('from'),to:q.get('to')}),{cache:'no-store',signal:AbortSignal.timeout(20000)}),r=await res.json();
+  if(!res.ok)throw Error(r.error||'Compteur indisponible');
+  $('#anonymous-count').textContent=`${f(r.pageviews)} chargements comptés sur cette période (consentement accepté, refusé ou non renseigné).`;
+  table('#anonymous-hours',['Heure (fuseau de cet ordinateur)','Chargements'],r.hours.map(x=>[new Date(x.hour).toLocaleString('fr-CH'),x.count]));
+ }catch(e){$('#anonymous-count').textContent=e.message;}
+}
 async function load(sales=false){if(busy)return;busy=true;$('#notice').textContent='Lecture des mesures…';document.querySelectorAll('#filters button').forEach(b=>b.disabled=true);
  try{const from=new Date($('#from').value+'T00:00:00'),to=new Date($('#to').value+'T00:00:00');to.setDate(to.getDate()+1);
   const q=new URLSearchParams({from:from.toISOString(),to:to.toISOString(),device:$('#device').value,price:$('#price').value,source:$('#source').value,sales:sales?'1':'0'});
   const res=await fetch('/.netlify/functions/admin-delta-vision-analytics?'+q,{cache:'no-store',signal:AbortSignal.timeout(45000)}),data=await res.json();
   if(res.status===401){$('#login').hidden=false;$('#workspace').hidden=true;$('#notice').textContent='Connexion privée requise.';return;}
-  if(!res.ok)throw Error(data.error||'Rapport indisponible');$('#login').hidden=true;$('#workspace').hidden=false;render(data);$('#notice').textContent='';
+  if(!res.ok)throw Error(data.error||'Rapport indisponible');$('#login').hidden=true;$('#workspace').hidden=false;render(data);$('#notice').textContent='';await loadPageviews(q);
  }catch(e){$('#notice').textContent=e.message;}finally{busy=false;document.querySelectorAll('#filters button').forEach(b=>b.disabled=false);}}
 const localDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const today=new Date(),week=new Date();week.setDate(week.getDate()-6);$('#from').value=localDate(week);$('#to').value=localDate(today);
