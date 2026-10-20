@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { makePremiumBilling, isPremiumPayment } from '../netlify/functions/lib/es2-premium-billing.mjs';
+const order = { id: 123, checkout: {id: 41175}, customer: {email:'test@example.com'}, payment_status:'succeeded', payments:[{order_id:123,status:'succeeded',currency:'eur',amount_paid:19700,amount_refunded:0}] };
+assert(isPremiumPayment(order, '123', 'test@example.com'));
+assert(!isPremiumPayment(order, '124', 'test@example.com'));
+assert(!isPremiumPayment(order, '123', 'other@example.com'));
+assert(!isPremiumPayment({...order, checkout:{id:40006}}, '123','test@example.com'));
+assert(!isPremiumPayment({...order, payments:[{...order.payments[0],amount_refunded:19700}]},'123','test@example.com'));
+assert(!isPremiumPayment({...order, checkout:{id:41049}}, '123','test@example.com')); // Delta alone is not ES2.
+assert(isPremiumPayment({...order, checkout:{id:41049},payments:[{...order.payments[0],amount_paid:129700}]}, '123','test@example.com'));
+const writes=[];
+const service=makePremiumBilling({read:async()=>({data:order}),save:async(...args)=>writes.push(args),uuid:()=> 'test-id',now:()=> '2026-10-20T00:00:00Z'});
+const base={order:'123',email:'test@example.com'};
+assert.deepEqual((await service({...base,action:'status'})).data,{paid:true});
+assert.equal(writes.length,0);
+assert.equal((await service({...base,action:'complete'})).status,400);
+assert.equal((await service({...base,action:'complete',first_name:'Test',last_name:'Buyer',phone:'000',street:'Street',zip:'123',city:'City',country:'FR'})).data.ok,true);
+assert.equal(writes.length,1);
+assert.equal(writes[0][0],'123/test-id');
+assert.equal(writes[0][1].source,'customer_submitted');
+assert.equal((await service({...base,email:'other@example.com',action:'complete'})).data.paid,false);
+assert.equal(writes.length,1);
+console.log('Premium billing: paid-order checks, no personal-data disclosure, no CRM overwrite and isolated submission verified.');

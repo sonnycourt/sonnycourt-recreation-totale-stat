@@ -1,7 +1,7 @@
 ---
 import DealOffer from '../components/mc2/DealOfferDraftX.astro';
 import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
-// Monthly checkout is independent. The one-time preview is unchanged.
+// Native one-click offer; independent monthly checkout.
 ---
 <!doctype html>
 <html lang="fr">
@@ -21,28 +21,18 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       // Capture before the shared offer handlers; only the monthly CTA opens checkout.
       document.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;
-        const choice = target?.closest('[data-premium-plan]');
+        const choice = target?.closest('[data-premium-plan], .premium-choices__decline');
         if (!choice) return;
-        if (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity)) {
+        if (choice.matches('[data-premium-plan]') && (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity))) {
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
         }
         const monthly = choice.dataset.premiumPlan === 'twelve';
-        if (monthly && window.__premiumMonthlyReady) return;
+        if (window.__premiumMonthlyReady) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        if (monthly) {
-          window.dispatchEvent(new CustomEvent('premium-monthly-open', { detail: choice }));
-          return;
-        }
-        document.getElementById('preview-dialog-title').textContent = monthly ? 'Ton accompagnement en 12 fois.' : 'Tu rejoins l’accompagnement en un clic.';
-        document.getElementById('preview-dialog-description').textContent = monthly ? 'Confirme ton paiement avec la carte utilisée pour Delta Vision.' : 'Dans le parcours final, ce clic déclenchera le paiement unique de 1 297 € avec la carte utilisée pour Delta Vision.';
-        document.getElementById('preview-once-amount').hidden = monthly;
-        document.getElementById('preview-monthly-confirmation').hidden = !monthly;
-        document.getElementById('preview-confirm-monthly').hidden = false;
-        document.getElementById('preview-monthly-result').hidden = true;
-        document.getElementById('premium-preview-dialog').showModal();
+        window.dispatchEvent(new CustomEvent('premium-monthly-open', { detail: choice }));
       }, true);
     </script>
   </head>
@@ -54,7 +44,6 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <button type="button" id="premium-dev-expiry">Tester la fin · 00:05</button>
     </aside>
     <canvas id="premium-confetti" aria-hidden="true"></canvas>
-    <div class="preview-note">Paiement en 12 fois connecté · Paiement unique encore en prévisualisation</div>
     <section id="bienvenue" class="premium-hero" aria-labelledby="premium-title">
       <div class="purchase-confirmation">
         <span class="confirmation-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m6 12 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
@@ -140,39 +129,35 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
           if (opening) return;
           opening = true;
           cancelled = false;
-          status.textContent = 'Ouverture du paiement sécurisé…';
+          const monthly = event.detail.dataset.premiumPlan === 'twelve';
+          const decline = event.detail.matches('.premium-choices__decline');
+          document.getElementById('premium-monthly-title').textContent = decline ? 'Tu vas retrouver Delta Vision.' : monthly ? 'Ton accompagnement en 12 fois.' : 'Ton accompagnement en un clic.';
+          dialog.querySelector('h2 + p').hidden = !monthly;
+          dialog.querySelector('a').hidden = !monthly;
+          status.textContent = 'Connexion sécurisée…';
           dialog.showModal();
           try {
             await load();
             if (cancelled || !dialog.open) return;
-            if (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity)) return;
+            if (!decline && (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity))) return;
             dialog.close();
             // Let Spiffy handle its own native link and create the modal instance.
             window.__premiumMonthlyReady = true;
             event.detail.click();
           } catch {
-            status.textContent = 'Le paiement met plus de temps à charger. Utilise le lien ci-dessous pour continuer.';
+            status.textContent = monthly ? 'Le paiement met plus de temps à charger. Utilise le lien ci-dessous pour continuer.' : 'La connexion à Spiffy est indisponible. Ferme cette fenêtre et réessaie, sans repayer.';
           } finally { opening = false; }
         });
+        // Initialize the native offer context before the visitor chooses. Never accept an offer here.
+        load().then(() => { window.__premiumMonthlyReady = true; }).catch(() => { ready = undefined; });
       })();
     </script>
-    <dialog id="premium-preview-dialog" aria-labelledby="preview-dialog-title">
-      <span class="dialog-eyebrow">SIMULATION · AUCUN DÉBIT</span>
-      <h2 id="preview-dialog-title">Prêt à aller plus loin ?</h2>
-      <p id="preview-dialog-description"></p>
-      <div id="preview-once-amount" class="preview-once-amount"><strong>1 297 €</strong><span>en un seul paiement · aucun abonnement</span></div>
-      <div id="preview-monthly-confirmation" hidden>
-        <div class="preview-saved-card"><span aria-hidden="true">▣</span><div><strong>Carte utilisée pour Delta Vision</strong><small>Emplacement de la carte enregistrée — aperçu</small></div></div>
-        <div class="preview-schedule"><strong>197 € aujourd’hui</strong><span>Puis 11 mensualités de 197 €.<br />Montant total : 2 364 €.</span></div>
-        <button type="button" id="preview-confirm-monthly">Oui, je rejoins pour 197 €/mois</button>
-        <p id="preview-monthly-result" role="status" hidden>Confirmation simulée. Aucun paiement n’a été effectué.</p>
-      </div>
-      <p class="preview-safety">Le paiement de cette nouvelle page n’est pas encore branché. Aucun débit ni envoi d’email n’est possible ici.</p>
-      <button type="button" id="preview-dialog-close">Continuer la découverte</button>
-    </dialog>
     <script>
       import { createPremiumExpiry } from '../lib/es2-premium-expiry.mjs';
-      const expiry = createPremiumExpiry({ document, navigate: (destination: string) => location.replace(destination) });
+      const expiry = createPremiumExpiry({ document, navigate: (destination: string) => {
+        const decline = document.querySelector<HTMLAnchorElement>('.premium-choices__decline');
+        if (decline) decline.click(); else location.replace('/delta-vision/merci/');
+      } });
       const countdownKey = 'es2-premium-countdown-v1';
       const countdownDuration = 15 * 60 * 1000;
       let countdownDeadline = Date.now() + countdownDuration;
@@ -261,14 +246,6 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
           renderCountdown();
         }
       });
-      const dialog = document.querySelector<HTMLDialogElement>('#premium-preview-dialog');
-      document.getElementById('preview-dialog-close')?.addEventListener('click', () => dialog?.close());
-      document.getElementById('preview-confirm-monthly')?.addEventListener('click', event => {
-        (event.currentTarget as HTMLButtonElement).hidden = true;
-        document.getElementById('preview-monthly-result')!.hidden = false;
-      });
-      dialog?.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
-
       // A short, silent celebration, with no dependency and no persistent animation.
       const canvas = document.querySelector<HTMLCanvasElement>('#premium-confetti');
       const motion = matchMedia('(prefers-reduced-motion: reduce)');

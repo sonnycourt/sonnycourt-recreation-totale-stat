@@ -23,9 +23,16 @@ to be reusable in this independent checkout.
 
 ## Release boundary
 
-The site remains a preview. One-time and decline handlers are intentionally
-unchanged. The one-time button in this source still opens the old simulation;
-do not mistake a configured Spiffy native offer for a live site integration.
+The native one-time accept and decline links are now connected through SpiffyJS.
+Both purchased branches must forward to `/es2-premium-confirmation/`, with order
+and contact details enabled. The decline branch remains `/delta-vision/merci/`.
+The independent confirmation verifies the order with Spiffy before accepting
+address submissions, and then forwards to `/masterclass/success/` (Romain).
+Addresses are immutable private submissions in Netlify Blobs `es2-premium-billing`,
+not updates to MC2 registrations or existing CRM notes. This is payment verification,
+not an account authentication mechanism: it discloses no stored customer information
+and grants no access. Integrating those submissions into an administrative view is
+separate work; do not describe them as automatically synchronized into the CRM.
 No real purchase, card entry, CGV acceptance or email was used for testing.
 
 Build and `node scripts/es2-premium-preview-smoke.mjs` pass. Browser checks cover
