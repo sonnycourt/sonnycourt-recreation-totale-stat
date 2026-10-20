@@ -3,6 +3,19 @@
 (function () {
   if (!/^\/(embed|play)\/779556\/54a00277-48c6-4ffa-9884-8092a3b90546\/?$/.test(location.pathname)) return;
   document.documentElement.classList.add('es2-upsell-player');
+  // Use Bunny's own poster lifecycle: no overlay above the playing video.
+  var posterUrl = 'https://sonnycourt.com/media/es2-upsell-thumbnail-v1.webp';
+  function configurePoster() {
+    var poster = document.querySelector('bunny-poster-image');
+    if (!poster) return false;
+    poster.setAttribute('src', posterUrl);
+    poster.removeAttribute('blurhash');
+    return true;
+  }
+  var posterObserver = new MutationObserver(function () {
+    if (configurePoster()) posterObserver.disconnect();
+  });
+  if (!configurePoster()) posterObserver.observe(document.documentElement, { childList: true, subtree: true });
   var style = document.createElement('style');
   style.textContent = `
     .es2-upsell-player media-controller { --media-secondary-color: #d52b29; }
