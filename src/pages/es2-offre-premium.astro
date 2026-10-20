@@ -80,11 +80,17 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <h2 id="premium-monthly-title">Ton accompagnement en 12 fois.</h2>
       <p>197 € aujourd’hui, puis 11 mensualités de 197 €.<br />Total : 2 364 €.</p>
       <p id="premium-monthly-status" role="status">Ouverture du paiement sécurisé…</p>
-      <a href="https://sonnycourt.spiffy.co/checkout/offre-delta-es2" target="_blank" rel="noopener noreferrer">Ouvrir le paiement dans un nouvel onglet</a>
+      <a href="https://sonnycourt.spiffy.co/checkout/offre-delta-es2?locale=fr" target="_blank" rel="noopener noreferrer">Ouvrir le paiement dans un nouvel onglet</a>
     </dialog>
     <script is:inline>
       (() => {
-        const url = 'https://sonnycourt.spiffy.co/checkout/offre-delta-es2';
+        window.addEventListener('message', event => {
+          if (event.origin !== 'https://sonnycourt.spiffy.co' || event.data?.type !== 'es2:spiffy-height') return;
+          const frame = [...document.querySelectorAll('spiffy-checkout-modal iframe')].find(frame => frame.contentWindow === event.source);
+          const height = Number(event.data.height);
+          if (!frame || !Number.isFinite(height) || height < 100 || height > 10000) return;
+          frame.closest('spiffy-checkout-modal').style.setProperty('--monthly-checkout-height', `${Math.min(1800, Math.max(400, Math.ceil(height)))}px`);
+        });
         let ready;
         let opening = false;
         let cancelled = false;
@@ -290,11 +296,12 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
 <style is:global>
   /* Keep Spiffy's payment iframe intact; only style its outer modal shell. */
   spiffy-checkout-modal .spiffy-modal #modal { background: #030713d9 !important; backdrop-filter: blur(8px); }
-  spiffy-checkout-modal .spiffy-modal #modal-content { width: min(720px, calc(100% - 32px)) !important; height: min(820px, calc(100dvh - 64px)) !important; margin: 32px auto !important; border-radius: 20px; background: #f7f9fc; box-shadow: 0 30px 100px #0008; }
+  spiffy-checkout-modal .spiffy-modal #modal-content { width: min(760px, calc(100% - 32px)) !important; height: min(var(--monthly-checkout-height, 820px), calc(100dvh - 32px)) !important; margin: 0 auto !important; top: 50% !important; transform: translateY(-50%); border: 1px solid #d6e4f5; border-radius: 24px; background: #f7f9fc; box-shadow: 0 30px 100px #0008; }
   spiffy-checkout-modal .spiffy-iframe,
   spiffy-checkout-modal .form-container--modal,
   spiffy-checkout-modal iframe#checkout { width: 100% !important; height: 100% !important; }
-  spiffy-checkout-modal .spiffy-modal .modal__close { position: fixed !important; top: 8px !important; right: max(8px, calc((100vw - 760px) / 2)) !important; left: auto !important; width: 32px !important; height: 32px !important; z-index: 10 !important; color: #fff !important; }
+  spiffy-checkout-modal .spiffy-modal .modal__close { position: fixed !important; top: calc((100dvh - min(var(--monthly-checkout-height, 820px), 100dvh - 32px)) / 2 + 12px) !important; right: max(28px, calc((100vw - 760px) / 2 + 20px)) !important; left: auto !important; width: 32px !important; height: 32px !important; z-index: 10 !important; color: #52657d !important; }
+  spiffy-checkout-modal .spiffy-modal .modal__close span { color: #52657d !important; background: #fff; border-radius: 50%; }
   html { scroll-behavior: smooth; background: #070b16; }
   body.premium-page { margin: 0; color: #f5f7fc; font-family: 'Inter', sans-serif; background: radial-gradient(ellipse 65% 650px at 50% 390px, #132a534d, transparent), #070b16; }
   #premium-monthly-dialog { width: min(480px, calc(100% - 40px)); box-sizing: border-box; padding: 32px; border: 1px solid #53617a; border-radius: 18px; background: #101a2d; color: #eef3fc; text-align: center; }

@@ -1,0 +1,43 @@
+<!-- Scoped to Spiffy checkout 41175 only. MC2 Session step-three presentation. -->
+<style id="es2-monthly-mc2-design">
+.checkout[data-es2-inline="true"]{padding:24px 32px!important;background:#f7f9fc!important}
+.checkout[data-es2-inline="true"] .step-content--main{padding:0!important}
+.checkout[data-es2-inline="true"] .es2-inline-plan,.checkout[data-es2-inline="true"] .payment-gateway__secure{display:none!important}
+.es2-monthly-heading{color:#17304b;text-align:left;margin:0 0 18px}
+.es2-monthly-heading>span{display:block;color:#165ed1;font-size:14px;font-weight:750;margin-bottom:24px}
+.es2-monthly-heading h3{color:#17304b;font-size:25px;font-weight:800;line-height:1.25;letter-spacing:-.025em;margin:0 0 12px}
+.es2-monthly-today{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:20px;align-items:center;padding:16px 20px;border:1px solid #b7d5fc;border-radius:12px;background:#e8f3ff;color:#123f78}
+.es2-monthly-daily{display:grid;gap:3px;font-weight:750}.es2-monthly-daily strong{font-size:32px;line-height:1;color:#123f78}.es2-monthly-daily span{font-size:14px}.es2-monthly-daily small{margin-top:3px;color:#526b87;font-size:11px;font-weight:450;line-height:1.35}
+.es2-monthly-charge{display:grid;gap:4px;border-left:1px solid #bdd4ef;padding-left:20px}.es2-monthly-charge>span{font-size:12px;color:#526b87}.es2-monthly-charge b{font-size:18px;line-height:1.35}.es2-monthly-charge p{margin:0;font-size:13px;font-weight:450;line-height:1.4}
+.es2-monthly-card-title{color:#17304b;font-size:16px;font-weight:700;margin:0 0 16px;line-height:1.4}
+.es2-monthly-guarantee{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px 0 0;padding:12px 14px;border:1px solid #e8d8b0;border-radius:12px;background:#fffbf2}
+.es2-monthly-guarantee img{width:44px;height:44px;object-fit:contain;flex:0 0 44px}.es2-monthly-guarantee p{display:grid;gap:4px;margin:0}.es2-monthly-guarantee span{color:#7d5d1a;font-size:11px;font-weight:800;letter-spacing:.035em;line-height:1.4;text-transform:uppercase}.es2-monthly-guarantee strong{color:#17304b;font-size:14px;font-weight:750;line-height:1.4}
+@media(max-width:600px){.checkout[data-es2-inline="true"]{padding:18px!important}.es2-monthly-heading>span{margin-bottom:18px}.es2-monthly-heading h3{font-size:20px}.es2-monthly-today{gap:12px;padding:12px}.es2-monthly-charge{padding-left:12px}.es2-monthly-charge b{font-size:16px}.es2-monthly-charge p{font-size:12px}.es2-monthly-daily strong{font-size:28px}.es2-monthly-card-title{font-size:15px}.es2-monthly-guarantee{gap:8px;padding:9px 10px}.es2-monthly-guarantee img{width:34px;height:34px;flex-basis:34px}.es2-monthly-guarantee span{font-size:10px}.es2-monthly-guarantee strong{font-size:12px}}
+</style>
+<script id="es2-monthly-mc2-design-script">
+(function(){
+  // Initialise the provider in French, rather than merely hiding English text.
+  var url=new URL(location.href);
+  if(url.searchParams.get('locale')!=='fr'){url.searchParams.set('locale','fr');location.replace(url.toString());return;}
+  function sync(){
+    var root=document.querySelector('.checkout');if(!root||!root.querySelector('.StripeElement iframe'))return;
+    var first=root.querySelector('input[placeholder="Prénom"]');
+    var identity=first&&first.closest('.section.block');
+    if(identity&&!root.querySelector('.es2-monthly-heading')){
+      var header=document.createElement('header');header.className='es2-monthly-heading';
+      header.innerHTML='<span>Esprit Subconscient 2.0</span><h3>Tout est prêt pour commencer</h3><div class="es2-monthly-today"><div class="es2-monthly-daily"><strong>6,47 €</strong><span>par jour</span><small>Équivalent sur une année</small></div><div class="es2-monthly-charge"><span>À payer aujourd’hui</span><b>197 €</b><p>Puis 11 mensualités de 197 €.</p></div></div>';
+      identity.before(header);
+    }
+    var payment=root.querySelector('.payment-gateway');var section=payment&&payment.closest('.section.block');
+    if(section&&!root.querySelector('.es2-monthly-card-title')){var title=document.createElement('p');title.className='es2-monthly-card-title';title.textContent='Ajoute ta carte et commence ta transformation';section.before(title);}
+    var paypal=root.querySelector('.es2-inline-paypal-proxy');
+    if(paypal&&!root.querySelector('.es2-monthly-guarantee')){
+      var guarantee=document.createElement('aside');guarantee.className='es2-monthly-guarantee';guarantee.setAttribute('aria-label','Rappel de la garantie manifestation');
+      guarantee.innerHTML='<img src="https://sonnycourt.com/media/deal-guarantee-remboursement.webp" alt="" width="44" height="44"><p><span>Garantie manifestation · 6 mois</span><strong>Soit tu manifestes, soit tu es remboursé.</strong></p>';
+      paypal.after(guarantee);
+    }
+  }
+  function boot(){sync();new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
