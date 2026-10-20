@@ -117,7 +117,8 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       };
       startCountdown();
       const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-      if (localPreview) {
+      const devPreview = new URLSearchParams(location.search).get('preview') === 'dev';
+      if (localPreview || devPreview) {
         const devPanel = document.getElementById('premium-dev-panel');
         if (devPanel) devPanel.hidden = false;
         const setPreviewCountdown = (seconds: number) => {
