@@ -1,5 +1,6 @@
 ---
 import DealOffer from '../components/mc2/DealOfferDraftX.astro';
+import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
 // Design preview only: no purchase verification, customer writes, or live checkout.
 // Before launch: verify the Delta Vision purchase server-side and connect the approved upsell.
 ---
@@ -10,7 +11,7 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'; form-action 'none'; object-src 'none'; base-uri 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src https://www.youtube-nocookie.com; form-action 'none'; object-src 'none'; base-uri 'self'" />
     <title>Ton inscription est validée — Esprit Subconscient 2.0</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,40 +37,41 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
     </script>
   </head>
   <body class="premium-page">
+    <aside id="premium-dev-panel" class="premium-dev-panel" aria-label="Outils de prévisualisation" hidden>
+      <span>DEV · TIMER</span>
+      <button type="button" id="premium-dev-reset">Repartir à 15:00</button>
+      <button type="button" id="premium-dev-offer">Juste avant l’offre · 10:05</button>
+    </aside>
     <canvas id="premium-confetti" aria-hidden="true"></canvas>
-    <div class="preview-note">APERÇU LOCAL <span>·</span> Confirmation simulée · aucun paiement activé</div>
-    <header class="premium-header">
-      <a class="signature" href="#bienvenue" aria-label="Sonny Court — accueil de l’offre">SONNY COURT</a>
-      <span class="header-mark">ESPRIT SUBCONSCIENT <b>2.0</b></span>
-    </header>
+    <div class="preview-note">PRÉVISUALISATION <span>·</span> Confirmation simulée · aucun paiement activé</div>
     <section id="bienvenue" class="premium-hero" aria-labelledby="premium-title">
       <div class="purchase-confirmation">
         <span class="confirmation-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m6 12 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
-        <div><strong>Ton inscription à Delta Vision est validée.</strong><p>Bienvenue dans l’expérience. Une nouvelle étape commence.</p></div>
+        <div><strong>Ton inscription à Delta Vision est validée.</strong></div>
       </div>
-      <p class="premium-eyebrow">UNE INVITATION SPÉCIALE POUR TOI</p>
-      <h1 id="premium-title">Tu viens de faire le premier pas.<br /><span>Et si on allait plus loin ?</span></h1>
-      <p class="premium-intro">Avant de commencer Delta Vision, découvre l’offre que je te réserve pour rejoindre mon accompagnement complet <strong>Esprit Subconscient 2.0.</strong></p>
-      <div class="premium-video" aria-label="Emplacement de la future vidéo de présentation">
-        <div class="video-grid" aria-hidden="true"></div>
-        <span class="video-corner">UN MESSAGE DE SONNY</span>
-        <div class="video-content">
-          <span class="play-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" fill="currentColor" /></svg></span>
-          <p>La suite de ton<br /><strong>expérience commence ici.</strong></p>
-          <span class="video-placeholder-label">Emplacement réservé à ta vidéo</span>
-        </div>
-        <span class="video-brand" aria-hidden="true">ESPRIT SUBCONSCIENT <b>2.0</b></span>
+      <h1 id="premium-title"><span>REGARDE CETTE VIDÉO <span class="premium-title-now">MAINTENANT</span></span></h1>
+      <p class="premium-intro">Donne-moi seulement 5 minutes pour te proposer une opportunité qui va littéralement changer ta vie.</p>
+      <div class="premium-video" aria-label="Vidéo de présentation">
+        <!-- Vidéo provisoire, à remplacer par la vidéo upsell définitive. -->
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/v77I_bByCDQ?rel=0"
+          title="Vidéo de présentation — placeholder"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <div id="premium-video-choices" hidden>
+        <PurchaseChoices />
       </div>
     </section>
-    <div id="accompagnement" class="premium-offer">
-      <div class="offer-divider"><span>TON PROCHAIN CHAPITRE</span></div>
+    <div id="accompagnement" class="premium-offer" hidden>
       <DealOffer checkoutEmbedMode="iframe" premiumUpsellPreview={true} />
     </div>
-    <footer class="premium-footer">
-      <a href="/delta-vision/merci/">Accéder à Delta Vision</a>
-      <div><a href="/cgv/">Conditions générales de vente</a><span>·</span><a href="/contact/">Nous contacter</a></div>
-      <small>© Sonny Court</small>
-    </footer>
+    <div class="premium-sticky-countdown" role="timer" aria-label="Temps restant" aria-live="off">
+      <span>TEMPS RESTANT</span>
+      <strong id="premium-sticky-time">15:00</strong>
+    </div>
     <dialog id="premium-preview-dialog" aria-labelledby="preview-dialog-title">
       <span class="dialog-eyebrow">SIMULATION · AUCUN DÉBIT</span>
       <h2 id="preview-dialog-title">Prêt à aller plus loin ?</h2>
@@ -78,13 +80,65 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
       <div id="preview-monthly-confirmation" hidden>
         <div class="preview-saved-card"><span aria-hidden="true">▣</span><div><strong>Carte utilisée pour Delta Vision</strong><small>Emplacement de la carte enregistrée — aperçu</small></div></div>
         <div class="preview-schedule"><strong>197 € aujourd’hui</strong><span>Puis 11 mensualités de 197 €.<br />Montant total : 2 364 €.</span></div>
-        <button type="button" id="preview-confirm-monthly">Confirmer — 197 € aujourd’hui</button>
+        <button type="button" id="preview-confirm-monthly">Oui, je rejoins pour 197 €/mois</button>
         <p id="preview-monthly-result" role="status" hidden>Confirmation simulée. Aucun paiement n’a été effectué.</p>
       </div>
       <p class="preview-safety">Le paiement de cette nouvelle page n’est pas encore branché. Aucun débit ni envoi d’email n’est possible ici.</p>
       <button type="button" id="preview-dialog-close">Continuer la découverte</button>
     </dialog>
     <script>
+      // Visual preview only: expiry does not change prices or payment access.
+      const countdownKey = 'es2-premium-countdown-v1';
+      const countdownDuration = 15 * 60 * 1000;
+      let countdownDeadline = Date.now() + countdownDuration;
+      try {
+        const saved = Number(localStorage.getItem(countdownKey));
+        if (Number.isFinite(saved) && saved > 0 && saved <= countdownDeadline) {
+          countdownDeadline = saved;
+        } else {
+          localStorage.setItem(countdownKey, String(countdownDeadline));
+        }
+      } catch { /* Continue in memory if storage is unavailable. */ }
+      const stickyTimeNode = document.getElementById('premium-sticky-time');
+      const timedOffer = document.getElementById('accompagnement');
+      const videoChoices = document.getElementById('premium-video-choices');
+      let countdownInterval: ReturnType<typeof setInterval> | undefined;
+      const renderCountdown = () => {
+        const remaining = Math.max(0, Math.ceil((countdownDeadline - Date.now()) / 1000));
+        if (timedOffer) timedOffer.hidden = remaining > 10 * 60;
+        if (videoChoices) videoChoices.hidden = remaining > 10 * 60;
+        if (stickyTimeNode) stickyTimeNode.textContent = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+        if (!remaining) clearInterval(countdownInterval);
+      };
+      const startCountdown = () => {
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(renderCountdown, 250);
+        renderCountdown();
+      };
+      startCountdown();
+      const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+      if (localPreview) {
+        const devPanel = document.getElementById('premium-dev-panel');
+        if (devPanel) devPanel.hidden = false;
+        const setPreviewCountdown = (seconds: number) => {
+          countdownDeadline = Date.now() + seconds * 1000;
+          try { localStorage.setItem(countdownKey, String(countdownDeadline)); } catch {}
+          startCountdown();
+        };
+        document.getElementById('premium-dev-reset')?.addEventListener('click', () => setPreviewCountdown(900));
+        document.getElementById('premium-dev-offer')?.addEventListener('click', () => setPreviewCountdown(605));
+      }
+      document.addEventListener('visibilitychange', renderCountdown);
+      window.addEventListener('pageshow', startCountdown);
+      window.addEventListener('pagehide', () => clearInterval(countdownInterval));
+      window.addEventListener('storage', event => {
+        if (event.key !== countdownKey) return;
+        const saved = Number(event.newValue);
+        if (Number.isFinite(saved) && saved > 0 && saved < countdownDeadline) {
+          countdownDeadline = saved;
+          renderCountdown();
+        }
+      });
       const dialog = document.querySelector<HTMLDialogElement>('#premium-preview-dialog');
       document.getElementById('preview-dialog-close')?.addEventListener('click', () => dialog?.close());
       document.getElementById('preview-confirm-monthly')?.addEventListener('click', event => {
@@ -135,6 +189,11 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
   .premium-page *, .premium-page *::before, .premium-page *::after { box-sizing: border-box; }
   .premium-page a { -webkit-tap-highlight-color: transparent; }
   .premium-page :focus-visible { outline: 3px solid #96bfff; outline-offset: 5px; }
+  .premium-dev-panel { position: fixed; top: calc(12px + env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); z-index: 100; display: grid; gap: 7px; width: 195px; padding: 12px; border: 1px solid #53617a; border-radius: 12px; background: #0d1421f5; box-shadow: 0 6px 25px #0005; }
+  .premium-dev-panel[hidden] { display: none; }
+  .premium-dev-panel > span { color: #aab6ca; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
+  .premium-dev-panel button { padding: 9px 8px; border: 1px solid #53617a; border-radius: 7px; background: #1b2940; color: #fff; font: 600 11px 'Inter', sans-serif; cursor: pointer; }
+  .premium-dev-panel button:hover { background: #294266; }
   .preview-note { padding: 8px 16px; background: #101828; text-align: center; color: #9bacc6; font-size: 10px; letter-spacing: .04em; }
   .preview-note span { padding: 0 8px; }
   .premium-header { max-width: 1140px; margin: auto; padding: 28px 28px 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
@@ -149,10 +208,27 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
   .purchase-confirmation p { color: #97b2b6; font-size: 12px; margin: 7px 0 0; line-height: 1.5; }
   .premium-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .22em; color: #b7ccef; margin: 0 0 20px; }
   .premium-hero h1 { font-size: clamp(31px, 4.5vw, 54px); font-weight: 700; line-height: 1.13; letter-spacing: -.045em; margin: 0; }
-  .premium-hero h1 span { color: #90b9ff; }
+  .premium-hero h1 span { color: #fff; }
+  .premium-hero h1 .premium-title-now { color: #ff514b; }
+  .premium-offer[hidden] { display: none !important; }
+  #premium-video-choices[hidden] { display: none !important; }
+  .premium-countdown { width: fit-content; margin: 28px auto 38px; padding: 22px 32px; text-align: center; border: 1px solid #e33b3b80; border-radius: 18px; background: linear-gradient(135deg, #351419, #1c0d13); box-shadow: 0 8px 32px #e3292914; }
+  .countdown-caption { color: #ffaaa5; font-size: 10px; font-weight: 700; letter-spacing: .18em; }
+  .countdown-digits { display: flex; align-items: flex-start; justify-content: center; gap: 18px; margin-top: 14px; }
+  .countdown-digits strong { display: block; color: #ff514b; font-size: 44px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .countdown-digits small { display: block; margin-top: 8px; color: #dca9a8; font-size: 9px; letter-spacing: .12em; }
+  .countdown-colon { color: #ff514b; font-size: 32px; line-height: 1.2; }
+  .premium-sticky-countdown { position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 13px 20px; border: 1px solid #e33b3b80; border-radius: 14px; background: linear-gradient(135deg, #351419, #1c0d13); box-shadow: 0 8px 28px #0006; pointer-events: none; }
+  .premium-sticky-countdown > span { color: #ffaaa5; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+  .premium-sticky-countdown > strong { color: #ff514b; font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  @media (max-width: 650px) {
+    .premium-sticky-countdown { right: max(12px, env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); padding: 10px 14px; border-radius: 11px; }
+    .premium-sticky-countdown > strong { font-size: 26px; }
+  }
   .premium-intro { max-width: 650px; margin: 23px auto 32px; color: #a4b0c6; font-size: 16px; line-height: 1.8; }
   .premium-intro strong { font-weight: 500; color: #e7edf9; }
   .premium-video { position: relative; aspect-ratio: 16 / 9; max-width: 900px; margin: auto; overflow: hidden; border-radius: 20px; border: 1px solid #719ceb36; background: radial-gradient(ellipse at 50% 70%, #193b73 0%, #101e38 37%, #0b1222 75%); box-shadow: 0 32px 90px #0005, 0 0 60px #3168cb0d; }
+  .premium-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .video-grid { position: absolute; inset: 0; opacity: .23; background: linear-gradient(#7b9dd71a 1px, transparent 1px), linear-gradient(90deg, #7b9dd71a 1px, transparent 1px); background-size: 58px 58px; mask-image: radial-gradient(ellipse, black, transparent 75%); }
   .video-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .play-placeholder { width: 72px; height: 72px; display: grid; place-items: center; border: 1px solid #a0c3ff66; background: #82aaff10; border-radius: 50%; box-shadow: 0 0 0 10px #8ab5ff05; }
@@ -165,15 +241,19 @@ import DealOffer from '../components/mc2/DealOfferDraftX.astro';
   .video-brand { bottom: 22px; right: 26px; }
   .video-brand b { color: #b0c9f1; }
   .premium-offer { scroll-margin-top: 24px; }
+  /* One intentional gap, instead of stacking hero, timer and MC2 section spacing. */
+  .premium-page .premium-hero { padding-bottom: 0; }
+  .premium-page .premium-countdown { margin-bottom: 0; }
+  .premium-page .premium-offer > .workbench { padding-top: clamp(32px, 4vw, 48px); }
+  .premium-page .premium-offer .program-benefits-intro { padding-top: 0 !important; }
+  .premium-page .premium-offer > .workbench { padding-bottom: 24px; }
+  .premium-page .premium-offer .features { padding-bottom: 0; }
+  .premium-page .premium-offer .features .feature-card:last-child { margin-bottom: 0; }
   .offer-divider { display: flex; align-items: center; gap: 25px; max-width: 900px; padding: 0 28px; margin: auto; color: #7185a4; font-size: 9px; letter-spacing: .2em; }
   .offer-divider::before, .offer-divider::after { content: ''; height: 1px; background: #93b2ed25; flex: 1; }
   /* MC2 scarcity depends on its session; never fabricate it for this independent preview. */
   .premium-page .deal-scarcity, .premium-page [data-limited-bonus] .es2-bonus-availability { display: none !important; }
   #premium-confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
-  .premium-footer { max-width: 900px; margin: 70px auto 0; padding: 30px 24px 95px; border-top: 1px solid #ffffff15; text-align: center; }
-  .premium-footer a { color: #a8b7ce; font-size: 12px; text-underline-offset: 4px; }
-  .premium-footer div { margin: 22px 0 15px; display: flex; justify-content: center; gap: 14px; color: #506381; }
-  .premium-footer small { font-size: 10px; color: #6f7f99; }
   #premium-preview-dialog { width: min(520px, calc(100% - 32px)); padding: 36px; color: #e9effc; background: #101a2d; border: 1px solid #6e98d64d; border-radius: 22px; text-align: center; }
   #premium-preview-dialog::backdrop { background: #02050dd9; backdrop-filter: blur(7px); }
   .dialog-eyebrow { color: #9dbcf0; font-size: 10px; letter-spacing: .15em; }
