@@ -1,8 +1,7 @@
 ---
 import DealOffer from '../components/mc2/DealOfferDraftX.astro';
 import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
-// Design preview only: no purchase verification, customer writes, or live checkout.
-// Before launch: verify the Delta Vision purchase server-side and connect the approved upsell.
+// Monthly checkout is independent. The one-time preview is unchanged.
 ---
 <!doctype html>
 <html lang="fr">
@@ -11,7 +10,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Content-Security-Policy" content="frame-src https://player.mediadelivery.net; form-action 'none'; object-src 'none'; base-uri 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src https://player.mediadelivery.net https://sonnycourt.spiffy.co https://*.spiffy.co https://*.stripe.com https://*.paypal.com; form-action 'none'; object-src 'none'; base-uri 'self'" />
     <title>Ton inscription est validée — Esprit Subconscient 2.0</title>
     <link rel="preload" as="image" href="/media/es2-upsell-thumbnail-v1.webp" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -19,14 +18,19 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
     <script is:inline>
-      // Capture before the shared offer handlers. Nothing can mount a live payment here.
+      // Capture before the shared offer handlers; only the monthly CTA opens checkout.
       document.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;
         const choice = target?.closest('[data-premium-plan]');
         if (!choice) return;
+        const monthly = choice.dataset.premiumPlan === 'twelve';
+        if (monthly && window.__premiumMonthlyReady) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        const monthly = choice.dataset.premiumPlan === 'twelve';
+        if (monthly) {
+          window.dispatchEvent(new CustomEvent('premium-monthly-open', { detail: choice }));
+          return;
+        }
         document.getElementById('preview-dialog-title').textContent = monthly ? 'Ton accompagnement en 12 fois.' : 'Tu rejoins l’accompagnement en un clic.';
         document.getElementById('preview-dialog-description').textContent = monthly ? 'Confirme ton paiement avec la carte utilisée pour Delta Vision.' : 'Dans le parcours final, ce clic déclenchera le paiement unique de 1 297 € avec la carte utilisée pour Delta Vision.';
         document.getElementById('preview-once-amount').hidden = monthly;
@@ -44,7 +48,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <button type="button" id="premium-dev-offer">Juste avant l’offre · 10:05</button>
     </aside>
     <canvas id="premium-confetti" aria-hidden="true"></canvas>
-    <div class="preview-note">PRÉVISUALISATION <span>·</span> Confirmation simulée · aucun paiement activé</div>
+    <div class="preview-note">Paiement en 12 fois connecté · Paiement unique encore en prévisualisation</div>
     <section id="bienvenue" class="premium-hero" aria-labelledby="premium-title">
       <div class="purchase-confirmation">
         <span class="confirmation-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m6 12 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
@@ -71,6 +75,73 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <span>TEMPS RESTANT</span>
       <strong id="premium-sticky-time">15:00</strong>
     </div>
+    <dialog id="premium-monthly-dialog" aria-labelledby="premium-monthly-title">
+      <button type="button" id="premium-monthly-close" aria-label="Fermer">×</button>
+      <h2 id="premium-monthly-title">Ton accompagnement en 12 fois.</h2>
+      <p>197 € aujourd’hui, puis 11 mensualités de 197 €.<br />Total : 2 364 €.</p>
+      <p id="premium-monthly-status" role="status">Ouverture du paiement sécurisé…</p>
+      <a href="https://sonnycourt.spiffy.co/checkout/offre-delta-es2" target="_blank" rel="noopener noreferrer">Ouvrir le paiement dans un nouvel onglet</a>
+    </dialog>
+    <script is:inline>
+      (() => {
+        const url = 'https://sonnycourt.spiffy.co/checkout/offre-delta-es2';
+        let ready;
+        let opening = false;
+        let cancelled = false;
+        const dialog = document.getElementById('premium-monthly-dialog');
+        const status = document.getElementById('premium-monthly-status');
+        const load = () => {
+          if (window.spiffy?.checkout) return Promise.resolve();
+          if (ready) return ready;
+          ready = new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Spiffy timeout')), 15000);
+            const spiffy = window.spiffy = window.spiffy || [];
+            if (!spiffy.invoked) {
+              spiffy.invoked = true;
+              ['identify', 'config', 'debug', 'off', 'on'].forEach(method => {
+                spiffy[method] = (...args) => { spiffy.push([method, ...args]); return spiffy; };
+              });
+              spiffy.ACCOUNT = 'sonnycourt';
+              spiffy.SNIPPET_VERSION = '1.1.0';
+              spiffy.config({ popupEnabled: true, popupPrefetch: false, hideSidebar: false, trackingEnabled: false, autoIdentify: false });
+              spiffy.on('ready', () => { clearTimeout(timeout); resolve(); });
+              const script = document.createElement('script');
+              script.src = 'https://js.static.spiffy.co/spiffy.js?a=sonnycourt';
+              script.async = true;
+              script.onload = () => {
+                clearTimeout(timeout);
+                if (window.spiffy?.checkout) resolve();
+                else reject(new Error('Spiffy initialization failed'));
+              };
+              script.onerror = () => { clearTimeout(timeout); reject(new Error('Spiffy unavailable')); };
+              document.head.appendChild(script);
+            } else {
+              spiffy.on('ready', () => { clearTimeout(timeout); resolve(); });
+            }
+          });
+          return ready;
+        };
+        dialog.addEventListener('close', () => { cancelled = true; });
+        document.getElementById('premium-monthly-close').addEventListener('click', () => dialog.close());
+        window.addEventListener('premium-monthly-open', async (event) => {
+          if (opening) return;
+          opening = true;
+          cancelled = false;
+          status.textContent = 'Ouverture du paiement sécurisé…';
+          dialog.showModal();
+          try {
+            await load();
+            if (cancelled || !dialog.open) return;
+            dialog.close();
+            // Let Spiffy handle its own native link and create the modal instance.
+            window.__premiumMonthlyReady = true;
+            event.detail.click();
+          } catch {
+            status.textContent = 'Le paiement met plus de temps à charger. Utilise le lien ci-dessous pour continuer.';
+          } finally { opening = false; }
+        });
+      })();
+    </script>
     <dialog id="premium-preview-dialog" aria-labelledby="preview-dialog-title">
       <span class="dialog-eyebrow">SIMULATION · AUCUN DÉBIT</span>
       <h2 id="preview-dialog-title">Prêt à aller plus loin ?</h2>
@@ -217,8 +288,20 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
 </html>
 
 <style is:global>
+  /* Keep Spiffy's payment iframe intact; only style its outer modal shell. */
+  spiffy-checkout-modal .spiffy-modal #modal { background: #030713d9 !important; backdrop-filter: blur(8px); }
+  spiffy-checkout-modal .spiffy-modal #modal-content { width: min(720px, calc(100% - 32px)) !important; height: min(820px, calc(100dvh - 64px)) !important; margin: 32px auto !important; border-radius: 20px; background: #f7f9fc; box-shadow: 0 30px 100px #0008; }
+  spiffy-checkout-modal .spiffy-iframe,
+  spiffy-checkout-modal .form-container--modal,
+  spiffy-checkout-modal iframe#checkout { width: 100% !important; height: 100% !important; }
+  spiffy-checkout-modal .spiffy-modal .modal__close { position: fixed !important; top: 8px !important; right: max(8px, calc((100vw - 760px) / 2)) !important; left: auto !important; width: 32px !important; height: 32px !important; z-index: 10 !important; color: #fff !important; }
   html { scroll-behavior: smooth; background: #070b16; }
   body.premium-page { margin: 0; color: #f5f7fc; font-family: 'Inter', sans-serif; background: radial-gradient(ellipse 65% 650px at 50% 390px, #132a534d, transparent), #070b16; }
+  #premium-monthly-dialog { width: min(480px, calc(100% - 40px)); box-sizing: border-box; padding: 32px; border: 1px solid #53617a; border-radius: 18px; background: #101a2d; color: #eef3fc; text-align: center; }
+  #premium-monthly-dialog::backdrop { background: #030713cc; }
+  #premium-monthly-dialog p { line-height: 1.7; }
+  #premium-monthly-dialog a { color: #b9d0ff; }
+  #premium-monthly-close { position: absolute; right: 10px; top: 6px; border: 0; background: transparent; color: white; font-size: 28px; cursor: pointer; }
   .premium-page *, .premium-page *::before, .premium-page *::after { box-sizing: border-box; }
   .premium-page a { -webkit-tap-highlight-color: transparent; }
   .premium-page :focus-visible { outline: 3px solid #96bfff; outline-offset: 5px; }

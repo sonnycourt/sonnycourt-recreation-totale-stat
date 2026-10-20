@@ -7,7 +7,12 @@ assert.match(page, /import DealOffer from '\.\.\/components\/mc2\/DealOfferDraft
 assert.match(html, /Ton inscription à Delta Vision est validée\./);
 assert.match(html, /player\.mediadelivery\.net\/embed\/779556\/54a00277-48c6-4ffa-9884-8092a3b90546/);
 assert.match(html, /noindex,nofollow,noarchive/);
-assert.match(html, /frame-src https:\/\/player\.mediadelivery\.net; form-action 'none'/);
+assert.match(html, /frame-src https:\/\/player\.mediadelivery\.net https:\/\/sonnycourt\.spiffy\.co/);
+assert.match(html, /form-action 'none'/);
+assert.match(page, /window\.__premiumMonthlyReady = true/);
+assert.match(page, /event\.detail\.click\(\)/);
+assert.match(page, /https:\/\/sonnycourt\.spiffy\.co\/checkout\/offre-delta-es2/);
+assert.match(page, /if \(cancelled \|\| !dialog\.open\) return/);
 assert.match(page, /event\.stopImmediatePropagation\(\)/);
 assert.match(page, /prefers-reduced-motion: reduce/);
 assert.match(page, /elapsed > 5/);
