@@ -23,6 +23,11 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
         const target = event.target instanceof Element ? event.target : null;
         const choice = target?.closest('[data-premium-plan]');
         if (!choice) return;
+        if (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
         const monthly = choice.dataset.premiumPlan === 'twelve';
         if (monthly && window.__premiumMonthlyReady) return;
         event.preventDefault();
@@ -46,6 +51,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <span>DEV · TIMER</span>
       <button type="button" id="premium-dev-reset">Repartir à 15:00</button>
       <button type="button" id="premium-dev-offer">Juste avant l’offre · 10:05</button>
+      <button type="button" id="premium-dev-expiry">Tester la fin · 00:05</button>
     </aside>
     <canvas id="premium-confetti" aria-hidden="true"></canvas>
     <div class="preview-note">Paiement en 12 fois connecté · Paiement unique encore en prévisualisation</div>
@@ -75,6 +81,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <span>TEMPS RESTANT</span>
       <strong id="premium-sticky-time">15:00</strong>
     </div>
+    <p id="premium-expiry-status" role="status" hidden></p>
     <dialog id="premium-monthly-dialog" aria-labelledby="premium-monthly-title">
       <button type="button" id="premium-monthly-close" aria-label="Fermer">×</button>
       <h2 id="premium-monthly-title">Ton accompagnement en 12 fois.</h2>
@@ -138,6 +145,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
           try {
             await load();
             if (cancelled || !dialog.open) return;
+            if (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity)) return;
             dialog.close();
             // Let Spiffy handle its own native link and create the modal instance.
             window.__premiumMonthlyReady = true;
@@ -163,7 +171,8 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       <button type="button" id="preview-dialog-close">Continuer la découverte</button>
     </dialog>
     <script>
-      // Visual preview only: expiry does not change prices or payment access.
+      import { createPremiumExpiry } from '../lib/es2-premium-expiry.mjs';
+      const expiry = createPremiumExpiry({ document, navigate: (destination: string) => location.replace(destination) });
       const countdownKey = 'es2-premium-countdown-v1';
       const countdownDuration = 15 * 60 * 1000;
       let countdownDeadline = Date.now() + countdownDuration;
@@ -183,12 +192,13 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       try { videoOfferReached = localStorage.getItem(videoRevealKey) === String(countdownDeadline); } catch {}
       let countdownInterval: ReturnType<typeof setInterval> | undefined;
       const renderCountdown = () => {
+        document.documentElement.dataset.premiumDeadline = String(countdownDeadline);
         const remaining = Math.max(0, Math.ceil((countdownDeadline - Date.now()) / 1000));
         const hideOffer = !videoOfferReached && remaining > 10 * 60;
         if (timedOffer) timedOffer.hidden = hideOffer;
         if (videoChoices) videoChoices.hidden = hideOffer;
         if (stickyTimeNode) stickyTimeNode.textContent = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
-        if (!remaining) clearInterval(countdownInterval);
+        if (!remaining) { clearInterval(countdownInterval); expiry.expire(); }
       };
       const startCountdown = () => {
         clearInterval(countdownInterval);
@@ -227,6 +237,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
         const devPanel = document.getElementById('premium-dev-panel');
         if (devPanel) devPanel.hidden = false;
         const setPreviewCountdown = (seconds: number) => {
+          expiry.reset();
           videoOfferReached = false;
           videoPlayer?.pause();
           videoPlayer?.setCurrentTime(0);
@@ -237,6 +248,7 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
         };
         document.getElementById('premium-dev-reset')?.addEventListener('click', () => setPreviewCountdown(900));
         document.getElementById('premium-dev-offer')?.addEventListener('click', () => setPreviewCountdown(605));
+        document.getElementById('premium-dev-expiry')?.addEventListener('click', () => setPreviewCountdown(5));
       }
       document.addEventListener('visibilitychange', renderCountdown);
       window.addEventListener('pageshow', startCountdown);
@@ -294,6 +306,9 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
 </html>
 
 <style is:global>
+  html[data-premium-expired="true"] [data-premium-plan] { background: #454a53 !important; border-color: #606570 !important; color: #a9adb5 !important; box-shadow: none !important; cursor: not-allowed !important; pointer-events: none !important; filter: grayscale(1); }
+  html[data-premium-expired="true"] spiffy-checkout-modal { display: none !important; }
+  #premium-expiry-status:not([hidden]) { position: fixed; z-index: 2147483647; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 16px 24px; border-radius: 12px; background: #172336; color: white; text-align: center; }
   /* Keep Spiffy's payment iframe intact; only style its outer modal shell. */
   spiffy-checkout-modal .spiffy-modal #modal { background: #030713d9 !important; backdrop-filter: blur(8px); }
   spiffy-checkout-modal .spiffy-modal #modal-content { width: min(760px, calc(100% - 32px)) !important; height: min(var(--monthly-checkout-height, 820px), calc(100dvh - 32px)) !important; margin: 0 auto !important; top: 50% !important; transform: translateY(-50%); border: 1px solid #d6e4f5; border-radius: 24px; background: #f7f9fc; box-shadow: 0 30px 100px #0008; }
