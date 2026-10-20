@@ -1,0 +1,45 @@
+<!-- ES2 upsell only. Library 779556: other videos keep their existing controls. -->
+<script>
+(function () {
+  if (!/^\/(embed|play)\/779556\/54a00277-48c6-4ffa-9884-8092a3b90546\/?$/.test(location.pathname)) return;
+  document.documentElement.classList.add('es2-upsell-player');
+  var style = document.createElement('style');
+  style.textContent = `
+    .es2-upsell-player media-controller { --media-secondary-color: #d52b29; }
+    .es2-upsell-player media-control-bar,
+    .es2-upsell-player bunny-media-time-range,
+    .es2-upsell-player bunny-time-display,
+    .es2-upsell-player bunny-settings-menu,
+    .es2-upsell-player bunny-settings-menu-button,
+    .es2-upsell-player media-fullscreen-button,
+    .es2-upsell-player media-pip-button,
+    .es2-upsell-player media-airplay-button,
+    .es2-upsell-player media-cast-button,
+    .es2-upsell-player media-seek-backward-button,
+    .es2-upsell-player media-seek-forward-button,
+    .es2-upsell-player media-captions-button,
+    .es2-upsell-player media-playback-rate-button { display: none !important; }
+    .es2-upsell-player media-play-button { background: #d52b29 !important; color: #fff !important; border-radius: 50%; }
+    .es2-upsell-player media-play-button.large-play { background: #d52b29 !important; box-shadow: 0 8px 30px #0005; }
+    .es2-upsell-player bunny-media-control-bar { padding: 10px 14px; }
+  `;
+  document.head.appendChild(style);
+  // Suppress navigation/fullscreen shortcuts, preserving play and volume keys.
+  document.addEventListener('keydown', function (event) {
+    if (/^[0-9]$/.test(event.key) || ['ArrowLeft', 'ArrowRight', 'j', 'J', 'l', 'L', 'f', 'F', 'c', 'C', '<', '>'].indexOf(event.key) !== -1) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener('dblclick', function (event) { event.preventDefault(); event.stopImmediatePropagation(); }, true);
+  document.addEventListener('contextmenu', function (event) { event.preventDefault(); }, true);
+  function configure() {
+    var controller = document.querySelector('media-controller');
+    if (!controller) return;
+    controller.setAttribute('gesturesdisabled', '');
+    var video = document.querySelector('bunny-stream-video');
+    if (video) { video.setAttribute('playsinline', ''); video.setAttribute('disablepictureinpicture', ''); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', configure, { once: true });
+  else configure();
+}());
+</script>
