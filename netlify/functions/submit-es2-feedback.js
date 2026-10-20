@@ -1,4 +1,5 @@
-import { supabaseGet, supabasePost } from './lib/supabase-rest.mjs';
+import { supabasePost } from './lib/supabase-rest.mjs';
+import { resolveEs2FeedbackRegistration, isEs2FeedbackBuyer } from './lib/es2-feedback-access.mjs';
 import { FEEDBACK_VERSION, normalizeFeedbackAnswers, feedbackV2Record, feedbackV2Notification, telegramFeedbackParts } from '../../src/lib/es2-feedback.mjs';
 
 const MAILERLITE_API_BASE = 'https://connect.mailerlite.com/api';
@@ -13,14 +14,6 @@ function jsonResponse(status, payload) {
       'Content-Type': 'application/json',
     },
   });
-}
-
-function toBool(v) {
-  return v === true || v === 'true' || v === 1 || v === '1';
-}
-
-function isEs2Buyer(row) {
-  return toBool(row?.es_purchased) || toBool(row?.purchased);
 }
 
 function buildEmailPayload({
@@ -160,26 +153,6 @@ async function sendFeedbackEmailFireAndForget(payload) {
   await sendViaMailerLite(payload, recipient);
 }
 
-async function fetchRegistrationByToken(token) {
-  const withEsPurchased = await supabaseGet(
-    `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,prenom,es_purchased,purchased&limit=1`,
-  );
-  if (withEsPurchased.ok && Array.isArray(withEsPurchased.data)) {
-    return withEsPurchased;
-  }
-  const fallback = await supabaseGet(
-    `webinaire_registrations?token=eq.${encodeURIComponent(token)}&select=token,email,prenom,purchased&limit=1`,
-  );
-  if (fallback.ok && Array.isArray(fallback.data)) {
-    const row = fallback.data[0];
-    return {
-      ...fallback,
-      data: row ? [{ ...row, es_purchased: row.purchased }] : [],
-    };
-  }
-  return withEsPurchased.ok ? fallback : withEsPurchased;
-}
-
 export default async (req) => {
   if (req.method === 'OPTIONS') return jsonResponse(200, { ok: true });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
@@ -215,14 +188,14 @@ export default async (req) => {
       }
     }
 
-    const reg = await fetchRegistrationByToken(token);
+    const reg = await resolveEs2FeedbackRegistration({ token });
     if (!reg.ok) {
       console.error('submit-es2-feedback registration query failed:', reg.status, reg.error);
       return jsonResponse(500, { error: 'Erreur serveur' });
     }
     const row = Array.isArray(reg.data) ? reg.data[0] : null;
     if (!row) return jsonResponse(404, { error: 'Inscription introuvable' });
-    if (!isEs2Buyer(row)) {
+    if (!isEs2FeedbackBuyer(row)) {
       return jsonResponse(403, { error: 'Cette page est réservée aux membres ES 2.0' });
     }
 

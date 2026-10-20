@@ -27,10 +27,11 @@ globalThis.fetch = async (url, options = {}) => {
       return new Response(null, { status: 201 });
     }
     assert.equal(options.method, undefined);
+    if (u.pathname === '/rest/v1/mc2_registrations') return json([]);
     assert.equal(u.pathname, '/rest/v1/webinaire_registrations');
     fixture.events.push('read');
     if (fixture.readFail) return json({}, 500);
-    if (fixture.missingColumn && u.searchParams.get('select').includes('es_purchased')) return json({}, 400);
+    if (fixture.missingColumn && u.searchParams.get('select').includes('es_purchased')) return json({ code: '42703', message: 'column es_purchased does not exist' }, 400);
     return json(fixture.missing ? [] : [{ token: 'fixture-token', email: 'student@example.invalid', prenom: 'Camille', purchased: fixture.buyer, ...(fixture.missingColumn ? {} : { es_purchased: fixture.buyer }) }]);
   }
   if (u.hostname === 'api.telegram.org') {
