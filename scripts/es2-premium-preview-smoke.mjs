@@ -5,9 +5,9 @@ const page = readFileSync(new URL('../src/pages/es2-offre-premium.astro', import
 const html = readFileSync(new URL('../dist/es2-offre-premium/index.html', import.meta.url), 'utf8');
 assert.match(page, /import DealOffer from '\.\.\/components\/mc2\/DealOfferDraftX\.astro'/);
 assert.match(html, /Ton inscription à Delta Vision est validée\./);
-assert.match(html, /youtube-nocookie\.com\/embed\/v77I_bByCDQ/);
+assert.match(html, /player\.mediadelivery\.net\/embed\/779556\/54a00277-48c6-4ffa-9884-8092a3b90546/);
 assert.match(html, /noindex,nofollow,noarchive/);
-assert.match(html, /frame-src https:\/\/www\.youtube-nocookie\.com; form-action 'none'/);
+assert.match(html, /frame-src https:\/\/player\.mediadelivery\.net; form-action 'none'/);
 assert.match(page, /event\.stopImmediatePropagation\(\)/);
 assert.match(page, /prefers-reduced-motion: reduce/);
 assert.match(page, /elapsed > 5/);
