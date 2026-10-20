@@ -19,10 +19,30 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
     <script is:inline>
       // Capture before the shared offer handlers; only the monthly CTA opens checkout.
-      document.addEventListener('click', (event) => {
+      // Spiffy hands off its purchase context through x-spiffy-si. Direct
+      // previews must not send users to a native offer without that context.
+      const hasNativeOfferContext = () => Boolean(new URLSearchParams(location.search).get('x-spiffy-si'));
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!hasNativeOfferContext()) document.querySelectorAll('.premium-choices__decline').forEach(link => { link.href = '/delta-vision/merci/'; });
+      });
+      // Register on window before the provider's capture listener.
+      window.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;
         const choice = target?.closest('[data-premium-plan], .premium-choices__decline');
         if (!choice) return;
+        if (choice.matches('.premium-choices__decline') && !hasNativeOfferContext()) {
+          event.preventDefault(); event.stopImmediatePropagation();
+          location.assign('/delta-vision/merci/'); return;
+        }
+        if (choice.dataset.premiumPlan === 'once' && !hasNativeOfferContext()) {
+          event.preventDefault(); event.stopImmediatePropagation();
+          const dialog = document.getElementById('premium-monthly-dialog');
+          document.getElementById('premium-monthly-title').textContent = 'Un accès lié à ton achat.';
+          dialog.querySelector('h2 + p').hidden = true;
+          dialog.querySelector('a').hidden = true;
+          document.getElementById('premium-monthly-status').textContent = 'Le paiement en un clic est disponible uniquement dans le parcours qui suit ton achat Delta Vision. Aucun paiement n’a été effectué.';
+          dialog.showModal(); return;
+        }
         if (choice.matches('[data-premium-plan]') && (document.documentElement.dataset.premiumExpired === 'true' || Date.now() >= Number(document.documentElement.dataset.premiumDeadline || Infinity))) {
           event.preventDefault();
           event.stopImmediatePropagation();
