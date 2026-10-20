@@ -101,11 +101,15 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       const stickyTimeNode = document.getElementById('premium-sticky-time');
       const timedOffer = document.getElementById('accompagnement');
       const videoChoices = document.getElementById('premium-video-choices');
+      const videoRevealKey = 'es2-premium-video-revealed-v1';
+      let videoOfferReached = false;
+      try { videoOfferReached = localStorage.getItem(videoRevealKey) === String(countdownDeadline); } catch {}
       let countdownInterval: ReturnType<typeof setInterval> | undefined;
       const renderCountdown = () => {
         const remaining = Math.max(0, Math.ceil((countdownDeadline - Date.now()) / 1000));
-        if (timedOffer) timedOffer.hidden = remaining > 10 * 60;
-        if (videoChoices) videoChoices.hidden = remaining > 10 * 60;
+        const hideOffer = !videoOfferReached && remaining > 10 * 60;
+        if (timedOffer) timedOffer.hidden = hideOffer;
+        if (videoChoices) videoChoices.hidden = hideOffer;
         if (stickyTimeNode) stickyTimeNode.textContent = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
         if (!remaining) clearInterval(countdownInterval);
       };
@@ -115,12 +119,41 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
         renderCountdown();
       };
       startCountdown();
+      // Use Bunny's playback position, not time spent with a paused video.
+      const frame = document.querySelector<HTMLIFrameElement>('.premium-video iframe');
+      type BunnyPlayer = { on: (event: string, callback: (data?: { seconds?: number }) => void) => void; pause: () => void; setCurrentTime: (seconds: number) => void };
+      const bunnyWindow = window as typeof window & { playerjs?: { Player: new (frame: HTMLIFrameElement) => BunnyPlayer } };
+      let videoPlayer: BunnyPlayer | undefined;
+      const connectVideo = () => {
+        if (!frame || !bunnyWindow.playerjs?.Player || videoPlayer) return;
+        videoPlayer = new bunnyWindow.playerjs.Player(frame);
+        videoPlayer.on('ready', () => {
+          videoPlayer?.on('timeupdate', data => {
+            if (videoOfferReached || !Number.isFinite(data?.seconds) || Number(data?.seconds) < 164) return;
+            videoOfferReached = true;
+            try { localStorage.setItem(videoRevealKey, String(countdownDeadline)); } catch {}
+            renderCountdown();
+          });
+        });
+      };
+      if (bunnyWindow.playerjs?.Player) connectVideo();
+      else {
+        const playerScript = document.createElement('script');
+        playerScript.src = 'https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js';
+        playerScript.async = true;
+        playerScript.onload = connectVideo;
+        document.head.appendChild(playerScript);
+      }
       const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
       const devPreview = new URLSearchParams(location.search).get('preview') === 'dev';
       if (localPreview || devPreview) {
         const devPanel = document.getElementById('premium-dev-panel');
         if (devPanel) devPanel.hidden = false;
         const setPreviewCountdown = (seconds: number) => {
+          videoOfferReached = false;
+          videoPlayer?.pause();
+          videoPlayer?.setCurrentTime(0);
+          try { localStorage.removeItem(videoRevealKey); } catch {}
           countdownDeadline = Date.now() + seconds * 1000;
           try { localStorage.setItem(countdownKey, String(countdownDeadline)); } catch {}
           startCountdown();
