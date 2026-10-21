@@ -14,7 +14,8 @@ export default async function(request, context) {
   }
   let error = '';
   if (request.method === 'POST') {
-    if (request.headers.get('origin') !== new URL(request.url).origin) return new Response('Accès refusé', { status: 403, headers });
+    const origin = request.headers.get('origin');
+    if (origin && origin !== 'null' && origin !== new URL(request.url).origin) return new Response('Accès refusé', { status: 403, headers });
     const body = await request.text();
     if (body.length > 1024) return new Response('Requête invalide', { status: 400, headers });
     const password = new URLSearchParams(body).get('password') || '';
