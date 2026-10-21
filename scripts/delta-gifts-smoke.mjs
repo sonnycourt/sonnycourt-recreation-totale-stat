@@ -89,6 +89,11 @@ assert.equal(giftReceivedState({state:'active',url:env.DELTA_GIFTS_ACCESS_URL}).
 for(const url of ['https://evil.test/c/delta-vision','https://volt.sonnycourt.com/c/es2','javascript:alert(1)','https://volt.sonnycourt.com/c/delta-vision?redirect=evil'])assert.throws(()=>giftReceivedState({state:'active',url}));
 const receivedPage=readFileSync(new URL('../src/pages/delta-vision-cadeau-recu.astro',import.meta.url),'utf8');
 assert(receivedPage.includes('data-gift-activation'));assert(!receivedPage.includes('spiffy.co'));
+assert(receivedPage.includes('inspiraEmbedUrl(inspira.presentationVideoUrl)'), 'Use the corrected sales VSL, not a copied stale video ID');
+assert(receivedPage.includes('initDeltaVideo(root)'), 'Reuse the tested player without changing gift activation');
+assert(receivedPage.includes('responsiveDeltaImage(inspira.presentationPosterUrl'), 'Use responsive WebP poster');
+assert(receivedPage.indexOf('data-gift-video') < receivedPage.indexOf('data-gift-activation'));
+assert(!receivedPage.includes('data-dv-buy'), 'A gift recipient must not be asked to buy again');
 const salesPage=readFileSync(new URL('../src/pages/delta-vision.astro',import.meta.url),'utf8');
 assert(salesPage.includes("location.replace('/delta-vision-cadeau-recu/' + location.hash)"));
 let activationCalls=0;

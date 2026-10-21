@@ -1,4 +1,7 @@
 ---
+import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
+import { responsiveDeltaImage } from '../lib/delta-vision-images.mjs';
+const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 ---
 <!doctype html>
 <html lang="fr">
@@ -13,7 +16,16 @@
     <section class="visual" aria-label="Ton expérience Delta Vision">
       <p class="eyebrow">QUELQU’UN A PENSÉ À TOI</p>
       <h1>Une expérience.<br/><em>Rien que pour toi.</em></h1>
-      <img src="/media/pages/delta-vision-checkout-foliage-v1.webp" width="1000" height="563" alt="Sonny dans la jungle, entouré de lianes et de feuillage"/>
+      <p class="video-intro">Découvre l’expérience qui t’a été offerte.</p>
+      <div class="gift-video" data-gift-video data-video-url={videoUrl}>
+        <img class="video-thumbnail" src={inspira.presentationPosterUrl}
+          {...responsiveDeltaImage(inspira.presentationPosterUrl, '(max-width: 650px) calc(100vw - 44px), 566px')}
+          width="1672" height="941" fetchpriority="high" decoding="async"
+          alt="Sonny Court présente Delta Vision, au cœur d’une jungle lumineuse"/>
+        <button class="gift-video-play" type="button" data-video-play aria-label="Lire la présentation de ton cadeau Delta Vision">
+          <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7V5Z" fill="currentColor"/></svg></span>
+        </button>
+      </div>
       <p class="description">La leçon pour comprendre.<br/>La séance guidée de <strong>12 minutes</strong><br/>pour vivre l’expérience.</p>
     </section>
     <section class="card" aria-labelledby="activation-title">
@@ -37,9 +49,24 @@
   </main>
   <footer><span>UNE CRÉATION SONNY COURT</span><a href="mailto:info@sonnycourt.com">Besoin d’aide ?</a><a href="/politique-de-confidentialite/">Confidentialité</a></footer>
   <script>import {initGiftReceived} from '../lib/delta-gift-received.mjs';initGiftReceived();</script>
+  <script>
+    import { initDeltaVideo } from '../lib/delta-vision-video.mjs';
+    document.querySelectorAll<HTMLElement>('[data-gift-video]').forEach(root => initDeltaVideo(root));
+  </script>
 </body>
 </html>
 <style is:global>
 @font-face{font-family:Delta;src:url('/fonts/inter-latin.woff2') format('woff2');font-weight:100 900;font-display:swap}
 *{box-sizing:border-box}body{margin:0;background:#faf8f4;color:#292923;font:15px/1.65 Delta,Arial,sans-serif}a{color:inherit}header,footer{max-width:1190px;margin:auto;padding:30px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{font-size:25px;font-weight:600;line-height:.98;letter-spacing:-1px}.signature,.eyebrow,.gift-label,footer>span{font-size:10px;letter-spacing:2px;color:#81776b}.eyebrow{color:#a44b36}.gift-label{display:inline-block;color:#a44b36;background:#f5e9df;padding:8px 13px;border-radius:30px;letter-spacing:1.3px;font-size:9px}main{max-width:1190px;margin:20px auto 55px;padding:25px 32px;display:grid;grid-template-columns:1.15fr 1fr;gap:68px;align-items:center}.visual{text-align:center}.visual h1{font-size:clamp(40px,4.4vw,60px);line-height:1.1;letter-spacing:-2px;font-weight:450;margin:18px 0 20px}em{font-family:Georgia,serif;font-weight:400;color:#b34f39}.visual img{display:block;width:calc(100% + 35px);max-width:none;margin-left:-17px;height:auto}.description{font-size:16px;color:#797163;line-height:1.75;margin:4px 0}.description strong{font-weight:600;color:#4c493e}.card{border:1px solid #e7dace;background:#fffdf9;border-radius:25px;padding:38px;box-shadow:0 20px 65px #6b543409}h2{font-size:44px;line-height:1.1;letter-spacing:-1.5px;font-weight:450;margin:25px 0 20px}[data-gift-message]{color:#777065;font-size:14px;line-height:1.7;margin-bottom:25px}label{display:block;font-size:12px;font-weight:600;margin:20px 0 7px}input{width:100%;padding:16px;font:16px Delta,Arial,sans-serif;background:#fff;border:1px solid #dcd2c6;color:#292923;border-radius:10px}input::placeholder{color:#9b958b;font-size:14px}button,.button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:26px;padding:17px 21px;border:0;border-radius:11px;background:#b34f39;color:#fff;font:600 15px Delta,Arial,sans-serif;text-decoration:none;cursor:pointer}button:disabled{opacity:.65;cursor:wait}.secondary{background:#eee7dc;color:#514d41}.reassurance{font-size:11px;color:#888071;text-align:center;margin:13px 0 0}.account-note{font-size:13px;color:#736d61;line-height:1.8;margin-top:23px}.account-note strong{color:#484539}[data-gift-error]{font-size:13px;color:#9d3525}footer{border-top:1px solid #e8e0d6;color:#827b70;font-size:11px}footer>span{font-size:9px;margin-right:auto}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #b34f39;outline-offset:4px}[hidden]{display:none!important}astro-dev-toolbar{display:none!important}@media(max-width:850px){main{gap:30px}.card{padding:28px}h2{font-size:37px}.visual h1{font-size:43px}.signature{font-size:8px}}@media(max-width:650px){header{padding:25px 24px}.signature{max-width:135px;text-align:right;line-height:1.7}main{grid-template-columns:1fr;margin:6px auto 30px;padding:10px 22px;gap:26px}.visual h1{font-size:39px}.visual img{width:100%;max-width:460px;margin:auto}.description{font-size:14px}.card{padding:28px 24px;border-radius:20px}h2{font-size:37px;margin:21px 0 17px}footer{padding:23px;flex-wrap:wrap;gap:15px}footer>span{flex-basis:100%}}
+/* The video is independent from gift verification: no viewing gate or checkout. */
+.video-intro{font-size:14px;color:#797163;margin:0 0 18px}
+.gift-video{position:relative;isolation:isolate;overflow:hidden;aspect-ratio:1672/941;border-radius:18px;background:#152321;box-shadow:0 18px 44px -28px #24332366;margin:0 0 22px}
+.visual .gift-video .video-thumbnail{display:block;width:100%;height:100%;margin:0;max-width:none;object-fit:cover}
+.gift-video iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}
+.gift-video .gift-video-play{position:absolute;inset:0;display:grid;place-items:center;justify-content:center;gap:0;width:100%;height:100%;padding:0;margin:0;border:0;border-radius:0;background:transparent;color:#fff}
+.gift-video-play>span{display:grid;place-items:center;width:68px;aspect-ratio:1;border-radius:50%;background:#b34f39;border:1px solid #fff8;box-shadow:0 6px 24px #0003}
+.gift-video-play svg{width:29px;height:29px}
+.gift-video-play:hover>span{background:#98412e}
+.gift-video-play:focus-visible{outline-offset:-6px}
+@media(max-width:650px){.gift-video{border-radius:13px}.gift-video-play>span{width:58px}}
 </style>
