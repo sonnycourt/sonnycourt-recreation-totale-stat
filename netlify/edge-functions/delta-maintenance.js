@@ -1,7 +1,7 @@
 // Temporary maintenance. Remove this function to reopen after test prices are restored.
 const PASSWORD_HASH = '9ebf54dd2634a2f89a2ba753418df04b20b8500d51d3ea3aad16f8d4481b5388';
 const ACCESS = '01d56176209020c98e4e1c81609d3c60c0b4670969c5f596af677cbad56b983f';
-const DEADLINE = 1792584751930;
+const DEADLINE = 1792588351930;
 const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, no-store', 'Netlify-CDN-Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer' };
 export const config = { path: ['/delta-vision', '/delta-vision/', '/delta-vision/index.html'] };
 export default async function(request, context) {
