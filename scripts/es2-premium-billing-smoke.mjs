@@ -7,7 +7,24 @@ assert(!isPremiumPayment(order, '123', 'other@example.com'));
 assert(!isPremiumPayment({...order, checkout:{id:40006}}, '123','test@example.com'));
 assert(!isPremiumPayment({...order, payments:[{...order.payments[0],amount_refunded:19700}]},'123','test@example.com'));
 assert(!isPremiumPayment({...order, checkout:{id:41049}}, '123','test@example.com')); // Delta alone is not ES2.
-assert(isPremiumPayment({...order, checkout:{id:41049},payments:[{...order.payments[0],amount_paid:129700}]}, '123','test@example.com'));
+const native = {...order, checkout:{id:41049},
+  detail:{line_items:[{order_item_id:500,block_type:'upsell',name:'Esprit Subconscient 2.0 (Paiement unique)',amount:129700}]},
+  items:[{id:500,payment_ids:[900]}],
+  payments:[{...order.payments[0],id:900,amount_paid:129700}]};
+assert(isPremiumPayment(native, '123','test@example.com'));
+assert(isPremiumPayment({...native,checkout:{id:41096}}, '123','test@example.com'));
+assert(!isPremiumPayment({...native,items:[]}, '123','test@example.com'));
+assert(!isPremiumPayment({...native,detail:{line_items:[]}}, '123','test@example.com'));
+assert(!isPremiumPayment({...native,items:[{id:500,payment_ids:[901]}]}, '123','test@example.com'));
+assert(!isPremiumPayment({...native,detail:{line_items:[{...native.detail.line_items[0],is_refunded_by_spiffy:true}]}}, '123','test@example.com'));
+const approvedTest = {...native,id:2554891,customer_id:1909343,
+  detail:{line_items:[{...native.detail.line_items[0],amount:150,product_option_price_id:881271}]},
+  items:[{id:500,payment_ids:[4900437]}],
+  payments:[{...order.payments[0],id:4900437,order_id:2554891,amount_paid:150}]};
+assert(isPremiumPayment(approvedTest, '2554891','test@example.com'));
+assert(!isPremiumPayment({...approvedTest,customer_id:999}, '2554891','test@example.com'));
+assert(!isPremiumPayment({...approvedTest,id:2554892}, '2554892','test@example.com'));
+assert(!isPremiumPayment({...approvedTest,payments:[{...approvedTest.payments[0],amount_refunded:150}]}, '2554891','test@example.com'));
 const writes=[];
 const service=makePremiumBilling({read:async()=>({data:order}),save:async(...args)=>writes.push(args),uuid:()=> 'test-id',now:()=> '2026-10-20T00:00:00Z'});
 const base={order:'123',email:'test@example.com'};

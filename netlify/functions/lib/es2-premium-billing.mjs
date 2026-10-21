@@ -9,12 +9,23 @@ const clean = (value, max = 220) => typeof value === 'string' ? value.trim().sli
 export function isPremiumPayment(order, orderId, email) {
   if (String(order?.id) !== orderId || clean(order?.customer?.email, 254).toLowerCase() !== email) return false;
   const checkout = Number(order.checkout?.id ?? order.checkout_id);
-  const expected = checkout === 41175 ? 19700 : checkout === 41049 ? 129700 : 0;
+  const native = [41049, 41096].includes(checkout);
+  // One explicitly verified test purchase. Never accept arbitrary low-price orders.
+  const testPurchase = orderId === '2554891' && Number(order.customer_id) === 1909343 && checkout === 41049;
+  const expected = checkout === 41175 ? 19700 : native ? (testPurchase ? 150 : 129700) : 0;
   if (!expected || order.payment_status !== 'succeeded') return false;
+  const upsell = native && order.detail?.line_items?.find(line =>
+    line.block_type === 'upsell' && line.name === 'Esprit Subconscient 2.0 (Paiement unique)'
+    && !line.is_skipped && !line.is_refunded_by_spiffy && Number(line.amount) === expected
+    && (!testPurchase || Number(line.product_option_price_id) === 881271));
+  const item = upsell && order.items?.find(item => String(item.id) === String(upsell.order_item_id));
+  if (native && !Array.isArray(item?.payment_ids)) return false;
   return Array.isArray(order.payments) && order.payments.some(payment =>
     String(payment.order_id) === orderId && payment.status === 'succeeded'
     && String(payment.currency).toLowerCase() === 'eur'
-    && Number(payment.amount_paid) === expected && Number(payment.amount_refunded || 0) === 0);
+    && Number(payment.amount_paid) === expected && Number(payment.amount_refunded || 0) === 0
+    && (!native || item.payment_ids.map(String).includes(String(payment.id)))
+    && (!testPurchase || Number(payment.id) === 4900437));
 }
 
 export function makePremiumBilling({ read = spiffyRead, save = (key, value) => getStore({ name: 'es2-premium-billing', consistency: 'strong' }).setJSON(key, value), now = () => new Date().toISOString(), uuid = randomUUID } = {}) {
@@ -22,7 +33,7 @@ export function makePremiumBilling({ read = spiffyRead, save = (key, value) => g
     const orderId = clean(body.order, 20), email = clean(body.email, 254).toLowerCase();
     if (!/^\d{1,20}$/.test(orderId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !['status', 'complete'].includes(body.action))
       return { status: 400, data: { error: 'Le lien de confirmation est incomplet. Contacte notre équipe sans effectuer de nouveau paiement.' } };
-    const result = await read(`orders/${orderId}`, { include: 'customer,checkout,payments' });
+    const result = await read(`orders/${orderId}`, { include: 'customer,checkout,payments,items' });
     const order = result.data;
     if (!isPremiumPayment(order, orderId, email)) return { status: 200, data: { paid: false } };
     if (body.action === 'status') return { status: 200, data: { paid: true } };

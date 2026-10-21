@@ -35,6 +35,22 @@ and grants no access. Integrating those submissions into an administrative view 
 separate work; do not describe them as automatically synchronized into the CRM.
 No real purchase, card entry, CGV acceptance or email was used for testing.
 
+## Confirmation repair — 2026-10-21
+
+- Native acceptance step 98031 on checkout 41049 now includes contact details;
+  checkout 41175 already included them. No price or automation is changed here.
+- Confirmation recovers a missing email through an email-only form, retains the
+  order in the URL for reloads and removes personal URL parameters immediately.
+- Native payment verification checks the ES2 upsell line and its linked payment,
+  not just an unrelated successful charge on the same Delta order.
+- The sole low-price exception is verified order 2554891, customer 1909343,
+  ES2 price 881271 and payment 4900437 for 150 cents. Other test purchases are
+  not automatically admitted. Normal amounts remain 129700 / 19700 cents.
+- Real Spiffy read-only verification passed for that existing test purchase.
+  A local browser run completed missing-email recovery, address submission to
+  memory-only storage and navigation to `/masterclass/success/` with Romain's
+  WhatsApp link. No fictitious address was written to production.
+
 Build and `node scripts/es2-premium-preview-smoke.mjs` pass. Browser checks cover
 opening the actual iframe and its required fields/197 EUR schedule. A completed
 purchase and post-payment access/automations have not been tested.

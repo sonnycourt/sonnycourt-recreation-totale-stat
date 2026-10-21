@@ -23,6 +23,12 @@ const currentYear = new Date().getFullYear();
 
         <div class="loading" id="loading-state">Vérification du paiement…</div>
 
+        <form id="identity-form" hidden>
+          <p>Pour retrouver ton achat, confirme simplement l’email utilisé lors du paiement. Aucun nouveau paiement ne sera demandé.</p>
+          <label>Email utilisé lors de l’achat<input id="identity-email" type="email" autocomplete="email" required maxlength="254" /></label>
+          <button type="submit">CONTINUER</button>
+        </form>
+
         <form id="billing-form" hidden>
           <label id="purchase-email-field" hidden>Email utilisé pour ton inscription<input id="purchase-email" name="email" type="email" autocomplete="email" readonly aria-readonly="true" /></label>
           <div class="row">
@@ -73,15 +79,21 @@ const currentYear = new Date().getFullYear();
 
     <script is:inline>
       const params = new URLSearchParams(location.search);
-      const identity = { order: params.get('order') || '', email: params.get('email') || params.get('contact_email') || '' };
-      if (identity.order && identity.email) {
+      const identity = { order: params.get('order') || '', email: (params.get('email') || params.get('contact_email') || params.get('customer_email') || '').trim().toLowerCase() };
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('es2-premium-confirmation') || '{}');
+        if (!identity.order && !identity.email) Object.assign(identity, saved);
+        else if (identity.order === saved.order && !identity.email) identity.email = saved.email || '';
+      } catch {}
+      const remember = () => {
         try { sessionStorage.setItem('es2-premium-confirmation', JSON.stringify(identity)); } catch {}
-        history.replaceState(null, '', location.pathname);
-      } else if (!identity.order && !identity.email) {
-        try { Object.assign(identity, JSON.parse(sessionStorage.getItem('es2-premium-confirmation') || '{}')); } catch {}
-      }
+        // Keep the order recoverable on reload, but remove personal details from the URL.
+        if (identity.order) history.replaceState(null, '', location.pathname + '?order=' + encodeURIComponent(identity.order));
+      };
+      remember();
       const byId = id => document.getElementById(id);
       const form = byId('billing-form'), loading = byId('loading-state');
+      const identityForm = byId('identity-form');
       document.querySelector('.eyebrow').textContent = 'Finalisation de ton inscription';
       const request = async body => {
         const response = await fetch('/.netlify/functions/es2-premium-billing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...identity }) });
@@ -90,12 +102,22 @@ const currentYear = new Date().getFullYear();
         return result;
       };
       let attempts = 0;
+      let pending;
       async function verify() {
+        clearTimeout(pending);
+        if (!/^\d{1,20}$/.test(identity.order)) {
+          loading.textContent = 'Le numéro de commande manque dans ce lien. Contacte notre équipe sans effectuer de nouveau paiement.';
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email)) {
+          loading.hidden = true; identityForm.hidden = false; return;
+        }
+        identityForm.hidden = true; loading.hidden = false;
         loading.textContent = 'Vérification du paiement…';
         try {
           const data = await request({ action: 'status' });
           if (!data.paid) {
-            if (++attempts < 12) { setTimeout(verify, 5000); return; }
+            if (++attempts < 12) { pending = setTimeout(verify, 5000); return; }
             throw new Error('La confirmation prend plus de temps. Ne repaie pas : réessaie dans un instant.');
           }
           loading.hidden = true; form.hidden = false;
@@ -104,12 +126,19 @@ const currentYear = new Date().getFullYear();
           document.querySelector('.eyebrow').textContent = 'Paiement confirmé';
         } catch (error) {
           loading.textContent = error.message;
+          identityForm.hidden = false; byId('identity-email').value = identity.email;
           const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Vérifier à nouveau';
           retry.onclick = () => { attempts = 0; verify(); }; loading.append(retry);
           const help = document.createElement('a'); help.href = '/contact/'; help.textContent = 'Contacter notre équipe';
           loading.append(help);
         }
       }
+      identityForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!identityForm.reportValidity()) return;
+        identity.email = byId('identity-email').value.trim().toLowerCase();
+        remember(); attempts = 0; verify();
+      });
       form.addEventListener('submit', async event => {
         event.preventDefault();
         if (!form.reportValidity()) return;
