@@ -79,3 +79,18 @@ Applied only to checkout 41175 and published through the Spiffy editor:
   the actual price before reopening the funnel, separately from this visual fix.
 - Published DOM verification: name optional and hidden, country/token absent,
   native card iframe and required CGV still present. No payment was submitted.
+
+## Monthly test confirmation — 2026-10-21
+
+Order 2554945 was independently verified through the read-only Spiffy API:
+checkout 41175, customer 1909375, ES2 item 4968860 / price 881386,
+linked payment 4900527 succeeded for 148 cents with zero refund. Its test
+product amount was 1500 cents. An exact-order exception now admits this existing
+test, alongside the previously approved native test; normal monthly verification
+still requires 19700 cents. No new arbitrary low-price test order is admitted.
+
+Finalised non-matching payments no longer trigger repeated polling. Pending
+verification is limited to three attempts and every browser request has a
+12-second timeout, followed by recovery/help text rather than a stuck loader.
+Tests: `es2-premium-billing-smoke.mjs` and
+`es2-premium-confirmation-smoke.mjs`. No customer details were saved or emails sent.

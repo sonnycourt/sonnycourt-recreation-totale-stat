@@ -96,10 +96,17 @@ const currentYear = new Date().getFullYear();
       const identityForm = byId('identity-form');
       document.querySelector('.eyebrow').textContent = 'Finalisation de ton inscription';
       const request = async body => {
-        const response = await fetch('/.netlify/functions/es2-premium-billing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...identity }) });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Réessaie dans un instant.');
-        return result;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        try {
+          const response = await fetch('/.netlify/functions/es2-premium-billing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...identity }), signal: controller.signal });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Réessaie dans un instant.');
+          return result;
+        } catch (error) {
+          if (controller.signal.aborted) throw new Error('La vérification prend plus de temps que prévu. Ne repaie pas : réessaie ou contacte notre équipe.');
+          throw error;
+        } finally { clearTimeout(timeout); }
       };
       let attempts = 0;
       let pending;
@@ -117,8 +124,8 @@ const currentYear = new Date().getFullYear();
         try {
           const data = await request({ action: 'status' });
           if (!data.paid) {
-            if (++attempts < 12) { pending = setTimeout(verify, 5000); return; }
-            throw new Error('La confirmation prend plus de temps. Ne repaie pas : réessaie dans un instant.');
+            if (data.retryable !== false && ++attempts < 3) { pending = setTimeout(verify, 2500); return; }
+            throw new Error('Nous ne pouvons pas encore confirmer cet achat. Vérifie ton email ou contacte notre équipe. Ne repaie pas.');
           }
           loading.hidden = true; form.hidden = false;
           byId('purchase-email').value = identity.email; byId('purchase-email-field').hidden = false;

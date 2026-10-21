@@ -12,8 +12,16 @@ export function isPremiumPayment(order, orderId, email) {
   const native = [41049, 41096].includes(checkout);
   // One explicitly verified test purchase. Never accept arbitrary low-price orders.
   const testPurchase = orderId === '2554891' && Number(order.customer_id) === 1909343 && checkout === 41049;
-  const expected = checkout === 41175 ? 19700 : native ? (testPurchase ? 150 : 129700) : 0;
+  // Separately verified monthly test: never relax the normal 197 EUR threshold.
+  const monthlyTest = orderId === '2554945' && Number(order.customer_id) === 1909375 && checkout === 41175;
+  const expected = checkout === 41175 ? (monthlyTest ? 148 : 19700) : native ? (testPurchase ? 150 : 129700) : 0;
   if (!expected || order.payment_status !== 'succeeded') return false;
+  const monthlyTestLine = monthlyTest && order.detail?.line_items?.find(line =>
+    Number(line.order_item_id) === 4968860 && Number(line.product_option_price_id) === 881386
+    && Number(line.amount) === 1500 && !line.is_skipped && !line.is_refunded_by_spiffy);
+  const monthlyTestItem = monthlyTestLine && order.items?.find(item =>
+    Number(item.id) === 4968860 && item.payment_ids?.map(String).includes('4900527'));
+  if (monthlyTest && !monthlyTestItem) return false;
   const upsell = native && order.detail?.line_items?.find(line =>
     line.block_type === 'upsell' && line.name === 'Esprit Subconscient 2.0 (Paiement unique)'
     && !line.is_skipped && !line.is_refunded_by_spiffy && Number(line.amount) === expected
@@ -25,6 +33,7 @@ export function isPremiumPayment(order, orderId, email) {
     && String(payment.currency).toLowerCase() === 'eur'
     && Number(payment.amount_paid) === expected && Number(payment.amount_refunded || 0) === 0
     && (!native || item.payment_ids.map(String).includes(String(payment.id)))
+    && (!monthlyTest || Number(payment.id) === 4900527)
     && (!testPurchase || Number(payment.id) === 4900437));
 }
 
@@ -35,7 +44,12 @@ export function makePremiumBilling({ read = spiffyRead, save = (key, value) => g
       return { status: 400, data: { error: 'Le lien de confirmation est incomplet. Contacte notre équipe sans effectuer de nouveau paiement.' } };
     const result = await read(`orders/${orderId}`, { include: 'customer,checkout,payments,items' });
     const order = result.data;
-    if (!isPremiumPayment(order, orderId, email)) return { status: 200, data: { paid: false } };
+    if (!isPremiumPayment(order, orderId, email)) return { status: 200, data: {
+      paid: false,
+      // A finalised order that does not match cannot become valid by polling.
+      // Do not disclose its customer, amount or reason to an unverified caller.
+      retryable: !['succeeded', 'failed', 'refunded', 'canceled', 'cancelled'].includes(order?.payment_status),
+    } };
     if (body.action === 'status') return { status: 200, data: { paid: true } };
     const billing = Object.fromEntries(['first_name', 'last_name', 'phone', 'street', 'street2', 'zip', 'city', 'country'].map(key => [key, clean(body[key])]));
     if (Object.entries(billing).some(([key, value]) => key !== 'street2' && !value))
