@@ -12,6 +12,8 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="frame-src https://player.mediadelivery.net https://sonnycourt.spiffy.co https://*.spiffy.co https://*.stripe.com https://*.paypal.com; form-action 'none'; object-src 'none'; base-uri 'self'" />
     <title>Ton inscription est validée — Esprit Subconscient 2.0</title>
+    <!-- Player.js must listen before the iframe can emit its initial ready event. -->
+    <script is:inline src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"></script>
     <link rel="preload" as="image" href="/media/es2-upsell-thumbnail-v1.webp" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -214,19 +216,25 @@ import PurchaseChoices from '../components/es2-premium/PurchaseChoices.astro';
       startCountdown();
       // Use Bunny's playback position, not time spent with a paused video.
       const frame = document.querySelector<HTMLIFrameElement>('.premium-video iframe');
-      type BunnyPlayer = { on: (event: string, callback: (data?: { seconds?: number }) => void) => void; pause: () => void; setCurrentTime: (seconds: number) => void };
+      type BunnyPlayer = { on: (event: string, callback: (data?: unknown) => void) => void; pause: () => void; setCurrentTime: (seconds: number) => void; getCurrentTime: (callback: (seconds: number) => void) => void };
       const bunnyWindow = window as typeof window & { playerjs?: { Player: new (frame: HTMLIFrameElement) => BunnyPlayer } };
       let videoPlayer: BunnyPlayer | undefined;
       const connectVideo = () => {
         if (!frame || !bunnyWindow.playerjs?.Player || videoPlayer) return;
         videoPlayer = new bunnyWindow.playerjs.Player(frame);
+        const checkPosition = (raw: unknown) => {
+          let data: unknown = raw;
+          if (typeof data === 'string') { try { data = JSON.parse(data); } catch { return; } }
+          const seconds = typeof data === 'number' ? data : data && typeof data === 'object' && 'seconds' in data ? data.seconds : undefined;
+          if (videoOfferReached || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 164) return;
+          videoOfferReached = true;
+          try { localStorage.setItem(videoRevealKey, String(countdownDeadline)); } catch {}
+          renderCountdown();
+        };
+        // Queue the subscription immediately, including when ready happened before construction.
+        videoPlayer.on('timeupdate', checkPosition);
         videoPlayer.on('ready', () => {
-          videoPlayer?.on('timeupdate', data => {
-            if (videoOfferReached || !Number.isFinite(data?.seconds) || Number(data?.seconds) < 164) return;
-            videoOfferReached = true;
-            try { localStorage.setItem(videoRevealKey, String(countdownDeadline)); } catch {}
-            renderCountdown();
-          });
+          videoPlayer?.getCurrentTime(checkPosition);
         });
       };
       if (bunnyWindow.playerjs?.Player) connectVideo();
