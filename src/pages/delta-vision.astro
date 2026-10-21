@@ -6,7 +6,7 @@ import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
 import AnalyticsConsent from '../components/delta/AnalyticsConsent.astro';
 import SocialProof from '../components/delta/SocialProof.astro';
 import TwoStepCheckout from '../components/delta/TwoStepCheckout.astro';
-import { responsiveDeltaImage, posterSizes, programSizes } from '../lib/delta-vision-images.mjs';
+import { responsiveDeltaImage, posterSizes, programSizes, checkoutArtSrc, checkoutArtSizes } from '../lib/delta-vision-images.mjs';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
 const checkoutUrl = inspira.checkoutUrl;
 const socialImageUrl = 'https://sonnycourt.com/media/pages/delta-vision-social-v1.jpg';
@@ -64,6 +64,12 @@ const intentions = [
     <meta name="twitter:image:alt" content={socialImageAlt} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {/* Warm the hidden dialog artwork without delaying the high-priority VSL poster.
+        Exactly the same responsive selection as the image prevents double downloads.
+        No artwork preload on phones, where the entire column is hidden. */}
+    <link rel="preload" as="image" type="image/webp" href={checkoutArtSrc}
+      imagesrcset={responsiveDeltaImage(checkoutArtSrc, checkoutArtSizes).srcset}
+      imagesizes={checkoutArtSizes} media="(min-width: 761px)" fetchpriority="low" />
     <link rel="canonical" href="https://sonnycourt.com/delta-vision/" />
     <title>{inspira.title}</title>
   </head>
