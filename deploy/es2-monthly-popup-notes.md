@@ -54,3 +54,28 @@ No real purchase, card entry, CGV acceptance or email was used for testing.
 Build and `node scripts/es2-premium-preview-smoke.mjs` pass. Browser checks cover
 opening the actual iframe and its required fields/197 EUR schedule. A completed
 purchase and post-payment access/automations have not been tested.
+
+## Returning-buyer field cleanup — 2026-10-21
+
+Spiffy replaces its email input with a returning-customer summary. The inherited
+CSS depended on `:has(input[type="email"])`; when that input disappeared, dark
+first-name, country and MC2-token fields reappeared.
+
+Applied only to checkout 41175 and published through the Spiffy editor:
+
+- Native country block 373134 and MC2-token block 373135 removed from the form.
+  No customer field definition, existing customer value or order was deleted.
+  Country remains collected by the post-payment billing-address form.
+- First-name block 373132 made optional and hidden (not disabled or overwritten).
+  Existing provider identity is preserved; no invented first name is supplied.
+- Appended `spiffy-es2-monthly-identity-cleanup.css` after existing custom CSS.
+  Identity spacing and light email fallback no longer depend on an email input
+  being present. Keep the provider's recognised-customer summary/change action.
+- The email fallback remains when Spiffy does not recognise the buyer. Never hide
+  a required blank email or treat an email/name as authentication.
+- No payment prices, schedule, automations, redirects or MC2 checkout changed.
+  The checkout was still at the owner's temporary test price (1.48 EUR today)
+  during this correction; the existing marketing recap remains 197 EUR. Restore
+  the actual price before reopening the funnel, separately from this visual fix.
+- Published DOM verification: name optional and hidden, country/token absent,
+  native card iframe and required CGV still present. No payment was submitted.
