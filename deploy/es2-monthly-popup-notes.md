@@ -94,3 +94,22 @@ verification is limited to three attempts and every browser request has a
 12-second timeout, followed by recovery/help text rather than a stuck loader.
 Tests: `es2-premium-billing-smoke.mjs` and
 `es2-premium-confirmation-smoke.mjs`. No customer details were saved or emails sent.
+
+## General confirmation verification — supersedes exact-order exceptions
+
+The historical 2554891/2554945 exceptions and hardcoded EUR thresholds above
+are removed. Every new order uses the same server-side rule:
+
+- Match the order, buyer email and dedicated checkout from Spiffy's API.
+- Native: identify the ES2 upsell line and compare its frozen total with its
+  linked successful EUR payment; an unrelated Delta payment is insufficient.
+- Monthly: require product 11324, the order's 12-month payment plan and a
+  successful payment linked to both the ES2 item and that plan. Compare with
+  the instalment recorded on the order, including financing fees.
+- Reject refunded/skipped lines, refunded payments, wrong products and amounts.
+- No browser amount or current checkout price participates in verification.
+- Allow delayed upsell/payment synchronisation even if the parent Delta order
+  already says succeeded. Six attempts, five seconds apart, with a 12-second
+  per-request timeout; then manual retry/help, never an endless spinner.
+- No price, access, email, CRM data or maintenance configuration is changed.
+  The temporary test prices must still be restored before reopening.

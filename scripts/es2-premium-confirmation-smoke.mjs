@@ -36,11 +36,11 @@ assert.equal(rejected.node('identity-form').hidden,false);
 assert.match(rejected.node('loading-state').textContent,/Ne repaie pas/);
 
 const pending=boot(json({paid:false,retryable:true})); await settle();
-for(let i=0;i<2;i++) {
-  const entry=[...pending.timers].find(([,t])=>t.ms===2500);
+for(let i=0;i<5;i++) {
+  const entry=[...pending.timers].find(([,t])=>t.ms===5000);
   assert(entry);pending.timers.delete(entry[0]);entry[1].fn();await settle();
 }
-assert.equal(pending.calls(),3);
+assert.equal(pending.calls(),6);
 assert.equal(pending.timers.size,0);
 assert.match(pending.node('loading-state').textContent,/Ne repaie pas/);
 
@@ -50,4 +50,20 @@ assert(deadline);deadline.fn();await settle();
 assert.equal(stalled.node('identity-form').hidden,false);
 assert.match(stalled.node('loading-state').textContent,/Ne repaie pas/);
 assert.equal(stalled.timers.size,0);
+let syncCalls=0;
+const delayed=boot(async()=>({ok:true,json:async()=>({paid:++syncCalls===3,retryable:true})}));await settle();
+for(let i=0;i<2;i++) {
+  const [id,timer]=[...delayed.timers].find(([,t])=>t.ms===5000);
+  delayed.timers.delete(id);timer.fn();await settle();
+}
+assert.equal(delayed.node('billing-form').hidden,false);
+assert.equal(delayed.timers.size,0);
+let outages=0;
+const outage=boot(async()=>++outages===1
+  ? {ok:false,status:503,json:async()=>({error:'Temporary provider outage'})}
+  : {ok:true,json:async()=>({paid:true})});await settle();
+const [outageId,outageTimer]=[...outage.timers].find(([,t])=>t.ms===5000);
+outage.timers.delete(outageId);outageTimer.fn();await settle();
+assert.equal(outage.node('billing-form').hidden,false);
+assert.equal(outage.timers.size,0);
 console.log('Confirmation UI: success, terminal refusal, bounded retries and network timeout passed.');
