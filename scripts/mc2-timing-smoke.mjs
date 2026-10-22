@@ -60,7 +60,7 @@ assert.match(replayPage, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\
 assert.match(replayPage, /<DealOffer\b[^>]*\/>/);
 assert.doesNotMatch(replayPage, /Mc2InlineOffer/);
 assert.match(replayPage, /const OFFER_TOTAL_SEATS = 100/);
-assert.match(replayPage, /const OFFER_INITIAL_REMAINING_SEATS = 37/);
+assert.match(replayPage, /const OFFER_INITIAL_REMAINING_SEATS = MC2_SESSION_DISPLAY_INITIAL_SEATS;/);
 assert.match(replayPage, /startMc2OfferScarcityDisplay\(/);
 assert.doesNotMatch(replayPage, /createMc2OfferTimeline\(/);
 assert.doesNotMatch(replayPage, /startMc2SessionScarcity/);

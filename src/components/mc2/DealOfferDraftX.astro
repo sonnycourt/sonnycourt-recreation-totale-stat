@@ -9,9 +9,17 @@ import reviewConversionOrder from '../../data/review-conversion-order.json';
 interface Props {
   checkoutEmbedMode?: 'auto' | 'iframe';
   premiumUpsellPreview?: boolean;
+  initialRemainingSeats?: number;
+  consultationExhausted?: boolean;
 }
 
-const { checkoutEmbedMode = 'auto', premiumUpsellPreview = false } = Astro.props;
+const {
+  checkoutEmbedMode = 'auto',
+  premiumUpsellPreview = false,
+  initialRemainingSeats = 37,
+  consultationExhausted = false,
+} = Astro.props;
+const offerRemainingSeats = Math.max(0, Math.min(100, Number(initialRemainingSeats) || 0));
 
 const previewReviewOrder = new Map(reviewConversionOrder.filters.all.map((id, index) => [id, index]));
 const optimizedReviewPhotos = new Map([
@@ -2261,7 +2269,7 @@ const previewReviewInitials = (name) => name
             <img class="es2-volt-macbook" src="/media/deal-volt-macbook-transparent.webp" alt="Aperçu réel de la communauté Volt sur ordinateur" width="1200" height="840" loading="lazy" decoding="async" />
           </article>
 
-          <article class="es2-bonus-card es2-bonus-card--limited es2-bonus-card--consultation-proof" data-limited-bonus data-bonus-limit="80">
+          <article class:list={['es2-bonus-card', 'es2-bonus-card--limited', 'es2-bonus-card--consultation-proof', { 'is-sold-out': consultationExhausted }]} data-limited-bonus data-bonus-limit="80" data-bonus-exhausted={consultationExhausted ? 'true' : undefined}>
             <div class="es2-bonus-visual">
               <div class="es2-bonus-index"><span>Bonus</span><strong>05</strong></div>
             </div>
@@ -2274,12 +2282,12 @@ const previewReviewInitials = (name) => name
               <div class="es2-bonus-val"><span class="es2-bonus-val-label">Valeur du bonus</span><span class="es2-bonus-val-amount">1 297€</span></div>
             </div>
             <img class="es2-consultation-message" src="/media/deal-sonny-consultation-message-transparent-v3.webp" alt="Notification d’un message personnel de Sonny Court reçue il y a trois minutes" width="714" height="720" loading="lazy" decoding="async" />
-            <div class="es2-bonus-availability">
+            <div class:list={['es2-bonus-availability', { 'is-sold-out': consultationExhausted }]}>
               <div class="es2-bonus-availability__copy">
                 <span class="es2-bonus-availability__label">Bonus réservé aux 80 premiers inscrits</span>
-                <strong data-bonus-availability-text>Calcul de la disponibilité…</strong>
+                <strong data-bonus-availability-text>{consultationExhausted ? 'Les 80 places de ce bonus ont déjà été attribuées.' : 'Calcul de la disponibilité…'}</strong>
               </div>
-              <span class="es2-bonus-availability__count" data-bonus-availability-count></span>
+              <span class="es2-bonus-availability__count" data-bonus-availability-count>{consultationExhausted ? 'Épuisé' : ''}</span>
             </div>
           </article>
 
@@ -2303,7 +2311,7 @@ const previewReviewInitials = (name) => name
         </div>
       </section>
 
-      <section class="deal-scarcity" data-total-places="100" data-remaining-places="37" aria-label="Temps et places restantes pour cette offre">
+      <section class="deal-scarcity" data-total-places="100" data-remaining-places={offerRemainingSeats} aria-label="Temps et places restantes pour cette offre">
         <h2 class="deal-scarcity__title">Offre de lancement</h2>
         <div class="deal-scarcity__timer">
           <span class="deal-scarcity__label">Cette offre<br />disparaît dans</span>
@@ -2315,7 +2323,7 @@ const previewReviewInitials = (name) => name
           </div>
         </div>
         <div class="deal-scarcity__places">
-          <strong><span>37</span><small>/ 100</small></strong>
+          <strong><span>{offerRemainingSeats}</span><small>/ 100</small></strong>
           <p>places disponibles</p>
         </div>
       </section>
@@ -2672,7 +2680,8 @@ const previewReviewInitials = (name) => name
 
           document.querySelectorAll('[data-limited-bonus]').forEach((bonus) => {
             const limit = Number(bonus.dataset.bonusLimit || 0);
-            const available = Math.max(0, limit - attributedPlaces);
+            const forcedExhausted = bonus.dataset.bonusExhausted === 'true';
+            const available = forcedExhausted ? 0 : Math.max(0, limit - attributedPlaces);
             const availability = bonus.querySelector('.es2-bonus-availability');
             const text = bonus.querySelector('[data-bonus-availability-text]');
             const count = bonus.querySelector('[data-bonus-availability-count]');

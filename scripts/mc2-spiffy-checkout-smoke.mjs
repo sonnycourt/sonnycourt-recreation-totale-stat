@@ -13,10 +13,15 @@ const inlineJs = await fs.readFile(new URL('../spiffy/es2-mc2-inline-checkout.js
 const validationPatch = await fs.readFile(new URL('../spiffy/es2-mc2-validation-feedback.html', import.meta.url), 'utf8');
 const purchaseWebhook = await fs.readFile(new URL('../netlify/functions/spiffy-purchase-webhook.js', import.meta.url), 'utf8');
 
-// La page session consomme l'offre approuvée, qui possède désormais tout le checkout.
-assert.match(page, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOffer\.astro['"]/);
-assert.match(page, /<DealOffer\s+checkoutEmbedMode=["']iframe["']\s*\/>/);
-assert.match(replay, /<DealOffer\s+checkoutEmbedMode=["']iframe["']\s*\/>/);
+// Session et replay utilisent désormais DraftX. Tester son intégration actuelle
+// tout en conservant ci-dessous les protections du checkout historique.
+await import('./mc2-draftx-spiffy-smoke.mjs');
+await import('./mc2-current-spiffy-plans-smoke.mjs');
+for (const source of [page, replay]) {
+  assert.match(source, /import DealOffer from ['"]\.\.\/\.\.\/components\/mc2\/DealOfferDraftX\.astro['"]/);
+}
+assert.match(page, /<DealOffer\s+checkoutEmbedMode=["']iframe["'][^>]*\/>/);
+assert.match(replay, /<DealOffer\s+checkoutEmbedMode=["']iframe["'][^>]*\/>/);
 
 // Les deux checkouts réels sont intégrés, avec le comptant présélectionné.
 assert.match(offer, /spiffy\.load\(["']sonnycourt["']\)/);

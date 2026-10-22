@@ -1024,7 +1024,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
       </div>
 
       <div id="offer-zone" class="offer-zone hidden">
-        <DealOffer checkoutEmbedMode="iframe" />
+        <DealOffer checkoutEmbedMode="iframe" initialRemainingSeats={20} consultationExhausted />
         <div id="offer-expired-state" class="offer-expired-state hidden" aria-live="polite">
           <p class="offer-expired-title">L'offre et la masterclass ne sont plus disponibles</p>
           <p class="offer-expired-copy">Si vous avez des questions, contactez le support.</p>
@@ -1089,6 +1089,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     import { mountMc2BunnyVideo, useMc2BunnyPlayer } from '../../lib/mc2-bunny-player.mjs';
     const USE_BUNNY_PLAYER = useMc2BunnyPlayer();
     import { prefetchMc2OfferScarcity, startMc2OfferScarcityDisplay } from '../../lib/mc2-offer-scarcity-display.mjs';
+    import { MC2_SESSION_DISPLAY_INITIAL_SEATS, mc2SessionDisplaySeats } from '../../lib/mc2-session-seat-display.mjs';
     import { startMc2OfferObservability } from '../../lib/mc2-draftx-offer-observability';
     import {
       MC2_REPLAY_CTA_SECONDS,
@@ -1108,7 +1109,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
     let CTA_APPEAR_SECONDS = MC2_REPLAY_CTA_SECONDS;
     let CTA_ACTIVATE_SECONDS = CTA_APPEAR_SECONDS; // immédiatement cliquable à son apparition
     const OFFER_TOTAL_SEATS = 100;
-    const OFFER_INITIAL_REMAINING_SEATS = 37;
+    const OFFER_INITIAL_REMAINING_SEATS = MC2_SESSION_DISPLAY_INITIAL_SEATS;
     const VIDEO_TRACKING_CHECKPOINTS_MIN = [1, 15, 30, 45, 60, 70, 80];
     // Le replay retire exactement les 20 premières minutes de countdown du live.
     // W13B : offre à 1h14m50s dans le replay (1h34m50s dans le live).
@@ -1542,7 +1543,7 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         const snap = scarcityEngine?.debugSnapshot?.() || null;
         const soldCount = snap ? Number(snap.soldCount) || 0 : 0;
         const seatsLeft = snap
-          ? Math.max(0, OFFER_INITIAL_REMAINING_SEATS - Math.min(OFFER_INITIAL_REMAINING_SEATS, soldCount))
+          ? mc2SessionDisplaySeats(soldCount)
           : OFFER_INITIAL_REMAINING_SEATS;
         const phase = seatsLeft <= 0 ? 'sold_out' : 'active';
         const scarcityLabel = formatDevScarcityLabel(phase, seatsLeft);
@@ -1564,15 +1565,15 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
         const seats = Math.max(0, Math.min(OFFER_INITIAL_REMAINING_SEATS, Number(seatsLeft) || 0));
         window.__mc2DealOffer?.setPlaces?.(OFFER_TOTAL_SEATS, seats);
       }
-      function setSeatsLeft(seatsLeft, _soldCount, phase) {
-        const seats = Math.max(0, Math.min(OFFER_INITIAL_REMAINING_SEATS, Number(seatsLeft) || 0));
-        if (phase === 'sold_out' && seats <= 0) {
+      function setSeatsLeft(seatsLeft, soldCount, phase) {
+        const serverSeats = Math.max(0, Number(seatsLeft) || 0);
+        if (phase === 'sold_out' && serverSeats <= 0) {
           soldOutExpired = true;
           syncReplayUnavailableLock();
           return;
         }
         soldOutExpired = false;
-        renderScarcityVisual(seats, phase);
+        renderScarcityVisual(mc2SessionDisplaySeats(soldCount), phase);
       }
       function isOfferExpiredNow() {
         if (previewOfferStateOverride === 'expired') return true;

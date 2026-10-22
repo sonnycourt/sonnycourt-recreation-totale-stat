@@ -241,9 +241,8 @@ async function processCheckoutCompleted(stripe, session, event) {
   const schedule = await createInstallmentSchedule(stripe, session, registration, event.created);
   const nowIso = new Date().toISOString();
   const purchasedAt = registration.purchased_at || nowIso;
-  const purchaseBonusTag = registration.purchase_bonus_tag || mc2ConsultationBonusTag({
+  const purchaseBonusTag = mc2ConsultationBonusTag({
     registration,
-    purchasedAt,
   });
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
     statut: 'purchased',

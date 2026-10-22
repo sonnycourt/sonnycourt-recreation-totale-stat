@@ -383,9 +383,8 @@ export default async (req) => {
           if (owner.data[0].token !== mc2Row.token) return jsonResponse(200, { ok: true, skipped: 'purchase_order_already_linked' });
         }
       }
-      const purchaseBonusTag = mc2Row.purchase_bonus_tag || mc2ConsultationBonusTag({
+      const purchaseBonusTag = mc2ConsultationBonusTag({
         registration: mc2Row,
-        purchasedAt,
       });
       const updatedMc2 = await supabasePatch(
         'mc2_registrations',
