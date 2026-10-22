@@ -34,5 +34,5 @@ export function setupPayments({api,demo,demoCases,onView}){
   }
   function select(value){active=value;$('onboarding-panel').hidden=value;$('payments-panel').hidden=!value;$('tab-onboarding').setAttribute('aria-pressed',String(!value));$('tab-payments').setAttribute('aria-pressed',String(value));onView(value);if(value)refresh();}
   $('tab-onboarding').addEventListener('click',()=>select(false));$('tab-payments').addEventListener('click',()=>select(true));
-  return {isActive:()=>active,refresh};
+  return {isActive:()=>active,refresh,select};
 }

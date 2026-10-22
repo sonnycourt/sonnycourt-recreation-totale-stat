@@ -5,6 +5,8 @@ import { COUNTRY_GROUPS } from './lib/onboarding-country-groups.mjs';
 import { listCountryGroup } from './lib/onboarding-country-list.mjs';
 import { loadOnboardingPayments } from './lib/onboarding-payments.mjs';
 import { validateCoachings } from './lib/onboarding-coachings.mjs';
+import { validateOrganization,withOrganization } from './lib/onboarding-organization.mjs';
+import { loadAgenda,validAgendaRange } from './lib/onboarding-agenda.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify({...data,serverNow:new Date().toISOString()}), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -44,6 +46,10 @@ async function database(path, body) {
   const data = await response.json();
   if (!response.ok) {
     const error = new Error('database');
+    error.missingRelation=['42P01','PGRST200','PGRST205'].includes(data?.code);
+    if(['onboarding_organization_conflict','onboarding_invalid_organization'].includes(data?.message)){
+      error.reason=data.message;throw error;
+    }
     // Seuls ces codes métier contrôlés sortent de cette couche.
     error.reason = ['onboarding_version_conflict','onboarding_forbidden','onboarding_coaching_too_early','onboarding_command_conflict','onboarding_invalid_time','onboarding_invalid_coaching'].includes(data?.message) ? data.message : 'unavailable';
     throw error;
@@ -73,6 +79,11 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
       if (req.method === 'GET') {
         const url = new URL(req.url);
         if(url.searchParams.get('view')==='payments')return reply(200,{...await payments(db,scope),actor});
+        if(url.searchParams.get('view')==='agenda'){
+          const from=url.searchParams.get('from'),to=url.searchParams.get('to');
+          if(!validAgendaRange(from,to))return reply(400,{error:'Période invalide (42 jours maximum).'});
+          return reply(200,{...await loadAgenda(db,scope,{from,to}),actor});
+        }
         const id = url.searchParams.get('id');
         if (id) {
           if (!isUuid(id)) return reply(400, { error: 'Dossier invalide.' });
@@ -83,7 +94,8 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
           let coachings=null;
           try { coachings=await db(`onboarding_coaching_sessions?case_id=eq.${id}&select=number,status,scheduled_at,duration_minutes,notes&order=number.asc`); }
           catch { /* Migration non installée / panne : l'accueil existant reste accessible. */ }
-          return reply(200, { case: presentCase(timed), events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor, coachings });
+          const organized=await withOrganization(db,[timed],scope);
+          return reply(200, { case: presentCase(organized.rows[0]), organizationReady:organized.ready, events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor, coachings });
         }
         const filter = url.searchParams.get('filter') || 'all';
         const group = url.searchParams.get('country_group') || 'all';
@@ -104,6 +116,13 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
       const text = await req.text();
       if (text.length > 64000) return reply(413, { error: 'Notes trop longues.' });
       let body; try { body = JSON.parse(text); } catch { return reply(400, { error: 'Requête invalide.' }); }
+      if(body?.action==='organization'){
+        if(!validateOrganization(body))return reply(400,{error:'Vérifie le fuseau horaire, le motif et les liens HTTPS.'});
+        const organization=await db('rpc/onboarding_save_organization',{
+          p_actor:actor.id,p_case:body.case_id,p_version:body.version,p_command:body.command_id,p_patch:body.patch,
+        });
+        return reply(200,{organization});
+      }
       if (body?.action === 'delete_event') {
         if (!validateDeletion(body)) return reply(400, { error:'Entrée invalide.' });
         const row = await db('rpc/onboarding_delete_event', {p_actor:actor.id,p_case:body.case_id,p_version:body.version,p_event:body.event_id});
@@ -121,6 +140,8 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
       const [timed]=await withContactTimings(db,[withCoachings?saved.case:saved],scope);
       return reply(200, { case: presentCase(timed), ...(withCoachings?{coachings:saved.coachings}:{}) });
     } catch (error) {
+      if(error.reason==='onboarding_organization_conflict')return reply(409,{error:'L’organisation de ce dossier a changé dans un autre onglet. Tes saisies restent affichées ; recharge avant de réessayer.'});
+      if(error.reason==='onboarding_invalid_organization')return reply(400,{error:'Fuseau ou lien de visioconférence invalide. Rien n’a été modifié.'});
       if (error.reason === 'onboarding_version_conflict') return reply(409, { error: 'Ce dossier a été modifié dans un autre onglet. Ton brouillon est conservé : copie-le avant de recharger le dossier.' });
       if (error.reason === 'onboarding_forbidden') return reply(403, { error: 'Accès refusé.' });
       if (error.reason === 'onboarding_coaching_too_early') return reply(400, { error: 'Le premier coaching doit être planifié à partir de J+33.' });

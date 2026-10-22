@@ -4,6 +4,10 @@ import { setupPayments } from './onboarding-payments.js';
 import { workflowPatch } from '../../netlify/functions/lib/onboarding-workflow.mjs';
 import { mountCoachings, readCoachings } from './onboarding-coachings.js';
 import { validateCoachings } from '../../netlify/functions/lib/onboarding-coachings.mjs';
+import {organizationMarkup,organizationPatch} from './onboarding-organization.js';
+import {emptyOrganization,timeZoneSummary} from '../../netlify/functions/lib/onboarding-organization.mjs';
+import {agendaEvents} from '../../netlify/functions/lib/onboarding-agenda.mjs';
+import {setupAgenda} from './onboarding-agenda.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -23,9 +27,10 @@ function country(value) { if (!value || ['OTHER','Autre'].includes(value)) retur
 function whatsappLabel(c){return c.whatsapp_received_at?'Message WhatsApp reçu':c.whatsapp_known?'Réception WhatsApp non confirmée':'État WhatsApp indisponible';}
 function toast(text) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toast.timer); toast.timer=setTimeout(()=>{$('toast').hidden=true;},4500); }
 function message(text='') { $('global-message').textContent=text; $('global-message').hidden=!text; }
-function canLeave() { return !state.saving && (!state.dirty || confirm('Des modifications ne sont pas enregistrées. Quitter cette fiche sans les sauvegarder ?')); }
+function canLeave() { return !state.saving && (!(state.dirty||state.organizationDirty) || confirm('Des modifications ne sont pas enregistrées. Quitter cette fiche sans les sauvegarder ?')); }
 function setDirty() { state.dirty=true; const flag=$('save-state'); if(flag){flag.textContent='Modifications non enregistrées';flag.className='unsaved';} }
-window.addEventListener('beforeunload',(e)=>{if(state.dirty || state.modalDirty || state.saving){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',(e)=>{if(state.dirty || state.organizationDirty || state.modalDirty || state.saving){e.preventDefault();e.returnValue='';}});
+const archivedOption=document.createElement('option');archivedOption.value='archived';archivedOption.textContent='Dossiers archivés';$('filter').append(archivedOption);
 
 async function api(path='',body) {
   const res=await fetch(`/.netlify/functions/onboarding-crm${path}`,{
@@ -49,6 +54,7 @@ const demoCases = ['Camille Martin','Alex Bernard','Sarah Laurent','Noa Petit'].
   onboarding_at:i===2?new Date(Date.now()+86400000).toISOString():null,coaching_at:null,
   goal:i===1?'Prendre confiance pour lancer son projet.':'',motivations:'',obstacles:'',routine:'',notes:'',
   training_access:i>0,community_access:i>0,feedback_explained:i===3,coaching_booked:false,version:1,
+  organization:{...emptyOrganization(),time_zone:['Europe/Paris','America/Toronto','Europe/Brussels','Africa/Casablanca'][i]},
 }));
 const demoEvents = new Map();
 const demoCoachings = new Map();
@@ -63,7 +69,7 @@ for(const i of [2,3])demoEvents.set(demoCases[i].id,[{id:crypto.randomUUID(),kin
 const demoTimed=(c)=>({...c,contact_timing_known:true,first_successful_contact_at:firstSuccessfulContact(demoEvents.get(c.id)||[]),whatsapp_known:true,whatsapp_received_at:(demoEvents.get(c.id)||[]).find(e=>e.kind==='whatsapp_received')?.occurred_at||null});
 function demoList() {
   const page=countryGroupPage(demoCases,{group:$('country-group').value,filter:$('filter').value,search:$('search').value});
-  return {...page,cases:page.cases.map(demoTimed),actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString()};
+  return {...page,cases:page.cases.map(demoTimed),organizationReady:true,actor:{name:'Romain · démo',id:22},refreshedAt:new Date().toISOString()};
 }
 
 function renderClocks() {
@@ -82,6 +88,10 @@ function renderList() {
   $('total').textContent=`${state.total}`;
   $('case-list').innerHTML=state.cases.length?state.cases.map((c)=>`<div role="listitem"><button class="person ${c.id===state.selected?'selected':''}" data-case="${esc(c.id)}" aria-pressed="${c.id===state.selected}"><span class="person-top"><span class="avatar">${esc(initials(c.name))}</span><span><strong>${esc(c.name)}</strong><span class="place">${esc(country(c.country))}${c.city?' · '+esc(c.city):''}</span></span></span><span class="person-bottom"><span class="tag ${esc(c.status)}">${esc(statusLabels[c.status])}</span><small>${esc(fmtDate(c.purchased_at))}</small></span><span class="person-whatsapp ${c.whatsapp_received_at?'received':''}">${esc(whatsappLabel(c))}</span><span class="person-next">${esc(actionLabels[c.next_action])}${c.followup_at?' · '+esc(fmtTime(c.followup_at)):''}</span><span class="contact-clock-compact" data-contact-clock="${esc(c.id)}" aria-live="off"></span></button></div>`).join(''):'<p class="empty small">Aucun dossier dans cette sélection.</p>';
   $('load-more').hidden=state.cases.length>=state.total;
+  for(const c of state.cases){
+    const button=document.querySelector(`[data-case="${c.id}"]`),summary=timeZoneSummary(c.organization?.time_zone,timerNow());
+    if(button&&summary){const label=document.createElement('span');label.className='person-next';label.textContent=summary.label;button.append(label);}
+  }
   renderClocks();
 }
 async function loadList(append=false) {
@@ -98,6 +108,7 @@ async function loadList(append=false) {
     $('actor-name').textContent=data.actor.name;
     $('actor-photo').hidden=Number(data.actor.id)!==22;
     for(const key of ['all','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
+    archivedOption.textContent=`Dossiers archivés (${data.counts.archived??0})`;
     $('sync-label').textContent=`À jour à ${new Date(data.refreshedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · actualisation 60 s`;
     message(data.syncWarning?'Les dossiers existants restent accessibles, mais les nouvelles arrivées n’ont pas pu être actualisées. Réessaie dans un instant.':'');
     renderList();
@@ -122,6 +133,9 @@ function renderDetail() {
     <section class="detail-section"><div class="section-heading"><h3>Prochaine étape</h3><small>Heures · ${esc(zone)}</small></div><p class="workflow-current">${esc(statusLabels[c.status])}${c.status==='booked'&&c.onboarding_at?' · '+esc(fmtTime(c.onboarding_at)):''}</p><label>Que prévois-tu ?<select id="workflow-step"><option value="keep">Conserver le suivi actuel</option value="booked">Planifier l’onboarding</option><option value="followup">Relancer plus tard</option><option value="done">Marquer l’accueil réalisé</option><option value="paused">Mettre le dossier en pause</option></select></label><div class="workflow-date" id="onboarding-date-field" hidden><label>Onboarding prévu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label></div><div class="workflow-date" id="followup-date-field" hidden><label>Relancer le<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><label class="coaching-date">Premier coaching<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · la date suffit à le marquer comme agendé.${c.coaching_booked&&!c.coaching_at?' Déjà marqué comme agendé, sans date renseignée.':''}</small></label><details class="workflow-advanced" id="workflow-advanced"><summary>Modifier le suivi manuellement</summary><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label></div></details><p class="small" style="margin-top:14px">Repères internes : aucun message ni invitation ne sera envoyé.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer</button></div></form>
     <p id="detail-message" role="status" hidden></p><section class="detail-section"><div class="section-heading"><h3>Historique des contacts</h3></div><p class="small">Les 100 dernières actions · ${esc(zone)}</p><ul id="history" class="history"></ul><div class="actions" style="margin-top:18px"><button class="quiet" id="copy-draft" type="button">Copier mon brouillon</button><button class="quiet" id="reload-case" type="button">Recharger la fiche</button></div></section>`;
   mountCoachings({form:$('case-form'),row:c,saved:state.coachings,ready:state.coachingsReady,zone});
+  $('case-form').insertAdjacentHTML('beforebegin',organizationMarkup(c,state.organizationReady));
+  bindOrganization();
+  if(c.organization?.archived_at){$('log-contact').disabled=true;$('log-contact').title='Restaure le dossier avant de reprendre les contacts.';}
   renderHistory();
   renderClocks();
   $('case-form').addEventListener('input',setDirty);
@@ -139,21 +153,60 @@ function renderDetail() {
   $('log-contact').addEventListener('click',openContact);
   $('history').addEventListener('click',(e)=>{const b=e.target.closest('[data-delete-event]');if(b)deleteEvent(b.dataset.deleteEvent);});
   $('reload-case').addEventListener('click',()=>selectCase(c.id));
-  $('copy-draft').addEventListener('click',()=>copy(JSON.stringify({...getPatch(),...(state.coachingsReady?{coachings:readCoachings($('case-form'))}:{})},null,2)));
+  $('copy-draft').addEventListener('click',()=>copy(JSON.stringify({...getPatch(),...(state.coachingsReady?{coachings:readCoachings($('case-form'))}:{}),...($('organization-form')?{organization:Object.fromEntries(new FormData($('organization-form')))}:{})},null,2)));
   $('copy-sms').addEventListener('click',()=>copy(sms));
   $('back-list').addEventListener('click',()=>document.querySelector('.directory').scrollIntoView({behavior:'smooth'}));
 }
 async function copy(text){try{await navigator.clipboard.writeText(text);toast('Copié.');}catch{toast('Copie automatique indisponible : sélectionne le texte pour le copier.');}}
+function bindOrganization(){
+  const form=$('organization-form');if(!form)return;
+  form.addEventListener('input',()=>{state.organizationDirty=true;$('organization-state').textContent='Organisation non enregistrée';for(const input of form.querySelectorAll('input'))input.setCustomValidity('');});
+  form.addEventListener('submit',e=>{e.preventDefault();const patch=organizationPatch(form);if(patch)saveOrganization(patch);});
+  $('archive-case').addEventListener('click',()=>{
+    if(state.dirty||state.organizationDirty||state.modalDirty)return toast('Enregistre d’abord tes notes et les modifications d’organisation.');
+    const archived=!!state.current.organization?.archived_at;
+    if(!confirm(archived?'Restaurer ce dossier dans les listes actives ?':'Archiver ce dossier ? Toutes les notes et les séances seront conservées.'))return;
+    saveOrganization({archived:!archived,archive_reason:archived?'':$('archive-reason').value});
+  });
+}
+async function saveOrganization(patch){
+  if(state.saving||state.detailLoading)return;
+  const org=state.current.organization||emptyOrganization();
+  const signature=JSON.stringify({case_id:state.selected,version:org.version,patch});
+  const command_id=state.organizationPending?.signature===signature?state.organizationPending.id:crypto.randomUUID();
+  state.organizationPending={signature,id:command_id};state.saving=true;$('detail').inert=true;
+  $('organization-error').hidden=true;$('organization-state').textContent='Enregistrement…';
+  try{
+    let saved;
+    if(demo){
+      saved={...org,...patch,version:org.version+1};
+      if(Object.hasOwn(patch,'archived')){saved.archived_at=patch.archived?(org.archived_at||new Date().toISOString()):null;saved.archive_reason=patch.archived?patch.archive_reason:'';delete saved.archived;}
+      demoCases.find(c=>c.id===state.selected).organization=saved;
+    }else saved=(await api('',{action:'organization',case_id:state.selected,version:org.version,command_id,patch})).organization;
+    state.current.organization=saved;state.organizationDirty=false;state.organizationPending=null;
+    // Remplacer uniquement l'organisation : les notes/brouillons ne sont pas touchés.
+    $('detail').querySelector('.organization').outerHTML=organizationMarkup(state.current,true);bindOrganization();
+    $('log-contact').disabled=!!saved.archived_at;
+    if(!Object.hasOwn(patch,'archived'))$('organization-settings').open=true;
+    toast(Object.hasOwn(patch,'archived')?(saved.archived_at?'Dossier archivé. Notes conservées.':'Dossier restauré.'):'Organisation enregistrée.');
+    try{await loadList();}catch{message('Organisation enregistrée. La liste sera actualisée au prochain chargement.');}
+  }catch(error){
+    $('organization-error').textContent=error.message;$('organization-error').hidden=false;
+    $('organization-state').textContent='Non enregistré · saisies conservées';
+  }finally{state.saving=false;$('detail').inert=false;}
+}
 async function selectCase(id) {
-  if(!canLeave())return;
+  if(!canLeave())return false;
   const seq=++state.detailSeq;state.detailLoading=true;$('detail').inert=true;
   try {
-    const data=demo?{case:demoTimed(demoCases.find(c=>c.id===id)),events:demoEvents.get(id)||[],coachings:demoCoachings.get(id)||[]}:await api(`?id=${encodeURIComponent(id)}`);
+    const data=demo?{case:demoTimed(demoCases.find(c=>c.id===id)),events:demoEvents.get(id)||[],coachings:demoCoachings.get(id)||[],organizationReady:true}:await api(`?id=${encodeURIComponent(id)}`);
     if(seq!==state.detailSeq)return;
     state.selected=id;state.current=data.case;state.events=data.events;state.dirty=false;state.pending=null;
+    state.organizationReady=data.organizationReady===true;state.organizationDirty=false;state.organizationPending=null;
     state.coachingsReady=Array.isArray(data.coachings);state.coachings=data.coachings||[];
     renderList();renderDetail();
     if(matchMedia('(max-width:760px)').matches)$('detail').scrollIntoView({behavior:'smooth',block:'start'});
+    return true;
   } catch(e){message(e.message);}finally{if(seq===state.detailSeq){state.detailLoading=false;$('detail').inert=false;}}
 }
 function getPatch() {
@@ -202,6 +255,7 @@ $('contact-form').addEventListener('submit',e=>{
   save(kind,{note,occurred_at:at});
 });
 async function save(kind, contact={}) {
+  if(state.organizationDirty){$('organization-settings').open=true;return toast('Enregistre d’abord le fuseau et les liens. Tes notes restent dans la fiche.');}
   if(state.saving||state.detailLoading||!$('case-form').reportValidity())return;
   const note=contact.note||'',patch=getPatch();
   const coachings=state.coachingsReady?readCoachings($('case-form')):undefined;
@@ -225,7 +279,7 @@ async function save(kind, contact={}) {
       demoEvents.set(c.id,[{id:command_id,kind,note,occurred_at,can_delete:true},...events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at)));
       data.case=demoTimed(c);
     } else data=await api('',{case_id:state.selected,version:state.current.version,command_id,patch,kind,note,occurred_at,...(coachings?{coachings}:{})});
-    state.current=data.case;state.dirty=false;state.modalDirty=false;state.pending=null;succeeded=true;
+    state.current={...data.case,organization:state.current.organization};state.dirty=false;state.modalDirty=false;state.pending=null;succeeded=true;
     if(coachings)state.coachings=data.coachings||coachings;
     try{state.events=demo?(demoEvents.get(state.selected)||[]):(await api(`?id=${state.selected}`)).events;}
     catch{state.events=[{kind,note,occurred_at},...state.events].sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at));}
@@ -245,7 +299,7 @@ async function save(kind, contact={}) {
 }
 async function deleteEvent(id) {
   if(state.saving||state.detailLoading)return;
-  if(state.dirty)return toast('Enregistre d’abord les modifications de la fiche.');
+  if(state.dirty||state.organizationDirty)return toast('Enregistre d’abord les modifications de la fiche.');
   const event=state.events.find(e=>e.id===id);
   if(!event?.can_delete)return;
   if(!confirm('Supprimer cette entrée de l’historique ? Les notes et l’état de la fiche resteront inchangés.'))return;
@@ -256,7 +310,7 @@ async function deleteEvent(id) {
       const c=demoCases.find(c=>c.id===state.selected);c.version++;state.current=demoTimed(c);
     }else{
       const data=await api('',{action:'delete_event',case_id:state.selected,version:state.current.version,event_id:id});
-      state.current=data.case;
+      state.current={...data.case,organization:state.current.organization};
     }
     state.events=state.events.filter(e=>e.id!==id);state.pending=null;renderDetail();
     toast('Entrée supprimée de l’historique.');
@@ -266,8 +320,13 @@ async function deleteEvent(id) {
 }
 
 $('case-list').addEventListener('click',(e)=>{const b=e.target.closest('[data-case]');if(b)selectCase(b.dataset.case);});
-const payments=setupPayments({api,demo,demoCases,onView:active=>{$('sync-label').textContent=active?'Spiffy · cache de 30 minutes':'Actualisation automatique · 60 s';}});
-$('refresh').addEventListener('click',()=>payments.isActive()?payments.refresh():loadList().catch(e=>message(e.message)));
+const payments=setupPayments({api,demo,demoCases,onView:active=>{agenda.select(false);$('sync-label').textContent=active?'Spiffy · cache de 30 minutes':'Actualisation automatique · 60 s';}});
+const agenda=setupAgenda({api,
+  demoData:demo?range=>({...range,organizationReady:true,events:agendaEvents(demoCases,[...demoCoachings].flatMap(([case_id,items])=>items.map(s=>({...s,case_id}))),range)}):null,
+  onSelect:()=>{payments.select(false);$('onboarding-panel').hidden=true;$('agenda-panel').hidden=false;$('tab-agenda').setAttribute('aria-pressed','true');$('tab-onboarding').setAttribute('aria-pressed','false');$('sync-label').textContent='Agenda interne · horaires de Paris';},
+  onOpenCase:async id=>{if(await selectCase(id)){payments.select(false);$('detail').scrollIntoView({behavior:'smooth',block:'start'});}},
+});
+$('refresh').addEventListener('click',()=>agenda.isActive()?agenda.refresh():payments.isActive()?payments.refresh():loadList().catch(e=>message(e.message)));
 $('load-more').addEventListener('click',()=>{if(!state.loading)loadList(true).catch(e=>message(e.message));});
 $('filter').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
 $('country-group').addEventListener('change',()=>loadList().catch(e=>message(e.message)));
@@ -293,7 +352,7 @@ if(demo){$('demo-banner').hidden=false;openCrm().then(()=>selectCase(demoCases[0
 else openCrm().catch(e=>{if(e.status!==401)$('login-message').textContent=e.message;});
 setInterval(()=>{
   // La fiche ouverte et ses brouillons ne sont jamais remplacés par un rafraîchissement.
-  if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving && !payments.isActive())loadList().catch(e=>message(e.message));
+  if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving && !payments.isActive()&&!agenda.isActive())loadList().catch(e=>message(e.message));
 },60000);
 // Compteur visuel uniquement : aucune requête réseau chaque seconde.
 setInterval(()=>{if(!$('crm-screen').hidden&&!document.hidden)renderClocks();},1000);
@@ -301,6 +360,6 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
     renderClocks();
     // Resynchroniser l'heure après une mise en veille, sans remplacer le brouillon.
-    if(!$('crm-screen').hidden&&!state.loading&&!state.saving&&!payments.isActive())loadList().catch(e=>message(e.message));
+    if(!$('crm-screen').hidden&&!state.loading&&!state.saving&&!payments.isActive()&&!agenda.isActive())loadList().catch(e=>message(e.message));
   }
 });

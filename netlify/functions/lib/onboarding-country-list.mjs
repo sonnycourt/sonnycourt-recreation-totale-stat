@@ -1,5 +1,6 @@
 import {countryGroupPage} from './onboarding-country-groups.mjs';
 import {isUuid} from './onboarding-domain.mjs';
+import {withOrganization} from './onboarding-organization.mjs';
 
 // Lecture minimale paginée, sans notes ni historique. Le scope provient seulement
 // de la session vérifiée. Ne jamais renvoyer un résultat partiel comme un total.
@@ -13,7 +14,8 @@ export async function listCountryGroup(db,scope,options) {
     rows.push(...batch);
     if(rows.length>10000)throw new Error('country list limit');
   }
-  const page=countryGroupPage(rows,options);
+  const organized=await withOrganization(db,rows,scope);
+  const page={...countryGroupPage(organized.rows,options),organizationReady:organized.ready};
   if(!page.cases.length)return page;
   const ids=page.cases.map(row=>row.id);
   if(!ids.every(isUuid))throw new Error('invalid case');
@@ -22,5 +24,6 @@ export async function listCountryGroup(db,scope,options) {
   // Une attribution a pu changer pendant la lecture : ne pas afficher des
   // résultats incomplets ni sortir du scope pour récupérer la fiche manquante.
   if(ids.some(id=>!byId.has(id)))throw new Error('country list changed');
-  return {...page,cases:ids.map(id=>byId.get(id))};
+  const metadata=new Map(organized.rows.map(r=>[r.id,r.organization]));
+  return {...page,cases:ids.map(id=>({...byId.get(id),organization:metadata.get(id)}))};
 }

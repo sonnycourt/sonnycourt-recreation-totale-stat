@@ -1,5 +1,5 @@
 // Domaine pur : utilisé côté serveur et testé sans réseau ni base de production.
-export const FILTERS = ['all', 'new', 'due', 'booked', 'done', 'paused'];
+export const FILTERS = ['all', 'new', 'due', 'booked', 'done', 'paused', 'archived'];
 export const CONTACT_LABELS = { whatsapp_received:'Message WhatsApp reçu', call_no_answer:'Appel sans réponse', call_answered:'Appel avec réponse', sms_sent:'SMS envoyé', whatsapp_sent:'Note vocale WhatsApp envoyée', contacted:'Autre réponse reçue par message', unreachable:'Numéro injoignable', completed:'Onboarding réalisé', note:'Note de suivi' };
 export const KINDS = ['updated', ...Object.keys(CONTACT_LABELS)];
 export const STATUSES = ['new', 'contacting', 'awaiting', 'contacted', 'booked', 'done', 'paused'];
@@ -41,6 +41,7 @@ export function validateDeletion(body) {
 
 // Même progression dans la démo et les commandes réelles. Aucune communication.
 export function contactStep(kind, at, status) {
+  if(status==='done' && !['updated','completed'].includes(kind))return {};
   if(kind==='whatsapp_received')return ['booked','done','paused'].includes(status)?{}:{status:'contacted',next_action:'onboarding',followup_at:null};
   const steps = {
     call_no_answer: ['contacting', 'sms', at],
