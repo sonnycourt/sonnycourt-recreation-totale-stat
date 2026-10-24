@@ -1,4 +1,5 @@
 import {deltaIdentity,deltaJson,saveDeltaSubscriber} from './lib/delta-vision-mailerlite.mjs';
+import {cleanMetaAttribution,recordMetaLead} from './lib/delta-meta-attribution.mjs';
 
 export const config={path:'/.netlify/functions/delta-vision-register',rateLimit:{windowLimit:12,windowSize:60,aggregateBy:['ip','domain']}};
 export default async function handler(req) {
@@ -26,6 +27,9 @@ export default async function handler(req) {
   if (hosted && !['41049','41096'].includes(input?.checkoutId)) return reply(400,{ok:false});
   const identity=deltaIdentity(input,{emailOnly:hosted});
   if (!identity) return reply(400,{ok:false});
-  try {await saveDeltaSubscriber(identity);return reply(200,{ok:true});}
-  catch {return reply(503,{ok:false});}
+  // Trafic venu d'une pub Meta uniquement : Lead CAPI dédupliqué avec le pixel, puis mémorisation pour le Purchase serveur.
+  // En parallèle de MailerLite pour ne pas allonger l'attente ; seul MailerLite décide du succès.
+  const attribution=hosted?null:cleanMetaAttribution(input.meta);
+  const [saved]=await Promise.allSettled([saveDeltaSubscriber(identity),attribution?recordMetaLead({email:identity.email,attribution,req}):null]);
+  return saved.status==='fulfilled'?reply(200,{ok:true}):reply(503,{ok:false});
 }

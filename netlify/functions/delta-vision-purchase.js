@@ -1,5 +1,6 @@
 import {timingSafeEqual} from 'node:crypto';
 import {deltaJson,saveDeltaSubscriber} from './lib/delta-vision-mailerlite.mjs';
+import {sendMetaPurchase} from './lib/delta-meta-attribution.mjs';
 
 // Dedicated to native Purchase automations of the Delta Vision checkouts.
 // No browser redirect or client event can add a buyer.
@@ -19,6 +20,8 @@ export default async function handler(req) {
   // The provider's Purchase event is authenticated above; do not log its payment/customer payload.
   try {
     await saveDeltaSubscriber({email,firstName:String(body.name_first || '').slice(0,100)}, {buyer:true});
+    // Purchase Meta CAPI seulement si cet email a été mémorisé comme lead venu d'une pub Meta ; jamais bloquant.
+    await sendMetaPurchase({email,orderId:String(body.order_id),checkoutId:String(body.checkout_id),rawAmount:body.total ?? body.amount ?? body.order_total});
     return deltaJson(200,{ok:true});
   } catch {return deltaJson(503,{ok:false});} // Retry remains safe: MailerLite upserts/group additions are idempotent.
 }

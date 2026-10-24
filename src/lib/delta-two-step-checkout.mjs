@@ -47,19 +47,20 @@ export function mountPayment(slot,identity,offer,{view=slot.ownerDocument.defaul
  frame.addEventListener('load',()=>{loaded=true;if(anonymous&&activated&&!warm)fallbackTimer=view.setTimeout(fallback,1200);reveal();});view.addEventListener('message',receive);frame.src=paymentUrl(identity,offer,view.location.href,visit);if(activated)timer=view.setTimeout(fail,20000);
  return {destroy,activate,price:offer.price,checkoutUrl:offer.checkoutUrl};
 }
-export function initTwoStepCheckout(doc,win,urgency){
+export function initTwoStepCheckout(doc,win,urgency,{attribution=null}={}){
+ const notify=(name,detail)=>{try{doc.dispatchEvent(new CustomEvent(name,{detail}));}catch{/* Les hooks de mesure ne bloquent jamais le parcours. */}};
  const dialog=doc.querySelector('[data-dvp-dialog]');if(!dialog||dialog.dataset.bound)return;dialog.dataset.bound='true';
  const form=dialog.querySelector('[data-dvp-identity]'),error=dialog.querySelector('[data-dvp-identity-error]'),slot=dialog.querySelector('[data-dvp-payment-slot]');
  let busy=false,payment,lockedOffer,opener;
  const show=step=>{dialog.dataset.step=step;dialog.querySelectorAll('[data-dvp-panel]').forEach(p=>{p.hidden=p.dataset.dvpPanel!==step;p.inert=p.hidden;});dialog.querySelectorAll('[data-dvp-step]').forEach(p=>{if(p.dataset.dvpStep===step)p.setAttribute('aria-current','step');else p.removeAttribute('aria-current');p.classList.toggle('is-done',step==='payment'&&p.dataset.dvpStep==='identity');});dialog.setAttribute('aria-labelledby','dvp-title-'+step);dialog.scrollTop=0;dialog.querySelector('#dvp-title-'+step).focus({preventScroll:true});};
  function render(){const current=urgency.render(),offer=lockedOffer||current;
   dialog.querySelector('[data-dvp-price]').textContent=offer.price;dialog.querySelector('[data-dvp-before]').hidden=offer.price>=inspira.referencePrice;dialog.querySelector('[data-dvp-discount]').hidden=offer.price>=inspira.referencePrice;
-  dialog.querySelector('[data-dvp-launch]').textContent=offer.expired?'Delta Vision':current.expired?'Ton tarif pour ce paiement':'Offre de lancement';
+  dialog.querySelector('[data-dvp-launch]').textContent=offer.expired?'Delta Vision':current.expired?'Ton tarif pour ce paiement':'Ton tarif de bienvenue';
   const clock=dialog.querySelector('[data-dvp-clock]');clock.hidden=current.expired||offer.expired;
   for(const [k,v]of Object.entries({hours:Math.floor(current.remaining/3600),minutes:Math.floor(current.remaining/60)%60,seconds:current.remaining%60}))clock.querySelector('[data-'+k+']').textContent=String(v).padStart(2,'0');
   return current;
  }
- const open=link=>{opener=link;urgency.sync();dialog.showModal();show('identity');render();};
+ const open=link=>{opener=link;urgency.sync();dialog.showModal();show('identity');render();notify('dv:checkout-open',{price:render().price});};
  for(const link of doc.querySelectorAll('[data-dv-buy]')){link.setAttribute('aria-haspopup','dialog');link.addEventListener('click',event=>{if(event.metaKey||event.ctrlKey||event.altKey||event.shiftKey)return;event.preventDefault();open(link);});}
  const reset=()=>{payment?.destroy();payment=null;lockedOffer=null;};
  const prepare=()=>{if(!dialog.open||dialog.dataset.step!=='identity'||busy)return;const offer=urgency.render();if(payment&&(payment.price!==offer.price||payment.checkoutUrl!==offer.checkoutUrl)){payment.destroy();payment=null;}if(!payment)payment=mountPayment(slot,null,offer,{view:win});};
@@ -72,9 +73,13 @@ export function initTwoStepCheckout(doc,win,urgency){
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;form.elements.firstName.setCustomValidity(form.elements.firstName.value.trim()?'':'Indique ton prénom.');if(!form.reportValidity())return;
   const identity={firstName:form.elements.firstName.value.trim(),email:form.elements.email.value.trim().toLowerCase(),website:form.elements.website.value};
+  // Attribution Meta (fbc/fbp/UTM) jointe seulement pour le trafic venu d'une pub ; eventId partagé navigateur/serveur pour la déduplication.
+  let meta=null;try{const extra=typeof attribution==='function'?attribution():null;if(extra)meta={...extra,eventId:win.crypto.randomUUID()};}catch{meta=null;}
+  const payload=meta?{...identity,meta}:identity;
   prepare();busy=true;error.hidden=true;const button=form.querySelector('[type=submit]');button.disabled=true;button.setAttribute('aria-busy','true');
-  try{const response=await win.fetch('/.netlify/functions/delta-vision-register',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(identity),signal:AbortSignal.timeout(15000)});const result=await response.json();if(!response.ok||result.ok!==true)throw Error('registration_failed');
+  try{const response=await win.fetch('/.netlify/functions/delta-vision-register',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});const result=await response.json();if(!response.ok||result.ok!==true)throw Error('registration_failed');
    urgency.sync();lockedOffer=urgency.render();render();dialog.querySelector('[data-dvp-email]').textContent=identity.email;show('payment');
+   if(meta)notify('dv:lead',{eventId:meta.eventId,price:lockedOffer.price});
    // Only the authenticated provider Purchase webhook grants buyer status/access.
    const visit=new URL(opener?.href||lockedOffer.checkoutUrl).searchParams.get('dv_visit');
    if(!payment||payment.price!==lockedOffer.price||payment.checkoutUrl!==lockedOffer.checkoutUrl||!payment.activate(identity,visit)){payment?.destroy();payment=mountPayment(slot,identity,lockedOffer,{view:win,visit});}
