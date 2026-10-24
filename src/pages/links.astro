@@ -1,0 +1,141 @@
+---
+import { deltaSocialProof, socialProofCheckedAt } from '../data/delta-social-proof.mjs';
+
+const links = [
+  {
+    id: 'masterclass', theme: 'masterclass', href: '/mc2/',
+    image: '/media/pages/mc2-masterclass-20260929-640.webp',
+    width: 640, height: 426,
+    label: 'MASTERCLASS GRATUITE', duration: '1 h 30 pour approfondir', title: 'Esprit Subconscient 2.0',
+    intent: 'Comprendre ce qui te freine.',
+    description: 'Prends le temps d’explorer tes blocages et d’apprendre à reprogrammer ton subconscient pour avancer vers ce que tu veux.',
+    action: 'Réserver ma place gratuitement',
+  },
+  {
+    id: 'delta-vision', theme: 'delta', href: '/delta-vision/',
+    image: '/media/pages/delta-responsive/inspira-vsl-jungle-v2-480.webp',
+    width: 480, height: 270,
+    label: 'PROGRAMME GUIDÉ', duration: 'Une pratique de 12 min', title: 'Delta Vision',
+    intent: 'Peu de temps ? Vis l’expérience.',
+    description: 'Laisse-toi guider par la respiration et la visualisation pour changer d’état intérieur. Une pratique courte, à ressentir dès la première séance.',
+    action: 'Découvrir l’expérience',
+  },
+];
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c141d" />
+    <meta name="robots" content="noindex, follow" />
+    <title>Sonny Court — Masterclass & Delta Vision</title>
+    <meta name="description" content="Retrouve la masterclass gratuite Esprit Subconscient 2.0 et l’expérience guidée Delta Vision de Sonny Court." />
+    <link rel="canonical" href="https://sonnycourt.com/links/" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <meta property="og:title" content="Sonny Court — Masterclass & Delta Vision" />
+    <meta property="og:description" content="La masterclass gratuite et le programme guidé Delta Vision. Retrouve les liens ici." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://sonnycourt.com/media/pages/mc2-masterclass-20260929-640.webp" />
+  </head>
+  <body>
+    <main>
+      <header class="profile">
+        <img class="avatar" src="/media/pages/sonny-pp-blue.webp" width="64" height="64" alt="Sonny Court" decoding="async" />
+        <div>
+          <h1>Sonny Court</h1>
+        </div>
+      </header>
+
+      <aside class="social-proof" aria-label="Abonnés sur les réseaux sociaux" data-checked-at={socialProofCheckedAt}>
+        {deltaSocialProof.map(network => (
+          <div class="social-stat" aria-label={`${network.name} : ${network.display} ${network.unit} abonnés`}>
+            <span class="network"><span class="network-icon" aria-hidden="true" style={`--icon: url('/media/brands/${network.icon}.svg')`}></span>{network.name}</span>
+            <strong>{network.display}<span> {network.unit}</span></strong>
+            <span class="unit">abonnés</span>
+          </div>
+        ))}
+      </aside>
+
+      <nav aria-label="Découvrir les programmes de Sonny Court">
+        {links.map(link => (
+          <a class={`card ${link.theme}`} href={`${link.href}?utm_source=bio&utm_medium=organic_social&utm_campaign=bio&utm_content=${link.id}`} data-bio-link={link.id} aria-labelledby={`${link.id}-title ${link.id}-action`}>
+            <div class="card-heading">
+              <div class="visual">
+                <img src={link.image} width={link.width} height={link.height} alt="" decoding="async" loading="eager" />
+              </div>
+              <div class="heading-copy">
+                <span class="label">{link.label}</span>
+                <h2 id={`${link.id}-title`}>{link.title}</h2>
+              </div>
+            </div>
+            <div class="copy">
+              <span class="duration">{link.duration}</span>
+              <h3>{link.intent}</h3>
+              <p>{link.description}</p>
+              <span class="action" id={`${link.id}-action`}>{link.action}<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></span>
+            </div>
+          </a>
+        ))}
+      </nav>
+      <footer>SONNYCOURT.COM</footer>
+    </main>
+    <script>
+      // Carry only campaign attribution, never personal checkout parameters.
+      // Plain links remain fully functional when JavaScript is unavailable.
+      const incoming = new URLSearchParams(window.location.search);
+      document.querySelectorAll<HTMLAnchorElement>('[data-bio-link]').forEach(link => {
+        const destination = new URL(link.href);
+        for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) {
+          const value = incoming.get(key);
+          if (value && /^[a-zA-Z0-9_.-]{1,100}$/.test(value)) destination.searchParams.set(key, value);
+        }
+        link.href = destination.pathname + destination.search;
+      });
+    </script>
+    <style>
+      @font-face{font-family:Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+      :global(*){box-sizing:border-box}
+      :global(html){min-width:280px;background:#0c141d;color:#f7f4ed;font-family:Inter,Arial,sans-serif;-webkit-text-size-adjust:100%}
+      :global(body){margin:0;min-height:100svh;background:radial-gradient(ellipse at 12% 0%,#24344980,transparent 58%),radial-gradient(ellipse at 95% 90%,#48514022,transparent 55%),#0c141d}
+      main{max-width:480px;margin:0 auto;padding:30px 20px max(18px,env(safe-area-inset-bottom))}
+      .profile{display:flex;align-items:center;justify-content:center;gap:13px;margin:0 0 20px}
+      .avatar{width:58px;height:58px;border-radius:50%;object-fit:cover;border:1px solid #ffffff26;flex:none}
+      h1{font-size:23px;font-weight:600;letter-spacing:-.7px;margin:0}
+      .social-proof{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 24px;text-align:center}
+      .social-stat{display:flex;flex-direction:column;align-items:center;gap:5px}
+      .network{display:flex;align-items:center;gap:4px;font-size:9px;color:#b7c3d1}
+      .network-icon{width:12px;height:12px;display:inline-block;background:currentColor;mask:var(--icon) center/contain no-repeat;-webkit-mask:var(--icon) center/contain no-repeat}
+      .social-stat strong{font-size:17px;font-weight:650;letter-spacing:-.5px;white-space:nowrap}
+      .social-stat strong span{font-size:13px;font-weight:500;color:#c6d0da}
+      .unit{font-size:9px;color:#9eacba}
+      nav{display:grid;gap:16px}
+      .card{display:block;color:inherit;text-decoration:none;border:1px solid #ffffff20;border-radius:18px;overflow:hidden;box-shadow:0 10px 28px #00000026;transition:transform .18s ease,border-color .18s ease}
+      .card:hover{transform:translateY(-2px);border-color:#d7c6a173}
+      .card:focus-visible{outline:3px solid #f2d59c;outline-offset:5px}
+      .card-heading{display:grid;grid-template-columns:43% 1fr;align-items:center;gap:15px;padding:18px 18px 0}
+      .visual{border-radius:9px;overflow:hidden}
+      .visual img{display:block;width:100%;height:auto}
+      .label{display:block;font-size:8px;letter-spacing:1px;font-weight:600;color:#a8c7f2;line-height:1.5;margin-bottom:6px}
+      .copy{padding:15px 18px 17px}
+      h2{font-size:21px;font-weight:600;line-height:1.15;letter-spacing:-.6px;margin:0}
+      .duration{display:inline-block;font-size:10px;font-weight:600;line-height:1.4;color:#bed6fa;background:#ffffff0d;border:1px solid #ffffff15;border-radius:5px;padding:5px 8px;margin-bottom:11px}
+      h3{font-size:15px;line-height:1.4;font-weight:600;letter-spacing:-.25px;margin:0 0 6px}
+      .copy p{font-size:12px;line-height:1.55;margin:0 0 14px;max-width:340px;color:#c7d1de}
+      .masterclass{background:#142236}
+      .delta{background:#f5f1e7;color:#292e24;border-color:#e3ddcd}
+      .delta .label{color:#7c6443}
+      .delta .duration{color:#75583b;background:#eae2d3;border-color:#dfd4c2}
+      .delta h2{font-family:Georgia,serif;font-size:28px;font-weight:400;letter-spacing:-.8px}
+      .delta .copy p{color:#5c6354}
+      .action{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:11px 13px;border-radius:9px;background:#3076d1;font-size:12px;line-height:1.4;font-weight:600;color:#fff}
+      .delta .action{background:#ad4c36}
+      .action svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+      footer{text-align:center;color:#8895a3;font-size:8px;letter-spacing:2.2px;margin-top:23px}
+      @media(min-width:700px){main{padding-top:48px}.copy{padding:16px 22px 20px}.card-heading{padding:20px 22px 0}}
+      @media(max-width:360px){main{padding:22px 14px 16px}.profile{gap:12px;margin-bottom:18px}.avatar{width:48px;height:48px}h1{font-size:22px}.copy{padding:14px}.card-heading{padding:14px 14px 0;gap:11px}h2{font-size:18px}.delta h2{font-size:25px}.network{font-size:8px;gap:3px}.network-icon{width:10px;height:10px}.social-proof{gap:4px}.social-stat strong{font-size:16px}}
+      @media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+    </style>
+  </body>
+</html>
