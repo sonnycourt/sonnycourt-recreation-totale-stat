@@ -34,7 +34,9 @@ function fixture({standard=false,total,stale=false,direct=false,badOrigin=false,
  runInNewContext(script,context);flush();
  return {sent,classes,fields,button,listeners,dispatched,parent,flush};
 }
-for(const standard of [false,true])for(const stale of [false,true]){const f=fixture({standard,stale});assert(f.sent.some(x=>x.type==='dv:payment-ready'&&x.price===(standard?147:97)));assert(f.classes.has('dv-two-step-ready'));assert(f.button.childNodes[0].textContent.includes(String(standard?147:97)));}
+for(const standard of [false,true])for(const stale of [false,true]){const f=fixture({standard,stale});assert(f.sent.some(x=>x.type==='dv:payment-ready'&&x.price===(standard?147:97)));assert(f.classes.has('dv-two-step-ready'));assert.equal(f.button.childNodes[0].textContent.trim(),'J’accède à Delta Vision');}
+assert(!source.includes('grayscale(1)'));
+for(const text of ['Satisfait ou remboursé','Pendant 14 jours','Marcus','5 étoiles sur 5','Seul regret ! avoir découvert cette méthode à passé 40 ans 😅 Mais comme on dit, vaut mieux tard que jamais.']) assert(source.includes(text),text);
 for(const options of [{total:197},{direct:true},{badOrigin:true}])assert(!fixture(options).sent.some(x=>x.type==='dv:payment-ready'));
 assert(!script.includes('fetch('));assert(!source.includes('.checked='));
 for(const standard of [false,true]){
