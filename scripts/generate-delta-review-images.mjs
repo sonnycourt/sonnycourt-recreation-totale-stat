@@ -28,7 +28,7 @@ for (const review of deltaVisionReviews) {
   sizes[review.id] = { width: 400, height };
   const stars = Array.from({ length: review.rating }, (_, i) => `<path transform="translate(${254 + i * 23} 36) scale(.7)" d="m12 0 3.7 7.5 8.3 1.2-6 5.8 1.4 8.3-7.4-3.9-7.4 3.9L6 14.5 0 8.7l8.3-1.2Z" fill="#ad643a"/>`).join('');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="${height}" viewBox="0 0 400 ${height}">
-<title>${escape(review.name)} — ${review.rating}/5</title>
+<title>${escape(review.name)}${review.rating ? ` — ${review.rating}/5` : ''}</title>
 <desc>${escape(review.text)}</desc>
 <rect x=".5" y=".5" width="399" height="${height - 1}" rx="20" fill="#fffcf7" stroke="#e4d9c8"/>
 <text x="28" y="52" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#353a30">${escape(review.name)}</text>
