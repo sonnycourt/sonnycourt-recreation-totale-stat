@@ -1,0 +1,24 @@
+---
+import { deltaVisionReviews } from '../../data/delta-vision-reviews.mjs';
+import sizes from '../../data/delta-vision-review-sizes.json';
+---
+<section class="review-collage" id="avis" aria-label="Les avis sur Delta Vision">
+  {deltaVisionReviews.map((review) => (
+    <figure class={`review-card review-card--${review.id}`}>
+      <img src={`/media/delta-reviews/${review.id}.svg`} width={sizes[review.id].width} height={sizes[review.id].height} loading="lazy" decoding="async" alt={`${review.name}, ${review.rating} sur 5. ${review.text}`} />
+    </figure>
+  ))}
+</section>
+<style>
+  .review-collage { display:grid; grid-template-columns:1fr 1fr; gap:22px 36px; align-items:center; max-width:900px; margin:64px auto 38px; padding:8px 12px; }
+  .review-card { margin:0; min-width:0; filter:drop-shadow(0 9px 14px #4136210b); }
+  .review-card img { display:block; width:100%; height:auto; }
+  .review-card--michel { grid-area:1 / 1; transform:rotate(-1.5deg); }
+  .review-card--sephora { grid-area:2 / 1; transform:rotate(.8deg); }
+  .review-card--soidikati { grid-area:3 / 1; transform:rotate(-1deg); }
+  .review-card--romain { grid-area:1 / 2 / 4; transform:rotate(1.4deg); }
+  @media(max-width:700px) {
+    .review-collage { display:flex; flex-direction:column; gap:20px; max-width:430px; margin:42px auto 26px; padding:0 4px; }
+    .review-card { width:100%; transform:none; }
+  }
+</style>
