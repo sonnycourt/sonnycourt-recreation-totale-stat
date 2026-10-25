@@ -48,4 +48,6 @@ const anonymous=new URL(paymentUrl(null,{price:97,checkoutUrl:inspira.checkoutUr
 assert.equal(anonymous.searchParams.get('dv_preload'),'1');for(const key of ['name_first','email','dv_visit'])assert(!anonymous.searchParams.has(key));
 const component=readFileSync(new URL('../src/components/delta/TwoStepCheckout.astro',import.meta.url),'utf8');
 assert(component.includes('data-dvp-payment-slot'));assert(!component.includes('data-dvp-pay>'));assert(!component.includes('data-dv-price'));assert(!component.includes('data-dv-urgency'));
+for (const text of ['Entre ton prénom ', 'et ton email.', 'Je me lance', 'Tes infos restent confidentielles.', 'UNE RESPIRATION. UN NOUVEL HORIZON.']) assert(component.includes(text), text);
+for (const text of ['data-dvp-step=', 'Commençons', 'Aucun paiement à cette étape.', 'PAIEMENT SÉCURISÉ PAR SPIFFY', 'AUCUNE CARTE STOCKÉE SUR CE SITE', 'La leçon pour comprendre.', 'La séance guidée de 12 minutes pour vivre l’expérience.']) assert(!component.includes(text), text);
 console.log('PASS: 97/147 native amount checks, identity synchronisation, direct checkout isolation, trusted messages, return URL, no card access or submission.');
