@@ -17,6 +17,7 @@ for(const price of [97,147]){
  assert.deepEqual(paymentMessage({...event,data:{event:'redirect',url:'https://sonnycourt.com/delta-vision/merci/'}},frame,price),{redirect:'https://sonnycourt.com/delta-vision/merci/'});
 }
 const source=readFileSync(new URL('../spiffy/delta-vision-two-step-embed.html',import.meta.url),'utf8');
+assert(!source.includes('data-dv-alternative'), 'Native PayPal selection must not be hidden in the two-step popup');
 const script=source.match(/<script>([\s\S]*?)<\/script>/)[1];
 function fixture({standard=false,total,stale=false,direct=false,badOrigin=false,preload=false}={}){
  const sent=[],timers=[],classes=new Set(),listeners={},dispatched=[];let guarantee=false;
