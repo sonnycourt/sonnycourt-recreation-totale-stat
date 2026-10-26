@@ -34,6 +34,9 @@ sources et PDF en brouillon doivent rester hors de ce dossier.
 
 Première page : `/ressources/papa/`, configuration dans `entries/papa.ts`.
 Groupe MailerLite créé : `Lead Magnet — Papa, raconte-moi`, ID `202390291667223625`.
+PDF final fourni par Sonny et hébergé sans modification le 26 octobre 2026 :
+`/downloads/lead-magnets/10-questions-a-poser-a-ton-pere.pdf`.
+
 Publication de la capture autorisée par Sonny le 26 octobre 2026, avant la mise
 en place de la livraison : Sonny prépare lui-même le PDF, l'email et l'automation
 MailerLite. Aucun email ni suivi J+2 activé par le code ; aucune modification Supabase.
