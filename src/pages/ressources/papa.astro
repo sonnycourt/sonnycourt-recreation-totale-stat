@@ -1,0 +1,81 @@
+---
+import papa from '../../lead-magnets/entries/papa';
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Papa, raconte-moi. — Le guide gratuit de Sonny Court</title>
+    <meta name="description" content={papa.description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="data:," />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <main>
+      <section class="capture" aria-labelledby="title">
+        <img class="papa-illustration" src="/images/lead-magnets/papa-lecture.webp" width="720" height="480" alt="Un père et son enfant partagent un moment de lecture." fetchpriority="high" decoding="async" />
+        <h1 id="title">10 questions à poser à ton père <em>avant qu'il ne soit trop tard.</em></h1>
+        <h2>Tu connais ton père. Mais connais-tu son histoire ?</h2>
+        <form id="papa-form">
+          <label for="firstName">Ton prénom</label>
+          <input id="firstName" name="firstName" autocomplete="given-name" placeholder="Prénom" required maxlength="100" />
+          <label for="email">Ton adresse email</label>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="toi@exemple.com" required maxlength="254" />
+          <div class="honeypot" aria-hidden="true"><label for="website">Site web</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div>
+          <button type="submit" id="submit-button">{papa.ctaLabel}</button>
+          <p id="form-message" role="status" aria-live="polite" tabindex="-1" hidden></p>
+          <p class="consent">Tu reçois immédiatement le PDF avec les 10 questions par email.</p>
+        </form>
+        <div class="success" id="success" role="status" tabindex="-1" hidden>
+          <span class="success-mark" aria-hidden="true">✓</span>
+          <h3>Merci pour ta confiance.</h3>
+          <p>Le PDF avec les 10 questions à poser à ton père vient d'être envoyé sur ton adresse email.</p>
+        </div>
+      </section>
+    </main>
+    <script>
+      const form=document.querySelector<HTMLFormElement>('#papa-form')!;
+      const button=document.querySelector<HTMLButtonElement>('#submit-button')!;
+      const message=document.querySelector<HTMLParagraphElement>('#form-message')!;
+      const success=document.querySelector<HTMLDivElement>('#success')!;
+      form.addEventListener('submit',async(event)=>{
+        event.preventDefault();
+        if(button.disabled||!form.reportValidity())return;
+        const data=new FormData(form);
+        button.disabled=true;button.setAttribute('aria-busy','true');
+        message.hidden=true;
+        try{
+          const response=await fetch('/.netlify/functions/lead-magnet-register',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({slug:'papa',firstName:data.get('firstName'),email:data.get('email'),website:data.get('website'),consent:true}),
+            signal:AbortSignal.timeout(15000),
+          });
+          const result=await response.json();
+          if(!response.ok||!result.ok)throw new Error('registration_failed');
+          form.hidden=true;success.hidden=false;success.focus();
+        }catch{
+          message.textContent='L’inscription n’a pas pu être confirmée. Réessaie dans un instant.';
+          message.hidden=false;message.focus();
+        }finally{button.disabled=false;button.removeAttribute('aria-busy');}
+      });
+    </script>
+    <style is:global>
+      @font-face{font-family:Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-weight:100 900;font-display:swap}
+      :root{color-scheme:light;font-family:Inter,Arial,sans-serif;color:#302e29;background:#f7f4ec;font-synthesis:none}
+      *{box-sizing:border-box}body{margin:0}a{color:inherit}button,input{font:inherit}[hidden]{display:none!important}
+      body{min-height:100svh;display:grid;place-items:center;padding:40px 24px}
+      main{width:min(100%,460px)}
+      .papa-illustration{display:block;width:300px;max-width:100%;height:auto;margin:0 auto 24px}
+      h1{font-family:Georgia,serif;font-size:clamp(38px,6vw,54px);font-weight:400;line-height:1.08;letter-spacing:-.045em;margin:0 0 18px;text-align:center}h1 em{color:#9d5a41;font-weight:400}
+      h2{font-size:15px;font-weight:400;line-height:1.55;text-align:center;color:#726b60;margin:0 0 32px}
+      label{display:block;font-size:12px;font-weight:500;margin:0 0 9px}input{display:block;width:100%;height:53px;padding:0 15px;border-radius:5px;border:1px solid #dcd5c8;background:#fff;color:#302e29;font-size:16px;margin-bottom:19px}input::placeholder{color:#a39b90}input:focus{outline:2px solid #9d5a41;outline-offset:2px}
+      button{display:block;width:100%;border:0;border-radius:5px;background:#99553c;color:#fff;min-height:57px;font-size:15px;font-weight:600;cursor:pointer;padding:14px;margin-top:24px;transition:background .15s}button:hover{background:#7f442f}button:focus-visible,a:focus-visible{outline:2px solid #99553c;outline-offset:4px}button:disabled{opacity:.6;cursor:wait}
+      .consent{font-size:11px;line-height:1.6;color:#7b7469;margin:16px 0 0;text-align:center}.consent a{text-underline-offset:2px}
+      .honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}#form-message{color:#983e2e;font-size:13px;line-height:1.5}.success{padding:25px 0;outline:none}.success-mark{font-size:30px;color:#5c6948}h3{font:28px Georgia,serif}.success p{font-size:14px;line-height:1.7}.pending{color:#777063}
+      @media(max-width:480px){body{padding:24px;align-items:start}.papa-illustration{width:240px;margin-bottom:20px}h2{font-size:14px;margin-bottom:28px}}
+      @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    </style>
+  </body>
+</html>
