@@ -385,6 +385,7 @@ export default async (req) => {
       }
       const purchaseBonusTag = mc2ConsultationBonusTag({
         registration: mc2Row,
+        purchasedAt,
       });
       const updatedMc2 = await supabasePatch(
         'mc2_registrations',

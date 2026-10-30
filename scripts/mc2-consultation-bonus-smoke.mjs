@@ -49,12 +49,6 @@ assert.equal(mc2ConsultationBonusTag({
   purchasedAt: '2026-09-06T12:00:00.000Z',
 }), MC2_BONUS_TAG_WITHOUT_CONSULTATION);
 
-// Nouvel achat : aucun bonus consultation, même pendant l'ancienne fenêtre.
-for (const registration of [liveRegistration, replayRegistration, {}]) {
-  for (const purchasedAt of ['2026-09-03T11:00:00Z', '2026-09-05T12:00:00Z', new Date()]) {
-    assert.equal(mc2ConsultationBonusTag({ registration, purchasedAt }), MC2_BONUS_TAG_WITHOUT_CONSULTATION);
-  }
-}
 // Les deux décisions déjà enregistrées sont immuables, même sans ancre temporelle.
 for (const tag of [MC2_BONUS_TAG_WITH_CONSULTATION, MC2_BONUS_TAG_WITHOUT_CONSULTATION]) {
   assert.equal(mc2ConsultationBonusTag({ registration: { purchase_bonus_tag: tag } }), tag);
@@ -63,16 +57,19 @@ for (const tag of [MC2_BONUS_TAG_WITH_CONSULTATION, MC2_BONUS_TAG_WITHOUT_CONSUL
     purchasedAt: '2030-01-01T00:00:00Z',
   }), tag);
 }
-assert.equal(mc2ConsultationBonusTag({ registration: { ...liveRegistration, purchased_at: 'invalid' } }), MC2_BONUS_TAG_WITHOUT_CONSULTATION);
 assert.equal(mc2ConsultationBonusTag({
   registration: { ...liveRegistration, purchased_at: '2026-09-03T11:00:00Z' },
   purchasedAt: '2030-01-01T00:00:00Z',
-}), MC2_BONUS_TAG_WITH_CONSULTATION, 'Un ancien achat sans tag garde sa date originale');
+}), MC2_BONUS_TAG_WITHOUT_CONSULTATION, 'Sans tag déjà posé, la date de cet achat décide');
+assert.equal(mc2ConsultationBonusTag({
+  registration: liveRegistration,
+  purchasedAt: new Date(liveCutoff.getTime() - 60 * 1000),
+}), MC2_BONUS_TAG_WITH_CONSULTATION);
 
-// Les deux chemins de paiement emploient la même règle de préservation.
+// Les deux chemins de paiement emploient la même règle, avec la date d'achat.
 for (const file of ['spiffy-purchase-webhook.js', 'lib/mc2-pay-router.mjs']) {
   const source = await readFile(new URL(`../netlify/functions/${file}`, import.meta.url), 'utf8');
-  assert.match(source, /const purchaseBonusTag = mc2ConsultationBonusTag\(/);
+  assert.match(source, /const purchaseBonusTag = mc2ConsultationBonusTag\(\{[^}]*purchasedAt/s);
   assert.match(source, /purchase_bonus_tag: purchaseBonusTag/);
 }
 assert.equal(mc2ConsultationBonusTag({
@@ -87,8 +84,8 @@ assert.match(migration, /sans_consultation_sonny/);
 assert.match(migration, /where purchased_at is not null/i);
 
 console.log(JSON.stringify({
-  new_purchases_without_consultation: 'ok',
-  historical_untagged_purchases_preserved: 'ok',
+  consultation_window_restored: 'ok',
+  attributed_tags_preserved: 'ok',
   live_bonus_cutoff_cta_plus_24h: 'ok',
   replay_bonus_cutoff_cta_plus_24h: 'ok',
   purchase_tag_is_immutable_on_retry: 'ok',

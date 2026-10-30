@@ -26,7 +26,7 @@ export function mc2ConsultationBonusCutoffAt({ registration, purchasedAt = new D
     : null;
 }
 
-export function mc2ConsultationBonusTag({ registration } = {}) {
+export function mc2ConsultationBonusTag({ registration, purchasedAt = new Date() } = {}) {
   // Un bonus déjà attribué reste acquis, y compris lors d'un nouvel événement
   // de paiement ou d'une relivraison de webhook.
   if (registration?.purchase_bonus_tag === MC2_BONUS_TAG_WITH_CONSULTATION
@@ -34,11 +34,9 @@ export function mc2ConsultationBonusTag({ registration } = {}) {
     return registration.purchase_bonus_tag;
   }
 
-  // La consultation est épuisée pour les nouveaux achats. Seul un achat déjà
-  // enregistré, mais sans tag historique, peut encore appliquer l'ancienne règle.
-  // Ne jamais utiliser la date du nouvel événement pour créer ce droit.
-  const purchase = validDate(registration?.purchased_at);
-  if (!purchase) return MC2_BONUS_TAG_WITHOUT_CONSULTATION;
+  // Fenêtre d'origine : la consultation est offerte pendant les 24 heures
+  // qui suivent l'apparition de l'offre. Les achats suivants restent sans.
+  const purchase = validDate(purchasedAt);
   const cutoff = mc2ConsultationBonusCutoffAt({ registration, purchasedAt: purchase });
 
   // En l'absence exceptionnelle d'une ancre vérifiable, on n'attribue jamais

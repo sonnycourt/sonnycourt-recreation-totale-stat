@@ -110,7 +110,7 @@ try {
   assert.equal(registrationPatch?.contractual_total_cents, 230100);
   assert.equal(registrationPatch?.checkout_last_plan, 'monthly');
   assert.equal(registrationPatch?.checkout_last_payment_mode, 'spiffy_3x767');
-  assert.equal(registrationPatch?.purchase_bonus_tag, 'sans_consultation_sonny');
+  assert.equal(registrationPatch?.purchase_bonus_tag, 'avec_consultation_sonny');
   for (const [checkoutId, total, initial, contract, mode] of [
     [40006, 19700, 19700, 236400, 'spiffy_12x197'],
     [40006, 236400, 19700, 236400, 'spiffy_12x197'],
@@ -130,7 +130,7 @@ try {
     assert.equal(registrationPatch.initial_payment_cents, initial);
     assert.equal(registrationPatch.contractual_total_cents, contract);
     assert.equal(registrationPatch.checkout_last_payment_mode, mode);
-    assert.equal(registrationPatch.purchase_bonus_tag, 'sans_consultation_sonny');
+    assert.equal(registrationPatch.purchase_bonus_tag, 'avec_consultation_sonny');
     if (mode !== 'spiffy_one_time_1997') {
       assert.equal(purchaseEvent.metadata.amount_cents, initial);
       assert.equal(purchaseEvent.metadata.contractual_total_cents, contract);

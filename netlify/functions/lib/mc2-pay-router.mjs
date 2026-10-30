@@ -243,6 +243,7 @@ async function processCheckoutCompleted(stripe, session, event) {
   const purchasedAt = registration.purchased_at || nowIso;
   const purchaseBonusTag = mc2ConsultationBonusTag({
     registration,
+    purchasedAt,
   });
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
     statut: 'purchased',
