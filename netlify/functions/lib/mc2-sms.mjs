@@ -1,4 +1,5 @@
 import { supabaseGet, supabasePatch, supabasePost } from './supabase-rest.mjs';
+import { mc2SessionH1SmsEnabled, sessionH1SkipReason } from './mc2-session-h1-sms.mjs';
 import {
   assertMc2SmsCountryDecision,
   evaluateMc2SmsCountry,
@@ -51,7 +52,8 @@ export function mc2SmsEnabled() {
 // Indépendant du rappel LIVE : une publication du code ne peut pas activer
 // le nouveau message commercial sans validation explicite de sa copie.
 export function mc2OfferH1SmsEnabled() {
-  return clean(process.env.MC2_OFFER_H1_SMS_ENABLED, 10).toLowerCase() === 'true';
+  return !mc2SessionH1SmsEnabled()
+    && clean(process.env.MC2_OFFER_H1_SMS_ENABLED, 10).toLowerCase() === 'true';
 }
 
 // Activation séparée, après validation du texte et exécution de la migration.
@@ -168,6 +170,10 @@ function offerUrl(liveCode, token) {
 }
 
 export function mc2SmsMessage(type, token, options = {}) {
+  if (type === 'session_h1') {
+    const link = liveUrl(options.liveCode, token);
+    return `Ta masterclass avec Sonny commence dans 1 heure !\nReserve ce moment pour toi.\nTon lien pour nous rejoindre :\n${link}${link.includes('?') ? '&' : '?'}r=h1`;
+  }
   if (type === 'session_live') {
     return `ON EST LIVE !\nRejoins-nous maintenant ici :\n${liveUrl(options.liveCode, token)}`;
   }
@@ -316,6 +322,10 @@ async function mc2OfferJobStillProcessing(jobId) {
 }
 
 export async function processMc2SmsJob(job, now = new Date()) {
+  if (job?.message_type === 'session_h1') {
+    if (!mc2SessionH1SmsEnabled()) return skipJob(job, 'session_h1_sms_disabled');
+    if (Date.parse(job.due_at) > now.getTime()) return { status: 'not_due' };
+  }
   if (job?.message_type === 'offer_deadline' && !mc2OfferH1SmsEnabled()) {
     return skipJob(job, 'offer_h1_sms_disabled');
   }
@@ -337,7 +347,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
   );
   const claimedJob = claimed.ok && Array.isArray(claimed.data) ? claimed.data[0] : null;
   if (!claimedJob) return { status: 'not_claimed' };
-  if (isOfferSms(job.message_type) && claimedJob.provider_status === 'calling') {
+  if ((isOfferSms(job.message_type) || job.message_type === 'session_h1') && claimedJob.provider_status === 'calling') {
     return skipJob(job, 'gateway_attempt_already_started');
   }
 
@@ -349,6 +359,11 @@ export async function processMc2SmsJob(job, now = new Date()) {
     : null;
   if (!registration) return skipJob(job, 'registration_missing');
   if (!registration.sms_consent_at) return skipJob(job, 'sms_consent_missing');
+
+  if (job.message_type === 'session_h1') {
+    const reason = sessionH1SkipReason(registration, job, now);
+    if (reason) return skipJob(job, reason);
+  }
 
   const phone = normalizeMc2Phone(registration.telephone, registration.pays);
   if (!phone) return skipJob(job, 'phone_invalid');
@@ -423,9 +438,19 @@ export async function processMc2SmsJob(job, now = new Date()) {
     }
   }
 
-  const liveCode = job.message_type === 'session_live'
-    ? await ensureMc2ShortCode(claimedJob)
-    : await ensureMc2OfferCode(claimedJob);
+  let liveCode;
+  if (job.message_type === 'session_h1') {
+    // Use the live job for THIS session, never an old offer/replay short code.
+    const live = await supabaseGet(
+      `mc2_sms_jobs?token=eq.${encodeURIComponent(job.token)}&message_type=eq.session_live`
+      + `&due_at=eq.${encodeURIComponent(registration.session_starts_at)}&select=id,token,live_code&order=created_at.desc&limit=1`,
+    );
+    liveCode = live.ok && live.data?.[0]?.id ? await ensureMc2ShortCode(live.data[0]) : '';
+  } else {
+    liveCode = job.message_type === 'session_live'
+      ? await ensureMc2ShortCode(claimedJob)
+      : await ensureMc2OfferCode(claimedJob);
+  }
   if (!liveCode) {
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
       status: 'retry',
@@ -438,9 +463,15 @@ export async function processMc2SmsJob(job, now = new Date()) {
   // Une vente peut arriver pendant la résolution du pays ou du lien court.
   // Cette seconde lecture est volontairement placée au dernier instant avant
   // l'appel Gateway afin qu'un achat Spiffy/Stripe coupe aussi cette course.
-  if (isOfferSms(job.message_type)) {
-    const eligibility = await mc2OfferStillEligible(job.token, now);
-    if (!eligibility.eligible) return skipJob(job, eligibility.reason);
+  if (isOfferSms(job.message_type) || job.message_type === 'session_h1') {
+    if (job.message_type === 'session_h1') {
+      const fresh = await supabaseGet(`mc2_registrations?token=eq.${encodeURIComponent(job.token)}&select=*&limit=1`);
+      const reason = sessionH1SkipReason(fresh.ok ? fresh.data?.[0] : null, job, now);
+      if (reason) return skipJob(job, reason);
+    } else {
+      const eligibility = await mc2OfferStillEligible(job.token, now);
+      if (!eligibility.eligible) return skipJob(job, eligibility.reason);
+    }
     // Le webhook Spiffy peut annuler le job pendant que ce worker prépare le
     // message. Relire le statut après la vérification achat ferme cette course
     // sans dépendre d'une écriture financière dans mc2_registrations.
@@ -486,6 +517,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     await supabasePost('mc2_funnel_events', {
       token: job.token,
       event_name: job.message_type === 'session_live' ? 'sms_live_sent'
+        : job.message_type === 'session_h1' ? 'sms_session_h1_sent'
         : job.message_type === 'offer_followup' ? 'sms_offer_followup_sent' : 'sms_offer_deadline_sent',
       event_value: phone.slice(-4),
       page_path: '/mc2/session/',
@@ -499,7 +531,7 @@ export async function processMc2SmsJob(job, now = new Date()) {
     return { status: 'sent' };
   } catch (error) {
     const attempts = Number(claimedJob.attempts || 1);
-    const exhausted = isOfferSms(job.message_type) || attempts >= MAX_ATTEMPTS;
+    const exhausted = isOfferSms(job.message_type) || job.message_type === 'session_h1' || attempts >= MAX_ATTEMPTS;
     await supabasePatch('mc2_sms_jobs', `id=eq.${encodeURIComponent(job.id)}`, {
       status: exhausted ? 'skipped' : 'retry',
       last_error: clean(error?.message || 'sms_failed', 300),

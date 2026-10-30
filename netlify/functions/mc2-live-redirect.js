@@ -38,13 +38,14 @@ export default async (req) => {
     if (jobs.data.length !== 1 || !jobs.data[0]?.token) return response(404, 'Lien invalide.');
 
     const job = jobs.data[0];
+    const isH1 = url.searchParams.get('r') === 'h1';
     await supabasePost('mc2_funnel_events', {
       token: job.token,
-      event_name: 'sms_live_link_clicked',
+      event_name: isH1 ? 'sms_session_h1_link_clicked' : 'sms_live_link_clicked',
       event_value: code,
       page_path: `/live/${code}`,
       metadata: { sms_job_id: job.id, destination: '/mc2/session/' },
-      dedupe_key: `sms_live_link_${job.id}_clicked`,
+      dedupe_key: `${isH1 ? 'sms_session_h1_link' : 'sms_live_link'}_${job.id}_clicked`,
     }, { prefer: 'return=minimal' }).catch(() => {});
 
     const token = encodeURIComponent(job.token);

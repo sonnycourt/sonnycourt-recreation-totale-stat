@@ -1,6 +1,7 @@
 import { supabaseGet, supabasePatch } from './lib/supabase-rest.mjs';
 import { mc2SmsEnabled, processMc2SmsJob, queueDueMc2OfferFollowupSms } from './lib/mc2-sms.mjs';
 import { scheduledJson } from './lib/scheduled-response.mjs';
+import { queueDueMc2SessionH1Sms } from './lib/mc2-session-h1-sms.mjs';
 
 export default async () => {
   if (!mc2SmsEnabled()) {
@@ -8,6 +9,13 @@ export default async () => {
   }
 
   const now = new Date();
+  // A missing H-1 migration must never interrupt the existing live reminders.
+  try {
+    const reminder = await queueDueMc2SessionH1Sms(now);
+    if (!reminder.ok) console.error('MC2 session H-1 SMS queue:', reminder.error);
+  } catch (error) {
+    console.error('MC2 session H-1 SMS queue:', error?.message || error);
+  }
   // Un schéma H+2 absent ou une panne ne doit pas bloquer les SMS existants.
   try {
     const followup = await queueDueMc2OfferFollowupSms(now);
