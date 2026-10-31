@@ -3,6 +3,12 @@ import { supabaseGet } from './supabase-rest.mjs';
 const normalizeEmail = value => String(value || '').trim().toLowerCase();
 const toBool = value => value === true || value === 'true' || value === 1 || value === '1';
 
+// Explicitly approved support aliases, scoped to the feedback gate only.
+// Resolve to an existing registration; never duplicate a purchase or change email.
+const feedbackEmailAliases = new Map([
+  ['perrineponcet@gmail.com', 5199],
+]);
+
 export function isEs2FeedbackBuyer(row) {
   if (row?.feedback_source === 'mc2') return row.payment_status === 'paid';
   return !row?.refunded_at && (toBool(row?.es_purchased) || toBool(row?.purchased));
@@ -55,5 +61,15 @@ export async function resolveEs2FeedbackRegistration({ token, email }, { get = s
   const mc2 = await lookup('mc2_registrations', mc2Identity);
   if (!mc2.ok) return mc2;
   const newRow = mc2.data[0];
+  // A supplied token or an existing identity always takes precedence. An alias
+  // is not an entitlement: the canonical account must still pass the paid check.
+  const aliasId = !token && !oldRow && !newRow ? feedbackEmailAliases.get(email) : null;
+  if (aliasId) {
+    const alias = await get(`mc2_registrations?id=eq.${aliasId}&select=id,token,email,prenom,payment_status&limit=1`);
+    if (!alias.ok) return alias;
+    if (!Array.isArray(alias.data)) return { ok: false, status: 500, error: 'Invalid registration response' };
+    const canonical = alias.data.find(row => row.id === aliasId);
+    return { ok: true, status: 200, data: canonical ? [{ ...canonical, feedback_source: 'mc2' }] : [] };
+  }
   return { ok: true, status: 200, data: newRow ? [newRow] : oldRow ? [oldRow] : [] };
 }

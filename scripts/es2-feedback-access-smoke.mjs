@@ -28,7 +28,8 @@ globalThis.fetch = async (url, options = {}) => {
   }
   const token = u.searchParams.get('token')?.slice(3);
   const email = u.searchParams.get('email')?.slice(6).replace(/\\(.)/g, '$1');
-  return json(rows[table].filter(r => token ? r.token === token : r.email.toLowerCase() === email));
+  const id = u.searchParams.get('id')?.slice(3);
+  return json(rows[table].filter(r => id ? String(r.id) === id : token ? r.token === token : r.email.toLowerCase() === email));
 };
 const { default: access } = await import('../netlify/functions/get-es2-feedback-access.js');
 const { default: submit } = await import('../netlify/functions/submit-es2-feedback.js');
@@ -86,4 +87,31 @@ let result = await resolveEs2FeedbackRegistration({ email: '*@example.invalid' }
 assert.deepEqual(result.data, []);
 result = await resolveEs2FeedbackRegistration({ token: 'unknown' }, { get: async () => ({ ok: true, data: [legacy, mc2] }) });
 assert.deepEqual(result.data, []);
-console.log('PASS: MC2 + legacy, both endpoints, old links, case normalization, payment denial, no account writes, canonical identity, error handling. All network mocked.');
+// Approved feedback alias: both emails open the same paid account and submission
+// retains its canonical email/token. No registration, payment or notification write.
+const aliasEmail = 'perrineponcet@gmail.com';
+const aliasBuyer = { ...mc2, id: 5199 };
+for (const email of [aliasEmail, '  PERRINEPONCET@GMAIL.COM  ', aliasBuyer.email]) {
+  reset([], [aliasBuyer]);
+  response = await gate({ email });
+  assert.equal(response.status, 200);
+  identity = await response.json();
+  assert.equal(identity.email, aliasBuyer.email); assert.equal(identity.token, aliasBuyer.token);
+  assert.equal(writes.length, 0); assert.equal(notifications.length, 0);
+  assert.equal((await post(identity.token)).status, 200);
+  assert.equal(writes[0].email, aliasBuyer.email); assert.equal(writes[0].token, aliasBuyer.token);
+}
+for (const status of ['pending', 'failed', 'refunded', 'disputed']) {
+  reset([], [{ ...aliasBuyer, payment_status: status }]);
+  assert.equal((await gate({ email: aliasEmail })).status, 403);
+  assert.equal(writes.length, 0); assert.equal(notifications.length, 0);
+}
+reset(); assert.equal((await gate({ email: aliasEmail })).status, 404);
+reset([], [aliasBuyer]); assert.equal((await gate({ token: 'unknown', email: aliasEmail })).status, 404);
+reset([], [aliasBuyer]); failure = 'mc2_registrations'; assert.equal((await gate({ email: aliasEmail })).status, 500);
+reset([], [aliasBuyer, { ...mc2, id: 123, email: aliasEmail, payment_status: 'pending' }]);
+assert.equal((await gate({ email: aliasEmail })).status, 403, 'An existing account is never replaced by an alias');
+reset([], [aliasBuyer]); assert.equal((await gate({ email: 'unknown-alias@example.invalid' })).status, 404);
+result = await resolveEs2FeedbackRegistration({ email: aliasEmail }, { get: async path => ({ ok: true, data: path.includes('id=eq.') ? [{ ...aliasBuyer, id: 123 }] : [] }) });
+assert.deepEqual(result.data, [], 'Alias lookup must return the exact approved registration');
+console.log('PASS: MC2 + legacy, both endpoints, support alias, old links, case normalization, payment denial, no account writes, canonical identity, error handling. All network mocked.');
