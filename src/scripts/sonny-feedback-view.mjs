@@ -1,5 +1,12 @@
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date = value => value ? new Intl.DateTimeFormat('fr-FR',{dateStyle:'long',timeZone:'Europe/Paris'}).format(new Date(`${value.slice(0,10)}T12:00:00Z`)) : '';
+export function feedbackReceivedMarkup(item) {
+  if (!item.received_at) return '';
+  const received = new Date(item.received_at);
+  if (!Number.isFinite(received.getTime())) return '';
+  const label = new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Paris'}).format(received);
+  return `<small class="feedback-received">${item.feedback_id ? 'Reçu' : 'Ajouté'} le <time datetime="${received.toISOString()}">${label}</time></small>`;
+}
 export function sonnyFeedbackMarkup(data) {
   let content;
   if (!data?.ready) content = '<p>Les retours de Sonny sont momentanément indisponibles ou pas encore activés. Les autres informations de la fiche restent accessibles.</p>';

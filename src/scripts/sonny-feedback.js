@@ -1,5 +1,5 @@
 import { normalizeEmail, validEmail } from '../../netlify/functions/lib/sonny-feedback.mjs';
-import { demoSonnyReply } from './sonny-feedback-view.mjs';
+import { demoSonnyReply, feedbackReceivedMarkup } from './sonny-feedback-view.mjs';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const demo = new URLSearchParams(location.search).get('demo') === '1';
@@ -16,7 +16,7 @@ async function api(query='',body){
 }
 function renderList(){
   $('count').textContent=state.total;
-  $('inbox').innerHTML=state.items.length?state.items.map((item,i)=>`<div role="listitem"><button class="person feedback-person ${state.current && (item.reply_id===state.current.id || item.feedback_id && item.feedback_id===state.current.feedback_id)?'selected':''}" data-index="${i}"><strong>${esc(item.prenom || 'Sans prénom')}</strong><small>${esc(item.email)}</small><small class="${item.answered?'answered':''}">${item.answered?'Retour enregistré · '+esc(item.answered_on):'À traiter'}</small></button></div>`).join(''):'<p class="empty small">Aucune demande dans cette sélection.</p>';
+  $('inbox').innerHTML=state.items.length?state.items.map((item,i)=>`<div role="listitem"><button class="person feedback-person ${state.current && (item.reply_id===state.current.id || item.feedback_id && item.feedback_id===state.current.feedback_id)?'selected':''}" data-index="${i}"><strong>${esc(item.prenom || 'Sans prénom')}</strong><small>${esc(item.email)}</small><small class="${item.answered?'answered':''}">${item.answered?'Retour enregistré · '+esc(item.answered_on):'À traiter'}</small>${feedbackReceivedMarkup(item)}</button></div>`).join(''):'<p class="empty small">Aucune demande dans cette sélection.</p>';
   $('load-more').hidden=state.items.length>=state.total;
 }
 async function loadList(append=false){
@@ -25,7 +25,7 @@ async function loadList(append=false){
     const filter=$('filter').value,search=$('search').value.trim(),offset=append?state.items.length:0;
     let result;
     if(demo){
-      const rows=demoItems.map(r=>({feedback_id:r.feedback_id,reply_id:r.id,email:r.email,prenom:r.prenom,answered:!!r.version,answered_on:r.answered_on}));
+      const rows=demoItems.map(r=>({feedback_id:r.feedback_id,reply_id:r.id,email:r.email,prenom:r.prenom,answered:!!r.version,answered_on:r.answered_on,received_at:r.received_at || r.created_at}));
       const filtered=rows.filter(r=>(filter==='all'||(filter==='pending'?!r.answered:r.answered))&&`${r.email} ${r.prenom}`.toLowerCase().includes(search.toLowerCase()));
       result={items:filtered.slice(offset,offset+50),total:filtered.length,pending:rows.filter(r=>!r.answered).length};
     }else result=await api('?'+new URLSearchParams({filter,search,offset:String(offset)}));

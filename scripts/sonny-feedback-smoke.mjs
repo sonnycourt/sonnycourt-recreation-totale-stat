@@ -6,7 +6,12 @@ import {createHandler} from '../netlify/functions/sonny-feedback.js';
 import {createHandler as crmHandler} from '../netlify/functions/onboarding-crm.js';
 import {signCloserToken,getCloserCookieSecret} from '../netlify/functions/lib/closer-access-crypto.mjs';
 import {validReply,questionText,loadSonnyFeedback} from '../netlify/functions/lib/sonny-feedback.mjs';
-import {sonnyFeedbackMarkup} from '../src/scripts/sonny-feedback-view.mjs';
+import {sonnyFeedbackMarkup,feedbackReceivedMarkup} from '../src/scripts/sonny-feedback-view.mjs';
+
+assert.match(feedbackReceivedMarkup({feedback_id:1,received_at:'2026-10-31T23:30:00Z'}),/Reçu le .*01\/11\/2026/);
+assert.match(feedbackReceivedMarkup({feedback_id:null,received_at:'2026-10-31T09:00:00Z'}),/Ajouté le .*31\/10\/2026/);
+assert.equal(feedbackReceivedMarkup({received_at:null}),'');
+assert.equal(feedbackReceivedMarkup({received_at:'invalid'}),'');
 
 globalThis.fetch=async()=>{throw Error('Real network forbidden');};
 const db=new PGlite();
