@@ -8,6 +8,7 @@ import {organizationMarkup,organizationPatch} from './onboarding-organization.js
 import {emptyOrganization,timeZoneSummary} from '../../netlify/functions/lib/onboarding-organization.mjs';
 import {agendaEvents} from '../../netlify/functions/lib/onboarding-agenda.mjs';
 import {setupAgenda} from './onboarding-agenda.js';
+import {sonnyFeedbackMarkup,demoSonnyReply} from './sonny-feedback-view.mjs';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -106,6 +107,8 @@ async function loadList(append=false) {
     const fresh=state.cases.find(c=>c.id===state.current?.id);
     if(fresh&&fresh.version>=state.current.version)state.current.purchased_at=fresh.purchased_at;
     $('actor-name').textContent=data.actor.name;
+    $('sonny-feedback-link').hidden=data.actor.role!=='owner'&&!demo;
+    if(demo)$('sonny-feedback-link').href='/retours-sonny/?demo=1';
     $('actor-photo').hidden=Number(data.actor.id)!==22;
     for(const key of ['all','due','booked','done']) $(`count-${key}`).textContent=data.counts[key] ?? 0;
     archivedOption.textContent=`Dossiers archivés (${data.counts.archived??0})`;
@@ -133,6 +136,8 @@ function renderDetail() {
     <section class="detail-section"><div class="section-heading"><h3>Prochaine étape</h3><small>Heures · ${esc(zone)}</small></div><p class="workflow-current">${esc(statusLabels[c.status])}${c.status==='booked'&&c.onboarding_at?' · '+esc(fmtTime(c.onboarding_at)):''}</p><label>Que prévois-tu ?<select id="workflow-step"><option value="keep">Conserver le suivi actuel</option value="booked">Planifier l’onboarding</option><option value="followup">Relancer plus tard</option><option value="done">Marquer l’accueil réalisé</option><option value="paused">Mettre le dossier en pause</option></select></label><div class="workflow-date" id="onboarding-date-field" hidden><label>Onboarding prévu le<input type="datetime-local" name="onboarding_at" value="${datetime(c.onboarding_at)}" /></label></div><div class="workflow-date" id="followup-date-field" hidden><label>Relancer le<input type="datetime-local" name="followup_at" value="${datetime(c.followup_at)}" /></label></div><label class="coaching-date">Premier coaching<input type="datetime-local" name="coaching_at" value="${datetime(c.coaching_at)}" /><small>À partir du ${esc(fmtDate(c.coaching_from))} · la date suffit à le marquer comme agendé.${c.coaching_booked&&!c.coaching_at?' Déjà marqué comme agendé, sans date renseignée.':''}</small></label><details class="workflow-advanced" id="workflow-advanced"><summary>Modifier le suivi manuellement</summary><div class="form-grid"><label>État du dossier<select name="status">${options(statusLabels,c.status)}</select></label><label>Prochaine action<select name="next_action">${options(actionLabels,c.next_action)}</select></label></div></details><p class="small" style="margin-top:14px">Repères internes : aucun message ni invitation ne sera envoyé.</p></section><div class="savebar"><span id="save-state">Fiche enregistrée</span><button type="submit" class="primary">Enregistrer</button></div></form>
     <p id="detail-message" role="status" hidden></p><section class="detail-section"><div class="section-heading"><h3>Historique des contacts</h3></div><p class="small">Les 100 dernières actions · ${esc(zone)}</p><ul id="history" class="history"></ul><div class="actions" style="margin-top:18px"><button class="quiet" id="copy-draft" type="button">Copier mon brouillon</button><button class="quiet" id="reload-case" type="button">Recharger la fiche</button></div></section>`;
   mountCoachings({form:$('case-form'),row:c,saved:state.coachings,ready:state.coachingsReady,zone});
+  $('case-form').insertAdjacentHTML('beforebegin',sonnyFeedbackMarkup(state.sonnyFeedback));
+  $('detail').querySelector('.coaching-shortcuts')?.insertAdjacentHTML('beforeend','<a href="#sonny-feedback">Retour de Sonny ↓</a>');
   $('case-form').insertAdjacentHTML('beforebegin',organizationMarkup(c,state.organizationReady));
   bindOrganization();
   if(c.organization?.archived_at){$('log-contact').disabled=true;$('log-contact').title='Restaure le dossier avant de reprendre les contacts.';}
@@ -204,6 +209,7 @@ async function selectCase(id) {
     state.selected=id;state.current=data.case;state.events=data.events;state.dirty=false;state.pending=null;
     state.organizationReady=data.organizationReady===true;state.organizationDirty=false;state.organizationPending=null;
     state.coachingsReady=Array.isArray(data.coachings);state.coachings=data.coachings||[];
+    state.sonnyFeedback=demo?{ready:true,replies:id===demoCases[0].id?[demoSonnyReply]:[]}:data.sonnyFeedback;
     renderList();renderDetail();
     if(matchMedia('(max-width:760px)').matches)$('detail').scrollIntoView({behavior:'smooth',block:'start'});
     return true;
@@ -348,8 +354,10 @@ $('logout').addEventListener('click',async()=>{
   if(!canLeave())return;
   try{if(!demo){const res=await fetch('/.netlify/functions/closer-logout',{method:'POST',credentials:'same-origin'});if(!res.ok)throw new Error();}state.dirty=false;location.assign('/onboarding/');}catch{message('Déconnexion impossible pour le moment. Réessaie.');}
 });
-if(demo){$('demo-banner').hidden=false;openCrm().then(()=>selectCase(demoCases[0].id));}
-else openCrm().catch(e=>{if(e.status!==401)$('login-message').textContent=e.message;});
+const requestedCase=new URLSearchParams(location.search).get('case');
+const validRequestedCase=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(requestedCase||'');
+if(demo){$('demo-banner').hidden=false;openCrm().then(()=>selectCase(demoCases.some(c=>c.id===requestedCase)?requestedCase:demoCases[0].id));}
+else openCrm().then(()=>{if(validRequestedCase)selectCase(requestedCase);}).catch(e=>{if(e.status!==401)$('login-message').textContent=e.message;});
 setInterval(()=>{
   // La fiche ouverte et ses brouillons ne sont jamais remplacés par un rafraîchissement.
   if(!$('crm-screen').hidden && !document.hidden && !state.loading && !state.saving && !payments.isActive()&&!agenda.isActive())loadList().catch(e=>message(e.message));

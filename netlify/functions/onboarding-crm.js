@@ -7,6 +7,7 @@ import { loadOnboardingPayments } from './lib/onboarding-payments.mjs';
 import { validateCoachings } from './lib/onboarding-coachings.mjs';
 import { validateOrganization,withOrganization } from './lib/onboarding-organization.mjs';
 import { loadAgenda,validAgendaRange } from './lib/onboarding-agenda.mjs';
+import { loadSonnyFeedback } from './lib/sonny-feedback.mjs';
 
 const reply = (status, data) => new Response(JSON.stringify({...data,serverNow:new Date().toISOString()}), { status, headers: {
   'Content-Type': 'application/json', 'Cache-Control': 'no-store, private',
@@ -95,7 +96,8 @@ export function createHandler(db = database, payments = loadOnboardingPayments) 
           try { coachings=await db(`onboarding_coaching_sessions?case_id=eq.${id}&select=number,status,scheduled_at,duration_minutes,notes&order=number.asc`); }
           catch { /* Migration non installée / panne : l'accueil existant reste accessible. */ }
           const organized=await withOrganization(db,[timed],scope);
-          return reply(200, { case: presentCase(organized.rows[0]), organizationReady:organized.ready, events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor, coachings });
+          const sonnyFeedback = await loadSonnyFeedback(db,row.email);
+          return reply(200, { case: presentCase(organized.rows[0]), organizationReady:organized.ready, events:events.map(e=>({...e,can_delete:actor.role==='owner'||e.actor_id===actor.id})), actor, coachings, sonnyFeedback });
         }
         const filter = url.searchParams.get('filter') || 'all';
         const group = url.searchParams.get('country_group') || 'all';
