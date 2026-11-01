@@ -1,0 +1,143 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {PGlite} from '@electric-sql/pglite';
+import {createHandler} from '../netlify/functions/sonny-feedback.js';
+import {createHandler as crmHandler} from '../netlify/functions/onboarding-crm.js';
+import {signCloserToken,getCloserCookieSecret} from '../netlify/functions/lib/closer-access-crypto.mjs';
+import {validReply,questionText,loadSonnyFeedback} from '../netlify/functions/lib/sonny-feedback.mjs';
+import {sonnyFeedbackMarkup} from '../src/scripts/sonny-feedback-view.mjs';
+
+globalThis.fetch=async()=>{throw Error('Real network forbidden');};
+const db=new PGlite();
+await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+create table closer_access_codes(id bigint primary key,label text,email text,password_hash text,active boolean);
+create table onboarding_staff(closer_id bigint primary key,role text,active boolean);
+create table onboarding_cases(id uuid primary key,email text,display_name text,assigned_closer_id bigint,notes text,status text);
+create table es2_feedback(id serial primary key,token text,email text,prenom text,created_at timestamptz default now());
+insert into closer_access_codes values(20,'Sonny','owner@example.com','hash',true),(22,'Romain','coach@example.com','hash',true),(24,'Autre','other@example.com','hash',true);
+insert into onboarding_staff values(20,'owner',true),(22,'coach',true),(24,'owner',false);
+insert into es2_feedback(token,email,prenom) values('secret-never-exposed',' CAMILLE@EXAMPLE.COM ','Camille'),('secret2','nobody@example.com','Sans dossier');
+insert into onboarding_cases values('00000000-0000-4000-8000-000000000001','camille@example.com','Camille',22,'Ne pas écraser','done');
+grant select on closer_access_codes,onboarding_staff,es2_feedback,onboarding_cases to service_role;`);
+const original=JSON.stringify((await db.query('select * from onboarding_cases')).rows);
+const sql=await readFile(new URL('../sql/es2_feedback_replies.sql',import.meta.url),'utf8');
+await db.exec(sql);await db.exec(sql);
+const id=randomUUID(),command=randomUUID();
+const base={id,command_id:command,version:0,feedback_id:1,email:'camille@example.com',prenom:'Camille',question:'Sa question complète\nAvec un lien https://example.com et des accents é 🧡',answer:'Mon retour complet.',answered_on:'2026-10-30'};
+assert.ok(validReply(base));
+for(const patch of [{email:'wrong,(email)'},{email:'Mixed@EXAMPLE.COM'},{answer:' '},{question:'a\0b'},{answered_on:'2026-02-30'},{answered_on:'2099-01-01'},{version:-1},{feedback_id:'1 OR 1=1'}])assert.equal(validReply({...base,...patch}),false);
+const save=async(b=base,actor=20)=>(await db.query('select es2_feedback_save_reply($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) data',[actor,b.id,b.command_id,b.version,b.feedback_id,b.email,b.prenom,b.question,b.answer,b.answered_on])).rows[0].data;
+const inbox=async(filter='all',search='',offset=0,actor=20)=>(await db.query('select es2_feedback_inbox($1,$2,$3,$4) data',[actor,filter,search,offset])).rows[0].data;
+await db.exec('set role service_role');
+assert.equal((await inbox('pending')).total,2);
+const first=await save();assert.equal(first.version,1);
+assert.equal((await inbox('pending')).total,1);assert.equal((await inbox('answered','CAMILLE')).total,1);
+assert.equal((await inbox('all','not-present')).total,0);assert.equal((await inbox('all','',50)).items.length,0);
+assert.equal(JSON.stringify(await inbox()).includes('secret-never-exposed'),false);
+assert.equal((await save()).version,1,'same command idempotent');
+await assert.rejects(()=>save({...base,answer:'Different payload'}),/feedback_command_conflict/);
+await assert.rejects(()=>save({...base,command_id:randomUUID()}),/feedback_version_conflict/);
+await assert.rejects(()=>save({...base,version:1,command_id:randomUUID(),email:'other@example.com'}),/feedback_identity_conflict/);
+await assert.rejects(()=>save({...base,id:randomUUID(),command_id:randomUUID()}),/feedback_version_conflict/);
+await assert.rejects(()=>save(base,22),/feedback_forbidden/);
+await assert.rejects(()=>save(base,24),/feedback_forbidden/);
+await assert.rejects(()=>inbox('all','',0,22),/feedback_forbidden/);
+await assert.rejects(()=>save({...base,id:randomUUID(),feedback_id:2,command_id:randomUUID()}),/feedback_identity_conflict/);
+const manual={...base,id:randomUUID(),command_id:randomUUID(),feedback_id:null,email:'historic@example.com',answered_on:'2025-01-15'};
+await save(manual);assert.equal((await inbox('answered','historic')).total,1);
+const second=await save({...base,version:1,command_id:randomUUID(),answer:'Réponse corrigée.'});assert.equal(second.version,2);
+assert.equal((await save()).version,2,'replay of old command returns current, never overwrites');
+await assert.rejects(()=>db.exec('delete from es2_feedback_replies'),/permission denied/);
+await assert.rejects(()=>db.exec('update es2_feedback_reply_revisions set before_data=null'),/permission denied/);
+await db.exec('reset role');
+assert.equal((await db.query('select count(*)::int n from es2_feedback_reply_revisions')).rows[0].n,3);
+assert.equal((await db.query('select after_data from es2_feedback_reply_revisions where command_id=$1',[command])).rows[0].after_data.answer,base.answer);
+assert.equal(JSON.stringify((await db.query('select * from onboarding_cases')).rows),original);
+await db.exec(sql);
+assert.equal((await db.query('select version from es2_feedback_replies where id=$1',[id])).rows[0].version,2);
+for(const role of ['anon','authenticated']){
+  await db.exec(`set role ${role}`);
+  await assert.rejects(()=>db.exec('select * from es2_feedback_replies'),/permission denied/);
+  await assert.rejects(()=>save(),/permission denied/);
+  await assert.rejects(()=>inbox(),/permission denied/);
+  await db.exec('reset role');
+}
+await db.exec('revoke insert on es2_feedback_reply_revisions from service_role;set role service_role');
+await assert.rejects(()=>save({...base,version:2,command_id:randomUUID(),answer:'Should roll back'}),/permission denied/);
+await db.exec('reset role');
+assert.equal((await db.query('select answer from es2_feedback_replies where id=$1',[id])).rows[0].answer,'Réponse corrigée.');
+
+process.env.SUPABASE_SERVICE_ROLE_KEY='fictional-test-key';process.env.SUPABASE_URL='https://example.test';
+const cookie=cid=>`closer_access=${signCloserToken(getCloserCookieSecret(),60000,cid)}`;
+const request=(path='',{actor=20,headers={},body,method}={})=>new Request('https://example.test/.netlify/functions/sonny-feedback'+path,{method:method||(body?'POST':'GET'),headers:{cookie:cookie(actor),'x-sonny-feedback':'1',...(body?{'content-type':'application/json'}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});
+let queries=[];
+const fake=async(path,body)=>{
+  queries.push([path,body]);
+  if(path.startsWith('closer_access_codes?'))return [{id:20,email:'owner@example.com',label:'Sonny',password_hash:'hash'}];
+  if(path.startsWith('onboarding_staff?'))return [{role:path.includes('eq.22')?'coach':'owner'}];
+  if(path==='rpc/es2_feedback_inbox')return {items:[],pending:0,total:0};
+  if(path==='rpc/es2_feedback_save_reply')return {...base,version:1};
+  if(path.startsWith('es2_feedback_replies?'))return [];
+  if(path.startsWith('es2_feedback?'))return [{id:1,email:' CAMILLE@EXAMPLE.COM ',prenom:'Camille',help_needed:'Question complète',what_changed:'Évolution'}];
+  if(path.startsWith('onboarding_cases?'))return [{id:'00000000-0000-4000-8000-000000000001',email:'camille@example.com',display_name:'Camille'}];
+  throw Error('Unexpected query '+path);
+};
+const handler=createHandler(fake);
+assert.equal((await handler(request())).status,200);
+assert.equal((await handler(request('',{actor:22}))).status,403);
+assert.equal((await handler(request('',{headers:{cookie:''}}))).status,401);
+for(const headers of [{'x-sonny-feedback':'0'},{origin:'https://evil.test'},{'sec-fetch-site':'cross-site'}])assert.equal((await handler(request('',{headers}))).status,403);
+assert.equal((await handler(request('',{method:'DELETE'}))).status,405);
+assert.equal((await handler(request('?feedback_id=x'))).status,400);
+assert.equal((await handler(request('?filter=bad'))).status,400);
+assert.equal((await handler(request('?offset=-1'))).status,400);
+const detail=await (await handler(request('?feedback_id=1'))).json();assert.equal(detail.item.email,'camille@example.com');assert.match(detail.item.question,/Question complète/);
+assert.ok(!JSON.stringify(queries).includes('select=*'),'explicit safe selects, no tokens');
+assert.equal((await handler(request('',{body:base}))).status,200);
+assert.equal((await handler(request('',{body:{...base,answer:''}}))).status,400);
+const conflict=createHandler(async(path,body)=>{if(path==='rpc/es2_feedback_save_reply')throw Object.assign(Error(),{reason:'feedback_version_conflict'});return fake(path,body);});
+assert.equal((await conflict(request('',{body:base}))).status,409);
+const broken=createHandler(async(path,body)=>{if(path==='rpc/es2_feedback_inbox')throw Error('secret key never leak');return fake(path,body);});
+const unavailable=await broken(request());assert.equal(unavailable.status,503);assert.ok(!(await unavailable.text()).includes('secret key'));
+const html=sonnyFeedbackMarkup({ready:true,replies:[{...base,question:'<script>alert(1)</script>',answer:'<img src=x onerror=alert(1)>'}]});
+assert.ok(!html.includes('<script>'));assert.match(html,/&lt;img/);
+assert.match(sonnyFeedbackMarkup({ready:false,replies:[]}),/indisponibles/);
+assert.match(sonnyFeedbackMarkup({ready:true,replies:[]}),/ne signifie pas/);
+assert.match(questionText({score:0,help_needed:'texte'}),/texte/);
+assert.equal((await loadSonnyFeedback(async()=>{throw Error('missing migration');},'x@example.com')).ready,false);
+queries=[];
+await loadSonnyFeedback(async path=>{queries.push(path);return [];},' CAMILLE@EXAMPLE.COM ');
+assert.match(queries[0],/email=eq.camille%40example.com/);
+
+// CRM must authorize a case BEFORE querying its replies; failures remain isolated.
+const caseId='00000000-0000-4000-8000-000000000001';
+let readReplies=false;
+const missingCase=crmHandler(async path=>{
+  if(path.startsWith('closer_access_codes?'))return [{email:'coach@example.com',password_hash:'hash'}];
+  if(path.startsWith('onboarding_staff?'))return [{role:'coach'}];
+  if(path.startsWith('onboarding_cases?')){assert.ok(path.includes('assigned_closer_id=eq.22'));return [];}
+  if(path.startsWith('es2_feedback_replies?'))readReplies=true;
+  throw Error('Unexpected query');
+});
+assert.equal((await missingCase(new Request('https://example.test/.netlify/functions/onboarding-crm?id='+caseId,{headers:{cookie:cookie(22),'x-onboarding-client':'1'}}))).status,404);
+assert.equal(readReplies,false);
+const assignedCase=async(path)=>{
+  if(path.startsWith('closer_access_codes?'))return [{email:'coach@example.com',password_hash:'hash'}];
+  if(path.startsWith('onboarding_staff?'))return [{role:'coach'}];
+  if(path.startsWith('onboarding_cases?')){
+    assert.ok(path.includes('assigned_closer_id=eq.22'));
+    if(path.includes('select=*'))return [{id:caseId,email:'camille@example.com',display_name:'Camille',purchased_at:'2026-10-01T10:00:00Z',plan:'twelve',status:'done',notes:'Intactes'}];
+    return [{id:caseId,organization:null,onboarding_events:[],received:[]}];
+  }
+  if(path.startsWith('onboarding_events?')||path.startsWith('onboarding_coaching_sessions?'))return [];
+  if(path.startsWith('es2_feedback_replies?')){assert.match(path,/email=eq.camille%40example.com/);return [second];}
+  throw Error('Unexpected query '+path);
+};
+const crmRequest=()=>new Request('https://example.test/.netlify/functions/onboarding-crm?id='+caseId,{headers:{cookie:cookie(22),'x-onboarding-client':'1'}});
+const crmResponse=await crmHandler(assignedCase)(crmRequest());assert.equal(crmResponse.status,200);
+const crmData=await crmResponse.json();assert.equal(crmData.sonnyFeedback.replies[0].answer,'Réponse corrigée.');assert.equal(crmData.case.notes,'Intactes');
+const withoutMigration=await crmHandler(async path=>{if(path.startsWith('es2_feedback_replies?'))throw Error('missing table');return assignedCase(path);})(crmRequest());
+assert.equal(withoutMigration.status,200);assert.equal((await withoutMigration.json()).sonnyFeedback.ready,false);
+await db.close();
+console.log('PASS: migration twice, pending/answered/history, exact-email binding, owner-only writes, scoped coach reads, RLS, rollback, audit, idempotency, conflicts, safe HTML, no real network or customer writes.');
