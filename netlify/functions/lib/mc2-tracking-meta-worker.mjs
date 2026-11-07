@@ -36,17 +36,21 @@ export async function deliverTrackingMeta({ now = Date.now(), send = sendMetaEve
         if (!registration || tests.length || (registration.traffic_source !== 'meta_ad' && row.event_name !== 'OfferViewed')) {
           await patch({ status: 'skipped', last_error: 'test_or_ineligible' }); results.skipped++; continue;
         }
-        if (now - Date.parse(row.event_time) > 6 * 86400000 || attempts > 20) {
+        if (!Number.isFinite(Date.parse(row.event_time)) || now - Date.parse(row.event_time) > 6 * 86400000 || attempts > 20) {
           await patch({ status: 'failed', last_error: 'delivery_window_or_attempt_limit' }); results.failed++; continue;
         }
         const context = row.context || {};
+        // Les envois immédiats rattrapés gardent leur page, leur libellé et leur montant d'origine.
+        const contextUrl = /^https:\/\/sonnycourt\.com\//.test(String(context.url || '')) ? String(context.url).slice(0, 500) : null;
+        const value = typeof context.value === 'number' && Number.isFinite(context.value) ? context.value : undefined;
         const result = await send({ eventName: row.event_name, eventId: row.event_id,
           eventTime: Math.floor(Date.parse(row.event_time) / 1000),
           email: registration.email, phone: registration.telephone, externalId: registration.token,
           fbc: registration.meta_fbc, fbp: registration.meta_fbp,
           ip: context.ip, userAgent: context.userAgent,
-          url: 'https://sonnycourt.com' + (context.route === '/mc2/replay/' ? '/mc2/replay/' : '/mc2/session/'),
-          contentName: 'Masterclass ES2 — observation v2', optinVariant: registration.optin_variant });
+          url: contextUrl || ('https://sonnycourt.com' + (context.route === '/mc2/replay/' ? '/mc2/replay/' : '/mc2/session/')),
+          ...(value !== undefined ? { value, currency: String(context.currency || 'EUR').slice(0, 3) } : {}),
+          contentName: String(context.contentName || 'Masterclass ES2 — observation v2').slice(0, 120), optinVariant: registration.optin_variant });
         if (result?.ok && Number(result.response?.events_received) > 0) {
           await patch({ status: 'sent', sent_at: new Date().toISOString(), last_error: null }); results.sent++;
         } else {

@@ -57,6 +57,9 @@ function simulate(route, { seek = false, hidden = false, frozen = false, zeroCou
     assert.ok(intervals.every(r => r.metadata.position_end > r.metadata.position_start && r.metadata.elapsed_seconds <= 15));
     const cta = records.filter(r => r.name === 'v2:cta_playback_present');
     assert.equal(cta.length, hidden || seek || frozen ? 0 : 1, `CTA qualification: ${route}`);
+    if (cta.length) assert.equal(cta[0].metadata.current_second, media.cta, 'Pitch marker follows the current video, to the second');
+    const visibleOffers = records.filter(r => r.name === 'v2:offer_visible');
+    assert.ok(visibleOffers.every(r => r.metadata.current_second >= media.cta + 1), 'OfferViewed requires visible offer dwell, never the old masterclass clock');
     if (!seek) assert.ok(intervals.length > 400, 'Beyond former 40-minute cutoff');
     if (hidden) assert.equal(records.some(r => r.name === 'v2:offer_visible'), false);
     tracker('checkout_clicked', { step: 1, plan: 'twelve', email: 'private@example.invalid' });

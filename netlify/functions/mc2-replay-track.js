@@ -7,6 +7,7 @@ import {
   sendMc2MetaEvents,
 } from './lib/mc2-meta-events.mjs';
 import { excludeWebinarAttendee } from './lib/webinaire-exclusions.mjs';
+import { MC2_REPLAY_VIDEO_DURATION_SECONDS } from '../../src/lib/mc2-timing.mjs';
 
 const EVENTS = new Set(['replay_started', 'replay_progress', 'cta_reached']);
 
@@ -67,6 +68,14 @@ export default async (req) => {
       ...(percent > 0 ? { percent: Math.min(100, percent) } : {}),
       ...(durationSeconds > 0 ? { duration_seconds: durationSeconds } : {}),
     };
+    // Les paliers Meta se calculent sur la position replay déjà atteinte, avec
+    // la durée du replay : sans cela, le ping de présence renvoyait les mêmes
+    // paliers chaque minute en se comparant à la colonne du direct.
+    const metaProgressMeta = {
+      ...eventMeta,
+      previous_minutes: second(access.registration.watch_max_seconds_replay) / 60,
+      ...(durationSeconds > 0 ? {} : { duration_seconds: MC2_REPLAY_VIDEO_DURATION_SECONDS }),
+    };
     await supabasePost('mc2_funnel_events', {
       token: access.registration.token,
       event_name: funnelEventName,
@@ -80,7 +89,7 @@ export default async (req) => {
     const metaEvents = mc2FunnelMetaEvents({
       eventName: funnelEventName,
       value: event === 'replay_progress' ? currentSecond / 60 : body.value,
-      meta: eventMeta,
+      meta: metaProgressMeta,
       registration: access.registration,
     });
     if (metaEvents.length > 0) {

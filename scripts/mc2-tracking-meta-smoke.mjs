@@ -47,6 +47,14 @@ try {
   assert.equal(sends.at(-1).eventId, sends.at(-2).eventId, 'Retries share deduplication ID');
   reset(); failSavedAck = true; await deliverTrackingMeta({ send }); assert.equal(row.status, 'processing');
   failSavedAck = false; await deliverTrackingMeta({ send, now: Date.now() + 360000 }); assert.equal(row.status, 'sent');
+  // Un envoi immédiat rattrapé garde sa page, son libellé et son montant.
+  reset(); row.context = { source: 'immediate_fallback', url: 'https://sonnycourt.com/mc2/session/', contentName: 'Esprit Subconscient 2.0', value: 197, currency: 'EUR' };
+  row.delivery_key = 'immediate:' + event.token + ':Purchase'; row.event_name = 'Purchase';
+  await deliverTrackingMeta({ send }); assert.equal(row.status, 'sent');
+  assert.equal(sends.at(-1).url, 'https://sonnycourt.com/mc2/session/'); assert.equal(sends.at(-1).value, 197);
+  assert.equal(sends.at(-1).currency, 'EUR'); assert.equal(sends.at(-1).contentName, 'Esprit Subconscient 2.0');
+  reset(); row.context = { url: 'https://evil.example/x', route: '/mc2/replay/' };
+  await deliverTrackingMeta({ send }); assert.equal(sends.at(-1).url, 'https://sonnycourt.com/mc2/replay/', 'Seules les pages du site sont acceptées');
   reset(); isTest = true; const before = sends.length; await deliverTrackingMeta({ send }); assert.equal(sends.length, before); assert.equal(row.status, 'skipped');
   reset(); isTest = false; process.env.CONTEXT = 'deploy-preview'; await deliverTrackingMeta({ send }); assert.equal(row.status, 'pending');
 } finally { globalThis.fetch = original; }

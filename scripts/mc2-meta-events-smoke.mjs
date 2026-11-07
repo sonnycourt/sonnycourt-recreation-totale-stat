@@ -105,6 +105,20 @@ assert.deepEqual(
   ['InitiateCheckout'],
 );
 
+// Replay : la position précédente vient du replay, pas de la colonne live.
+assert.deepEqual(mc2FunnelMetaEvents({
+  eventName: 'video_checkpoint',
+  value: 61,
+  meta: { previous_minutes: 60, duration_seconds: 6707 },
+  registration: { ...metaRegistration, watch_max_minutes: 0 },
+}), [], 'Un ping replay après le palier ne doit pas le renvoyer');
+assert.deepEqual(mc2FunnelMetaEvents({
+  eventName: 'video_checkpoint',
+  value: 60,
+  meta: { previous_minutes: 30, duration_seconds: 6707 },
+  registration: { ...metaRegistration, watch_max_minutes: 0 },
+}).map((event) => event.eventName), ['QualifiedView50']);
+
 const req = new Request('https://sonnycourt.com/.netlify/functions/register-mc2', {
   headers: {
     referer: 'https://sonnycourt.com/meta/masterclass/',
@@ -192,6 +206,79 @@ await sendMc2MetaEvents({
 });
 assert.equal(capiRequest, null);
 
+// Envoi immédiat refusé par Meta : l'événement part dans la file durable,
+// avec le même event_id. Succès confirmé : rien n'est mis en file.
+const previousSupabaseUrl = process.env.SUPABASE_URL;
+const previousSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+process.env.SUPABASE_URL = 'https://database.invalid';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'fixture';
+let outboxInsert = null;
+let metaStatus = 500;
+globalThis.fetch = async (url, options = {}) => {
+  const parsed = new URL(url);
+  if (parsed.hostname === 'graph.facebook.com') {
+    capiRequest = { url: String(url), options };
+    return new Response(JSON.stringify(metaStatus === 200 ? { events_received: 1 } : { error: { message: 'fixture' } }), {
+      status: metaStatus, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  assert.equal(parsed.hostname, 'database.invalid');
+  assert.ok(parsed.pathname.endsWith('/mc2_tracking_meta_outbox'));
+  assert.equal(options.method, 'POST');
+  assert.equal(parsed.searchParams.get('on_conflict'), 'delivery_key');
+  assert.match(String(options.headers.Prefer), /ignore-duplicates/);
+  outboxInsert = JSON.parse(options.body);
+  return new Response('', { status: 201 });
+};
+const failedResults = await sendMc2MetaEvents({
+  events: mc2RegistrationMetaEvents(metaRegistration, { completedNow: true }),
+  registration: metaRegistration,
+  req,
+  context: { ip: '198.51.100.7', userAgent: 'Webhook fixture', url: 'https://sonnycourt.com/mc2/session/' },
+  value: 197,
+  currency: 'EUR',
+});
+assert.equal(failedResults[0].fallbackQueued, true);
+assert.equal(outboxInsert.delivery_key, `immediate:${metaRegistration.token}:Lead:browser-lead-id`);
+assert.equal(outboxInsert.event_id, 'browser-lead-id');
+assert.equal(outboxInsert.status, 'pending');
+assert.deepEqual(outboxInsert.context, {
+  source: 'immediate_fallback',
+  ip: '198.51.100.7',
+  userAgent: 'Webhook fixture',
+  url: 'https://sonnycourt.com/mc2/session/',
+  contentName: 'Masterclass ES2',
+  value: 197,
+  currency: 'EUR',
+});
+const overriddenBody = JSON.parse(capiRequest.options.body);
+assert.equal(overriddenBody.data[0].user_data.client_ip_address, '198.51.100.7');
+assert.equal(overriddenBody.data[0].user_data.client_user_agent, 'Webhook fixture');
+assert.equal(overriddenBody.data[0].event_source_url, 'https://sonnycourt.com/mc2/session/');
+assert.equal(overriddenBody.data[0].custom_data.value, 197);
+
+outboxInsert = null;
+metaStatus = 200;
+const okResults = await sendMc2MetaEvents({
+  events: mc2RegistrationMetaEvents(metaRegistration, { completedNow: true }),
+  registration: metaRegistration,
+  req,
+});
+assert.equal(okResults[0].ok, true);
+assert.equal(outboxInsert, null, 'Un envoi confirmé ne passe pas par la file');
+
+if (previousSupabaseUrl === undefined) delete process.env.SUPABASE_URL;
+else process.env.SUPABASE_URL = previousSupabaseUrl;
+if (previousSupabaseKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+else process.env.SUPABASE_SERVICE_ROLE_KEY = previousSupabaseKey;
+globalThis.fetch = async (url, options) => {
+  capiRequest = { url: String(url), options };
+  return new Response(JSON.stringify({ events_received: 1 }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 process.env.CONTEXT = 'deploy-preview';
 capiRequest = null;
 await sendMc2MetaEvents({
@@ -247,10 +334,20 @@ assert.match(sessionPage, /pageStorage\.getItem\(storageKey\) === '1'/);
 assert.match(replayPage, /trackWebinaireEvent\(token, 'cta_reached'\)/);
 assert.match(replayTracker, /mc2FunnelMetaEvents\(\{[\s\S]*eventName: funnelEventName/);
 assert.match(replayTracker, /sendMc2MetaEvents\(\{[\s\S]*pagePath: '\/mc2\/replay\/'/);
-assert.match(replayRecovery, /select=token,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,/);
+assert.match(replayRecovery, /select=token,session_generation,email,prenom,telephone,pays,traffic_source,meta_fbc,meta_fbp,optin_variant,/);
+assert.match(replayTracker, /previous_minutes: second\(access\.registration\.watch_max_seconds_replay\) \/ 60/);
 assert.match(offerBackfill, /getSessionFromRequest\(req\)/);
 assert.match(offerBackfill, /const MAX_EXPECTED = 5/);
 assert.match(offerBackfill, /registration\.saw_offer !== true \|\| purchased\(registration\)/);
 assert.match(offerBackfill, /eventName: 'OfferViewed'/);
+
+const confirmationPage = await readFile(new URL('../src/pages/mc2/confirmation.astro', import.meta.url), 'utf8');
+const successPage = await readFile(new URL('../src/pages/commencer/succes.astro', import.meta.url), 'utf8');
+const pixelComponent = await readFile(new URL('../src/components/mc2/Mc2MetaPixelPageView.astro', import.meta.url), 'utf8');
+assert.match(confirmationPage, /<Mc2MetaPixelPageView \/>/);
+assert.match(successPage, /<Mc2MetaPixelPageView \/>/);
+assert.match(pixelComponent, /fbq\('init', '3367958190030822'\)/);
+assert.match(pixelComponent, /fbq\('track', 'PageView'\)/);
+assert.doesNotMatch(pixelComponent, /fbq\(['"]track(?:Custom)?['"],\s*['"](?:Purchase|Lead)/, 'La page ne doit recompter aucun événement métier');
 
 console.log('mc2 meta events smoke: ok');

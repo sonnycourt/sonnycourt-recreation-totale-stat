@@ -28,7 +28,7 @@ import {
 } from './mc2-circle-onboarding.mjs';
 import { addMc2BuyerToMailerLite } from './mc2-mailerlite-buyers.mjs';
 import { queueMc2ContractDocument } from './mc2-contract-documents.mjs';
-import { mc2MetaEventId, sendMc2MetaEvents } from './mc2-meta-events.mjs';
+import { mc2LastKnownBrowserContext, mc2MetaEventId, sendMc2MetaEvents } from './mc2-meta-events.mjs';
 import {
   cancelMc2DunningJobs,
   mc2DunningStage,
@@ -245,6 +245,31 @@ async function processCheckoutCompleted(stripe, session, event) {
     registration,
     purchasedAt,
   });
+  try {
+    const purchaseRegistration = {
+      ...registration,
+      email: registration.email || session.customer_details?.email || session.customer_email,
+      telephone: registration.telephone || session.customer_details?.phone,
+    };
+    const browser = await mc2LastKnownBrowserContext(registration.token);
+    if (!registration.purchased_at) await sendMc2MetaEvents({
+      events: [{
+        eventName: 'Purchase',
+        eventId: 'purchase-' + registration.token,
+        contentName: 'Esprit Subconscient 2.0',
+      }],
+      registration: purchaseRegistration,
+      context: { ...browser, source: 'payment_webhook' },
+      durable: true,
+      pagePath: '/commencer/succes/',
+      eventTime: Number(event.created) || undefined,
+      value: Number(session.amount_total || expectedInitial) / 100,
+      currency: String(session.currency || 'eur').toUpperCase(),
+    });
+  } catch (error) {
+    // Seul Stripe confirme l'achat ; Meta ne doit jamais bloquer le webhook.
+    console.error('MC2 Meta Purchase failed:', error?.message || error);
+  }
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(token)}`, {
     statut: 'purchased',
     payment_status: 'paid',
@@ -265,28 +290,6 @@ async function processCheckoutCompleted(stripe, session, event) {
     last_event_at: nowIso,
   });
   if (!updated.ok) throw new Error(`mc2_purchase_update_${updated.status}`);
-  try {
-    const purchaseRegistration = {
-      ...registration,
-      email: registration.email || session.customer_details?.email || session.customer_email,
-      telephone: registration.telephone || session.customer_details?.phone,
-    };
-    await sendMc2MetaEvents({
-      events: [{
-        eventName: 'Purchase',
-        eventId: mc2MetaEventId('purchase', session.id),
-        contentName: 'Esprit Subconscient 2.0',
-      }],
-      registration: purchaseRegistration,
-      pagePath: '/commencer/succes/',
-      eventTime: Number(event.created) || undefined,
-      value: Number(session.amount_total || expectedInitial) / 100,
-      currency: String(session.currency || 'eur').toUpperCase(),
-    });
-  } catch (error) {
-    // Seul Stripe confirme l'achat ; Meta ne doit jamais bloquer le webhook.
-    console.error('MC2 Meta Purchase failed:', error?.message || error);
-  }
   // Le document est figé uniquement après confirmation du paiement initial.
   // Son insertion est idempotente par inscription ; une rediffusion Stripe ne
   // crée ni nouveau document ni nouveau lien personnel.
@@ -354,6 +357,28 @@ function invoicePaymentIntentId(invoice) {
   return stripeId(invoice.payment_intent)
     || stripeId(invoice.payments?.data?.[0]?.payment?.payment_intent)
     || stripeId(invoice.confirmation_secret?.payment_intent);
+}
+
+/**
+ * Signale à Meta la vie du plan de paiement (mensualité, impayé, abandon).
+ * Audiences et reporting seulement : Meta ne retire jamais un achat compté.
+ * Jamais bloquant pour le webhook Stripe.
+ */
+async function notifyMc2MetaPayment(registration, { eventName, eventId, contentName, value, currency, eventTime }) {
+  if (!registration || registration.traffic_source !== 'meta_ad') return;
+  try {
+    const browser = await mc2LastKnownBrowserContext(registration.token);
+    await sendMc2MetaEvents({
+      events: [{ eventName, eventId, contentName }],
+      registration,
+      context: { ...browser, source: 'payment_webhook', url: 'https://sonnycourt.com/mc2/session/' },
+      durable: true,
+      eventTime,
+      ...(typeof value === 'number' && Number.isFinite(value) ? { value, currency } : {}),
+    });
+  } catch (error) {
+    console.error('MC2 Meta payment event failed:', eventName, error?.message || error);
+  }
 }
 
 async function registrationForInvoice(stripe, invoice) {
@@ -425,6 +450,18 @@ async function processInvoicePaid(stripe, invoice, event) {
     invoice_id: invoice.id,
     installment_stage: invoice.lines?.data?.[0]?.metadata?.installment_stage || null,
   });
+  // Initial payment is a separate Checkout payment. Even subscription_create
+  // is a subsequent installment for our delayed subscription schedule.
+  if (amount > 0 && row.purchased_at) {
+    await notifyMc2MetaPayment(row, {
+      eventName: 'MC2_InstallmentPaid',
+      eventId: mc2MetaEventId(`installment-${invoiceId || event.id}`, row.token),
+      contentName: 'Esprit Subconscient 2.0 - Mensualité',
+      value: amount / 100,
+      currency: String(invoice.currency || 'eur').toUpperCase(),
+      eventTime: Number(invoice.status_transitions?.paid_at || event.created) || undefined,
+    });
+  }
   return { status: 'installment_paid', token: row.token, amount };
 }
 
@@ -493,6 +530,12 @@ async function processInvoiceFailed(stripe, invoice, event) {
     eventId: event.id,
     messageType: failure.requiresAction ? 'payment_action_required' : 'payment_failed',
     stage,
+  });
+  await notifyMc2MetaPayment(context.registration, {
+    eventName: 'MC2_PaymentFailed',
+    eventId: mc2MetaEventId(`payment-failed-${invoiceId}-${stage}`, context.registration.token),
+    contentName: 'Esprit Subconscient 2.0 - Impayé',
+    eventTime: Number(event.created) || undefined,
   });
   await recordFunnelEvent(context.registration.token, 'installment_failed', invoice.amount_due || 0, {
     stripe_event_id: event.id,
@@ -682,6 +725,18 @@ async function processChargeAlert(charge, event) {
   if (!registration) return { skipped: 'registration' };
   const disputed = event.type === 'charge.dispute.created';
   const refunded = event.type === 'charge.refunded' && Boolean(charge.refunded);
+  if (event.type === 'charge.refunded' && Number(charge.amount_refunded) > 0) {
+    // Track partial refunds too, without changing the existing access policy.
+    const previous = Number(event.data?.previous_attributes?.amount_refunded || 0);
+    await notifyMc2MetaPayment(registration, {
+      eventName: 'MC2_Refund',
+      eventId: mc2MetaEventId(`refund-${charge.id}-${charge.amount_refunded}`, registration.token),
+      contentName: 'Esprit Subconscient 2.0 - Remboursement',
+      value: Math.max(0, Number(charge.amount_refunded) - previous) / 100,
+      currency: String(charge.currency || 'eur').toUpperCase(),
+      eventTime: Number(event.created) || undefined,
+    });
+  }
   if (!disputed && !refunded) return { skipped: 'charge' };
   const status = disputed ? 'disputed' : 'refunded';
   const updated = await supabasePatch('mc2_registrations', `token=eq.${encodeURIComponent(registration.token)}`, {

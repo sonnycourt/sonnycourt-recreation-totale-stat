@@ -7,6 +7,7 @@ const originalEnv = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   SPIFFY_SIGNING_SECRET: process.env.SPIFFY_SIGNING_SECRET,
   MAILERLITE_API_KEY: process.env.MAILERLITE_API_KEY,
+  SPIFFY_ONBOARDING_API_KEY: process.env.SPIFFY_ONBOARDING_API_KEY,
 };
 
 process.env.SUPABASE_URL = 'https://supabase.test';
@@ -159,6 +160,197 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
   for (const [key, value] of Object.entries(originalEnv)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
+// --- Meta : un seul Purchase par acheteur, identifiants complets, mensualités et remboursements ---
+const metaEnv = { META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN, META_PIXEL_ID: process.env.META_PIXEL_ID, CONTEXT: process.env.CONTEXT };
+process.env.SUPABASE_URL = 'https://supabase.test';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role';
+process.env.META_ACCESS_TOKEN = 'fixture-token';
+process.env.META_PIXEL_ID = '3367958190030822';
+delete process.env.CONTEXT;
+delete process.env.SPIFFY_SIGNING_SECRET;
+delete process.env.MAILERLITE_API_KEY;
+const metaRegistration = {
+  ...registration,
+  traffic_source: 'meta_ad',
+  meta_fbc: 'fb.1.1700000000.clickid',
+  meta_fbp: 'fb.1.1700000000.browserid',
+  optin_variant: 'meta_v2',
+  purchased_at: null,
+  purchase_bonus_tag: null,
+};
+const metaCalls = [];
+let outboxInserts = [];
+let providerPayments = [], providerUnavailable = false;
+process.env.SPIFFY_ONBOARDING_API_KEY = 'fixture';
+globalThis.fetch = async (url, options = {}) => {
+  const parsed = new URL(url);
+  const method = options.method || 'GET';
+  if (parsed.hostname === 'api.spiffy.co') {
+    assert.equal(parsed.pathname, '/v2/payments');
+    assert.equal(parsed.searchParams.get('filter[order_id]'), '3100001');
+    return providerUnavailable ? Response.json({}, { status: 503 })
+      : Response.json({ data: providerPayments, meta: { pagination: { total_count: providerPayments.length } } });
+  }
+  if (parsed.hostname === 'graph.facebook.com') {
+    const body = JSON.parse(options.body);
+    assert.equal(body.access_token, 'fixture-token');
+    metaCalls.push(body.data[0]);
+    return Response.json({ events_received: 1 });
+  }
+  if (parsed.pathname.endsWith('/mc2_tracking_meta_outbox') && method === 'GET') {
+    return Response.json([{ context: { ip: '203.0.113.9', userAgent: 'Mobile Safari fixture', route: '/mc2/session/' } }]);
+  }
+  if (parsed.pathname.endsWith('/mc2_tracking_meta_outbox') && method === 'POST') {
+    const row = JSON.parse(options.body);
+    const exists = outboxInserts.some(r => r.delivery_key === row.delivery_key);
+    if (!exists) outboxInserts.push(row);
+    return Response.json(exists ? [] : [row], { status: 201 });
+  }
+  if (parsed.pathname.endsWith('/mc2_tracking_meta_outbox') && method === 'PATCH') {
+    const row = outboxInserts.find(r => `eq.${r.delivery_key}` === parsed.searchParams.get('delivery_key'));
+    if (row) Object.assign(row, JSON.parse(options.body));
+    return Response.json(row ? [row] : []);
+  }
+  if (parsed.pathname.endsWith('/mc2_registrations') && method === 'GET') {
+    if (parsed.searchParams.get('token') === `eq.${token}`) return Response.json([metaRegistration]);
+    if (parsed.searchParams.get('purchased_at') === 'not.is.null') return Response.json(metaRegistration.purchased_at ? [metaRegistration] : []);
+    return Response.json([]);
+  }
+  if (parsed.pathname.endsWith('/webinaire_registrations') && method === 'GET') return Response.json([]);
+  if (parsed.pathname.endsWith('/mc2_registrations') && method === 'PATCH') {
+    registrationPatch = JSON.parse(options.body || '{}');
+    return Response.json([{ ...metaRegistration, ...registrationPatch }]);
+  }
+  if (parsed.pathname.endsWith('/mc2_sms_jobs') && method === 'PATCH') return Response.json([]);
+  if (parsed.pathname.endsWith('/mc2_funnel_events') && method === 'POST') return Response.json([{ id: 456 }]);
+  if (parsed.pathname.endsWith('/mc2_funnel_events') && method === 'GET') return Response.json([]);
+  if (parsed.pathname.endsWith('/mc2_replay_recovery_jobs')) return Response.json([]);
+  if (parsed.pathname.endsWith('/webinaire_exclusions') && method === 'POST') return new Response('', { status: 201 });
+  throw new Error(`unexpected request: ${method} ${url}`);
+};
+const webhook = (body) => handler(new Request('https://sonnycourt.com/.netlify/functions/spiffy-purchase-webhook', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+}));
+try {
+  // 1. Première commande : un Purchase, avec clic, navigateur, identifiant interne et page.
+  let response = await webhook({ event: 'order:success', data: { object: {
+    id: 3100001, checkout: { id: 40006 }, order_total: 19700, customer: { email: paymentEmail }, mc2_token: token,
+  } } });
+  assert.equal((await response.json()).type, 'sale');
+  assert.equal(metaCalls.length, 1);
+  assert.equal(metaCalls[0].event_name, 'Purchase');
+  assert.equal(metaCalls[0].event_id, `purchase-${token}`);
+  assert.equal(metaCalls[0].custom_data.value, 197);
+  assert.equal(metaCalls[0].custom_data.currency, 'EUR');
+  assert.equal(metaCalls[0].event_source_url, 'https://sonnycourt.com/mc2/session/');
+  assert.equal(metaCalls[0].user_data.fbc, 'fb.1.1700000000.clickid');
+  assert.equal(metaCalls[0].user_data.fbp, 'fb.1.1700000000.browserid');
+  assert.equal(metaCalls[0].user_data.client_ip_address, '203.0.113.9');
+  assert.equal(metaCalls[0].user_data.client_user_agent, 'Mobile Safari fixture');
+  assert.equal(metaCalls[0].user_data.external_id?.[0]?.length, 64);
+  assert.equal(outboxInserts.length, 1, 'Le paiement garde un reçu durable, même après succès');
+  assert.equal(outboxInserts[0].status, 'sent');
+
+  // 2. Relivraison de la même commande, achat déjà enregistré : aucun nouveau Purchase.
+  metaRegistration.purchased_at = new Date(Date.now() - 3600000).toISOString();
+  response = await webhook({ event: 'order:success', data: { object: {
+    id: 3100001, checkout: { id: 40006 }, order_total: 19700, customer: { email: paymentEmail }, mc2_token: token,
+  } } });
+  assert.equal(response.status, 200);
+  assert.equal(metaCalls.length, 1, 'Une relivraison ne recompte pas l’achat');
+
+  // 3. Mensualité suivante : événement dédié, pas de Purchase.
+  response = await webhook({ event: 'payment:success', data: { object: {
+    id: 3100002, order_id: 3100001, installment_number: 2, checkout: { id: 40006 }, payment_amount: 19700, customer: { email: paymentEmail }, mc2_token: token,
+  } } });
+  assert.equal(response.status, 200);
+  assert.equal(metaCalls.length, 2);
+  assert.equal(metaCalls[1].event_name, 'MC2_InstallmentPaid');
+  assert.equal(metaCalls[1].custom_data.value, 197);
+  assert.notEqual(metaCalls[1].event_id, metaCalls[0].event_id);
+
+  // Même commande, deux échéances différentes et une rediffusion : 2 signaux,
+  // pas un signal écrasé dans la file, pas un nouveau Purchase.
+  const secondInstallment = { event: 'payment:success', data: { object: {
+    id: 3100005, order_id: 3100001, installment_number: 3, checkout: { id: 40006 },
+    order_total: 236400, payment_amount: 19700, customer: { email: paymentEmail }, mc2_token: token,
+  } } };
+  const beforeSecond = metaCalls.length;
+  await webhook(secondInstallment); await webhook(secondInstallment);
+  assert.equal(metaCalls.length, beforeSecond + 1);
+  assert.equal(metaCalls.at(-1).event_name, 'MC2_InstallmentPaid');
+  assert.equal(metaCalls.at(-1).custom_data.value, 197, 'Ne pas envoyer le total contractuel de la commande');
+  assert.notEqual(metaCalls.at(-1).event_id, metaCalls[1].event_id);
+  // La notification du règlement INITIAL ne devient pas une mensualité.
+  await webhook({ ...secondInstallment, data: { object: { ...secondInstallment.data.object, id: 3100006, installment_number: 1 } } });
+  assert.equal(metaCalls.length, beforeSecond + 1);
+  // Provider payload without installment_number: read the actual order history.
+  providerPayments = [
+    { id: 3100010, order_id: 3100001, amount_paid: 19700, created_at: '2026-09-01T10:00:00Z' },
+    { id: 3100011, order_id: 3100001, amount_paid: 19700, created_at: '2026-10-01T10:00:00Z' },
+  ];
+  const providerNotice = { event: 'payment:success', data: { object: {
+    id: 3100011, order_id: 3100001, checkout: { id: 40006 }, payment_amount: 19700,
+    customer: { email: paymentEmail }, mc2_token: token,
+  } } };
+  let previousCount = metaCalls.length;
+  providerUnavailable = true;
+  response = await webhook(providerNotice);
+  assert.equal(response.status, 503, 'Unknown installment is retriable, never guessed');
+  assert.equal(metaCalls.length, previousCount);
+  providerUnavailable = false;
+  response = await webhook(providerNotice);
+  assert.equal(response.status, 200);
+  assert.equal(metaCalls.length, previousCount + 1);
+  assert.equal(metaCalls.at(-1).event_name, 'MC2_InstallmentPaid');
+  previousCount = metaCalls.length;
+  await webhook({ ...providerNotice, data: { object: { ...providerNotice.data.object, id: 3100010 } } });
+  assert.equal(metaCalls.length, previousCount, 'Initial charge notification does not become an installment');
+  const beforeUnrelated = metaCalls.length;
+  await webhook({ event: 'order:refund', data: { object: { id: 777, checkout: { id: 99999 }, customer: { email: registrationEmail }, refund_amount: 9700 } } });
+  assert.equal(metaCalls.length, beforeUnrelated, 'Le remboursement d’un autre produit n’est pas un remboursement MC2');
+
+  // 4. Remboursement : signal dédié vers l'acheteur Meta.
+  response = await webhook({ event: 'order:refund', data: { object: {
+    id: 3100001, order_id: 3100001, checkout: { id: 40006 }, order_total: 19700, refund_amount: 19700, customer: { email: registrationEmail },
+  } } });
+  assert.equal((await response.json()).type, 'refund');
+  assert.equal(metaCalls.at(-1).event_name, 'MC2_Refund');
+  assert.equal(metaCalls.at(-1).custom_data.value, 197);
+
+  // 5. Impayé : signal dédié.
+  response = await webhook({ event: 'payment:failed', data: { object: {
+    id: 3100003, order_id: 3100003, checkout: { id: 40006 }, payment_amount: 19700, customer: { email: registrationEmail },
+  } } });
+  assert.equal((await response.json()).type, 'payment_failure');
+  assert.equal(metaCalls.at(-1).event_name, 'MC2_PaymentFailed');
+
+  // 6. Meta en panne : l'achat part dans la file durable avec le même event_id.
+  metaRegistration.purchased_at = null;
+  outboxInserts = [];
+  const healthyFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    if (new URL(url).hostname === 'graph.facebook.com') return Response.json({ error: { message: 'fixture outage' } }, { status: 500 });
+    return healthyFetch(url, options);
+  };
+  response = await webhook({ event: 'order:success', data: { object: {
+    id: 3100004, checkout: { id: 40007 }, order_total: 129700, customer: { email: paymentEmail }, mc2_token: token,
+  } } });
+  assert.equal(response.status, 200);
+  assert.equal(outboxInserts.length, 1);
+  assert.equal(outboxInserts[0].delivery_key, `immediate:${token}:Purchase:purchase-${token}`);
+  assert.equal(outboxInserts[0].event_id, `purchase-${token}`);
+  assert.equal(outboxInserts[0].context.value, 1297);
+  assert.equal(outboxInserts[0].context.url, 'https://sonnycourt.com/mc2/session/');
+  globalThis.fetch = healthyFetch;
+} finally {
+  globalThis.fetch = originalFetch;
+  for (const [key, value] of Object.entries({ ...originalEnv, ...metaEnv })) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
