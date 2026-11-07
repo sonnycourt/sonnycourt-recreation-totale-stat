@@ -1,0 +1,80 @@
+MC2 — fiabilisation Meta CAPI — 7 novembre 2026
+
+Périmètre
+Base : origin/main 92b5aed5d9208d693ca7fb118f60443520fdf368.
+Branche : codex/mc2-capi-robustesse, worktree propre à Codex.
+Les changements de Claude ont été repris puis revus, sans modifier son worktree.
+Aucun changement de schéma, aucune écriture SQL manuelle, aucun envoi client,
+aucun paiement de test réel, aucune publication en production.
+
+Livraison des événements
+- Inscription/présence : envoi immédiat conservé ; échec ou accusé Meta vide =>
+  file mc2_tracking_meta_outbox existante. Identifiant ET date d'origine conservés.
+- Paiements : reçu durable avant l'envoi, clé incluant l'identifiant de transaction,
+  revendication atomique ; les doublons de webhook réutilisent le reçu.
+- Le worker existant conserve ses limites : six jours et vingt tentatives maximum.
+- Si l'accusé de réception ne peut être enregistré, reprise du bail après cinq minutes.
+- Valeur, devise, URL, libellé et contexte navigateur sont conservés pour les réessais.
+- L'indisponibilité simultanée de Meta et de la base reste une limite : le tracking
+  n'empêche pas la validation commerciale de l'achat.
+
+Achats et signaux financiers
+- Un Purchase initial par inscription acheteuse, identifiant purchase-<token>,
+  compatible avec l'identifiant déjà utilisé par Spiffy et la détection MailerLite.
+- Plans Spiffy immédiats : 197 EUR pour 12x197, 1297 EUR pour le comptant.
+  Jamais 2364 EUR de valeur contractuelle pour le premier paiement à 197 EUR.
+- MC2_InstallmentPaid : mensualités ultérieures ; MC2_Refund : remboursement ;
+  MC2_PaymentFailed : impayé. Un litige Spiffy est distingué par MC2_PaymentDisputed.
+- La preuve d'une échéance Spiffy ultérieure repose sur son rang explicite ou sur
+  l'historique complet des paiements de cette commande ; une panne de vérification
+  donne une réponse 503 pour réessai, pas une mensualité inventée.
+- IP/navigateur repris du dernier contexte navigateur de la file ; le contexte
+  d'un webhook de paiement n'est pas pris pour celui du navigateur.
+- Identifiant interne envoyé via external_id (hachage par le client CAPI existant).
+- Aucun changement des tarifs, échéanciers, droits d'accès, emails ou bonus.
+- Les offres différées J+7 conservent leur pipeline de paiement distinct existant.
+- Le patch traite les notifications reçues ; il ne crée pas d'abonnements webhook
+  chez les prestataires et ne modifie pas leur configuration en ligne.
+
+Pages / replay
+- /mc2/confirmation/ et /commencer/succes/ : pixel PageView uniquement,
+  uniquement sur sonnycourt.com, pas en preview=dev. Aucun Lead/Purchase navigateur.
+- /masterclass/success/, cible actuelle du checkout Spiffy, avait déjà son PageView.
+- Paliers replay : comparaison avec watch_max_seconds_replay, pas watch_max_minutes
+  du direct. Durée replay par défaut corrigée à 6707 secondes.
+
+Repère d'offre — version MC2 actuelle
+- Source live : 87943222-3a1e-48ec-ab14-8624d76ba5a1, durée 7909 secondes.
+- Source replay : d9e4743b-e95e-483d-a0db-180b9520acbd, durée 6707 secondes.
+- Direct : repère vidéo 5732 s (1:35:32), soit 4832 s (1:20:32) après l'horaire
+  annoncé, les quinze premières minutes du fichier précédant cet horaire.
+- Replay : repère vidéo 4532 s (1:15:32), après la coupe de vingt minutes.
+- Les images extraites autour des deux repères montrent le même passage de l'offre.
+  Pas de prétention à avoir vérifié mot à mot la piste audio.
+- MC2_CTAPresent_v2 constate une lecture active qui atteint le repère vidéo.
+- OfferViewed constate la zone d'offre visible au premier plan pendant au moins
+  une seconde. Ce n'est pas un simple minuteur depuis l'inscription.
+- Aucun changement des repères, de la vidéo, de la scarcity ni des délais.
+
+Validation
+Suites obligatoires :
+  npm run test:mc2-meta-events
+  npm run test:mc2-tracking-v2
+  npm run test:mc2-spiffy-checkout
+  npm run test:mc2-replay-recovery
+  npm run test:mc2-pay-router
+Tests complémentaires : routeur de relance, identité Spiffy, rollout session,
+pipeline paiement existant, build Astro et protections de publication.
+Test navigateur : scripts/mc2-tracking-browser-smoke.mjs sur le build réel MC2,
+direct desktop et replay mobile, API média Bunny simulée, aucun service réel appelé.
+Vérifie le repère CTA, OfferViewed unique, étapes checkout 1/2/3, les deux plans,
+et les identifiants conservés après panne de tracking et rechargement.
+Le test historique ne simulait que HTMLMediaElement ; adapté au lecteur Bunny
+actuel, sans modifier le lecteur de production pour faire réussir le test.
+Les erreurs Meta/503 et clés absentes affichées par les tests sont des fixtures.
+
+Publication / suivi
+Preview seulement via npm run deploy:preview. Sonny décide de la production.
+Après publication autorisée, vérifier les premiers événements réels et les statuts
+sent/retry/failed dans la file. Les tests isolés ne constituent pas un nouvel achat
+réel reconnu par Meta ; les huit achats historiques ne sont ni rejoués ni modifiés.

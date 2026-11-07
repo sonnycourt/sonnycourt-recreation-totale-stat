@@ -4,6 +4,7 @@ import { confirmMc2EntryPayment } from './lib/mc2-entry-payment.mjs';
 import { supabaseGet, supabasePatch, supabasePost } from './lib/supabase-rest.mjs';
 import { sendTikTokEvent } from './lib/tiktok-capi.mjs';
 import { sendMetaEvent } from './lib/meta-capi.mjs';
+import { mc2LastKnownBrowserContext, mc2MetaEventId, sendMc2MetaEvents } from './lib/mc2-meta-events.mjs';
 import { removeFromCheckoutAbandonGroup } from './lib/mailerlite-webinaire.mjs';
 import { cancelMc2ReplayRecoveryJobs } from './lib/mc2-replay-recovery.mjs';
 import { cancelMc2OfferSms } from './lib/mc2-sms.mjs';
@@ -163,6 +164,69 @@ const MC2_SPIFFY_CHECKOUT_PLANS = Object.freeze({
   '40422': 'six',
 });
 
+/**
+ * Événement Meta côté MC2 depuis un webhook de paiement : pas de requête
+ * navigateur, donc on réutilise le dernier contexte connu (IP, user agent)
+ * et la file durable prend le relais si Meta ne répond pas.
+ */
+async function sendMc2WebhookMetaEvent({ registration, eventName, eventId, contentName, value, currency = 'EUR', eventTime }) {
+  if (!registration || registration.traffic_source !== 'meta_ad') return;
+  try {
+    const browser = await mc2LastKnownBrowserContext(registration.token);
+    await sendMc2MetaEvents({
+      events: [{ eventName, eventId, contentName }],
+      registration,
+      context: { ...browser, source: 'payment_webhook', url: 'https://sonnycourt.com/mc2/session/' },
+      eventTime,
+      durable: true,
+      ...(typeof value === 'number' && Number.isFinite(value) ? { value, currency } : {}),
+    });
+  } catch (error) {
+    // Meta ne doit jamais faire échouer un webhook de paiement.
+    console.error('spiffy-webhook MC2 Meta event failed:', eventName, error?.message || error);
+  }
+}
+
+function paymentEventId(kind, identity, token) {
+  // Hash the full identity, never truncate a transaction ID or use today's date.
+  return mc2MetaEventId(`spiffy-${kind}-${crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 32)}`, token);
+}
+
+function providerEventTime(body, data) {
+  const stamp = data?.paid_at || data?.refunded_at || body?.created_at || data?.completed_at || data?.updated_at;
+  const value = typeof stamp === 'number' ? stamp * 1000 : Date.parse(stamp || '');
+  return Number.isFinite(value) ? Math.floor(value / 1000) : undefined;
+}
+
+async function isSubsequentSpiffyPayment(data, orderId, paymentId) {
+  if (data?.is_initial_payment === true) return false;
+  if (!orderId || !paymentId) return null;
+  const ordinal = Number(data?.installment_number || data?.payment_number);
+  if (ordinal > 0) return ordinal > 1;
+  // A payment-success notification may also describe the initial charge.
+  // Only a provider-confirmed earlier paid installment proves it is recurring.
+  const key = process.env.SPIFFY_ONBOARDING_API_KEY;
+  if (!key) return null;
+  try {
+    const url = new URL('https://api.spiffy.co/v2/payments');
+    url.searchParams.set('filter[order_id]', orderId);
+    url.searchParams.set('per_page', '100');
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' }, signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const payments = body.data;
+    if (!Array.isArray(payments) || payments.length !== Number(body.meta?.pagination?.total_count ?? body.pagination?.total)) return null;
+    const current = payments.find(p => String(p.id) === String(paymentId) && String(p.order_id) === String(orderId));
+    if (!current) return null;
+    const rootId = String(current.initial_payment_id || current.id);
+    const root = payments.find(p => String(p.id) === rootId);
+    if (!root) return null;
+    return payments.some(p => String(p.order_id) === String(orderId)
+      && String(p.initial_payment_id || p.id) !== rootId && Number(p.amount_paid) > 0
+      && Date.parse(p.created_at) < Date.parse(root.created_at));
+  } catch { return null; }
+}
+
 function amountMatches(actual, expected) {
   return Number.isFinite(Number(actual)) && Math.abs(Number(actual) - expected) < 0.02;
 }
@@ -265,20 +329,28 @@ export default async (req) => {
     }
     // J0 is a completed order, not an installment collected at J+7. Never
     // substitute the recurring price or the contractual total for today's 0 €.
-    const amount = deferredPlan && eventType === 'order:success' ? 0 : findAmountEur(data);
+    const paymentAmount = [data?.payment_amount_paid, data?.payment_amount, data?.amount_paid]
+      .map(Number).find(n => Number.isFinite(n) && n > 0);
+    const amount = deferredPlan && eventType === 'order:success' ? 0
+      : eventType.startsWith('payment:') && paymentAmount ? paymentAmount / 100 : findAmountEur(data);
 
     // Log brut (1res ventes) pour affiner la structure réelle Spiffy si besoin.
     console.log('spiffy-webhook event=%s email=%s amount=%s', eventType || '?', email || 'none', amount ?? '?');
 
     if (!email) return jsonResponse(200, { ok: true, skipped: 'no_email' });
 
-    const isRefund = eventType.includes('refund');
-    const isSale = !isRefund && (deferredPlan
+    const isRefund = eventType.includes('refund') || eventType.includes('chargeback') || eventType.includes('dispute');
+    const isDispute = eventType.includes('chargeback') || eventType.includes('dispute');
+    const isPaymentFailure = !isRefund && (eventType.includes('fail') || eventType.includes('declin'));
+    const isSale = !isRefund && !isPaymentFailure && (deferredPlan
       ? eventType === 'order:success'
       : (eventType.includes('order:success') || eventType.includes('order') || eventType.includes('success')));
     const orderId = eventType.startsWith('order:') && data?.id != null
       ? String(data.id)
       : findFirstKey(body, ['order_id', 'orderId', 'order_uuid', 'transaction_id']);
+    const paymentId = findFirstKey(data, ['payment_id', 'transaction_id'])
+      || (eventType.startsWith('payment:') && data?.id != null ? String(data.id) : null);
+    const eventTime = providerEventTime(body, data);
     if (deferredPlan && !isRefund && (!isSale || !orderId)) return jsonResponse(200, { ok: true, skipped: 'not_initial_order_success' });
     let identity = mc2OrderReference(body);
     // Current v2 notifications omit custom fields, even though the checkout
@@ -286,6 +358,12 @@ export default async (req) => {
     if (isSale && eventType === 'order:success' && identity.state === 'absent'
       && ['40006', '40007'].includes(String(checkoutId || ''))) {
       identity = await readMc2SpiffyIdentity({ orderId, checkoutId, email });
+    }
+    if (isSale && !eventType.startsWith('order:') && identity.state === 'absent' && orderId) {
+      const owner = await supabaseGet(`mc2_funnel_events?dedupe_key=eq.${encodeURIComponent(`spiffy_order_${orderId}`)}&select=token&limit=2`);
+      if (!owner.ok) return jsonResponse(503, { ok: false, error: 'purchase_record_unavailable' });
+      if (owner.data?.length > 1) return jsonResponse(200, { ok: true, skipped: 'purchase_identity_ambiguous' });
+      if (owner.data?.length === 1) identity = { state: 'valid', token: owner.data[0].token, source: 'recorded_order' };
     }
     if (isSale && identity.state === 'unavailable') {
       return jsonResponse(503, { ok: false, error: 'purchase_identity_unavailable' });
@@ -327,6 +405,22 @@ export default async (req) => {
       mc2Row = mc2.ok && Array.isArray(mc2.data) ? mc2.data[0] : null;
       if (payloadToken && !mc2Row) return jsonResponse(200, { ok: true, skipped: 'purchase_reference_not_found' });
     }
+    // Remboursement ou impayé : retrouver l'acheteur MC2 par email pour
+    // informer Meta (audiences, reporting). Meta ne retire jamais un achat.
+    let mc2BuyerRow = null;
+    if ((isRefund || isPaymentFailure) && (!checkoutId || MC2_SPIFFY_CHECKOUT_PLANS[String(checkoutId)])
+      && !['invalid', 'conflict', 'unavailable'].includes(identity.state)) {
+      let buyerToken = payloadToken;
+      if (!buyerToken && orderId) {
+        const owner = await supabaseGet(`mc2_funnel_events?dedupe_key=eq.${encodeURIComponent(`spiffy_order_${orderId}`)}&select=token&limit=2`);
+        if (owner.ok && owner.data?.length === 1) buyerToken = owner.data[0].token;
+      }
+      const buyers = !buyerToken && !checkoutId ? { ok: true, data: [] } : await supabaseGet(
+        `mc2_registrations?${buyerToken ? 'token=eq.' + encodeURIComponent(buyerToken) : 'email=eq.' + encodeURIComponent(email)}&purchased_at=not.is.null`
+          + '&select=token,email,telephone,traffic_source,meta_fbc,meta_fbp,optin_variant,purchased_at&order=purchased_at.desc&limit=2',
+      );
+      mc2BuyerRow = buyers.ok && Array.isArray(buyers.data) && buyers.data.length === 1 ? buyers.data[0] : null;
+    }
     const mc2Plan = mc2PlanFromPurchase(body, amount, mc2Row, checkoutId);
     const isMc2Purchase = isSale
       && mc2PurchaseBelongsToRegistration(body, mc2Row, mc2Plan, checkoutId, payloadToken);
@@ -339,10 +433,31 @@ export default async (req) => {
       }
     }
 
-    if (!row && !isMc2Purchase) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
+    if (!row && !isMc2Purchase && !mc2BuyerRow) return jsonResponse(200, { ok: true, skipped: 'lead_not_found' });
 
     const nowIso = new Date().toISOString();
 
+    const firstMc2Purchase = isMc2Purchase && !mc2Row.purchased_at;
+    if (isMc2Purchase && eventType.startsWith('order:') && eventType !== 'order:success') {
+      return jsonResponse(200, { ok: true, type: 'ignored' });
+    }
+    // Un règlement ultérieur (mensualité) arrive avec un autre événement que
+    // la commande initiale : il ne doit pas recompter un achat chez Meta.
+    const installmentCandidate = isMc2Purchase && Boolean(mc2Row.purchased_at)
+      && !eventType.startsWith('order:') && typeof amount === 'number' && amount > 0;
+    const mc2Installment = installmentCandidate ? await isSubsequentSpiffyPayment(data, orderId, paymentId) : false;
+    if (installmentCandidate && mc2Installment === null) {
+      return jsonResponse(503, { ok: false, error: 'installment_verification_unavailable' });
+    }
+    if (isMc2Purchase && !eventType.startsWith('order:')) {
+      if (mc2Installment) await sendMc2WebhookMetaEvent({
+        registration: mc2Row, eventName: 'MC2_InstallmentPaid',
+        eventId: paymentEventId('installment', data?.initial_payment_id || paymentId, mc2Row.token),
+        contentName: 'Esprit Subconscient 2.0 - Mensualité', value: amount, eventTime,
+      });
+      // A recurring payment must not rewrite the initial purchase or its terms.
+      return jsonResponse(200, { ok: true, type: mc2Installment ? 'installment' : 'ignored' });
+    }
     if (isMc2Purchase) {
       const plan = mc2PlanPricing(mc2Plan, amount);
       const currentImmediatePlan = ['spiffy_12x197', 'spiffy_one_time_1297'].includes(plan.paymentMode);
@@ -386,6 +501,12 @@ export default async (req) => {
       const purchaseBonusTag = mc2ConsultationBonusTag({
         registration: mc2Row,
         purchasedAt,
+      });
+      // Identity/order claim is resolved first; the receipt precedes purchased_at
+      // so a business-write retry cannot lose the advertising notification.
+      if (firstMc2Purchase) await sendMc2WebhookMetaEvent({
+        registration: mc2Row, eventName: 'Purchase', eventId: 'purchase-' + mc2Row.token,
+        contentName: 'Esprit Subconscient 2.0', value: deferredPlan ? 0 : plan.initialCents / 100, eventTime,
       });
       const updatedMc2 = await supabasePatch(
         'mc2_registrations',
@@ -493,12 +614,13 @@ export default async (req) => {
     }
 
     // --- CAPI Meta : seulement la VENTE d'un lead Meta ---
-    if (isSale && attributionRow?.traffic_source === 'meta_ad') {
+    if (!isMc2Purchase && isSale && attributionRow?.traffic_source === 'meta_ad') {
       await sendMetaEvent({
         eventName: 'Purchase',
         eventId: 'purchase-' + attributionRow.token, // même id que la détection MailerLite => dédup
         email: attributionRow.email,
         phone: attributionRow.telephone,
+        externalId: attributionRow.token,
         fbc: attributionRow.meta_fbc,
         fbp: attributionRow.meta_fbp,
         value: deferredPlan ? 0 : amount || Number(process.env.META_PURCHASE_VALUE_EUR) || 388,
@@ -507,7 +629,28 @@ export default async (req) => {
       });
     }
 
-    return jsonResponse(200, { ok: true, type: isRefund ? 'refund' : isSale ? 'sale' : 'ignored' });
+    if (mc2BuyerRow && isRefund && (paymentId || orderId || data?.refund_id)) {
+      await sendMc2WebhookMetaEvent({
+        registration: mc2BuyerRow,
+        eventName: isDispute ? 'MC2_PaymentDisputed' : 'MC2_Refund',
+        eventId: paymentEventId(isDispute ? 'dispute' : 'refund', data?.refund_id || `${paymentId || orderId}:${data?.amount_refunded || data?.refund_amount || amount}`, mc2BuyerRow.token),
+        contentName: isDispute ? 'Esprit Subconscient 2.0 - Litige' : 'Esprit Subconscient 2.0 - Remboursement',
+        eventTime,
+        // amount_refunded can be cumulative; only an explicit refund amount
+        // can safely be summed in reporting as this notification's value.
+        ...(Number(data?.refund_amount) > 0 ? { value: Number(data.refund_amount) / 100 } : {}),
+      });
+    } else if (mc2BuyerRow && isPaymentFailure && (paymentId || orderId)) {
+      await sendMc2WebhookMetaEvent({
+        registration: mc2BuyerRow,
+        eventName: 'MC2_PaymentFailed',
+        eventId: paymentEventId('payment-failed', paymentId || body?.id || orderId, mc2BuyerRow.token),
+        contentName: 'Esprit Subconscient 2.0 - Impayé',
+        eventTime,
+      });
+    }
+
+    return jsonResponse(200, { ok: true, type: isRefund ? 'refund' : isSale ? 'sale' : isPaymentFailure ? 'payment_failure' : 'ignored' });
   } catch (error) {
     console.error('spiffy-purchase-webhook error:', error);
     // 200 quand même : on ne veut pas que Spiffy retente en boucle.

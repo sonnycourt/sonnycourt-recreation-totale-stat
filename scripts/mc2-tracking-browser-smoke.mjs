@@ -14,7 +14,7 @@ try {
     await page.setViewport({ width: route.includes('replay') ? 390 : 1200, height: 844 });
     const cta = route.includes('replay') ? 4532 : 5732;
     // The session's announced hour is 15 min after media start; replay removes 20 min of content.
-    const startedAt = Date.now() - (5732 - 900 - 3) * 1000;
+    const startedAt = Date.now() - (5732 - 900 - 15) * 1000;
     const events = [], calls = [], errors = []; let outage = false;
     const capturedBodies = new Map();
     if (browserName === 'firefox') {
@@ -42,6 +42,9 @@ try {
       }
       const url = new URL(request.url());
       calls.push({ host: url.hostname, path: url.pathname, method: request.method() });
+      if (url.hostname === 'player.mediadelivery.net') {
+        await request.respond({ status: 200, contentType: 'text/html', body: '<!doctype html><script>addEventListener("message",()=>parent.postMessage({type:"mc2-bunny-ui-ready",version:1},"*"));parent.postMessage({type:"mc2-bunny-ui-ready",version:1},"*")</script>' }); return;
+      }
       if (url.hostname === 'sonnycourt.spiffy.co') {
         await request.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!doctype html><meta charset="UTF-8"><p>Faux formulaire — aucun paiement possible</p>' + (silentSpiffy ? '' : '<script>setTimeout(()=>{parent.postMessage({type:"mc2:draftx-spiffy-height",height:310},"*");parent.postMessage({type:"mc2:draftx-spiffy-ready",identityReady:true},"*")},200)</script>') }); return;
       }
@@ -49,7 +52,7 @@ try {
       if (url.pathname.startsWith('/.netlify/functions/')) {
         let body = { ok: true, offer_sms_queued: true, offer_expires_at: new Date(Date.now() + 86400000).toISOString() };
         if (url.pathname.endsWith('get-mc2-registration')) body = { valid: true, token, prenom: 'Fixture', email: 'fixture@example.invalid', pays: 'France', attended_live: true, sessionStartsAt: new Date(startedAt).toISOString(), statut: 'inscrit' };
-        if (url.pathname.endsWith('mc2-replay-access')) body = { valid: true, registrationToken: token, firstName: 'Fixture', email: 'fixture@example.invalid', country: 'France', resumeSeconds: cta - 3, expiresAt: new Date(Date.now() + 86400000).toISOString(), offerExpiresAt: new Date(Date.now() + 86400000).toISOString() };
+        if (url.pathname.endsWith('mc2-replay-access')) body = { valid: true, registrationToken: token, firstName: 'Fixture', email: 'fixture@example.invalid', country: 'France', resumeSeconds: cta - 15, expiresAt: new Date(Date.now() + 86400000).toISOString(), offerExpiresAt: new Date(Date.now() + 86400000).toISOString() };
         if (url.pathname.endsWith('track-mc2-journey')) {
           const batch = JSON.parse(browserName === 'firefox' ? capturedBodies.get(request.headers()['x-test-body']) : request.postData()).events;
           if (!outage) events.push(...batch);
@@ -69,8 +72,32 @@ try {
     });
     // Only the media source is simulated; real built page, access, checkout and analytics run.
     await page.evaluateOnNewDocument((cta, route) => {
+      // Current MC2 uses the official Bunny adapter, not HTMLMediaElement.
+      // Simulate only its external Player.js API and iframe handshake; leave
+      // the production adapter, controls, offer gate and tracker unmodified.
+      window.playerjs = { Player: class {
+        constructor(frame) {
+          this.handlers = new Map(); this.time = Number(new URL(frame.src).searchParams.get('t')) || 0;
+          this.paused = true; this.last = performance.now();
+          frame.addEventListener('load', () => this.emit('ready'));
+          this.timer = setInterval(() => { if (!frame.isConnected) return clearInterval(this.timer);
+            const now = performance.now(); if (!this.paused) this.time += (now - this.last) / 1000;
+            this.last = now; if (!this.paused) this.emit('timeupdate', { seconds: this.time, duration: route.includes('replay') ? 6707 : 7909 });
+          }, 250);
+        }
+        on(name, cb) { this.handlers.set(name, cb); }
+        off(name) { this.handlers.delete(name); }
+        emit(name, value) { this.handlers.get(name)?.(value); }
+        play() { this.paused = false; this.last = performance.now(); this.emit('play'); }
+        pause() { this.paused = true; this.emit('pause'); }
+        getDuration(cb) { cb(route.includes('replay') ? 6707 : 7909); }
+        getCurrentTime(cb) { cb(this.time); }
+        setCurrentTime(value) { this.time = value; this.last = performance.now(); this.emit('seeked'); }
+        getPaused(cb) { cb(this.paused); }
+        setVolume() {} mute() {} unmute() {} send() {}
+      } };
       const values = new WeakMap();
-      const state = video => { if (!values.has(video)) values.set(video, { position: cta - 3, start: performance.now(), paused: true }); return values.get(video); };
+      const state = video => { if (!values.has(video)) values.set(video, { position: cta - 15, start: performance.now(), paused: true }); return values.get(video); };
       const position = video => { const v = state(video); return v.position + (v.paused ? 0 : (performance.now() - v.start) / 1000); };
       Object.defineProperties(HTMLMediaElement.prototype, {
         currentTime: { configurable: true, get() { return position(this); }, set(value) { const v = state(this); v.position = value; v.start = performance.now(); } },
@@ -89,7 +116,13 @@ try {
     await page.waitForFunction(() => document.querySelector('[data-draftx-checkout]')?.dataset.registrationToken);
     if (route.includes('replay')) await page.click('#replay-confirm-btn');
     else { await page.waitForSelector('#playButton', { visible: true }); await page.click('#playButton'); }
-    await page.waitForFunction(() => document.querySelector('[data-draftx-checkout]')?.dataset.checkoutAvailable === 'true', { timeout: 15000 });
+    // Allow the real adapter to initialize before crossing the CTA threshold.
+    await page.waitForFunction(() => document.querySelector('[data-draftx-checkout]')?.dataset.checkoutAvailable === 'true', { timeout: 30000 });
+    assert.equal(await page.$eval('[data-player-engine="bunny"]', v => v.dataset.playerEngine), 'bunny');
+    if (!events.some(e => e.event_name === 'playback_started')) console.log('Playback diagnostic', route,
+      await page.evaluate(() => { const v = document.querySelector('video'); return { current: v?.currentTime, paused: v?.paused,
+        ready: v?.readyState, rate: v?.playbackRate, seeking: v?.seeking, ended: v?.ended, quality: v?.getVideoPlaybackQuality(),
+        status: window.__mc2JourneyV2?.status() }; }), events.filter(e => e.event_name === 'player_state').map(e => e.metadata));
     await page.evaluate(() => document.querySelector('#deal-offer-content').scrollIntoView());
     for (let i = 0; i < 40 && !events.some(e => e.event_name === 'offer_visible'); i++) await new Promise(resolve => setTimeout(resolve, 200));
     // Trusted real scroll gesture, then a CTA click through the real offer.
@@ -127,9 +160,22 @@ try {
     assert.ok((await page.evaluate(() => window.__mc2JourneyV2.status())).queued > 0);
     const persisted = await page.evaluate(() => JSON.parse(sessionStorage.getItem('mc2_tracking_queue_v2')).map(e => e.event_id));
     outage = false; await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => window.__mc2JourneyV2?.status().acknowledged > 0);
+    try {
+      await page.waitForFunction(() => window.__mc2JourneyV2?.status().acknowledged > 0);
+    } catch (error) {
+      console.error('Reload tracking diagnostic', await page.evaluate(() => ({ url: location.href,
+        status: window.__mc2JourneyV2?.status(), ready: document.readyState,
+        token: Boolean(document.querySelector('[data-draftx-checkout]')?.dataset.registrationToken),
+        saved: JSON.parse(sessionStorage.getItem('mc2_tracking_queue_v2') || '[]').length })), errors);
+      throw error;
+    }
     assert.ok(persisted.every(id => events.some(e => e.event_id === id)), 'Reload retries the original IDs');
     for (const name of ['journey_started', 'playback_started', 'cta_playback_present', 'offer_visible', 'offer_scroll_started', 'checkout_opened', 'checkout_step_viewed', 'checkout_step_completed', 'payment_frame_visible', 'checkout_closed']) assert.ok(events.some(e => e.event_name === name), name + ' absent');
+    const ctaEvent = events.find(e => e.event_name === 'cta_playback_present');
+    assert.ok(ctaEvent.metadata.current_second >= cta && ctaEvent.metadata.current_second < cta + 5,
+      `${route}: CTA playback must be observed at ${cta}s, not a legacy video threshold`);
+    assert.equal(new Set(events.filter(e => e.event_name === 'offer_visible').map(e => e.event_id)).size, 1,
+      'The same visible offer is not counted again after a reload');
     for (const step of [1, 2, 3]) assert.ok(events.some(e => e.event_name === 'checkout_step_viewed' && e.metadata.step === step));
     assert.equal(await page.evaluate(() => window.__mc2JourneyV2.status().observerErrors), 0);
     assert.deepEqual(errors, []);
