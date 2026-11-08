@@ -2,6 +2,7 @@
 import DraftXSandbox from '../../components/mc2/DraftXSandbox.astro';
 import Mc2Tracking from '../../components/mc2/Mc2Tracking.astro';
 import Mc2AccessGate from '../../components/Mc2AccessGate.astro';
+import WaitingSurvey from '../../components/mc2/WaitingSurvey.astro';
 
 import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
 ---
@@ -2167,6 +2168,8 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             <p class="diagnostic-guide-note">Imprime ce PDF avant la diffusion si possible.</p>
         </div>
 
+        <WaitingSurvey />
+
         <div id="purchase-toast" class="purchase-toast" aria-hidden="true">
             <div class="purchase-toast__content">
                 <div class="purchase-toast__thumb-wrap">
@@ -3256,6 +3259,14 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             const volRange = document.getElementById('volumeRange');
             const fullscreenBtn = document.getElementById('fullscreenBtnDesktop');
             const preLive = document.getElementById('pre-live-countdown');
+            const waitingSurvey = document.getElementById('mc2-waiting-survey');
+            // Do not await the questionnaire: a save/load failure must never block video.
+            if (waitingSurvey && getNowMs() < sessionStartMs + 5 * 60 * 1000) {
+                customElements.whenDefined('mc2-waiting-survey').then(() => {
+                    waitingSurvey.configure({ token: isDraftPreview ? '' : reg.token,
+                        sessionGeneration: Number(reg.sessionGeneration || 0), preview: isDraftPreview });
+                });
+            }
             const endedNote = document.getElementById('session-ended-note');
             const screenMainHeader = document.getElementById('screen-main-header');
             const returnBuyerHero = document.getElementById('return-buyer-hero');
@@ -3986,6 +3997,9 @@ import DealOffer from '../../components/mc2/DealOfferDraftX.astro';
             function refreshPreLiveCountdown() {
                 const now = getNowMs();
                 const broadcastEndMs = getBroadcastEndMs();
+                // The video includes a 15-minute countdown:
+                // keep the survey until 5 minutes after the announced session start, not liveStartMs.
+                if (waitingSurvey) waitingSurvey.hidden = !(now < sessionStartMs + 5 * 60 * 1000);
 
                 // Watchdog: if session is ended, video must stay paused. Always.
                 if (isSessionEnded && !video.paused) {
