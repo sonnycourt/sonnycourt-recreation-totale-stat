@@ -43,8 +43,9 @@ Conserver ces clés si les textes changent sans modifier le sens.
 - Inscrits de test, inscription non finalisée et paiement d'entrée requis mais
   absent : rejet sans écriture.
 - Génération différente : 409. Après session + 5 minutes : save rejeté 410.
-- En preview visuelle : aucune requête quiz. API désactivée hors
-  `CONTEXT=production`, même si une requête est forgée.
+- En preview visuelle : aucune requête quiz. API active uniquement lorsque le
+  contexte Netlify indique `deploy.context=production` et `deploy.published=true`.
+  Aucune dépendance à la variable de build `CONTEXT` ; le client ne choisit pas ce contexte.
 - En cas de changement de génération entre lecture serveur et écriture,
   la clé de l'ancienne génération isole cette réponse de la nouvelle session.
 
