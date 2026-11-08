@@ -17,6 +17,7 @@ Object.assign(process.env, { CONTEXT: 'production', NETLIFY_DEV: 'false', SUPABA
 const token = 'fixture-registration-1234';
 let row = { id: 1, session_generation: 0, session_starts_at: new Date(Date.now() + 60000).toISOString(), registration_completed_at: new Date().toISOString() };
 let test = false, fail = false, writes = 0;
+let deploy = { context: 'production', published: true };
 globalThis.fetch = async (url, options = {}) => {
   const u = new URL(url);
   assert.equal(u.hostname, 'survey.invalid', 'No external calls');
@@ -41,7 +42,7 @@ globalThis.fetch = async (url, options = {}) => {
 const call = (extra = {}, origin = 'https://sonnycourt.com') => handler(new Request('https://sonnycourt.com/.netlify/functions/mc2-survey', {
   method: 'POST', headers: { 'Content-Type': 'application/json', origin },
   body: JSON.stringify({ token, sessionGeneration: 0, surveyVersion: 1, action: 'load', ...extra }),
-}));
+}), { deploy });
 try {
   assert.deepEqual(await (await call()).json(), { answers: {}, completed: false });
   assert.equal((await call({ action:'save', answers:{ priority:'finances_work' }, registration_id:999 })).status,200);
@@ -60,7 +61,12 @@ try {
   row.entry_payment_required = true; assert.equal((await call()).status,403); row.entry_payment_required = false;
   const completed = row.registration_completed_at; row.registration_completed_at = null;
   assert.equal((await call()).status,403); row.registration_completed_at = completed;
-  process.env.CONTEXT = 'deploy-preview'; assert.equal((await call()).status,403); process.env.CONTEXT='production';
+  deploy = { context:'deploy-preview', published:false }; assert.equal((await call()).status,403);
+  deploy = { context:'production', published:false }; assert.equal((await call()).status,403);
+  deploy = undefined; assert.equal((await call()).status,403);
+  deploy = { context:'production', published:true };
+  delete process.env.CONTEXT;
+  assert.equal((await call()).status,200,'Runtime does not depend on build-only CONTEXT');
   fail = true; assert.equal((await call()).status,503); fail=false;
   const start = row.session_starts_at;
   row.session_starts_at = new Date(Date.now()-301000).toISOString();

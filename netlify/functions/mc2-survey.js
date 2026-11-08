@@ -6,10 +6,12 @@ const json = (status, body) => Response.json(body, {
   status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
 });
 
-export default async function handler(req) {
+export default async function handler(req, context = {}) {
   if (req.method !== 'POST') return json(405, { error: 'Méthode non autorisée.' });
   // No real questionnaire data or writes in local/dev/branch previews.
-  if (process.env.CONTEXT !== 'production' || process.env.NETLIFY_DEV === 'true') {
+  // CONTEXT is a build variable, not a guaranteed Functions runtime variable.
+  // Use trusted platform metadata; only the currently published production deploy writes.
+  if (context.deploy?.context !== 'production' || context.deploy?.published !== true || process.env.NETLIFY_DEV === 'true') {
     return json(403, { error: 'Questionnaire désactivé en preview.' });
   }
   const origin = req.headers.get('origin');
