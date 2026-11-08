@@ -57,8 +57,9 @@ Le parcours visuel a été testé en preview jusqu'à la confirmation finale.
 L'enregistrement réel de bout en bout en production n'a pas été exécuté.
 
 Build et tests participation, tracking v2, Meta, replay et pay-router : OK.
-Les tests checkout Spiffy passent jusqu'au test du webhook d'achat, bloqué
-par la dépendance locale manquante `libphonenumber-js` (déjà absente avant ce travail).
+Release du 8 novembre 2026 : installation propre avec npm ci, puis tous les tests
+ci-dessus et la suite checkout Spiffy complète, webhook d'achat inclus : OK.
 
-Ce travail est local et non déployé. Publication via le sas habituel uniquement,
-après validation de Sonny et fusion sur main propre synchronisé avec origin/main.
+Publication autorisée par Sonny le 8 novembre 2026, via le sas habituel uniquement,
+après fusion sur main propre synchronisé avec origin/main. Le manifeste de production
+`/.well-known/sonnycourt-deploy.json` fait foi pour la version effectivement publiée.
