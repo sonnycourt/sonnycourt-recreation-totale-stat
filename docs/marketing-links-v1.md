@@ -43,6 +43,14 @@ Ces liens sont de format `bio`, emplacement `bio`, campagne `mc2-evergreen`, ave
 la page du profil comme URL de publication. La date reste vide pour ces bios
 permanentes. Il n'y a pas de modification du schéma Supabase.
 
+Instagram et Facebook arrivent directement sur MC2. Pour TikTok et YouTube,
+`entryPath` dans cette configuration publique prend priorité sur la destination
+MC2 du registre et ouvre `/links/` : le même code accompagne ensuite le choix MC2
+ou Delta Vision. Link Studio montre la destination résolue dans « Détails du lien ».
+Les arrivées sont mesurées sur le programme choisi, pas sur la page intermédiaire,
+pour éviter de compter deux fois le même passage. Un abandon sur `/links/` n'est
+donc pas compté dans ces arrivées. Le total « inscrits MC2 » garde son sens actuel.
+
 ## Mesure réellement implémentée
 
 - Une requête de redirection n'est pas comptée : les préchargements et scanners

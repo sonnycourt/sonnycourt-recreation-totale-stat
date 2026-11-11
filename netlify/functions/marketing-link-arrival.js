@@ -14,7 +14,7 @@ export default async function handler(req) {
     if (!CODE.test(body.code || '') || !UUID.test(body.event_id || '') || body.visible !== true) return json(400, { error: 'Arrivée invalide.' });
     if (/bot|spider|crawler|preview|facebookexternalhit|slackbot|headless/i.test(req.headers.get('user-agent') || '')) return json(200, { skipped: 'automated' });
     const [link] = await database(`marketing_links?code=eq.${body.code}&select=id,destination&limit=1`);
-    if (!link || !isDestinationPath(link.destination, body.path)) return json(400, { error: 'Destination invalide.' });
+    if (!link || !isDestinationPath(link.destination, body.path, body.code)) return json(400, { error: 'Destination invalide.' });
     // No persistent ID, IP, user agent, email or full URL is stored without consent.
     let visitor = null;
     if (body.statistics_consent === true) {
