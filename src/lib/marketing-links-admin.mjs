@@ -1,23 +1,27 @@
 import { CHANNELS, FORMATS, PLACEMENTS, DESTINATIONS, buildDestination, linkCode, shortUrl, validateCreate, publicationUrl, validatePublicationUpdate, trackingCoverage } from './marketing-links-contract.mjs';
+import { createLibraryPager } from './marketing-library-pager.mjs';
 
 export function initMarketingLinksAdmin(doc = document, win = window) {
   const $ = id => doc.getElementById(id);
   const demo = !['sonnycourt.com','www.sonnycourt.com'].includes(win.location.hostname) && new URLSearchParams(win.location.search).get('demo') === '1';
   const preview = !['sonnycourt.com','www.sonnycourt.com'].includes(win.location.hostname);
   const endpoint = '/.netlify/functions/admin-marketing-links';
-  let state = { contents: [], links: [], totals: {} }, operationId = win.crypto.randomUUID(), contentId = win.crypto.randomUUID(), limit = 8, busy = false;
+  let state = { contents: [], links: [], totals: {} }, operationId = win.crypto.randomUUID(), contentId = win.crypto.randomUUID(), busy = false;
+  const demoData={contents:[],links:[]};
+  let existingMode=false,selectedContent=null,searchTimer,contentTimer;
   let customCampaign=false, customPlacement=false, customFormat=false;
   let editingPublication=null;
   const defaults={instagram:['dm','short'],youtube:['description','long'],tiktok:['bio','short'],facebook:['button','post'],email:['button','email'],sms:['body','sms'],meta_ads:['button','short']};
   const value = id => $(id).value;
   function lock() {
+    win.clearTimeout(searchTimer);win.clearTimeout(contentTimer);linkPager.clear();contentPager.clear();selectedContent=null;existingMode=false;
     state={contents:[],links:[],totals:{}};
     $('auth').hidden=false;$('fields').disabled=true;$('studio-logout').hidden=true;$('tab-purchases').disabled=true;
     $('connection').textContent='Connexion requise';$('connection').parentElement.classList.remove('ready');
     $('link-list').replaceChildren();$('purchases-list').replaceChildren();$('purchases-status').textContent='';
     $('purchases-panel').hidden=true;$('links-panel').hidden=false;
     $('tab-links').setAttribute('aria-pressed','true');$('tab-purchases').setAttribute('aria-pressed','false');
-    $('created').hidden=true;$('created-url').value='';$('content-select').replaceChildren(new Option('Choisir un contenu','new'));
+    $('created').hidden=true;$('created-url').value='';$('content-select').replaceChildren(new Option('Choisir un contenu',''));
     for(const key of ['contents','links','arrivals','registrations']) $('total-'+key).textContent='—';
     $('shown-count').textContent='';$('show-more').hidden=true;$('empty').hidden=false;
     $('empty').querySelector('h3').textContent='Tes liens t’attendent.';
@@ -52,14 +56,14 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     catch { $('created').hidden = false; $('created-url').value = text; $('created-url').focus(); $('created-url').select(); toast('Sélectionné : utilise Copier sur ton appareil.'); }
   }
   function populateContents() {
-    const selected = value('content-select'); $('content-select').replaceChildren(new Option('+ Enregistrer un nouveau contenu','new'));
+    $('content-select').replaceChildren(new Option('Choisir un contenu',''));
     for (const content of state.contents) $('content-select').append(new Option(content.title, content.id));
-    $('content-select').value = state.contents.some(c => c.id === selected) ? selected : 'new';
+    $('content-select').value = selectedContent?.id||'';
     toggleContent();
-    $('mode-existing').disabled = state.contents.length===0;
+    $('mode-existing').disabled = !state.totals.contents;
   }
   function toggleContent() {
-    const fresh = value('content-select') === 'new'; $('new-content').hidden = !fresh; $('title').required = fresh;
+    const fresh = !existingMode; $('new-content').hidden = !fresh; $('title').required = fresh;$('content-select').required=!fresh;
     $('existing-content').hidden=fresh;
     $('mode-new').setAttribute('aria-pressed',String(fresh)); $('mode-existing').setAttribute('aria-pressed',String(!fresh));
     $('format').disabled=!fresh;
@@ -67,12 +71,11 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   function render() {
     for (const key of ['contents','links','arrivals','registrations']) $('total-'+key).textContent = formatNumber(state.totals[key]);
     $('library-count').textContent = `${formatNumber(state.totals.links)} lien${state.totals.links === 1 ? '' : 's'} · ${formatNumber(state.totals.contents)} contenu${state.totals.contents === 1 ? '' : 's'}`;
-    const term = value('search').trim().toLocaleLowerCase('fr');
-    const rows = state.links.filter(r => (!value('filter-channel') || r.channel === value('filter-channel')) && [r.title,r.campaign,r.topic,r.angle,r.publication_label,r.code].join(' ').toLocaleLowerCase('fr').includes(term));
+    const rows = state.links, page=linkPager.state;
     $('link-list').replaceChildren(); $('empty').hidden = rows.length > 0;
-    $('empty').querySelector('h3').textContent = state.links.length ? 'Aucun lien ne correspond.' : 'Ton prochain contenu commence ici.';
-    $('empty').querySelector('p').textContent = state.links.length ? 'Essaie un autre mot-clé ou un autre canal.' : 'Crée ton premier lien. Il apparaîtra ici avec ses paramètres de suivi.';
-    for (const row of rows.slice(0,limit)) {
+    $('empty').querySelector('h3').textContent = page.loading?'Recherche dans ton historique…':state.totals.links ? 'Aucun lien ne correspond.' : 'Ton prochain contenu commence ici.';
+    $('empty').querySelector('p').textContent = page.loading?'':state.totals.links ? 'Essaie un autre mot-clé ou un autre canal.' : 'Crée ton premier lien. Il apparaîtra ici avec ses paramètres de suivi.';
+    for (const row of rows) {
       const card = el('article','link-card'), top = el('div','link-top'), identity = el('div');
       card.dataset.channel=row.channel;
       identity.append(el('h3','link-title',row.title),el('p','link-subtitle',`${FORMATS[row.format] || row.format} · ${PLACEMENTS[row.placement]}${row.publication_label ? ' · '+row.publication_label : ''}`));
@@ -109,10 +112,30 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       }
       card.append(details); $('link-list').append(card);
     }
-    const scope = state.totals.links > state.links.length ? ` · recherche sur les ${state.links.length} liens les plus récents` : '';
-    $('shown-count').textContent = `${Math.min(limit,rows.length)} sur ${rows.length} liens${scope}`;
-    $('show-more').hidden = limit >= rows.length;
+    $('shown-count').textContent = `${formatNumber(rows.length)} sur ${formatNumber(page.total)} liens`;
+    $('show-more').hidden = !page.cursor;$('show-more').disabled=page.loading;$('show-more').textContent=page.loading?'Chargement…':'Voir la suite ↓';
+    $('library-status').textContent=page.error;
   }
+  async function readPage(kind,{query='',channel='',cursor=null}={}) {
+    if(demo){
+      if(kind==='summary')return {schema_version:2,library_version:3,totals:{contents:demoData.contents.length,links:demoData.links.length,arrivals:0,registrations:0}};
+      const rows=demoData[kind].filter(r=>(!channel||r.channel===channel)&&[r.title,r.topic,r.angle,r.publication_label,r.campaign,r.code].join(' ').toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr')));
+      const start=cursor?Number(cursor.id):0,take=kind==='links'?12:24;
+      return {items:rows.slice(start,start+take),total:rows.length,next_cursor:start+take<rows.length?{id:String(start+take),at:'demo'}:null};
+    }
+    const params=new URLSearchParams({view:kind,q:query,channel});if(cursor){params.set('before_at',cursor.at);params.set('before_id',cursor.id);}
+    const res=await win.fetch(endpoint+'?'+params,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+    const data=await res.json().catch(()=>{throw new Error('Le registre est momentanément indisponible.');});
+    if(res.status===401)doc.dispatchEvent(new Event('marketing-auth-required'));
+    if(!res.ok){const error=new Error(data.error||'Impossible de lire la bibliothèque.');error.status=res.status;throw error;}return data;
+  }
+  const linkPager=createLibraryPager(input=>readPage('links',input),page=>{state.links=page.items;render();});
+  const contentPager=createLibraryPager(input=>readPage('contents',input),page=>{
+    state.contents=[...page.items];if(selectedContent&&!state.contents.some(c=>c.id===selectedContent.id))state.contents.unshift(selectedContent);
+    populateContents();$('content-count').textContent=`${formatNumber(page.items.length)} sur ${formatNumber(page.total)} contenus`;
+    $('more-contents').hidden=!page.cursor;$('more-contents').disabled=page.loading;$('more-contents').textContent=page.loading?'Chargement…':'Voir la suite ↓';
+    $('content-status').textContent=page.error || (page.loading?'Recherche dans tous tes contenus…':'');
+  });
   function helpers() {
     const destination = value('channel') === 'meta_ads' && value('destination') === 'mc2' ? 'meta_mc2' : value('destination');
     $('destination-preview').textContent = DESTINATIONS[destination].url.replace('https://','');
@@ -129,24 +152,19 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     if (busy) return;
     $('refresh').disabled = true;
     try {
-      if (!demo) {
-        const res = await win.fetch(endpoint,{ credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000) });
-        const data = await res.json().catch(()=>{throw new Error('Le registre est momentanément indisponible.');});
-        if (res.status === 401) { lock(); return; }
-        if (!res.ok) throw new Error(data.error || 'Impossible de lire le registre.');
-        state = data;
-      }
+      const summary=await readPage('summary');state={...state,...summary};
       $('auth').hidden = true; $('fields').disabled = false;
       $('studio-logout').hidden=demo;$('tab-purchases').disabled=false;
       $('connection').textContent = demo ? 'Démo interactive' : 'Connecté';
       $('connection').parentElement.classList.toggle('ready',!demo);
       if (!demo) {
         $('notice').hidden = !preview;
-        $('notice').textContent = 'PRÉVERSION — Le registre Supabase est réel. Les liens sonnycourt.com/r/… deviendront utilisables après publication de cette version. Ne les diffuse pas encore.';
+        $('notice').textContent = 'PRÉVERSION — Le registre Supabase est réel. Les changements enregistrés ici sont conservés.';
       }
-      populateContents(); render();
+      await Promise.all([linkPager.reset(value('search').trim(),value('filter-channel')),contentPager.reset(value('content-search').trim())]);
       if(!demo && state.schema_version!==2){$('fields').disabled=true;$('notice').hidden=false;$('notice').textContent='Le registre est connecté. Exécute marketing_links_publication_v2.sql pour activer la date et le lien de publication.';}
     } catch (error) {
+      if(error.status===401)return;
       $('notice').textContent = error.message || 'Le registre est momentanément indisponible.'; $('notice').hidden = false;
       $('connection').textContent = 'Connexion à finaliser'; $('fields').disabled = true;
     } finally { $('refresh').disabled = false; }
@@ -157,7 +175,8 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   $('link-form').addEventListener('submit', async event => {
     event.preventDefault(); if (busy || !$('link-form').reportValidity()) return;
     let input;
-    const content = state.contents.find(c => c.id === value('content-select'));
+    const content = existingMode?state.contents.find(c => c.id === value('content-select')):null;
+    if(existingMode&&!content){$('form-status').textContent='Choisis le contenu à réutiliser.';return;}
     try {
       input = validateCreate({ id:operationId, content_id:content?.id || contentId, title:content?.title || value('title'),format:content?.format || value('format'),topic:content?.topic || value('topic'),angle:content?.angle || value('angle'),channel:value('channel'),placement:value('placement'),campaign:value('campaign'),destination:value('destination'),publication_label:value('publication-label'),published_on:value('published-on'),publication_url:value('publication-url') });
     } catch (e) { $('form-status').textContent = e.message; return; }
@@ -166,9 +185,8 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       let link;
       if (demo) {
         link = {...input,code:linkCode(input.id),created_at:new Date().toISOString(),arrivals:0,registrations:0};
-        state.links.unshift(link);
-        if (!content) state.contents.unshift({...input,id:input.content_id});
-        state.totals.contents = state.contents.length; state.totals.links = state.links.length;
+        demoData.links.unshift(link);
+        if (!content) demoData.contents.unshift({...input,id:input.content_id});
       } else {
         const res = await win.fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(input),signal:AbortSignal.timeout(12000)});
         const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Création impossible.'); link = data.link;
@@ -177,6 +195,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       $('created-help').textContent = demo ? 'Exemple non utilisable. Rien n’est enregistré dans Supabase.' : 'Enregistré dans Supabase. Tu peux réutiliser ce lien à tout moment.';
       $('form-status').textContent = demo ? 'Exemple créé dans cette page uniquement.' : 'Lien enregistré.';
       operationId = win.crypto.randomUUID(); contentId = win.crypto.randomUUID();
+      selectedContent=content||{...input,id:input.content_id};existingMode=true;
       busy = false; await load();
       $('content-select').value = input.content_id; toggleContent();
       $('published-on').value='';$('publication-url').value='';
@@ -185,13 +204,15 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     finally { busy = false; $('fields').disabled = !demo && state.schema_version!==2; }
   });
   $('link-form').addEventListener('input', () => { if (!busy) operationId = win.crypto.randomUUID(); helpers(); });
-  $('content-select').addEventListener('change',toggleContent);
-  $('mode-new').addEventListener('click',()=>{$('content-select').value='new';contentId=win.crypto.randomUUID();operationId=win.crypto.randomUUID();toggleContent();$('title').focus();});
-  $('mode-existing').addEventListener('click',()=>{if(!state.contents.length)return;$('content-select').value=state.contents[0].id;operationId=win.crypto.randomUUID();toggleContent();});
+  $('content-select').addEventListener('change',()=>{selectedContent=state.contents.find(c=>c.id===value('content-select'))||null;toggleContent();});
+  $('mode-new').addEventListener('click',()=>{existingMode=false;selectedContent=null;$('content-select').value='';contentId=win.crypto.randomUUID();operationId=win.crypto.randomUUID();toggleContent();$('title').focus();});
+  $('mode-existing').addEventListener('click',()=>{if(!state.totals.contents)return;existingMode=true;selectedContent ||= state.contents[0]||null;$('content-select').value=selectedContent?.id||'';operationId=win.crypto.randomUUID();toggleContent();$('content-search').focus();});
+  $('content-search').addEventListener('input',()=>{win.clearTimeout(contentTimer);selectedContent=null;contentPager.clear();contentTimer=win.setTimeout(()=>void contentPager.reset(value('content-search').trim()),250);});
+  $('more-contents').addEventListener('click',()=>void contentPager.next());
   for (const button of doc.querySelectorAll('button[data-channel]')) button.addEventListener('click',()=>{
     $('channel').value=button.dataset.channel;
     if(!customPlacement)$('placement').value=defaults[value('channel')][0];
-    if(!customFormat && value('content-select')==='new')$('format').value=defaults[value('channel')][1];
+    if(!customFormat && !existingMode)$('format').value=defaults[value('channel')][1];
     operationId=win.crypto.randomUUID();helpers();
   });
   for (const button of doc.querySelectorAll('button[data-destination]')) button.addEventListener('click',()=>{
@@ -203,9 +224,9 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   $('placement').addEventListener('change',()=>customPlacement=true);
   $('format').addEventListener('change',()=>customFormat=true);
   $('channel').addEventListener('change', helpers);
-  $('search').addEventListener('input', () => { limit = 8; render(); });
-  $('filter-channel').addEventListener('change', () => { limit = 8; render(); });
-  $('show-more').addEventListener('click', () => { limit += 8; render(); });
+  $('search').addEventListener('input',()=>{win.clearTimeout(searchTimer);linkPager.clear();searchTimer=win.setTimeout(()=>void linkPager.reset(value('search').trim(),value('filter-channel')),250);});
+  $('filter-channel').addEventListener('change',()=>{win.clearTimeout(searchTimer);void linkPager.reset(value('search').trim(),value('filter-channel'));});
+  $('show-more').addEventListener('click',()=>void linkPager.next());
   $('refresh').addEventListener('click',load);
   $('copy-created').addEventListener('click', () => copy(value('created-url')));
   $('close-publication').addEventListener('click',()=>$('publication-dialog').close());
@@ -229,10 +250,14 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     ];
     for (const [title,format,channel,placement,campaign,destination,publication_label] of samples) {
       const id = win.crypto.randomUUID(), cId = win.crypto.randomUUID();
-      const content = {id:cId,title,format,topic:'',angle:''}; state.contents.push(content);
-      state.links.push({...content,id,content_id:cId,channel,placement,campaign,destination,publication_label,code:linkCode(id),arrivals:0,registrations:0,created_at:new Date().toISOString(),published_on:channel==='instagram'?'2026-10-01':null,publication_url:null});
+      const content = {id:cId,title,format,topic:'',angle:''}; demoData.contents.push(content);
+      demoData.links.push({...content,id,content_id:cId,channel,placement,campaign,destination,publication_label,code:linkCode(id),arrivals:0,registrations:0,created_at:new Date().toISOString(),published_on:channel==='instagram'?'2026-10-01':null,publication_url:null});
     }
-    state.totals = {contents:3,links:3,arrivals:0,registrations:0};
+    // Optional volume fixture for local/preview visual QA, never production data.
+    if(new URLSearchParams(win.location.search).get('volume')==='1')for(let i=4;i<=30;i++){
+      const id=win.crypto.randomUUID(),cId=win.crypto.randomUUID(),content={id:cId,title:'Exemple de contenu '+i,format:'post',topic:'',angle:''};demoData.contents.push(content);
+      demoData.links.push({...demoData.links[0],...content,id,content_id:cId,code:linkCode(id)});
+    }
   }
   helpers(); void load();
 }
