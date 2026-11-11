@@ -8,7 +8,7 @@ export default async function handler(req) {
   const url = new URL(req.url);
   // Netlify v2 keeps the original public URL when a redirect rewrites to a
   // function. Read the code from /r/... first; query parameters cannot replace it.
-  const code = url.pathname.startsWith('/masterclass/')
+  const code = url.pathname.startsWith('/masterclass/') || url.pathname.startsWith('/links/')
     ? bioLinkForPath(url.pathname)?.code
     : url.pathname.startsWith('/r/')
     ? url.pathname.match(/^\/r\/([a-f0-9]{12})\/?$/)?.[1]
