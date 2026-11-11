@@ -1,7 +1,7 @@
 # Contenus et attribution — première version
 
 Branche : `codex/content-link-tracking`, départ `origin/main` c1a68c4c.
-Administration : `/es-cockpit/liens/`, avec l'authentification du cockpit existant.
+Administration : `/link-studio/`, avec une connexion intégrée. L’ancienne adresse `/es-cockpit/liens/` redirige vers cette page.
 
 ## Utilisation
 
@@ -125,3 +125,14 @@ crée aucune donnée de test en production.
 
 Régressions obligatoires : `test:mc2-meta-events`, `test:mc2-tracking-v2`,
 `test:mc2-spiffy-checkout`, `test:mc2-replay-recovery`, `test:mc2-pay-router`.
+
+## Connexion Link Studio
+
+- L’interface reste visible sans connexion ; aucune donnée du registre ni des acheteurs n’est livrée sans session valide.
+- Même mot de passe que le cockpit ES2 (`admin_es2_auth`), sans copie ni modification du hash. Cookie distinct `__Host-link_studio`, limité à cette application, HttpOnly, Secure, SameSite=Strict, 30 jours fixes. Aucun mot de passe dans localStorage. Modifier le mot de passe du cockpit invalide aussi ces sessions.
+- Trois vérifications de mot de passe maximum par adresse IP sur une heure glissante (y compris une tentative correcte). L’adresse fiable vient du contexte Netlify, jamais des en-têtes envoyés par le navigateur. Un HMAC de l’IP sert de clé, seuls les trois horodatages sont stockés.
+- Réservation atomique dans Netlify Blobs avant bcrypt : lecture forte + `onlyIfNew` / `onlyIfMatch`. Si le stockage est indisponible, connexion refusée temporairement (503). Le quota persiste entre instances et déploiements ; il n’est pas remis à zéro en rechargeant la page. Les réseaux partagés partagent ce quota.
+- La compatibilité v10 reprend la correction officielle Netlify #820 via un adaptateur fetch : un conflit HTTP 409 vaut refus de réservation, les autres erreurs ne sont jamais un succès. Vérification réelle sur un stockage de test : 20 requêtes concurrentes, 3 réservations et 17 refus ; données de test supprimées.
+- La dépendance moderne est isolée sous l’alias `@netlify/blobs-auth` ; les autres fonctions gardent leur version existante. Aucune modification Supabase requise.
+- Déconnexion disponible dans la barre supérieure ; suppression du cookie sur cet appareil. Les API marketing n’acceptent plus le cookie du cockpit.
+- Tests : `node scripts/marketing-auth-smoke.mjs`, `node scripts/marketing-links-smoke.mjs`, `node scripts/marketing-journeys-smoke.mjs`. Le premier couvre notamment 20 tentatives parallèles : seulement trois comparaisons de mot de passe.

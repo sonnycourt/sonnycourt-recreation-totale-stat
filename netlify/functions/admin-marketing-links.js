@@ -1,11 +1,11 @@
-import { getSessionFromRequest } from './lib/admin-es2-verify-cookie.mjs';
+import { getMarketingSession } from './lib/marketing-auth.mjs';
 import { validateCreate, validatePublicationUpdate } from '../../src/lib/marketing-links-contract.mjs';
 import { database, json, sameOrigin } from './lib/marketing-links.mjs';
 
 export default async function handler(req) {
   if (!['GET', 'POST', 'PATCH'].includes(req.method)) return json(405, { error: 'Méthode non autorisée.' });
   if (!sameOrigin(req, req.method !== 'GET')) return json(403, { error: 'Accès refusé.' });
-  try { if (!getSessionFromRequest(req)) return json(401, { error: 'Connecte-toi au cockpit pour gérer les liens.' }); }
+  try { if (!await getMarketingSession(req)) return json(401, { error: 'Connecte-toi à Link Studio pour gérer les liens.' }); }
   catch { return json(401, { error: 'Connexion administrateur requise.' }); }
   try {
     if (req.method === 'GET') {
