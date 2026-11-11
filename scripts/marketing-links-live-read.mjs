@@ -12,6 +12,8 @@ try {
   process.env.SUPABASE_SERVICE_ROLE_KEY = env('SUPABASE_SERVICE_ROLE_KEY');
   const report = await database('rpc/marketing_links_overview',{});
   console.log(JSON.stringify({supabase:'connected',totals:report.totals}));
+  const library=await database('rpc/marketing_library_page',{p_kind:'summary'});
+  console.log(JSON.stringify({library_version:library.library_version,total_links:library.totals?.links}));
   if (process.argv[2]) {
     const base = new URL(process.argv[2]);
     if (base.protocol !== 'https:' || !(base.hostname.endsWith('.netlify.app') || base.hostname==='sonnycourt.com')) throw new Error('invalid_preview');
@@ -26,5 +28,16 @@ try {
     const purchases=await fetch(new URL('/.netlify/functions/admin-marketing-journeys',base),{headers:{cookie}});
     console.log(JSON.stringify({anonymous_purchases:anonymous.status,authenticated_purchases:purchases.status}));
     if(anonymous.status!==401 || purchases.status!==200)process.exitCode=1;
+    for(const view of ['summary','links','contents']){
+      const response=await fetch(new URL('/.netlify/functions/admin-marketing-links?view='+view,base),{headers:{cookie}});
+      const result=await response.json();console.log(JSON.stringify({view,status:response.status,total:result.total??result.totals?.links,returned:result.items?.length}));
+      if(!response.ok || (view==='summary'?result.library_version!==3:!Array.isArray(result.items)))process.exitCode=1;
+      if(view==='links'&&result.items?.length){
+        const code=result.items[0].code;
+        const search=await fetch(new URL('/.netlify/functions/admin-marketing-links?view=links&q='+code,base),{headers:{cookie}});
+        const data=await search.json();if(search.status!==200||data.total!==1||data.items[0]?.code!==code)process.exitCode=1;
+        console.log(JSON.stringify({search:search.status,total:data.total}));
+      }
+    }
   }
 } catch { console.error('Lecture de vérification indisponible. Aucun secret affiché, aucune écriture effectuée.'); process.exitCode=1; }

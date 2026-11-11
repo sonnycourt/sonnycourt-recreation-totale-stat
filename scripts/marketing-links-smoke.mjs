@@ -41,6 +41,16 @@ try {
   globalThis.fetch = async (url,options) => { calls.push([url,options]); return answer({}); };
   assert.equal((await admin(request('admin-marketing-links'))).status,401); checks++;
   assert.equal(calls.length,0); checks++;
+  assert.equal((await admin(request('admin-marketing-links?view=links'))).status,401);checks++;
+  assert.equal(calls.length,0);checks++;
+  globalThis.fetch=withAuth(async(url,options)=>{
+    ok(url.endsWith('/rpc/marketing_library_page'),'Library uses the private paginated RPC');
+    const p=JSON.parse(options.body);assert.equal(p.p_kind,'links');assert.equal(p.p_search,'ancien');assert.equal(p.p_channel,'instagram');checks+=3;
+    return answer({items:[link],total:2500,next_cursor:{at:'2026-11-11T10:00:00.123456+00:00',id}});
+  });
+  const libraryResponse=await body(await admin(request('admin-marketing-links?view=links&q=ancien&channel=instagram',undefined,{cookie:adminCookie})));
+  ok(libraryResponse.connected&&libraryResponse.total===2500,'Authenticated library returns complete match count');
+  assert.equal((await admin(request('admin-marketing-links?view=invalid',undefined,{cookie:adminCookie}))).status,400);checks++;
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:adminCookie,origin:'https://evil.invalid'}))).status,403); checks++;
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:'admin_es2_session=%broken'}))).status,401); checks++;
   globalThis.fetch = withAuth(async () => answer({code:'PGRST202'},404));

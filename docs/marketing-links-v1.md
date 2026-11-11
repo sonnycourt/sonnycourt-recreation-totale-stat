@@ -58,8 +58,13 @@ lien. Les titres, thèmes et angles ne sont jamais envoyés à Meta par ce modul
 
 Le total d'inscrits est dédupliqué. Les inscrits associés à chaque lien sont des
 contributions : une même personne peut apparaître sous plusieurs liens.
-La bibliothèque affiche les 200 liens les plus récents, et le sélecteur les 500
-contenus les plus récents ; un compteur signale un éventuel périmètre tronqué.
+La bibliothèque et le sélecteur de contenus parcourent tout l'historique, sans
+plafond de résultats. La recherche et le filtre de canal sont effectués côté
+serveur sur l'ensemble du registre. « Voir la suite » charge les pages suivantes
+(12 liens ou 24 contenus à la fois) pour garder l'interface rapide. Les compteurs
+indiquent le nombre chargé et le total correspondant à la recherche. La navigation
+utilise le couple date de création / identifiant, en conservant les microsecondes,
+pour ne perdre aucun résultat lorsque plusieurs éléments partagent une date.
 L'onglet « Achats & parcours » affiche jusqu'aux 100 confirmations Spiffy MC2 les
 plus récentes, dédupliquées par commande, hors inscriptions de test. Une fiche
 dépliable relit les paiements de la commande exacte dans Spiffy : paiements
@@ -80,8 +85,12 @@ les limites de 500 contacts/associations sont explicitement signalés partiels.
 
 `sql/marketing_links_v1.sql` est additif, réexécutable et doit être exécuté par
 Sonny, puis `sql/marketing_links_publication_v2.sql` pour les métadonnées de
-publication et leur modification. Respecter cet ordre lors d'une nouvelle
-installation : V1 puis V2 (V2 remplace deux RPC V1). Cinq nouvelles tables
+publication et leur modification, puis `sql/marketing_links_library_v3.sql` pour
+la bibliothèque complète. Respecter cet ordre lors d'une nouvelle installation :
+V1, V2, V3. La V3 ajoute une RPC privée en lecture seule et deux index ; elle ne
+modifie aucune donnée. L'ancienne RPC de vue d'ensemble reste disponible pour les
+anciennes pages déjà ouvertes, mais la nouvelle interface ne l'utilise plus.
+Cinq nouvelles tables
 protégées par RLS ; aucune modification du schéma
 MC2. Les RPC et les tables sont réservées à `service_role`. Les mêmes
 variables serveur `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont utilisées.
@@ -89,6 +98,10 @@ variables serveur `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont utilisées.
 Sur preview, le registre administrateur est réel après authentification, mais
 le suivi public est désactivé. `?demo=1` n'est autorisé que hors production :
 données fictives en mémoire, URLs `exemple.invalid`, aucune requête Supabase.
+`?demo=1&volume=1` fournit 30 exemples fictifs pour vérifier la pagination.
+`npm run test:marketing-library` vérifie aussi 2 500 liens et contenus sur une
+base PostgreSQL locale jetable, la recherche des plus anciens, les droits privés,
+les requêtes concurrentes et la reprise après une coupure réseau.
 Les liens courts de production ne sont utilisables qu'après publication de
 cette branche via le chemin de déploiement autorisé du projet.
 

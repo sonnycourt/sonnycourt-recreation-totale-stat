@@ -1,6 +1,7 @@
 import { getMarketingSession } from './lib/marketing-auth.mjs';
 import { validateCreate, validatePublicationUpdate } from '../../src/lib/marketing-links-contract.mjs';
 import { database, json, sameOrigin } from './lib/marketing-links.mjs';
+import { readLibrary } from './lib/marketing-library.mjs';
 
 export default async function handler(req) {
   if (!['GET', 'POST', 'PATCH'].includes(req.method)) return json(405, { error: 'Méthode non autorisée.' });
@@ -9,6 +10,9 @@ export default async function handler(req) {
   catch { return json(401, { error: 'Connexion administrateur requise.' }); }
   try {
     if (req.method === 'GET') {
+      if(new URL(req.url).searchParams.has('view')) return json(200,{...await readLibrary(new URL(req.url)),connected:true});
+      // Compatibility for already-open older versions. The current UI uses the
+      // paginated library above and never relies on this historical snapshot.
       const data = await database('rpc/marketing_links_overview', {});
       return json(200, { ...data, connected: true });
     }
@@ -25,6 +29,8 @@ export default async function handler(req) {
     const data = await database('rpc/marketing_create_link', { p_input: input });
     return json(200, { link: data });
   } catch (e) {
+    if(e.message==='invalid_library_query')return json(400,{error:'Recherche invalide.'});
+    if(req.method==='GET' && new URL(req.url).searchParams.has('view') && e.message==='schema_missing')return json(503,{code:'schema_missing',error:'Exécute marketing_links_library_v3.sql dans Supabase pour activer la bibliothèque complète.'});
     return json(503, { code: e.message === 'schema_missing' ? 'schema_missing' : 'unavailable', error: e.message === 'schema_missing' ? 'La connexion est prête. Exécute le SQL marketing_links_v1 dans Supabase pour activer le registre.' : 'Supabase est momentanément indisponible. Réessaie sans modifier le formulaire.' });
   }
 }
