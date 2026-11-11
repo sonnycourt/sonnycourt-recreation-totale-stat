@@ -1,3 +1,5 @@
+import { bioLinkForCode } from './marketing-bio-links.mjs';
+
 // Shared vocabulary. No credentials or customer data belong in a public link.
 export const CHANNELS = Object.freeze({
   instagram: { label: 'Instagram', source: 'instagram', medium: 'organic_social' },
@@ -78,4 +80,4 @@ export function buildDestination(link) {
   url.searchParams.set('sc_link', link.code);
   return url.href;
 }
-export function shortUrl(code) { return `https://sonnycourt.com/r/${code}`; }
+export function shortUrl(code) { return `https://sonnycourt.com${bioLinkForCode(code)?.path || '/r/'+code}`; }

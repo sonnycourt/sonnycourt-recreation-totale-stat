@@ -33,6 +33,16 @@ Les paramètres entrants ne peuvent remplacer ni la destination ni les UTM.
 Les liens publiés sont immuables dans cette V1. En cas d'erreur, créer un autre
 lien. Les titres, thèmes et angles ne sont jamais envoyés à Meta par ce module.
 
+Les quatre liens permanents de bio utilisent `/masterclass/ig`, `/masterclass/tt`,
+`/masterclass/yt` et `/masterclass/fb`. Leur correspondance publique est centralisée
+dans `src/lib/marketing-bio-links.mjs`. Link Studio affiche et copie ces adresses
+pour les quatre fiches correspondantes. Le serveur résout le même code du registre
+que l'ancien lien `/r/…`, qui continue à fonctionner : UTM, historique et suivi
+restent identiques. Aucun clic n'est compté au niveau de cette redirection.
+Ces liens sont de format `bio`, emplacement `bio`, campagne `mc2-evergreen`, avec
+la page du profil comme URL de publication. La date reste vide pour ces bios
+permanentes. Il n'y a pas de modification du schéma Supabase.
+
 ## Mesure réellement implémentée
 
 - Une requête de redirection n'est pas comptée : les préchargements et scanners
