@@ -17,6 +17,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     win.clearTimeout(searchTimer);win.clearTimeout(contentTimer);linkPager.clear();contentPager.clear();selectedContent=null;existingMode=false;
     state={contents:[],links:[],totals:{}};
     $('auth').hidden=false;$('fields').disabled=true;$('studio-logout').hidden=true;$('tab-purchases').disabled=true;
+    $('tab-bio').disabled=true;$('bio-panel').hidden=true;$('tab-bio').setAttribute('aria-pressed','false');
     $('connection').textContent='Connexion requise';$('connection').parentElement.classList.remove('ready');
     $('link-list').replaceChildren();$('purchases-list').replaceChildren();$('purchases-status').textContent='';
     $('purchases-panel').hidden=true;$('links-panel').hidden=false;
@@ -155,6 +156,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       const summary=await readPage('summary');state={...state,...summary};
       $('auth').hidden = true; $('fields').disabled = false;
       $('studio-logout').hidden=demo;$('tab-purchases').disabled=false;
+      $('tab-bio').disabled=false;
       $('connection').textContent = demo ? 'Démo interactive' : 'Connecté';
       $('connection').parentElement.classList.toggle('ready',!demo);
       if (!demo) {
