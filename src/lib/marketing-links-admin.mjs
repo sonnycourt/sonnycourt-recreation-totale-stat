@@ -1,4 +1,4 @@
-import { CHANNELS, FORMATS, PLACEMENTS, DESTINATIONS, buildDestination, linkCode, shortUrl, validateCreate, publicationUrl, validatePublicationUpdate } from './marketing-links-contract.mjs';
+import { CHANNELS, FORMATS, PLACEMENTS, DESTINATIONS, buildDestination, linkCode, shortUrl, validateCreate, publicationUrl, validatePublicationUpdate, trackingCoverage } from './marketing-links-contract.mjs';
 
 export function initMarketingLinksAdmin(doc = document, win = window) {
   const $ = id => doc.getElementById(id);
@@ -53,6 +53,13 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       bottom.append(el('span','campaign-tag',row.campaign),stats);
       const details = el('details'), summary = el('summary','','Détails du lien ↗'), detail = el('p','field-help',buildDestination(row)); detail.style.overflowWrap = 'anywhere'; details.append(summary,detail);
       card.append(top,middle,bottom);
+      const coverage=trackingCoverage(row), coverageBlock=el('div','coverage');
+      if(coverage.retrospective)coverageBlock.append(el('span','retro-badge','↶ Rétro'));
+      else if(coverage.unknown)coverageBlock.append(el('span','undated-badge','Publication non datée'));
+      if(coverage.since)coverageBlock.append(el('span','',`Lien de suivi créé le ${new Date(coverage.since).toLocaleDateString('fr-FR',{timeZone:'Europe/Zurich'})}`));
+      if(coverage.retrospective)coverageBlock.append(el('p','','Résultats depuis ce lien uniquement. L’historique avant le suivi n’est pas mesuré.'));
+      else if(coverage.unknown)coverageBlock.append(el('p','','Ajoute la date si ce contenu était déjà publié : son historique sera signalé comme incomplet.'));
+      card.append(coverageBlock);
       let postUrl=null; try { postUrl=publicationUrl(row.publication_url); } catch { /* Never render unsafe legacy URLs. */ }
       {
         const meta=el('div','publication-meta');
@@ -189,7 +196,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     for (const [title,format,channel,placement,campaign,destination,publication_label] of samples) {
       const id = win.crypto.randomUUID(), cId = win.crypto.randomUUID();
       const content = {id:cId,title,format,topic:'',angle:''}; state.contents.push(content);
-      state.links.push({...content,id,content_id:cId,channel,placement,campaign,destination,publication_label,code:linkCode(id),arrivals:0,registrations:0,published_on:'2026-11-11',publication_url:null});
+      state.links.push({...content,id,content_id:cId,channel,placement,campaign,destination,publication_label,code:linkCode(id),arrivals:0,registrations:0,created_at:new Date().toISOString(),published_on:channel==='instagram'?'2026-10-01':null,publication_url:null});
     }
     state.totals = {contents:3,links:3,arrivals:0,registrations:0};
   }

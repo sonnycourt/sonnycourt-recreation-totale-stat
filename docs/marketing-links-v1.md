@@ -16,6 +16,12 @@ ajoutées à la création ou après publication, depuis « Ajouter la publicatio
 « Modifier la fiche ». « Voir la publication » ouvre le post dans une nouvelle
 fenêtre. Modifier cette fiche ne modifie ni le lien court ni ses UTM.
 
+Si la date de publication précède le jour de création du lien (Europe/Zurich),
+le badge « Rétro » apparaît automatiquement. La date de création du lien est
+affichée séparément. Les contenus non datés sont signalés : on n'en déduit pas
+un suivi depuis leur première publication. Aucune vue ni vente historique n'est
+reconstituée.
+
 Le contenu conserve son identifiant. Chaque génération crée une publication et
 son lien court `/r/<code>`. Les UTM sont dérivés de valeurs contrôlées et le code
 stable sert de `utm_content`. Les destinations actuelles sont MC2, Delta Vision
@@ -54,7 +60,21 @@ Le total d'inscrits est dédupliqué. Les inscrits associés à chaque lien sont
 contributions : une même personne peut apparaître sous plusieurs liens.
 La bibliothèque affiche les 200 liens les plus récents, et le sélecteur les 500
 contenus les plus récents ; un compteur signale un éventuel périmètre tronqué.
-Le tableau n'affiche pas encore de revenus ni d'achats.
+L'onglet « Achats & parcours » affiche jusqu'aux 100 confirmations Spiffy MC2 les
+plus récentes, dédupliquées par commande, hors inscriptions de test. Une fiche
+dépliable relit les paiements de la commande exacte dans Spiffy : paiements
+réussis, remboursements et encaissé net sont séparés du montant contractuel.
+Les mensualités ne deviennent pas de nouveaux achats. Une lecture manquante
+affiche « non vérifié », jamais un zéro.
+
+La chronologie assemble les contacts explicitement associés à l'inscription,
+les étapes MC2 horodatées avant la commande et le quiz enregistré avant l'achat.
+Les clics ultérieurs à l'inscription du même navigateur consentant sont aussi
+consultés sur 90 jours, uniquement si ce navigateur n'a qu'une identité connue
+sur cette fenêtre. Les appareils partagés ou ambigus ne sont pas fusionnés.
+Aucun identifiant d'accès MC2 ni identifiant navigateur ne sort vers l'interface.
+Une fiche sans contact affiche « parcours non observé ». Les parcours dépassant
+les limites de 500 contacts/associations sont explicitement signalés partiels.
 
 ## Connexion et publication
 
@@ -74,12 +94,12 @@ cette branche via le chemin de déploiement autorisé du projet.
 
 ## Prochain raccordement
 
-- Encaissements Spiffy vérifiés, remboursements et mensualités séparés, via les
-  identifiants d'inscription / clients existants. Rien n'est déduit d'un clic.
+- Étendre les parcours aux achats hors MC2 (dont Delta Vision), avec leur propre
+  identité de conversion confirmée. Rien n'est déduit d'un clic.
 - Inscription MailerLite du guide Papa : les arrivées sont observées, mais les
   conversions de ce formulaire ne sont pas encore reliées au journal.
-- Rapport des séquences (premier contact, contacts intermédiaires, dernier),
-  couverture de mesure, cohortes arrivées à maturité et non-acheteurs.
+- Comparaison agrégée des séquences acheteurs / non-acheteurs et des cohortes
+  arrivées à maturité, sur des périodes de suivi équivalentes.
 - Pour les anciens contenus : remplacer seulement les liens dont on contrôle
   encore la destination. Aucune reconstruction inventée des clics historiques.
 - Une bio partagée identifie un canal, pas le Short précis. Ne pas renommer sa
@@ -89,6 +109,10 @@ cette branche via le chemin de déploiement autorisé du projet.
 
 `node scripts/marketing-links-smoke.mjs` : autorisation admin, CSRF, destinations
 fermées, paramètres, reçus signés, erreurs DB, consentement et isolement preview.
+
+`node scripts/marketing-journeys-smoke.mjs` : parcours après inscription,
+appareil partagé, exclusions de test, confidentialité, déduplication des commandes
+et paiements, remboursements, panne prestataire et badge rétro.
 
 `scripts/marketing-links-sql-smoke.mjs` utilise un PostgreSQL WASM jetable
 (PGlite installé hors dépôt), sans réseau Supabase : exécution du SQL deux fois,

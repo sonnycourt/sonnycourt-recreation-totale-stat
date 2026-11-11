@@ -41,6 +41,12 @@ export function publicationDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10)!==date || Number(date.slice(0,4))<1900) throw new Error('Vérifie la date de publication.');
   return date;
 }
+export function trackingCoverage(row) {
+  const created=new Date(row.created_at || row.link_created_at);
+  const valid=Number.isFinite(created.getTime());
+  const createdDay=valid ? new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Zurich',year:'numeric',month:'2-digit',day:'2-digit'}).format(created) : null;
+  return { retrospective:Boolean(row.published_on && createdDay && row.published_on<createdDay), unknown:!row.published_on, since:valid ? created.toISOString() : null };
+}
 export function validatePublicationUpdate(input) {
   if (!UUID.test(input?.publication_id || '')) throw new Error('Publication invalide.');
   return { publication_id:input.publication_id, published_on:publicationDate(input.published_on), publication_url:publicationUrl(input.publication_url) };
