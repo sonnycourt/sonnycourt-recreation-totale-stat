@@ -1,5 +1,6 @@
 import { buildDestination, CODE } from '../../src/lib/marketing-links-contract.mjs';
 import { database } from './lib/marketing-links.mjs';
+import { bioLinkForPath } from '../../src/lib/marketing-bio-links.mjs';
 
 export default async function handler(req) {
   const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer' };
@@ -7,7 +8,9 @@ export default async function handler(req) {
   const url = new URL(req.url);
   // Netlify v2 keeps the original public URL when a redirect rewrites to a
   // function. Read the code from /r/... first; query parameters cannot replace it.
-  const code = url.pathname.startsWith('/r/')
+  const code = url.pathname.startsWith('/masterclass/')
+    ? bioLinkForPath(url.pathname)?.code
+    : url.pathname.startsWith('/r/')
     ? url.pathname.match(/^\/r\/([a-f0-9]{12})\/?$/)?.[1]
     : url.searchParams.get('code');
   if (!CODE.test(code || '')) return new Response('Lien introuvable.', { status: 404, headers });

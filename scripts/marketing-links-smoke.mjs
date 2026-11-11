@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { validateCreate, buildDestination, linkCode, publicationUrl, publicationDate, validatePublicationUpdate } from '../src/lib/marketing-links-contract.mjs';
+import { validateCreate, buildDestination, linkCode, shortUrl, publicationUrl, publicationDate, validatePublicationUpdate } from '../src/lib/marketing-links-contract.mjs';
+import { BIO_LINKS } from '../src/lib/marketing-bio-links.mjs';
 import { hasStatisticsConsent, initMarketingAttribution } from '../src/lib/marketing-attribution.mjs';
 import { COOKIE, database, sign, verify, validReceipt, recordMarketingRegistration } from '../netlify/functions/lib/marketing-links.mjs';
 import { SESSION_COOKIE, signMarketingSession } from '../netlify/functions/lib/marketing-auth.mjs';
@@ -76,6 +77,23 @@ try {
   const adUrl=new URL(adRedirect.headers.get('location'));
   ok(adUrl.searchParams.get('fbclid')==='Meta_click-123' && adUrl.searchParams.get('utm_source')==='instagram' && !adUrl.searchParams.has('email'),'Preserve platform click ID only, no arbitrary override');
   assert.equal((await redirect(new Request('https://sonnycourt.com/.netlify/functions/marketing-link-redirect?code=bad'))).status,404); checks++;
+  for(const bio of BIO_LINKS){
+    const row={...link,code:bio.code,channel:bio.channel,placement:'bio',campaign:'mc2-evergreen'};
+    calls=[];
+    globalThis.fetch=async(url,options)=>{calls.push([url,options]);assert.ok(String(url).includes('code=eq.'+bio.code));return answer([row]);};
+    assert.equal(shortUrl(bio.code),'https://sonnycourt.com'+bio.path);checks++;
+    for(const suffix of ['', '/']){
+      const response=await redirect(new Request('https://sonnycourt.com'+bio.path+suffix+'?code=ffffffffffff&utm_source=evil&url=https://evil.invalid&fbclid=click-123'));
+      const destination=new URL(response.headers.get('location'));
+      assert.equal(response.status,302);assert.equal(destination.pathname,'/mc2/');assert.equal(destination.searchParams.get('utm_source'),bio.channel);
+      assert.equal(destination.searchParams.get('utm_content'),bio.code);assert.equal(destination.searchParams.get('sc_link'),bio.code);assert.equal(destination.searchParams.get('fbclid'),'click-123');checks+=6;
+    }
+    const legacy=await redirect(new Request('https://sonnycourt.com/r/'+bio.code));
+    assert.equal(legacy.headers.get('location'),buildDestination(row));checks++;
+    ok(calls.every(([,options])=>options.method==='GET'),'Bio aliases never count redirects as arrivals');
+  }
+  assert.equal((await redirect(new Request('https://sonnycourt.com/masterclass/unknown?code='+link.code))).status,404);checks++;
+  assert.equal(shortUrl(link.code),'https://sonnycourt.com/r/'+link.code);checks++;
   globalThis.fetch = async () => { throw new Error('offline'); };
   assert.equal((await redirect(new Request(`https://sonnycourt.com/.netlify/functions/marketing-link-redirect?code=${link.code}`))).status,503); checks++;
 
