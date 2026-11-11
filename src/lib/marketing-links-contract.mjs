@@ -72,6 +72,10 @@ export function buildDestination(link) {
   const dest = DESTINATIONS[link.destination], channel = CHANNELS[link.channel];
   if (!Object.hasOwn(DESTINATIONS,link.destination) || !Object.hasOwn(CHANNELS,link.channel) || !Object.hasOwn(PLACEMENTS,link.placement) || !CODE.test(link.code)) throw new Error('Lien invalide.');
   const url = new URL(dest.url);
+  // A profile alias can offer the two existing programmes before its MC2 route.
+  // The registry code stays unchanged, including when the visitor picks Delta.
+  const bio = bioLinkForCode(link.code);
+  if (bio?.entryPath) url.pathname = bio.entryPath;
   // Frozen IDs, not titles: renaming a content cannot fragment its attribution.
   url.searchParams.set('utm_source', channel.source);
   url.searchParams.set('utm_medium', channel.medium);

@@ -2,8 +2,8 @@
 // Each alias preserves its existing registry code, UTM and attribution history.
 export const BIO_LINKS = Object.freeze([
   { path: '/masterclass/ig', code: '80ea24697b45', channel: 'instagram' },
-  { path: '/masterclass/tt', code: 'e7dd5eb52276', channel: 'tiktok' },
-  { path: '/masterclass/yt', code: 'd70aca695f3c', channel: 'youtube' },
+  { path: '/masterclass/tt', code: 'e7dd5eb52276', channel: 'tiktok', entryPath: '/links/' },
+  { path: '/masterclass/yt', code: 'd70aca695f3c', channel: 'youtube', entryPath: '/links/' },
   { path: '/masterclass/fb', code: '4a25295b1cf0', channel: 'facebook' },
 ]);
 export function bioLinkForPath(path) {

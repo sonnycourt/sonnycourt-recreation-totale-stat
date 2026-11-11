@@ -82,16 +82,11 @@ const links = [
       <footer>SONNYCOURT.COM</footer>
     </main>
     <script>
+      import { bioChoiceUrl } from '../lib/marketing-bio-attribution.mjs';
       // Carry only campaign attribution, never personal checkout parameters.
       // Plain links remain fully functional when JavaScript is unavailable.
-      const incoming = new URLSearchParams(window.location.search);
       document.querySelectorAll<HTMLAnchorElement>('[data-bio-link]').forEach(link => {
-        const destination = new URL(link.href);
-        for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) {
-          const value = incoming.get(key);
-          if (value && /^[a-zA-Z0-9_.-]{1,100}$/.test(value)) destination.searchParams.set(key, value);
-        }
-        link.href = destination.pathname + destination.search;
+        link.href = bioChoiceUrl(link.href, window.location.search, window.location.origin);
       });
     </script>
     <style>

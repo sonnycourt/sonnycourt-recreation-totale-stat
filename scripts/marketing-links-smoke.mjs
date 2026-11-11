@@ -3,8 +3,9 @@ import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { validateCreate, buildDestination, linkCode, shortUrl, publicationUrl, publicationDate, validatePublicationUpdate } from '../src/lib/marketing-links-contract.mjs';
 import { BIO_LINKS } from '../src/lib/marketing-bio-links.mjs';
+import { bioChoiceUrl } from '../src/lib/marketing-bio-attribution.mjs';
 import { hasStatisticsConsent, initMarketingAttribution } from '../src/lib/marketing-attribution.mjs';
-import { COOKIE, database, sign, verify, validReceipt, recordMarketingRegistration } from '../netlify/functions/lib/marketing-links.mjs';
+import { COOKIE, database, sign, verify, validReceipt, recordMarketingRegistration, isDestinationPath } from '../netlify/functions/lib/marketing-links.mjs';
 import { SESSION_COOKIE, signMarketingSession } from '../netlify/functions/lib/marketing-auth.mjs';
 import admin from '../netlify/functions/admin-marketing-links.js';
 import redirect from '../netlify/functions/marketing-link-redirect.js';
@@ -85,12 +86,21 @@ try {
     for(const suffix of ['', '/']){
       const response=await redirect(new Request('https://sonnycourt.com'+bio.path+suffix+'?code=ffffffffffff&utm_source=evil&url=https://evil.invalid&fbclid=click-123'));
       const destination=new URL(response.headers.get('location'));
-      assert.equal(response.status,302);assert.equal(destination.pathname,'/mc2/');assert.equal(destination.searchParams.get('utm_source'),bio.channel);
+      assert.equal(response.status,302);assert.equal(destination.pathname,bio.entryPath||'/mc2/');assert.equal(destination.searchParams.get('utm_source'),bio.channel);
       assert.equal(destination.searchParams.get('utm_content'),bio.code);assert.equal(destination.searchParams.get('sc_link'),bio.code);assert.equal(destination.searchParams.get('fbclid'),'click-123');checks+=6;
     }
     const legacy=await redirect(new Request('https://sonnycourt.com/r/'+bio.code));
     assert.equal(legacy.headers.get('location'),buildDestination(row));checks++;
     ok(calls.every(([,options])=>options.method==='GET'),'Bio aliases never count redirects as arrivals');
+    if(bio.entryPath){
+      for(const path of ['/mc2/','/delta-vision/']){
+        const choice=new URL(bioChoiceUrl(path+'?utm_content=default',new URL(buildDestination(row)).search+'&token=secret&email=private&fbclid=click-123'),target.origin);
+        assert.equal(choice.pathname,path);assert.equal(choice.searchParams.get('sc_link'),bio.code);assert.equal(choice.searchParams.get('utm_content'),bio.code);assert.equal(choice.searchParams.get('utm_source'),bio.channel);checks+=4;
+        ok(!choice.searchParams.has('token')&&!choice.searchParams.has('email')&&choice.searchParams.get('fbclid')==='click-123','Programme choice preserves tracking without private query parameters');
+        ok(isDestinationPath('mc2',path,bio.code),'Both programme choices accept the same profile link');
+      }
+      ok(!isDestinationPath('mc2','/links/',bio.code)&&!isDestinationPath('mc2','/admin/',bio.code),'No double counting at the hub or arbitrary path');
+    }else ok(!isDestinationPath('mc2','/delta-vision/',bio.code),'Direct MC2 links cannot claim another programme');
   }
   assert.equal((await redirect(new Request('https://sonnycourt.com/masterclass/unknown?code='+link.code))).status,404);checks++;
   assert.equal(shortUrl(link.code),'https://sonnycourt.com/r/'+link.code);checks++;
