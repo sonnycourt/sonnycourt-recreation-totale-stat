@@ -1,0 +1,48 @@
+// Runs in disposable PGlite only. Never connect this script to Supabase.
+// npm install --prefix /private/tmp/sonny-marketing-sql-qa @electric-sql/pglite@0.3.14
+// PGLITE_MODULE=/private/tmp/sonny-marketing-sql-qa/node_modules/@electric-sql/pglite/dist/index.js node scripts/marketing-links-sql-smoke.mjs
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+ create table public.mc2_registrations(id bigint primary key,token text unique,registration_completed_at timestamptz);
+ grant usage on schema public to service_role; grant select on public.mc2_registrations to service_role;`);
+const sql = readFileSync(new URL('../sql/marketing_links_v1.sql',import.meta.url),'utf8');
+await db.exec(sql); await db.exec(sql);
+const publicationSql=readFileSync(new URL('../sql/marketing_links_publication_v2.sql',import.meta.url),'utf8');
+await db.exec(publicationSql);await db.exec(publicationSql);
+const cId=crypto.randomUUID(),vId=crypto.randomUUID(),point1=crypto.randomUUID(),point2=crypto.randomUUID();
+const input = {id:crypto.randomUUID(),content_id:cId,title:'Test local',format:'short',topic:'',angle:'',channel:'instagram',placement:'dm',campaign:'qa',destination:'mc2',publication_label:'',published_on:'2026-11-11',publication_url:'https://www.instagram.com/reel/test/'};
+await db.exec('set role service_role');
+const create = async p => (await db.query('select marketing_create_link($1::jsonb) as v',[JSON.stringify(p)])).rows[0].v;
+const first=await create(input); const retry=await create(input); assert.equal(first.id,retry.id);
+const second=await create({...input,id:crypto.randomUUID(),channel:'email',placement:'button'});
+const arrive=async(id,link,visitor)=>(await db.query('select * from marketing_record_arrival($1::uuid,$2::uuid,$3::uuid)',[id,link,visitor])).rows[0];
+await arrive(point1,first.id,null); await arrive(point1,first.id,null);
+assert.equal((await arrive(point1,first.id,vId)).visitor_id,vId);
+assert.equal((await arrive(point1,first.id,crypto.randomUUID())).visitor_id,vId);
+await arrive(point2,second.id,vId);
+await db.exec("reset role; insert into mc2_registrations values(1,'test-one',now()),(2,'test-other',now()); set role service_role;");
+assert.equal((await db.query('select marketing_link_mc2_registration($1,$2::uuid,$3,$4::uuid) as v',['test-one',point2,second.code,vId])).rows[0].v,true);
+const report=(await db.query('select marketing_links_overview() as v')).rows[0].v;
+assert.equal(report.totals.contents,1); assert.equal(report.totals.links,2); assert.equal(report.totals.arrivals,2);
+assert.equal(report.totals.registrations,1); assert.equal(report.links.reduce((s,l)=>s+l.registrations,0),2);
+assert.equal(report.schema_version,2);assert.equal(report.links[0].published_on,'2026-11-11');
+await db.query('select marketing_update_publication($1::uuid,$2::date,$3::text)',[first.publication_id,'2026-11-12','https://www.youtube.com/watch?v=example']);
+const after=(await db.query('select marketing_links_overview() as v')).rows[0].v.links.find(x=>x.id===first.id);
+assert.equal(after.published_on,'2026-11-12');assert.equal(after.publication_url,'https://www.youtube.com/watch?v=example');assert.equal(after.code,first.code);assert.equal(after.campaign,first.campaign);
+await db.query('select marketing_update_publication($1::uuid,$2::date,$3::text)',[first.publication_id,null,null]);
+assert.equal((await db.query('select publication_url from marketing_publications where id=$1',[first.publication_id])).rows[0].publication_url,null);
+await db.query('select marketing_link_mc2_registration($1,$2::uuid,$3,$4::uuid)',['test-other',point2,second.code,vId]);
+assert.equal((await db.query('select count(*)::int as n from marketing_mc2_attribution where registration_id=2')).rows[0].n,0);
+await db.exec('reset role; set role anon');
+await assert.rejects(db.query('select * from marketing_links'));
+await assert.rejects(db.query('select marketing_links_overview()'));
+await assert.rejects(db.query('select marketing_create_link($1::jsonb)',[JSON.stringify(input)]));
+await assert.rejects(db.query('select marketing_update_publication($1::uuid,null,null)',[first.publication_id]));
+await db.exec('reset role; set role authenticated');
+await assert.rejects(db.query('select * from marketing_mc2_attribution'));
+await db.close();
+console.log('PASS — SQL exécuté deux fois en PostgreSQL local : transaction, doublons, multi-contact, décompte unique, RLS, accès public refusé. Aucun accès au vrai Supabase.');

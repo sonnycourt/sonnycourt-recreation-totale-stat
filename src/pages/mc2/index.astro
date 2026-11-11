@@ -1,5 +1,6 @@
 ---
 import GAConsentMode from '../../components/GAConsentMode.astro';
+import MarketingAttribution from '../../components/MarketingAttribution.astro';
 import Mc2SafetyGuard from '../../components/Mc2SafetyGuard.astro';
 
 interface Props {
@@ -25,6 +26,7 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = false } = A
     <link rel="preload" as="image" href="/media/pages/mc2-masterclass-20260929-800.webp?v=2" imagesrcset="/media/pages/mc2-masterclass-20260929-640.webp?v=2 640w, /media/pages/mc2-masterclass-20260929-800.webp?v=2 800w" imagesizes="calc(100vw - 32px)" fetchpriority="high" media="(max-width: 900px)" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <GAConsentMode performanceMode />
+    <MarketingAttribution />
     <Mc2SafetyGuard />
     <script type="text/javascript">
         (function(c,l,a,r,i){
@@ -3762,6 +3764,8 @@ const { trafficSource = null, trackingPath = '/mc2/', publicClosed = false } = A
                         telephone: state.phone,
                         pays: state.country,
                         sms_consent: true,
+                        marketing_receipt: window.__scMarketingReceipt?.() || undefined,
+                        marketing_statistics_consent: window.__scMarketingStatisticsConsent?.() === true,
                         optin_funnel_id: optinFunnelId,
                         optin_variant: OPTIN_VARIANT,
                         ...(metaOptin ? metaOptin.getPayload() : {}),

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { recordMarketingRegistration } from './lib/marketing-links.mjs';
 import { inspectMc2Reregistration } from './lib/mc2-reregistration-history.mjs';
 import { mc2EntryPaymentPending } from '../../src/lib/mc2-entry-payment.mjs';
 import { checkMc2RegistrationPhone } from './lib/mc2-registration-country.mjs';
@@ -268,6 +269,7 @@ export default async (req) => {
         return jsonResponse(409, { error: 'Réinscription non effectuée. Actualise la page et réessaie.', reason: 'session_changed' });
       }
       const next = transition.data;
+      await recordMarketingRegistration(req, next, body.marketing_receipt, body.marketing_statistics_consent);
       await syncMailerLite(next);
       await queueLiveReminder(next);
       await queueSessionEmails(next);
@@ -323,6 +325,7 @@ export default async (req) => {
         return jsonResponse(500, { error: 'Erreur mise à jour MC2' });
       }
       const completedRow = { ...row, ...patch };
+      if (isComplete) await recordMarketingRegistration(req, completedRow, body.marketing_receipt, body.marketing_statistics_consent);
       if (isComplete) await persistMc2RegistrationExclusion(completedRow, { reactivatedNoShow });
       await syncMailerLite(completedRow);
       await queueLiveReminder(completedRow);
@@ -366,6 +369,7 @@ export default async (req) => {
       return jsonResponse(500, { error: 'Erreur enregistrement MC2' });
     }
     if (isComplete) await persistMc2RegistrationExclusion(row, { reactivatedNoShow });
+    if (isComplete) await recordMarketingRegistration(req, row, body.marketing_receipt, body.marketing_statistics_consent);
     await queueLiveReminder(row);
     await syncMailerLite(row);
     if (isComplete) await queueSessionEmails(row);
