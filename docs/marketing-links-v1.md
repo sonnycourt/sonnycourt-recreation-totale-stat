@@ -33,8 +33,9 @@ Les paramètres entrants ne peuvent remplacer ni la destination ni les UTM.
 Les liens publiés sont immuables dans cette V1. En cas d'erreur, créer un autre
 lien. Les titres, thèmes et angles ne sont jamais envoyés à Meta par ce module.
 
-Les quatre liens permanents de bio utilisent `/masterclass/ig`, `/masterclass/tt`,
-`/masterclass/yt` et `/masterclass/fb`. Leur correspondance publique est centralisée
+Les quatre liens permanents de bio utilisent `/masterclass/ig`, `/links/tt`,
+`/links/yt` et `/masterclass/fb`. Les anciennes adresses `/masterclass/tt` et
+`/masterclass/yt` restent fonctionnelles. Leur correspondance publique est centralisée
 dans `src/lib/marketing-bio-links.mjs`. Link Studio affiche et copie ces adresses
 pour les quatre fiches correspondantes. Le serveur résout le même code du registre
 que l'ancien lien `/r/…`, qui continue à fonctionner : UTM, historique et suivi

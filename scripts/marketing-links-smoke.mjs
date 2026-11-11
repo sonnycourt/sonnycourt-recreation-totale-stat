@@ -91,6 +91,10 @@ try {
     }
     const legacy=await redirect(new Request('https://sonnycourt.com/r/'+bio.code));
     assert.equal(legacy.headers.get('location'),buildDestination(row));checks++;
+    for(const previousPath of bio.legacyPaths||[]){
+      const previous=await redirect(new Request('https://sonnycourt.com'+previousPath));
+      assert.equal(previous.status,302);assert.equal(previous.headers.get('location'),buildDestination(row));checks+=2;
+    }
     ok(calls.every(([,options])=>options.method==='GET'),'Bio aliases never count redirects as arrivals');
     if(bio.entryPath){
       for(const path of ['/mc2/','/delta-vision/']){
