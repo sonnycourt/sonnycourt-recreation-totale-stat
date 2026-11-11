@@ -10,6 +10,39 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   let editingPublication=null;
   const defaults={instagram:['dm','short'],youtube:['description','long'],tiktok:['bio','short'],facebook:['button','post'],email:['button','email'],sms:['body','sms'],meta_ads:['button','short']};
   const value = id => $(id).value;
+  function lock() {
+    state={contents:[],links:[],totals:{}};
+    $('auth').hidden=false;$('fields').disabled=true;$('studio-logout').hidden=true;$('tab-purchases').disabled=true;
+    $('connection').textContent='Connexion requise';$('connection').parentElement.classList.remove('ready');
+    $('link-list').replaceChildren();$('purchases-list').replaceChildren();$('purchases-status').textContent='';
+    $('purchases-panel').hidden=true;$('links-panel').hidden=false;
+    $('tab-links').setAttribute('aria-pressed','true');$('tab-purchases').setAttribute('aria-pressed','false');
+    $('created').hidden=true;$('created-url').value='';$('content-select').replaceChildren(new Option('Choisir un contenu','new'));
+    for(const key of ['contents','links','arrivals','registrations']) $('total-'+key).textContent='—';
+    $('shown-count').textContent='';$('show-more').hidden=true;$('empty').hidden=false;
+    $('empty').querySelector('h3').textContent='Tes liens t’attendent.';
+    $('empty').querySelector('p').textContent='Connecte-toi pour les retrouver ici.';
+    $('publication-dialog').close();
+  }
+  doc.addEventListener('marketing-auth-required',lock);
+  win.addEventListener('pageshow',event=>{if(event.persisted&&!demo){lock();void load();}});
+  $('studio-login').addEventListener('submit',async event=>{
+    event.preventDefault();if($('studio-submit').disabled)return;
+    $('studio-submit').disabled=true;$('studio-login-status').textContent='Connexion…';
+    try {
+      const res=await win.fetch('/.netlify/functions/marketing-login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:value('studio-password')}),signal:AbortSignal.timeout(15000)});
+      const data=await res.json().catch(()=>{throw new Error('Connexion momentanément indisponible. Réessaie plus tard.');});if(!res.ok)throw new Error(data.error||'Connexion indisponible.');
+      win.location.reload();
+    }catch(error){$('studio-login-status').textContent=error.name==='TimeoutError'?'La connexion prend trop de temps. Réessaie dans un instant.':error.message;}
+    finally{$('studio-password').value='';$('studio-submit').disabled=false;}
+  });
+  $('studio-logout').addEventListener('click',async()=>{
+    $('studio-logout').disabled=true;
+    try {
+      const res=await win.fetch('/.netlify/functions/marketing-logout',{method:'POST',credentials:'same-origin',signal:AbortSignal.timeout(10000)});
+      if(!res.ok)throw new Error();lock();win.location.reload();
+    }catch{toast('Déconnexion indisponible. Réessaie.');$('studio-logout').disabled=false;}
+  });
   const urlFor = code => demo ? shortUrl(code).replace('sonnycourt.com','exemple.invalid') : shortUrl(code);
   const formatNumber = n => Number(n || 0).toLocaleString('fr-CH');
   const el = (tag, cls, text) => { const node = doc.createElement(tag); if (cls) node.className = cls; if (text !== undefined) node.textContent = text; return node; };
@@ -98,12 +131,13 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     try {
       if (!demo) {
         const res = await win.fetch(endpoint,{ credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000) });
-        const data = await res.json();
-        if (res.status === 401) { $('auth').hidden = false; $('fields').disabled = true; $('connection').textContent = 'Connexion requise'; return; }
+        const data = await res.json().catch(()=>{throw new Error('Le registre est momentanément indisponible.');});
+        if (res.status === 401) { lock(); return; }
         if (!res.ok) throw new Error(data.error || 'Impossible de lire le registre.');
         state = data;
       }
       $('auth').hidden = true; $('fields').disabled = false;
+      $('studio-logout').hidden=demo;$('tab-purchases').disabled=false;
       $('connection').textContent = demo ? 'Démo interactive' : 'Connecté';
       $('connection').parentElement.classList.toggle('ready',!demo);
       if (!demo) {

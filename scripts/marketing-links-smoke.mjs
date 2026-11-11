@@ -4,8 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validateCreate, buildDestination, linkCode, publicationUrl, publicationDate, validatePublicationUpdate } from '../src/lib/marketing-links-contract.mjs';
 import { hasStatisticsConsent, initMarketingAttribution } from '../src/lib/marketing-attribution.mjs';
 import { COOKIE, database, sign, verify, validReceipt, recordMarketingRegistration } from '../netlify/functions/lib/marketing-links.mjs';
-import { getAdminEs2CookieSecret } from '../netlify/functions/lib/admin-es2-session-secret.mjs';
-import { signSessionToken } from '../netlify/functions/lib/admin-es2-crypto.mjs';
+import { SESSION_COOKIE, signMarketingSession } from '../netlify/functions/lib/marketing-auth.mjs';
 import admin from '../netlify/functions/admin-marketing-links.js';
 import redirect from '../netlify/functions/marketing-link-redirect.js';
 import arrival from '../netlify/functions/marketing-link-arrival.js';
@@ -21,7 +20,9 @@ const link = {...validateCreate(input),code:linkCode(id)};
 const body = r => r.json();
 const request = (name, data, extra = {}) => new Request(`https://sonnycourt.com/.netlify/functions/${name}`, {method:data === undefined ? 'GET' : 'POST',headers:{origin:'https://sonnycourt.com','content-type':'application/json',...extra},...(data===undefined?{}:{body:JSON.stringify(data)})});
 const answer = (data,status=200) => new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-const adminCookie = 'admin_es2_session='+signSessionToken(getAdminEs2CookieSecret(),60000);
+const authHash='test-password-hash-only';
+const adminCookie = SESSION_COOKIE+'='+signMarketingSession(authHash);
+const withAuth=fn=>async(url,options)=>String(url).includes('/admin_es2_auth?')?answer([{id:1,password_hash:authHash}]):fn(url,options);
 
 try {
   assert.equal(link.campaign,'mc2-ete-2026'); checks++;
@@ -42,11 +43,11 @@ try {
   assert.equal(calls.length,0); checks++;
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:adminCookie,origin:'https://evil.invalid'}))).status,403); checks++;
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:'admin_es2_session=%broken'}))).status,401); checks++;
-  globalThis.fetch = async () => answer({code:'PGRST202'},404);
+  globalThis.fetch = withAuth(async () => answer({code:'PGRST202'},404));
   assert.equal((await body(await admin(request('admin-marketing-links',undefined,{cookie:adminCookie})))).code,'schema_missing'); checks++;
-  globalThis.fetch = async (url,options) => { if(options.method==='GET')return answer([]);ok(url.endsWith('/rpc/marketing_create_link'),'Create uses one atomic RPC'); assert.equal(JSON.parse(options.body).p_input.id,id); return answer(link); };
+  globalThis.fetch = withAuth(async (url,options) => { if(options.method==='GET')return answer([]);ok(url.endsWith('/rpc/marketing_create_link'),'Create uses one atomic RPC'); assert.equal(JSON.parse(options.body).p_input.id,id); return answer(link); });
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:adminCookie}))).status,200); checks++;
-  globalThis.fetch=async(url,options)=>{ok(url.endsWith('/rpc/marketing_update_publication'),'Metadata edit only changes publication');const payload=JSON.parse(options.body);assert.equal(payload.p_id,id);return answer(meta);};
+  globalThis.fetch=withAuth(async(url,options)=>{ok(url.endsWith('/rpc/marketing_update_publication'),'Metadata edit only changes publication');const payload=JSON.parse(options.body);assert.equal(payload.p_id,id);return answer(meta);});
   const patchReq=new Request('https://sonnycourt.com/.netlify/functions/admin-marketing-links',{method:'PATCH',headers:{origin:'https://sonnycourt.com','content-type':'application/json',cookie:adminCookie},body:JSON.stringify(meta)});
   assert.equal((await admin(patchReq)).status,200);checks++;
 

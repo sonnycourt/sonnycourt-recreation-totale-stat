@@ -9,9 +9,10 @@ export function initMarketingJourneys(doc=document,win=window) {
   const plan=v=>({spiffy_12x197:'12 mensualités',spiffy_one_time_1297:'Paiement comptant',spiffy_3x767:'3 mensualités',spiffy_6x397:'6 mensualités'}[v]||'Plan enregistré dans Spiffy');
   const quiz={finances_work:'Finances / travail',relationships:'Relations',confidence_action:'Confiance / action',stress_balance:'Stress / équilibre',new:'Découvre Sonny',some_videos:'Quelques vidéos vues',follower:'Suit Sonny depuis longtemps',employee:'Salarié',self_employed:'Indépendant',transition:'En transition',student:'Étudiant',exploring:'Curiosité / apprentissage',urgent:'Changement rapide souhaité'};
   let loaded=false,busy=false;
+  doc.addEventListener('marketing-auth-required',()=>{loaded=false;});
   async function read(path=''){
     const res=await win.fetch(endpoint+path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(25000)});
-    const data=await res.json();if(!res.ok)throw new Error(data.error||'Lecture indisponible.');return data;
+    const data=await res.json();if(res.status===401)doc.dispatchEvent(new Event('marketing-auth-required'));if(!res.ok)throw new Error(data.error||'Lecture indisponible.');return data;
   }
   function showJourney(box,data) {
     box.replaceChildren();

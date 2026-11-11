@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import { readMarketingPurchases, readMarketingJourney, verifiedOrderPayments } from '../netlify/functions/lib/marketing-journeys.mjs';
 import { trackingCoverage } from '../src/lib/marketing-links-contract.mjs';
 import handler from '../netlify/functions/admin-marketing-journeys.js';
-import { signSessionToken } from '../netlify/functions/lib/admin-es2-crypto.mjs';
-import { getAdminEs2CookieSecret } from '../netlify/functions/lib/admin-es2-session-secret.mjs';
+import { SESSION_COOKIE, signMarketingSession } from '../netlify/functions/lib/marketing-auth.mjs';
 
 const token='a'.repeat(32),test='b'.repeat(32),at='2026-11-11T12:00:00Z';
 const event={id:1,token,occurred_at:at,metadata:{provider:'spiffy',order_id:'123',payment_mode:'spiffy_12x197',amount_cents:19700}};
@@ -47,7 +46,11 @@ assert.equal(trackingCoverage({published_on:'2026-11-12',created_at:at}).retrosp
 assert.equal(trackingCoverage({created_at:at}).unknown,true);
 assert.equal((await handler(new Request('https://sonnycourt.com/.netlify/functions/admin-marketing-journeys'))).status,401);
 process.env.SUPABASE_SERVICE_ROLE_KEY='fixture-only';
-const cookie='admin_es2_session='+signSessionToken(getAdminEs2CookieSecret(),60000);
+process.env.SUPABASE_URL='https://example.invalid';
+const hash='test-password-hash-only',cookie=SESSION_COOKIE+'='+signMarketingSession(hash);
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async()=>new Response(JSON.stringify([{id:1,password_hash:hash}]),{status:200});
 assert.equal((await handler(new Request('https://sonnycourt.com/.netlify/functions/admin-marketing-journeys?purchase=bad',{headers:{cookie}}))).status,400);
 assert.equal((await handler(new Request('https://sonnycourt.com/.netlify/functions/admin-marketing-journeys',{headers:{cookie,origin:'https://evil.invalid'}}))).status,403);
+globalThis.fetch=originalFetch;
 console.log('PASS — parcours avant/après inscription, appareil partagé, données privées, achats tests, doublons, remboursement, panne et badge rétro.');
