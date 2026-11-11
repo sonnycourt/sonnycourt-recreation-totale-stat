@@ -55,6 +55,13 @@ try {
   const redir = await redirect(new Request(`https://sonnycourt.com/.netlify/functions/marketing-link-redirect?code=${link.code}&url=https://evil.invalid&utm_source=evil&email=private`));
   assert.equal(redir.status,302); assert.equal(redir.headers.get('location'),target.href); checks+=2;
   ok(calls.length === 1 && calls[0][1].method === 'GET','Redirects never count as visits');
+  const publicRedirect=await redirect(new Request(`https://sonnycourt.com/r/${link.code}?code=ffffffffffff&utm_source=evil&fbclid=Meta_click-123`));
+  const publicTarget=new URL(publicRedirect.headers.get('location'));
+  assert.equal(publicRedirect.status,302);checks++;
+  ok(calls.at(-1)[0].includes('code=eq.'+link.code),'Netlify v2 original public pathname determines the link, never the caller query');
+  ok(publicTarget.searchParams.get('utm_content')===link.code && publicTarget.searchParams.get('fbclid')==='Meta_click-123','Public short URL preserves the same attribution and click ID');
+  assert.equal((await redirect(new Request(`https://sonnycourt.com/r/${link.code}/`,{method:'HEAD'}))).status,302);checks++;
+  assert.equal((await redirect(new Request(`https://sonnycourt.com/r/invalid?code=${link.code}`))).status,404);checks++;
   const adRedirect = await redirect(new Request(`https://sonnycourt.com/.netlify/functions/marketing-link-redirect?code=${link.code}&fbclid=Meta_click-123&utm_source=evil&email=private`));
   const adUrl=new URL(adRedirect.headers.get('location'));
   ok(adUrl.searchParams.get('fbclid')==='Meta_click-123' && adUrl.searchParams.get('utm_source')==='instagram' && !adUrl.searchParams.has('email'),'Preserve platform click ID only, no arbitrary override');
