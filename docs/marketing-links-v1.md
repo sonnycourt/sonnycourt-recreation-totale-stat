@@ -5,10 +5,16 @@ Administration : `/es-cockpit/liens/`, avec l'authentification du cockpit exista
 
 ## Utilisation
 
-1. Enregistrer le contenu (nom, format ; thème et angle facultatifs).
+1. Nommer le contenu ; le format se préremplit selon le canal.
 2. Pour une réutilisation, sélectionner ce contenu existant.
-3. Choisir canal, emplacement, campagne et destination ; générer puis copier.
+3. Choisir le canal et la destination ; générer puis copier. Les valeurs avancées
+   (format, emplacement, campagne, thème, angle) restent modifiables dans « Plus de détails ».
 4. Coller ce lien dans la publication / automation concernée. Aucun message n'est envoyé par cet outil.
+
+La date de publication et l'URL du post sont facultatives. Elles peuvent être
+ajoutées à la création ou après publication, depuis « Ajouter la publication » /
+« Modifier la fiche ». « Voir la publication » ouvre le post dans une nouvelle
+fenêtre. Modifier cette fiche ne modifie ni le lien court ni ses UTM.
 
 Le contenu conserve son identifiant. Chaque génération crée une publication et
 son lien court `/r/<code>`. Les UTM sont dérivés de valeurs contrôlées et le code
@@ -53,8 +59,11 @@ Le tableau n'affiche pas encore de revenus ni d'achats.
 ## Connexion et publication
 
 `sql/marketing_links_v1.sql` est additif, réexécutable et doit être exécuté par
-Sonny. Cinq nouvelles tables protégées par RLS ; aucune modification du schéma
-MC2. Les quatre RPC et les tables sont réservées à `service_role`. Les mêmes
+Sonny, puis `sql/marketing_links_publication_v2.sql` pour les métadonnées de
+publication et leur modification. Respecter cet ordre lors d'une nouvelle
+installation : V1 puis V2 (V2 remplace deux RPC V1). Cinq nouvelles tables
+protégées par RLS ; aucune modification du schéma
+MC2. Les RPC et les tables sont réservées à `service_role`. Les mêmes
 variables serveur `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont utilisées.
 
 Sur preview, le registre administrateur est réel après authentification, mais

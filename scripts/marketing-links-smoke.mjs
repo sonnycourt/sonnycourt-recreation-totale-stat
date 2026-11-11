@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { validateCreate, buildDestination, linkCode } from '../src/lib/marketing-links-contract.mjs';
+import { validateCreate, buildDestination, linkCode, publicationUrl, publicationDate, validatePublicationUpdate } from '../src/lib/marketing-links-contract.mjs';
 import { hasStatisticsConsent, initMarketingAttribution } from '../src/lib/marketing-attribution.mjs';
 import { COOKIE, database, sign, verify, validReceipt, recordMarketingRegistration } from '../netlify/functions/lib/marketing-links.mjs';
 import { getAdminEs2CookieSecret } from '../netlify/functions/lib/admin-es2-session-secret.mjs';
@@ -25,6 +25,10 @@ const adminCookie = 'admin_es2_session='+signSessionToken(getAdminEs2CookieSecre
 
 try {
   assert.equal(link.campaign,'mc2-ete-2026'); checks++;
+  assert.equal(publicationDate('2026-11-11'),'2026-11-11');assert.equal(publicationDate(''),null);checks+=2;
+  assert.throws(()=>publicationDate('2026-02-30'));assert.throws(()=>publicationUrl('javascript:alert(1)'));assert.throws(()=>publicationUrl('https://secret@example.com/'));checks+=3;
+  const meta=validatePublicationUpdate({publication_id:id,published_on:'2026-11-11',publication_url:'https://www.instagram.com/reel/demo/'});
+  ok(meta.publication_url==='https://www.instagram.com/reel/demo/','Optional public post URL normalized');
   const target = new URL(buildDestination(link));
   ok(target.origin === 'https://sonnycourt.com' && target.pathname === '/mc2/','Only approved destination');
   ok(target.searchParams.get('utm_content') === link.code && target.searchParams.get('sc_link') === link.code,'Stable link ID');
@@ -40,8 +44,11 @@ try {
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:'admin_es2_session=%broken'}))).status,401); checks++;
   globalThis.fetch = async () => answer({code:'PGRST202'},404);
   assert.equal((await body(await admin(request('admin-marketing-links',undefined,{cookie:adminCookie})))).code,'schema_missing'); checks++;
-  globalThis.fetch = async (url,options) => { ok(url.endsWith('/rpc/marketing_create_link'),'Create uses one atomic RPC'); assert.equal(JSON.parse(options.body).p_input.id,id); return answer(link); };
+  globalThis.fetch = async (url,options) => { if(options.method==='GET')return answer([]);ok(url.endsWith('/rpc/marketing_create_link'),'Create uses one atomic RPC'); assert.equal(JSON.parse(options.body).p_input.id,id); return answer(link); };
   assert.equal((await admin(request('admin-marketing-links',input,{cookie:adminCookie}))).status,200); checks++;
+  globalThis.fetch=async(url,options)=>{ok(url.endsWith('/rpc/marketing_update_publication'),'Metadata edit only changes publication');const payload=JSON.parse(options.body);assert.equal(payload.p_id,id);return answer(meta);};
+  const patchReq=new Request('https://sonnycourt.com/.netlify/functions/admin-marketing-links',{method:'PATCH',headers:{origin:'https://sonnycourt.com','content-type':'application/json',cookie:adminCookie},body:JSON.stringify(meta)});
+  assert.equal((await admin(patchReq)).status,200);checks++;
 
   calls = []; globalThis.fetch = async (url,options) => { calls.push([url,options]); return answer([link]); };
   const redir = await redirect(new Request(`https://sonnycourt.com/.netlify/functions/marketing-link-redirect?code=${link.code}&url=https://evil.invalid&utm_source=evil&email=private`));

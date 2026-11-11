@@ -1,71 +1,68 @@
 ---
 import { CHANNELS, FORMATS, PLACEMENTS, DESTINATIONS } from '../../lib/marketing-links-contract.mjs';
 import '../../styles/marketing-links.css';
+const channelLabels = { instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook',email:'Email',sms:'SMS',meta_ads:'Meta Ads' };
+const marks = { instagram:'◎',youtube:'▶',tiktok:'♪',facebook:'f',email:'@',sms:'···',meta_ads:'∞' };
+const targets = [{id:'mc2',mark:'↗',name:'Masterclass',hint:'Esprit Subconscient'},{id:'delta',mark:'✦',name:'Delta Vision',hint:'L’expérience'},{id:'papa',mark:'▤',name:'Guide Papa',hint:'Le PDF gratuit'}];
 ---
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" /><title>Contenus & liens — Sonny Court</title>
-  <link rel="icon" href="/favicon.svg" />
-  <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="color-scheme" content="dark" />
+  <meta name="robots" content="noindex,nofollow" /><title>Link Studio — Sonny Court</title>
+  <link rel="icon" href="/favicon.svg" /><link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="/es-cockpit/dashboard/"><span class="brand-mark">SC</span><span>SONNY COURT <small>ESPACE DE PILOTAGE</small></span></a><a class="back" href="/es-cockpit/dashboard/">← Retour au cockpit</a></header>
+  <header class="topbar"><a class="brand" href="/es-cockpit/dashboard/"><span class="brand-mark" aria-hidden="true">↗</span><span>SONNY COURT<span class="brand-slash"> / </span><b>Link Studio</b></span></a><div class="topbar-right"><div class="connection"><span class="dot"></span><span id="connection">Connexion…</span></div><a class="back" href="/es-cockpit/dashboard/" aria-label="Retour au cockpit">↗</a></div></header>
   <main>
-    <div class="heading"><div><p class="eyebrow">ACQUISITION · BIBLIOTHÈQUE DE CONTENUS</p><h1>Chaque contenu.<br /><span>Un lien. Une trace.</span></h1><p class="intro">Crée tes liens au même endroit, puis retrouve les contenus<br class="desktop-break" /> qui amènent des visiteurs et des inscrits.</p></div><div class="connection"><span class="dot"></span><span id="connection">Connexion à Supabase…</span></div></div>
+    <section class="heading"><div><p class="eyebrow"><span></span> TON CONTENU MÉRITE D’ÊTRE SUIVI.</p><h1>Crée. Partage.<br /><span>Comprends.</span><svg class="hero-spark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 2v60M2 32h60M11 11l42 42M11 53l42-42" stroke="currentColor" stroke-width="5" /></svg></h1><p class="intro">Un lien pour chaque contenu.<br class="mobile-break" /> Pour savoir ce qui fait vraiment avancer ton business.</p></div><div class="hero-note"><span>01 / CRÉER</span><p>Le prochain clic<br />commence ici. <b>↙</b></p></div></section>
     <div id="notice" class="notice" role="status" hidden></div>
-    <div id="auth" class="notice" hidden>Connecte-toi au cockpit, puis reviens ici pour retrouver tes liens. <a href="/es-cockpit/">Se connecter →</a></div>
-    <section class="metrics" aria-label="Vue d’ensemble">
-      <article><span>Contenus enregistrés</span><strong id="total-contents">—</strong></article>
-      <article><span>Liens créés</span><strong id="total-links">—</strong></article>
-      <article><span>Arrivées observées</span><strong id="total-arrivals">—</strong></article>
-      <article><span>Inscrits MC2 reliés</span><strong id="total-registrations">—</strong></article>
-    </section>
+    <div id="auth" class="notice" hidden>Connecte-toi pour retrouver tes liens. <a href="/es-cockpit/">Se connecter →</a></div>
     <div class="workspace">
       <section class="builder panel" aria-labelledby="builder-title">
-        <div class="section-heading"><span class="step-dot">+</span><div><h2 id="builder-title">Créer un lien</h2><p>Les paramètres de suivi se remplissent pour toi.</p></div></div>
-        <form id="link-form">
-          <fieldset id="fields" disabled>
-            <div class="form-block"><h3><span>01</span> Le contenu</h3>
-              <label for="content-select">Contenu à utiliser</label><select id="content-select"><option value="new">+ Enregistrer un nouveau contenu</option></select>
-              <div id="new-content">
-                <label for="title">Nom du contenu <span class="required">*</span></label><input id="title" maxlength="160" required placeholder="Ex. Les 7 affirmations" autocomplete="off" />
-                <label for="format">Format</label><select id="format">{Object.entries(FORMATS).map(([id,label]) => <option value={id}>{label}</option>)}</select>
-                <details><summary>Ajouter le thème et l’angle <span>facultatif</span></summary><label for="topic">Thème</label><input id="topic" maxlength="120" placeholder="Ex. Manifestation" /><label for="angle">Angle / idée centrale</label><input id="angle" maxlength="240" placeholder="Ex. Passer de l’affirmation à l’émotion" /></details>
-              </div>
+        <div class="section-heading"><span class="step-dot" aria-hidden="true">↗</span><div><h2 id="builder-title">Ton prochain lien</h2><p>Le suivi se configure tout seul.</p></div><span class="auto-badge">AUTO UTM</span></div>
+        <form id="link-form"><fieldset id="fields" disabled>
+          <div class="form-block"><div class="step-label"><span>01</span><h3>Tu partages quoi ?</h3></div>
+            <div class="content-mode" aria-label="Choix du contenu"><button type="button" id="mode-new" aria-pressed="true">Nouveau contenu</button><button type="button" id="mode-existing" aria-pressed="false">Réutiliser un contenu</button></div>
+            <div id="existing-content" hidden><label class="sr-only" for="content-select">Contenu à utiliser</label><select id="content-select"><option value="new">Choisir un contenu</option></select></div>
+            <div id="new-content"><label class="sr-only" for="title">Nom du contenu</label><input id="title" maxlength="160" required placeholder="Donne un nom à ton contenu…" autocomplete="off" /></div>
+          </div>
+          <div class="form-block"><div class="step-label"><span>02</span><h3>Tu le partages où ?</h3></div>
+            <div class="channel-choices" role="group" aria-label="Canal de publication">{Object.entries(channelLabels).map(([id,label]) => <button type="button" data-channel={id} aria-pressed={id==='instagram'?'true':'false'}><span class="channel-icon" aria-hidden="true">{marks[id]}</span>{label}</button>)}</div>
+            <select id="channel" hidden aria-label="Canal">{Object.entries(CHANNELS).map(([id,v]) => <option value={id}>{v.label}</option>)}</select>
+          </div>
+          <div class="form-block"><div class="step-label"><span>03</span><h3>On les emmène où ?</h3></div>
+            <div class="destination-choices" role="group" aria-label="Page de destination">{targets.map(t => <button type="button" data-destination={t.id} aria-pressed={t.id==='mc2'?'true':'false'}><span class="destination-icon" aria-hidden="true">{t.mark}</span><strong>{t.name}</strong><small>{t.hint}</small><span class="choice-check" aria-hidden="true">✓</span></button>)}</div>
+            <select id="destination" hidden aria-label="Page de destination">{Object.entries(DESTINATIONS).filter(([id])=>id!=='meta_mc2').map(([id,v])=><option value={id}>{v.label}</option>)}</select>
+          </div>
+          <details class="advanced" id="advanced"><summary><span>＋</span> Plus de détails <small>facultatif</small><span class="chevron">⌄</span></summary>
+            <div class="advanced-body">
+              <div class="publication-fields"><div class="two-cols"><div><label for="published-on">Date de publication</label><input type="date" id="published-on" /></div><div><label for="format">Format du contenu</label><select id="format">{Object.entries(FORMATS).map(([id,label])=><option value={id}>{label}</option>)}</select></div></div><label for="publication-url">Lien de la publication</label><input id="publication-url" type="url" maxlength="2048" placeholder="https://instagram.com/reel/…" /><p class="field-help">Pour ouvrir ton post directement depuis la bibliothèque.</p></div>
+              <div class="two-cols"><div><label for="placement">Emplacement du lien</label><select id="placement">{Object.entries(PLACEMENTS).map(([id,label])=><option value={id}>{label}</option>)}</select></div><div><label for="campaign">Campagne</label><input id="campaign" required maxlength="80" value="mc2-evergreen" /></div></div>
+              <label for="publication-label">Un repère pour toi</label><input id="publication-label" maxlength="160" placeholder="Ex. DM envoyé après un commentaire cœur" />
+              <div class="two-cols"><div><label for="topic">Thème</label><input id="topic" maxlength="120" placeholder="Ex. Manifestation" /></div><div><label for="angle">Angle du contenu</label><input id="angle" maxlength="240" placeholder="Ex. Passer à l’action" /></div></div>
+              <p id="channel-help" class="field-help"></p><p id="destination-preview" class="field-help"></p>
             </div>
-            <div class="form-block"><h3><span>02</span> Où sera-t-il partagé ?</h3>
-              <div class="two-cols"><div><label for="channel">Canal</label><select id="channel">{Object.entries(CHANNELS).map(([id,value]) => <option value={id}>{value.label}</option>)}</select></div><div><label for="placement">Emplacement</label><select id="placement">{Object.entries(PLACEMENTS).map(([id,label]) => <option value={id}>{label}</option>)}</select></div></div>
-              <label for="campaign">Campagne / opération <span class="required">*</span></label><input id="campaign" required maxlength="80" value="mc2-evergreen" placeholder="Ex. mc2-evergreen" autocomplete="off" />
-              <label for="publication-label">Repère de publication <span class="optional">facultatif</span></label><input id="publication-label" maxlength="160" placeholder="Ex. Reel du 12 novembre · DM cœur" />
-              <p id="channel-help" class="field-help">Un lien distinct par canal et par emplacement.</p>
-            </div>
-            <div class="form-block last"><h3><span>03</span> La destination</h3>
-              <label class="sr-only" for="destination">Page de destination</label><select id="destination">{Object.entries(DESTINATIONS).filter(([id]) => id !== 'meta_mc2').map(([id,value]) => <option value={id}>{value.label}</option>)}</select>
-              <div class="destination-preview"><span>PAGE D’ARRIVÉE</span><p id="destination-preview">sonnycourt.com/mc2/</p></div>
-              <button id="create" class="primary" type="submit">Créer mon lien <span aria-hidden="true">↗</span></button>
-              <p id="form-status" role="status" aria-live="polite"></p>
-            </div>
-          </fieldset>
-        </form>
+          </details>
+          <div class="form-finish"><button id="create" class="primary" type="submit"><span>Générer mon lien</span><span class="primary-arrow" aria-hidden="true">↗</span></button><p class="auto-summary" id="auto-summary">Instagram → Masterclass</p><p id="form-status" role="status" aria-live="polite"></p></div>
+        </fieldset></form>
+        <div id="created" class="created" hidden><div class="created-heading"><span class="success-mark" aria-hidden="true">✓</span><div><h3>Prêt à partager.</h3><p id="created-help">Ton lien est enregistré.</p></div></div><div class="created-copy"><input id="created-url" readonly aria-label="Lien court créé" /><button id="copy-created" type="button" class="copy-button">Copier ↗</button></div></div>
       </section>
-      <section class="library panel" aria-labelledby="library-title">
-        <div class="section-heading library-heading"><div><h2 id="library-title">Ta bibliothèque</h2><p id="library-count">Tous tes liens, au même endroit.</p></div><button id="refresh" class="icon-button" aria-label="Actualiser la bibliothèque" title="Actualiser">↻</button></div>
-        <div id="created" class="created" hidden><span class="eyebrow">TON LIEN EST PRÊT</span><div><input id="created-url" readonly aria-label="Lien court créé" /><button id="copy-created" type="button" class="copy-button">Copier</button></div><p id="created-help">À coller dans ton contenu ou ton automation.</p></div>
-        <div class="filters"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Rechercher un contenu, une campagne…" aria-label="Rechercher les liens" /></label><select id="filter-channel" aria-label="Filtrer par canal"><option value="">Tous les canaux</option>{Object.entries(CHANNELS).map(([id,value]) => <option value={id}>{value.label}</option>)}</select></div>
-        <div id="empty" class="empty"><div class="empty-icon" aria-hidden="true">↗</div><h3>Ton prochain contenu commence ici.</h3><p>Crée ton premier lien. Il apparaîtra dans cette bibliothèque, avec ses paramètres de suivi.</p></div>
+      <section class="library" aria-labelledby="library-title">
+        <div class="section-heading library-heading"><div><p class="eyebrow">TOUT EST LÀ.</p><h2 id="library-title">Tes liens<span class="title-dot">.</span></h2></div><button id="refresh" class="icon-button" aria-label="Actualiser la bibliothèque" title="Actualiser">↻</button></div>
+        <div class="metrics" aria-label="Vue d’ensemble"><div><strong id="total-links">—</strong><span>liens</span></div><div><strong id="total-arrivals">—</strong><span>arrivées</span></div><div><strong id="total-registrations">—</strong><span>inscrits MC2</span></div><div><strong id="total-contents">—</strong><span>contenus</span></div></div>
+        <p id="library-count" class="sr-only"></p>
+        <div class="filters"><label class="search"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="search" type="search" placeholder="Retrouver un lien…" aria-label="Rechercher les liens" /></label><select id="filter-channel" aria-label="Filtrer par canal"><option value="">Tous les canaux</option>{Object.entries(channelLabels).map(([id,label])=><option value={id}>{label}</option>)}</select></div>
+        <div id="empty" class="empty"><div class="empty-icon" aria-hidden="true">↗</div><h3>À toi de jouer.</h3><p>Ton premier lien apparaîtra ici.</p></div>
         <div id="link-list" class="link-list"></div>
-        <div class="library-footer"><span id="shown-count"></span><button id="show-more" type="button" hidden>Afficher la suite</button></div>
-        <aside class="method"><span class="method-icon" aria-hidden="true">i</span><div><strong>Le bon niveau de lecture</strong><p>Une arrivée est une page affichée après un lien, pas une vue du contenu. Plusieurs liens peuvent contribuer à la même inscription : leurs inscrits ne s’additionnent pas.</p><p>Le rapprochement avec les encaissements Spiffy sera l’étape suivante.</p></div></aside>
+        <div class="library-footer"><span id="shown-count"></span><button id="show-more" type="button" hidden>Voir la suite ↓</button></div>
+        <details class="method"><summary>Comment lire les résultats ? <span>＋</span></summary><p>Une arrivée est une page affichée après un lien, pas une vue du contenu. Plusieurs liens peuvent contribuer à la même inscription : leurs inscrits ne s’additionnent pas.</p><p>Les ventes Spiffy seront raccordées à l’étape suivante.</p></details>
       </section>
     </div>
-    <footer><span>Un contenu peut vivre sur plusieurs canaux. Son identité reste la même.</span><span>SONNY COURT · CONTENUS & LIENS</span></footer>
+    <footer><span>Crée du contenu. Garde une trace.</span><span>SONNY COURT <b>↗</b> LINK STUDIO</span></footer>
   </main>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <script>
-    import { initMarketingLinksAdmin } from '../../lib/marketing-links-admin.mjs';
-    initMarketingLinksAdmin();
-  </script>
+  <dialog id="publication-dialog"><form id="publication-form"><div class="dialog-heading"><div><p class="eyebrow">LA PUBLICATION</p><h2 id="publication-title">Compléter la fiche</h2></div><button type="button" id="close-publication" aria-label="Fermer">×</button></div><p class="field-help">Tu peux compléter ces infos après avoir publié. Ton lien de suivi reste le même.</p><label for="edit-published-on">Date de publication <span>· facultatif</span></label><input type="date" id="edit-published-on" /><label for="edit-publication-url">Lien de la publication <span>· facultatif</span></label><input type="url" id="edit-publication-url" maxlength="2048" placeholder="https://instagram.com/reel/…" /><p id="publication-status" role="status"></p><button class="primary" id="save-publication" type="submit">Enregistrer <span aria-hidden="true">↗</span></button></form></dialog>
+  <script>import { initMarketingLinksAdmin } from '../../lib/marketing-links-admin.mjs';initMarketingLinksAdmin();</script>
 </body>
 </html>

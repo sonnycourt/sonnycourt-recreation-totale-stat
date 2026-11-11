@@ -26,6 +26,25 @@ function label(value, max, required = false) {
   if ((required && !s) || s.length > max || /[\u0000-\u001f]/.test(s)) throw new Error('Un champ est vide ou trop long.');
   return s;
 }
+export function publicationUrl(value) {
+  const raw = label(value,2048);
+  if (!raw) return null;
+  let url;
+  try { url = new URL(raw); } catch { throw new Error('Le lien de publication doit être une adresse complète en https://.'); }
+  if (url.protocol !== 'https:' || url.username || url.password || !url.hostname.includes('.')) throw new Error('Utilise un lien de publication public en https://.');
+  return url.href;
+}
+export function publicationDate(value) {
+  const date = label(value,10);
+  if (!date) return null;
+  const parsed = new Date(date+'T00:00:00Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10)!==date || Number(date.slice(0,4))<1900) throw new Error('Vérifie la date de publication.');
+  return date;
+}
+export function validatePublicationUpdate(input) {
+  if (!UUID.test(input?.publication_id || '')) throw new Error('Publication invalide.');
+  return { publication_id:input.publication_id, published_on:publicationDate(input.published_on), publication_url:publicationUrl(input.publication_url) };
+}
 export function validateCreate(input) {
   if (!input || !UUID.test(input.id || '') || !UUID.test(input.content_id || '')) throw new Error('Identifiant de création invalide.');
   if (!Object.hasOwn(CHANNELS,input.channel) || !Object.hasOwn(FORMATS,input.format) || !Object.hasOwn(PLACEMENTS,input.placement) || !Object.hasOwn(DESTINATIONS,input.destination)) throw new Error('Choisis un canal, un format, un emplacement et une destination valides.');
@@ -37,6 +56,7 @@ export function validateCreate(input) {
     channel: input.channel, placement: input.placement, campaign,
     destination: input.channel === 'meta_ads' && input.destination === 'mc2' ? 'meta_mc2' : input.destination,
     publication_label: label(input.publication_label, 160),
+    published_on: publicationDate(input.published_on), publication_url: publicationUrl(input.publication_url),
   };
 }
 export function linkCode(id) { return id.replaceAll('-', '').slice(0, 12).toLowerCase(); }
