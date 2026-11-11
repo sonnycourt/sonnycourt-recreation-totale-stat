@@ -58,6 +58,6 @@ export function initMarketingJourneys(doc=document,win=window) {
     }catch(error){$('purchases-status').textContent=error.message;}
     finally{busy=false;$('refresh-purchases').disabled=false;}
   }
-  function tab(purchases){$('links-panel').hidden=purchases;$('purchases-panel').hidden=!purchases;$('tab-links').setAttribute('aria-pressed',String(!purchases));$('tab-purchases').setAttribute('aria-pressed',String(purchases));if(purchases&&!loaded)void load();}
+  function tab(purchases){$('bio-panel').hidden=true;$('tab-bio').setAttribute('aria-pressed','false');$('links-panel').hidden=purchases;$('purchases-panel').hidden=!purchases;$('tab-links').setAttribute('aria-pressed',String(!purchases));$('tab-purchases').setAttribute('aria-pressed',String(purchases));if(purchases&&!loaded)void load();}
   $('tab-links').addEventListener('click',()=>tab(false));$('tab-purchases').addEventListener('click',()=>tab(true));$('refresh-purchases').addEventListener('click',load);
 }

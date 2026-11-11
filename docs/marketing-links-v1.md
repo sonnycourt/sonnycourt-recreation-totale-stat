@@ -168,3 +168,33 @@ Régressions obligatoires : `test:mc2-meta-events`, `test:mc2-tracking-v2`,
 - La dépendance moderne est isolée sous l’alias `@netlify/blobs-auth` ; les autres fonctions gardent leur version existante. Aucune modification Supabase requise.
 - Déconnexion disponible dans la barre supérieure ; suppression du cookie sur cet appareil. Les API marketing n’acceptent plus le cookie du cockpit.
 - Tests : `node scripts/marketing-auth-smoke.mjs`, `node scripts/marketing-links-smoke.mjs`, `node scripts/marketing-journeys-smoke.mjs`. Le premier couvre notamment 20 tentatives parallèles : seulement trois comparaisons de mot de passe.
+
+## Choix de programme sur /links
+
+- Migration additive : `sql/marketing_bio_choices_v1.sql`, exécutée par Sonny.
+- Onglet privé **Page Liens** : visites observées, visites avec choix, visites sans
+  choix enregistré, puis parts Masterclass et Delta parmi les choix. Déclinaison
+  pour les liens bio `/links/tt`, `/links/yt`, et les autres accès. Périodes :
+  depuis le début du suivi, 7 jours glissants ou 30 jours glissants.
+- Une visite correspond à un chargement de page visible pendant 1,2 seconde, ou
+  à un clic utilisateur sur un programme avant ce délai. Ce ne sont pas des
+  visiteurs uniques. Un UUID aléatoire existe uniquement en mémoire de cette
+  page : aucun cookie, stockage navigateur, email, téléphone ou IP enregistré
+  dans cette table. Un rechargement crée une nouvelle visite.
+- Seul le premier choix est retenu. Le serveur conserve ce choix de façon atomique,
+  y compris si les requêtes arrivent dans le désordre ou sont réessayées. Le clic
+  part immédiatement avec `keepalive`, sans attendre la requête de visite ni
+  bloquer la navigation. Trois tentatives maximum et un secours `sendBeacon`.
+- Le total Masterclass + Delta représente 100 % des visites ayant choisi. Le taux
+  de choix a pour dénominateur toutes les visites observées. « Sans choix » inclut
+  les visites encore en cours ; il ne prouve pas un abandon.
+- Source canonique issue du registre si le lien est identifié ; sinon canal UTM
+  limité à une liste fermée, ou accès direct. Les scanners connus sont ignorés.
+- Les deux boutons conservent leur attribution UTM existante. Le suivi du choix
+  reste distinct des arrivées marketing sur les pages des programmes. Il ne
+  change ni l’inscription, ni le checkout, ni les événements Meta.
+- Aucun historique inventé : les chiffres commencent lors de cette publication.
+  Les préviews, localhost et `safe_deploy_check` ne collectent aucune visite réelle.
+- Tests : `npm run test:marketing-bio` (client et API simulés, puis PostgreSQL local
+  jetable). `node scripts/marketing-bio-live-read.mjs [URL]` ne fait que lire le
+  rapport privé et vérifier ses permissions ; aucun événement de test en production.
