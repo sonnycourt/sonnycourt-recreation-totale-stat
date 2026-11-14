@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {createHandler} from '../netlify/functions/dvp-register.js';
+let calls=[];
+const row={token:'11111111-1111-4111-8111-111111111111',expires_at:new Date(Date.now()+86400000).toISOString(),position_seconds:0,offer_unlocked:false};
+const db=async(path)=>path==='rpc/dvp_register_access'?[row]:null;
+const good=createHandler({db,env:{MAILERLITE_API_KEY:'mock'},fetcher:async(u,o)=>{calls.push(JSON.parse(o.body));return Response.json({data:{id:'test'}})}});
+const req=(data={},headers={},method='POST')=>new Request('https://sonnycourt.com/.netlify/functions/dvp-register',{method,headers:{origin:'https://sonnycourt.com','content-type':'application/json',...headers},...(method==='POST'?{body:JSON.stringify({firstName:'Test',email:'TEST@example.com',consent:true,...data})}:{})});
+assert.equal((await good(req())).status,200);assert.equal(calls[0].email,'test@example.com');assert.deepEqual(calls[0].groups,['204040026040829106']);assert.equal(calls[0].resubscribe,false);assert.equal(calls[0].status,undefined);assert.equal(calls[0].fields.dvp_personal_url,'https://sonnycourt.com/dvp/#dvp='+row.token);
+for(const [r,status] of [[req({email:'bad'}),400],[req({consent:false}),400],[req({website:'spam'}),400],[req({}, {origin:'https://other.example'}),403],[req({}, {},'GET'),405]])assert.equal((await good(r)).status,status);
+assert.equal(calls.length,1);
+const bad=createHandler({db,env:{MAILERLITE_API_KEY:'mock'},fetcher:async()=>new Response('',{status:500})});assert.equal((await bad(req())).status,503);
+const missing=createHandler({db,env:{}});assert.equal((await missing(req())).status,503);
+console.log('9 checks passed; no real subscriber created');

@@ -1,0 +1,103 @@
+---
+import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
+import JungleStage from '../components/delta/JungleStage.astro';
+import { responsiveDeltaImage, posterSizes } from '../lib/delta-vision-images.mjs';
+const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
+---
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="robots" content="noindex, nofollow"/><title>Découvre Delta Vision — Sonny Court</title></head>
+<body class="dvp-page">
+<svg class="svg-library" aria-hidden="true"><symbol id="inspira-play" viewBox="0 0 24 24"><path d="m8 4 13 8-13 8Z" fill="currentColor"/></symbol></svg>
+<header class="dvp-brand"><span>SONNY COURT</span><a href="/dvp/" aria-label="Delta Vision, présentation">Delta Vision</a></header>
+<main>      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-ambient" aria-hidden="true"></div>
+        <h1 id="hero-title">12 minutes pour transformer ton état intérieur <em>et attirer ce que tu veux vraiment.</em></h1>
+        <p class="hero-subtitle">La nouvelle méthode qui combine respiration et visualisation pour changer d'état intérieur et transformer sa vie.</p>
+
+      </section>
+
+      <section class="presentation wrap" id="presentation" aria-label="Présentation vidéo de Delta Vision">
+        <JungleStage videoAvailable={Boolean(videoUrl)} instantPlayback responsiveImages>
+        <div class="video-poster" data-inspira-video data-video-stream="https://vz-b9333054-2e9.b-cdn.net/34065191-3614-4d7b-b005-27f8e83d43a0/playlist.m3u8" data-video-url={videoUrl || undefined}>
+          <img class="video-thumbnail" src={inspira.presentationPosterUrl} {...responsiveDeltaImage(inspira.presentationPosterUrl, posterSizes)} width="1672" height="941" alt="Sonny Court en méditation au cœur d’une jungle baignée de brume et de lumière dorée" fetchpriority="high" />
+            <button class="video-play" type="button" data-video-play aria-label="Lire la présentation de Delta Vision">
+              <span class="video-play-disc"><svg aria-hidden="true"><use href="#inspira-play" /></svg></span>
+            </button>
+        </div>
+        </JungleStage>
+        <div class="dvp-controls" hidden aria-label="Commandes vidéo">
+          <button type="button" data-toggle-play data-paused="true" aria-label="Lire la vidéo"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-play" d="m8 5 11 7-11 7Z"/><path class="icon-pause" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
+          <div class="dvp-volume">
+            <button type="button" data-toggle-volume aria-label="Gérer le volume" aria-expanded="false" aria-controls="dvp-volume-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3Z"/><path class="sound-waves" d="M16 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            <div id="dvp-volume-panel" data-volume-panel hidden><label for="dvp-volume">Volume</label><input id="dvp-volume" data-volume type="range" min="0" max="100" value="100" aria-label="Volume"/><button type="button" data-mute>Couper le son</button></div>
+          </div>
+        </div>
+        <p data-player-status class="dvp-player-status" role="status" hidden></p>
+        <ul class="dvp-badges" aria-label="La méthode Delta Vision">
+          <li><span class="badge-art badge-art--science" aria-hidden="true"></span><span><strong>SCIENCE</strong><span>Basée sur les neurosciences</span></span></li>
+          <li><span class="badge-art badge-art--intensity" aria-hidden="true"></span><span><strong>INTENSITÉ</strong><span>Des effets perceptibles dès les premières séances</span></span></li>
+          <li><span class="badge-art badge-art--new" aria-hidden="true"></span><span><strong>NOUVEAUTÉ</strong><span>Une nouvelle alliance entre respiration et visualisation</span></span></li>
+        </ul>
+        <div class="dvp-offer" hidden>
+          <a class="dvp-offer-button" aria-disabled="true" tabindex="-1">
+            <span>Je découvre Delta Vision</span><span class="dvp-offer-symbol" aria-hidden="true">→</span>
+          </a>
+          <p class="dvp-offer-countdown">Disponible dans <span data-offer-timer>—:—</span></p>
+          <p class="dvp-offer-ready" role="status" hidden>Tu peux maintenant découvrir l’expérience.</p>
+        </div>
+      </section>
+
+
+</main>
+
+<dialog aria-labelledby="optin-title" id="dvp-optin">
+<button class="modal-close" type="button" aria-label="Fermer">×</button>
+<p class="eyebrow">DELTA VISION</p>
+<h2 id="optin-title">Découvre <em>la méthode.</em></h2>
+<p class="modal-intro">Indique ton prénom et ton email pour accéder à la vidéo.</p>
+<form>
+<label for="dvp-name">Prénom</label><input id="dvp-name" name="firstName" autocomplete="given-name" placeholder="Ton prénom" required maxlength="100"/>
+<label for="dvp-email">Email</label><input id="dvp-email" name="email" type="email" autocomplete="email" placeholder="Ton adresse email" required maxlength="254"/>
+<button class="submit" type="submit">Je découvre la vidéo <span aria-hidden="true">→</span></button>
+<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot" />
+<p class="form-error" role="alert" hidden></p>
+
+</form>
+</dialog>
+<script>
+import { initDvpOptin } from '../lib/dvp-optin';
+initDvpOptin();
+</script>
+<style is:global>
+  @font-face{font-family:Delta Vision Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+  :root{--paper:#faf8f4;--ink:#292923;--muted:#77756d;--coral:#b34f39;--line:#e4dfd7;--serif:Georgia,'Times New Roman',serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:32px}body{margin:0;background:var(--paper);color:var(--ink);font-family:'Delta Vision Inter',Arial,sans-serif;-webkit-font-smoothing:antialiased}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--coral);outline-offset:6px}svg{display:block;flex-shrink:0}p,h1,h2,h3{margin:0}em{font-family:var(--serif);font-weight:400}::selection{background:#f0c9b6;color:#292923}.wrap{width:min(1160px,calc(100% - 88px));margin-inline:auto}.svg-library{position:absolute;width:0;height:0;overflow:hidden}.skip-link{position:fixed;top:-80px;left:20px;background:var(--ink);color:white;padding:14px;z-index:20}.skip-link:focus{top:10px}
+  .site-header{display:flex;align-items:center;justify-content:space-between;height:108px;border-bottom:1px solid var(--line)}.wordmark{display:flex;align-items:center;font-size:34px;font-weight:600;letter-spacing:-1.7px}.wordmark svg{width:37px;height:37px;color:var(--coral);margin-right:10px}.wordmark-dot{color:var(--coral)}.site-header nav{display:flex;align-items:center;gap:35px;font-size:12px;font-weight:500}.nav-link{position:relative}.nav-link:after{content:'';position:absolute;bottom:-6px;left:0;right:100%;height:1px;background:var(--coral);transition:right .2s}.nav-link:hover:after{right:0}.nav-cta{display:flex;align-items:center;gap:20px;padding:13px 19px;border:1px solid #d6d1c7;border-radius:100px;transition:background .2s}.nav-cta:hover{background:#efeae1}.nav-cta svg{width:18px;height:18px}
+  .hero{position:relative;text-align:center;padding:61px 0 0;isolation:isolate}.hero-ambient{position:absolute;z-index:-1;width:530px;height:470px;max-width:100%;left:50%;top:5px;transform:translateX(-50%);background:radial-gradient(ellipse,#f4ddcc66,transparent 70%);pointer-events:none}.eyebrow{font-size:10px;font-weight:600;letter-spacing:1.8px;line-height:1.7;color:var(--muted)}.hero-eyebrow{display:flex;align-items:center;justify-content:center;gap:10px}.hero-eyebrow span{width:6px;height:6px;background:var(--coral);border-radius:50%}.hero h1{max-width:1040px;font-size:clamp(36px,5.15vw,70px);line-height:1.1;letter-spacing:-2.7px;font-weight:500;margin:25px auto 23px;text-wrap:balance}.hero h1 em{display:block;color:var(--coral);font-size:1.04em;letter-spacing:-2px}.hero-subtitle{font-size:15px;line-height:1.9;color:#706e66}.experience-note{margin:18px auto 0;max-width:540px;text-align:center;font-size:11px;line-height:1.7;color:var(--muted)}.button{display:inline-flex;align-items:center;justify-content:center;gap:28px;border-radius:100px;min-height:55px;padding:17px 25px;border:1px solid transparent;font-size:12px;font-weight:600;transition:transform .2s,background .2s,box-shadow .2s}.button svg{width:21px;height:21px}.button-dark{background:var(--ink);color:#fff}.button-dark:hover{background:#424238;transform:translateY(-2px);box-shadow:0 8px 18px #29292317}.hero>.button{margin-top:27px}.hero-signature{display:flex;justify-content:center;align-items:center;gap:12px;font-size:8px;letter-spacing:1.7px;color:#878378;margin-top:24px}.signature-line{width:25px;height:1px;background:#d7d0c4}
+  .presentation{margin-top:40px}.video-poster{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:1672/941;border-radius:clamp(14px,2vw,24px);background:#152321;box-shadow:0 24px 44px -38px #24332380}.video-thumbnail{display:block;width:100%;height:100%;object-fit:cover}.video-play{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:transparent;color:#fff}.video-play-disc{display:grid;place-items:center;width:clamp(48px,7vw,82px);aspect-ratio:1;border:1px solid #fff9;border-radius:50%;background:#14262066;backdrop-filter:blur(5px);box-shadow:0 4px 24px #0003;transition:transform .2s,background .2s}.video-play-disc svg{width:35%;height:35%;margin-left:-3px}button.video-play:hover .video-play-disc{transform:scale(1.06);background:#14262099}button.video-play:focus-visible{outline-offset:-6px}.video-poster iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}.video-caption{display:flex;justify-content:space-between;margin:17px 7px 0;color:#888277;font-size:8px;letter-spacing:1.5px}
+  .hero-eyebrow{font-size:13px;letter-spacing:1px;line-height:1.6}
+  .hero h1{max-width:1080px;font-size:clamp(40px,4.6vw,64px);line-height:1.12;letter-spacing:-2.2px;margin:25px auto 24px;text-wrap:balance}
+  .hero h1 em{display:inline;font-size:1em;letter-spacing:inherit}
+  .hero-subtitle{max-width:800px;margin-inline:auto;font-size:19px;line-height:1.6;color:#6d675d;text-wrap:balance}
+  @media(max-width:760px){.hero-eyebrow{font-size:12px;letter-spacing:.5px;gap:8px}.hero h1{font-size:clamp(34px,6.4vw,48px);letter-spacing:-1.3px;margin:22px auto}.hero-subtitle{font-size:16px;line-height:1.6;max-width:560px}}
+  @media(max-width:420px){.hero-eyebrow{font-size:11px;letter-spacing:.2px}.hero h1{font-size:clamp(31px,8.6vw,36px);letter-spacing:-1px}.hero-subtitle{font-size:15px}}
+.dvp-brand{text-align:center;padding:28px 20px 0}.dvp-brand span{display:block;font-size:8px;letter-spacing:4px;color:var(--muted);margin-bottom:7px}.dvp-brand a{font-family:var(--serif);font-size:31px;letter-spacing:-1px}.hero{padding-top:34px}.presentation{max-width:1000px}.dvp-note{text-align:center;color:var(--muted);font-size:12px;margin:25px 24px 40px}footer{text-align:center;padding:24px;font-size:11px;color:var(--muted)}
+dialog{width:min(460px,calc(100% - 32px));border:1px solid var(--line);border-radius:22px;padding:42px;background:var(--paper);color:var(--ink);box-shadow:0 30px 100px #151d2840;max-height:calc(100dvh - 32px);overflow:auto}dialog::backdrop{background:#20251fcc;backdrop-filter:blur(6px)}.modal-close{position:absolute;right:16px;top:12px;border:0;background:transparent;color:var(--muted);font-size:28px;width:36px;height:36px}dialog h2{font-size:34px;line-height:1.15;letter-spacing:-1px;margin:15px 0}dialog h2 em{color:var(--coral)}.modal-intro{font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:25px}form label{display:block;font-size:12px;font-weight:600;margin:17px 0 8px}form input{display:block;width:100%;border:1px solid #d9d2c8;border-radius:9px;padding:15px;font:inherit;font-size:16px;background:#fffdf9;color:var(--ink)}form input:focus{outline:2px solid var(--coral);outline-offset:2px}.submit{display:flex;justify-content:center;gap:20px;width:100%;border:0;border-radius:10px;background:var(--coral);color:white;font-size:14px;font-weight:600;padding:18px;margin-top:24px}.submit:hover{background:#963d2b}.preview-note{text-align:center;color:var(--muted);font-size:10px;line-height:1.5;margin-top:15px}
+@media(max-width:760px){.wrap{width:calc(100% - 36px)}.hero{padding-top:30px}.presentation{margin-top:28px}.dvp-brand{padding-top:24px}.video-play-disc{width:60px}.dvp-note{margin-top:18px}dialog{padding:35px 25px}dialog h2{font-size:31px}}
+.honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}.form-error{color:#9d3029;font-size:13px;line-height:1.5;margin-top:14px}.submit:disabled{opacity:.7;cursor:wait}.preview-note a{text-decoration:underline}
+.dvp-badges{list-style:none;padding:0;margin:32px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:970px;text-align:left}.dvp-badges li{display:flex;align-items:center;gap:13px;padding:18px 17px;border:1px solid #dfd7cb;border-radius:14px;background:#f6f1e8a6}.badge-icon{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border-radius:50%;background:#b34f390b;color:var(--coral)}.badge-icon svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}.dvp-badges strong{display:block;font-size:9px;letter-spacing:1.7px;color:var(--coral);margin-bottom:6px;font-weight:600}.dvp-badges li>span>span{display:block;font-size:12px;line-height:1.55;color:#655f54}
+@media(max-width:650px){.dvp-badges{grid-template-columns:1fr;gap:8px;max-width:410px;margin-top:24px}.dvp-badges li{padding:12px 16px;gap:13px}.badge-icon{width:36px;height:36px}.badge-icon svg{width:26px;height:26px}.dvp-badges strong{font-size:8px;margin-bottom:3px}.dvp-badges li>span>span{font-size:12px}}
+.dvp-badges{margin-top:26px;position:relative;z-index:2}.dvp-badges li{padding:16px 12px;gap:10px;background:#f6f1e899}.badge-art{display:block;flex:0 0 82px;width:82px;height:82px;background-image:url('/media/dvp/badge-illustrations-v2.webp');background-repeat:no-repeat;background-size:300% 100%}.badge-art--science{background-position:0% 50%}.badge-art--intensity{background-position:50% 50%}.badge-art--new{background-position:100% 50%}@media(max-width:900px) and (min-width:651px){.dvp-badges li{flex-direction:column;text-align:center;padding:15px 10px}.badge-art{flex-basis:72px;width:72px;height:72px}}@media(max-width:650px){.dvp-badges{margin-top:22px}.dvp-badges li{padding:10px 15px;gap:16px}.badge-art{flex-basis:66px;width:66px;height:66px}}
+/* Restrained editorial finish, aligned with the ivory / botanical palette. */
+.dvp-badges li{background:#f5f1e95e;border-color:#e4dfd5}.badge-art{flex-basis:72px;width:72px;height:72px}.dvp-badges strong{color:#80715d}.dvp-badges li>span>span{color:#686357}@media(max-width:650px){.badge-art{flex-basis:62px;width:62px;height:62px}}
+/* The shared jungle demo toolbar is empty here: remove its reserved space. */
+.dvp-page .presentation{margin-top:32px}
+.dvp-page .presentation .jungle-prototype{padding-top:0}
+.dvp-page .presentation .jungle-meta{display:none}
+@media(max-width:760px){.dvp-page .presentation{margin-top:26px}}
+.dvp-page .dvp-badges[hidden],.dvp-offer[hidden],.dvp-offer-countdown[hidden],.dvp-offer-ready[hidden]{display:none}
+.dvp-offer{text-align:center;padding:28px 0 45px}.dvp-offer-button{display:flex;align-items:center;justify-content:center;gap:24px;max-width:440px;margin:auto;padding:19px 25px;min-height:60px;border-radius:12px;background:#e9e5de;color:#918b80;border:1px solid #dcd6cc;font-size:15px;font-weight:600;cursor:default;transition:background .25s,color .25s,box-shadow .25s}.dvp-offer-button[aria-disabled="false"]{background:var(--coral);color:#fff;border-color:var(--coral);cursor:pointer;box-shadow:0 6px 20px #b34f391a}.dvp-offer-button[aria-disabled="false"]:hover{background:#9e432f}.dvp-offer-symbol{font-size:20px}.dvp-offer-countdown,.dvp-offer-ready{font-size:12px;line-height:1.6;color:#80786c;margin-top:12px}.dvp-offer-countdown span{font-variant-numeric:tabular-nums;font-weight:600;color:#625b50}@media(max-width:650px){.dvp-offer{padding:22px 0 30px}.dvp-offer-button{font-size:14px;padding:17px 20px}}
+.dvp-native-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;pointer-events:none;-webkit-touch-callout:none;user-select:none;background:#152321}.video-poster[data-video-state="visible"] .dvp-native-video{opacity:1}.dvp-native-video::-webkit-media-controls{display:none!important}.dvp-native-video::-webkit-media-controls-enclosure{display:none!important}.dvp-controls[hidden],[data-volume-panel][hidden],.dvp-player-status[hidden]{display:none}.dvp-controls{position:relative;z-index:4;display:flex;justify-content:space-between;align-items:center;width:calc(100% - 56px);margin:12px auto 0}.dvp-controls>button,.dvp-volume>button{display:grid;place-items:center;width:46px;height:46px;border:1px solid #dcd6cc;border-radius:50%;background:#f5f1e9;color:#75634f}.dvp-controls svg{width:21px;height:21px;fill:currentColor}.dvp-controls button:hover{background:#eae2d5}.dvp-controls [data-paused="true"] .icon-pause,.dvp-controls [data-paused="false"] .icon-play,.dvp-controls [data-muted="true"] .sound-waves{display:none}.dvp-volume{position:relative}[data-volume-panel]{position:absolute;right:0;top:54px;width:220px;padding:18px;background:var(--paper);border:1px solid #dcd6cc;border-radius:14px;box-shadow:0 10px 30px #29292315;text-align:left}[data-volume-panel] label{display:block;font-size:12px;margin-bottom:12px}[data-volume-panel] input{width:100%;accent-color:var(--coral)}[data-volume-panel] button{display:block;margin-top:12px;padding:8px 0;font-size:12px;color:var(--coral);border:0;background:none}.dvp-player-status{text-align:center;font-size:12px;color:#75634f;margin:12px auto;max-width:420px}@media(max-width:760px){.dvp-controls{width:calc(100% - 16px)}}
+</style>
+</body></html>

@@ -33,7 +33,7 @@ export function offerState(end, now, config) {
   };
 }
 
-export function initDeltaUrgency(doc, win, config) {
+export function initDeltaUrgency(doc, win, config, authority = null) {
   const cookieValue = () => doc.cookie.split(';').map(x => x.trim()).find(x => x.startsWith(OFFER_KEY + '='))?.slice(OFFER_KEY.length + 1);
   const persistence = {
     readLocal: () => win.localStorage.getItem(OFFER_KEY),
@@ -41,13 +41,15 @@ export function initDeltaUrgency(doc, win, config) {
     writeLocal: value => win.localStorage.setItem(OFFER_KEY, value),
     writeCookie: value => { doc.cookie = `${OFFER_KEY}=${value}; Max-Age=34560000; Path=/; SameSite=Lax${win.location.protocol === 'https:' ? '; Secure' : ''}`; },
   };
-  let end = rememberedDeadline({now: Date.now(), ...persistence});
+  const clockOffset = authority ? authority.serverNow - Date.now() : 0;
+  const now = () => Date.now() + clockOffset;
+  let end = authority ? authority.deadline : rememberedDeadline({now: Date.now(), ...persistence});
   const panels = [...doc.querySelectorAll('[data-dv-urgency]')];
   const prices = [...doc.querySelectorAll('[data-dv-price]')];
   const links = [...doc.querySelectorAll('[data-dv-buy]')];
   let previousPrice;
   function render() {
-    const state = offerState(end, Date.now(), config);
+    const state = offerState(end, now(), config);
     const values = {hours: Math.floor(state.remaining / 3600), minutes: Math.floor(state.remaining / 60) % 60, seconds: state.remaining % 60};
     panels.forEach(panel => {
       panel.hidden = state.expired;
@@ -72,7 +74,7 @@ export function initDeltaUrgency(doc, win, config) {
     return state;
   }
   function sync() {
-    end = Math.min(end, rememberedDeadline({now: Date.now(), ...persistence}));
+    if (!authority) end = Math.min(end, rememberedDeadline({now: Date.now(), ...persistence}));
     render();
   }
   render();
