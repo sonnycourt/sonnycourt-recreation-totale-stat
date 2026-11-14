@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createHandler} from '../netlify/functions/dvp-access.js';
+import {initDeltaUrgency} from '../src/lib/delta-vision-urgency.mjs';
+import {inspira} from '../src/data/inspira.mjs';
+const token='11111111-1111-4111-8111-111111111111';let writes=0;
+const handler=createHandler({db:async(path)=>{if(path.startsWith('rpc/')){writes++;return null;}return [{token,expires_at:new Date(Date.now()-1000).toISOString(),position_seconds:123,offer_unlocked:true,email:'secret@example.com'}]}});
+const req=body=>new Request('https://sonnycourt.com/.netlify/functions/dvp-access',{method:'POST',headers:{origin:'https://sonnycourt.com','content-type':'application/json'},body:JSON.stringify(body)});
+const body=await (await handler(req({action:'resolve',token}))).json();assert.equal(body.access.expired,true);assert.equal(body.access.position,123);assert.equal(body.access.email,undefined);
+assert.equal((await handler(req({action:'resolve',token:'bad'}))).status,400);
+assert.equal((await handler(req({action:'progress',token,position:99,offerUnlocked:false}))).status,200);assert.equal(writes,1);
+assert.equal((await handler(req({action:'progress',token,position:-1,offerUnlocked:false}))).status,400);
+const noRow=createHandler({db:async()=>[]});assert.equal((await noRow(req({action:'resolve',token}))).status,404);
+const doc={cookie:'',documentElement:{dataset:{}},querySelectorAll:()=>[],addEventListener:()=>{}};
+let touched=0;const win={localStorage:{getItem(){touched++;throw Error('browser storage must not be used');}},addEventListener:()=>{},setInterval:()=>0,clearInterval:()=>{}};
+const now=Date.now();const c=initDeltaUrgency(doc,win,inspira,{deadline:now+86400000,serverNow:now});assert.equal(c.render().price,97);c.sync();assert.equal(touched,0);
+const expired=initDeltaUrgency(doc,win,inspira,{deadline:now-1000,serverNow:now});assert.equal(expired.render().price,147);assert.equal(touched,0);
+console.log('DVP access: resolution, expiry, privacy, validation, server-authoritative offer and no cookie reset OK');

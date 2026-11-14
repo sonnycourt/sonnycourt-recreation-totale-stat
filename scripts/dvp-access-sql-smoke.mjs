@@ -1,0 +1,11 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
+const sql=readFileSync(new URL('../sql/dvp_access_v1.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+const register=async(email,deadline=null)=>(await db.query('select * from public.dvp_register_access($1,$2,$3)',[email,'Test',deadline])).rows[0];
+const a=await register('TEST@example.com');const b=await register('test@example.com');assert.equal(a.token,b.token);assert.equal(+a.expires_at,+b.expires_at);assert.equal(+a.expires_at- +a.created_at,86400000);
+const earlier=new Date(Date.now()-3600000).toISOString();const c=await register('test@example.com',earlier);assert.equal(+c.expires_at,+new Date(earlier));assert.equal(c.token,a.token);
+await db.query('select public.dvp_save_progress($1,100,true)',[a.token]);await db.query('select public.dvp_save_progress($1,10,false)',[a.token]);const saved=(await db.query('select * from public.dvp_access')).rows[0];assert.equal(saved.position_seconds,100);assert.equal(saved.offer_unlocked,true);
+await db.exec('set role anon;');await assert.rejects(db.query('select * from public.dvp_access'));await assert.rejects(register('new@example.com'));
+console.log('DVP SQL: rerun, stable token/deadline, expired deadline, monotonic progress, anon denial OK');await db.close();
