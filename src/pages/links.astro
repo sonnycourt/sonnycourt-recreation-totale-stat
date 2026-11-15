@@ -6,19 +6,19 @@ const links = [
     id: 'masterclass', theme: 'masterclass', href: '/mc2/',
     image: '/media/pages/mc2-masterclass-20260929-640.webp',
     width: 640, height: 426,
-    label: 'MASTERCLASS GRATUITE', duration: '1 h 30 pour approfondir', title: 'Esprit Subconscient 2.0',
-    intent: 'Comprendre ce qui te freine.',
-    description: 'Prends le temps d’explorer tes blocages et d’apprendre à reprogrammer ton subconscient pour avancer vers ce que tu veux.',
-    action: 'Je réserve ma place gratuitement',
+    label: 'MASTERCLASS GRATUITE', duration: 'Identifie ton blocage n° 1', title: 'Esprit Subconscient 2.0',
+    intent: 'Reprogramme ton subconscient et manifeste ce que tu veux',
+    description: 'Tu identifies ton blocage subconscient n°1, tu apprends à le reprogrammer, et tu repars avec le protocole exact pour manifester ce que tu veux.',
+    action: 'Je découvre la masterclass',
   },
   {
     id: 'delta-vision', theme: 'delta', href: '/dvp/',
     image: '/media/pages/delta-responsive/inspira-vsl-jungle-v2-480.webp',
     width: 480, height: 270,
-    label: 'PROGRAMME GUIDÉ', duration: 'Une pratique de 12 min', title: 'Delta Vision',
-    intent: 'Peu de temps ? Vis l’expérience.',
-    description: 'Laisse-toi guider par la respiration et la visualisation pour changer d’état intérieur. Une pratique courte, à ressentir dès la première séance.',
-    action: 'Je découvre l’expérience',
+    label: 'RESPIRATION & VISUALISATION', duration: '12 minutes pour changer d’état intérieur', title: 'Delta Vision',
+    intent: '12 minutes pour transformer ton état intérieur et attirer ce que tu veux vraiment.',
+    description: 'La nouvelle méthode qui combine respiration et visualisation pour changer d’état intérieur et transformer sa vie.',
+    action: 'Je découvre Delta Vision',
   },
 ];
 ---
@@ -71,10 +71,20 @@ const links = [
               </div>
             </div>
             <div class="copy">
-              <span class="duration">{link.duration}</span>
-              <h3>{link.intent}</h3>
-              <p>{link.description}</p>
+              <div class="card-meta"><span class="duration">{link.id === 'masterclass' ? 'Profond' : 'Rapide'}</span>{link.id === 'masterclass' && <span class="session-duration">Durée : 1 h 30</span>}</div>
+              {link.id === 'masterclass' ? (
+                <>
+                  <h3 class="promise">Reprogramme ton subconscient <span class="promise-accent">et manifeste ce que tu veux</span></h3>
+                  <p class="promise-details"><span>Tu identifies ton <strong>blocage subconscient n°1,</strong></span><span>tu apprends à le <strong>reprogrammer,</strong></span><span>et tu repars avec le <strong>protocole exact</strong> pour manifester ce que tu veux.</span></p>
+                </>
+              ) : (
+                <>
+                  <h3 class="promise"><span class="promise-lead">12 minutes</span> pour transformer ton état intérieur <span class="promise-accent">et attirer ce que tu veux vraiment.</span></h3>
+                  <p class="promise-details"><span>La nouvelle méthode qui combine <strong>respiration et visualisation</strong></span><span>pour changer d’état intérieur et transformer sa vie.</span></p>
+                </>
+              )}
               <span class="action" id={`${link.id}-action`}>{link.action}<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></span>
+              <span class="offer-timing" data-timing={link.id}><span class="timing-dot" aria-hidden="true"></span><span>{link.id === 'masterclass' ? 'Prochaine séance dans ' : 'L’offre de lancement se termine dans '}<strong data-countdown>…</strong></span></span>
             </div>
           </a>
         ))}
@@ -90,6 +100,53 @@ const links = [
         link.href = bioChoiceUrl(link.href, window.location.search, window.location.origin);
       });
       initBioTracking();
+      import { rememberedDeadline, OFFER_KEY } from '../lib/delta-vision-urgency.mjs';
+      import { readDvpToken, resolveDvpAccess } from '../lib/dvp-access-client.mjs';
+      const quarter = 15 * 60 * 1000;
+      const nextSession = () => {
+        const now = Date.now(); let next = Math.ceil(now / quarter) * quarter;
+        if (next - now < 8 * 60 * 1000) next += quarter;
+        return next;
+      };
+      let sessionEnd = nextSession();
+      let deltaEnd: number | null = null;
+      let deltaOffset = 0;
+      const deltaPanel = document.querySelector<HTMLElement>('[data-timing="delta-vision"]');
+      if (deltaPanel) deltaPanel.hidden = true;
+      async function resolveOffer() {
+        const token = readDvpToken(window,{remembered:true});
+        if (token) {
+          try {
+            const access = await resolveDvpAccess(window,token);
+            deltaEnd = Date.parse(access.expiresAt);
+            deltaOffset = Date.parse(access.serverNow)-Date.now();
+          } catch { return; }
+        } else {
+          deltaEnd = rememberedDeadline({now:Date.now(),
+            readLocal:()=>localStorage.getItem(OFFER_KEY),
+            readCookie:()=>document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith(OFFER_KEY+'='))?.slice(OFFER_KEY.length+1),
+            writeLocal:value=>localStorage.setItem(OFFER_KEY,value),
+            writeCookie:value=>{document.cookie=`${OFFER_KEY}=${value}; Max-Age=34560000; Path=/; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`;}
+          });
+        }
+        renderTimers();
+      }
+      function renderTimers() {
+        // Match the minimum lead time used by the MC2 registration picker.
+        if (sessionEnd-Date.now()<8*60*1000) sessionEnd=nextSession();
+        for (const [key,end] of [['masterclass',sessionEnd],['delta-vision',deltaEnd]] as const) {
+          if(end===null)continue;
+          const sec=Math.max(0,Math.ceil((end-Date.now()-(key==='delta-vision'?deltaOffset:0))/1000));
+          const panel=document.querySelector<HTMLElement>(`[data-timing="${key}"]`);
+          if(panel)panel.hidden=key==='delta-vision'&&sec===0;
+          const node=panel?.querySelector('[data-countdown]');
+          if(node)node.textContent=`${Math.floor(sec/3600)?Math.floor(sec/3600)+' h ':''}${String(Math.floor(sec/60)%60).padStart(2,'0')} min ${String(sec%60).padStart(2,'0')} s`;
+        }
+      }
+      renderTimers();void resolveOffer();setInterval(renderTimers,1000);
+      window.addEventListener('pageshow',()=>void resolveOffer());
+      window.addEventListener('storage',event=>{if(event.key===OFFER_KEY||event.key==='dvp_access_token_v1')void resolveOffer();});
+
     </script>
     <style>
       @font-face{font-family:Inter;src:url('/fonts/inter-latin.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
@@ -117,6 +174,7 @@ const links = [
       .label{display:block;font-size:8px;letter-spacing:1px;font-weight:600;color:#a8c7f2;line-height:1.5;margin-bottom:6px}
       .copy{padding:15px 18px 17px}
       h2{font-size:21px;font-weight:600;line-height:1.15;letter-spacing:-.6px;margin:0}
+      .card-meta{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.session-duration{font-size:12px;color:#b7c8df;white-space:nowrap}@media(min-width:700px){.session-duration{font-size:14px}}
       .duration{display:inline-block;font-size:10px;font-weight:600;line-height:1.4;color:#bed6fa;background:#ffffff0d;border:1px solid #ffffff15;border-radius:5px;padding:5px 8px;margin-bottom:11px}
       h3{font-size:15px;line-height:1.4;font-weight:600;letter-spacing:-.25px;margin:0 0 6px}
       .copy p{font-size:12px;line-height:1.55;margin:0 0 14px;max-width:340px;color:#c7d1de}
@@ -129,6 +187,7 @@ const links = [
       .action{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:11px 13px;border-radius:9px;background:#3076d1;font-size:12px;line-height:1.4;font-weight:600;color:#fff}
       .delta .action{background:#ad4c36}
       .action svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+      .offer-timing[hidden]{display:none!important}.offer-timing{display:flex;align-items:center;gap:8px;font-size:11px;color:#ff777f;line-height:1.5;margin:13px 0 0;justify-content:center;width:100%;text-align:center}.offer-timing strong{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}.timing-dot{width:6px;height:6px;border-radius:50%;background:#ff6370;flex:none}.delta .offer-timing{color:#b33535}.delta .timing-dot{background:#c33d3d}@media(min-width:700px){.offer-timing{font-size:13px;margin-top:14px}}
       footer{text-align:center;color:#8895a3;font-size:8px;letter-spacing:2.2px;margin-top:23px}
       /* Larger screens only: keep the approved mobile layout unchanged. */
       @media(min-width:700px){
@@ -171,6 +230,12 @@ const links = [
         .action{width:100%;margin-top:auto}
       }
       @media(max-width:360px){main{padding:22px 14px 16px}.profile{gap:12px;margin-bottom:18px}.avatar{width:48px;height:48px}h1{font-size:22px}.copy{padding:14px}.card-heading{padding:14px 14px 0;gap:11px}h2{font-size:18px}.delta h2{font-size:25px}.network{font-size:8px;gap:3px}.network-icon{width:10px;height:10px}.social-proof{gap:4px}.social-stat strong{font-size:16px}}
+      .copy .promise{font-size:23px;line-height:1.22;letter-spacing:-.65px;font-weight:600;margin:3px 0 21px;text-wrap:balance;max-width:25ch}
+      .promise-accent{display:block;color:#91bdff;margin-top:7px}.delta .promise-accent{color:#a34d38}.promise-lead{font-weight:750}
+      .copy .promise-details{font-size:14px;line-height:1.6;font-weight:400;margin:0 0 25px;color:#adbbcd;max-width:40ch;text-wrap:pretty}
+      .promise-details span{display:block;margin-top:8px}.promise-details span:first-child{margin-top:0}.promise-details strong{font-weight:550;color:#dce6f4}.delta .promise-details{color:#747768}.delta .promise-details strong{color:#444c3d}
+      @media(min-width:700px){.copy .promise{font-size:29px;line-height:1.2;margin-bottom:23px}.copy .promise-details{font-size:16px;margin-bottom:28px}.copy{padding-top:22px}}
+      @media(max-width:360px){.copy .promise{font-size:21px}.copy .promise-details{font-size:13px}}
       @media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
     </style>
   </body>
