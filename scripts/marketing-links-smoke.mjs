@@ -97,7 +97,7 @@ try {
     }
     ok(calls.every(([,options])=>options.method==='GET'),'Bio aliases never count redirects as arrivals');
     if(bio.entryPath){
-      for(const path of ['/mc2/','/delta-vision/']){
+      for(const path of ['/mc2/','/dvp/','/delta-vision/']){
         const choice=new URL(bioChoiceUrl(path+'?utm_content=default',new URL(buildDestination(row)).search+'&token=secret&email=private&fbclid=click-123'),target.origin);
         assert.equal(choice.pathname,path);assert.equal(choice.searchParams.get('sc_link'),bio.code);assert.equal(choice.searchParams.get('utm_content'),bio.code);assert.equal(choice.searchParams.get('utm_source'),bio.channel);checks+=4;
         ok(!choice.searchParams.has('token')&&!choice.searchParams.has('email')&&choice.searchParams.get('fbclid')==='click-123','Programme choice preserves tracking without private query parameters');
@@ -165,3 +165,6 @@ try {
   globalThis.fetch=originalFetch;
   for (const [key,value] of [['SUPABASE_URL',originalEnv.url],['SUPABASE_SERVICE_ROLE_KEY',originalEnv.key]]) { if (value===undefined) delete process.env[key]; else process.env[key]=value; }
 }
+
+assert.equal(new URL(buildDestination({...link,destination:'delta'})).pathname,'/dvp/');
+assert.ok(isDestinationPath('delta','/dvp/',link.code));
