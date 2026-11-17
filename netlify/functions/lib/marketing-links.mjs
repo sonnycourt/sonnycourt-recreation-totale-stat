@@ -61,8 +61,10 @@ export function isDestinationPath(destination, path, code) {
   // Hub arrivals are measured on the chosen programme page, never twice on
   // /links and its destination. Only these two profile links allow either choice.
   if (bioLinkForCode(code)?.entryPath === '/links/') {
-    return typeof path === 'string' && ['/mc2', '/delta-vision'].includes(path.replace(/\/$/, ''));
+    return typeof path === 'string' && ['/mc2', '/dvp', '/delta-vision'].includes(path.replace(/\/$/, ''));
   }
+  // Keep arrivals from previously opened sales-page links valid.
+  if (destination === 'delta' && typeof path === 'string' && path.replace(/\/$/, '') === '/delta-vision') return true;
   const expected = DESTINATIONS[destination];
   return expected && typeof path === 'string' && path.replace(/\/$/, '') === new URL(expected.url).pathname.replace(/\/$/, '');
 }

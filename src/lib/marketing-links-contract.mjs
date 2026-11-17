@@ -15,7 +15,7 @@ export const PLACEMENTS = Object.freeze({ dm: 'Message privé / ManyChat', descr
 export const DESTINATIONS = Object.freeze({
   mc2: { label: 'Masterclass MC2', url: 'https://sonnycourt.com/mc2/' },
   meta_mc2: { label: 'Masterclass MC2 · parcours Meta', url: 'https://sonnycourt.com/meta/mc2/' },
-  delta: { label: 'Delta Vision', url: 'https://sonnycourt.com/delta-vision/' },
+  delta: { label: 'Delta Vision', url: 'https://sonnycourt.com/dvp/' },
   papa: { label: 'Guide · 10 questions à poser à ton père', url: 'https://sonnycourt.com/ressources/papa/' },
 });
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
