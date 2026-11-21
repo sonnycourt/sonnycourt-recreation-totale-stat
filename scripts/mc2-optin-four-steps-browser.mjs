@@ -13,6 +13,13 @@ try {
   for (const { path: route, width } of scenarios) {
     const page = await browser.newPage();
     await page.setViewport({ width, height: 844 });
+    const meta = route === '/meta/mc2/';
+    const arm = width === 390 ? 'b' : 'a';
+    if (meta) {
+      await page.evaluateOnNewDocument((arm) => {
+        localStorage.setItem('mc2_meta_affirmations_v1', (arm === 'a' ? '1' : '9') + '1111111-2222-4333-8444-555555555555');
+      }, arm);
+    }
     const requests = [];
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -49,6 +56,8 @@ try {
       assert.equal(await page.$eval('html', el => el.dataset.mc2PublicClosed), 'false');
       await page.waitForSelector('#page-main.is-visible', { visible: true });
     }
+    assert.equal(await page.$eval('.hero', el => el.classList.contains('hero--meta')), meta && arm === 'b');
+    assert.equal(await page.$$eval('.hero-intro', nodes => nodes.length), meta && arm === 'b' ? 1 : 0);
     // Bypass only the local fetch simulator; requests still hit our mocks above.
     await page.evaluate(() => { window.fetch = window.__browserTestFetch; });
     await page.click('[data-mc2-picker="hero"] [data-slot-id="fixed-1"]').catch(async () => {
@@ -104,6 +113,11 @@ try {
     await Promise.all([page.waitForNavigation(), page.click('#step3-submit')]);
     const full = requests.filter(r => r.name === 'register-mc2');
     assert.equal(full.length, 2);
+    if (meta) {
+      assert.equal(full[1].data.optin_variant, 'mc2_meta_affirmations_v1_' + arm);
+      assert.equal(phoneEvent.data.variant, full[1].data.optin_variant);
+      assert.equal(phoneEvent.data.funnel_id, full[1].data.optin_funnel_id);
+    }
     assert.equal(full[1].data.email, 'test@example.invalid');
     assert.equal(full[1].data.prenom, 'Test');
     assert.ok(full[1].data.telephone);
