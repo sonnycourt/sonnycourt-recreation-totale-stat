@@ -10,7 +10,6 @@ interface Props {
 }
 
 const { trafficSource = null, trackingPath = '/mc2/', publicClosed = false } = Astro.props;
-const isMetaOptin = trafficSource === 'meta_ad';
 ---
 
 <!DOCTYPE html>
@@ -396,26 +395,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
             gap: 44px;
             align-items: center;
             margin-bottom: 40px;
-        }
-
-        .hero--meta {
-            padding-top: clamp(14px, 2vw, 24px);
-        }
-
-        .hero--meta h1,
-        .hero--meta .subheadline,
-        .hero-intro {
-            text-align: center;
-            text-wrap: balance;
-        }
-
-        .hero-intro {
-            font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
-            font-size: clamp(1.55rem, 3.1vw, 2.25rem);
-            font-weight: 600;
-            line-height: 1.12;
-            color: #fff;
-            margin-bottom: 8px;
         }
 
         .badge {
@@ -2025,14 +2004,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
                 align-items: start;
             }
 
-            .hero--meta {
-                grid-template-areas: "intro" "title" "subtitle" "badge" "media" "registration";
-            }
-
-            .hero-intro {
-                grid-area: intro;
-            }
-
             .hero > div:first-child {
                 display: contents;
             }
@@ -2102,15 +2073,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
         }
 
         @media (max-width: 900px) {
-            .hero-intro {
-                margin-bottom: 24px;
-            }
-
-            .hero--meta .badge {
-                order: 1;
-                align-self: center;
-            }
-
             .hero {
                 grid-template-columns: 1fr;
                 gap: 22px;
@@ -2483,12 +2445,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
         <section class="hero">
             <div>
                 <div class="badge"><span class="badge__copy"><span>PROCHAINE MASTERCLASS</span><strong class="badge__timing" data-session-banner>RÉSERVE TA PLACE AVANT LE DÉBUT</strong></span></div>
-                {isMetaOptin && (
-                    <template id="mc2-meta-intro">
-                        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap" />
-                        <p class="hero-intro">Prêt à aller plus loin que réciter des affirmations positives&nbsp;?</p>
-                    </template>
-                )}
                 <h1>Reprogramme ton subconscient et manifeste ce que tu veux</h1>
                 <p class="subheadline">Tu identifies ton blocage subconscient n°1, tu apprends à le reprogrammer, et tu repars avec le protocole exact pour manifester ce que tu veux.</p>
 
@@ -2747,7 +2703,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
     </script>
     <script>
         // @ts-nocheck
-        import { assignMc2MetaOptin } from '../../lib/mc2-optin-experiment.mjs';
         import { createMc2MetaOptin } from '../../lib/mc2-optin-meta.mjs';
         import { mountEntrySpiffy } from '../../lib/mc2-entry-spiffy.mjs';
         import { MC2_ENTRY_CHECKOUT_SLUG } from '../../lib/mc2-entry-payment.mjs';
@@ -2777,12 +2732,7 @@ const isMetaOptin = trafficSource === 'meta_ad';
         const PRE_OPTIN_SUCCESS_MS = 650;
         const OPTIN_TRAFFIC_SOURCE = document.documentElement.dataset.mc2Source || null;
         const OPTIN_TRACKING_PATH = document.documentElement.dataset.mc2TrackingPath || '/mc2/';
-        const pageFunnelId = createOptinFunnelId();
-        const experiment = OPTIN_TRAFFIC_SOURCE === 'meta_ad'
-            ? assignMc2MetaOptin(window, document, pageFunnelId)
-            : null;
-        const OPTIN_VARIANT = experiment?.variant || (OPTIN_TRAFFIC_SOURCE === 'meta_ad' ? 'mc2_meta_v5' : 'v5');
-        const optinFunnelId = experiment?.id || pageFunnelId;
+        const OPTIN_VARIANT = OPTIN_TRAFFIC_SOURCE === 'meta_ad' ? 'mc2_meta_v5' : 'v5';
         const MC2_JIT_MIN_LEAD_MS = 8 * 60 * 1000;
         const MC2_JIT_GRACE_MS = 3 * 60 * 1000;
         const MC2_FIXED_MIN_LEAD_MS = 60 * 60 * 1000;
@@ -2799,13 +2749,13 @@ const isMetaOptin = trafficSource === 'meta_ad';
         let iti = null;
         let phoneInputLibraryPromise = null;
         let preOptinOverlayBusy = false;
+        const optinFunnelId = createOptinFunnelId();
         const OPTIN_INTERNAL_TRAFFIC_KEY = 'masterclass_optin_internal';
         const metaOptin = OPTIN_TRAFFIC_SOURCE === 'meta_ad'
             ? createMc2MetaOptin({
                 window,
                 document,
                 funnelId: optinFunnelId,
-                leadEventId: 'mc2-lead-' + pageFunnelId,
                 variant: OPTIN_VARIANT,
                 disabled: Boolean(window.__MC2_PREVIEW_ONLY__) || isOptinInternalTraffic(),
             })
@@ -3318,19 +3268,6 @@ const isMetaOptin = trafficSource === 'meta_ad';
         }
 
         function showMain() {
-            if (experiment?.arm === 'b') {
-                const template = document.getElementById('mc2-meta-intro');
-                if (template) {
-                    const hero = template.closest('.hero');
-                    const banner = hero.querySelector('.badge');
-                    hero.classList.add('hero--meta');
-                    document.head.append(template.content.querySelector('link'));
-                    template.replaceWith(template.content.querySelector('p'));
-                    hero.querySelector('.subheadline').after(banner);
-                    banner.setAttribute('role', 'heading');
-                    banner.setAttribute('aria-level', '3');
-                }
-            }
             const gl = document.getElementById('gate-loading');
             if (gl) gl.classList.add('is-hidden');
             document.getElementById('gate-blocked').classList.remove('is-visible');

@@ -5,7 +5,7 @@ const STORAGE_KEY = 'meta_tracking_params';
 const ATTRIBUTION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
 
-export function createMc2MetaOptin({ window: win, document: doc, funnelId, variant, leadEventId = 'mc2-lead-' + funnelId, disabled = false }) {
+export function createMc2MetaOptin({ window: win, document: doc, funnelId, variant, disabled = false }) {
   function cookie(name) {
     try {
       const entry = doc.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(name + '='));
@@ -39,6 +39,7 @@ export function createMc2MetaOptin({ window: win, document: doc, funnelId, varia
   const traffic = captureTraffic();
   // Keep one ID across partial capture, completion and a retry. The server
   // returns the exact IDs to use for browser/CAPI deduplication.
+  const leadEventId = 'mc2-lead-' + funnelId;
   const initialFbc = cookie('_fbc');
   const clickFbc = traffic.fbclid ? 'fb.1.' + (traffic.captured_at || Date.now()) + '.' + traffic.fbclid : null;
   const sent = new Set();

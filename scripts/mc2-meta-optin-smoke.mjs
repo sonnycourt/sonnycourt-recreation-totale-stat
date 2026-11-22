@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { assignMc2MetaOptin } from '../src/lib/mc2-optin-experiment.mjs';
 import { createMc2MetaOptin } from '../src/lib/mc2-optin-meta.mjs';
 
 function environment({ search = '', storage = new Map(), blockedStorage = false, cookies = '' } = {}) {
@@ -30,24 +29,6 @@ function environment({ search = '', storage = new Map(), blockedStorage = false,
   };
   return { window, document, calls, scripts, storage, listeners, localStorage };
 }
-
-const aId = '11111111-2222-4333-8444-555555555555';
-const bId = '91111111-2222-4333-8444-555555555555';
-for (const [first, next, arm] of [[aId, bId, 'a'], [bId, aId, 'b']]) {
-  for (const blockedStorage of [false, true]) {
-    const client = environment({ blockedStorage });
-    const firstVisit = assignMc2MetaOptin(client.window, client.document, first);
-    assert.equal(firstVisit.arm, arm);
-    assert.deepEqual(assignMc2MetaOptin(client.window, client.document, next), firstVisit);
-    const metaPayload = createMc2MetaOptin({ ...client, funnelId: firstVisit.id,
-      variant: firstVisit.variant, leadEventId: 'mc2-lead-' + next, disabled: true }).getPayload();
-    assert.equal(metaPayload.optin_funnel_id, first);
-    assert.equal(metaPayload.meta_event_id, 'mc2-lead-' + next);
-  }
-}
-const privateClient = environment({ blockedStorage: true });
-Object.defineProperty(privateClient.document, 'cookie', { get: () => '', set() {} });
-assert.equal(assignMc2MetaOptin(privateClient.window, privateClient.document, bId), null);
 
 const env = environment({
   search: '?utm_source=facebook&utm_medium=cpc&utm_campaign=watchers&utm_content=creative-1&utm_term=lal&fbclid=current-click',
@@ -125,7 +106,7 @@ for (const source of ['meta_ad', null]) {
     test.window.location.hostname = 'sonnycourt.com';
     const context = vm.createContext({
       window: test.window, document: test.document, localStorage: test.localStorage,
-      createMc2MetaOptin, assignMc2MetaOptin, URLSearchParams, URL, Intl, console,
+      createMc2MetaOptin, URLSearchParams, URL, Intl, console,
       fetch: async (url, init) => {
         const body = JSON.parse(init.body);
         requests.push({ url, body });
@@ -157,7 +138,7 @@ for (const source of ['meta_ad', null]) {
       assert.ok(body.visitor_timezone);
       assert.equal(body.traffic_source, source || undefined);
       if (source) {
-        assert.equal(body.optin_variant, 'mc2_meta_affirmations_v1_a');
+        assert.equal(body.optin_variant, 'mc2_meta_v5');
         assert.equal(body.utm_campaign, 'watchers');
         assert.ok(body.meta_event_id);
         assert.equal(body.optin_funnel_id, opts.funnelId);
@@ -174,11 +155,10 @@ for (const source of ['meta_ad', null]) {
   }
 }
 
-// MC2 Meta also has its established, Meta-only discovery section.
+// The Meta landing page also includes its established discovery section.
 if (process.argv.includes('--built')) {
   const readPage = (path) => readFile(new URL('../dist/' + path + '/index.html', import.meta.url), 'utf8');
-  const normalize = (html) => html.replace(/<template id="mc2-meta-intro"[^>]*>[\s\S]*?<\/template>/, '')
-    .replace(/<section class="section discover-section"[^>]*>[\s\S]*?<\/section>/, '')
+  const normalize = (html) => html.replace(/<section class="section discover-section"[^>]*>[\s\S]*?<\/section>/, '')
     .replace(/>\s+</g, '><').replace(/ data-mc2-source="meta_ad"/g, '')
     .replace(/data-mc2-tracking-path="\/meta\/mc2\/"/g, 'data-mc2-tracking-path="/mc2/"');
   assert.equal(normalize(await readPage('meta/mc2')), normalize(await readPage('mc2')));
