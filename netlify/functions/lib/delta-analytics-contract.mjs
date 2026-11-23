@@ -22,7 +22,7 @@ export function cleanBatch(body,now=Date.now()) {
    case 'video_progress':copyNum('watched',7200);copyNum('duration',7200);if(!Array.isArray(m.bins)||m.bins.length>720)throw Error('bins');metadata.bins=m.bins.map(pair=>{if(!Array.isArray(pair)||pair.length!==2||!Number.isInteger(pair[0])||!number(pair[0],719)||!number(pair[1],10))throw Error('bin');return pair;});break;
    case 'performance':if(!['lcp_ms','load_ms','cls','inp_ms'].includes(m.metric))throw Error('metric');metadata.metric=m.metric;copyNum('value',600000);break;
    case 'error':if(!['js_error','promise_error','player_api','player_error','video_no_start'].includes(m.code))throw Error('error');metadata.code=m.code;break;
-   case 'checkout_loaded':if(!['41049','41096'].includes(m.checkout))throw Error('checkout');metadata.checkout=m.checkout;break;
+   case 'checkout_loaded':if(!['41049','41096','41917'].includes(m.checkout))throw Error('checkout');metadata.checkout=m.checkout;break;
    default:throw Error('name');
   }
   return {id:event.id,visit_id:body.visit_id,visitor_id:body.visitor_id,visit_started_at:new Date(start).toISOString(),event_name:event.event_name,source:label(body.source),medium:label(body.medium),campaign:label(body.campaign,100),device:body.device,is_returning:body.is_returning,price:event.price,metadata};

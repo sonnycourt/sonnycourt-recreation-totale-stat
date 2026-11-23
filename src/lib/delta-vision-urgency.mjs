@@ -61,13 +61,13 @@ export function initDeltaUrgency(doc, win, config, authority = null) {
     if (previousPrice !== state.price) {
       prices.forEach(node => { node.textContent = String(state.price); });
       links.forEach(link => {
-        link.href = state.checkoutUrl;
+        link.href = state.checkoutUrl || '#tarif';
         if (link.hasAttribute('aria-label')) link.setAttribute('aria-label', `Je commence Delta Vision — ${state.price} euros`);
       });
       const hasDiscount = state.price < config.referencePrice;
       doc.querySelectorAll('.price-before').forEach(node => { node.hidden = !hasDiscount; });
       doc.querySelectorAll('.price-card:not(.price-card--intro)').forEach(card => card.setAttribute('aria-label', hasDiscount ? `${state.price} euros, au lieu de ${config.referencePrice} euros` : `${state.price} euros`));
-      doc.querySelectorAll('.price-launch').forEach(node => { node.textContent = state.expired ? 'Delta Vision' : 'Ton tarif de bienvenue'; });
+      doc.querySelectorAll('.price-launch').forEach(node => { node.textContent = state.expired ? 'Delta Vision' : (config.offerLabel || 'Ton tarif de bienvenue'); });
       previousPrice = state.price;
     }
     doc.documentElement.dataset.dvOffer = state.expired ? 'standard' : 'launch';

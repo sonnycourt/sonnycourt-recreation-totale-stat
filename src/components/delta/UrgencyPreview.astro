@@ -1,7 +1,10 @@
 ---
 // Both instances share one persisted deadline, initialized once by the page.
-const { anchor = 'urgence' } = Astro.props;
+const { anchor = 'urgence', blackFriday = false } = Astro.props;
 ---
+{blackFriday ? (
+  <p class="campaign-clock" id={anchor}>Fin de l’offre dans <strong data-bf-clock>…</strong></p>
+) : (
 <div class="urgency-preview" id={anchor} data-dv-urgency hidden>
     <div class="urgency-clock" role="timer" aria-label="Temps restant pour ton tarif de bienvenue" aria-live="off">
       <span class="urgency-unit"><strong data-hours>23</strong><small>HEURES</small></span>
@@ -12,8 +15,10 @@ const { anchor = 'urgence' } = Astro.props;
     </div>
     <p class="urgency-note">Ce tarif t’est réservé pendant 23 h à partir de ta première visite. Ensuite, Delta Vision est à 147 €.</p>
 </div>
+)}
 
 <style>
+  .campaign-clock{margin:0 0 20px;font-size:15px;text-align:center}.campaign-clock strong{color:#bd1436;font-variant-numeric:tabular-nums;white-space:nowrap}
   .urgency-preview[hidden]{display:none!important}
   .urgency-preview{margin:-3px auto 25px;scroll-margin-top:90px;text-align:center}
   .urgency-clock{display:flex;align-items:flex-start;justify-content:center;gap:10px}

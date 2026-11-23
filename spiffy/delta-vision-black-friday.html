@@ -1,0 +1,43 @@
+<script>
+(function(){
+  if(location.hostname !== 'sonnycourt.spiffy.co' || !['/checkout/delta-vision-black-friday','/checkout/delta-vision-black-friday/'].includes(location.pathname)) return;
+  const visit=new URLSearchParams(location.search).get('dv_visit');
+  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(visit||'') || !window.crypto || !crypto.randomUUID) return;
+  const body=JSON.stringify({id:crypto.randomUUID(),visit_id:visit,checkout:'41917'});
+  fetch('https://sonnycourt.com/.netlify/functions/delta-vision-checkout-track',{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},body:body,keepalive:true}).catch(function(){});
+})();
+</script>
+<script>
+(function () {
+  const parentOrigin = new URLSearchParams(location.search).get('dv_bf_parent');
+  let parentURL;
+  try { parentURL = new URL(parentOrigin); } catch { return; }
+  const host = parentURL.hostname;
+  const local = parentURL.protocol === 'http:' && ['localhost','127.0.0.1'].includes(host);
+  const site = parentURL.protocol === 'https:' && (['www.sonnycourt.com','sonnycourt.com'].includes(host) || host.endsWith('--sonnycourt-recreation-totale.netlify.app'));
+  if (window === parent || parentURL.origin !== parentOrigin || !(local || site) || !['/checkout/delta-vision-black-friday','/checkout/delta-vision-black-friday/'].includes(location.pathname)) return;
+  document.documentElement.classList.add('dv-bf-form');
+  function attach() {
+    const form = document.querySelector('.checkout-form');
+    if (!form || !form.querySelector('input[type=email]')) return false;
+    let last = 0;
+    function measure() {
+      const h = Math.ceil(form.getBoundingClientRect().bottom + window.scrollY + 8);
+      if (h >= 150 && h !== last) { last = h; parent.postMessage({type:'dv:bf-form-height',height:h},parentOrigin); }
+    }
+    const observer = new ResizeObserver(measure); observer.observe(form); measure();
+    return true;
+  }
+  if (!attach()) {const observer = new MutationObserver(() => { if (attach()) observer.disconnect(); }); observer.observe(document.documentElement,{childList:true,subtree:true});}
+})();
+</script>
+<style>
+.dv-bf-form,.dv-bf-form body,.dv-bf-form .checkout {background:#faf7f1!important; margin:0!important; padding:0!important; min-height:0!important}
+.dv-bf-form .checkout .checkout__inner,.dv-bf-form .checkout .checkout__container,.dv-bf-form .checkout .checkout__body,.dv-bf-form .checkout .container {width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+.dv-bf-form .checkout .checkout-form {width:100%!important;max-width:100%!important;flex:0 0 100%!important;padding:0!important}
+.dv-bf-form .checkout .content-container,.dv-bf-form .checkout .order-summary-mobile,.dv-bf-form footer {display:none!important}
+.dv-bf-form .checkout .section__inner,.dv-bf-form .checkout .section.block>.card {background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
+.dv-bf-form .checkout .section.block {margin:0 0 14px!important}
+.dv-bf-form .checkout .btn--checkout {background:#ae4832!important;border-color:#ae4832!important;color:white!important;border-radius:10px!important;min-height:50px!important}
+.dv-bf-form .checkout .terms a {color:#95412f!important}
+</style>

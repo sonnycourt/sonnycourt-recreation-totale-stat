@@ -1,5 +1,7 @@
 ---
 import { inspira, inspiraEmbedUrl } from '../data/inspira.mjs';
+import { deltaBlackFriday, discountPercent } from '../config/blackFriday';
+import BlackFridayBanner from '../components/delta/BlackFridayBanner.astro';
 import JungleStage from '../components/delta/JungleStage.astro';
 import WalletMarks from '../components/delta/WalletMarks.astro';
 import UrgencyPreview from '../components/delta/UrgencyPreview.astro';
@@ -7,10 +9,15 @@ import AnalyticsConsent from '../components/delta/AnalyticsConsent.astro';
 import MarketingAttribution from '../components/MarketingAttribution.astro';
 import SocialProof from '../components/delta/SocialProof.astro';
 import ReviewCollage from '../components/delta/ReviewCollage.astro';
+import BlackFridayCheckout from '../components/delta/BlackFridayCheckout.astro';
 import TwoStepCheckout from '../components/delta/TwoStepCheckout.astro';
 import { responsiveDeltaImage, posterSizes, programSizes, checkoutArtSrc, checkoutArtSizes } from '../lib/delta-vision-images.mjs';
+const bf = Astro.props.blackFriday === true;
+const pageUrl = bf ? 'https://sonnycourt.com/delta-vision/black-friday/' : 'https://sonnycourt.com/delta-vision/';
+const offerLabel = bf ? 'Offre Black Friday' : 'Ton tarif de bienvenue';
 const videoUrl = inspiraEmbedUrl(inspira.presentationVideoUrl);
-const checkoutUrl = inspira.checkoutUrl;
+const offer = bf ? { ...inspira, ...deltaBlackFriday } : inspira;
+const checkoutUrl = offer.checkoutUrl || '#tarif';
 const socialImageUrl = 'https://sonnycourt.com/media/pages/delta-vision-social-v1.jpg';
 const socialTitle = '12 minutes pour transformer ton état intérieur et attirer ce que tu veux vraiment.';
 const socialDescription = "La nouvelle méthode qui combine respiration et visualisation pour changer d'état intérieur et transformer sa vie.";
@@ -50,7 +57,7 @@ const intentions = [
     <meta property="og:title" content={socialTitle} />
     <meta property="og:description" content={socialDescription} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://sonnycourt.com/delta-vision/" />
+    <meta property="og:url" content={pageUrl} />
     <meta property="og:site_name" content="Sonny Court" />
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:image" content={socialImageUrl} />
@@ -72,10 +79,11 @@ const intentions = [
     <link rel="preload" as="image" type="image/webp" href={checkoutArtSrc}
       imagesrcset={responsiveDeltaImage(checkoutArtSrc, checkoutArtSizes).srcset}
       imagesizes={checkoutArtSizes} media="(min-width: 761px)" fetchpriority="low" />
-    <link rel="canonical" href="https://sonnycourt.com/delta-vision/" />
-    <title>{inspira.title}</title>
+    <link rel="canonical" href={pageUrl} />
+    <title>{bf ? 'Delta Vision · Black Friday' : inspira.title}</title>
   </head>
-  <body>
+  <body data-delta-offer-price={offer.price}>
+    {bf && <BlackFridayBanner />}
     <a class="skip-link" href="#contenu">Aller au contenu</a>
     <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <symbol id="delta-vision-mark" viewBox="0 0 48 48">
@@ -125,8 +133,18 @@ const intentions = [
         </div>
         </JungleStage>
         <div class="price-card price-card--intro" aria-label="Rejoindre Delta Vision">
-          <p class="price-launch">Ton tarif de bienvenue</p>
-          <UrgencyPreview />
+          {bf ? (
+            <div class="bf-intro-summary" id="urgence">
+              <p class="bf-intro-label">Tarif Black Friday</p>
+              <p class="bf-intro-amount">{offer.price}<span> €</span></p>
+              <p class="bf-intro-reference">Au lieu de <del>{offer.referencePrice} €</del></p>
+            </div>
+          ) : (
+            <>
+              <p class="price-launch">{offerLabel}</p>
+              <UrgencyPreview />
+            </>
+          )}
           <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
           <p class="purchase-guarantee"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 3v5c0 5-5 8-8 10-3-2-8-5-8-10V6l8-3Z" /><path d="m8 12 2.5 2.5L16 9" /></svg><span>Satisfait ou remboursé pendant 14 jours</span></p>
           <WalletMarks />
@@ -368,12 +386,12 @@ const intentions = [
       <section class="closing wrap section-space" id="tarif" aria-labelledby="closing-title">
         <svg class="closing-sun" aria-hidden="true"><use href="#delta-vision-mark" /></svg>
         <h2 id="closing-title">Prends une grande inspiration<br /><em>et commence maintenant.</em></h2>
-        <div class="price-card" aria-label={`${inspira.price} euros, au lieu de ${inspira.referencePrice} euros`}>
-          <p class="price-launch">Ton tarif de bienvenue</p>
-          <UrgencyPreview anchor="urgence-finale" />
+        <div class="price-card" aria-label={`${offer.price} euros, au lieu de ${inspira.referencePrice} euros`}>
+          <p class="price-launch">{offerLabel}{bf && ` · −${discountPercent(offer)} %`}</p>
+          <UrgencyPreview anchor="urgence-finale" blackFriday={bf} />
           <div class="price-comparison">
           <p class="price-before"><span class="price-before-label">Au lieu de</span><span class="price-reference"><del>{inspira.referencePrice}</del><span>€</span></span></p>
-          <strong class="price-current"><span data-dv-price>{inspira.price}</span><span>€</span></strong>
+          <strong class="price-current"><span data-dv-price>{offer.price}</span><span>€</span></strong>
           </div>
           <a class="button button-coral" data-dv-buy href={checkoutUrl}>J’entre dans l’expérience <svg aria-hidden="true"><use href="#inspira-arrow" /></svg></a>
           <p class="purchase-guarantee"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 3v5c0 5-5 8-8 10-3-2-8-5-8-10V6l8-3Z" /><path d="m8 12 2.5 2.5L16 9" /></svg><span>Satisfait ou remboursé pendant 14 jours</span></p>
@@ -388,7 +406,7 @@ const intentions = [
       </aside>
     </main>
 
-    <a class="sticky-purchase" data-dv-buy href={checkoutUrl} aria-label={`Je commence Delta Vision — ${inspira.price} euros`}>
+    <a class="sticky-purchase" data-dv-buy href={checkoutUrl} aria-label={`Je commence Delta Vision — ${offer.price} euros`}>
       <span>Je commence</span><svg aria-hidden="true"><use href="#inspira-arrow" /></svg>
     </a>
 
@@ -396,13 +414,14 @@ const intentions = [
 
     <AnalyticsConsent />
     <MarketingAttribution />
-    <TwoStepCheckout />
+    {bf ? <BlackFridayCheckout /> : <TwoStepCheckout />}
     <script>
       import { initDeltaPageviews } from '../lib/delta-pageviews.mjs';
       initDeltaPageviews();
     </script>
     <script>
       import { inspira } from '../data/inspira.mjs';
+      import { deltaBlackFriday } from '../config/blackFriday';
       import { initDeltaUrgency } from '../lib/delta-vision-urgency.mjs';
       import { initTwoStepCheckout } from '../lib/delta-two-step-checkout.mjs';
       import { initDeltaPreviewOffer } from '../lib/delta-popup-preview.mjs';
@@ -412,7 +431,10 @@ const intentions = [
       import { initDeltaVideo } from '../lib/delta-vision-video.mjs';
       async function initializeDeltaPage() {
       let authority = null;
-      if (hashDvpToken(window) !== null) {
+      const campaign = document.getElementById('bf-offer');
+      if (campaign) {
+        authority = {deadline: Date.parse(campaign.dataset.end!), serverNow: Date.now()};
+      } else if (hashDvpToken(window) !== null) {
         // A personal link never falls back to a fresh browser offer.
         const purchaseLinks = [...document.querySelectorAll<HTMLAnchorElement>('[data-dv-buy]')];
         const block = (event: Event) => event.preventDefault();
@@ -448,7 +470,7 @@ const intentions = [
         purchaseLinks.forEach(link => { link.removeAttribute('aria-disabled'); link.removeEventListener('click',block); });
       }
       const localQa = import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('test-registration') === '1';
-      const urgency = (localQa && initDeltaPreviewOffer(document, window, inspira)) || initDeltaUrgency(document, window, inspira, authority);
+      const urgency = (!campaign && localQa && initDeltaPreviewOffer(document, window, inspira)) || initDeltaUrgency(document, window, campaign ? {...inspira, ...deltaBlackFriday} : inspira, authority);
       let checkoutWindow = window;
       // Local QA only: inspect real payment fields without creating a test subscriber.
       if (localQa) {
@@ -465,7 +487,7 @@ const intentions = [
       // Pixel Meta uniquement pour le trafic venu d'une pub Meta (fbclid ou utm_source Meta) ; l'organique ne charge rien.
       let metaPixel = null;
       try { metaPixel = initDeltaMetaPixel(document, window); } catch { /* Le pixel ne doit jamais bloquer la page. */ }
-      initTwoStepCheckout(document, checkoutWindow, urgency, { attribution: metaPixel ? metaPixel.attribution : null });
+      if (!campaign) initTwoStepCheckout(document, checkoutWindow, urgency, { attribution: metaPixel ? metaPixel.attribution : null });
       try { initDeltaAnalytics(); } catch { /* Analytics must not block playback or navigation. */ }
       document.querySelectorAll<HTMLElement>('[data-inspira-video]').forEach(root => initDeltaVideo(root));
       const mobileNav = document.querySelector<HTMLDetailsElement>('.mobile-nav');
@@ -506,6 +528,13 @@ const intentions = [
   .presentation .jungle-prototype{padding-top:0}
   .presentation .jungle-meta:has(button[hidden]){height:0;margin:0}
   @media(max-width:760px){.presentation{margin-top:52px}}
+  .bf-intro-summary { text-align:center; }
+  .bf-intro-summary p { margin:0; }
+  .bf-intro-label { color:#983047; font-size:11px; line-height:1.4; letter-spacing:.14em; font-weight:650; text-transform:uppercase; }
+  p.bf-intro-amount { margin:8px 0 5px; color:var(--ink); font:normal clamp(64px,8vw,78px)/1 var(--serif); letter-spacing:-.065em; }
+  .bf-intro-amount span { font-size:.48em; letter-spacing:-.04em; vertical-align:.19em; }
+  .bf-intro-reference { color:#72695e; font-size:14px; line-height:1.5; }
+  .bf-intro-reference del { text-decoration-thickness:1px; }
   .presentation>.price-card{text-align:center}
   .price-card{width:min(440px,100%);margin:34px auto 0;padding:29px 30px 31px;border:1px solid #e5d7c8;border-radius:22px;background:linear-gradient(145deg,#fffdfa,#f6eee3);box-shadow:0 15px 40px -30px #94765666;text-align:center}.price-before{margin:0;color:#82796c;font-size:13px;line-height:1.4}.price-before del{display:inline;margin-left:5px;font-size:20px;letter-spacing:-.4px;text-decoration-thickness:1px;text-decoration-color:var(--coral)}.price-offer{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 0;color:var(--coral);font-size:18px;font-weight:600;letter-spacing:-.2px;line-height:1.25}.price-offer>span{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}.price-current{display:flex;justify-content:center;align-items:flex-start;gap:7px;margin:6px auto 0;font-size:78px;font-weight:500;letter-spacing:-5px;line-height:.9;color:var(--ink)}.price-current>span{font-size:30px;letter-spacing:-1px;margin-top:10px}.price-saving{display:inline-block;padding:6px 12px;background:#ead6c34d;border:1px solid #e8d8c7;border-radius:100px;color:#87533c;font-size:11px;font-weight:500}.price-card .button{display:flex;max-width:310px;margin:25px auto 0}.price-card .button svg{margin-left:auto}
   @media(max-width:520px){.price-card{padding:25px 22px 27px;margin-top:28px}.price-offer{font-size:16px;margin-top:16px}.price-current{font-size:70px}.price-card .button{font-size:12px;padding-inline:22px;gap:16px}}

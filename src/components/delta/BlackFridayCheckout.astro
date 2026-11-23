@@ -1,0 +1,94 @@
+---
+import { deltaBlackFriday } from '../../config/blackFriday';
+---
+<dialog class="bf-pay" id="bf-payment" aria-labelledby="bf-pay-title" data-checkout={deltaBlackFriday.checkoutUrl} data-price={deltaBlackFriday.price}>
+  <header>
+    <div><p>Offre Black Friday</p><h2 id="bf-pay-title">Delta Vision</h2></div>
+    <div class="amount"><strong>{deltaBlackFriday.price} €</strong><small>Paiement unique</small></div>
+    <button type="button" aria-label="Fermer le paiement" data-close>×</button>
+  </header>
+  <div class="form-area">
+    <p role="status" data-status>Chargement du paiement sécurisé…</p>
+    <div data-slot></div>
+    <button type="button" data-retry hidden>Réessayer</button>
+  </div>
+</dialog>
+<script>
+  import { paymentMessage } from '../../lib/delta-two-step-checkout.mjs';
+  const dialog = document.querySelector<HTMLDialogElement>('#bf-payment');
+  if (dialog) {
+    const slot = dialog.querySelector<HTMLElement>('[data-slot]')!;
+    const status = dialog.querySelector<HTMLElement>('[data-status]')!;
+    const retry = dialog.querySelector<HTMLButtonElement>('[data-retry]')!;
+    const checkout = new URL(dialog.dataset.checkout!);
+    let source = checkout;
+    let frame: HTMLIFrameElement | undefined;
+    let timeout: number;
+    function loadFrame() {
+      clearTimeout(timeout);
+      status.hidden = false;
+      status.textContent = 'Chargement du paiement sécurisé…';
+      retry.hidden = true;
+      const url = new URL(source);
+      url.searchParams.set('elements', btoa(JSON.stringify({modality:'inline',uid:'delta-black-friday',from:location.origin+location.pathname,handles:{}})));
+      url.searchParams.set('dv_bf_parent', location.origin);
+      frame = document.createElement('iframe');
+      frame.title = 'Paiement sécurisé Delta Vision';
+      frame.allow = 'payment';
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.addEventListener('load', () => {
+        clearTimeout(timeout);
+        status.hidden = true;
+        retry.hidden = true;
+      }, { once:true });
+      frame.src = url.href;
+      slot.replaceChildren(frame);
+      timeout = window.setTimeout(() => {
+        status.textContent = 'Le formulaire tarde à s’afficher.';
+        retry.hidden = false;
+      }, 20000);
+    }
+    window.addEventListener('message', event => {
+      if (!frame || event.origin !== checkout.origin || event.source !== frame.contentWindow) return;
+      if (event.data?.type === 'dv:bf-form-height') {
+        const h = event.data.height;
+        if (!Number.isFinite(h) || h < 150 || h > 10000) return;
+        clearTimeout(timeout);
+        frame.style.height = Math.ceil(h) + 'px';
+        status.hidden = true;
+        retry.hidden = true;
+      }
+      const result = paymentMessage(event, frame, Number(dialog.dataset.price));
+      if (result?.redirect) location.assign(result.redirect);
+    });
+    document.querySelectorAll<HTMLAnchorElement>('[data-dv-buy]').forEach(link => {
+      link.addEventListener('click', event => {
+        const url = new URL(link.href);
+        if (url.origin !== checkout.origin || url.pathname !== checkout.pathname) return;
+        event.preventDefault();
+        source = url;
+        dialog.showModal();
+        if (!frame) loadFrame();
+        document.dispatchEvent(new CustomEvent('dv:checkout-open', {detail:{price:Number(dialog.dataset.price)}}));
+      });
+    });
+    retry.addEventListener('click', loadFrame);
+    dialog.querySelector('[data-close]')!.addEventListener('click', () => dialog.close());
+  }
+</script>
+<style>
+  .bf-pay { width:min(540px,calc(100% - 24px)); max-height:90dvh; padding:0; margin:auto; border:1px solid #e4d8c6; border-radius:20px; background:#faf7f1; color:#302923; overflow:auto; overscroll-behavior:contain; box-shadow:0 24px 80px #201a1540; }
+  .bf-pay::backdrop { background:rgb(30 25 20 / 60%); }
+  .bf-pay header { display:flex; align-items:center; gap:14px; padding:20px 22px; border-bottom:1px solid #e6daca; }
+  .bf-pay header p { color:#a6263e; text-transform:uppercase; letter-spacing:.13em; font-size:10px; font-weight:650; margin:0 0 4px; }
+  .bf-pay h2 { font:normal 30px/1 var(--serif,Georgia,serif); letter-spacing:-.04em; margin:0; }
+  .bf-pay .amount { margin-left:auto; text-align:right; }
+  .amount strong,.amount small { display:block; }
+  .amount strong { font-weight:600; font-size:23px; line-height:1.2; }
+  .amount small { font-size:10px; color:#756653; }
+  .bf-pay [data-close] { flex:none; width:36px; height:36px; border-radius:50%; border:1px solid #d8cdbd; background:transparent; color:#554a3c; font-size:23px; cursor:pointer; line-height:1; }
+  .form-area { padding:18px clamp(12px,4vw,24px); }
+  .form-area p { font-size:14px; }
+  .form-area :global(iframe) { display:block;width:100%;height:580px;border:0;background:#faf7f1; }
+  :global(html:has(#bf-payment[open])) { overflow:hidden; }
+</style>

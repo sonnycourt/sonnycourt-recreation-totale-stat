@@ -6,7 +6,7 @@ import { getStore } from '@netlify/blobs';
 import { sendMetaEvent } from './meta-capi.mjs';
 
 export const META_ATTRIBUTION_TTL_MS = 30 * 86400000;
-export const DELTA_CHECKOUT_PRICES = Object.freeze({ '41037': 97, '41049': 97, '41096': 147 });
+export const DELTA_CHECKOUT_PRICES = Object.freeze({ '41037': 97, '41049': 97, '41096': 147, '41917': 47 });
 export const attributionStore = () => getStore({ name: 'delta-meta-attribution-v1', consistency: 'strong' });
 export const emailKey = email => createHash('sha256').update(String(email || '').trim().toLowerCase()).digest('hex');
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);

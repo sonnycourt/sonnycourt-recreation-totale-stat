@@ -11,7 +11,7 @@ async function spiffyRead(path,params){
   const error=Error('spiffy_unavailable');error.status=response.status;throw error;
  }
 }
-const checkouts=new Set(['41037','41049','41096']);
+const checkouts=new Set(['41037','41049','41096','41917']);
 function references(value,depth=0){
  if(depth>8)return [];
  if(typeof value==='string')return /^dv1_[0-9a-f-]{36}$/i.test(value)?[value.slice(4)]:[];

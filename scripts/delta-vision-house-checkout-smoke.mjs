@@ -75,9 +75,14 @@ try{
  assert.equal((await purchase(hook({...payload,checkout_id:41049,name_first:''},'a'.repeat(64)))).status,200);
  assert.equal((await purchase(hook({...payload,checkout_id:41096,name_first:''},'a'.repeat(64)))).status,200);
  assert.deepEqual(writes.at(-1).groups,['222']); // email-only hosted checkout
+ const previousWrites = writes.length;
+ assert.equal((await purchase(hook({...payload,checkout_id:41917,total:47},'a'.repeat(64)))).status,200);
+ assert.equal(writes.length,previousWrites+1);
+ assert.deepEqual(writes.at(-1).groups,['222']);
  global.fetch=async()=>new Response('{}',{status:500});
  assert.equal((await register(request(identity))).status,503);
  assert.equal((await purchase(hook(payload,'a'.repeat(64)))).status,503);
+
 }finally{global.fetch=originalFetch;}
 const component=readFileSync(new URL('../src/components/delta/SpiffyCheckout.astro',import.meta.url),'utf8');
 assert(component.indexOf('name="firstName"')<component.indexOf('name="email"'));

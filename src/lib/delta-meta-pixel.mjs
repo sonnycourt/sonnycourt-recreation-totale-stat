@@ -83,7 +83,7 @@ export function initDeltaMetaPixel(doc, win, { now = () => Date.now(), storage =
   const context = rememberedMetaSource(storage, now(), detectMetaSource(win.location.search));
   if (!context) return null;
   const fbq = installFbq(win, doc);
-  const price = () => doc.documentElement.dataset.dvOffer === 'standard' ? 147 : 97;
+  const price = () => doc.documentElement.dataset.dvOffer === 'standard' ? 147 : Number(doc.body?.dataset?.deltaOfferPrice || 97);
   const content = extra => ({ content_name: 'Delta Vision', content_type: 'product', currency: 'EUR', ...extra });
   fbq('init', DELTA_META_PIXEL_ID);
   fbq('track', 'PageView');

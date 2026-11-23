@@ -15,7 +15,7 @@ export default async function handler(req) {
     body=req.headers.get('content-type')?.includes('application/x-www-form-urlencoded') ? Object.fromEntries(new URLSearchParams(raw)) : JSON.parse(raw);
   } catch {return deltaJson(400,{ok:false});}
   const email=String(body?.email || '').trim().toLowerCase();
-  if (!['41037','41049','41096'].includes(String(body?.checkout_id))) return deltaJson(200,{ok:true,ignored:true});
+  if (!['41037','41049','41096','41917'].includes(String(body?.checkout_id))) return deltaJson(200,{ok:true,ignored:true});
   if (!/^\d+$/.test(String(body?.order_id || '')) || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) || email.length>254) return deltaJson(422,{ok:false});
   // The provider's Purchase event is authenticated above; do not log its payment/customer payload.
   try {
