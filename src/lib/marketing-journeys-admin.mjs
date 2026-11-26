@@ -29,7 +29,7 @@ export function initMarketingJourneys(doc=document,win=window) {
     for(const point of data.timeline){
       const item=el('li',point.kind),time=el('time','',date(point.at));time.dateTime=point.at;
       item.append(time,el('strong','',point.label));
-      if(point.channel)item.append(el('span','journey-channel',CHANNELS[point.channel]?.label||point.channel));
+      if(point.channel)item.append(el('span','journey-channel',point.custom_channel||CHANNELS[point.channel]?.label||point.channel));
       if(trackingCoverage(point).retrospective)item.append(el('span','retro-badge','↶ Contenu suivi après publication'));
       let url;try{url=publicationUrl(point.publication_url);}catch{}
       if(url){const a=el('a','publication-open','Voir la publication ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';item.append(a);}

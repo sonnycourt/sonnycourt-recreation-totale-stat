@@ -17,7 +17,7 @@ export default async function handler(req) {
       return json(200, { ...data, connected: true });
     }
     if (!req.headers.get('content-type')?.includes('application/json')) return json(415, { error: 'Format JSON requis.' });
-    const raw = await req.text(); if (raw.length > 5000) return json(413, { error: 'Formulaire trop volumineux.' });
+    const raw = await req.text(); if (raw.length > 8000) return json(413, { error: 'Formulaire trop volumineux.' });
     let input;
     try { input = (req.method==='PATCH' ? validatePublicationUpdate : validateCreate)(JSON.parse(raw)); } catch (e) { return json(400, { error: e.message || 'Formulaire invalide.' }); }
     if (req.method==='PATCH') {

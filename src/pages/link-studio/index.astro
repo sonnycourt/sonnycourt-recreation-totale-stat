@@ -1,9 +1,9 @@
 ---
 import { CHANNELS, FORMATS, PLACEMENTS, DESTINATIONS } from '../../lib/marketing-links-contract.mjs';
 import '../../styles/marketing-links.css';
-const channelLabels = { instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook',email:'Email',sms:'SMS',meta_ads:'Meta Ads' };
-const marks = { instagram:'◎',youtube:'▶',tiktok:'♪',facebook:'f',email:'@',sms:'···',meta_ads:'∞' };
-const targets = [{id:'mc2',mark:'↗',name:'Masterclass',hint:'Esprit Subconscient'},{id:'delta',mark:'✦',name:'Delta Vision',hint:'L’expérience'},{id:'papa',mark:'▤',name:'Guide Papa',hint:'Le PDF gratuit'}];
+const channelLabels = { instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook',email:'Email',sms:'SMS',meta_ads:'Meta Ads',other:'Autre' };
+const marks = { instagram:'◎',youtube:'▶',tiktok:'♪',facebook:'f',email:'@',sms:'···',meta_ads:'∞',other:'＋' };
+const targets = [{id:'mc2',mark:'↗',name:'Masterclass',hint:'Esprit Subconscient'},{id:'delta',mark:'✦',name:'Delta Vision',hint:'L’expérience'},{id:'papa',mark:'▤',name:'Guide Papa',hint:'Le PDF gratuit'},{id:'other',mark:'＋',name:'Autre',hint:'Ta propre URL'}];
 ---
 <!doctype html>
 <html lang="fr">
@@ -30,10 +30,12 @@ const targets = [{id:'mc2',mark:'↗',name:'Masterclass',hint:'Esprit Subconscie
           </div>
           <div class="form-block"><div class="step-label"><span>02</span><h3>Tu le partages où ?</h3></div>
             <div class="channel-choices" role="group" aria-label="Canal de publication">{Object.entries(channelLabels).map(([id,label]) => <button type="button" data-channel={id} aria-pressed={id==='instagram'?'true':'false'}><span class="channel-icon" aria-hidden="true">{marks[id]}</span>{label}</button>)}</div>
+            <div id="custom-channel-fields" class="custom-fields" hidden><label for="custom-channel">Nom du canal</label><input id="custom-channel" maxlength="80" placeholder="Ex. WhatsApp, podcast…" /></div>
             <select id="channel" hidden aria-label="Canal">{Object.entries(CHANNELS).map(([id,v]) => <option value={id}>{v.label}</option>)}</select>
           </div>
           <div class="form-block"><div class="step-label"><span>03</span><h3>On les emmène où ?</h3></div>
             <div class="destination-choices" role="group" aria-label="Page de destination">{targets.map(t => <button type="button" data-destination={t.id} aria-pressed={t.id==='mc2'?'true':'false'}><span class="destination-icon" aria-hidden="true">{t.mark}</span><strong>{t.name}</strong><small>{t.hint}</small><span class="choice-check" aria-hidden="true">✓</span></button>)}</div>
+            <div id="custom-destination-fields" class="custom-fields" hidden><label for="custom-destination">Page de destination</label><input id="custom-destination" inputmode="url" maxlength="2048" placeholder="https://… ou /delta-vision/black-friday/" /><p class="field-help">Sur un site externe, les UTM se lisent dans les statistiques de ce site.</p></div>
             <select id="destination" hidden aria-label="Page de destination">{Object.entries(DESTINATIONS).filter(([id])=>id!=='meta_mc2').map(([id,v])=><option value={id}>{v.label}</option>)}</select>
           </div>
           <details class="advanced" id="advanced"><summary><span>＋</span> Plus de détails <small>facultatif</small><span class="chevron">⌄</span></summary>

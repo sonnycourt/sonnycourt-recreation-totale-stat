@@ -11,7 +11,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   let existingMode=false,selectedContent=null,searchTimer,contentTimer;
   let customCampaign=false, customPlacement=false, customFormat=false;
   let editingPublication=null;
-  const defaults={instagram:['dm','short'],youtube:['description','long'],tiktok:['bio','short'],facebook:['button','post'],email:['button','email'],sms:['body','sms'],meta_ads:['button','short']};
+  const defaults={instagram:['dm','short'],youtube:['description','long'],tiktok:['bio','short'],facebook:['button','post'],email:['button','email'],sms:['body','sms'],meta_ads:['button','short'],other:['body','other']};
   const value = id => $(id).value;
   function lock() {
     win.clearTimeout(searchTimer);win.clearTimeout(contentTimer);linkPager.clear();contentPager.clear();selectedContent=null;existingMode=false;
@@ -80,7 +80,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
       const card = el('article','link-card'), top = el('div','link-top'), identity = el('div');
       card.dataset.channel=row.channel;
       identity.append(el('h3','link-title',row.title),el('p','link-subtitle',`${FORMATS[row.format] || row.format} · ${PLACEMENTS[row.placement]}${row.publication_label ? ' · '+row.publication_label : ''}`));
-      top.append(identity,el('span','channel-tag',CHANNELS[row.channel].label));
+      top.append(identity,el('span','channel-tag',row.custom_channel || CHANNELS[row.channel].label));
       const middle = el('div','link-middle'), link = el('a','short-link',urlFor(row.code).replace('https://',''));
       link.href = urlFor(row.code); link.target = '_blank'; link.rel = 'noopener noreferrer';
       if (demo) link.addEventListener('click', e => { e.preventDefault(); toast('Exemple de lien : aucune redirection réelle.'); });
@@ -120,7 +120,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   async function readPage(kind,{query='',channel='',cursor=null}={}) {
     if(demo){
       if(kind==='summary')return {schema_version:2,library_version:3,totals:{contents:demoData.contents.length,links:demoData.links.length,arrivals:0,registrations:0}};
-      const rows=demoData[kind].filter(r=>(!channel||r.channel===channel)&&[r.title,r.topic,r.angle,r.publication_label,r.campaign,r.code].join(' ').toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr')));
+      const rows=demoData[kind].filter(r=>(!channel||r.channel===channel)&&[r.title,r.topic,r.angle,r.publication_label,r.campaign,r.code,r.custom_channel,r.destination_url].join(' ').toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr')));
       const start=cursor?Number(cursor.id):0,take=kind==='links'?12:24;
       return {items:rows.slice(start,start+take),total:rows.length,next_cursor:start+take<rows.length?{id:String(start+take),at:'demo'}:null};
     }
@@ -139,8 +139,17 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   });
   function helpers() {
     const destination = value('channel') === 'meta_ads' && value('destination') === 'mc2' ? 'meta_mc2' : value('destination');
-    $('destination-preview').textContent = DESTINATIONS[destination].url.replace('https://','');
-    $('auto-summary').textContent=`${CHANNELS[value('channel')].label.replace(' · MailerLite','')} → ${DESTINATIONS[value('destination')].label}`;
+    const otherSource = value('channel') === 'other', otherTarget = destination === 'other';
+    $('custom-channel-fields').hidden = !otherSource;
+    $('custom-channel').disabled = !otherSource;
+    $('custom-channel').required = otherSource;
+    $('custom-destination-fields').hidden = !otherTarget;
+    $('custom-destination').disabled = !otherTarget;
+    $('custom-destination').required = otherTarget;
+    const targetLabel = otherTarget ? value('custom-destination').trim() || 'Autre destination' : DESTINATIONS[destination].label;
+    const sourceLabel = otherSource ? value('custom-channel').trim() || 'Autre canal' : CHANNELS[value('channel')].label.replace(' · MailerLite','');
+    $('destination-preview').textContent = (otherTarget ? value('custom-destination') : DESTINATIONS[destination].url).replace('https://','');
+    $('auto-summary').textContent=`${sourceLabel} → ${targetLabel}`;
     doc.querySelectorAll('[data-channel]').forEach(button=>{if(button.tagName==='BUTTON')button.setAttribute('aria-pressed',String(button.dataset.channel===value('channel')));});
     doc.querySelectorAll('[data-destination]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.destination===value('destination'))));
     $('channel-help').textContent = value('placement') === 'bio'
@@ -180,7 +189,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
     const content = existingMode?state.contents.find(c => c.id === value('content-select')):null;
     if(existingMode&&!content){$('form-status').textContent='Choisis le contenu à réutiliser.';return;}
     try {
-      input = validateCreate({ id:operationId, content_id:content?.id || contentId, title:content?.title || value('title'),format:content?.format || value('format'),topic:content?.topic || value('topic'),angle:content?.angle || value('angle'),channel:value('channel'),placement:value('placement'),campaign:value('campaign'),destination:value('destination'),publication_label:value('publication-label'),published_on:value('published-on'),publication_url:value('publication-url') });
+      input = validateCreate({ id:operationId, content_id:content?.id || contentId, title:content?.title || value('title'),format:content?.format || value('format'),topic:content?.topic || value('topic'),angle:content?.angle || value('angle'),channel:value('channel'),placement:value('placement'),campaign:value('campaign'),destination:value('destination'),custom_channel:value('custom-channel'),destination_url:value('custom-destination'),publication_label:value('publication-label'),published_on:value('published-on'),publication_url:value('publication-url') });
     } catch (e) { $('form-status').textContent = e.message; return; }
     busy = true; $('fields').disabled = true; $('form-status').textContent = 'Enregistrement…';
     try {
@@ -219,7 +228,7 @@ export function initMarketingLinksAdmin(doc = document, win = window) {
   });
   for (const button of doc.querySelectorAll('button[data-destination]')) button.addEventListener('click',()=>{
     $('destination').value=button.dataset.destination;
-    if(!customCampaign)$('campaign').value={mc2:'mc2-evergreen',delta:'delta-vision',papa:'guide-papa'}[value('destination')];
+    if(!customCampaign)$('campaign').value={mc2:'mc2-evergreen',delta:'delta-vision',papa:'guide-papa',other:'partage'}[value('destination')];
     operationId=win.crypto.randomUUID();helpers();
   });
   $('campaign').addEventListener('input',()=>customCampaign=true);

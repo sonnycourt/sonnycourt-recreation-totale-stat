@@ -7,7 +7,7 @@ try {
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
     create table public.mc2_registrations(id bigint primary key,token text unique,registration_completed_at timestamptz);
     grant usage on schema public to service_role;grant select on public.mc2_registrations to service_role;`);
-  for(const name of ['marketing_links_v1','marketing_links_publication_v2','marketing_links_library_v3','marketing_links_library_v3'])await db.exec(readFileSync(new URL('../sql/'+name+'.sql',import.meta.url),'utf8'));
+  for(const name of ['marketing_links_v1','marketing_links_publication_v2','marketing_links_library_v3','marketing_links_library_v3','marketing_links_custom_v4','marketing_links_custom_v4'])await db.exec(readFileSync(new URL('../sql/'+name+'.sql',import.meta.url),'utf8'));
   // All timestamps are identical: cursor ordering must use the ID as well.
   await db.exec(`insert into marketing_contents(id,title,format,created_at)
       select md5(i::text)::uuid,'Contenu '||i,'short','2026-11-11T10:00:00.123456Z' from generate_series(1,2500) i;
@@ -29,6 +29,13 @@ try {
   assert.equal((await page('links','2500','sms')).total,0);
   assert.equal((await page('links','%')).total,0,'Search is literal, not a SQL wildcard');
   assert.equal((await page('summary')).totals.links,2500);
+  const customInput={id:crypto.randomUUID(),content_id:crypto.randomUUID(),title:'Entretien',format:'other',channel:'other',custom_channel:'Podcast du matin',placement:'body',campaign:'entretiens',destination:'other',destination_url:'https://example.org/ecoute'};
+  const createCustom=()=>db.query('select marketing_create_link($1::jsonb) as link',[JSON.stringify(customInput)]);
+  const created=(await createCustom()).rows[0].link;
+  assert.equal(created.destination_url,customInput.destination_url);
+  assert.equal((await createCustom()).rows[0].link.id,created.id);
+  assert.equal((await page('links','podcast du matin','other')).items[0].custom_channel,customInput.custom_channel);
+  assert.equal((await page('links','example.org','other')).total,1);
   // Several arrivals by one registrant must not multiply the registration count;
   // an arrival after registration must not be credited as acquisition.
   const fixtureLink=email.items[0];

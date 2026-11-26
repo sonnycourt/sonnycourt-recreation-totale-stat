@@ -39,6 +39,18 @@ try {
   assert.equal(validateCreate({...input,channel:'meta_ads'}).destination,'meta_mc2'); checks++;
   for (const field of ['channel','format','placement','destination']) { assert.throws(() => validateCreate({...input,[field]:'constructor'})); checks++; }
   assert.throws(() => validateCreate({...input,destination:'https://evil.invalid'})); checks++;
+  const custom = validateCreate({...input,channel:'other',custom_channel:'Mon Podcast',destination:'other',destination_url:'/delta-vision/black-friday/?promo=bf#prix'});
+  const customUrl = new URL(buildDestination({...custom,code:link.code}));
+  assert.equal(customUrl.searchParams.get('utm_source'),'mon-podcast');
+  assert.equal(customUrl.searchParams.get('sc_custom'),'1');
+  assert.equal(customUrl.searchParams.get('promo'),'bf');
+  assert.equal(customUrl.hash,'#prix');
+  assert.throws(()=>validateCreate({...input,channel:'other',custom_channel:' '}));
+  for(const destination_url of ['javascript:foo','//example.org','https://a:b@example.org','/r/abcd','/links/yt/']) {
+    assert.throws(()=>validateCreate({...input,destination:'other',destination_url}));
+  }
+  const external = validateCreate({...input,destination:'other',destination_url:'https://example.org/formation'});
+  assert.equal(new URL(buildDestination({...external,code:link.code})).searchParams.get('sc_custom'),null);
   let calls = [];
   globalThis.fetch = async (url,options) => { calls.push([url,options]); return answer({}); };
   assert.equal((await admin(request('admin-marketing-links'))).status,401); checks++;

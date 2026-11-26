@@ -15,7 +15,7 @@ export default async function handler(req) {
     : url.searchParams.get('code');
   if (!CODE.test(code || '')) return new Response('Lien introuvable.', { status: 404, headers });
   try {
-    const rows = await database(`marketing_links?code=eq.${code}&select=code,destination,channel,placement,campaign&limit=1`);
+    const rows = await database(`marketing_links?code=eq.${code}&select=*&limit=1`);
     if (!rows?.[0]) return new Response('Lien introuvable.', { status: 404, headers });
     // Incoming UTM, destination or personal parameters are deliberately ignored.
     // No click is recorded here: email scanners and link previews follow redirects.

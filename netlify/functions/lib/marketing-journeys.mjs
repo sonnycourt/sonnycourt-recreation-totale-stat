@@ -67,7 +67,7 @@ export async function readMarketingJourney(id, read=database, commerce=orderPaym
   const r=registrations[0]; if (!r || tests.length) return null;
   const cutoff=encodeURIComponent(e.occurred_at);
   const [points,surveys,cash] = await Promise.all([
-    read(`marketing_mc2_attribution?registration_id=eq.${r.id}&select=marketing_touchpoints!inner(id,visitor_id,occurred_at,marketing_links!inner(code,channel,campaign,created_at,marketing_publications!inner(published_on,publication_url,marketing_contents!inner(title))))&marketing_touchpoints.occurred_at=lte.${cutoff}&order=linked_at.asc,touchpoint_id.asc&limit=501`),
+    read(`marketing_mc2_attribution?registration_id=eq.${r.id}&select=marketing_touchpoints!inner(id,visitor_id,occurred_at,marketing_links!inner(code,channel,custom_channel,campaign,created_at,marketing_publications!inner(published_on,publication_url,marketing_contents!inner(title))))&marketing_touchpoints.occurred_at=lte.${cutoff}&order=linked_at.asc,touchpoint_id.asc&limit=501`),
     read(`mc2_survey_responses?registration_id=eq.${r.id}&created_at=lte.${cutoff}&select=priority,familiarity,profession,urgency,created_at,updated_at&order=created_at.desc&limit=1`),
     commerce(String(e.metadata.order_id)),
   ]);
@@ -84,7 +84,7 @@ export async function readMarketingJourney(id, read=database, commerce=orderPaym
     const filter=`visitor_id=in.(${visitors.join(',')})&occurred_at=gte.${since}&occurred_at=lte.${cutoff}`;
     const [ownership,later]=await Promise.all([
       read(`marketing_mc2_attribution?select=registration_id,marketing_touchpoints!inner(visitor_id,occurred_at)&marketing_touchpoints.visitor_id=in.(${visitors.join(',')})&marketing_touchpoints.occurred_at=gte.${since}&marketing_touchpoints.occurred_at=lte.${cutoff}&limit=501`),
-      read(`marketing_touchpoints?${filter}&select=id,visitor_id,occurred_at,marketing_links!inner(code,channel,campaign,created_at,marketing_publications!inner(published_on,publication_url,marketing_contents!inner(title)))&order=occurred_at.asc,id.asc&limit=501`),
+      read(`marketing_touchpoints?${filter}&select=id,visitor_id,occurred_at,marketing_links!inner(code,channel,custom_channel,campaign,created_at,marketing_publications!inner(published_on,publication_url,marketing_contents!inner(title)))&order=occurred_at.asc,id.asc&limit=501`),
     ]);
     limited ||= ownership.length>500 || later.length>500;
     if (ownership.length<=500) for (const t of later.slice(0,500)) {
@@ -94,7 +94,7 @@ export async function readMarketingJourney(id, read=database, commerce=orderPaym
   }
   for (const t of allPoints.values()) {
     const l=t.marketing_links, p=l.marketing_publications;
-    push(t.occurred_at,p.marketing_contents.title,{kind:'contact',channel:l.channel,publication_url:p.publication_url,link_created_at:l.created_at,published_on:p.published_on});
+    push(t.occurred_at,p.marketing_contents.title,{kind:'contact',channel:l.channel,custom_channel:l.custom_channel,publication_url:p.publication_url,link_created_at:l.created_at,published_on:p.published_on});
   }
   push(r.registration_completed_at,'Inscription à la masterclass',{kind:'registration'});
   push(r.session_joined_at,'Entrée dans la salle',{kind:'session'});

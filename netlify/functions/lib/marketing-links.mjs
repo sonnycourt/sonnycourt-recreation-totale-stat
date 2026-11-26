@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { getSupabaseConfig } from './supabase-rest.mjs';
-import { UUID, CODE, DESTINATIONS } from '../../../src/lib/marketing-links-contract.mjs';
+import { UUID, CODE, DESTINATIONS, customDestination } from '../../../src/lib/marketing-links-contract.mjs';
 import { bioLinkForCode } from '../../../src/lib/marketing-bio-links.mjs';
 
 export const COOKIE = 'sc_journey_v1';
@@ -57,7 +57,7 @@ export function validReceipt(value) {
   const r = verify('arrival', value);
   return r && UUID.test(r.event_id || '') && CODE.test(r.code || '') && (!r.visitor_id || UUID.test(r.visitor_id)) ? r : null;
 }
-export function isDestinationPath(destination, path, code) {
+export function isDestinationPath(destination, path, code, destinationUrl) {
   // Hub arrivals are measured on the chosen programme page, never twice on
   // /links and its destination. Only these two profile links allow either choice.
   if (bioLinkForCode(code)?.entryPath === '/links/') {
@@ -65,6 +65,11 @@ export function isDestinationPath(destination, path, code) {
   }
   // Keep arrivals from previously opened sales-page links valid.
   if (destination === 'delta' && typeof path === 'string' && path.replace(/\/$/, '') === '/delta-vision') return true;
+  if (destination === 'other') {
+    const url = customDestination(destinationUrl);
+    return ['https://sonnycourt.com','https://www.sonnycourt.com'].includes(url.origin) &&
+      typeof path === 'string' && path.replace(/\/$/, '') === url.pathname.replace(/\/$/, '');
+  }
   const expected = DESTINATIONS[destination];
   return expected && typeof path === 'string' && path.replace(/\/$/, '') === new URL(expected.url).pathname.replace(/\/$/, '');
 }
